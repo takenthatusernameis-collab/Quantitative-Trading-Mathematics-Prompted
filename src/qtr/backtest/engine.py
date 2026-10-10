@@ -1,0 +1,332 @@
+"""
+Vectorized backtesting engine with realistic cost modeling.
+
+Cost Model (from PROMPT_V2.md):
+- Equities: 1 bp commission + 0.5-5 bp spread + 0.1 bp market impact per 1% ADV
+- Futures: $0.50/contract commission + 0.25 tick spread + 0.5 tick slippage
+- Crypto: 5 bp taker fee + 2 bp spread + 1 bp slippage per 0.1% daily volume
+"""
+
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Dict, List, Optional, Tuple, Any
+import numpy as np
+import pandas as pd
+from loguru import logger
+
+
+class AssetClass(Enum):
+    EQUITY = "equity"
+    FUTURE = "future"
+    CRYPTO = "crypto"
+
+
+@dataclass
+class CostModel:
+    """Transaction cost model parameters."""
+    # Equity costs (basis points)
+    equity_commission_bps: float = 1.0
+    equity_spread_bps: float = 1.0  # average, can be overridden per symbol
+    equity_impact_bps_per_pct_adv: float = 0.1
+
+    # Futures costs (per contract)
+    future_commission_per_contract: float = 0.50
+    future_spread_ticks: float = 0.25
+    future_slippage_ticks: float = 0.5
+    future_tick_value: float = 12.50  # ES = $12.50 per tick
+
+    # Crypto costs (basis points)
+    crypto_fee_bps: float = 5.0
+    crypto_spread_bps: float = 2.0
+    crypto_slippage_bps_per_pct_daily_vol: float = 1.0
+
+    def equity_cost_bps(self, spread_bps: Optional[float] = None, adv_pct: float = 0.0) -> float:
+        """Total equity cost in basis points."""
+        spread = spread_bps if spread_bps is not None else self.equity_spread_bps
+        impact = self.equity_impact_bps_per_pct_adv * adv_pct
+        return self.equity_commission_bps + spread + impact
+
+    def future_cost_per_contract(self) -> float:
+        """Total futures cost per contract in dollars."""
+        tick_cost = (self.future_spread_ticks + self.future_slippage_ticks) * self.future_tick_value
+        return self.future_commission_per_contract + tick_cost
+
+    def crypto_cost_bps(self, daily_vol_pct: float = 0.0) -> float:
+        """Total crypto cost in basis points."""
+        slippage = self.crypto_slippage_bps_per_pct_daily_vol * daily_vol_pct
+        return self.crypto_fee_bps + self.crypto_spread_bps + slippage
+
+
+@dataclass
+class BacktestConfig:
+    """Backtest configuration."""
+    initial_capital: float = 1_000_000.0
+    cost_model: CostModel = field(default_factory=CostModel)
+    asset_class: AssetClass = AssetClass.EQUITY
+    max_position_size: float = 1.0  # fraction of capital
+    max_leverage: float = 1.0
+    allow_short: bool = False
+    benchmark_symbol: Optional[str] = None
+
+
+@dataclass
+class BacktestResult:
+    """Backtest results container."""
+    equity_curve: pd.Series
+    returns: pd.Series
+    positions: pd.DataFrame
+    trades: pd.DataFrame
+    metrics: Dict[str, float]
+    config: BacktestConfig
+
+
+class VectorizedBacktester:
+    """
+    Vectorized backtesting engine.
+
+    Computes portfolio equity curve, trades, and performance metrics
+    from signal DataFrames (position weights or target weights over time).
+    """
+
+    def __init__(self, config: BacktestConfig):
+        self.config = config
+        self.cost_model = config.cost_model
+
+    def run(
+        self,
+        prices: pd.DataFrame,
+        signals: pd.DataFrame,
+        volumes: Optional[pd.DataFrame] = None,
+        adv: Optional[pd.Series] = None,
+    ) -> BacktestResult:
+        """
+        Run backtest.
+
+        Args:
+            prices: DataFrame of close prices (datetime index, symbols as columns)
+            signals: DataFrame of target position weights (-1 to 1, same index/columns as prices)
+            volumes: Optional volume DataFrame for market impact estimation
+            adv: Optional average daily volume (shares) per symbol for impact model
+
+        Returns:
+            BacktestResult with equity curve, trades, and metrics
+        """
+        # Align data
+        common_index = prices.index.intersection(signals.index)
+        prices = prices.loc[common_index]
+        signals = signals.loc[common_index]
+
+        if volumes is not None:
+            volumes = volumes.loc[common_index]
+        else:
+            volumes = pd.DataFrame(index=prices.index, columns=prices.columns, dtype=float)
+
+        # Forward fill signals (hold position until change)
+        signals = signals.ffill().fillna(0)
+
+        # Calculate position changes (trades)
+        position_changes = signals.diff().fillna(signals.iloc[0])
+
+        # Calculate returns
+        price_returns = prices.pct_change().fillna(0)
+
+        # Portfolio returns before costs
+        portfolio_returns = (signals.shift(1) * price_returns).sum(axis=1)
+
+        # Calculate transaction costs
+        costs = self._calculate_costs(
+            position_changes, prices, volumes, adv
+        )
+
+        # Net returns
+        net_returns = portfolio_returns - costs
+
+        # Equity curve
+        equity = (1 + net_returns).cumprod() * self.config.initial_capital
+
+        # Extract trades
+        trades = self._extract_trades(position_changes, prices, costs)
+
+        # Calculate metrics
+        metrics = self._calculate_metrics(net_returns, equity, trades)
+
+        return BacktestResult(
+            equity_curve=equity,
+            returns=net_returns,
+            positions=signals,
+            trades=trades,
+            metrics=metrics,
+            config=self.config,
+        )
+
+    def _calculate_costs(
+        self,
+        position_changes: pd.DataFrame,
+        prices: pd.DataFrame,
+        volumes: pd.DataFrame,
+        adv: Optional[pd.Series],
+    ) -> pd.Series:
+        """Calculate transaction costs for each time step."""
+        costs = pd.Series(0.0, index=position_changes.index)
+
+        for symbol in position_changes.columns:
+            changes = position_changes[symbol].abs()
+            if changes.sum() == 0:
+                continue
+
+            price = prices[symbol]
+            volume = volumes[symbol] if symbol in volumes.columns else pd.Series(0, index=prices.index)
+
+            if self.config.asset_class == AssetClass.EQUITY:
+                # Estimate ADV participation
+                if adv is not None and symbol in adv.index and adv[symbol] > 0:
+                    # Position change in shares = weight_change * portfolio_value / price
+                    portfolio_value = self.config.initial_capital * (1 + costs).cumprod()
+                    shares_traded = changes * portfolio_value / price
+                    adv_pct = (shares_traded / adv[symbol]).clip(0, 1) * 100  # as percentage
+                else:
+                    adv_pct = 0.0
+
+                # Spread estimate (could be enhanced with real spread data)
+                spread_bps = self.cost_model.equity_spread_bps
+
+                cost_bps = self.cost_model.equity_cost_bps(spread_bps, adv_pct)
+                symbol_costs = changes * price * (cost_bps / 10000)  # bps to decimal
+
+            elif self.config.asset_class == AssetClass.FUTURE:
+                # Per contract cost
+                contract_cost = self.cost_model.future_cost_per_contract()
+                # Position in contracts = weight * portfolio_value / (price * contract_multiplier)
+                # Simplified: assume 1 contract per unit weight for now
+                contracts_traded = changes.abs()
+                symbol_costs = contracts_traded * contract_cost / self.config.initial_capital
+
+            elif self.config.asset_class == AssetClass.CRYPTO:
+                daily_vol_pct = 0.0  # Would need 24h volume data
+                cost_bps = self.cost_model.crypto_cost_bps(daily_vol_pct)
+                symbol_costs = changes * price * (cost_bps / 10000)
+
+            else:
+                symbol_costs = pd.Series(0.0, index=position_changes.index)
+
+            costs += symbol_costs.fillna(0)
+
+        return costs
+
+    def _extract_trades(
+        self,
+        position_changes: pd.DataFrame,
+        prices: pd.DataFrame,
+        costs: pd.Series,
+    ) -> pd.DataFrame:
+        """Extract individual trades from position changes."""
+        trades_list = []
+
+        for symbol in position_changes.columns:
+            changes = position_changes[symbol]
+            trade_idx = changes[changes != 0].index
+
+            for idx in trade_idx:
+                change = changes[idx]
+                price = prices.loc[idx, symbol]
+
+                trades_list.append({
+                    "timestamp": idx,
+                    "symbol": symbol,
+                    "side": "buy" if change > 0 else "sell",
+                    "weight_change": change,
+                    "price": price,
+                    "cost": costs[idx] if idx in costs.index else 0,
+                })
+
+        if not trades_list:
+            return pd.DataFrame(columns=["timestamp", "symbol", "side", "weight_change", "price", "cost"])
+
+        return pd.DataFrame(trades_list)
+
+    def _calculate_metrics(
+        self,
+        returns: pd.Series,
+        equity: pd.Series,
+        trades: pd.DataFrame,
+    ) -> Dict[str, float]:
+        """Calculate performance metrics."""
+        metrics = {}
+
+        # Basic returns
+        total_return = equity.iloc[-1] / equity.iloc[0] - 1
+        n_periods = len(returns)
+        ann_factor = 252  # daily data assumption
+
+        # Annualized metrics
+        ann_return = (1 + total_return) ** (ann_factor / n_periods) - 1
+        ann_vol = returns.std() * np.sqrt(ann_factor)
+
+        metrics["total_return"] = total_return
+        metrics["annualized_return"] = ann_return
+        metrics["annualized_volatility"] = ann_vol
+
+        # Sharpe & Sortino
+        risk_free = 0.0  # Assume 0 for simplicity
+        excess_returns = returns - risk_free / ann_factor
+
+        if returns.std() > 0:
+            metrics["sharpe"] = excess_returns.mean() / returns.std() * np.sqrt(ann_factor)
+        else:
+            metrics["sharpe"] = 0.0
+
+        downside_returns = returns[returns < 0]
+        if len(downside_returns) > 0 and downside_returns.std() > 0:
+            metrics["sortino"] = excess_returns.mean() / downside_returns.std() * np.sqrt(ann_factor)
+        else:
+            metrics["sortino"] = 0.0
+
+        # Drawdown
+        rolling_max = equity.expanding().max()
+        drawdown = (equity - rolling_max) / rolling_max
+        metrics["max_drawdown"] = drawdown.min()
+        metrics["max_drawdown_duration"] = self._max_dd_duration(drawdown)
+
+        # Profit factor
+        gross_profit = returns[returns > 0].sum()
+        gross_loss = abs(returns[returns < 0].sum())
+        metrics["profit_factor"] = gross_profit / gross_loss if gross_loss > 0 else np.inf
+
+        # Trade stats
+        if len(trades) > 0:
+            metrics["num_trades"] = len(trades)
+            metrics["avg_trade_cost"] = trades["cost"].mean()
+        else:
+            metrics["num_trades"] = 0
+            metrics["avg_trade_cost"] = 0
+
+        # Calmar
+        if abs(metrics["max_drawdown"]) > 0:
+            metrics["calmar"] = ann_return / abs(metrics["max_drawdown"])
+        else:
+            metrics["calmar"] = np.inf
+
+        return metrics
+
+    def _max_dd_duration(self, drawdown: pd.Series) -> int:
+        """Calculate maximum drawdown duration in periods."""
+        in_dd = drawdown < 0
+        if not in_dd.any():
+            return 0
+
+        # Group consecutive drawdown periods
+        dd_groups = (in_dd != in_dd.shift()).cumsum()
+        dd_durations = in_dd.groupby(dd_groups).sum()
+        return int(dd_durations.max()) if len(dd_durations) > 0 else 0
+
+
+def run_backtest(
+    prices: pd.DataFrame,
+    signals: pd.DataFrame,
+    config: Optional[BacktestConfig] = None,
+    **kwargs,
+) -> BacktestResult:
+    """Convenience function to run a backtest."""
+    config = config or BacktestConfig()
+    backtester = VectorizedBacktester(config)
+    return backtester.run(prices, signals, **kwargs)
