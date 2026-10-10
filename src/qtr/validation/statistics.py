@@ -1,0 +1,1 @@
+"""Statistical validation utilities for quantitative trading research."""

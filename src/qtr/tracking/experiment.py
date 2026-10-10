@@ -10,7 +10,7 @@ import subprocess
 import sys
 import os
 from pathlib import Path
-from typing import Dict, Any, Optional, List
+from typing import Any, Dict, List, Optional, Tuple
 from datetime import datetime
 from dataclasses import dataclass, asdict, field
 import pandas as pd

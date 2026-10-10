@@ -1,0 +1,10 @@
+pyproject.toml
+src/qtr.egg-info/PKG-INFO
+src/qtr.egg-info/SOURCES.txt
+src/qtr.egg-info/dependency_links.txt
+src/qtr.egg-info/requires.txt
+src/qtr.egg-info/top_level.txt
+src/qtr/backtest/engine.py
+src/qtr/data/fetcher.py
+src/qtr/tracking/experiment.py
+src/qtr/utils/config.py

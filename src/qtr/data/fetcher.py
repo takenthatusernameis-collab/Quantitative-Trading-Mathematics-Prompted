@@ -15,8 +15,6 @@ from datetime import datetime, timedelta
 
 import numpy as np
 import pandas as pd
-import yfinance as yf
-import ccxt
 from loguru import logger
 
 from qtr.utils.config import get_config
@@ -95,6 +93,7 @@ class DataFetcher:
                     continue
 
             try:
+                import yfinance as yf  # lazy import; data extras not required for core
                 ticker = yf.Ticker(symbol)
                 df = ticker.history(
                     start=start,
@@ -162,6 +161,11 @@ class DataFetcher:
 
         # Initialize exchange
         if exchange_id not in self._ccxt_exchanges:
+            try:
+                import ccxt  # lazy import
+            except ImportError as e:
+                logger.error(f"ccxt not installed: {e}")
+                return results
             exchange_class = getattr(ccxt, exchange_id)
             self._ccxt_exchanges[exchange_id] = exchange_class({
                 "enableRateLimit": True,
