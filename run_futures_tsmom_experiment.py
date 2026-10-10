@@ -138,31 +138,26 @@ def resample_monthly_signals(signals: pd.DataFrame) -> pd.DataFrame:
     return monthly
 
 def vol_scaled_tsmom_signals(prices: pd.DataFrame, lookback: int = 252,
-                             skip: int = 1, long_only: bool = False,
-                             target_vol: float = TARGET_VOL) -> pd.DataFrame:
-    pct = prices.pct_change()
-    signals = pd.DataFrame(index=prices.index, columns=prices.columns, dtype=float)
+                              skip: int = 1, long_only: bool = False,
+                              target_vol: float = TARGET_VOL,
+                              vol_window: int = 63) -> pd.DataFrame:
+    """Canonical volatility-scaled TSMOM (Moskowitz, Ooi & Pedersen 2012).
 
-    for col in prices.columns:
-        p = pct[col].dropna()
-        if len(p) == 0:
-            continue
-        mom = p.rolling(lookback).sum().shift(skip)
-        vol = p.rolling(lookback).std().shift(skip) * np.sqrt(252)
-        w_raw = -mom / vol
-        if long_only:
-            w_raw[w_raw < 0] = 0
-        signals[col] = w_raw
-
-    w_raw = signals.ffill().fillna(0.0)
-    port_ret = (w_raw.shift(1) * pct).sum(axis=1).ffill()
-    port_vol = port_ret.rolling(lookback).std() * np.sqrt(252)
-    port_vol = port_vol.replace(0, np.nan)
-    scale = (target_vol / port_vol).clip(lower=0.0, upper=3.0)
-    scale = scale.ffill().fillna(0.0)
-    weights = w_raw.multiply(scale, axis=0)
-    weights = weights.clip(-MAX_POSITION_SIZE, MAX_POSITION_SIZE)
-    return weights.ffill().fillna(0.0)
+    Delegates to the shared library implementation in
+    ``qtr.strategies.baselines.vol_scaled_tsmom_signals`` so the H1/H2/H3
+    and H4 runners use one construction. Trend-following: sign of weight
+    equals sign of momentum.
+    """
+    from qtr.strategies.baselines import vol_scaled_tsmom_signals as _impl
+    return _impl(
+        prices,
+        lookback=lookback,
+        skip=skip,
+        long_only=long_only,
+        target_vol=target_vol,
+        vol_window=vol_window,
+        max_position_size=MAX_POSITION_SIZE,
+    )
 
 def evaluate_combo(prices, volumes, adv, long_only, lookback, skip):
     cfg = make_futures_config(allow_short=not long_only)

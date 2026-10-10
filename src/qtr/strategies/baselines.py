@@ -277,6 +277,69 @@ def time_series_momentum_signals(
     return signals.ffill().fillna(0)
 
 
+def vol_scaled_tsmom_signals(
+    prices: pd.DataFrame,
+    lookback: int = 252,
+    skip: int = 21,
+    long_only: bool = True,
+    target_vol: float = 0.15,
+    vol_window: int = 63,
+    max_position_size: float = 2.0,
+) -> pd.DataFrame:
+    """Faithful AQR/Moskowitz-style volatility-scaled time-series momentum.
+
+    This is the canonical TSMOM construction (Moskowitz, Ooi & Pedersen 2012;
+    Kim, Liew & Moulang 2016 vol-scaling), matching the pre-registered H1
+    implementation in ``run_ts_momentum_experiment.py``.
+
+    Construction:
+        1. momentum = pct_change(lookback).shift(skip)  -- lookahead-safe.
+        2. direction = sign(momentum)  (+1 long, -1 short; 0 if long_only
+           and momentum <= 0, or momentum is NaN).
+        3. w_raw = direction / sigma   (inverse-volatility weighting),
+           sigma = rolling(1d return, vol_window).std * sqrt(252).
+        4. Portfolio-level volatility targeting: scale the whole book so
+           realized portfolio vol ~ target_vol (linear in scale).
+        5. Per-asset cap at +/- max_position_size.
+
+    Sign invariant: direction tracks the *sign of momentum*, so a rising
+    asset gets a positive weight. This is a *trend-following* signal. A
+    construction with ``w = -momentum / vol`` would invert the sign and
+    produce a mean-reversion signal -- a documented regression in the H4
+    runner (see run_futures_tsmom_experiment.py history).
+
+    All scaling uses only data available at time t (rolling windows, shift).
+    """
+    pct = prices.pct_change()
+    # Momentum = lookback return, shifted by skip to avoid short-horizon
+    # reversal (Moskowitz, Ooi & Pedersen 2012).
+    mom = prices.pct_change(lookback).shift(skip)
+    if long_only:
+        direction = (mom > 0).astype(float)
+    else:
+        direction = (mom > 0).astype(float) * 2.0 - 1.0
+        direction = direction.where(mom.notna(), 0.0)
+
+    sigma = pct.rolling(vol_window).std() * np.sqrt(252)
+    sigma = sigma.replace(0, np.nan).ffill()
+    inv_vol = 1.0 / sigma
+
+    w_raw = direction * inv_vol
+    w_raw = w_raw.replace([np.inf, -np.inf], np.nan).ffill().fillna(0.0)
+
+    # Portfolio-level vol targeting (scale is linear in portfolio vol).
+    port_ret = (w_raw.shift(1) * pct).sum(axis=1).ffill()
+    port_vol = port_ret.rolling(vol_window).std() * np.sqrt(252)
+    port_vol = port_vol.replace(0, np.nan)
+    scale = (target_vol / port_vol).clip(lower=0.0, upper=3.0)
+    scale = scale.ffill().fillna(0.0)
+    weights = w_raw.multiply(scale, axis=0)
+
+    # Per-asset cap (also enforced by the engine).
+    weights = weights.clip(-max_position_size, max_position_size)
+    return weights.ffill().fillna(0.0)
+
+
 def carry_signals(
     prices: pd.DataFrame,
     lookback: int = 252,
@@ -326,6 +389,7 @@ STRATEGY_REGISTRY = {
     "momentum": momentum_signals,
     "mean_reversion": mean_reversion_signals,
     "time_series_momentum": time_series_momentum_signals,
+    "vol_scaled_tsmom": vol_scaled_tsmom_signals,
     "carry": carry_signals,
 }
 

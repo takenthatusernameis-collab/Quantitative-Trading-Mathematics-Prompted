@@ -270,6 +270,68 @@ benchmark (the direction-aware gate correctly fails it).
 - **Selection**: ensemble of top-K (K=5) by train walk-forward Sharpe; ablate vs argmax.
 - **Gates**: Sharpe ≥ 1.0, ≥ 200 trades, PF ≥ 1.3, DD ≤ 15%, WF stability ≥ 0.7, ±20% perturbation OOS Sharpe ≥ 0.5×optimum, worst-regime Sharpe ≥ 0.3, benchmark p < 0.05 and IR > 0.
 
-### Outcome (to be filled by execution)
-- Status: [PENDING] - Not yet executed.
-- Artifacts: `.experiments/artifacts/exp_<H4>/`
+### Outcome (executed 2026-10-10, corrected signal run)
+
+- **Status: REJECTED** (all gates fail; see artifact
+  `exp_2026-10-10T22-59-01-182037Z`).
+- **Artifacts**: `.experiments/artifacts/exp_2026-10-10T22-59-01-182037Z/`
+  (prices, volumes, vix, param-grid 18 combos, ensemble equity/trades,
+  benchmark equity, summary.json).
+
+#### Critical bug found and fixed during execution
+
+The first H4 run (`exp_2026-10-10T21-58-28-353634Z`,
+`exp_2026-10-10T21-59-16-546117Z`) constructed the signal as
+`w_raw = -momentum / vol`, which **inverts the sign** and turns TSMOM into a
+mean-reversion strategy. Verified: per-asset correlation with the canonical
+H1 TSMOM signal was ≈ −0.78 with only 5% sign agreement. Root cause was a
+sign error in `run_futures_tsmom_experiment.py::vol_scaled_tsmom_signals`
+(a local, divergent copy of the signal builder).
+
+Fix: the canonical construction was extracted to the shared library
+`src/qtr/strategies/baselines.py::vol_scaled_tsmom_signals` (direction =
+sign(momentum) × inverse-vol, portfolio vol-targeting), the H4 runner now
+delegates to it, and a new regression test
+`tests/test_tsmom_signal.py` pins the sign invariant
+(`sign(weight) == sign(momentum)`, positive correlation with momentum,
+not mean-reversion). Test suite now 38 tests, all passing.
+
+#### Corrected H4 results (ensemble, K=5)
+
+| Gate | Threshold | Value | Pass |
+|------|-----------|-------|------|
+| Net OOS Sharpe | ≥ 1.0 | 0.376 | FAIL |
+| OOS trades | ≥ 200 | 177 | FAIL |
+| Profit factor | ≥ 1.3 | 1.085 | FAIL |
+| Max drawdown | ≤ 15% | −47.4% | FAIL |
+| WF stability | ≥ 0.7 | 0.528 | FAIL |
+| Worst-regime Sharpe | ≥ 0.3 | −1.709 | FAIL |
+| Benchmark p-value | < 0.05 | 1.000 | FAIL |
+| Information ratio | > 0 | 0.332 | PASS |
+
+- Train (2015-2019) Sharpe 0.712; Val (2020-2021) 0.305; Test (2022-2024) 0.541.
+- OOS return +33.6% over 5 years (~6.4%/yr) vs benchmark Sharpe 0.112 —
+  positive edge, but far below the ≥1.0 Sharpe gate and with −47% DD.
+- Ablation: argmax OOS Sharpe 0.786 vs ensemble 0.376 — ensemble *hurts*
+  here because the top-K by train-WF are all long-only 252-day configs
+  that are near-identical (averaging them dilutes the best signal).
+- Data: all 5 `=F` tickers available (ES, NQ, CL, GC, ZB). Yahoo continuous
+  futures roll adjustment is opaque; roll-date drift bias is a stated
+  limitation and is not quantified here.
+
+#### Root-cause attribution (H4 rejected)
+
+1. **Train→OOS decay persists**: train Sharpe 0.71 → OOS 0.38. The
+   ensemble did not cure it; the top-K configs are too correlated (all
+   long-only, 252-day lookback) to diversify selection noise.
+2. **No Sharpe ≥ 1.0 OOS edge on free daily data**: best single combo
+   (long-only, 252, skip 1) OOS Sharpe 0.786 — the closest yet, but
+   still below the gate, with 177 trades (< 200) and −47% DD.
+3. **Futures do not rescue the family**: the corrected TSMOM is genuinely
+   trend-following and produces positive OOS alpha (IR 0.33), but the
+   PROMPT_V2 gates (Sharpe ≥ 1.0, DD ≤ 15%) are not certifiable on this
+   sample. The dominant failure is drawdown, not signal direction.
+4. **Process conclusion**: H1/H2/H3/H4 all rejected with the same
+   mechanism — free daily data + walk-forward selection cannot certify a
+   Sharpe ≥ 1.0 edge with a ≤15% DD on this timeline. Honest negative
+   result; no gate was weakened to force a pass.

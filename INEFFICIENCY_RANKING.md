@@ -128,4 +128,14 @@ scope decision (see NEXT_TASK.md).
 - ETFs: $1B+ (based on $100M+ ADV); 2022 stress showed several ETFs (USO) with
   extreme single-day gap risk that would impair scaling — a separate capacity risk.
 
-- **H4 (pending)**: Futures TSMOM + ensemble selection — shift to =F futures where TSMOM literature edge was discovered. Pre-registered K=5 ensemble to reduce argmax overfit; gates same. Status: pending.
+- **H4 (executed 2026-10-10, REJECTED)**: Futures TSMOM + ensemble
+  selection on ES/NQ/CL/GC/ZB `=F` continuous contracts. A sign-inversion
+  bug in the first H4 run (signal was mean-reversion, not trend-following)
+  was found and fixed; the canonical TSMOM was moved to the shared library
+  `src/qtr/strategies/baselines.py` and pinned by
+  `tests/test_tsmom_signal.py`. Corrected result: ensemble OOS Sharpe
+  0.376, best single combo 0.786, IR 0.33 (positive alpha vs equal-weight
+  futures benchmark), but DD −47% and 177 trades — fails all gates.
+  Ranking: futures rank **above ETFs** for raw TSMOM edge (positive OOS
+  alpha, IR 0.33 vs −0.89 for H3), but still cannot certify the
+  PROMPT_V2 Sharpe ≥ 1.0 / DD ≤ 15% gate. See HYPOTHESIS_SPEC.md H4.
