@@ -1,0 +1,122 @@
+{
+  "experiment_id": "exp_2026-10-10T21-09-06-830199Z",
+  "selected_params": {
+    "long_only": true,
+    "lookback": 252,
+    "skip": 21,
+    "target_vol": 0.15
+  },
+  "gates": {
+    "net_oos_sharpe": {
+      "value": 0.1165,
+      "threshold": 1.0,
+      "pass": false
+    },
+    "oos_trades": {
+      "value": 388,
+      "threshold": 200,
+      "pass": true
+    },
+    "profit_factor": {
+      "value": 1.0243,
+      "threshold": 1.3,
+      "pass": false
+    },
+    "max_drawdown": {
+      "value": -0.3869,
+      "threshold": 0.15,
+      "pass": false
+    },
+    "walkforward_stability": {
+      "value": 0.183,
+      "threshold": 0.7,
+      "pass": false
+    },
+    "param_perturbation": {
+      "value": 0.0361,
+      "threshold": 0.0582,
+      "pass": false,
+      "details": {
+        "lookback+20%": 0.0361,
+        "lookback-20%": 0.2074,
+        "skip+20%": 0.1446,
+        "skip-20%": 0.2864
+      }
+    },
+    "regime_stability": {
+      "value": -3.0304,
+      "threshold": 0.3,
+      "pass": false,
+      "regimes": {
+        "bull": {
+          "sharpe": 1.529639918684249,
+          "n": 652
+        },
+        "sideways": {
+          "sharpe": -0.26925709333335707,
+          "n": 470
+        },
+        "bear": {
+          "sharpe": -3.030427006029038,
+          "n": 135
+        }
+      }
+    },
+    "benchmark_significance": {
+      "value": 0.5734,
+      "threshold": 0.05,
+      "pass": false,
+      "information_ratio": -0.2523
+    }
+  },
+  "all_gates_pass": false,
+  "oos_metrics": {
+    "sharpe": 0.1165,
+    "sharpe_ci": [
+      -0.7136,
+      1.0244
+    ],
+    "n_trades": 388,
+    "profit_factor": 1.0243,
+    "max_drawdown": -0.3869
+  },
+  "split_metrics": {
+    "train_sharpe": 0.6362,
+    "val_sharpe": 0.1465,
+    "test_sharpe": 0.0918,
+    "oos_sharpe": 0.1165
+  },
+  "benchmark_comparison": {
+    "information_ratio": -0.2523,
+    "information_ratio_ci": [
+      -0.9207,
+      0.1005
+    ],
+    "alpha_p_value": 0.57342
+  },
+  "regime_metrics": {
+    "bull": {
+      "sharpe": 1.529639918684249,
+      "n": 652
+    },
+    "sideways": {
+      "sharpe": -0.26925709333335707,
+      "n": 470
+    },
+    "bear": {
+      "sharpe": -3.030427006029038,
+      "n": 135
+    }
+  },
+  "perturbations": {
+    "lookback+20%": 0.0361,
+    "lookback-20%": 0.2074,
+    "skip+20%": 0.1446,
+    "skip-20%": 0.2864
+  },
+  "param_grid_summary": {
+    "n_combos": 54,
+    "selection_metric": "mean walk-forward OOS Sharpe on TRAIN",
+    "benjamini_hochberg_significant": 0
+  }
+}

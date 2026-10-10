@@ -1,0 +1,137 @@
+{
+  "experiment_id": "exp_2026-10-10T20-57-26-136503Z",
+  "selected_params": {
+    "long_only": true,
+    "lookback": 126,
+    "skip": 1,
+    "target_vol": 0.15,
+    "volatility_scale": true
+  },
+  "gates": {
+    "net_oos_sharpe": {
+      "value": 0.0929,
+      "threshold": 1.0,
+      "pass": false
+    },
+    "oos_trades": {
+      "value": 768,
+      "threshold": 200,
+      "pass": true
+    },
+    "profit_factor": {
+      "value": 1.0172,
+      "threshold": 1.3,
+      "pass": false
+    },
+    "max_drawdown": {
+      "value": -0.3483,
+      "threshold": 0.15,
+      "pass": false
+    },
+    "walkforward_stability": {
+      "value": 0.1576,
+      "threshold": 0.7,
+      "pass": false
+    },
+    "param_perturbation": {
+      "value": 0.0588,
+      "threshold": 0.0464,
+      "pass": true,
+      "details": {
+        "lookback+20%": 0.322,
+        "lookback-20%": 0.0588,
+        "skip+20%": 0.0929,
+        "skip-20%": 0.0929
+      }
+    },
+    "regime_stability": {
+      "value": -2.4005,
+      "threshold": 0.3,
+      "pass": false,
+      "regimes": {
+        "bull": {
+          "sharpe": 1.1328198391073565,
+          "n": 652
+        },
+        "sideways": {
+          "sharpe": -0.16922539293219796,
+          "n": 470
+        },
+        "bear": {
+          "sharpe": -2.4005312601069395,
+          "n": 135
+        }
+      }
+    },
+    "benchmark_significance": {
+      "value": 0.7817,
+      "threshold": 0.05,
+      "pass": false,
+      "information_ratio": -0.1241,
+      "alpha_p_value": 0.7817
+    }
+  },
+  "all_gates_pass": false,
+  "oos_metrics": {
+    "sharpe": 0.0929,
+    "sharpe_ci": [
+      -0.7579,
+      0.9615
+    ],
+    "n_trades": 768,
+    "profit_factor": 1.0172,
+    "max_drawdown": -0.3483
+  },
+  "split_metrics": {
+    "train_sharpe": 0.5892,
+    "val_sharpe": 0.2453,
+    "test_sharpe": -0.039,
+    "oos_sharpe": 0.0929
+  },
+  "benchmark_comparison": {
+    "information_ratio": -0.1241,
+    "information_ratio_ci": [
+      -0.8736,
+      0.3101
+    ],
+    "alpha_annualized": -0.015,
+    "alpha_p_value": 0.78174,
+    "alpha_t_stat": -0.2771
+  },
+  "regime_metrics": {
+    "bull": {
+      "sharpe": 1.1328198391073565,
+      "n": 652
+    },
+    "sideways": {
+      "sharpe": -0.16922539293219796,
+      "n": 470
+    },
+    "bear": {
+      "sharpe": -2.4005312601069395,
+      "n": 135
+    }
+  },
+  "perturbations": {
+    "lookback+20%": 0.322,
+    "lookback-20%": 0.0588,
+    "skip+20%": 0.0929,
+    "skip-20%": 0.0929
+  },
+  "param_grid_summary": {
+    "n_combos": 18,
+    "selection_metric": "mean walk-forward OOS Sharpe on TRAIN",
+    "benjamini_hochberg_significant": 0
+  },
+  "gates_spec": {
+    "min_sharpe": 1.0,
+    "min_trades": 200,
+    "min_profit_factor": 1.3,
+    "max_drawdown": 0.15,
+    "min_walkforward_stability": 0.7,
+    "min_perturbed_sharpe_ratio": 0.5,
+    "min_worst_regime_sharpe": 0.3,
+    "max_p_value": 0.05,
+    "alpha_multiple_testing": "benjamini_hochberg"
+  }
+}

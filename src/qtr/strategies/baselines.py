@@ -245,7 +245,7 @@ def time_series_momentum_signals(
     if volatility_scale:
         returns = prices.pct_change()
         realized_vol = returns.rolling(63).std() * np.sqrt(252)
-        realized_vol = realized_vol.replace(0, np.nan).fillna(method="ffill").fillna(0.15)
+        realized_vol = realized_vol.replace(0, np.nan).ffill().fillna(0.15)
     else:
         realized_vol = None
 

@@ -4,99 +4,94 @@
 
 ### Ranking Methodology
 
-Net Opportunity = (Gross Edge - Transaction Costs) * Capacity * (1 - Competition Decay)
+`Net Opportunity ≈ (Gross Edge − Transaction Costs) × Capacity × (1 − Competition Decay)`,
+scored 1–5 on six factors per PROMPT_V2.md. Estimates are updated **after** the
+cost-model correction (the previous cost bug inflated trading costs hundreds of
+basis points per trade, which had masked the true net edge of every active
+strategy; see EXECUTION_REPORT.md). All costs use the corrected equity model:
+1 bp commission + 1 bp spread + 0.1 bp per 1% ADV.
+
+---
 
 ### Ranked Candidates
 
-#### 1. Time-Series Momentum on Equity Index Futures/ETFs
-- **Gross Edge**: Sharpe 0.8-1.2 (Moskowitz et al. 2012)
-- **Transaction Costs**: ~2-5 bps per trade (ETFs), ~$5-10/futures contract
-- **Net Edge**: Estimated Sharpe 0.5-0.9 after costs
-- **Capacity**: $1B+ (ETFs), $10B+ (futures)
-- **Competition**: High (managed futures funds, retail)
-- **Data Availability**: Excellent (yfinance, free)
-- **Execution Feasibility**: High (ETFs), Medium (futures require clearing)
-- **Net Opportunity Score**: 7/10
+#### 1. Time-Series Momentum on Liquid ETFs (executed — H1)
+- **Gross Edge (lit.):** Sharpe 0.6–0.8 (Moskowitz et al. 2012).
+- **Net edge measured (20 ETFs, 2015-2024, corrected costs):** **OOS Sharpe 0.093**
+  (95% CI [-0.76, 0.96]); Train 0.589 → Val 0.245 → **Test -0.039**.
+- **Capacity:** $1B+ (ETFs); $10B+ (futures, not tested here).
+- **Competition:** High (managed-futures, retail).
+- **Net Opportunity Score:** 7/10 (theory) → **2/10 (realized on sample)**.
+- **Status: REJECTED by evidence gates** (Sharpe < 1.0, DD -34.8% > 15%,
+  PF 1.02 < 1.3, not significant vs EW benchmark p=0.78, train→OOS collapse).
+- **Why ranked #1:** strongest provenance and testability; the experiment was
+  run first. The realized net opportunity on 2015-2024 is ~zero.
 
-#### 2. Cross-Sectional Momentum on Equity ETFs
-- **Gross Edge**: Sharpe 0.6-0.9 (Jegadeesh & Titman 1993)
-- **Transaction Costs**: ~3-8 bps per trade
-- **Net Edge**: Estimated Sharpe 0.3-0.6 after costs
-- **Capacity**: $500M+ (liquid ETFs)
-- **Competition**: Very High (quant funds, factor ETFs)
-- **Data Availability**: Excellent
-- **Execution Feasibility**: High
-- **Net Opportunity Score**: 5/10
+#### 2. Cross-Sectional Momentum on Equity ETFs (executed — H2)
+- **Gross Edge (lit.):** Sharpe 0.6–0.9 net of factors (Jegadeesh & Titman 1993;
+  Asness et al. 2013).
+- **Net edge measured (10 equity ETFs, 2015-2024):** **OOS Sharpe 0.116**
+  (95% CI [-0.71, 1.02]); Test 0.092.
+- **Capacity:** $500M+.
+- **Net Opportunity Score:** 5/10 (theory) → **2/10 (realized)**.
+- **Status: REJECTED** (Sharpe < 1.0, DD -38.7%, PF 1.02, p=0.57; only trade-count passes).
+- **Why:** most-replicated anomaly; cleanest test. The realized edge is ~zero,
+  consistent with heavy crowding and momentum-crash events.
 
-#### 3. Carry on Multiple Asset Classes
-- **Gross Edge**: Sharpe 0.8-1.2 (Koijen et al. 2018)
-- **Transaction Costs**: Varies by asset class
-- **Net Edge**: Sharpe 0.5-0.8 after costs
-- **Capacity**: $500M+ (diversified)
-- **Competition**: Medium-High
-- **Data Availability**: Good (futures), Limited (credit, options)
-- **Execution Feasibility**: Medium (multi-asset)
-- **Net Opportunity Score**: 6/10
+#### 3. Carry / Term Structure (reviewed, NOT executed)
+- **Gross Edge:** Sharpe 0.8–1.2 (Koijen et al. 2018).
+- **Net edge (estimated):** Sharpe 0.5–0.8 after costs; **but** 2021–22 bond
+  massacre and 2008 replay risk; requires futures/contango roll data not on the
+  free Yahoo pipeline.
+- **Capacity:** $500M+ (diversified).
+- **Net Opportunity Score:** 6/10 (theory) → withheld (data gap).
+- **Status: DEFERRED.** Invalidated if 2022-style yield-curve repricing repeats
+  without futures roll to capture the roll-down.
 
-#### 4. Mean Reversion on High-Frequency Data
-- **Gross Edge**: Sharpe 0.5-1.0 (intraday)
-- **Transaction Costs**: ~1-3 bps per trade (high frequency)
-- **Net Edge**: Sharpe 0.2-0.5 after costs
-- **Capacity**: $100M+ (high freq)
-- **Competition**: Very High (HFT firms)
-- **Data Availability**: Requires tick data
-- **Execution Feasibility**: Low (requires low-latency infra)
-- **Net Opportunity Score**: 3/10
+#### 4. Mean Reversion on Intraday Data (reviewed, NOT executed)
+- Requires tick/1-min data + low-latency infra. Net sharpe estimated 0.2–0.5 after
+  HFT costs. **Net Opportunity Score: 3/10.** Rejected by execution feasibility.
 
-#### 5. Regime-Switching Strategies
-- **Gross Edge**: Sharpe 0.4-0.8
-- **Transaction Costs**: ~2-5 bps
-- **Net Edge**: Sharpe 0.2-0.5
-- **Capacity**: $500M+
-- **Competition**: Medium
-- **Data Availability**: Good
-- **Execution Feasibility**: High
-- **Net Opportunity Score**: 4/10
+#### 5. Regime-Switching Momentum (control, reviewed)
+- Switches momentum exposure off in bear regimes. Theory suggests crash-mitigation.
+- **Net Opportunity Score: 4/10.** Strong candidate for the *next* cycle: gating
+  momentum on a VIX / vol-regime filter is the natural fix for the cash found
+  here (bear-regime Sharpe ≈ -2.4 to -3.0).
 
-### Invalidation Criteria
+---
 
-**Time-Series Momentum** invalidated if:
-- Out-of-sample Sharpe < 0.5 for 2+ consecutive years
-- Maximum drawdown > 30% in any 12-month period
-- Strategy fails during 2008-style crisis (correlation > 0.7 with market)
+### Invalidation Criteria (updated with measured outcomes)
 
-**Cross-Sectional Momentum** invalidated if:
-- Out-of-sample Sharpe < 0.3
-- Momentum crash frequency > 20% of years
-- Capacity < $100M
+**TS Momentum invalidated** (and the experiment confirms it on this sample) if:
+- OOS Sharpe < 0.5 → **measured 0.093** ✓ invalidated on this sample.
+- Max drawdown > 25% in a 12-month period → **measured -34.8% (2020+2022)**.
+- Bear-regime Sharpe < 0 → **measured -2.40** (VIX > 30 periods).
+- Train Sharpe − OOS Sharpe > 0.4 → **0.589 − 0.093 = 0.496** (overfit).
 
-### Selected Strategy for Testing
+**CS Momentum invalidated** if:
+- OOS Sharpe < 0.5 → **0.116**; worst-regime Sharpe < 0 → **-3.03**.
 
-**Time-Series Momentum on 20 liquid ETFs/futures** is the top-ranked candidate because:
-1. Strongest academic provenance with testable mechanism
-2. Works with existing infrastructure (yfinance + vectorized backtest)
-3. Highest capacity among testable strategies
-4. Clear falsification criteria
+---
 
-### Universe Selection
+### Universe Used (final)
 
-**ETFs (15 symbols)**:
-- Equities: SPY, QQQ, IWM, EFA, EEM, VWO
-- Bonds: TLT, AGG, HYG
-- Commodities: GLD, USO, PDBC
-- Currencies: UUP, FXE, JPY
+20 liquid ETFs across 5 asset classes (+ ^VIX for regime labels only):
+- Equities (6): SPY, QQQ, IWM, EFA, EEM, VWO
+- Bonds (3): TLT, AGG, HYG
+- Commodities (4): GLD, USO, PDBC, GSG
+- Currencies (3): UUP, FXE, FXY
+- Intl / REIT (4): VNQ, EWJ, EWZ, INDA
 
-**Futures (5 symbols)**:
-- ES (S&P 500), NQ (Nasdaq), CL (Crude Oil), GC (Gold), ZB (30Y Bond)
+`EGGV` (from the draft spec) was dropped — delisted/no data on Yahoo. Futures
+(ES, NQ, CL, GC, ZB) were excluded: yfinance futures require `=F` tickers and the
+engine's per-contract cost path is unimplemented/untuned; this is a documented
+scope decision (see NEXT_TASK.md).
 
-**Total**: 20 symbols across 5 asset classes
-
-### Cost Model Assumptions
-- ETFs: 1 bp commission + 1 bp spread + 0.1 bp impact per 1% ADV
-- Futures: $0.50/contract + 0.25 tick spread + 0.5 tick slippage
-- Crypto: 5 bp taker fee + 2 bp spread + 1 bp slippage
+### Cost Model (corrected)
+- ETFs: 1 bp commission + 1 bp spread + 0.1 bp per 1% ADV participation.
+- Verified: buy-and-hold SPY cost ≈ 3 bps round-trip; buy-and-hold EW-20
+  Sharpe 0.295 (vs 0.685 single SPY due to 2022 bond/commodity drag — *not* costs).
 
 ### Capacity Estimates
-- ETFs: $1B+ (based on $100M ADV assumption)
-- Futures: $10B+ (based on open interest)
-- Total estimated capacity: $5B+
+- ETFs: $1B+ (based on $100M+ ADV); 2022 stress showed several ETFs (USO) with
+  extreme single-day gap risk that would impair scaling — a separate capacity risk.

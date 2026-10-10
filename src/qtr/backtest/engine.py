@@ -193,7 +193,9 @@ class VectorizedBacktester:
             volume = volumes[symbol] if symbol in volumes.columns else pd.Series(0, index=prices.index)
 
             if self.config.asset_class == AssetClass.EQUITY:
-                # Estimate ADV participation using initial capital (approximate)
+                # Estimate ADV participation using initial capital (approximate).
+                # changes is a weight delta (fraction of capital); shares_traded
+                # converts it to a share count for volume-participation impact.
                 if adv is not None and symbol in adv.index and adv[symbol] > 0:
                     # Position change in shares = weight_change * initial_capital / price
                     shares_traded = changes * self.config.initial_capital / price
@@ -205,7 +207,10 @@ class VectorizedBacktester:
                 spread_bps = self.cost_model.equity_spread_bps
 
                 cost_bps = self.cost_model.equity_cost_bps(spread_bps, adv_pct)
-                symbol_costs = changes * price * (cost_bps / 10000)  # bps to decimal
+                # Cost as a FRACTION of portfolio value: weight_delta * cost_bps.
+                # (Previously multiplied by `price`, which injected the per-share
+                # dollar price and inflated costs ~400x. See cost-model audit.)
+                symbol_costs = changes * (cost_bps / 10000)
 
             elif self.config.asset_class == AssetClass.FUTURE:
                 # Per contract cost
@@ -218,7 +223,8 @@ class VectorizedBacktester:
             elif self.config.asset_class == AssetClass.CRYPTO:
                 daily_vol_pct = 0.0  # Would need 24h volume data
                 cost_bps = self.cost_model.crypto_cost_bps(daily_vol_pct)
-                symbol_costs = changes * price * (cost_bps / 10000)
+                # Cost as a fraction of portfolio value (weight_delta * cost_bps).
+                symbol_costs = changes * (cost_bps / 10000)
 
             else:
                 symbol_costs = pd.Series(0.0, index=position_changes.index)

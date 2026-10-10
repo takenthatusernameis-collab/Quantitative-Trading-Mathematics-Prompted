@@ -1,0 +1,31 @@
+{
+  "shape": [
+    2515,
+    10
+  ],
+  "columns": [
+    "SPY",
+    "QQQ",
+    "IWM",
+    "EFA",
+    "EEM",
+    "VWO",
+    "EWJ",
+    "EWZ",
+    "INDA",
+    "VNQ"
+  ],
+  "dtypes": {
+    "SPY": "float64",
+    "QQQ": "float64",
+    "IWM": "float64",
+    "EFA": "float64",
+    "EEM": "float64",
+    "VWO": "float64",
+    "EWJ": "float64",
+    "EWZ": "float64",
+    "INDA": "float64",
+    "VNQ": "float64"
+  },
+  "index_type": "datetime64[ms]"
+}
