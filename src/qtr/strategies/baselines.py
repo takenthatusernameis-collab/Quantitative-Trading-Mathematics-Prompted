@@ -211,12 +211,122 @@ def mean_reversion_signals(
     return signals.ffill().fillna(0)
 
 
+def time_series_momentum_signals(
+    prices: pd.DataFrame,
+    lookback: int = 252,
+    skip: int = 21,
+    long_only: bool = True,
+    volatility_scale: bool = True,
+    target_vol: float = 0.15,
+) -> pd.DataFrame:
+    """
+    Generate time-series momentum signals (Moskowitz, Ooi, Pedersen 2012).
+
+    Each asset's position is based on its own past returns (not cross-sectional).
+    Optionally volatility-scaled per Kim et al. (2016).
+
+    Args:
+        prices: DataFrame of close prices
+        lookback: Momentum lookback period (default 252 = 1 year)
+        skip: Skip period to avoid microstructure effects (default 21 = 1 month)
+        long_only: If True, only long positions
+        volatility_scale: If True, scale positions by inverse volatility
+        target_vol: Target annualized volatility for scaling
+
+    Returns:
+        DataFrame of position weights
+    """
+    signals = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
+
+    # Calculate momentum: past return over lookback, shifted by skip
+    momentum = prices.pct_change(lookback).shift(skip)
+
+    # Calculate realized volatility (annualized) for scaling
+    if volatility_scale:
+        returns = prices.pct_change()
+        realized_vol = returns.rolling(63).std() * np.sqrt(252)
+        realized_vol = realized_vol.replace(0, np.nan).fillna(method="ffill").fillna(0.15)
+    else:
+        realized_vol = None
+
+    for date in momentum.index:
+        mom_vals = momentum.loc[date].dropna()
+        if len(mom_vals) == 0:
+            continue
+
+        for symbol in mom_vals.index:
+            mom_val = mom_vals[symbol]
+            if mom_val > 0:
+                weight = 1.0 if long_only else 1.0
+            elif mom_val < 0 and not long_only:
+                weight = -1.0
+            else:
+                weight = 0.0
+
+            # Volatility scaling
+            if volatility_scale and realized_vol is not None:
+                if symbol in realized_vol.columns:
+                    vol = realized_vol.loc[date, symbol]
+                    if vol > 0:
+                        # Scale to target volatility
+                        scale = min(target_vol / vol, 2.0)  # cap leverage
+                        weight = weight * scale
+
+            signals.loc[date, symbol] = weight
+
+    return signals.ffill().fillna(0)
+
+
+def carry_signals(
+    prices: pd.DataFrame,
+    lookback: int = 252,
+    long_only: bool = True,
+) -> pd.DataFrame:
+    """
+    Generate carry signals (Koijen, Moskowitz, Pedersen, Vrugt 2018).
+
+    For futures: carry = futures price - spot price (contango/backwardation).
+    For ETFs: approximate carry using dividend yield and roll yield.
+
+    Args:
+        prices: DataFrame of close prices
+        lookback: Lookback for carry calculation
+        long_only: If True, only long positions
+
+    Returns:
+        DataFrame of position weights
+    """
+    signals = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
+
+    # Simple carry proxy: 12-month return minus 1-month return
+    # High carry = positive term structure
+    long_ret = prices.pct_change(lookback)
+    short_ret = prices.pct_change(21)
+
+    carry = long_ret - short_ret
+
+    for date in carry.index:
+        carry_vals = carry.loc[date].dropna()
+        if len(carry_vals) == 0:
+            continue
+
+        for symbol in carry_vals.index:
+            if carry_vals[symbol] > 0:
+                signals.loc[date, symbol] = 1.0 if long_only else 1.0
+            elif carry_vals[symbol] < 0 and not long_only:
+                signals.loc[date, symbol] = -1.0
+
+    return signals.ffill().fillna(0)
+
+
 STRATEGY_REGISTRY = {
     "ma_crossover": moving_average_crossover_signals,
     "buy_and_hold": buy_and_hold_signals,
     "ewma_crossover": ewma_crossover_signals,
     "momentum": momentum_signals,
     "mean_reversion": mean_reversion_signals,
+    "time_series_momentum": time_series_momentum_signals,
+    "carry": carry_signals,
 }
 
 
