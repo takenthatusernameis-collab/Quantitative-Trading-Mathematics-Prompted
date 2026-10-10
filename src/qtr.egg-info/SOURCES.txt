@@ -8,3 +8,5 @@ src/qtr/backtest/engine.py
 src/qtr/data/fetcher.py
 src/qtr/tracking/experiment.py
 src/qtr/utils/config.py
+src/qtr/validation/__init__.py
+src/qtr/validation/statistics.py
