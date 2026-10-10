@@ -4,6 +4,7 @@ Data fetching module for quantitative trading research.
 Supports:
 - Yahoo Finance (equities, ETFs) via yfinance
 - Crypto exchanges via CCXT
+- Futures continuous contracts via yfinance =F tickers
 """
 
 import os
@@ -125,6 +126,86 @@ class DataFetcher:
 
                 if use_cache:
                     self.cache.set("yahoo", symbol, start, end, interval, df)
+
+            except Exception as e:
+                logger.error(f"Failed to fetch {symbol}: {e}")
+                results[symbol] = pd.DataFrame()
+
+        return results
+
+    def fetch_futures(
+        self,
+        symbols: List[str],
+        start: str,
+        end: Optional[str] = None,
+        interval: str = "1d",
+        use_cache: bool = True,
+    ) -> Dict[str, pd.DataFrame]:
+        """
+        Fetch continuous futures data from Yahoo Finance using =F tickers.
+
+        Args:
+            symbols: List of futures symbols with =F suffix (e.g., ["ES=F", "NQ=F", "CL=F", "GC=F", "ZB=F"])
+            start: Start date "YYYY-MM-DD"
+            end: End date "YYYY-MM-DD" (default: today)
+            interval: "1d", "1h", etc. (yfinance supported intervals)
+            use_cache: Whether to use cached data
+
+        Returns:
+            Dict mapping symbol to DataFrame with columns:
+            open, high, low, close, volume
+
+        Note:
+            Yahoo Finance continuous futures are back-adjusted (spliced) contracts.
+            Roll dates and adjustment methodology are opaque. Long-horizon returns
+            may contain roll-date drift bias. Quantify if possible, else state as limitation.
+        """
+        end = end or datetime.now().strftime("%Y-%m-%d")
+        results = {}
+
+        for symbol in symbols:
+            if not symbol.endswith("=F"):
+                logger.warning(f"Futures symbol {symbol} should end with =F; proceeding anyway")
+
+            if use_cache:
+                cached = self.cache.get("yahoo_futures", symbol, start, end, interval)
+                if cached is not None:
+                    results[symbol] = cached
+                    continue
+
+            try:
+                import yfinance as yf
+                ticker = yf.Ticker(symbol)
+                df = ticker.history(
+                    start=start,
+                    end=end,
+                    interval=interval,
+                    auto_adjust=False,
+                    actions=False,
+                )
+
+                if df.empty:
+                    logger.warning(f"No data for {symbol} from {start} to {end}")
+                    results[symbol] = pd.DataFrame()
+                    continue
+
+                # Standardize column names
+                df.columns = [c.lower().replace(" ", "_") for c in df.columns]
+                df = df.rename(columns={"adj_close": "adj_close"})
+
+                # Ensure required columns
+                required = ["open", "high", "low", "close", "volume"]
+                for col in required:
+                    if col not in df.columns:
+                        logger.warning(f"Missing column {col} for {symbol}")
+
+                df = df[required + [c for c in df.columns if c not in required]]
+                df.index = pd.to_datetime(df.index).tz_localize(None)
+
+                results[symbol] = df
+
+                if use_cache:
+                    self.cache.set("yahoo_futures", symbol, start, end, interval, df)
 
             except Exception as e:
                 logger.error(f"Failed to fetch {symbol}: {e}")

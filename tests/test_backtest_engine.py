@@ -220,9 +220,55 @@ class TestOtherAssetClasses:
         cfg = _make_config(asset_class=AssetClass.FUTURE, max_leverage=5.0,
                            max_position_size=5.0)
         cfg.cost_model.future_commission_per_contract = 0.50
+        cfg.cost_model.future_contract_multiplier = 50.0  # ES multiplier
         res = run_backtest(prices=prices, signals=signals, config=cfg)
-        # day-0 cost = 1 contract * $9.875 / $1M capital
-        assert res.returns.iloc[0] == pytest.approx(-9.875 / 1_000_000, abs=1e-12)
+        # day-0 cost = weight_change * capital / (price * multiplier) * contract_cost / capital
+        # = 1.0 * 1M / (price * 50) * $9.875 / 1M = contract_cost / (price * 50)
+        price_0 = prices["ES"].iloc[0]
+        contract_cost = 0.50 + (0.25 + 0.5) * 12.50  # $9.875
+        expected_cost = contract_cost / (price_0 * 50)
+        assert res.returns.iloc[0] == pytest.approx(-expected_cost, abs=1e-12)
+
+    def test_future_cost_path_scales_with_multiplier(self):
+        """Cost should be inversely proportional to contract multiplier."""
+        prices = _make_prices(symbols=("ES",))
+        signals = pd.DataFrame({"ES": 0.0}, index=prices.index)
+        signals.iloc[0] = 1.0
+
+        cfg1 = _make_config(asset_class=AssetClass.FUTURE, max_leverage=5.0,
+                            max_position_size=5.0)
+        cfg1.cost_model.future_commission_per_contract = 0.50
+        cfg1.cost_model.future_contract_multiplier = 50.0
+        res1 = run_backtest(prices=prices, signals=signals, config=cfg1)
+
+        cfg2 = _make_config(asset_class=AssetClass.FUTURE, max_leverage=5.0,
+                            max_position_size=5.0)
+        cfg2.cost_model.future_commission_per_contract = 0.50
+        cfg2.cost_model.future_contract_multiplier = 100.0  # 2x multiplier -> 1/2 contracts
+        res2 = run_backtest(prices=prices, signals=signals, config=cfg2)
+
+        # Double multiplier should halve the cost (and thus halve the negative return)
+        assert res2.returns.iloc[0] == pytest.approx(res1.returns.iloc[0] / 2, abs=1e-12)
+
+    def test_future_cost_path_scales_with_weight(self):
+        """Cost should scale linearly with position weight change."""
+        prices = _make_prices(symbols=("ES",))
+        signals = pd.DataFrame({"ES": 0.0}, index=prices.index)
+        signals.iloc[0] = 2.0  # 2x weight
+
+        cfg = _make_config(asset_class=AssetClass.FUTURE, max_leverage=5.0,
+                           max_position_size=5.0)
+        cfg.cost_model.future_commission_per_contract = 0.50
+        cfg.cost_model.future_contract_multiplier = 50.0
+        res = run_backtest(prices=prices, signals=signals, config=cfg)
+
+        # Compare to 1.0 weight
+        prices1 = _make_prices(symbols=("ES",))
+        signals1 = pd.DataFrame({"ES": 0.0}, index=prices1.index)
+        signals1.iloc[0] = 1.0
+        res1 = run_backtest(prices=prices1, signals=signals1, config=cfg)
+
+        assert res.returns.iloc[0] == pytest.approx(2 * res1.returns.iloc[0], abs=1e-12)
 
     def test_crypto_cost_path_runs(self):
         prices = _make_prices(symbols=("BTC",))

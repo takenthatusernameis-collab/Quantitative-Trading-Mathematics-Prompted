@@ -34,6 +34,7 @@ class CostModel:
     future_spread_ticks: float = 0.25
     future_slippage_ticks: float = 0.5
     future_tick_value: float = 12.50  # ES = $12.50 per tick
+    future_contract_multiplier: float = 50.0  # ES = $50 per point
 
     # Crypto costs (basis points)
     crypto_fee_bps: float = 5.0
@@ -216,9 +217,11 @@ class VectorizedBacktester:
                 # Per contract cost
                 contract_cost = self.cost_model.future_cost_per_contract()
                 # Position in contracts = weight * portfolio_value / (price * contract_multiplier)
-                # Simplified: assume 1 contract per unit weight for now
-                contracts_traded = changes.abs()
-                symbol_costs = contracts_traded * contract_cost / self.config.initial_capital
+                # contracts_traded = weight_change * portfolio_value / (price * multiplier)
+                # Using initial_capital as portfolio_value approximation (consistent with equity path)
+                multiplier = self.cost_model.future_contract_multiplier
+                contracts_traded = changes * self.config.initial_capital / (price * multiplier)
+                symbol_costs = contracts_traded.abs() * contract_cost / self.config.initial_capital
 
             elif self.config.asset_class == AssetClass.CRYPTO:
                 daily_vol_pct = 0.0  # Would need 24h volume data
