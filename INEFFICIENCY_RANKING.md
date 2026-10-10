@@ -52,11 +52,28 @@ strategy; see EXECUTION_REPORT.md). All costs use the corrected equity model:
 - Requires tick/1-min data + low-latency infra. Net sharpe estimated 0.2–0.5 after
   HFT costs. **Net Opportunity Score: 3/10.** Rejected by execution feasibility.
 
-#### 5. Regime-Switching Momentum (control, reviewed)
-- Switches momentum exposure off in bear regimes. Theory suggests crash-mitigation.
-- **Net Opportunity Score: 4/10.** Strong candidate for the *next* cycle: gating
-  momentum on a VIX / vol-regime filter is the natural fix for the cash found
-  here (bear-regime Sharpe ≈ -2.4 to -3.0).
+#### 5. Regime-Switching Momentum (executed — H3)
+- VIX-gated momentum exposure (bull 1.0 / sideways 0.25 / bear 0.10)
+  + VXX crisis hedge (long only when VIX > 30).
+- **Net edge measured (20 ETFs + VXX, 2015-2024):** **OOS Sharpe
+  -0.868** (95% CI [-1.69, -0.00]); Train 0.401 → Val -0.548 →
+  **Test -1.102**. Selected config: short-allowed, 63-day lookback,
+  skip 21, hedge ablated (0.0).
+- **Crash mitigation WORKS:** 2020-03 DD **-1.5%**, 2022 DD **-2.7%**
+  (gate ≤ 20% — both PASS), vs -34.8% / -38.7% max DD in H1/H2.
+  Worst-regime Sharpe is *sideways* (-2.07), not bear (-0.66).
+- **Net Opportunity Score:** 4/10 (theory) → **1/10 (realized)**.
+- **Status: REJECTED** (8/10 gates fail; alpha -11.98%/yr, IR -0.89,
+  p=0.046 — significantly *worse* than EW benchmark; PF 0.83; DD -48%).
+- **Why it failed:** the VIX<20 "bull" definition misclassifies
+  2020-2021 (VIX 20-30 = "sideways" at 25% exposure) — exposure was
+  cut during the strongest momentum stretch while the short side bled
+  in the bull market. The regime *mechanism* (crash gating) is
+  validated; the *signal* has no positive edge on this sample.
+- **What would invalidate the rejection:** a regime definition that
+  does not procyclically cut bull exposure (e.g., VIX *change* or
+  trend-based regimes), or futures-based TSMOM where the literature
+  edge is strongest (deferred — see NEXT_TASK.md).
 
 ---
 
@@ -71,16 +88,31 @@ strategy; see EXECUTION_REPORT.md). All costs use the corrected equity model:
 **CS Momentum invalidated** if:
 - OOS Sharpe < 0.5 → **0.116**; worst-regime Sharpe < 0 → **-3.03**.
 
+**Regime-gated momentum invalidated** if:
+- OOS Sharpe < 0.5 → **-0.868**; crisis-DD gate PASSED (**-1.5% / -2.7%**)
+  but worst-regime (sideways) Sharpe < 0 → **-2.07**; alpha < 0 →
+  **-11.98%/yr (IR -0.89, p=0.046)**.
+
+**Cross-cutting finding (H1→H3):** train→OOS decay is the dominant
+failure mode (H1: 0.589→0.093; H2: 0.636→0.116; H3: 0.401→-0.868).
+Walk-forward selection on 2015-2019 daily ETF data selects noise;
+no momentum-family variant tested has positive OOS alpha on
+2020-2024. The momentum family is **exhausted on free daily ETF
+data** — see NEXT_TASK.md for the futures/contango pivot.
+
 ---
 
 ### Universe Used (final)
 
-20 liquid ETFs across 5 asset classes (+ ^VIX for regime labels only):
+20 liquid ETFs across 5 asset classes (+ ^VIX for regime labels;
++ VXX as H3's crisis-hedge leg, ablated by selection):
 - Equities (6): SPY, QQQ, IWM, EFA, EEM, VWO
 - Bonds (3): TLT, AGG, HYG
 - Commodities (4): GLD, USO, PDBC, GSG
 - Currencies (3): UUP, FXE, FXY
 - Intl / REIT (4): VNQ, EWJ, EWZ, INDA
+- Crisis hedge: VXX (Yahoo history from 2018-01-25; -97% total
+  return 2018-2024, 75% annualized vol — contango decay)
 
 `EGGV` (from the draft spec) was dropped — delisted/no data on Yahoo. Futures
 (ES, NQ, CL, GC, ZB) were excluded: yfinance futures require `=F` tickers and the

@@ -2,11 +2,12 @@
 
 ## Phase 5: Falsifiable Hypotheses & Experimental Design
 
-Both pre-registered hypotheses below were taken to executable minimum-viable
+Both pre-registered momentum hypotheses (H1, H2) and the regime-gated
+variant (H3) below were taken to executable minimum-viable
 experiments using the **existing** infrastructure (`qtr.backtest.engine`,
-`qtr.data.fetcher`, `qtr.tracking.experiment`, `qtr.strategies`, `qtr.validation`).
-Evidence gates are the **stricter** union of PROMPT_V2.md (frozen) and the
-HYPOTHESIS_SPEC gates. No gate was weakened.
+`qtr.data.fetcher`, `qtr.tracking.experiment`, `qtr.strategies`,
+`qtr.validation`). Evidence gates are the **stricter** union of PROMPT_V2.md
+(frozen) and the HYPOTHESIS_SPEC gates. No gate was weakened.
 
 ---
 
@@ -116,11 +117,131 @@ Strategy IR = -0.252, p = 0.57 (no alpha).
 1. ✅ Created `run_ts_momentum_experiment.py` — full H1 pipeline + gates.
 2. ✅ Implemented portfolio-level volatility scaling (Kim et al. 2016; see
    implementation note in MATHEMATICAL_DISCOVERY_REPORT.md §4).
+3. ✅ Ran with experiment tracking (artifacts in `.experiments/`).
+4. ✅ Applied evidence gates rigorously — **rejected** (no gate weakening).
+5. ✅ Created `run_cs_momentum_experiment.py` for H2.
+6. ✅ Fixed the backtest-engine cost-model units bug (essential to make the gates
+   meaningful — see EXECUTION_REPORT.md).
+
+---
+
+### Hypothesis H3: Regime-Gated, Volatility-Scaled Momentum (with VXX crisis hedge)
+
+**Statement.** When the market is in a **bull regime (VIX < 20)**,
+volatility-scaled TSMOM on 20 liquid ETFs generates positive
+risk-adjusted returns; in **bear/sideways regimes** exposure is cut to
+≤ 25% / 10% of target vol (regime factor triple 1.0 / 0.25 / 0.10),
+with a fixed 10% allocation to a VXX crisis hedge when VIX > 30. Net
+pooled OOS (Val+Test) Sharpe ≥ 1.0 with ≥ 200 trades, PF ≥ 1.3,
+max DD ≤ 15%, worst-regime Sharpe ≥ 0.3, ±20% perturbation robust
+(OOS Sharpe ≥ 0.5 × optimum), significant **positive** alpha vs the
+equal-weight benchmark (p < 0.05, IR > 0), and crisis-window
+drawdowns (2020-03, 2022) ≤ 20%.
+
+**Mechanism.** Momentum crashes are a *regime* phenomenon
+(Daniel & Moskowitz 2016, "Momentum Crashes"): the high-beta,
+short-leg exposure of momentum loses most in sharp reversals from
+high-vol states. Gating exposure on the VIX regime removes the
+crash-state exposure while keeping full exposure in low-vol trends;
+long VXX in bear regimes hedges the residual tail (with VXX's
+documented contango decay — never held in calm markets).
+
+**Null (H0).** The regime filter is a data-mining artifact; gated
+Sharpe ≤ benchmark Sharpe in OOS.
+
+**Pre-registration.**
+- Universe: same 20 ETFs + `^VIX` (regime labels) + `VXX` (crisis
+  hedge; Yahoo history starts 2018-01-25 — hedge leg flat before
+  that date, documented limitation).
+- Same splits, cost model, vol-targeting (15%), monthly rebalance,
+  and walk-forward protocol as H1.
+- Grid: `lookback ∈ {63,126,252} × skip ∈ {1,5,21} × long_only ∈
+  {T,F} × regime_triple ∈ {(1.0,0.25,0.10), (1.0,0.50,0.25),
+  (1.0,0.25,0.00)} × hedge_weight ∈ {0.0, 0.10}` = **108 combos**;
+  selection by **train-only** 4-fold walk-forward Sharpe **minus an
+  overfit-guard penalty** (robust z-score of train Sharpe / train-vol
+  across the grid family, penalty 0.25 per z beyond 1.5). Test dates
+  never enter selection.
+- Gates: unchanged PROMPT_V2 set **plus** the H3 regime gate
+  (2020-03 and 2022 drawdowns ≤ 20%). Benchmark gate made
+  direction-aware (requires IR > 0 in addition to p < 0.05).
+- Compute budget: ≤ 2 CPU-h (actual ≈ 4 min). Seed: 42.
+
+**Measured (experiment `exp_2026-10-10T21-28-20-920399Z`):**
+
+Selected: `long_only=False, lookback=63, skip=21, regime_triple=
+(1.0, 0.25, 0.10), hedge_weight=0.0` (selection score 1.046;
+**the VXX hedge was ablated by selection** — VXX's negative drift
+made the hedge unattractive in train walk-forward).
+
+| Split | Sharpe |
+|-------|--------|
+| Train (2015-2019) | 0.401 |
+| Val (2020-2021) | -0.548 |
+| Test (2022-2024, protected) | -1.102 |
+| **OOS Val+Test (gated)** | **-0.868** (95% CI [-1.693, -0.003]) |
+
+| Gate (OOS) | Value | Threshold | Result |
+|------------|-------|-----------|--------|
+| Net Sharpe | -0.868 | ≥ 1.0 | FAIL |
+| Trades | 1239 | ≥ 200 | **PASS** |
+| Profit factor | 0.832 | ≥ 1.3 | FAIL |
+| Max drawdown | -48.25% | ≤ 15% | FAIL |
+| Walk-forward stability | -2.167 | ≥ 0.7 | FAIL |
+| Param perturbation (±20%) | -0.615 | ≥ -0.434 | FAIL |
+| Regime stability (worst) | -2.071 (sideways) | ≥ 0.3 | FAIL |
+| Benchmark significance | p=0.046, **IR=-0.893** | p<0.05 & IR>0 | FAIL |
+| Crisis DD 2020-03 | -1.48% | ≥ -20% | **PASS** |
+| Crisis DD 2022 | -2.69% | ≥ -20% | **PASS** |
+
+Per-regime OOS Sharpe: bull -0.39 (n=652), sideways **-2.07**
+(n=470), bear -0.66 (n=135). Stressed-cost combined Sharpe -0.92.
+Benchmark (equal-weight, 20 ETFs): the strategy's alpha is
+**-11.98%/yr** (β = 0.22), i.e. significantly *worse* than the
+benchmark (the direction-aware gate correctly fails it).
+
+**Verdict: REJECT H3.** 8/10 gates fail.
+
+**Root-cause attribution (what H3 actually proved):**
+1. **The crash-mitigation mechanism works.** Crisis drawdowns collapsed
+   to -1.5% (2020-03) and -2.7% (2022) — the regime gate removed the
+   momentum-crash exposure that destroyed H1/H2 (-34.8% / -38.7% max
+   DD). The *mechanism* is validated; the *hypothesis* is not.
+2. **The VIX-level regime definition is procyclical on this sample.**
+   VIX < 20 classified most of 2020-2021 (the strongest momentum
+   stretch) as "sideways" (VIX 20-30), cutting exposure to 25% during
+   a bull run. Worst-regime Sharpe is *sideways* (-2.07), not bear.
+3. **Selection still overfits.** Train walk-forward Sharpe 1.046 → OOS
+   -0.868. The overfit guard did not trigger (train Sharpe 0.401 was
+   not extreme); mean-of-fold-WF-Sharpe remains a noisy selection
+   criterion on 5 years of daily data.
+4. **Short side is destructive here.** The selected config
+   (`long_only=False, lookback=63`) shorts the 2020-2021 bull market;
+   max DD (-48.3%) occurs in the bull, not in crashes.
+5. **VXX hedge ablated.** Selection set hedge_weight=0.0 — VXX's
+   documented contango decay (-97% over 2018-2024, 75% annualized
+   vol) dominates any crash-hedge benefit on the train window.
+
+---
+
+### Implementation Plan (executed)
+1. ✅ Created `run_ts_momentum_experiment.py` — full H1 pipeline + gates.
+2. ✅ Implemented portfolio-level volatility scaling (Kim et al. 2016; see
+   implementation note in MATHEMATICAL_DISCOVERY_REPORT.md §4).
 3. ✅ Ran with experiment tracking (artifacts in `.experiments/artifacts/`).
 4. ✅ Applied evidence gates rigorously — **rejected** (no gate weakening).
 5. ✅ Created `run_cs_momentum_experiment.py` for H2.
 6. ✅ Fixed the backtest-engine cost-model units bug (essential to make the gates
    meaningful — see EXECUTION_REPORT.md).
+7. ✅ Created `run_regime_gated_momentum_experiment.py` for H3 — VIX
+   regime-gated vol-scaled TSMOM + VXX crisis hedge, 108-combo grid
+   with overfit-guard-penalized train-only walk-forward selection,
+   10 gates (PROMPT_V2 set + 2020-03/2022 crisis-DD gate).
+8. ✅ Added regression tests `tests/test_cost_model.py` (cost-units
+   invariance to price level, linearity in weight delta, ADV impact
+   path) and `tests/test_backtest_engine.py` (leverage normalization,
+   position caps, short clipping, look-ahead safety, trade extraction,
+   metrics, futures/crypto cost paths) — 28 tests, all passing.
 
 ### Deliverables
 1. `MATHEMATICAL_DISCOVERY_REPORT.md` — literature review + traceability chains.
@@ -130,5 +251,7 @@ Strategy IR = -0.252, p = 0.57 (no alpha).
    - `exp_2026-10-10T21-08-54-188263Z/` (H1) — prices, volumes, vix, signals,
      equity, trades, param-grid (18 combos), summary.json.
    - `exp_2026-10-10T21-09-06-830199Z/` (H2) — same structure (54 combos).
+   - `exp_2026-10-10T21-28-20-920399Z/` (H3) — same structure + VXX +
+     param-grid (108 combos with overfit-guard columns), summary.json.
    - All with git commit, seeds, dependency versions (see tracker JSONL).
 5. `NEXT_TASK.md` — next bottleneck + experiment for the next agent.

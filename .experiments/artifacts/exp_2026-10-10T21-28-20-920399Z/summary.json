@@ -1,0 +1,192 @@
+{
+  "experiment_id": "exp_2026-10-10T21-28-20-920399Z",
+  "hypothesis": "H3",
+  "selected_params": {
+    "long_only": false,
+    "lookback": 63,
+    "skip": 21,
+    "regime_triple": [
+      1.0,
+      0.25,
+      0.1
+    ],
+    "hedge_weight": 0.0,
+    "target_vol": 0.15,
+    "volatility_scale": true
+  },
+  "gates": {
+    "net_oos_sharpe": {
+      "value": -0.8683,
+      "threshold": 1.0,
+      "pass": false
+    },
+    "oos_trades": {
+      "value": 1239,
+      "threshold": 200,
+      "pass": true
+    },
+    "profit_factor": {
+      "value": 0.8316,
+      "threshold": 1.3,
+      "pass": false
+    },
+    "max_drawdown": {
+      "value": -0.4825,
+      "threshold": 0.15,
+      "pass": false
+    },
+    "walkforward_stability": {
+      "value": -2.1672,
+      "threshold": 0.7,
+      "pass": false
+    },
+    "param_perturbation": {
+      "value": -0.6146,
+      "threshold": -0.4341,
+      "pass": false,
+      "details": {
+        "lookback+20%": -0.406,
+        "lookback-20%": -0.2198,
+        "skip+20%": -0.6146,
+        "skip-20%": -0.4494,
+        "regime_factor+20%": -0.5663,
+        "regime_factor-20%": -0.577,
+        "hedge_weight+20%": -0.5773,
+        "hedge_weight-20%": -0.5773
+      }
+    },
+    "regime_stability": {
+      "value": -2.0713,
+      "threshold": 0.3,
+      "pass": false,
+      "regimes": {
+        "bull": {
+          "sharpe": -0.3881779572883407,
+          "n": 652
+        },
+        "sideways": {
+          "sharpe": -2.0713330946312833,
+          "n": 470
+        },
+        "bear": {
+          "sharpe": -0.6639149555411066,
+          "n": 135
+        }
+      }
+    },
+    "benchmark_significance": {
+      "value": 0.0464,
+      "threshold": 0.05,
+      "pass": false,
+      "information_ratio": -0.8932,
+      "alpha_p_value": 0.0464
+    },
+    "crisis_drawdown_2020_03": {
+      "value": -0.0148,
+      "threshold": -0.2,
+      "pass": true
+    },
+    "crisis_drawdown_2022": {
+      "value": -0.0269,
+      "threshold": -0.2,
+      "pass": true
+    }
+  },
+  "all_gates_pass": false,
+  "verdict": "REJECT",
+  "oos_metrics": {
+    "sharpe": -0.8683,
+    "sharpe_ci": [
+      -1.6925,
+      -0.0035
+    ],
+    "n_trades": 1239,
+    "profit_factor": 0.8316,
+    "max_drawdown": -0.4825
+  },
+  "split_metrics": {
+    "train_sharpe": 0.4006,
+    "val_sharpe": -0.5479,
+    "test_sharpe": -1.1015,
+    "oos_sharpe": -0.8683
+  },
+  "benchmark_comparison": {
+    "information_ratio": -0.8932,
+    "information_ratio_ci": [
+      -1.5363,
+      -0.1826
+    ],
+    "alpha_annualized": -0.1198,
+    "alpha_p_value": 0.046364,
+    "alpha_t_stat": -1.994,
+    "beta": 0.221
+  },
+  "regime_metrics": {
+    "bull": {
+      "sharpe": -0.3881779572883407,
+      "n": 652
+    },
+    "sideways": {
+      "sharpe": -2.0713330946312833,
+      "n": 470
+    },
+    "bear": {
+      "sharpe": -0.6639149555411066,
+      "n": 135
+    }
+  },
+  "crisis_drawdowns": {
+    "dd_2020_03": -0.0148,
+    "dd_2022": -0.0269
+  },
+  "perturbations": {
+    "lookback+20%": -0.406,
+    "lookback-20%": -0.2198,
+    "skip+20%": -0.6146,
+    "skip-20%": -0.4494,
+    "regime_factor+20%": -0.5663,
+    "regime_factor-20%": -0.577,
+    "hedge_weight+20%": -0.5773,
+    "hedge_weight-20%": -0.5773
+  },
+  "stressed_costs": {
+    "stressed_commission_sharpe": -0.8982233412860628,
+    "stressed_commission_return": -0.11636452080541647,
+    "stressed_spread_sharpe": -0.8982233412860628,
+    "stressed_spread_return": -0.11636452080541647,
+    "stressed_slippage_sharpe": -0.8982233412860628,
+    "stressed_slippage_return": -0.11636452080541647,
+    "stressed_impact_sharpe": -0.9869801170671555,
+    "stressed_impact_return": -0.12826998000914536,
+    "stressed_combined_sharpe": -0.9205760139950399
+  },
+  "param_grid_summary": {
+    "n_combos": 108,
+    "selection_metric": "mean walk-forward OOS Sharpe on TRAIN minus overfit-guard penalty (robust z of train Sharpe / train-vol)",
+    "benjamini_hochberg_significant": 0,
+    "overfit_guard": {
+      "z_threshold": 1.5,
+      "penalty_weight": 0.25,
+      "median_overfit_metric": 1.8124444746934731,
+      "iqr_overfit_metric": 2.3843912934925626
+    }
+  },
+  "hedge_data_availability": {
+    "symbol": "VXX",
+    "first_valid_date": "2018-01-25 00:00:00",
+    "note": "VXX hedge leg flat before first valid date (Yahoo history starts 2018-01-25)"
+  },
+  "gates_spec": {
+    "min_sharpe": 1.0,
+    "min_trades": 200,
+    "min_profit_factor": 1.3,
+    "max_drawdown": 0.15,
+    "min_walkforward_stability": 0.7,
+    "min_perturbed_sharpe_ratio": 0.5,
+    "min_worst_regime_sharpe": 0.3,
+    "max_p_value": 0.05,
+    "min_information_ratio": 0.0,
+    "max_crisis_drawdown": 0.2,
+    "alpha_multiple_testing": "benjamini_hochberg"
+  }
+}

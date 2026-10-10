@@ -1,0 +1,53 @@
+{
+  "shape": [
+    2515,
+    21
+  ],
+  "columns": [
+    "SPY",
+    "QQQ",
+    "IWM",
+    "EFA",
+    "EEM",
+    "VWO",
+    "TLT",
+    "AGG",
+    "HYG",
+    "GLD",
+    "USO",
+    "PDBC",
+    "GSG",
+    "UUP",
+    "FXE",
+    "FXY",
+    "VNQ",
+    "EWJ",
+    "EWZ",
+    "INDA",
+    "VXX"
+  ],
+  "dtypes": {
+    "SPY": "int64",
+    "QQQ": "int64",
+    "IWM": "int64",
+    "EFA": "int64",
+    "EEM": "int64",
+    "VWO": "int64",
+    "TLT": "int64",
+    "AGG": "int64",
+    "HYG": "int64",
+    "GLD": "int64",
+    "USO": "int64",
+    "PDBC": "int64",
+    "GSG": "int64",
+    "UUP": "int64",
+    "FXE": "int64",
+    "FXY": "int64",
+    "VNQ": "int64",
+    "EWJ": "int64",
+    "EWZ": "int64",
+    "INDA": "int64",
+    "VXX": "float64"
+  },
+  "index_type": "datetime64[ms]"
+}
