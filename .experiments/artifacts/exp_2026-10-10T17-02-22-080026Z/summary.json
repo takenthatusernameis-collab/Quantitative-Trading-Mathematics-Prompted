@@ -1,0 +1,122 @@
+{
+  "experiment_id": "exp_2026-10-10T17-02-22-080026Z",
+  "strategy_metrics": {
+    "total_return": -0.9998648207588501,
+    "annualized_return": -0.5904359794847127,
+    "annualized_volatility": 0.5771053641063215,
+    "sharpe": -1.2468485134505827,
+    "sortino": -1.387364346934072,
+    "max_drawdown": -0.999866008073875,
+    "max_drawdown_duration": 2466,
+    "profit_factor": 0.7806055431209014,
+    "num_trades": 257,
+    "avg_trade_cost": 0.046661483375726044,
+    "calmar": -0.5905151037408688
+  },
+  "benchmark_metrics": {
+    "total_return": 1.1226267977582687,
+    "annualized_return": 0.0783316419857305,
+    "annualized_volatility": 0.18302670364444668,
+    "sharpe": 0.49249808266848055,
+    "sortino": 0.6151765285884375,
+    "max_drawdown": -0.33406903868317095,
+    "max_drawdown_duration": 663,
+    "profit_factor": 1.094628755420367,
+    "num_trades": 5,
+    "avg_trade_cost": 0.021074414724414924,
+    "calmar": 0.2344774071087137
+  },
+  "validation": {
+    "sharpe": -1.2470964698045208,
+    "sharpe_pass": "False",
+    "n_trades": 257,
+    "trades_pass": true,
+    "profit_factor": 0.7806055431209014,
+    "profit_factor_pass": "False",
+    "max_drawdown": -0.9998660080738752,
+    "drawdown_pass": "False",
+    "walkforward_stability": 1.8391876351671321,
+    "walkforward_pass": "True",
+    "annualized_return": -0.5904359794847127,
+    "annualized_volatility": 0.5771053641063215,
+    "total_return": -0.9998648207588501,
+    "all_pass": false,
+    "sharpe_ci_lower": -1.8333420217761567,
+    "sharpe_ci_upper": -0.6488803831876214,
+    "walkforward_folds": [
+      {
+        "train": -1.9124160644989532,
+        "test": -0.69103522594154
+      },
+      {
+        "train": 0.17122396765790415,
+        "test": -1.4887331089668885
+      },
+      {
+        "train": -0.7313798735032602,
+        "test": 1.5410951326458533
+      },
+      {
+        "train": -2.383700247640974,
+        "test": -2.7612837726072175
+      },
+      {
+        "train": -2.1584479449826173,
+        "test": -2.5651910835345606
+      }
+    ],
+    "train_sharpe": -0.3830560858263308,
+    "val_sharpe": -2.5188904933414142,
+    "test_sharpe": -2.2887265600541458
+  },
+  "config": {
+    "symbols": [
+      "SPY",
+      "QQQ",
+      "IWM",
+      "EFA",
+      "EEM"
+    ],
+    "start_date": "2015-01-01",
+    "end_date": "2024-12-31",
+    "interval": "1d",
+    "strategy": "ma_crossover",
+    "strategy_params": {
+      "fast_window": 20,
+      "slow_window": 50,
+      "long_only": true
+    },
+    "backtest": {
+      "initial_capital": 1000000,
+      "asset_class": "equity",
+      "max_position_size": 1.0,
+      "max_leverage": 1.0,
+      "allow_short": false,
+      "cost_model": {
+        "equity_commission_bps": 1.0,
+        "equity_spread_bps": 1.0,
+        "equity_impact_bps_per_pct_adv": 0.1
+      }
+    },
+    "validation": {
+      "min_sharpe": 1.0,
+      "min_trades": 200,
+      "min_profit_factor": 1.3,
+      "max_drawdown": 0.15,
+      "min_walkforward_stability": 0.7,
+      "min_param_stability": 0.8
+    },
+    "data_splits": {
+      "train_end": "2020-12-31",
+      "val_end": "2022-12-31",
+      "test_start": "2023-01-01"
+    },
+    "random_seeds": {
+      "numpy": 42,
+      "python": 42
+    },
+    "compute_budget": {
+      "max_cpu_hours": 1.0
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "shape": [
+    2515,
+    5
+  ],
+  "columns": [
+    "SPY",
+    "QQQ",
+    "IWM",
+    "EFA",
+    "EEM"
+  ],
+  "dtypes": {
+    "SPY": "int64",
+    "QQQ": "int64",
+    "IWM": "int64",
+    "EFA": "int64",
+    "EEM": "int64"
+  },
+  "index_type": "datetime64[ms]"
+}

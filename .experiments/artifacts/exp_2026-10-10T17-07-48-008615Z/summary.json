@@ -1,0 +1,353 @@
+{
+  "experiment_id": "exp_2026-10-10T17-07-48-008615Z",
+  "all_results": [
+    {
+      "fast_window": 5,
+      "slow_window": 20,
+      "sharpe": -2.948386945973165,
+      "max_drawdown": -0.9998425373301327,
+      "num_trades": 140,
+      "annualized_return": -0.5841260352442745,
+      "annualized_volatility": 0.2828092868564091,
+      "profit_factor": 0.37305135989852484
+    },
+    {
+      "fast_window": 5,
+      "slow_window": 30,
+      "sharpe": -2.2587974232500576,
+      "max_drawdown": -0.9967569877507111,
+      "num_trades": 94,
+      "annualized_return": -0.436881211731579,
+      "annualized_volatility": 0.24052456233562391,
+      "profit_factor": 0.47979265900512014
+    },
+    {
+      "fast_window": 5,
+      "slow_window": 50,
+      "sharpe": -2.15008689010188,
+      "max_drawdown": -0.9950424287632924,
+      "num_trades": 83,
+      "annualized_return": -0.41241770751547113,
+      "annualized_volatility": 0.2337206204694237,
+      "profit_factor": 0.5018381544370453
+    },
+    {
+      "fast_window": 5,
+      "slow_window": 100,
+      "sharpe": -1.347157136602594,
+      "max_drawdown": -0.9419684443604567,
+      "num_trades": 49,
+      "annualized_return": -0.24174791249069438,
+      "annualized_volatility": 0.19120322738078352,
+      "profit_factor": 0.6816345407234878
+    },
+    {
+      "fast_window": 5,
+      "slow_window": 200,
+      "sharpe": -0.3584083311264918,
+      "max_drawdown": -0.6606180612886059,
+      "num_trades": 23,
+      "annualized_return": -0.06653807110486953,
+      "annualized_volatility": 0.15679114219302126,
+      "profit_factor": 0.9136760908932023
+    },
+    {
+      "fast_window": 10,
+      "slow_window": 20,
+      "sharpe": -2.719587854563037,
+      "max_drawdown": -0.9994200478384899,
+      "num_trades": 118,
+      "annualized_return": -0.5251277007472303,
+      "annualized_volatility": 0.26036459650015625,
+      "profit_factor": 0.4127408635813327
+    },
+    {
+      "fast_window": 10,
+      "slow_window": 30,
+      "sharpe": -1.9874876391819185,
+      "max_drawdown": -0.9911577952253217,
+      "num_trades": 76,
+      "annualized_return": -0.3773445146909684,
+      "annualized_volatility": 0.22484996835604615,
+      "profit_factor": 0.5315574492484859
+    },
+    {
+      "fast_window": 10,
+      "slow_window": 50,
+      "sharpe": -1.6323467561608533,
+      "max_drawdown": -0.9730789691933427,
+      "num_trades": 63,
+      "annualized_return": -0.29791443292620046,
+      "annualized_volatility": 0.20333018147697493,
+      "profit_factor": 0.612581691003668
+    },
+    {
+      "fast_window": 10,
+      "slow_window": 100,
+      "sharpe": -0.8605003123753406,
+      "max_drawdown": -0.8500591692852271,
+      "num_trades": 35,
+      "annualized_return": -0.15069873041872817,
+      "annualized_volatility": 0.17200806207421138,
+      "profit_factor": 0.7966460081071386
+    },
+    {
+      "fast_window": 10,
+      "slow_window": 200,
+      "sharpe": -0.17085131482823263,
+      "max_drawdown": -0.6356250753395174,
+      "num_trades": 17,
+      "annualized_return": -0.03721658041981868,
+      "annualized_volatility": 0.15222325592176594,
+      "profit_factor": 0.9586688569871751
+    },
+    {
+      "fast_window": 15,
+      "slow_window": 20,
+      "sharpe": -2.907604609922976,
+      "max_drawdown": -0.9997132958681781,
+      "num_trades": 126,
+      "annualized_return": -0.5583897879687093,
+      "annualized_volatility": 0.26771442817573626,
+      "profit_factor": 0.3866480123221533
+    },
+    {
+      "fast_window": 15,
+      "slow_window": 30,
+      "sharpe": -2.1245377452381073,
+      "max_drawdown": -0.9934523270181839,
+      "num_trades": 81,
+      "annualized_return": -0.39064903072150103,
+      "annualized_volatility": 0.22096480211739372,
+      "profit_factor": 0.5185011554553486
+    },
+    {
+      "fast_window": 15,
+      "slow_window": 50,
+      "sharpe": -1.4895952109911268,
+      "max_drawdown": -0.956953740853484,
+      "num_trades": 55,
+      "annualized_return": -0.26410653894913605,
+      "annualized_volatility": 0.19277879239705328,
+      "profit_factor": 0.6474194828331691
+    },
+    {
+      "fast_window": 15,
+      "slow_window": 100,
+      "sharpe": -0.6006624512229561,
+      "max_drawdown": -0.7370039562591699,
+      "num_trades": 27,
+      "annualized_return": -0.10211568536824289,
+      "annualized_volatility": 0.15798379196681883,
+      "profit_factor": 0.8609298188724074
+    },
+    {
+      "fast_window": 15,
+      "slow_window": 200,
+      "sharpe": 0.01995969129078884,
+      "max_drawdown": -0.4634546849973226,
+      "num_trades": 13,
+      "annualized_return": -0.008248343474214104,
+      "annualized_volatility": 0.14821959572180238,
+      "profit_factor": 1.0047997090656788
+    },
+    {
+      "fast_window": 20,
+      "slow_window": 30,
+      "sharpe": -2.1444649208219477,
+      "max_drawdown": -0.9937480793063527,
+      "num_trades": 85,
+      "annualized_return": -0.3934645856786796,
+      "annualized_volatility": 0.22106008448459064,
+      "profit_factor": 0.5222681585019774
+    },
+    {
+      "fast_window": 20,
+      "slow_window": 50,
+      "sharpe": -1.3226756250658562,
+      "max_drawdown": -0.9345235623385703,
+      "num_trades": 49,
+      "annualized_return": -0.23252167459141504,
+      "annualized_volatility": 0.18636610828439484,
+      "profit_factor": 0.6888655656938454
+    },
+    {
+      "fast_window": 20,
+      "slow_window": 100,
+      "sharpe": -0.6468997035781349,
+      "max_drawdown": -0.7568117449418148,
+      "num_trades": 27,
+      "annualized_return": -0.1093707587106395,
+      "annualized_volatility": 0.15896859082672996,
+      "profit_factor": 0.8512279714873779
+    },
+    {
+      "fast_window": 20,
+      "slow_window": 200,
+      "sharpe": 0.13409894194515606,
+      "max_drawdown": -0.4280456320556948,
+      "num_trades": 11,
+      "annualized_return": 0.008510375017326766,
+      "annualized_volatility": 0.1531925427995006,
+      "profit_factor": 1.0337668765944399
+    },
+    {
+      "fast_window": 30,
+      "slow_window": 50,
+      "sharpe": -1.2343819188231728,
+      "max_drawdown": -0.9222580494623478,
+      "num_trades": 45,
+      "annualized_return": -0.2221859911923425,
+      "annualized_volatility": 0.18852876880964603,
+      "profit_factor": 0.706420078494048
+    },
+    {
+      "fast_window": 30,
+      "slow_window": 100,
+      "sharpe": -0.3913801345407935,
+      "max_drawdown": -0.6239979179039716,
+      "num_trades": 21,
+      "annualized_return": -0.06967961388351285,
+      "annualized_volatility": 0.15368839494299544,
+      "profit_factor": 0.9108790967107917
+    },
+    {
+      "fast_window": 30,
+      "slow_window": 200,
+      "sharpe": 0.24941007191665973,
+      "max_drawdown": -0.3926623262493631,
+      "num_trades": 9,
+      "annualized_return": 0.02562967949781969,
+      "annualized_volatility": 0.14317542668003583,
+      "profit_factor": 1.0605051230277627
+    }
+  ],
+  "best_params": {
+    "fast_window": 30,
+    "slow_window": 200
+  },
+  "best_sharpe": 0.24941007191665973,
+  "benchmark": {
+    "sharpe": 0.6596071358231974,
+    "annualized_return": 0.11116466309386919,
+    "max_drawdown": -0.34104746893243937
+  },
+  "config": {
+    "symbols": [
+      "SPY"
+    ],
+    "start_date": "2015-01-01",
+    "end_date": "2024-12-31",
+    "interval": "1d",
+    "strategy": "ma_crossover",
+    "param_combos": [
+      [
+        5,
+        20
+      ],
+      [
+        5,
+        30
+      ],
+      [
+        5,
+        50
+      ],
+      [
+        5,
+        100
+      ],
+      [
+        5,
+        200
+      ],
+      [
+        10,
+        20
+      ],
+      [
+        10,
+        30
+      ],
+      [
+        10,
+        50
+      ],
+      [
+        10,
+        100
+      ],
+      [
+        10,
+        200
+      ],
+      [
+        15,
+        20
+      ],
+      [
+        15,
+        30
+      ],
+      [
+        15,
+        50
+      ],
+      [
+        15,
+        100
+      ],
+      [
+        15,
+        200
+      ],
+      [
+        20,
+        30
+      ],
+      [
+        20,
+        50
+      ],
+      [
+        20,
+        100
+      ],
+      [
+        20,
+        200
+      ],
+      [
+        30,
+        50
+      ],
+      [
+        30,
+        100
+      ],
+      [
+        30,
+        200
+      ]
+    ],
+    "backtest": {
+      "initial_capital": 1000000,
+      "asset_class": "equity",
+      "max_position_size": 1.0,
+      "max_leverage": 1.0,
+      "allow_short": false,
+      "cost_model": {
+        "equity_commission_bps": 1.0,
+        "equity_spread_bps": 1.0,
+        "equity_impact_bps_per_pct_adv": 0.1
+      }
+    },
+    "random_seeds": {
+      "numpy": 42,
+      "python": 42
+    },
+    "compute_budget": {
+      "max_cpu_hours": 2.0
+    }
+  }
+}

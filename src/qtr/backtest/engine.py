@@ -124,6 +124,21 @@ class VectorizedBacktester:
         # Forward fill signals (hold position until change)
         signals = signals.ffill().fillna(0)
 
+        # Enforce leverage constraint: normalize so sum of absolute weights <= max_leverage
+        gross_leverage = signals.abs().sum(axis=1)
+        over_leverage = gross_leverage > self.config.max_leverage
+        if over_leverage.any():
+            signals.loc[over_leverage] = signals.loc[over_leverage].div(
+                gross_leverage[over_leverage], axis=0
+            ) * self.config.max_leverage
+
+        # Enforce max position size per symbol
+        signals = signals.clip(-self.config.max_position_size, self.config.max_position_size)
+
+        # If short not allowed, clip negative positions
+        if not self.config.allow_short:
+            signals = signals.clip(lower=0)
+
         # Calculate position changes (trades)
         position_changes = signals.diff().fillna(signals.iloc[0])
 
@@ -178,11 +193,10 @@ class VectorizedBacktester:
             volume = volumes[symbol] if symbol in volumes.columns else pd.Series(0, index=prices.index)
 
             if self.config.asset_class == AssetClass.EQUITY:
-                # Estimate ADV participation
+                # Estimate ADV participation using initial capital (approximate)
                 if adv is not None and symbol in adv.index and adv[symbol] > 0:
-                    # Position change in shares = weight_change * portfolio_value / price
-                    portfolio_value = self.config.initial_capital * (1 + costs).cumprod()
-                    shares_traded = changes * portfolio_value / price
+                    # Position change in shares = weight_change * initial_capital / price
+                    shares_traded = changes * self.config.initial_capital / price
                     adv_pct = (shares_traded / adv[symbol]).clip(0, 1) * 100  # as percentage
                 else:
                     adv_pct = 0.0

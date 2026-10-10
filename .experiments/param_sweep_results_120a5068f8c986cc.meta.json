@@ -1,0 +1,27 @@
+{
+  "shape": [
+    22,
+    8
+  ],
+  "columns": [
+    "fast_window",
+    "slow_window",
+    "sharpe",
+    "max_drawdown",
+    "num_trades",
+    "annualized_return",
+    "annualized_volatility",
+    "profit_factor"
+  ],
+  "dtypes": {
+    "fast_window": "int64",
+    "slow_window": "int64",
+    "sharpe": "float64",
+    "max_drawdown": "float64",
+    "num_trades": "int64",
+    "annualized_return": "float64",
+    "annualized_volatility": "float64",
+    "profit_factor": "float64"
+  },
+  "index_type": "int64"
+}

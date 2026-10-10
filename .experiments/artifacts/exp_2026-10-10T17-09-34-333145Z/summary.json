@@ -1,0 +1,211 @@
+{
+  "experiment_id": "exp_2026-10-10T17-09-34-333145Z",
+  "all_results": [
+    {
+      "strategy": "ewma_crossover",
+      "params": {
+        "fast_span": 12,
+        "slow_span": 26
+      },
+      "sharpe": -1.8084207983948533,
+      "max_drawdown": -0.986585317239009,
+      "num_trades": 74,
+      "annualized_return": -0.35078911883898223,
+      "annualized_volatility": 0.2241336515834141,
+      "profit_factor": 0.5682872530854395
+    },
+    {
+      "strategy": "ewma_crossover",
+      "params": {
+        "fast_span": 20,
+        "slow_span": 50
+      },
+      "sharpe": -1.1532146869806699,
+      "max_drawdown": -0.9063770846549191,
+      "num_trades": 43,
+      "annualized_return": -0.2045246887550638,
+      "annualized_volatility": 0.18323603004688682,
+      "profit_factor": 0.7351146398830767
+    },
+    {
+      "strategy": "ewma_crossover",
+      "params": {
+        "fast_span": 50,
+        "slow_span": 200
+      },
+      "sharpe": -0.10246789245641517,
+      "max_drawdown": -0.48511010383027997,
+      "num_trades": 15,
+      "annualized_return": -0.028542863165867627,
+      "annualized_volatility": 0.1581960982696117,
+      "profit_factor": 0.9765916643912628
+    },
+    {
+      "strategy": "momentum",
+      "params": {
+        "lookback": 252,
+        "skip": 21,
+        "n_top": 1
+      },
+      "sharpe": 0.7277819346942674,
+      "max_drawdown": -0.3410474689324391,
+      "num_trades": 1,
+      "annualized_return": 0.1147589268337641,
+      "annualized_volatility": 0.16902023442770886,
+      "profit_factor": 1.1615460817506493
+    },
+    {
+      "strategy": "momentum",
+      "params": {
+        "lookback": 126,
+        "skip": 21,
+        "n_top": 1
+      },
+      "sharpe": 0.6546982020759897,
+      "max_drawdown": -0.3410474689324395,
+      "num_trades": 1,
+      "annualized_return": 0.10430036059144432,
+      "annualized_volatility": 0.17508219923659027,
+      "profit_factor": 1.1387157627796431
+    },
+    {
+      "strategy": "momentum",
+      "params": {
+        "lookback": 63,
+        "skip": 5,
+        "n_top": 1
+      },
+      "sharpe": 0.6527484755165236,
+      "max_drawdown": -0.34104746893243915,
+      "num_trades": 1,
+      "annualized_return": 0.10446043550698247,
+      "annualized_volatility": 0.17610204898337775,
+      "profit_factor": 1.135791244820823
+    },
+    {
+      "strategy": "mean_reversion",
+      "params": {
+        "window": 20,
+        "num_std": 2.0
+      },
+      "sharpe": -3.5577410989748977,
+      "max_drawdown": -0.9997557914308394,
+      "num_trades": 130,
+      "annualized_return": -0.5654317922522404,
+      "annualized_volatility": 0.22629144095777756,
+      "profit_factor": 0.00970607267886602
+    },
+    {
+      "strategy": "mean_reversion",
+      "params": {
+        "window": 20,
+        "num_std": 1.5
+      },
+      "sharpe": -4.686934589750197,
+      "max_drawdown": -0.9999988322971819,
+      "num_trades": 213,
+      "annualized_return": -0.7455785191783708,
+      "annualized_volatility": 0.28232874880519154,
+      "profit_factor": 0.02892789265761315
+    },
+    {
+      "strategy": "mean_reversion",
+      "params": {
+        "window": 50,
+        "num_std": 2.0
+      },
+      "sharpe": -2.4506401831508104,
+      "max_drawdown": -0.9877327199818181,
+      "num_trades": 66,
+      "annualized_return": -0.35657955403473496,
+      "annualized_volatility": 0.17337125090924904,
+      "profit_factor": 0.09093958285960453
+    }
+  ],
+  "best_strategy": "momentum",
+  "best_params": {
+    "lookback": 252,
+    "skip": 21,
+    "n_top": 1
+  },
+  "best_sharpe": 0.7277819346942674,
+  "benchmark": {
+    "sharpe": 0.6596071358231974,
+    "annualized_return": 0.11116466309386919,
+    "max_drawdown": -0.34104746893243937
+  },
+  "config": {
+    "symbols": [
+      "SPY"
+    ],
+    "start_date": "2015-01-01",
+    "end_date": "2024-12-31",
+    "interval": "1d",
+    "strategies": {
+      "ewma_crossover": [
+        {
+          "fast_span": 12,
+          "slow_span": 26
+        },
+        {
+          "fast_span": 20,
+          "slow_span": 50
+        },
+        {
+          "fast_span": 50,
+          "slow_span": 200
+        }
+      ],
+      "momentum": [
+        {
+          "lookback": 252,
+          "skip": 21,
+          "n_top": 1
+        },
+        {
+          "lookback": 126,
+          "skip": 21,
+          "n_top": 1
+        },
+        {
+          "lookback": 63,
+          "skip": 5,
+          "n_top": 1
+        }
+      ],
+      "mean_reversion": [
+        {
+          "window": 20,
+          "num_std": 2.0
+        },
+        {
+          "window": 20,
+          "num_std": 1.5
+        },
+        {
+          "window": 50,
+          "num_std": 2.0
+        }
+      ]
+    },
+    "backtest": {
+      "initial_capital": 1000000,
+      "asset_class": "equity",
+      "max_position_size": 1.0,
+      "max_leverage": 1.0,
+      "allow_short": false,
+      "cost_model": {
+        "equity_commission_bps": 1.0,
+        "equity_spread_bps": 1.0,
+        "equity_impact_bps_per_pct_adv": 0.1
+      }
+    },
+    "random_seeds": {
+      "numpy": 42,
+      "python": 42
+    },
+    "compute_budget": {
+      "max_cpu_hours": 2.0
+    }
+  }
+}
