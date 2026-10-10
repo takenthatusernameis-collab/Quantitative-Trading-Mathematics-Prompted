@@ -29,12 +29,16 @@ class CostModel:
     equity_spread_bps: float = 1.0  # average, can be overridden per symbol
     equity_impact_bps_per_pct_adv: float = 0.1
 
-    # Futures costs (per contract)
+    # Futures costs (per contract) - defaults for ES
     future_commission_per_contract: float = 0.50
     future_spread_ticks: float = 0.25
     future_slippage_ticks: float = 0.5
     future_tick_value: float = 12.50  # ES = $12.50 per tick
     future_contract_multiplier: float = 50.0  # ES = $50 per point
+
+    # Per-symbol futures contract specifications (overrides defaults)
+    # Dict[symbol] -> dict with keys: multiplier, tick_value, tick_size, commission, spread_ticks, slippage_ticks
+    futures_specs: Dict[str, Dict[str, float]] = field(default_factory=dict)
 
     # Crypto costs (basis points)
     crypto_fee_bps: float = 5.0
@@ -47,10 +51,27 @@ class CostModel:
         impact = self.equity_impact_bps_per_pct_adv * adv_pct
         return self.equity_commission_bps + spread + impact
 
-    def future_cost_per_contract(self) -> float:
-        """Total futures cost per contract in dollars."""
-        tick_cost = (self.future_spread_ticks + self.future_slippage_ticks) * self.future_tick_value
-        return self.future_commission_per_contract + tick_cost
+    def future_cost_per_contract(self, symbol: Optional[str] = None) -> float:
+        """Total futures cost per contract in dollars for a given symbol."""
+        if symbol and symbol in self.futures_specs:
+            spec = self.futures_specs[symbol]
+            tick_value = spec.get("tick_value", self.future_tick_value)
+            spread_ticks = spec.get("spread_ticks", self.future_spread_ticks)
+            slippage_ticks = spec.get("slippage_ticks", self.future_slippage_ticks)
+            commission = spec.get("commission", self.future_commission_per_contract)
+        else:
+            tick_value = self.future_tick_value
+            spread_ticks = self.future_spread_ticks
+            slippage_ticks = self.future_slippage_ticks
+            commission = self.future_commission_per_contract
+        tick_cost = (spread_ticks + slippage_ticks) * tick_value
+        return commission + tick_cost
+
+    def get_future_contract_multiplier(self, symbol: Optional[str] = None) -> float:
+        """Contract multiplier for a given symbol."""
+        if symbol and symbol in self.futures_specs:
+            return self.futures_specs[symbol].get("multiplier", self.future_contract_multiplier)
+        return self.future_contract_multiplier
 
     def crypto_cost_bps(self, daily_vol_pct: float = 0.0) -> float:
         """Total crypto cost in basis points."""
@@ -214,12 +235,12 @@ class VectorizedBacktester:
                 symbol_costs = changes * (cost_bps / 10000)
 
             elif self.config.asset_class == AssetClass.FUTURE:
-                # Per contract cost
-                contract_cost = self.cost_model.future_cost_per_contract()
+                # Per contract cost - use per-symbol specs if available
+                contract_cost = self.cost_model.future_cost_per_contract(symbol)
+                multiplier = self.cost_model.get_future_contract_multiplier(symbol)
                 # Position in contracts = weight * portfolio_value / (price * contract_multiplier)
                 # contracts_traded = weight_change * portfolio_value / (price * multiplier)
                 # Using initial_capital as portfolio_value approximation (consistent with equity path)
-                multiplier = self.cost_model.future_contract_multiplier
                 contracts_traded = changes * self.config.initial_capital / (price * multiplier)
                 symbol_costs = contracts_traded.abs() * contract_cost / self.config.initial_capital
 
