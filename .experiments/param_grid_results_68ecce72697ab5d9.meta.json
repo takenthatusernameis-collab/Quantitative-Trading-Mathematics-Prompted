@@ -1,0 +1,31 @@
+{
+  "shape": [
+    18,
+    10
+  ],
+  "columns": [
+    "long_only",
+    "lookback",
+    "skip",
+    "train_sharpe",
+    "train_vol_annual",
+    "wf_oos_mean_sharpe",
+    "wf_oos_sharpes",
+    "val_sharpe",
+    "test_sharpe",
+    "oos_sharpe"
+  ],
+  "dtypes": {
+    "long_only": "bool",
+    "lookback": "int64",
+    "skip": "int64",
+    "train_sharpe": "float64",
+    "train_vol_annual": "float64",
+    "wf_oos_mean_sharpe": "float64",
+    "wf_oos_sharpes": "object",
+    "val_sharpe": "float64",
+    "test_sharpe": "float64",
+    "oos_sharpe": "float64"
+  },
+  "index_type": "int64"
+}
