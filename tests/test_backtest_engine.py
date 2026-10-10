@@ -279,3 +279,24 @@ class TestOtherAssetClasses:
         res = run_backtest(prices=prices, signals=signals, config=cfg)
         # default crypto cost: 5 + 2 + 0 = 7 bps
         assert res.returns.iloc[0] == pytest.approx(-7.0 / 10_000, abs=1e-12)
+
+    def test_future_cost_with_per_symbol_specs(self):
+        """Per-symbol futures specs override global defaults."""
+        prices = _make_prices(symbols=("ES",))
+        signals = pd.DataFrame({"ES": 0.0}, index=prices.index)
+        signals.iloc[0] = 1.0
+        cfg = _make_config(asset_class=AssetClass.FUTURE, max_leverage=5.0,
+                           max_position_size=5.0)
+        cfg.cost_model.futures_specs = {
+            "ES": {
+                "multiplier": 100.0,
+                "tick_value": 25.0,
+                "spread_ticks": 0.25,
+                "slippage_ticks": 0.5,
+                "commission": 1.0,
+            }
+        }
+        res = run_backtest(prices=prices, signals=signals, config=cfg)
+        price_es = prices["ES"].iloc[0]
+        expected_es = (1.0 + (0.25 + 0.5) * 25.0) / (price_es * 100.0)
+        assert res.returns.iloc[0] == pytest.approx(-expected_es, abs=1e-12)

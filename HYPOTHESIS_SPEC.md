@@ -255,3 +255,21 @@ benchmark (the direction-aware gate correctly fails it).
      param-grid (108 combos with overfit-guard columns), summary.json.
    - All with git commit, seeds, dependency versions (see tracker JSONL).
 5. `NEXT_TASK.md` — next bottleneck + experiment for the next agent.
+
+
+---
+
+## H4: Futures Time-Series Momentum + Ensemble Selection (Next Task)
+
+### Pre-registration
+- **Hypothesis**: Volatility-scaled TSMOM on liquid futures (ES,NQ,CL,GC,ZB), selected by ensemble (equal-weight average of top-K configs by train WF Sharpe, K pre-registered), generates net pooled OOS Sharpe ≥ 1.0 with ≥ 200 trades, PF ≥ 1.3, max DD ≤ 15%, worst-regime Sharpe ≥ 0.3, ±20% perturbation robust, significant positive alpha vs equal-weight futures benchmark (p < 0.05, IR > 0).
+- **Null (H0)**: ensemble futures TSMOM Sharpe ≤ benchmark in OOS.
+- **Universe**: ES=F, NQ=F, CL=F, GC=F, ZB=F (and optionally extended if data available).
+- **Splits**: Train 2015-2019, Val 2020-2021, Test 2022-2024 (protected). Test never enters selection.
+- **Signal**: same vol-scaled TSMOM (lookback, skip, long/short), monthly rebalance, vol target 15%.
+- **Selection**: ensemble of top-K (K=5) by train walk-forward Sharpe; ablate vs argmax.
+- **Gates**: Sharpe ≥ 1.0, ≥ 200 trades, PF ≥ 1.3, DD ≤ 15%, WF stability ≥ 0.7, ±20% perturbation OOS Sharpe ≥ 0.5×optimum, worst-regime Sharpe ≥ 0.3, benchmark p < 0.05 and IR > 0.
+
+### Outcome (to be filled by execution)
+- Status: [PENDING] - Not yet executed.
+- Artifacts: `.experiments/artifacts/exp_<H4>/`

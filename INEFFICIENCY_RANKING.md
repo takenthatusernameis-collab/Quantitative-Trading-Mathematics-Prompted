@@ -127,3 +127,5 @@ scope decision (see NEXT_TASK.md).
 ### Capacity Estimates
 - ETFs: $1B+ (based on $100M+ ADV); 2022 stress showed several ETFs (USO) with
   extreme single-day gap risk that would impair scaling — a separate capacity risk.
+
+- **H4 (pending)**: Futures TSMOM + ensemble selection — shift to =F futures where TSMOM literature edge was discovered. Pre-registered K=5 ensemble to reduce argmax overfit; gates same. Status: pending.
