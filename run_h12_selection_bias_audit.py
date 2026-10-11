@@ -316,3 +316,7 @@ def _rebuild_grid_oos(prices, volumes, vix_hourly, cfg, masks):
             print(f"    grid re-run {i+1}/{N} ({(time.time()-t0)/60:.1f} min)", flush=True)
     grid_meta = pd.DataFrame(meta)
     return grid_meta, oos_matrix, oos_index
+
+
+def main():
+    pass
