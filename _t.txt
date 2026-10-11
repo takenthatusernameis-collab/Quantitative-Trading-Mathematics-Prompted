@@ -1,0 +1,3 @@
+#!/usr/bin/env python3
+"""H7 placeholder."""
+print("ok")
