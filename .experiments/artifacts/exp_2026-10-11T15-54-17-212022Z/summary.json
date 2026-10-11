@@ -1,0 +1,28 @@
+{
+  "experiment_id": "exp_2026-10-11T15-54-17-212022Z",
+  "metrics": {
+    "train_sharpe": -0.0031463251606912313,
+    "val_sharpe": 0.09436071927469075,
+    "test_sharpe": -0.49259782507720457,
+    "oos_sharpe": -0.1370114639529108,
+    "profit_factor": 0.9876808089087993,
+    "max_drawdown": -0.24750810122064282,
+    "trades": 31519,
+    "wf_stability": 2.0699560606719767,
+    "worst_regime_sharpe": -1.1224881735076757,
+    "benchmark_p_value": 0.11284923875075512,
+    "information_ratio": -0.23532720855889727
+  },
+  "passes": {
+    "sharpe": "False",
+    "trades": true,
+    "pf": "False",
+    "dd": "False",
+    "stab": "True",
+    "worst": "False",
+    "p": "False",
+    "ir": "False"
+  },
+  "all_pass": false,
+  "verdict": "REJECT"
+}

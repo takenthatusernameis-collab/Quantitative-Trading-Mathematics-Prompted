@@ -1,0 +1,21 @@
+{
+  "shape": [
+    11441,
+    5
+  ],
+  "columns": [
+    "ES=F",
+    "NQ=F",
+    "CL=F",
+    "GC=F",
+    "ZB=F"
+  ],
+  "dtypes": {
+    "ES=F": "float64",
+    "NQ=F": "float64",
+    "CL=F": "float64",
+    "GC=F": "float64",
+    "ZB=F": "float64"
+  },
+  "index_type": "datetime64[ms]"
+}

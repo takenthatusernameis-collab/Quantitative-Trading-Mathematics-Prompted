@@ -267,3 +267,4 @@ improves monotonically: H4→H5→H6→H7→H8 (0.376→0.509→0.708→0.789→
 - Max drawdown > 15% → **-20.9%**.
 - Worst-regime Sharpe < 0 → **-1.914** (sideways, captures 2020-2021).
 - Benchmark IR not significant → **p=0.241, α=+4.8%/yr (not significant)**.
+| H9 (Intraday TSMOM + CT exits) | -0.137 | -24.8% | 0.988 | 31519 | ~0 | REJECT | Hourly noise + high turnover erodes edge |

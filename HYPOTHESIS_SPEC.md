@@ -835,3 +835,31 @@ supports 1-hour bars for futures. H9 will:
 - Pre-register: same gates, same splits (Train 2020-2022, Val 2023, Test protected).
 
 Full pre-registration in NEXT_TASK.md.
+
+---
+### H9: Intraday Futures TSMOM with CT-Style Path-Dependent Exits (executed 2026-10-11, REJECTED)
+
+**H9** implemented intraday TSMOM with CT-style path-dependent exits on hourly futures bars.
+- **Universe**: ES=F, NQ=F, CL=F, GC=F, ZB=F (1h interval)
+- **Splits**: Adapted to available hourly window (Oct 2024 - Oct 2026); train/val/test split protecting latest as Test
+- **Signal**: Vol-scaled TSMOM blend (252h + 63h) with portfolio vol targeting (15% annualized)
+- **Exits**: CT-style path-dependent exits (trailing/time/vol stop approximations) applied to hourly signals
+- **Cost model**: Futures per-contract costs (realistic)
+
+**Results (OOS = Val+Test, protected):**
+- **OOS Sharpe**: -0.137 (threshold ≥ 1.0) **FAIL**
+- **OOS Max DD**: -24.8% (threshold ≤ 15%) **FAIL**
+- **Profit Factor**: 0.988 (threshold ≥ 1.3) **FAIL**
+- **Trades**: 31,519 (≥ 200) **PASS**
+- **WF Stability**: 2.07 (≥ 0.7) **PASS** (high due to train near-zero)
+- **Worst-regime SR**: -1.12 (≥ 0.3) **FAIL**
+- **Benchmark p-value**: 0.113 (> 0.05) **FAIL**
+- **Information Ratio**: -0.235 (> 0) **FAIL**
+
+**Gates**: 6/8 FAIL → **OVERALL: REJECT** (H0 cannot be rejected)
+
+**Key findings**:
+- Intraday hourly TSMOM with path-dependent exits failed to achieve Sharpe ≥ 1.0; produced negative OOS Sharpe (-0.137) on the recent window.
+- Very high turnover (31.5K trades) amplifies transaction costs even with futures per-contract pricing, eroding edge.
+- The frequency premium (if any) was overwhelmed by noise and costs; path-dependent exits did not rescue performance.
+- Results are limited by the available hourly data window (Oct 2024–Oct 2026, ~2 years) vs ideal multi-year backtest.
