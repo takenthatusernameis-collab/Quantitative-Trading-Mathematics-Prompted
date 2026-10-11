@@ -1180,3 +1180,71 @@ window.
 - Evidence that the CL turnover (68% of trades) is a data artifact
   (e.g., roll-date noise in the `=F` continuous contract) rather
   than a traded signal.
+
+
+## H12: Selection-Bias Audit (pre-registered 2026-10-11, BEFORE execution)
+
+**Objective.** Determine whether the H10 best-of-N selection is
+distinguishable from chance after correcting for multiple testing
+and backtest overfitting.
+
+**Null hypotheses (H0).**
+- H0_DSR: The H10 selected config's valuation Sharpe is not
+  statistically significant after Deflated Sharpe Ratio (Bailey
+  & López de Prado 2014) correction for N=13,824 trials.
+- H0_PBO: The strategy's selection is overfit under
+  Combinatorially-Symmetric Cross-Validation (CSCV) probability
+  of backtest overfitting (Bailey et al. 2014, Arroyo et al.
+  2022) with S=16 blocks (PBO ≥ 0.5).
+- H0_MT: The H10 OOS benchmark result (p-value 4.79e-10) is not
+  significant after family-wide multiple-testing correction
+  across all grid trials in H1–H11.
+
+**Pre-registered tests.**
+1. **Deflated Sharpe Ratio (DSR).** Using the preserved
+   per-combo Val-Sharpe distribution from H10 artifact
+   `exp_2026-10-11T17-41-18-169363Z/grid_results.parquet` (column
+   `val_sharpe`, N=13,824), compute DSR for the H10 selected
+   config's Sharpe. This tests whether the maximum observed
+   Val Sharpe is expected under the null of independent trials
+   with the empirical distribution moments (mean, std, skewness,
+   kurtosis). No new backtests required for DSR.
+2. **Probability of Backtest Overfitting (PBO) via CSCV.**
+   Re-run the H10 grid but log **per-combo OOS (Val+Test)
+   metrics** (the H10 run only logged Val metrics). This is
+   ~29 min / 0.5 CPU-h. Then compute PBO with S=16 combinatorially-
+   symmetric blocks following the standard definition (compare
+   performance rank stability between in-sample and
+   combinatorially-split OOS). PBO < 0.3 indicates the selection
+   is not an overfitting artifact; larger values indicate
+   overfitting.
+3. **Family-wide multiple-testing audit.** Pool trial counts
+   across the family: H1:18, H2:54, H3:108, H4:18, H5:6, H6:6,
+   H8:5, H10:13824, H11:~350 (sum ~14400). Recompute
+   Bonferroni- and FDR-adjusted significance for the reported
+   H10 OOS benchmark p-value (4.79e-10). Also report the Šidák
+   correction and the effective alpha.
+4. **PF-margin sensitivity (diagnostic).** Using the H10 grid
+   artifact, characterize the distribution of `val_profit_factor`
+   and fraction of combos with PF ≥ 1.3; quantify selection
+   pressure on the fragile PF gate.
+
+**Verdict rule (pre-registered).** H12 **PASS** iff all three
+nulls are rejected: DSR-adjusted Sharpe ≥ 1.0 (or DSR
+significant at 5%), PBO < 0.3, and the benchmark result remains
+statistically significant after family-wide multiple-testing
+correction (adjusted p < 0.05). If any fails, H12 **REJECT**
+with clear attribution. Diagnostic (4) does not gate PASS/REJECT.
+
+**Constraints.** No live trading, no secrets, no paid data, Test
+never enters selection, preserve negative results, ≤ 4 CPU-h per
+experiment, reuse existing engine/tracking/validation
+infrastructure, all regression tests passing. Do not attempt
+the infeasible items (extended history / ongoing OOS beyond
+2026-10-09) without paid data.
+
+**Deliverables.** `run_h12_selection_bias_audit.py`,
+artifacts in `.experiments/artifacts/exp_<H12>/`,
+updated `HYPOTHESIS_SPEC.md` (this section) and
+`INEFFICIENCY_RANKING.md` with final PASS/REJECT verdict and
+root-cause attribution.

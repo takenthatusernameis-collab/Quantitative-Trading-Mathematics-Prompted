@@ -385,3 +385,14 @@ vol_floor 0.25). Signal smoothing and regime scaling were not selected.
   > 1.54×; a ±20% perturbation region with OOS Sharpe < 0.638
   (currently worst case 1.027); evidence that CL's 68% turnover
   share is a roll-date artifact of the `=F` continuous contract.
+
+
+#### 12. Selection-Bias Audit (pre-registered — H12)
+
+**Status:** Not yet executed (pending agent).
+
+**Task:** Correct for multiple testing and backtest overfitting via (1) Deflated Sharpe Ratio (DSR) on the 13,824-trial Val-Sharpe distribution (reuses H10 grid artifact, no new backtests), (2) Probability of Backtest Overfitting (PBO) via CSCV on per-combo OOS metrics (re-runs H10 grid to log Val+Test per combo, ~0.5 CPU-h), (3) family-wide multiple-testing audit pooling all grid trials (H1–H11, ~14,400), and (4) PF-margin distribution diagnostic.
+
+**Pre-registered verdict:** H12 PASS iff DSR-adjusted Sharpe ≥ 1.0, PBO < 0.3, and family-wide corrected p-value < 0.05. If any fails → REJECT with root-cause attribution. PF distribution is diagnostic only.
+
+**Key dependency:** The H10 grid artifact at `.experiments/artifacts/exp_2026-10-11T17-41-18-169363Z/grid_results.parquet` contains the full per-combo Val statistics (N=13824) needed for DSR and PF distribution analysis.
