@@ -1,0 +1,177 @@
+{
+  "experiment_id": "exp_2026-10-11T08-02-22-999214Z",
+  "best_combo": {
+    "dd_trigger": 0.1,
+    "dd_factor": 0.5
+  },
+  "grid": [
+    {
+      "dd_trigger": 0.1,
+      "dd_factor": 0.5,
+      "val_sharpe": 0.5309830295538364,
+      "train_sharpe": 0.8822734297151869,
+      "test_sharpe": 0.8241371364500689,
+      "oos_sharpe": 0.7082311410075322,
+      "val_dd": -0.13803730993769536,
+      "oos_dd": -0.16490372367486517,
+      "val_pf": 1.1857659530368072,
+      "val_trades": 188
+    },
+    {
+      "dd_trigger": 0.15,
+      "dd_factor": 0.5,
+      "val_sharpe": 0.5309830295538364,
+      "train_sharpe": 0.8756967508747022,
+      "test_sharpe": 0.8239805011404889,
+      "oos_sharpe": 0.7081248541846287,
+      "val_dd": -0.13803730993769525,
+      "oos_dd": -0.16490574371726374,
+      "val_pf": 1.18505431802009,
+      "val_trades": 188
+    },
+    {
+      "dd_trigger": 0.2,
+      "dd_factor": 0.5,
+      "val_sharpe": 0.5309830295538364,
+      "train_sharpe": 0.8733080071703575,
+      "test_sharpe": 0.8239805011404889,
+      "oos_sharpe": 0.7081248541846287,
+      "val_dd": -0.13803730993769525,
+      "oos_dd": -0.16490574371726374,
+      "val_pf": 1.1847856891965407,
+      "val_trades": 188
+    },
+    {
+      "dd_trigger": 0.1,
+      "dd_factor": 0.75,
+      "val_sharpe": 0.5284698032684869,
+      "train_sharpe": 0.8833126879819007,
+      "test_sharpe": 0.823793632838289,
+      "oos_sharpe": 0.7069130560477739,
+      "val_dd": -0.13660738700847286,
+      "oos_dd": -0.1636014453765362,
+      "val_pf": 1.185855605819753,
+      "val_trades": 188
+    },
+    {
+      "dd_trigger": 0.15,
+      "dd_factor": 0.75,
+      "val_sharpe": 0.5284698032684869,
+      "train_sharpe": 0.8732432207704102,
+      "test_sharpe": 0.8235523363656577,
+      "oos_sharpe": 0.7067498963080386,
+      "val_dd": -0.13660738700847253,
+      "oos_dd": -0.16360448214980106,
+      "val_pf": 1.1847754179400292,
+      "val_trades": 188
+    },
+    {
+      "dd_trigger": 0.2,
+      "dd_factor": 0.75,
+      "val_sharpe": 0.5284698032684869,
+      "train_sharpe": 0.8695614380668136,
+      "test_sharpe": 0.8235523363656577,
+      "oos_sharpe": 0.7067498963080386,
+      "val_dd": -0.13660738700847275,
+      "oos_dd": -0.16360448214980094,
+      "val_pf": 1.184367116459578,
+      "val_trades": 188
+    }
+  ],
+  "oos_sharpe": 0.7082311410075322,
+  "oos_pf": 1.1596363911271954,
+  "oos_max_dd": -0.19692757195302246,
+  "oos_trades": 188,
+  "train_sharpe": 0.8822734297151869,
+  "wf_stability": 0.8027342965957407,
+  "worst_regime_sharpe": -2.3980682751769677,
+  "alpha_vs_benchmark": {
+    "p_value": 0.42177834933464325,
+    "information_ratio": 0.35981069144282585
+  },
+  "passes": {
+    "sharpe": false,
+    "trades": false,
+    "pf": false,
+    "dd": false,
+    "stab": true,
+    "worst": false,
+    "p": false,
+    "ir": true
+  },
+  "all_pass": false,
+  "ablations": [
+    {
+      "name": "base",
+      "oos_sharpe": 0.49474067443772995,
+      "oos_max_dd": -0.3850882455580712,
+      "oos_pf": 1.1391562771423263,
+      "oos_trades": 138
+    },
+    {
+      "name": "vix_only",
+      "oos_sharpe": 0.7107221023040536,
+      "oos_max_dd": -0.2003920453037209,
+      "oos_pf": 1.18559227269472,
+      "oos_trades": 164
+    },
+    {
+      "name": "ddcv_only",
+      "oos_sharpe": 0.5090151736170241,
+      "oos_max_dd": -0.35318281368735016,
+      "oos_pf": 1.1390496061754167,
+      "oos_trades": 188
+    }
+  ],
+  "ddcv_only_grid": [
+    {
+      "dd_trigger": 0.2,
+      "dd_factor": 0.75,
+      "val_sharpe": 0.4774932799655731,
+      "oos_sharpe": 0.5090151736170241,
+      "oos_dd": -0.31308187581634783
+    },
+    {
+      "dd_trigger": 0.15,
+      "dd_factor": 0.75,
+      "val_sharpe": 0.4774932799655731,
+      "oos_sharpe": 0.5090151736170241,
+      "oos_dd": -0.31308187581634783
+    },
+    {
+      "dd_trigger": 0.15,
+      "dd_factor": 0.5,
+      "val_sharpe": 0.4718526760275958,
+      "oos_sharpe": 0.5041789980571214,
+      "oos_dd": -0.3222386225544316
+    },
+    {
+      "dd_trigger": 0.2,
+      "dd_factor": 0.5,
+      "val_sharpe": 0.4718526760275958,
+      "oos_sharpe": 0.5041789980571214,
+      "oos_dd": -0.3222386225544317
+    },
+    {
+      "dd_trigger": 0.1,
+      "dd_factor": 0.75,
+      "val_sharpe": 0.46313282989510757,
+      "oos_sharpe": 0.5000781994893274,
+      "oos_dd": -0.3204460192090085
+    },
+    {
+      "dd_trigger": 0.1,
+      "dd_factor": 0.5,
+      "val_sharpe": 0.46246841311688913,
+      "oos_sharpe": 0.49829907372809007,
+      "oos_dd": -0.32712089217736606
+    }
+  ],
+  "data_available": [
+    "ES=F",
+    "NQ=F",
+    "CL=F",
+    "GC=F",
+    "ZB=F"
+  ]
+}
