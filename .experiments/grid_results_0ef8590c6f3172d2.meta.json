@@ -1,0 +1,35 @@
+{
+  "shape": [
+    32,
+    12
+  ],
+  "columns": [
+    "vol_window_long",
+    "smooth_span",
+    "regime_scaling",
+    "min_trade_interval",
+    "trailing_mult",
+    "max_hold_bars",
+    "vol_limit_mult",
+    "vol_floor_fraction",
+    "val_sharpe",
+    "val_profit_factor",
+    "val_max_drawdown",
+    "val_trades"
+  ],
+  "dtypes": {
+    "vol_window_long": "int64",
+    "smooth_span": "str",
+    "regime_scaling": "bool",
+    "min_trade_interval": "int64",
+    "trailing_mult": "float64",
+    "max_hold_bars": "int64",
+    "vol_limit_mult": "float64",
+    "vol_floor_fraction": "float64",
+    "val_sharpe": "float64",
+    "val_profit_factor": "float64",
+    "val_max_drawdown": "float64",
+    "val_trades": "int64"
+  },
+  "index_type": "int64"
+}

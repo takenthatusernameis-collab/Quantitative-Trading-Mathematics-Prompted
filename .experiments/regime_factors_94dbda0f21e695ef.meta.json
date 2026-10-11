@@ -1,0 +1,13 @@
+{
+  "shape": [
+    11441,
+    1
+  ],
+  "columns": [
+    "factor"
+  ],
+  "dtypes": {
+    "factor": "float64"
+  },
+  "index_type": "datetime64[ms]"
+}

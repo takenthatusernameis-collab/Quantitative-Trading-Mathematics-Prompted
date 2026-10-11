@@ -1,0 +1,136 @@
+{
+  "experiment_id": "exp_2026-10-11T17-24-14-385352Z",
+  "hypothesis": "H10",
+  "selected_config": {
+    "vol_window_long": 252,
+    "smooth_span": "none",
+    "regime_scaling": false,
+    "min_trade_interval": 0,
+    "trailing_mult": 1.5,
+    "max_hold_bars": 60,
+    "vol_limit_mult": 2.0,
+    "vol_floor_fraction": 0.5
+  },
+  "grid_size": 32,
+  "n_evaluated": 32,
+  "grid_elapsed_sec": 24.9,
+  "total_elapsed_sec": 35.2,
+  "compute_cpu_hours": 0.01,
+  "metrics": {
+    "train_sharpe": 1.112929057908429,
+    "val_sharpe": null,
+    "test_sharpe": 1.0506298559146652,
+    "oos_sharpe": 1.0722978048083844,
+    "profit_factor": 1.2541727789334223,
+    "max_drawdown": -0.06204294468517624,
+    "trades": 1830,
+    "wf_stability": 0.8084220707146296,
+    "worst_regime_sharpe": 0.7659477911054116,
+    "regime_sharpes": {
+      "bull": 1.1724662212593087,
+      "sideways": 0.7659477911054116,
+      "bear": 1.2588043865811822
+    },
+    "benchmark_p_value": 7.539534140525187e-12,
+    "information_ratio": 1.0172449421222174,
+    "ablations": {
+      "h9_baseline": {
+        "oos_sharpe": 1.0657926643372737,
+        "oos_profit_factor": 1.2532180751449158,
+        "oos_max_drawdown": -0.061967708465627824,
+        "oos_trades": 1795,
+        "test_sharpe": 1.0509351867915173
+      },
+      "signal_smoothing_only(span=None)": {
+        "oos_sharpe": 1.0657926643372737,
+        "oos_profit_factor": 1.2532180751449158,
+        "oos_max_drawdown": -0.061967708465627824,
+        "oos_trades": 1795,
+        "test_sharpe": 1.0509351867915173
+      },
+      "longer_vol_window_only(vw=252)": {
+        "oos_sharpe": 1.0657926643372737,
+        "oos_profit_factor": 1.2532180751449158,
+        "oos_max_drawdown": -0.061967708465627824,
+        "oos_trades": 1795,
+        "test_sharpe": 1.0509351867915173
+      },
+      "regime_scaling_only": {
+        "oos_sharpe": 1.0212242716355602,
+        "oos_profit_factor": 1.2485589178667436,
+        "oos_max_drawdown": -0.061967708465626825,
+        "oos_trades": 1830,
+        "test_sharpe": 1.0497523295683875
+      },
+      "min_trade_interval_only(mi=0)": {
+        "oos_sharpe": 1.0657926643372737,
+        "oos_profit_factor": 1.2532180751449158,
+        "oos_max_drawdown": -0.061967708465627824,
+        "oos_trades": 1795,
+        "test_sharpe": 1.0509351867915173
+      },
+      "exit_grid_best": {
+        "oos_sharpe": 1.0722978048083844,
+        "oos_profit_factor": 1.2541727789334223,
+        "oos_max_drawdown": -0.06204294468517624,
+        "oos_trades": 1830,
+        "test_sharpe": 1.0506298559146652
+      }
+    }
+  },
+  "best_val_pf_config": {
+    "config": {
+      "vol_window_long": 252,
+      "smooth_span": "None",
+      "regime_scaling": false,
+      "min_trade_interval": 0,
+      "trailing_mult": 1.5,
+      "max_hold_bars": 60,
+      "vol_limit_mult": 2.0,
+      "vol_floor_fraction": 0.5
+    },
+    "val_pf": 1.2705111353977836,
+    "oos_metrics": {
+      "sharpe": 1.0722978048083844,
+      "max_drawdown": -0.06204294468517624,
+      "profit_factor": 1.2541727789334223,
+      "trades": 1830,
+      "gross_profit": 4.3615790700860755,
+      "gross_loss": 3.477654070753524,
+      "n_periods": 5148
+    },
+    "test_metrics": {
+      "sharpe": 1.0506298559146652,
+      "max_drawdown": -0.0491700971688771,
+      "profit_factor": 1.2311706990579045,
+      "trades": 522,
+      "gross_profit": 1.7781723192005718,
+      "gross_loss": 1.4442938908156557,
+      "n_periods": 2288
+    },
+    "gates": {
+      "sharpe": true,
+      "trades": true,
+      "pf": false,
+      "dd": true,
+      "stab": true,
+      "worst": true,
+      "p": true,
+      "ir": true
+    },
+    "verdict": "REJECT"
+  },
+  "passes": {
+    "sharpe": true,
+    "trades": true,
+    "pf": false,
+    "dd": true,
+    "stab": true,
+    "worst": true,
+    "p": true,
+    "ir": true
+  },
+  "all_pass": false,
+  "verdict": "REJECT",
+  "selection_rule": "best Val Sharpe; Test protected (not used for selection); gates on OOS Val+Test"
+}
