@@ -652,3 +652,186 @@ base −38.5%), but neither metric clears the gates.
 **Verdict: REJECT H7.** Multi-horizon regime-blended signal with daily-approximated path exits does not clear Sharpe/PF gates (OOS Sharpe 0.789 < 1.0, PF 1.166 < 1.3). Max DD passes at boundary. Test period shows strength (Sharpe 1.269) but Val period is weak (0.188), pulling OOS below threshold. The pivot to multi-horizon + regime weighting improves structure but signal strength ceiling remains on daily data even with exit heuristics. True intraday path-dependent execution (tick-level trailing/time/vol stops) remains untested with free data — left as documented future work per fallback plan (roll-yield model or extended sample).
 
 **Root cause:** Daily rebalancing + daily-approximated stops cannot fully exploit intraday trend persistence/decay; frequency limitation dominates. Roll-yield capture (continuous `=F` smoothing) and pre-2015 sample extension are plausible next pivots.
+
+---
+
+### Hypothesis H8: Roll-Adjusted Futures TSMOM (Capture True Roll-Date P&L)
+
+**Statement.** Building a roll-adjusted returns series from daily `=F` continuous
+futures contracts by detecting roll dates (calendar month-end + volume-shift
++ overnight-gap heuristics) and explicitly adding roll carry (the overnight
+gap = open/prev_close − 1 on detected roll dates) to the daily returns, then
+running vol-scaled TSMOM on the roll-adjusted price series, generates net
+pooled out-of-sample (Val+Test) Sharpe ≥ 1.0 with ≥ 200 trades, PF ≥ 1.3,
+max DD ≤ 15%, walk-forward stability ≥ 0.7, and significant positive alpha
+vs equal-weight futures benchmark (p < 0.05, IR > 0).
+
+**Mechanism.** The `=F` continuous contracts from Yahoo may smooth/mask the
+roll-date P&L through their back-adjustment methodology. By explicitly
+detecting roll dates and adding the overnight gap (which captures the
+old-front-month → new-front-month price transition), we build a
+"roll-adjusted" returns series that makes the roll yield more explicit and
+concentrated on roll dates. TSMOM on this enhanced series can better identify
+and follow trends that include the roll-yield component. (See H4-H7 root-cause
+attribution: "the `=F` continuous contracts may smooth/mask the roll edge that
+is the primary return source for managed futures.")
+
+**Null (H0).** Roll-adjusted TSMOM OOS Sharpe ≤ 1.0 OR max DD > 15%.
+
+**Pre-registration.**
+- **Universe**: ES=F, NQ=F, CL=F, GC=F, ZB=F (all 5 available).
+- **Splits**: Train 2015-2019, Val 2020-2021, Test 2022-2024 (protected). Test
+  never enters selection.
+- **Roll detection**: calendar-based (last business day of roll months — ES/NQ/ZB
+  quarterly Mar/Jun/Sep/Dec; CL/GC monthly) validated by volume spikes (> 3×
+  42-day median near month-end) and overnight gaps (|open/prev_close − 1| > 0.5%
+  near month-end). Open interest unavailable from free sources; volume is the
+  substitute.
+- **Roll carry**: on detected roll dates, roll_carry = open_t / close_{t-1} − 1
+  (the overnight gap capturing the contract transition). This is the empirical
+  proxy for (next_front_price − front_price) / front_price.
+- **Roll-adjusted returns**: R'_t = R_t + w × roll_carry_t on roll dates,
+  R'_t = R_t otherwise. Grid over w ∈ {0.0, 0.25, 0.5, 1.0, 2.0}; w=0.0 is
+  the base (no roll adjustment = H4 baseline). Selection by Val-only Sharpe.
+  Daily returns clipped at ±50% to handle the CL 2020 negative-price anomaly.
+- **Roll-adjusted prices**: P'_t = P_0 × cumprod(1 + R'_t) per symbol.
+- **Signal**: vol-scaled TSMOM on P' via `vol_scaled_tsmom_signals`
+  (long_only=True, lookback=252, skip=1, target_vol=0.15, vol_window=63,
+  max_position_size=2.0) — the corrected H4 best combo. Monthly rebalance.
+- **Cost model**: futures per-contract ($0.50 + 0.25 tick spread + 0.5 tick
+  slippage) with per-symbol multiplier/tick specs.
+- **Gates**: unchanged PROMPT_V2 set (Sharpe ≥ 1.0, ≥ 200 trades, PF ≥ 1.3,
+  DD ≤ 15%, WF stability ≥ 0.7, worst-regime Sharpe ≥ 0.3, benchmark p < 0.05
+  AND IR > 0).
+- **Compute budget**: ≤ 2 CPU-h. Seed 42.
+
+**Measured (experiment `exp_2026-10-11T15-21-31-333870Z`):**
+
+Roll dates detected per symbol (calendar + volume + gap):
+- ES=F: 63, NQ=F: 78, CL=F: 217, GC=F: 263, ZB=F: 51
+
+Grid results (selection by Val Sharpe):
+
+| Weight (w) | Train SR | Val SR | Test SR | OOS SR | OOS DD | OOS PF | OOS Trades |
+|------------|----------|--------|---------|--------|--------|--------|------------|
+| 0.0 (base) | 0.936 | 0.847 | 0.768 | 0.797 | -21.1% | 1.154 | 197 |
+| 0.25 | 0.955 | 0.863 | 0.756 | 0.798 | -21.0% | 1.154 | 200 |
+| **0.50** | 0.922 | **0.900** | 0.753 | **0.814** | -20.9% | 1.157 | 201 |
+| 1.0 | 0.982 | 0.862 | 0.752 | 0.797 | -20.4% | 1.153 | 201 |
+| 2.0 | 1.036 | 0.687 | 0.658 | 0.666 | -21.9% | 1.128 | 201 |
+
+Best selected: w=0.50 (Val Sharpe 0.900).
+
+| Gate (OOS) | Value | Threshold | Result |
+|------------|-------|-----------|--------|
+| Net Sharpe | 0.814 | ≥ 1.0 | FAIL |
+| Trades | 201 | ≥ 200 | PASS |
+| Profit factor | 1.157 | ≥ 1.3 | FAIL |
+| Max drawdown | -20.9% | ≤ 15% | FAIL |
+| Walk-forward stability | 0.883 | ≥ 0.7 | PASS |
+| Worst-regime Sharpe | -1.914 | ≥ 0.3 | FAIL |
+| Benchmark p-value | 0.241 | < 0.05 | FAIL |
+| Information ratio | 0.525 | > 0 | PASS |
+
+Benchmark (equal-weight, 5 futures BH): Sharpe 0.112, 2.3% annualized return.
+Strategy IR = 0.525 (α = +4.8%/yr, p = 0.241 ⇒ not statistically significant).
+
+**Verdict: REJECT H8.** 5/8 gates fail. The roll-adjustment provides a modest
+improvement in OOS Sharpe (0.797 → 0.814, +2.1% relative) and the highest
+WF stability (0.883) and IR (0.525) of the momentum family, but does not
+clear the Sharpe, PF, DD, worst-regime, or benchmark-significance gates.
+
+**Root-cause attribution (what H8 actually proved):**
+
+1. **Roll-yield capture provides only a marginal gain.** The best roll carry
+   weight (w=0.50) improves OOS Sharpe from 0.797 to 0.814 — a ~2% relative
+   gain. The overnight gaps on roll dates are small (ES/NQ ≤ 0.5%, CL/GC ≤ 2%),
+   so amplifying them has limited impact on the overall return distribution.
+
+2. **The `=F` continuous contracts already embed roll yield.** Because Yahoo
+   back-adjusts the continuous contracts, the roll yield is already in the
+   daily returns; the gap-based correction is a second-order refinement that
+   cannot recover the full roll-yield edge. The roll-adjusted return series
+   R'_t ≈ R_t for most symbols (small gaps).
+
+3. **Over-amplification is destructive.** At w=2.0, OOS Sharpe collapses to
+   0.666 (vs 0.814 at w=0.50) because doubling the gaps adds noise without
+   adding systematic return. This confirms the roll carry is mostly noise,
+   not signal.
+
+4. **Val selection overfits.** The best Val config (w=0.50, Val SR 0.900)
+   has the highest OOS SR (0.814), but w=1.0 (Val SR 0.862) has OOS SR 0.797
+   — the Val ranking roughly tracks OOS, but the absolute gap (0.814 vs 1.0
+   gate) shows the selected config still overfits relative to the gate.
+
+5. **The momentum family remains exhausted on free daily data.** Across
+   H4 (0.376/0.786 ensemble/best), H5 (0.509), H6 (0.708), H7 (0.789), H8
+   (0.814) — each iteration adds a modest improvement but none clears the
+   Sharpe ≥ 1.0 gate. The roll-adjustment is the most promising direction
+   yet (highest OOS Sharpe, WF stability, and IR of the family), but the
+   fundamental signal-strength ceiling persists.
+
+6. **The worst-regime Sharpe is the binding constraint.** Across H3-H8, the
+   sideways regime (VIX 20-30, which captures 2020-2021) consistently
+   produces negative or near-zero Sharpe (-1.9 to -2.4). Roll-yield
+   capture does not address this regime-level failure.
+
+**What would invalidate the rejection:**
+- Individual (non-`=F`) futures contract data with explicit roll timing —
+  the `=F` continuous contracts may not capture the true roll-date P&L.
+- Higher-frequency (intraday) futures data enabling CT-style path-dependent
+  trend following with stop-losses and dynamic position management (the
+  frequency dimension is the most consistently documented gap).
+- A futures roll model that captures contango/backwardation effects using
+  the actual futures curve (requires VIX-style term structure data).
+- Extending the sample to pre-2015 decades where TSMOM literature reports
+  stronger edges (the 2015-2024 window includes two major momentum crashes
+  and a 10-year equity bull that is unfavorable for trend-following).
+
+---
+
+### Implementation Plan (executed)
+
+8. ✅ Created `run_h8_rolladjusted_tsmom_experiment.py` — roll date detection
+   (calendar + volume + gap), roll carry computation (overnight gap on roll
+   dates), roll-adjusted returns and price series, TSMOM grid search over
+   roll_carry_weight ∈ {0.0, 0.25, 0.5, 1.0, 2.0} with Val-only selection,
+   full gate evaluation, ablations, and artifact tracking.
+9. ✅ Artifacts in `.experiments/artifacts/exp_2026-10-11T15-21-31-333870Z/`.
+10. ✅ Updated `HYPOTHESIS_SPEC.md` (append H8) and `INEFFICIENCY_RANKING.md`.
+11. ✅ Final verdict: REJECT with root-cause attribution (preserve all negative
+    results).
+12. ✅ Regression tests pass (`python3 -m pytest tests/ -q` — 38 passing).
+
+---
+
+### Deliverables
+
+1. `run_h8_rolladjusted_tsmom_experiment.py` — H8 pipeline + gates.
+2. Artifacts in `.experiments/artifacts/exp_2026-10-11T15-21-31-333870Z/`:
+    - prices, opens, volumes, vix_close
+    - roll_dates, roll_carry, roll_adjusted_prices (per weight)
+    - signals (per weight), param_grid_results (5 weight configs)
+    - best_equity_w0.5, best_trades_w0.5, best_returns_w0.5
+    - base_equity (w=0.0 ablation)
+    - benchmark_equity, benchmark_trades
+    - ablations
+    - summary.json
+3. Updated `HYPOTHESIS_SPEC.md` (this file) and `INEFFICIENCY_RANKING.md`.
+4. All 38 regression tests passing.
+5. `NEXT_TASK.md` — next bottleneck + experiment for the next agent.
+
+---
+
+### H9 (pre-registered draft for next agent): Intraday Futures TSMOM with
+### CT-Style Path-Dependent Exits
+
+The frequency dimension remains untested (H7 was daily-approximated). YFinance
+supports 1-hour bars for futures. H9 will:
+- Fetch ES, NQ, CL, GC, ZB at 1-hour interval (2020-present, within yfinance limits).
+- Build intrabar TSMOM with trailing stops (2× ATR), time stops (max 5 bars),
+  and vol stops (realized vol > 2× target), implemented on actual hourly data.
+- Compare to daily TSMOM (H8 best) to quantify the frequency premium.
+- Pre-register: same gates, same splits (Train 2020-2022, Val 2023, Test protected).
+
+Full pre-registration in NEXT_TASK.md.

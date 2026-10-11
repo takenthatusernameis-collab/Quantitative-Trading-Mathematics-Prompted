@@ -1,0 +1,27 @@
+{
+  "shape": [
+    5,
+    8
+  ],
+  "columns": [
+    "roll_carry_weight",
+    "train_sharpe",
+    "val_sharpe",
+    "test_sharpe",
+    "oos_sharpe",
+    "oos_pf",
+    "oos_dd",
+    "oos_trades"
+  ],
+  "dtypes": {
+    "roll_carry_weight": "float64",
+    "train_sharpe": "float64",
+    "val_sharpe": "float64",
+    "test_sharpe": "float64",
+    "oos_sharpe": "float64",
+    "oos_pf": "float64",
+    "oos_dd": "float64",
+    "oos_trades": "int64"
+  },
+  "index_type": "int64"
+}

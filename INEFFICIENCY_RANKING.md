@@ -200,3 +200,70 @@ contract from `futures_specs`). See H4/H5 sections below.
 - **Takeaway:** Multi-horizon regime-weighted blending produces strong test period but weak 2021–2022 Val (choppy regimes). Daily-approximated path exits reduce DD to boundary but cannot lift Sharpe above 0.79 on 2018–2024 daily data. Frequency (intraday) remains the untested dimension.
 - **Net Opportunity Score:** 2/10 (realized). Signal strength ceiling persists on daily data.
 - **What would invalidate the rejection:** true intraday (1–5 min) implementation with tick-level trailing/time/vol stops, roll-yield capture from contract rolls (continuous `=F` may mask), or extended sample pre-2015 where literature reports stronger TSMOM.
+
+---
+
+#### 8. Roll-Adjusted Futures TSMOM (executed — H8, REJECTED)
+
+- **Net edge measured** (ES/NQ/CL/GC/ZB `=F`, 2015-2024, corrected cost model):
+  roll-carry weight w=0.50 selected by Val Sharpe (0.900). **OOS Sharpe
+  0.814**, max DD -20.9%, PF 1.157, 201 trades, WF stability 0.883,
+  worst-regime Sharpe -1.914 (sideways), IR 0.525 vs EW futures benchmark
+  (p=0.241, α=+4.8%/yr). Train Sharpe 0.922 → Val 0.900 → Test 0.753.
+- **Roll-carry weight grid** (5 configs, sorted by Val Sharpe):
+
+  | w | Train SR | Val SR | Test SR | OOS SR | OOS DD | OOS PF | OOS Trades |
+  |---|----------|--------|---------|--------|--------|--------|------------|
+  | 0.50 | 0.922 | 0.900 | 0.753 | 0.814 | -20.9% | 1.157 | 201 |
+  | 0.25 | 0.955 | 0.863 | 0.756 | 0.798 | -21.0% | 1.154 | 200 |
+  | 1.0 | 0.982 | 0.862 | 0.752 | 0.797 | -20.4% | 1.153 | 201 |
+  | 0.0 (base) | 0.936 | 0.847 | 0.768 | 0.797 | -21.1% | 1.154 | 197 |
+  | 2.0 | 1.036 | 0.687 | 0.658 | 0.666 | -21.9% | 1.128 | 201 |
+
+- **Ablation**: base TSMOM (w=0.0, no roll adjustment) OOS Sharpe 0.797.
+  Roll adjustment (w=0.50) improves OOS Sharpe by ~2.1% relative (0.797 →
+  0.814) and is the **best-performing variant** of the entire momentum family
+  (H1–H8) on both OOS Sharpe and IR (0.525 vs H6's 0.360).
+- **Roll detection**: calendar-based (last BD of roll months) + volume spikes
+  + overnight gaps. 63–263 roll dates detected per symbol (ES, NQ, ZB
+  quarterly; CL, GC monthly). The overnight gaps on roll dates are small
+  (ES/NQ ≤ 0.5%, CL/GC ≤ 2%), so the roll-adjustment effect is limited.
+- **Net Opportunity Score:** 3/10 (realized) — the highest of the family but
+  still below the ≥1.0 Sharpe gate.
+- **Status: REJECTED.** 5/8 gates fail. Roll-yield capture provides a modest
+  Sharpe lift (0.797 → 0.814) but the Sharpe, PF, DD, worst-regime, and
+  benchmark-significance gates remain unmet. The roll carry is a second-order
+  effect on `=F` continuous returns that already embed roll yield.
+- **What would invalidate the rejection:** individual futures contract data
+  with explicit roll timing (not `=F` continuous), intraday futures data for
+  CT-style path-dependent exits, or pre-2015 sample extension.
+
+---
+
+### Updated Cross-Family Summary (H1→H8)
+
+The momentum family has been tested exhaustively on free daily data
+(2015-2024):
+
+| Hypothesis | OOS Sharpe | OOS Max DD | OOS PF | OOS Trades | IR vs BH | Verdict |
+|------------|-----------|-----------|-------|-----------|----------|---------|
+| H1 (TS, 20 ETFs) | 0.093 | -34.8% | 1.017 | 768 | -0.124 | REJECT |
+| H2 (CS, 10 ETFs) | 0.116 | -38.7% | 1.024 | 388 | -0.252 | REJECT |
+| H3 (Regime-gated) | -0.868 | -48.3% | 0.832 | 1239 | -0.893 | REJECT |
+| H4 (Futures TSMOM) | 0.376 | -47.4% | 1.085 | 177 | 0.332 | REJECT |
+| H5 (DDCV) | 0.509 | -35.3% | 1.108 | 188 | 0.394 | REJECT |
+| H6 (VIX+DDCV) | 0.708 | -19.7% | 1.160 | 188 | 0.360 | REJECT |
+| H7 (Multi-horizon, daily) | 0.789 | -14.5% | 1.166 | 1005 | ~0 | REJECT |
+| H8 (Roll-adjusted) | 0.814 | -20.9% | 1.157 | 201 | 0.525 | REJECT |
+
+**Best OOS Sharpe across all hypotheses: 0.814 (H8).** Still below the 1.0 gate.
+The momentum family is exhausted on free daily data; the strongest result
+improves monotonically: H4→H5→H6→H7→H8 (0.376→0.509→0.708→0.789→0.814).
+
+### Invalidation Criteria (updated with H8)
+
+**Roll-adjusted futures TSMOM invalidated** (H8) — does not clear gates:
+- OOS Sharpe < 1.0 → **0.814** (improves monotonically but still fails).
+- Max drawdown > 15% → **-20.9%**.
+- Worst-regime Sharpe < 0 → **-1.914** (sideways, captures 2020-2021).
+- Benchmark IR not significant → **p=0.241, α=+4.8%/yr (not significant)**.

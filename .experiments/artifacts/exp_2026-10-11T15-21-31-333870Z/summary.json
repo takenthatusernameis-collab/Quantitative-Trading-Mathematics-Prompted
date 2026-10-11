@@ -1,0 +1,173 @@
+{
+  "experiment_id": "exp_2026-10-11T15-21-31-333870Z",
+  "best_weight": 0.5,
+  "best_val_sharpe": 0.9003991983542586,
+  "grid": [
+    {
+      "roll_carry_weight": 0.5,
+      "train_sharpe": 0.9224561204330746,
+      "val_sharpe": 0.9003991983542586,
+      "test_sharpe": 0.7527597109300866,
+      "oos_sharpe": 0.8142482924033249,
+      "oos_pf": 1.1568339174846136,
+      "oos_dd": -0.2085072641498924,
+      "oos_trades": 201
+    },
+    {
+      "roll_carry_weight": 0.25,
+      "train_sharpe": 0.9553302314456638,
+      "val_sharpe": 0.8625828147122803,
+      "test_sharpe": 0.7555729865256725,
+      "oos_sharpe": 0.7981511190425913,
+      "oos_pf": 1.1535678475255464,
+      "oos_dd": -0.2096364049108025,
+      "oos_trades": 200
+    },
+    {
+      "roll_carry_weight": 1.0,
+      "train_sharpe": 0.9823381885714741,
+      "val_sharpe": 0.8618402202203536,
+      "test_sharpe": 0.7524384508320547,
+      "oos_sharpe": 0.7965005905553281,
+      "oos_pf": 1.1530139821342351,
+      "oos_dd": -0.2041564563798559,
+      "oos_trades": 201
+    },
+    {
+      "roll_carry_weight": 0.0,
+      "train_sharpe": 0.9362144088364062,
+      "val_sharpe": 0.8470072342924196,
+      "test_sharpe": 0.7678165006376932,
+      "oos_sharpe": 0.7969996346850657,
+      "oos_pf": 1.15388117769608,
+      "oos_dd": -0.21078423923680967,
+      "oos_trades": 197
+    },
+    {
+      "roll_carry_weight": 2.0,
+      "train_sharpe": 1.0358269278890477,
+      "val_sharpe": 0.6870879965374918,
+      "test_sharpe": 0.6575264415470248,
+      "oos_sharpe": 0.6661024319126528,
+      "oos_pf": 1.127872097451977,
+      "oos_dd": -0.2188586937878173,
+      "oos_trades": 201
+    }
+  ],
+  "gate_metrics": {
+    "train_sharpe": 0.9224561204330746,
+    "val_sharpe": 0.9003991983542586,
+    "test_sharpe": 0.7527597109300866,
+    "oos_sharpe": 0.8142482924033249,
+    "oos_pf": 1.1568339174846136,
+    "oos_max_dd": -0.2085072641498924,
+    "oos_trades": 201,
+    "wf_stability": 0.8826959617559388,
+    "worst_regime_sharpe": -1.9135756604794327,
+    "benchmark_p_value": 0.24132725822205583,
+    "information_ratio": 0.5248619387848141
+  },
+  "passes": {
+    "sharpe": false,
+    "trades": true,
+    "pf": false,
+    "dd": false,
+    "stab": true,
+    "worst": false,
+    "p": false,
+    "ir": true
+  },
+  "all_pass": false,
+  "verdict": "REJECT",
+  "ablations": [
+    {
+      "name": "roll_adj_w0.50",
+      "weight": 0.5,
+      "oos_sharpe": 0.8142482924033249,
+      "oos_max_dd": -0.2085072641498924,
+      "oos_pf": 1.1568339174846136,
+      "oos_trades": 201
+    },
+    {
+      "name": "roll_adj_w0.25",
+      "weight": 0.25,
+      "oos_sharpe": 0.7981511190425913,
+      "oos_max_dd": -0.2096364049108025,
+      "oos_pf": 1.1535678475255464,
+      "oos_trades": 200
+    },
+    {
+      "name": "roll_adj_w1.00",
+      "weight": 1.0,
+      "oos_sharpe": 0.7965005905553281,
+      "oos_max_dd": -0.2041564563798559,
+      "oos_pf": 1.1530139821342351,
+      "oos_trades": 201
+    },
+    {
+      "name": "roll_adj_w0.00",
+      "weight": 0.0,
+      "oos_sharpe": 0.7969996346850657,
+      "oos_max_dd": -0.21078423923680967,
+      "oos_pf": 1.15388117769608,
+      "oos_trades": 197
+    },
+    {
+      "name": "roll_adj_w2.00",
+      "weight": 2.0,
+      "oos_sharpe": 0.6661024319126528,
+      "oos_max_dd": -0.2188586937878173,
+      "oos_pf": 1.127872097451977,
+      "oos_trades": 201
+    },
+    {
+      "name": "base_tsmom_no_roll_adj",
+      "weight": 0.0,
+      "oos_sharpe": 0.7969996346850657,
+      "oos_max_dd": -0.21078423923680967,
+      "oos_pf": 1.15388117769608,
+      "oos_trades": 197
+    }
+  ],
+  "base_metrics": {
+    "train_sharpe": 0.9362144088364062,
+    "val_sharpe": 0.8470072342924196,
+    "test_sharpe": 0.7678165006376932,
+    "oos_sharpe": 0.7969996346850657,
+    "oos_pf": 1.15388117769608,
+    "oos_max_dd": -0.21078423923680967,
+    "oos_trades": 197,
+    "wf_stability": 0.8513003294572592,
+    "worst_regime_sharpe": -1.768827329499303,
+    "benchmark_p_value": 0.2497295923297047,
+    "information_ratio": 0.5155980115978556,
+    "passes": {
+      "sharpe": false,
+      "trades": false,
+      "pf": false,
+      "dd": false,
+      "stab": true,
+      "worst": false,
+      "p": false,
+      "ir": true
+    },
+    "all_pass": false
+  },
+  "benchmark_sharpe": 0.1122550867404973,
+  "benchmark_return": -0.019405717701711622,
+  "benchmark_max_dd": -0.7690979785315406,
+  "data_available": [
+    "ES=F",
+    "NQ=F",
+    "CL=F",
+    "GC=F",
+    "ZB=F"
+  ],
+  "roll_dates_count": {
+    "ES=F": 63,
+    "NQ=F": 78,
+    "CL=F": 217,
+    "GC=F": 263,
+    "ZB=F": 51
+  }
+}
