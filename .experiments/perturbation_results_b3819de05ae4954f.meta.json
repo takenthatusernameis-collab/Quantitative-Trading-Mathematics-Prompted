@@ -1,0 +1,51 @@
+{
+  "shape": [
+    14,
+    20
+  ],
+  "columns": [
+    "label",
+    "p_vol_window_long",
+    "p_smooth_span",
+    "p_regime_scaling",
+    "p_min_trade_interval",
+    "p_trailing_mult",
+    "p_max_hold_bars",
+    "p_vol_limit_mult",
+    "p_vol_floor_fraction",
+    "oos_sharpe",
+    "oos_pf",
+    "oos_dd",
+    "oos_trades",
+    "test_sharpe",
+    "wf_stab",
+    "worst_regime",
+    "p_value",
+    "ir",
+    "gates_pass",
+    "verdict"
+  ],
+  "dtypes": {
+    "label": "str",
+    "p_vol_window_long": "int64",
+    "p_smooth_span": "float64",
+    "p_regime_scaling": "bool",
+    "p_min_trade_interval": "int64",
+    "p_trailing_mult": "float64",
+    "p_max_hold_bars": "int64",
+    "p_vol_limit_mult": "float64",
+    "p_vol_floor_fraction": "float64",
+    "oos_sharpe": "float64",
+    "oos_pf": "float64",
+    "oos_dd": "float64",
+    "oos_trades": "int64",
+    "test_sharpe": "float64",
+    "wf_stab": "float64",
+    "worst_regime": "float64",
+    "p_value": "float64",
+    "ir": "float64",
+    "gates_pass": "int64",
+    "verdict": "str"
+  },
+  "index_type": "int64"
+}

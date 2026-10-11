@@ -1,0 +1,19 @@
+{
+  "shape": [
+    5,
+    4
+  ],
+  "columns": [
+    "gross_sharpe",
+    "gross_profit_factor",
+    "avg_abs_position",
+    "n_position_bars"
+  ],
+  "dtypes": {
+    "gross_sharpe": "float64",
+    "gross_profit_factor": "float64",
+    "avg_abs_position": "float64",
+    "n_position_bars": "float64"
+  },
+  "index_type": "str"
+}

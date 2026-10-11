@@ -1,0 +1,23 @@
+{
+  "shape": [
+    4,
+    6
+  ],
+  "columns": [
+    "cost_multiplier",
+    "oos_sharpe",
+    "oos_pf",
+    "oos_dd",
+    "oos_trades",
+    "test_sharpe"
+  ],
+  "dtypes": {
+    "cost_multiplier": "float64",
+    "oos_sharpe": "float64",
+    "oos_pf": "float64",
+    "oos_dd": "float64",
+    "oos_trades": "int64",
+    "test_sharpe": "float64"
+  },
+  "index_type": "int64"
+}

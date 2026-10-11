@@ -1,0 +1,15 @@
+{
+  "shape": [
+    1,
+    2
+  ],
+  "columns": [
+    "n_bars",
+    "note"
+  ],
+  "dtypes": {
+    "n_bars": "int64",
+    "note": "str"
+  },
+  "index_type": "int64"
+}

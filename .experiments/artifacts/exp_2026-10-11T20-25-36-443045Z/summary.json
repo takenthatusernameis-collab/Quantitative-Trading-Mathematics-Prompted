@@ -1,0 +1,160 @@
+{
+  "experiment_id": "exp_2026-10-11T20-25-36-443045Z",
+  "hypothesis": "H11",
+  "h10_selected_config": {
+    "vol_window_long": 1008,
+    "smooth_span": null,
+    "regime_scaling": false,
+    "min_trade_interval": 0,
+    "trailing_mult": 2.0,
+    "max_hold_bars": 60,
+    "vol_limit_mult": 1.5,
+    "vol_floor_fraction": 0.25
+  },
+  "baseline_oos_sharpe": 1.2757590680990518,
+  "perturbation_sharpe_floor": 0.6378795340495259,
+  "perturbation_gate_pass": true,
+  "worst_perturbation": {
+    "label": "vol_limit_mult_1.2",
+    "p_vol_window_long": 1008,
+    "p_smooth_span": NaN,
+    "p_regime_scaling": false,
+    "p_min_trade_interval": 0,
+    "p_trailing_mult": 2.0,
+    "p_max_hold_bars": 60,
+    "p_vol_limit_mult": 1.2,
+    "p_vol_floor_fraction": 0.25,
+    "oos_sharpe": 1.052382005029117,
+    "oos_pf": 1.2480425359842389,
+    "oos_dd": -0.06109005950701596,
+    "oos_trades": 3074,
+    "test_sharpe": 0.8874912630048545,
+    "wf_stab": 0.8419913558237464,
+    "worst_regime": 0.9747886584848099,
+    "p_value": 2.5216902666538387e-08,
+    "ir": 0.8274950422959918,
+    "gates_pass": 7,
+    "verdict": "REJECT"
+  },
+  "cost_sensitivity": [
+    {
+      "cost_multiplier": 0.5,
+      "oos_sharpe": 1.2895403329728592,
+      "oos_pf": 1.3080202994800383,
+      "oos_dd": -0.05811808520228501,
+      "oos_trades": 2416,
+      "test_sharpe": 1.1069997825246518
+    },
+    {
+      "cost_multiplier": 1.0,
+      "oos_sharpe": 1.2757590680990518,
+      "oos_pf": 1.3041645169434146,
+      "oos_dd": -0.05842847204487622,
+      "oos_trades": 2416,
+      "test_sharpe": 1.0930742500890243
+    },
+    {
+      "cost_multiplier": 1.5,
+      "oos_sharpe": 1.2619380303373782,
+      "oos_pf": 1.3003210899035884,
+      "oos_dd": -0.05873879408376104,
+      "oos_trades": 2416,
+      "test_sharpe": 1.079109132073913
+    },
+    {
+      "cost_multiplier": 2.0,
+      "oos_sharpe": 1.2480786088993938,
+      "oos_pf": 1.2964769492672368,
+      "oos_dd": -0.05904905132581051,
+      "oos_trades": 2416,
+      "test_sharpe": 1.0651060738773868
+    }
+  ],
+  "pf_at_cost_x1.5": 1.3003210899035884,
+  "pf_at_cost_x2.0": 1.2964769492672368,
+  "cost_gate_pass": true,
+  "per_symbol_concentration": {
+    "ES=F": {
+      "gross_sharpe": 0.7496627132174325,
+      "gross_profit_factor": 1.2191976367981863,
+      "avg_abs_position": 0.3913407811382629,
+      "n_position_bars": 2943.0
+    },
+    "NQ=F": {
+      "gross_sharpe": 0.7975046984564645,
+      "gross_profit_factor": 1.2376189719466084,
+      "avg_abs_position": 0.2563943344263801,
+      "n_position_bars": 2827.0
+    },
+    "CL=F": {
+      "gross_sharpe": 0.7942345922273678,
+      "gross_profit_factor": 1.3733222931548072,
+      "avg_abs_position": 0.06402493532335012,
+      "n_position_bars": 2804.0
+    },
+    "GC=F": {
+      "gross_sharpe": 0.7242116965651682,
+      "gross_profit_factor": 1.2236039814683508,
+      "avg_abs_position": 0.1772852047980465,
+      "n_position_bars": 2698.0
+    },
+    "ZB=F": {
+      "gross_sharpe": 0.380466265564358,
+      "gross_profit_factor": 1.1349278837974663,
+      "avg_abs_position": 0.40753569000094464,
+      "n_position_bars": 1668.0
+    }
+  },
+  "concentration_gate_pass": true,
+  "fresh_oos": [
+    {
+      "n_bars": 0,
+      "note": "no fresh bars available"
+    }
+  ],
+  "fresh_oos_verdict": "PASS",
+  "baseline_gates": {
+    "sharpe": true,
+    "trades": true,
+    "pf": true,
+    "dd": true,
+    "stab": true,
+    "worst": true,
+    "p": true,
+    "ir": true
+  },
+  "baseline_metrics": {
+    "train_sharpe": 0.9588934313666013,
+    "oos_sharpe": 1.2757590680990518,
+    "oos_pf": 1.3041645169434146,
+    "oos_dd": -0.05842847204487622,
+    "oos_trades": 2416,
+    "test_sharpe": 1.0930742500890243,
+    "wf_stability": 0.7805709265313979,
+    "worst_regime_sharpe": 1.045717651017743,
+    "benchmark_p_value": 4.790305556723297e-10,
+    "information_ratio": 0.9247889169803807
+  },
+  "gates": {
+    "baseline": {
+      "sharpe": true,
+      "trades": true,
+      "pf": true,
+      "dd": true,
+      "stab": true,
+      "worst": true,
+      "p": true,
+      "ir": true
+    },
+    "perturbation": true,
+    "cost": true,
+    "concentration": true,
+    "fresh_oos": true
+  },
+  "all_pass": true,
+  "verdict": "PASS",
+  "grid_size": 56,
+  "total_elapsed_sec": 4.7,
+  "compute_cpu_hours": 0.001,
+  "selection_rule": "H10 config FROZEN; no re-selection; Test protected"
+}
