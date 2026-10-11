@@ -1,0 +1,29 @@
+{
+  "shape": [
+    3,
+    9
+  ],
+  "columns": [
+    "split",
+    "train_frac",
+    "val_frac",
+    "test_frac",
+    "oos_bars",
+    "oos_sharpe",
+    "oos_profit_factor",
+    "oos_max_drawdown",
+    "oos_trades"
+  ],
+  "dtypes": {
+    "split": "str",
+    "train_frac": "float64",
+    "val_frac": "float64",
+    "test_frac": "float64",
+    "oos_bars": "int64",
+    "oos_sharpe": "float64",
+    "oos_profit_factor": "float64",
+    "oos_max_drawdown": "float64",
+    "oos_trades": "int64"
+  },
+  "index_type": "int64"
+}

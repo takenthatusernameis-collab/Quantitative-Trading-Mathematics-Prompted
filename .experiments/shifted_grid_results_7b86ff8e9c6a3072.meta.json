@@ -1,0 +1,25 @@
+{
+  "shape": [
+    324,
+    7
+  ],
+  "columns": [
+    "vol_window_long",
+    "trailing_mult",
+    "max_hold_bars",
+    "vol_limit_mult",
+    "vol_floor_fraction",
+    "shifted_val_sharpe",
+    "shifted_val_profit_factor"
+  ],
+  "dtypes": {
+    "vol_window_long": "int64",
+    "trailing_mult": "float64",
+    "max_hold_bars": "int64",
+    "vol_limit_mult": "float64",
+    "vol_floor_fraction": "float64",
+    "shifted_val_sharpe": "float64",
+    "shifted_val_profit_factor": "float64"
+  },
+  "index_type": "int64"
+}

@@ -1,0 +1,29 @@
+{
+  "shape": [
+    7,
+    9
+  ],
+  "columns": [
+    "cost_multiplier",
+    "commission_per_contract",
+    "spread_ticks",
+    "slippage_ticks",
+    "oos_sharpe",
+    "oos_profit_factor",
+    "oos_max_drawdown",
+    "oos_trades",
+    "total_cost_bps_of_equity"
+  ],
+  "dtypes": {
+    "cost_multiplier": "float64",
+    "commission_per_contract": "float64",
+    "spread_ticks": "float64",
+    "slippage_ticks": "float64",
+    "oos_sharpe": "float64",
+    "oos_profit_factor": "float64",
+    "oos_max_drawdown": "float64",
+    "oos_trades": "int64",
+    "total_cost_bps_of_equity": "float64"
+  },
+  "index_type": "int64"
+}

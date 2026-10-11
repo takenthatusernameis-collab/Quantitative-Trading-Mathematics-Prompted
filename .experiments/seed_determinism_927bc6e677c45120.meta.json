@@ -1,0 +1,23 @@
+{
+  "shape": [
+    4,
+    6
+  ],
+  "columns": [
+    "seed",
+    "oos_sharpe",
+    "oos_profit_factor",
+    "oos_max_drawdown",
+    "oos_trades",
+    "max_equity_abs_diff_vs_seed42"
+  ],
+  "dtypes": {
+    "seed": "int64",
+    "oos_sharpe": "float64",
+    "oos_profit_factor": "float64",
+    "oos_max_drawdown": "float64",
+    "oos_trades": "int64",
+    "max_equity_abs_diff_vs_seed42": "float64"
+  },
+  "index_type": "int64"
+}

@@ -1,0 +1,31 @@
+{
+  "shape": [
+    5,
+    10
+  ],
+  "columns": [
+    "symbol",
+    "oos_sharpe",
+    "oos_profit_factor",
+    "oos_pnl",
+    "oos_gross_profit",
+    "oos_gross_loss",
+    "oos_trades",
+    "pnl_share",
+    "abs_pnl_share",
+    "gross_profit_share"
+  ],
+  "dtypes": {
+    "symbol": "str",
+    "oos_sharpe": "float64",
+    "oos_profit_factor": "float64",
+    "oos_pnl": "float64",
+    "oos_gross_profit": "float64",
+    "oos_gross_loss": "float64",
+    "oos_trades": "int64",
+    "pnl_share": "float64",
+    "abs_pnl_share": "float64",
+    "gross_profit_share": "float64"
+  },
+  "index_type": "int64"
+}
