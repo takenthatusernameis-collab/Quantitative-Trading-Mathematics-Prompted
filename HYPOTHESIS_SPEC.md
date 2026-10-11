@@ -613,3 +613,42 @@ base −38.5%), but neither metric clears the gates.
    - summary.json
 3. Updated `HYPOTHESIS_SPEC.md` (this file) and `INEFFICIENCY_RANKING.md`.
 4. All 38 regression tests passing.
+
+---
+
+### Hypothesis H7: Multi-horizon TSMOM with Regime-Weighted Blending (and Path-Dependent Exit Design)
+
+**Statement.** A multi-horizon volatility-scaled TSMOM signal (252-day slow + 63-day fast) with regime-weighted blending, combined with path-dependent exit rules (trailing stop, time stop, volatility stop) on futures data, generates net pooled out-of-sample (Val+Test) Sharpe ≥ 1.0 with ≥ 200 trades, PF ≥ 1.3, max DD ≤ 15%, walk-forward stability ≥ 0.7, robust to parameter perturbation, and significant vs equal-weight benchmark (p < 0.05, IR > 0).
+
+**Mechanism.** Momentum exhibits different time scales (slow vs fast) with regime dependence (Fong, 2022; Moskowitz et al., 2012; Barroso & Santa-Clara, 2015). Path-dependent exits can truncate tail losses while preserving trend capture (intraday CT-style). Multi-horizon blending adapts to volatility regimes (more fast weight in high vol).
+
+**Null (H0).** Multi-horizon path-dependent TSMOM OOS Sharpe ≤ 1.0 OR max DD > 15%.
+
+**Pre-registration.**
+- Universe: ES=F, NQ=F, CL=F, GC=F, ZB=F (CME/ICE continuous front-month), `^VIX` for regime context only.
+- Splits: Train 2018-2020, Val 2021-2022, Test 2023-2024 (protected holdout — never for selection).
+- Signal:
+  - w_slow = sign(mom_252) / vol_63
+  - w_fast = sign(mom_63) / vol_21
+  - blend weight b = 1 / (1 + realized_vol_port / target_vol) (higher vol → more fast)
+  - w = (1-b)*w_slow + b*w_fast, portfolio-level vol targeting to 15% annual, per-asset caps.
+- Exits (design): intraday trailing stop (2× ATR from entry), time stop (max 5 trading days), vol stop (realized vol > 2× target). On daily bars (implementation constraint), approximated via ATR-based scaling and regime-based exposure reduction.
+- Selection: single pre-registered config (no grid on Test); Val used only for gate evaluation.
+- Cost model: futures per-contract (multiplier/tick_value + commission/spread/slippage) as in H4–H6.
+- Compute budget: ≤ 4 CPU-h. Seed 42.
+
+**Limitations (documented).**
+- Intraday (1–5 min) data for 2018–2024 not available via free public sources (yfinance limits); implementation uses daily OHLC with exit approximation. This is a documented approximation per fallback plan in NEXT_TASK.md.
+- Synthetic intraday path generation deferred due to compute budget.
+
+**Measured (experiment `exp_2026-10-11T14-53-13-076438Z`, daily-data approximation):**
+- Train (2018-2020): Sharpe 0.738, max DD -21.4%
+- Val (2021-2022): Sharpe 0.188, max DD -9.08%
+- Test (2023-2024, protected): Sharpe 1.269, max DD -14.5%
+- **OOS Val+Test (gated): Sharpe 0.789, max DD -14.5%, PF 1.166, trades 1005, WF stability 1.0, IR ~0 (benchmark comparison failed due to shape)**
+
+**Gates (OOS):** min_sharpe (0.789≥1.0) FAIL; min_trades (1005≥200) PASS; min_profit_factor (1.166≥1.3) FAIL; max_drawdown (14.5%≤15%) PASS (boundary); WF stability (1.0≥0.7) PASS. Overall: **REJECT H7** under daily-bar approximation with path-dependent exit heuristics.
+
+**Verdict: REJECT H7.** Multi-horizon regime-blended signal with daily-approximated path exits does not clear Sharpe/PF gates (OOS Sharpe 0.789 < 1.0, PF 1.166 < 1.3). Max DD passes at boundary. Test period shows strength (Sharpe 1.269) but Val period is weak (0.188), pulling OOS below threshold. The pivot to multi-horizon + regime weighting improves structure but signal strength ceiling remains on daily data even with exit heuristics. True intraday path-dependent execution (tick-level trailing/time/vol stops) remains untested with free data — left as documented future work per fallback plan (roll-yield model or extended sample).
+
+**Root cause:** Daily rebalancing + daily-approximated stops cannot fully exploit intraday trend persistence/decay; frequency limitation dominates. Roll-yield capture (continuous `=F` smoothing) and pre-2015 sample extension are plausible next pivots.

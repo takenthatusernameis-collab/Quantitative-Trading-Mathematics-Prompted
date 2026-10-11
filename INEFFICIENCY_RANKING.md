@@ -192,3 +192,11 @@ contract from `futures_specs`). See H4/H5 sections below.
 - **What would invalidate the rejection:** futures roll-yield model that
   captures true roll-date P&L (the `=F` continuous contracts may smooth this),
   or higher-frequency data for a CT-style path-dependent trend system.
+
+#### 7. Multi-Horizon TSMOM with Regime-Weighted Blending + Path-Dependent Exits (executed — H7, REJECTED)
+- **Net edge measured** (ES/NQ/CL/GC/ZB `=F`, 2018-2024, daily approximation; Train 2018-2020, Val 2021-2022, Test 2023-2024 protected):
+  **OOS Sharpe 0.789**, max DD -14.5%, PF 1.166, 1005 trades, WF stability 1.0. Train Sharpe 0.738, Val 0.188, Test 1.269 (asymmetric performance).
+- **Gates:** trades PASS, DD PASS (boundary), WF stability PASS, IR/perturbation regime flags mixed; **Sharpe FAIL (0.789<1.0)**, PF FAIL (1.166<1.3). Overall REJECT.
+- **Takeaway:** Multi-horizon regime-weighted blending produces strong test period but weak 2021–2022 Val (choppy regimes). Daily-approximated path exits reduce DD to boundary but cannot lift Sharpe above 0.79 on 2018–2024 daily data. Frequency (intraday) remains the untested dimension.
+- **Net Opportunity Score:** 2/10 (realized). Signal strength ceiling persists on daily data.
+- **What would invalidate the rejection:** true intraday (1–5 min) implementation with tick-level trailing/time/vol stops, roll-yield capture from contract rolls (continuous `=F` may mask), or extended sample pre-2015 where literature reports stronger TSMOM.
