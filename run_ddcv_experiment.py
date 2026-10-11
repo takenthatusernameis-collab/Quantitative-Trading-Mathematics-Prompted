@@ -296,39 +296,7 @@ def main():
         ddcv_df = ddcv_df.sort_values("val_sharpe", ascending=False)
         best = ddcv_df.iloc[0]
         print("DDCV grid (%d combos); best on Val: trigger=%s factor=%s val_sharpe=%.3f" %
-              (len(ddcv_df), best["dd_trigger"], best["dd_factor"], best["val_sharpe"]))
-
-        # ---- Fallback ablations (evaluated on full OOS, not selected) ----
-        ablations = {}
-        # (a) base TSMOM (no DDCV)
-        ablations["base"] = base_result
-        # (b) fixed 50
-
-        # ---- DDCV grid search (selection on Val only) ----
-        ddcv_records = []
-        for dd_trigger in DD_TRIGGER_GRID:
-            for dd_factor in DD_FACTOR_GRID:
-                scaled, base_res, scale = apply_ddcv(prices, base_sig, dd_trigger, dd_factor)
-                result = evaluate(prices, scaled, volumes, adv)
-                train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(result.returns)
-                rec = {
-                    "dd_trigger": dd_trigger, "dd_factor": dd_factor,
-                    "val_sharpe": float(sharpe_ratio(val_ret.values)) if len(val_ret) else 0.0,
-                    "train_sharpe": float(sharpe_ratio(train_ret.values)) if len(train_ret) else 0.0,
-                    "test_sharpe": float(sharpe_ratio(test_ret.values)) if len(test_ret) else 0.0,
-                    "oos_sharpe": float(sharpe_ratio(oos_ret.values)) if len(oos_ret) else 0.0,
-                    "val_dd": window_max_drawdown(result.equity_curve, TRAIN_END, VAL_END),
-                    "oos_dd": window_max_drawdown(result.equity_curve, TRAIN_END, END_DATE),
-                    "val_pf": float(result.metrics["profit_factor"]),
-                    "val_trades": int(len(result.trades[result.trades["timestamp"] > pd.Timestamp(TRAIN_END)]))
-                        if len(result.trades) else 0,
-                }
-                ddcv_records.append(rec)
-        ddcv_df = pd.DataFrame(ddcv_records)
-        ddcv_df = ddcv_df.sort_values("val_sharpe", ascending=False)
-        best = ddcv_df.iloc[0]
-        print("DDCV grid (%d combos); best on Val: trigger=%s factor=%s val_sharpe=%.3f" %
-              (len(ddcv_df), best["dd_trigger"], best["dd_factor"], best["val_sharpe"]))
+            (len(ddcv_df), best["dd_trigger"], best["dd_factor"], best["val_sharpe"]))
 
         # ---- Fallback ablations (evaluated on full OOS, not selected) ----
         ablations = {}
@@ -376,14 +344,14 @@ def main():
         else:
             p, ir = 1.0, -np.inf
         passes = {
-            "sharpe": oos_sharpe >= GATES["min_sharpe"],
-            "trades": len(oos_trades) >= GATES["min_trades"],
-            "pf": oos_pf >= GATES["min_profit_factor"],
-            "dd": abs(oos_dd) <= GATES["max_drawdown"],
-            "stab": wf_stab >= GATES["min_walkforward_stability"],
-            "worst": worst >= GATES["min_worst_regime_sharpe"],
-            "p": p < GATES["max_p_value"],
-            "ir": ir > GATES.get("min_information_ratio", -1e18),
+            "sharpe": bool(oos_sharpe >= GATES["min_sharpe"]),
+            "trades": bool(len(oos_trades) >= GATES["min_trades"]),
+            "pf": bool(oos_pf >= GATES["min_profit_factor"]),
+            "dd": bool(abs(oos_dd) <= GATES["max_drawdown"]),
+            "stab": bool(wf_stab >= GATES["min_walkforward_stability"]),
+            "worst": bool(worst >= GATES["min_worst_regime_sharpe"]),
+            "p": bool(p < GATES["max_p_value"]),
+            "ir": bool(ir > GATES.get("min_information_ratio", -1e18)),
         }
         all_pass = all(passes.values())
         print("DDCV best OOS: sharpe=%.3f trades=%d pf=%.3f dd=%.3f stab=%.3f worst=%.3f p=%.4f ir=%.3f" %
@@ -427,7 +395,7 @@ def main():
         exp_dir = Path(tracker.log_dir) / "artifacts" / exp_id
         exp_dir.mkdir(parents=True, exist_ok=True)
         with open(exp_dir / "summary.json", "w") as f:
-            json.dump(summary, f, indent=2, default=str)
+            json.dump(summary, f, indent=2, default=lambda o: bool(o) if isinstance(o, (np.bool_,)) else (float(o) if isinstance(o, (np.integer, np.floating)) else str(o)))
         tracker.log_artifact("summary", exp_dir / "summary.json")
         tracker.log_dataframe("param_grid_results", ddcv_df)
         tracker.log_dataframe("best_ddcv_equity", best_result.equity_curve.to_frame("equity"))

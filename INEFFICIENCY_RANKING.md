@@ -93,12 +93,13 @@ strategy; see EXECUTION_REPORT.md). All costs use the corrected equity model:
   but worst-regime (sideways) Sharpe < 0 → **-2.07**; alpha < 0 →
   **-11.98%/yr (IR -0.89, p=0.046)**.
 
-**Cross-cutting finding (H1→H3):** train→OOS decay is the dominant
-failure mode (H1: 0.589→0.093; H2: 0.636→0.116; H3: 0.401→-0.868).
-Walk-forward selection on 2015-2019 daily ETF data selects noise;
-no momentum-family variant tested has positive OOS alpha on
-2020-2024. The momentum family is **exhausted on free daily ETF
-data** — see NEXT_TASK.md for the futures/contango pivot.
+**Cross-cutting finding (H1→H5):** train→OOS decay is the dominant
+failure mode (H1: 0.589→0.093; H2: 0.636→0.116; H3: 0.401→-0.868; H4: 0.712→0.376;
+H5: 0.797→0.509). Walk-forward selection on 2015-2019 daily data selects noise;
+no momentum-family variant tested has positive OOS Sharpe ≥ 1.0 on 2020-2024.
+The momentum family is **exhausted on free daily data** — the strongest result
+remains the H5 VIX-gate ablation at OOS Sharpe 0.711 — see NEXT_TASK.md for the
+next pivot.
 
 ---
 
@@ -114,10 +115,12 @@ data** — see NEXT_TASK.md for the futures/contango pivot.
 - Crisis hedge: VXX (Yahoo history from 2018-01-25; -97% total
   return 2018-2024, 75% annualized vol — contango decay)
 
-`EGGV` (from the draft spec) was dropped — delisted/no data on Yahoo. Futures
-(ES, NQ, CL, GC, ZB) were excluded: yfinance futures require `=F` tickers and the
-engine's per-contract cost path is unimplemented/untuned; this is a documented
-scope decision (see NEXT_TASK.md).
+`EGGV` (from the draft spec) was dropped — delisted/no data on Yahoo. Starting
+with H4, futures (`=F` continuous contracts) were added to the universe: ES, NQ,
+CL, GC, ZB (all 5 available). The engine's futures per-contract cost path was
+already implemented in `src/qtr/backtest/engine.py::_calculate_costs`
+(`contracts_traded = weight * capital / (price * multiplier)`, cost per
+contract from `futures_specs`). See H4/H5 sections below.
 
 ### Cost Model (corrected)
 - ETFs: 1 bp commission + 1 bp spread + 0.1 bp per 1% ADV participation.
@@ -136,6 +139,27 @@ scope decision (see NEXT_TASK.md).
   `tests/test_tsmom_signal.py`. Corrected result: ensemble OOS Sharpe
   0.376, best single combo 0.786, IR 0.33 (positive alpha vs equal-weight
   futures benchmark), but DD −47% and 177 trades — fails all gates.
-  Ranking: futures rank **above ETFs** for raw TSMOM edge (positive OOS
-  alpha, IR 0.33 vs −0.89 for H3), but still cannot certify the
-  PROMPT_V2 Sharpe ≥ 1.0 / DD ≤ 15% gate. See HYPOTHESIS_SPEC.md H4.
+   Ranking: futures rank **above ETFs** for raw TSMOM edge (positive OOS
+   alpha, IR 0.33 vs −0.89 for H3), but still cannot certify the
+   PROMPT_V2 Sharpe ≥ 1.0 / DD ≤ 15% gate. See HYPOTHESIS_SPEC.md H4.
+
+#### 6. Drawdown-Conditioned Vol Targeting on Futures TSMOM (executed — H5, REJECTED)
+- **Net edge measured** (ES/NQ/CL/GC/ZB `=F`, 2015-2024, corrected cost model):
+  best DDCV combo (dd_trigger=0.30, dd_factor=0.75) **OOS Sharpe 0.509**,
+  max DD -35.3%, PF 1.108, 188 trades, IR 0.394 vs EW futures benchmark
+  (p=0.379). Train Sharpe 0.797 → OOS 0.509.
+- **DDCV grid** (6 combos): all land in OOS Sharpe 0.498–0.509, max DD
+  -31% to -33% — the DD condition reduces drawdown by ~8% relative but does
+  **not** bring it below the 15% gate.
+- **Ablations** (OOS): base TSMOM Sharpe 0.495 / DD -38.5%; fixed 50% vol-cut
+  Sharpe 0.495 / DD -19.2% (would pass DD gate but same Sharpe); **VIX-gate
+  Sharpe 0.711 / DD -20.0%** (best on both dimensions).
+- **Net Opportunity Score:** 2/10 (realized) — even the best variant
+  (VIX-gated) stays below the ≥1.0 Sharpe gate.
+- **Status: REJECTED.** 7/8 gates fail. DDCV adds no Sharpe benefit over a
+  blunt vol cut; the DD gate is a risk-scaling problem, not a drawdown-timing
+  problem. The VIX-gate ablation confirms regime-level exposure cuts are more
+  effective than portfolio-level DD conditioning on this sample.
+- **What would invalidate the rejection:** futures roll-yield model that
+  captures true roll-date P&L (the `=F` continuous contracts may smooth this),
+  or higher-frequency data for a CT-style path-dependent trend system.
