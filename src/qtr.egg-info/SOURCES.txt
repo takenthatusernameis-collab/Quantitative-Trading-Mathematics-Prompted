@@ -6,7 +6,12 @@ src/qtr.egg-info/requires.txt
 src/qtr.egg-info/top_level.txt
 src/qtr/backtest/engine.py
 src/qtr/data/fetcher.py
+src/qtr/strategies/__init__.py
+src/qtr/strategies/baselines.py
 src/qtr/tracking/experiment.py
 src/qtr/utils/config.py
 src/qtr/validation/__init__.py
 src/qtr/validation/statistics.py
+tests/test_backtest_engine.py
+tests/test_cost_model.py
+tests/test_tsmom_signal.py
