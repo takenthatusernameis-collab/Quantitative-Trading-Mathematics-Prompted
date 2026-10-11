@@ -1,0 +1,31 @@
+{
+  "shape": [
+    6,
+    10
+  ],
+  "columns": [
+    "dd_trigger",
+    "dd_factor",
+    "val_sharpe",
+    "train_sharpe",
+    "test_sharpe",
+    "oos_sharpe",
+    "val_dd",
+    "oos_dd",
+    "val_pf",
+    "val_trades"
+  ],
+  "dtypes": {
+    "dd_trigger": "float64",
+    "dd_factor": "float64",
+    "val_sharpe": "float64",
+    "train_sharpe": "float64",
+    "test_sharpe": "float64",
+    "oos_sharpe": "float64",
+    "val_dd": "float64",
+    "oos_dd": "float64",
+    "val_pf": "float64",
+    "val_trades": "int64"
+  },
+  "index_type": "int64"
+}
