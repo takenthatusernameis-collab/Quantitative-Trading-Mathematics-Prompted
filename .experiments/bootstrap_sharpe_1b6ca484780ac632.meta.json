@@ -1,0 +1,27 @@
+{
+  "shape": [
+    3,
+    8
+  ],
+  "columns": [
+    "seed",
+    "n_bootstrap",
+    "mean",
+    "std",
+    "ci_lo",
+    "ci_hi",
+    "min",
+    "frac_sharpe_ge_1"
+  ],
+  "dtypes": {
+    "seed": "int64",
+    "n_bootstrap": "int64",
+    "mean": "float64",
+    "std": "float64",
+    "ci_lo": "float64",
+    "ci_hi": "float64",
+    "min": "float64",
+    "frac_sharpe_ge_1": "float64"
+  },
+  "index_type": "int64"
+}

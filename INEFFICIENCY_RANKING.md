@@ -256,6 +256,7 @@ The momentum family has been tested exhaustively on free daily data (2015-2024) 
 | H8 (Roll-adjusted) | 0.814 | -20.9% | 1.157 | 201 | 0.525 | REJECT |
 | **H9 (Intraday TSMOM + CT exits)** | **1.056** | **-6.2%** | 1.252 | 2690 | 1.021 | REJECT (PF only) |
 | **H10 (Intraday TSMOM + PF opt)** | **1.276** | **-5.8%** | **1.304** | 2416 | 0.925 | **PASS** |
+| **H11 (Robustness certification of H10)** | **1.276** (reproduced bit-exactly) | **-5.8%** | **1.304** | 2416 | 0.925 | **PASS (certified robust)** |
 
 **Best OOS Sharpe across all hypotheses: 1.276 (H10).**
 **Best max DD: -5.8% (H10).**
@@ -331,3 +332,56 @@ vol_floor 0.25). Signal smoothing and regime scaling were not selected.
 - **What would invalidate the PASS (if re-run):** a different seed/data window producing
   PF < 1.3 or Sharpe < 1.0; a longer intraday data window (paid data) that changes the
   vol-window/exit-parameter ranking; a cost-model misspecification at ~2,400-trade turnover.
+
+---
+
+#### 11. Robustness / Certification of the H10-selected config (executed — H11, PASS)
+
+- **Net edge measured** (frozen H10 config, ES/NQ/CL/GC/ZB `=F` hourly,
+  2024-10-13 → 2026-10-09; 0.016 CPU-h): the H10 result reproduces
+  **bit-exactly** (OOS Sharpe 1.275759, PF 1.304165, DD −5.843%,
+  2,416 trades, WF stability 0.780571, worst-regime SR 1.045718,
+  p 4.79e-10, IR 0.924789 — all 8 gates re-verified, max |Δ| = 0 vs
+  the H10 artifact).
+- **E1 seed robustness:** deterministic pipeline — seeds {42, 7, 123, 2026}
+  give bit-identical equity curves (seeds are inert; no stochastic
+  component). Bootstrap OOS Sharpe 95% CI **[0.839, 1.698]**,
+  P(Sharpe ≥ 1.0) = 0.888 (2,000 resamples).
+- **E2 ±20% perturbation (10 OAT + 2 joint):** min perturbed OOS
+  Sharpe **1.027 = 0.805 × optimum** — the previously-unevaluated
+  `min_perturbed_sharpe_ratio` gate (≥ 0.5) **PASSES**. All 14
+  variants keep Sharpe ≥ 1.0. Most sensitive: `vol_limit_mult`
+  (1.052 at −20%) and `target_vol` (1.027 at −20%).
+- **E3 cost stress (±50%):** PF 1.308 (0.5×) / 1.300 (1.5×) —
+  **PASS**; break-even cost multiplier for PF = 1.3 is **1.542×**.
+  Doubling all costs moves PF by only −0.008 (per-trade cost is
+  ~0.3 bp of equity at this turnover).
+- **E4 window diagnostics:** Sharpe ≥ 1.0 on all shifted splits
+  (50/25/25 → 1.204; 60/20/20 → 1.365; 45/30/25 → 1.234) and
+  93.75% of 16 rolling 25%-windows (min 0.709). Shifted-window
+  (50/25/25) coarse-grid re-selection (324 combos) **re-selects the
+  identical config** (vw=1008, tm=2.0, mhb=60, vlm=1.5, vff=0.25) —
+  the selection is stable, but the shifted-window OOS PF is 1.281
+  (< 1.3). Live (uncached) fetch confirms **no fresh bars beyond
+  2026-10-09** — the free source is hard-limited to ~730 hourly days.
+- **E5 per-symbol concentration:** HHI(|P&L| shares) = **0.214**
+  (equal-weight = 0.200), max gross-profit share 0.233, all 5 symbols
+  positive OOS Sharpe (0.337–0.797) — the edge is **diversified**,
+  not concentrated. CL carries 68% of turnover (1,652/2,416 trades)
+  but only 21% of P&L.
+- **Verdict: PASS** — the H10 certification is robust on the
+  pre-registered window.
+- **Critical caveat (the thin margin):** OOS PF 1.304 clears the 1.3
+  gate by only **+0.004 (+0.3%)**. Under +50% costs PF = 1.300
+  (margin +0.0003); on shifted OOS windows PF = 1.281–1.292 (gate
+  fails). **Sharpe is the robust metric; profit factor is the
+  fragile one.** Any H12+ work must treat PF-margin, not Sharpe, as
+  the binding constraint.
+- **Net Opportunity Score:** 7/10 (realized) — unchanged; the
+  certification adds confidence, not new edge.
+- **Status: PASS (robustness-certified).**
+- **What would invalidate it:** fresh hourly bars (paid data) pushing
+  OOS PF < 1.3 or Sharpe < 1.0; a cost-model misspecification
+  > 1.54×; a ±20% perturbation region with OOS Sharpe < 0.638
+  (currently worst case 1.027); evidence that CL's 68% turnover
+  share is a roll-date artifact of the `=F` continuous contract.

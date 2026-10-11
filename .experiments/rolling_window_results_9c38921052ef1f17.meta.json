@@ -1,0 +1,23 @@
+{
+  "shape": [
+    16,
+    6
+  ],
+  "columns": [
+    "window_start",
+    "window_end",
+    "oos_sharpe",
+    "oos_profit_factor",
+    "oos_max_drawdown",
+    "oos_trades"
+  ],
+  "dtypes": {
+    "window_start": "str",
+    "window_end": "str",
+    "oos_sharpe": "float64",
+    "oos_profit_factor": "float64",
+    "oos_max_drawdown": "float64",
+    "oos_trades": "int64"
+  },
+  "index_type": "int64"
+}
