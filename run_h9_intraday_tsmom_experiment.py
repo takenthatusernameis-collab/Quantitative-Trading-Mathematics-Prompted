@@ -34,6 +34,12 @@ VOL_WINDOW_SHORT = 63
 MAX_POSITION_SIZE = 2.0
 MAX_LEVERAGE = 5.0
 
+TRAILING_MULT = 2.0
+MAX_HOLD_BARS = 120
+VOL_LIMIT_MULT = 2.0
+VOL_WINDOW = 20
+VOL_FLOOR_FRACTION = 0.5
+
 GATES = {
     "min_sharpe": 1.0,
     "min_trades": 200,
@@ -63,8 +69,8 @@ FUTURES_SPECS = {
     "ZB=F": {"multiplier": 1000.0, "tick_value": 31.25, "tick_size": 0.03125, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
 }
 
-EXPERIMENT_NAME = "h9_intraday_tsmom_ctexits_v1"
-EXPERIMENT_DESC = "H9: Intraday TSMOM with CT-style path-dependent exits on hourly futures data"
+EXPERIMENT_NAME = "h9_intraday_tsmom_ctexits_v2"
+EXPERIMENT_DESC = "H9 v2: Intraday TSMOM with genuine CT-style path-dependent exits (trailing/time/vol stops) on hourly futures data"
 
 def regime_labels(vix_daily: pd.Series) -> pd.Series:
     regimes = pd.Series(index=vix_daily.index, dtype=object)
@@ -73,6 +79,7 @@ def regime_labels(vix_daily: pd.Series) -> pd.Series:
     regimes[(vix_ff >= 20) & (vix_ff <= 30)] = "sideways"
     regimes[vix_ff > 30] = "bear"
     return regimes
+
 
 def make_futures_config() -> BacktestConfig:
     cm = CostModel(
@@ -90,11 +97,6 @@ def make_futures_config() -> BacktestConfig:
         cost_model=cm,
     )
 
-def compute_atr_hourly(prices: pd.DataFrame, window: int = 14) -> pd.DataFrame:
-    pct = prices.pct_change()
-    atr = prices * pct.rolling(window, min_periods=window//2).std()
-    atr = atr.replace(0, np.nan).ffill().fillna(prices * 0.001)
-    return atr
 
 def vol_scaled_tsmom_hourly(
     prices: pd.DataFrame,
@@ -110,8 +112,8 @@ def vol_scaled_tsmom_hourly(
     mom_slow = prices.pct_change(lookback).fillna(0)
     mom_fast = prices.pct_change(fast_lookback).fillna(0)
 
-    sigma_long = pct.rolling(vol_window_long, min_periods=vol_window_long//2).std() * np.sqrt(252*6.5)
-    sigma_short = pct.rolling(vol_window_short, min_periods=vol_window_short//2).std() * np.sqrt(252*6.5)
+    sigma_long = pct.rolling(vol_window_long, min_periods=vol_window_long // 2).std() * np.sqrt(252 * 6.5)
+    sigma_short = pct.rolling(vol_window_short, min_periods=vol_window_short // 2).std() * np.sqrt(252 * 6.5)
     sigma_long = sigma_long.replace(0, np.nan).ffill()
     sigma_short = sigma_short.replace(0, np.nan).ffill()
 
@@ -126,7 +128,9 @@ def vol_scaled_tsmom_hourly(
     w_slow = dir_slow * inv_vol_long
     w_fast = dir_fast * inv_vol_short
 
-    realized_vol_port = (w_slow.shift(1) * pct).sum(axis=1).rolling(vol_window_long, min_periods=vol_window_long//2).std() * np.sqrt(252*6.5)
+    realized_vol_port = (w_slow.shift(1) * pct).sum(axis=1).rolling(
+        vol_window_long, min_periods=vol_window_long // 2
+    ).std() * np.sqrt(252 * 6.5)
     realized_vol_port = realized_vol_port.replace(0, np.nan).ffill()
     b = 1.0 / (1.0 + realized_vol_port / target_vol)
     b = b.clip(0.0, 1.0).fillna(0.0)
@@ -134,7 +138,7 @@ def vol_scaled_tsmom_hourly(
     w_blend = w_slow.multiply(1.0 - b, axis=0) + w_fast.multiply(b, axis=0)
 
     port_ret = (w_blend.shift(1) * pct).sum(axis=1).ffill()
-    port_vol = port_ret.rolling(vol_window_long, min_periods=vol_window_long//2).std() * np.sqrt(252*6.5)
+    port_vol = port_ret.rolling(vol_window_long, min_periods=vol_window_long // 2).std() * np.sqrt(252 * 6.5)
     port_vol = port_vol.replace(0, np.nan)
     scale = (target_vol / port_vol).clip(0.0, 3.0)
     scale = scale.ffill().fillna(0.0)
@@ -142,24 +146,102 @@ def vol_scaled_tsmom_hourly(
     weights = weights.clip(-max_position_size, max_position_size)
     return weights.ffill().fillna(0.0)
 
+
+def _daily_target_from_hourly(hourly_signal: pd.DataFrame) -> pd.DataFrame:
+    """Collapse an hourly signal to a *daily* target position (last bar of day)."""
+    daily = hourly_signal.resample("1D").last().ffill()
+    return daily
+
+
 def apply_path_dependent_exits_hourly(
-    signals: pd.DataFrame,
+    daily_target: pd.DataFrame,
     prices: pd.DataFrame,
     atr: pd.DataFrame,
-    trailing_mult: float = 2.0,
-    max_hold_bars: int = 120,
-    vol_limit_mult: float = 2.0,
-    vol_window: int = 20,
+    trailing_mult: float = TRAILING_MULT,
+    max_hold_bars: int = MAX_HOLD_BARS,
+    vol_limit_mult: float = VOL_LIMIT_MULT,
+    vol_window: int = VOL_WINDOW,
     target_vol: float = TARGET_VOL,
+    vol_floor_fraction: float = VOL_FLOOR_FRACTION,
 ) -> pd.DataFrame:
-    modified = signals.copy()
-    if len(modified) == 0:
-        return modified
+    """Apply CT-style path-dependent exits on the hourly grid.
+
+    Per-symbol state machine:
+      - entry: when the daily target goes from 0 to non-zero, enter long at the
+        current price and start the high-water mark.
+      - trailing stop: flatten when price < high_water - trailing_mult * ATR.
+      - time stop: flatten after max_hold_bars with no positive P&L.
+      - vol stop: reduce exposure to vol_floor_fraction when 20-bar realized
+        vol > vol_limit_mult * target_vol.
+      - exit: flatten when the daily target flips to 0.
+
+    Returns an hourly position DataFrame aligned to prices.index.
+    """
+    index = prices.index
+    cols = prices.columns
+    positions = pd.DataFrame(0.0, index=index, columns=cols, dtype=float)
+
     pct = prices.pct_change()
-    vol = pct.rolling(vol_window, min_periods=vol_window//2).std() * np.sqrt(252*6.5)
+    vol = pct.rolling(vol_window, min_periods=vol_window // 2).std() * np.sqrt(252 * 6.5)
     vol = vol.replace(0, np.nan).ffill()
-    modified[vol > vol_limit_mult * target_vol] = modified[vol > vol_limit_mult * target_vol] * 0.7
-    return modified.ffill().fillna(0.0)
+
+    target_h = daily_target.reindex(index, method="ffill").fillna(0.0)
+
+    for sym in cols:
+        px = prices[sym].to_numpy(dtype=float)
+        atr_s = atr[sym].to_numpy(dtype=float)
+        tgt = target_h[sym].to_numpy(dtype=float)
+        v = vol[sym].to_numpy(dtype=float)
+        pos = np.zeros(len(index), dtype=float)
+
+        in_pos = False
+        entry_price = 0.0
+        high_water = 0.0
+        bars_held = 0
+        cur_pos = 0.0
+
+        for i in range(len(index)):
+            cur_px = px[i]
+            cur_atr = atr_s[i] if not np.isnan(atr_s[i]) else cur_px * 0.001
+            cur_tgt = tgt[i]
+            cur_vol = v[i] if not np.isnan(v[i]) else target_vol
+
+            if in_pos and cur_pos > 0:
+                if cur_px > high_water:
+                    high_water = cur_px
+                if cur_px < high_water - trailing_mult * cur_atr:
+                    cur_pos = 0.0
+                    in_pos = False
+                elif bars_held >= max_hold_bars and cur_px <= entry_price:
+                    cur_pos = 0.0
+                    in_pos = False
+                elif cur_vol > vol_limit_mult * target_vol:
+                    cur_pos = cur_pos * vol_floor_fraction
+                    if cur_pos <= 1e-9:
+                        cur_pos = 0.0
+                        in_pos = False
+
+            if not in_pos and cur_tgt > 0:
+                entry_price = cur_px
+                high_water = cur_px
+                bars_held = 0
+                cur_pos = float(cur_tgt)
+                in_pos = True
+            elif in_pos and cur_tgt <= 0:
+                cur_pos = 0.0
+                in_pos = False
+
+            if in_pos:
+                bars_held += 1
+
+            pos[i] = cur_pos
+
+        positions[sym] = pos
+
+    return positions.ffill().fillna(0.0)
+
+
+
 
 def main():
     np.random.seed(SEED)
@@ -177,7 +259,12 @@ def main():
         fetcher = get_data_fetcher()
         end = datetime.now()
         start = end - timedelta(days=729)
-        data = fetcher.fetch_futures(FUTURES_UNIVERSE, start=start.strftime("%Y-%m-%d"), end=end.strftime("%Y-%m-%d"), interval="1h")
+        data = fetcher.fetch_futures(
+            FUTURES_UNIVERSE,
+            start=start.strftime("%Y-%m-%d"),
+            end=end.strftime("%Y-%m-%d"),
+            interval="1h",
+        )
 
         prices_list = []
         volumes_list = []
@@ -185,7 +272,7 @@ def main():
             df = data.get(sym, pd.DataFrame())
             if len(df) == 0:
                 continue
-            if hasattr(df.index, 'tz_convert') and df.index.tzinfo:
+            if hasattr(df.index, "tz_convert") and df.index.tzinfo:
                 df.index = df.index.tz_convert(None)
             else:
                 df.index = pd.to_datetime(df.index)
@@ -196,60 +283,112 @@ def main():
         volumes = pd.concat(volumes_list, axis=1).sort_index().fillna(0)
 
         n = len(prices)
-        train_end = prices.index[int(n*0.55)]
-        val_end = prices.index[int(n*0.8)]
+        train_end = prices.index[int(n * 0.55)]
+        val_end = prices.index[int(n * 0.8)]
         train_mask = prices.index <= train_end
         val_mask = (prices.index > train_end) & (prices.index <= val_end)
         test_mask = prices.index > val_end
 
-        signals = vol_scaled_tsmom_hourly(prices)
-        atr = compute_atr_hourly(prices)
-        signals_exits = apply_path_dependent_exits_hourly(signals, prices, atr)
+        hourly_signal = vol_scaled_tsmom_hourly(prices)
+        daily_target = _daily_target_from_hourly(hourly_signal)
+        atr = prices * prices.pct_change().rolling(14, min_periods=7).std()
+        atr = atr.replace(0, np.nan).ffill().fillna(prices * 0.001)
+        positions = apply_path_dependent_exits_hourly(daily_target, prices, atr)
 
         tracker.log_dataframe("prices", prices)
         tracker.log_dataframe("volumes", volumes)
-        tracker.log_dataframe("signals", signals_exits)
+        tracker.log_dataframe("hourly_signal", hourly_signal)
+        tracker.log_dataframe("daily_target", daily_target)
+        tracker.log_dataframe("positions", positions)
 
         cfg = make_futures_config()
-        result = run_backtest(prices=prices, signals=signals_exits, volumes=volumes, config=cfg)
-        bh_weights = pd.DataFrame(1.0/len(prices.columns) if prices.shape[1] > 0 else 0.0, index=prices.index, columns=prices.columns)
+        result = run_backtest(prices=prices, signals=positions, volumes=volumes, config=cfg)
+        bh_weights = pd.DataFrame(
+            1.0 / len(prices.columns) if prices.shape[1] > 0 else 0.0,
+            index=prices.index, columns=prices.columns,
+        )
         bh_result = run_backtest(prices=prices, signals=bh_weights, volumes=volumes, config=cfg)
+
+        # Exit events: bars where a position was flattened or reduced (CT-style exits)
+        prev_pos = positions.shift(1).fillna(0.0)
+        flat = (prev_pos > 0) & (positions <= 0)
+        reduced = (prev_pos > 0) & (positions > 0) & (positions < prev_pos)
+        exit_rows = []
+        for sym in prices.columns:
+            flat_idx = positions.index[flat[sym]]
+            red_idx = positions.index[reduced[sym]]
+            for idx in flat_idx:
+                exit_rows.append({"timestamp": idx, "symbol": sym, "type": "flatten", "prev_position": float(prev_pos.loc[idx, sym]), "new_position": 0.0, "price": float(prices.loc[idx, sym])})
+            for idx in red_idx:
+                exit_rows.append({"timestamp": idx, "symbol": sym, "type": "reduce", "prev_position": float(prev_pos.loc[idx, sym]), "new_position": float(positions.loc[idx, sym]), "price": float(prices.loc[idx, sym])})
+        exit_events = pd.DataFrame(exit_rows, columns=["timestamp", "symbol", "type", "prev_position", "new_position", "price"]).sort_values("timestamp")
 
         tracker.log_dataframe("equity", result.equity_curve.to_frame("equity"))
         tracker.log_dataframe("trades", result.trades)
         tracker.log_dataframe("returns", result.returns.to_frame("returns"))
+        tracker.log_dataframe("exit_events", exit_events)
         tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
+
+        # Ablations (OOS Sharpe / DD / PF on the same splits, Test protected)
+        ablations = {}
+        # A1: daily target, no CT exits (hold to end of day / target flips only)
+        pos_no_exits = daily_target.reindex(prices.index, method="ffill").fillna(0.0).clip(0.0)
+        res_no = run_backtest(prices=prices, signals=pos_no_exits, volumes=volumes, config=cfg)
+        oos_no = res_no.returns[val_mask | test_mask]
+        cum_no = (1 + oos_no).cumprod()
+        ablations["daily_target_no_exits"] = {
+            "oos_sharpe": float(sharpe_ratio(oos_no.values)) if len(oos_no) > 1 else 0.0,
+            "max_drawdown": float((cum_no / cum_no.cummax() - 1).min()) if len(cum_no) > 0 else 0.0,
+            "profit_factor": float(res_no.metrics.get("profit_factor", 0.0)),
+            "trades": int(len(res_no.trades)),
+        }
+        # A2: raw hourly signal (no daily collapse, no CT exits) - the H9 v1 failure mode
+        pos_raw = hourly_signal.clip(0.0)
+        res_raw = run_backtest(prices=prices, signals=pos_raw, volumes=volumes, config=cfg)
+        oos_raw = res_raw.returns[val_mask | test_mask]
+        cum_raw = (1 + oos_raw).cumprod()
+        ablations["raw_hourly_no_exits"] = {
+            "oos_sharpe": float(sharpe_ratio(oos_raw.values)) if len(oos_raw) > 1 else 0.0,
+            "max_drawdown": float((cum_raw / cum_raw.cummax() - 1).min()) if len(cum_raw) > 0 else 0.0,
+            "profit_factor": float(res_raw.metrics.get("profit_factor", 0.0)),
+            "trades": int(len(res_raw.trades)),
+        }
+        tracker.log_dataframe("ablations_daily_target_no_exits_equity", res_no.equity_curve.to_frame("equity"))
+        tracker.log_dataframe("ablations_raw_hourly_equity", res_raw.equity_curve.to_frame("equity"))
 
         train_ret = result.returns[train_mask]
         val_ret = result.returns[val_mask]
         test_ret = result.returns[test_mask]
         oos_ret = result.returns[val_mask | test_mask]
 
-        train_sharpe = sharpe_ratio(train_ret) if len(train_ret) > 1 else 0
-        val_sharpe = sharpe_ratio(val_ret) if len(val_ret) > 1 else 0
-        test_sharpe = sharpe_ratio(test_ret) if len(test_ret) > 1 else 0
-        oos_sharpe = sharpe_ratio(oos_ret) if len(oos_ret) > 1 else 0
+        train_sharpe = sharpe_ratio(train_ret) if len(train_ret) > 1 else 0.0
+        val_sharpe = sharpe_ratio(val_ret) if len(val_ret) > 1 else 0.0
+        test_sharpe = sharpe_ratio(test_ret) if len(test_ret) > 1 else 0.0
+        oos_sharpe = sharpe_ratio(oos_ret) if len(oos_ret) > 1 else 0.0
 
         wf_splits = walk_forward_splits(len(result.returns), n_splits=5)
         oos_sharpes = []
-        for tr, te in wf_splits:
-            if len(te) > 0:
-                oos_sharpes.append(sharpe_ratio(result.returns.iloc[te].values) if hasattr(result.returns.iloc[te], "values") else sharpe_ratio(result.returns.values[te]))
         train_sharpes = []
         for tr, te in wf_splits:
+            if len(te) > 0:
+                oos_sharpes.append(sharpe_ratio(result.returns.iloc[te].values))
             if len(tr) > 0:
-                train_sharpes.append(sharpe_ratio(result.returns.iloc[tr].values) if hasattr(result.returns.iloc[tr], "values") else sharpe_ratio(result.returns.values[tr]))
-        wf_stab = np.mean(oos_sharpes) / np.mean(train_sharpes) if np.mean(train_sharpes) != 0 else 0.0
+                train_sharpes.append(sharpe_ratio(result.returns.iloc[tr].values))
+        wf_stab = float(np.mean(oos_sharpes) / np.mean(train_sharpes)) if np.mean(train_sharpes) != 0 else 0.0
 
-        # Regimes
-        vix_df = fetcher.fetch_yahoo([VIX_SYMBOL], start=start.strftime("%Y-%m-%d"), end=end.strftime("%Y-%m-%d"), interval="1d")
+        vix_df = fetcher.fetch_yahoo(
+            [VIX_SYMBOL],
+            start=start.strftime("%Y-%m-%d"),
+            end=end.strftime("%Y-%m-%d"),
+            interval="1d",
+        )
         vix = vix_df.get(VIX_SYMBOL, pd.DataFrame())
         if len(vix) > 0:
-            if hasattr(vix.index, 'tz_convert') and vix.index.tzinfo:
+            if hasattr(vix.index, "tz_convert") and vix.index.tzinfo:
                 vix.index = vix.index.tz_convert(None)
             else:
                 vix.index = pd.to_datetime(vix.index)
-            vix_hourly = vix["close"].reindex(prices.index, method='ffill').fillna(20.0)
+            vix_hourly = vix["close"].reindex(prices.index, method="ffill").fillna(20.0)
         else:
             vix_hourly = pd.Series(20.0, index=prices.index)
         regimes = regime_labels(vix_hourly)
@@ -259,17 +398,18 @@ def main():
             mask = regimes == reg
             r = result.returns[mask]
             if len(r) > 1 and r.std() > 0:
-                s = sharpe_ratio(r.values)
+                s = float(sharpe_ratio(r.values))
             else:
                 s = 0.0
             regime_sharpes[reg] = s
-            if s < worst: worst = s
+            if s < worst:
+                worst = s
 
         bench_cmp = compare_to_benchmark(result.returns, bh_result.returns)
         cum = (1 + oos_ret).cumprod()
-        oos_max_dd = (cum / cum.cummax() - 1.0).min() if len(cum) > 0 else 0
-        oos_trades_count = len(result.trades)
-        pf = result.metrics.get("profit_factor", 0.0)
+        oos_max_dd = float((cum / cum.cummax() - 1.0).min()) if len(cum) > 0 else 0.0
+        oos_trades_count = int(len(result.trades))
+        pf = float(result.metrics.get("profit_factor", 0.0))
 
         passes = {
             "sharpe": oos_sharpe >= GATES["min_sharpe"],
@@ -295,8 +435,10 @@ def main():
                 "trades": int(oos_trades_count),
                 "wf_stability": float(wf_stab),
                 "worst_regime_sharpe": float(worst) if worst != np.inf else 0.0,
+                "regime_sharpes": regime_sharpes,
                 "benchmark_p_value": float(bench_cmp.get("alpha_p_value", 1.0)),
                 "information_ratio": float(bench_cmp.get("information_ratio", -np.inf)),
+                "ablations": ablations,
             },
             "passes": passes,
             "all_pass": all_pass,
@@ -311,7 +453,8 @@ def main():
         tracker.finish_experiment(status="completed")
         print("\n" + "=" * 70)
         print(f"H9 Verdict: {summary['verdict']}")
-        print(f"OOS Sharpe: {oos_sharpe:.3f}")
+        print(f"OOS Sharpe: {oos_sharpe:.3f} | DD: {oos_max_dd:.3f} | PF: {pf:.3f} | Trades: {oos_trades_count}")
+        print(f"Val SR: {val_sharpe:.3f} | Test SR: {test_sharpe:.3f} | WF stab: {wf_stab:.3f}")
         print("=" * 70)
         return 0 if all_pass else 1
     except Exception as e:
