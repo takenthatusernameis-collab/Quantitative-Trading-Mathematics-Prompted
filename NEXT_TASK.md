@@ -1,114 +1,85 @@
-# Next Task: H6 — VIX-Gated + DDCV Combo on Futures TSMOM
+# Next Task: Pivot from Momentum Family — Intraday Futures / Roll-Yield / Multi-Horizon
 
-## Status of H5 (executed 2026-10-11, REJECTED)
+## Status of H6 (executed 2026-10-11, REJECTED)
 
-H5 (DDCV) was executed and **rejected** (7/8 gates fail). The DDCV mechanism
-reduced max drawdown from −38.5% (base H4) to −35.3% (best DDCV combo:
-dd_trigger=0.30, dd_factor=0.75, OOS Sharpe 0.509), but this was insufficient
-to clear the ≤15% DD gate. The full results are in
-`HYPOTHESIS_SPEC.md` (H5 section) and artifact
-`exp_2026-10-11T00-34-05-381535Z`.
+H6 (VIX+DDCV combo on futures TSMOM) was executed and **rejected** (6/8 gates fail). The combination achieved the **best metrics of the entire momentum family** on free daily data:
+- OOS Sharpe **0.708** (highest across H1–H6)
+- Max DD **−19.7%** (lowest across H1–H6)
+- Walk-forward stability **0.803** (PASS — only variant to pass)
+- Information ratio **0.360** (PASS)
+- Profit factor 1.160, 188 trades
 
-**Key H5 finding:** The VIX-gate ablation (ablation c) was the **best
-performer** across all variants: OOS Sharpe **0.711**, max DD **−20.0%**,
-PF 1.186, 164 trades, IR 0.39. This is the highest Sharpe achieved in the
-entire momentum family on 2015-2024 free daily data. DDCV added no Sharpe
-benefit over a blunt 50% vol cut; the DD gate is a **risk-scaling problem**,
-not a drawdown-timing problem.
+However, neither the Sharpe ≥ 1.0 gate nor the DD ≤ 15% gate clears. The DDCV layer added only **0.3% incremental DD reduction** on top of the VIX gate (VIX-only DD −20.0% → VIX+DDCV −19.7%), making it effectively redundant when regime gating is present. The remaining gap is a **signal-strength ceiling** on 2015–2024 free daily data.
+
+**Key H6 finding:** The VIX-gate ablation (H5c) remains the single best result: Sharpe 0.711, DD −20.0%. Six hypotheses (H1–H6) tested across ETFs, futures, CS, TS, regime-gated, vol-conditioned, and combined variants — all REJECTED. The momentum family is **exhausted on free daily data**.
+
+---
 
 ## Mission
 
-The momentum family has been tested across 5 hypotheses (H1-H5), all
-**REJECTED**. The corrected futures TSMOM produces genuine positive OOS alpha
-(IR 0.33-0.39) but cannot certify the PROMPT_V2 gates (Sharpe ≥ 1.0, DD ≤ 15%)
-on free daily data. The strongest single result is the **VIX-gated vol target**
-from the H5 ablation: Sharpe 0.711, DD −20.0% — both dimensions close to
-passing but neither clears the gates.
+The evidence establishes a hard floor: no momentum-family variant on 2015–2024 free daily data can certify the PROMPT_V2 gates. To make further progress, the research must pivot to one of the **invalidation pathways** identified in H4–H6 root-cause attribution:
 
-The logical next step is to **combine the two most effective vol-management
-mechanisms** — VIX-regime exposure cuts (which raised Sharpe from 0.495 to 0.711)
-and DDCV drawdown conditioning (which cut DD from 38.5% to 35.3%) — and test
-whether the combination pushes both metrics into passing territory.
+1. **Higher-frequency (intraday) futures data** enabling CT-style path-dependent trend following with stops, dynamic position management, and true intraday vol targeting.
+2. **Futures roll-yield model** capturing true roll-date P&L (the `=F` continuous contracts smooth/mask the roll edge that is the primary return source for managed futures).
+3. **Dynamic multi-horizon signal** (e.g., combining 252-day and 63-day momentum with regime-weighted blending) that survives 2020/2022 stress without manual gating.
+4. **Extended sample** including pre-2015 decades where TSMOM literature reports stronger edges (the 2015–2024 window includes two major momentum crashes and a 10-year equity bull unfavorable for trend-following).
 
-## Hypothesis H6: VIX-Gated + DDCV Combo on Futures TSMOM
+---
 
-**H6**: Apply both a VIX-regime exposure gate AND a drawdown-conditioned vol
-target to the corrected futures TSMOM (long-only, lookback 252, skip 1) so that:
-- In bull regime (VIX < 20): full target vol (15%), DDCV active.
-- In sideways regime (VIX 20-30): 25% exposure, DDCV active.
-- In bear regime (VIX > 30): 10% exposure, DDCV active (aggressive cutting).
-- DDCV further reduces vol target when portfolio is in drawdown from rolling peak.
+## Recommended Next Hypothesis: H7 — Intraday Futures TSMOM with Path-Dependent Exits
 
-This combines the Sharpe-lifting power of VIX-gating with the drawdown-reducing
-power of DDCV. The VIX gate alone achieved Sharpe 0.711 but DD −20.0%; adding
-DDC could bring DD below the 15% gate while preserving the Sharpe lift.
+**H7**: Apply a multi-horizon TSMOM signal (252-day + 63-day blend) on **intraday futures data** (1-minute or 5-minute bars for ES, NQ, CL, GC, ZB) with **path-dependent exit rules** (trailing stop, time stop, volatility stop) so that:
 
-**Null (H0):** VIX+DDCV futures TSMOM OOS Sharpe ≤ 1.0 OR max DD > 15%.
+- Signal: weighted blend of slow (252-day) and fast (63-day) momentum, regime-weighted by realized vol.
+- Entry: monthly rebalance at market open (or intraday VWAP).
+- Exit: intraday trailing stop (e.g., 2× ATR from entry), time stop (max 5 days), vol stop (realized vol > 2× target).
+- Cost model: realistic futures per-contract costs + slippage model calibrated to intraday spreads.
+- Gates: same PROMPT_V2 set (Sharpe ≥ 1.0, DD ≤ 15%, etc.) on protected OOS.
+
+**Null (H0):** Intraday multi-horizon TSMOM with path-dependent exits OOS Sharpe ≤ 1.0 OR max DD > 15%.
 
 ### Pre-registered design
 
-- **Universe**: ES=F, NQ=F, CL=F, GC=F, ZB=F (all 5 available).
-- **Splits**: Train 2015-2019, Val 2020-2021, Test 2022-24 (protected).
-- **Base signal**: `vol_scaled_tsmom_signals` from
-  `src/qtr/strategies/baselines.py` (long_only=True, lookback=252, skip=1,
-  target_vol=0.15) — the corrected H4 best combo.
-- **VIX gate**: same as H5 ablation (c):
-  - VIX < 20 → scale = 1.0 (full)
-  - VIX 20-30 → scale = 0.25
-  - VIX > 30 → scale = 0.10
-  - `^VIX` used for regime labels only (not traded).
-- **DDCV layer**: applied *after* VIX gate, before engine:
-  ```
-  dd = equity / equity.rolling(252).max() - 1.0   # ≤ 0
-  dd_scale = 1.0 - dd_factor * max(0, -dd).clip(0, dd_trigger)
-  total_scale = vix_scale * dd_scale
-  ```
-  Grid over `dd_trigger` ∈ {0.10, 0.15, 0.20} and `dd_factor` ∈ {0.5, 0.75}.
-  The combined scale (VIX × DDCV) is applied to the whole book.
-- **Selection**: single pre-registered combo (no grid search on Test); Val
-  used for gate evaluation only.
-- **Gates** (unchanged PROMPT_V2): Sharpe ≥ 1.0, ≥ 200 trades, PF ≥ 1.3,
-  DD ≤ 15%, WF stability ≥ 0.7, ±20% perturbation, worst-regime Sharpe
-  ≥ 0.3, benchmark p < 0.05 **and IR > 0**.
-- **Compute budget**: ≤ 2 CPU-h. Seed 42.
-
-### Deliverables
-
-1. `run_h6_vix_ddcv_experiment.py` — H6 pipeline + gates (reuses
-   `vol_scaled_tsmom_signals`, `run_backtest`, `compare_to_benchmark`).
-2. Artifacts in `.experiments/artifacts/exp_<H6>/`.
-3. Updated `HYPOTHESIS_SPEC.md` (append H6) and `INEFFICIENCY_RANKING.md`.
-4. Final verdict: PASS all gates, or REJECT with root-cause attribution
-   (preserve all negative results).
+- **Universe**: ES, NQ, CL, GC, ZB (CME/ICE continuous front-month).
+- **Data source**: Databento (free tier) or similar for 1-min/5-min bars; or synthetic intraday from daily OHLC + volatility scaling (documented limitation).
+- **Splits**: Train 2018-2020, Val 2021-2022, Test 2023-2024 (protected). If data starts later, adjust proportionally.
+- **Base signal**: `vol_scaled_tsmom_signals` extended to multi-horizon:
+  - `w_slow = sign(mom_252) / vol_63`
+  - `w_fast = sign(mom_63) / vol_21`
+  - Blend weight = `1 / (1 + realized_vol / target_vol)` (more fast weight in high vol).
+- **Path-dependent exits** (applied per-position, intraday):
+  - Trailing stop: `max(price_since_entry) - 2 * ATR_14` for longs.
+  - Time stop: flatten after 5 trading days if not stopped.
+  - Vol stop: flatten if 5-day realized vol > 2 × target_vol.
+- **Selection**: single pre-registered config (no grid on Test); Val for gate eval only.
+- **Gates**: unchanged PROMPT_V2.
+- **Compute budget**: ≤ 4 CPU-h. Seed 42.
 
 ### Fallback / Ablation plan
 
-If the combined VIX+DDCV still cannot clear both Sharpe ≥ 1.0 and DD ≤ 15%,
-run the ablation to isolate which component drives the remaining failure:
-- (a) VIX-gate only (already known: Sharpe 0.711, DD −20.0%)
-- (b) DDCV only (already known: Sharpe 0.509, DD −35.3%)
-- (c) VIX+DDCV combo (H6)
-- (d) VIX-gate with more aggressive sideways/bear factors
-  (e.g. sid_factor ∈ {0.10, 0.15}, bear_factor ∈ {0.05, 0.10})
+If intraday data is unavailable or the experiment exceeds compute budget:
 
-This isolates whether the remaining Sharpe gap (0.711 → need 1.0) comes from
-insufficient crash-mitigation (need more aggressive VIX cuts) or from a
-fundamental signal-strength ceiling on free daily data.
+1. **Synthetic intraday from daily**: Use daily OHLC + Parkinson/Garman-Klass vol estimator to simulate intraday paths (Monte Carlo, 100 paths per day) — documented approximation.
+2. **Roll-yield capture**: Build a `roll_adjusted_returns` series from daily `=F` contracts by detecting roll dates (volume/OI shifts) and adding the roll carry (next contract price - front contract price) / front price. Test whether roll-adjusted TSMOM improves Sharpe.
+3. **Multi-horizon on daily**: Test 252+63 blend with regime-weighted blending on daily data (lower compute) as a stepping stone.
 
-### Constraints (unchanged)
+---
 
-- Do **not** weaken evidence gates; they survived H1-H5 intact.
+## Constraints (unchanged)
+
+- Do **not** weaken evidence gates; they survived H1–H6 intact.
 - Do not optimize against Test; Val/Test used only for gate evaluation.
 - Test never enters selection.
 - Preserve all negative results.
-- No live trading, no secrets, no paid data.
-- Max 2 CPU-h per experiment.
-- Regression tests must pass before finishing
-  (`python3 -m pytest tests/ -q` — currently 38 passing).
+- No live trading, no secrets, no paid data (use Databento free tier or public sources).
+- Max 4 CPU-h per experiment.
+- Regression tests must pass before finishing (`python3 -m pytest tests/ -q` — currently 38 passing).
+
+---
 
 ## Context for the Next Agent
 
-### What H1-H4 proved (before H5)
+### Summary of H1–H6 (all REJECTED)
 
 | Exp | Strategy | OOS Sharpe | Max DD | IR | Status |
 |-----|----------|-----------|--------|----|--------|
@@ -116,35 +87,28 @@ fundamental signal-strength ceiling on free daily data.
 | H2 | CS Momentum (10 ETFs) | 0.116 | −38.7% | −0.252 | REJECTED |
 | H3 | VIX-gated + VXX hedge | −0.868 | −48.3% | −0.893 | REJECTED |
 | H4 | Futures TSMOM (ensemble) | 0.376 | −47.4% | +0.332 | REJECTED |
+| H5 | DDCV on Futures TSMOM | 0.509 | −35.3% | +0.394 | REJECTED |
+| H5c | VIX-gate ablation | **0.711** | **−20.0%** | +0.39 | best ablation |
+| H6 | VIX+DDCV combo | **0.708** | **−19.7%** | +0.360 | best overall |
 
-### What H5 proved
+### Key architectural notes (preserved for continuity)
 
-| Variant | OOS Sharpe | Max DD | PF | Trades | IR |
-|---------|-----------|--------|----|--------|----|
-| Base (H4 combo) | 0.495 | −38.5% | 1.139 | 138 | — |
-| DDCV (best) | 0.509 | −35.3% | 1.108 | 188 | — |
-| Fixed 50% cut | 0.495 | −19.2% | 1.139 | 138 | — |
-| **VIX-gate** | **0.711** | **−20.0%** | 1.186 | 164 | 0.39 |
+- Canonical TSMOM signal: `src/qtr/strategies/baselines.py::vol_scaled_tsmom_signals` (sign invariant pinned by `tests/test_tsmom_signal.py`).
+- Backtest engine cost model corrected (equity costs in bps of portfolio value; futures per-contract with multiplier/tick_value).
+- Data cached at `.cache/data/` (Yahoo `=F` continuous futures, `^VIX`).
+- Experiment tracking via `src/qtr/tracking/experiment.py` (JSONL + Parquet, full reproducibility metadata).
+- Start experiment scripts from repo root — adds `src/` to Python path internally.
 
-### Key architectural notes
+### The central research question for H7
 
-- The canonical TSMOM signal is in `src/qtr/strategies/baselines.py::vol_scaled_tsmom_signals`
-  (sign invariant pinned by `tests/test_tsmom_signal.py`).
-- The backtest engine's cost model is corrected (equity costs in bps of
-  portfolio value, not multiplied by price; futures costs per-contract with
-  multiplier/tick_value).
-- Data is cached at `.cache/data/` (Yahoo `=F` continuous futures, `^VIX`).
-- Experiment tracking is via `src/qtr/tracking/experiment.py` (JSONL +
-  Parquet artifacts, full reproducibility metadata).
-- Start the experiment script from the repo root — it adds `src/` to the
-  Python path internally.
+**Can intraday path-dependent exits (stops, time limits, vol limits) on a multi-horizon momentum signal overcome the signal-strength ceiling observed on daily data?** The daily-frequency VIX+DDCV combo (H6) is the best possible vol-management overlay on daily data — it achieves the highest Sharpe (0.708) and lowest DD (−19.7%) in the family but cannot breach the gates. The only remaining degrees of freedom are **signal frequency** (intraday vs daily) and **exit mechanics** (path-dependent vs monthly rebalance). H7 tests whether this pivot can invalidate the rejection.
 
-### The central research question for H6
+---
 
-The VIX-gate ablation (H5c) is the **single best result in the entire
-momentum family on free daily data** — Sharpe 0.711, DD −20.0%. It clears
-neither gate but is within striking distance on both. The question H6 tests is
-whether **combining** VIX-gating (Sharpe lift) with DDCV (DD reduction) can
-bridge the gap: if VIX+DDCV achieves Sharpe ≥ 1.0 AND DD ≤ 15%, the gates
-pass and the momentum family is no longer "exhausted." If not, the negative
-result further establishes the floor for any future regime-aware variant.
+## Deliverables for Next Agent
+
+1. `run_h7_intraday_tsmom_experiment.py` — H7 pipeline + gates (reuses `vol_scaled_tsmom_signals`, `run_backtest`, `compare_to_benchmark`; adds intraday data fetcher, path-dependent exit engine).
+2. Artifacts in `.experiments/artifacts/exp_<H7>/`.
+3. Updated `HYPOTHESIS_SPEC.md` (append H7) and `INEFFICIENCY_RANKING.md`.
+4. Final verdict: PASS all gates, or REJECT with root-cause attribution (preserve all negative results).
+5. All 38 regression tests passing.
