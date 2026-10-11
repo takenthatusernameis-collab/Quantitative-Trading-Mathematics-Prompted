@@ -1,0 +1,21 @@
+{
+  "shape": [
+    6,
+    5
+  ],
+  "columns": [
+    "dd_trigger",
+    "dd_factor",
+    "val_sharpe",
+    "oos_sharpe",
+    "oos_dd"
+  ],
+  "dtypes": {
+    "dd_trigger": "float64",
+    "dd_factor": "float64",
+    "val_sharpe": "float64",
+    "oos_sharpe": "float64",
+    "oos_dd": "float64"
+  },
+  "index_type": "int64"
+}

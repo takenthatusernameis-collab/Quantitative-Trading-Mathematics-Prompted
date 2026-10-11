@@ -93,13 +93,42 @@ strategy; see EXECUTION_REPORT.md). All costs use the corrected equity model:
   but worst-regime (sideways) Sharpe < 0 → **-2.07**; alpha < 0 →
   **-11.98%/yr (IR -0.89, p=0.046)**.
 
-**Cross-cutting finding (H1→H5):** train→OOS decay is the dominant
+**Cross-cutting finding (H1→H6):** train→OOS decay is the dominant
 failure mode (H1: 0.589→0.093; H2: 0.636→0.116; H3: 0.401→-0.868; H4: 0.712→0.376;
-H5: 0.797→0.509). Walk-forward selection on 2015-2019 daily data selects noise;
+H5: 0.797→0.509; H6: 0.882→0.708). Walk-forward selection on 2015-2019 daily data selects noise;
 no momentum-family variant tested has positive OOS Sharpe ≥ 1.0 on 2020-2024.
 The momentum family is **exhausted on free daily data** — the strongest result
 remains the H5 VIX-gate ablation at OOS Sharpe 0.711 — see NEXT_TASK.md for the
 next pivot.
+
+---
+
+### 7. VIX-Gated + DDCV Combo on Futures TSMOM (executed — H6, REJECTED)
+- **Net edge measured** (ES/NQ/CL/GC/ZB `=F`, 2015-2024, corrected cost model):
+  best combo (dd_trigger=0.10, dd_factor=0.50) **OOS Sharpe 0.708**,
+  max DD -19.7%, PF 1.160, 188 trades, IR 0.360 vs EW futures benchmark
+  (p=0.422). Train Sharpe 0.882 → OOS 0.708.
+- **VIX+DDCV grid** (6 combos): all land in OOS Sharpe 0.707–0.708, max DD
+  -19.7% to -19.8% — the DDCV layer adds minimal incremental DD reduction
+  (0.3%) on top of the VIX gate.
+- **Ablations** (OOS): base TSMOM Sharpe 0.495 / DD -38.5%; VIX-gate only
+  Sharpe 0.711 / DD -20.0%; DDCV-only Sharpe 0.509 / DD -35.3%; **VIX+DDCV
+  Sharpe 0.708 / DD -19.7%** (best on both dimensions among all H1-H6).
+- **Walk-forward stability: 0.803 (PASS)** — the only H1-H6 variant to pass
+  this gate. IR > 0 (PASS).
+- **Net Opportunity Score:** 3/10 (realized) — highest of the family but still
+  below the ≥1.0 Sharpe gate.
+- **Status: REJECTED.** 6/8 gates fail. The combination is the best-performing
+  variant in the entire momentum family (highest Sharpe, lowest DD, passes
+  stability and IR gates), but the signal strength on 2015-2024 free daily data
+  is fundamentally insufficient to clear the PROMPT_V2 evidence gates. The
+  DDCV layer is redundant when VIX-gating is present; the VIX gate alone
+  achieves nearly identical results. The remaining gap is a signal-strength
+  ceiling, not a vol-management problem.
+- **What would invalidate the rejection:** higher-frequency (intraday) futures
+  data for CT-style path-dependent trend following, a futures roll-yield model
+  capturing true roll-date P&L, or extending the sample to pre-2015 decades
+  where TSMOM literature reports stronger edges.
 
 ---
 

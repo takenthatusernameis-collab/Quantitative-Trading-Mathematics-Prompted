@@ -1,0 +1,21 @@
+{
+  "shape": [
+    3,
+    5
+  ],
+  "columns": [
+    "name",
+    "oos_sharpe",
+    "oos_max_dd",
+    "oos_pf",
+    "oos_trades"
+  ],
+  "dtypes": {
+    "name": "str",
+    "oos_sharpe": "float64",
+    "oos_max_dd": "float64",
+    "oos_pf": "float64",
+    "oos_trades": "int64"
+  },
+  "index_type": "int64"
+}

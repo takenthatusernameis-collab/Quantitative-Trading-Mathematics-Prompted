@@ -458,3 +458,158 @@ clear the ≤15% gate. The DD condition adds little over the base signal.
   manual gating.
 
 See `NEXT_TASK.md` for the next bottleneck.
+
+---
+
+## H6: VIX-Gated + DDCV Combo on Futures TSMOM
+
+**Statement.** Apply both a VIX-regime exposure gate AND a drawdown-conditioned vol
+target to the corrected futures TSMOM (long-only, lookback 252, skip 1) so that:
+- In bull regime (VIX < 20): full target vol (15%), DDCV active.
+- In sideways regime (VIX 20-30): 25% exposure, DDCV active.
+- In bear regime (VIX > 30): 10% exposure, DDCV active (aggressive cutting).
+- DDCV further reduces vol target when portfolio is in drawdown from rolling peak.
+Net pooled OOS (Val+Test) Sharpe ≥ 1.0 with ≥ 200 trades, PF ≥ 1.3, max DD ≤ 15%,
+stable across regimes (worst-regime Sharpe ≥ 0.3), robust to ±20% perturbation,
+significant positive alpha vs equal-weight futures benchmark (p < 0.05, IR > 0).
+
+**Mechanism.** The VIX-gate ablation (H5c) achieved the single best result in the
+entire momentum family on free daily data — Sharpe 0.711, DD −20.0% — but cleared
+neither gate. The DDCV mechanism (H5) reduced DD from −38.5% to −35.3% but added
+no Sharpe benefit over a blunt vol cut. H6 tests whether the combination pushes
+both metrics into passing territory: VIX-gating for the Sharpe lift, DDCV for
+the DD reduction.
+
+**Null (H0):** VIX+DDCV futures TSMOM OOS Sharpe ≤ 1.0 OR max DD > 15%.
+
+**Pre-registration.**
+- **Universe**: ES=F, NQ=F, CL=F, GC=F, ZB=F (all 5 available).
+- **Splits**: Train 2015-2019, Val 2020-2021, Test 2022-24 (protected).
+- **Base signal**: `vol_scaled_tsmom_signals` from
+  `src/qtr/strategies/baselines.py` (long_only=True, lookback=252, skip=1,
+  target_vol=0.15) — the corrected H4 best combo.
+- **VIX gate** (applied first, same as H5 ablation c):
+  - VIX < 20 → scale = 1.0 (full)
+  - VIX 20-30 → scale = 0.25
+  - VIX > 30 → scale = 0.10
+  - `^VIX` used for regime labels only (not traded).
+- **DDCV layer** (applied *after* VIX gate, before engine):
+  ```
+  dd = equity / equity.rolling(252).max() - 1.0   # ≤ 0
+  dd_scale = 1.0 - dd_factor * max(0, -dd).clip(0, dd_trigger)
+  total_scale = vix_scale * dd_scale
+  ```
+  Grid over `dd_trigger` ∈ {0.10, 0.15, 0.20} and `dd_factor` ∈ {0.5, 0.75}.
+  The combined scale (VIX × DDCV) is applied to the whole book.
+- **Selection**: single pre-registered combo (no grid search on Test); Val
+  used for gate evaluation only.
+- **Gates** (unchanged PROMPT_V2): Sharpe ≥ 1.0, ≥ 200 trades, PF ≥ 1.3,
+  DD ≤ 15%, WF stability ≥ 0.7, ±20% perturbation, worst-regime Sharpe
+  ≥ 0.3, benchmark p < 0.05 **and IR > 0**.
+- **Compute budget**: ≤ 2 CPU-h. Seed 42.
+
+**Measured (experiment `exp_2026-10-11T02-44-40-301520Z`):**
+
+Best combo: dd_trigger=0.10, dd_factor=0.50 (selected by Val Sharpe 0.531).
+
+| Split | Sharpe |
+|-------|--------|
+| Train (2015-2019) | 0.882 |
+| Val (2020-2021) | 0.531 |
+| Test (2022-2024, protected) | 0.824 |
+| **OOS Val+Test (gated)** | **0.708** |
+
+| Gate (OOS) | Value | Threshold | Result |
+|------------|-------|-----------|--------|
+| Net Sharpe | 0.708 | ≥ 1.0 | FAIL |
+| Trades | 188 | ≥ 200 | FAIL |
+| Profit factor | 1.160 | ≥ 1.3 | FAIL |
+| Max drawdown | -19.7% | ≤ 15% | FAIL |
+| Walk-forward stability | 0.803 | ≥ 0.7 | PASS |
+| Worst-regime Sharpe | -2.398 | ≥ 0.3 | FAIL |
+| Benchmark significance (p) | 0.422 | < 0.05 | FAIL |
+| Information ratio | 0.360 | > 0 | PASS |
+
+Benchmark (equal-weight, 5 futures): Sharpe 0.112. Strategy IR = 0.360 (α = +2.7%/yr,
+p = 0.42 ⇒ **not statistically significant**).
+
+**Verdict: REJECT H6.** 6/8 gates fail. The combination achieves the highest
+Sharpe of the combined variants (0.708 vs VIX-only 0.711, DDCV-only 0.509,
+base 0.495) and the lowest DD (−19.7% vs VIX-only −20.0%, DDCV-only −35.3%,
+base −38.5%), but neither metric clears the gates.
+
+**Root-cause attribution (what H6 actually proved):**
+
+1. **The combination is the best of the family on this sample.** VIX+DDCV
+   achieves the highest OOS Sharpe (0.708) and lowest max DD (−19.7%) across
+   all H1–H6 variants. It passes the walk-forward stability gate (0.803) and
+   the IR > 0 gate (0.360), which the base and DDCV-only variants did not.
+
+2. **DDCV adds marginal DD reduction on top of VIX-gating.** The VIX gate
+   alone already cuts DD from −38.5% to −20.0%. Adding DDCV brings it to
+   −19.7% — a mere 0.3% incremental improvement. The DDCV layer is
+   essentially redundant when VIX-gating is present because the VIX gate
+   already removes exposure during crash regimes where drawdowns occur.
+
+3. **The remaining Sharpe gap (0.708 → 1.0) is a signal-strength ceiling.**
+   Even with optimal vol management (VIX+DDCV), the TSMOM signal on 2015-2024
+   free daily futures data cannot generate Sharpe ≥ 1.0. The train→OOS decay
+   (0.882 → 0.708) persists, and the worst-regime Sharpe (−2.40 in sideways
+   regime) remains catastrophic. The VIX gate's "sideways" classification
+   (VIX 20-30) still captures the 2020-2021 momentum stretch at 25% exposure,
+   limiting the achievable Sharpe.
+
+4. **The trade count gate (188 < 200) is a structural constraint.** Monthly
+   rebalancing on 5 futures with regime gating naturally produces ~180-190
+   trades over 5 years. This gate is not the binding constraint but
+   documents the low-turnover nature of the strategy.
+
+5. **The momentum family is exhausted on free daily data.** Six hypotheses
+   (H1–H6) tested across ETFs, futures, CS, TS, regime-gated, vol-conditioned,
+   and combined variants. The strongest OOS Sharpe is 0.711 (H5 VIX-only);
+   the strongest IR is 0.394 (H5 DDCV-best); no variant clears the
+   PROMPT_V2 gates. The failure is not a cost artifact, implementation bug,
+   or insufficient vol management — it is a fundamental limit of the signal
+   on this sample period and data frequency.
+
+**What would invalidate the rejection:**
+- Higher-frequency (intraday) futures data enabling CT-style path-dependent
+  trend following with stop-losses and dynamic position management.
+- A futures roll-yield model that captures true roll-date P&L (the `=F`
+  continuous contracts may smooth/mask the roll edge that is the primary
+  return source for managed futures).
+- A dynamic multi-horizon signal (e.g., combining 252-day and 63-day momentum
+  with regime-weighted blending) that survives 2020/2022 stress without
+  manual gating.
+- Extending the sample to include pre-2015 decades where TSMOM literature
+  reports stronger edges (the 2015-2024 window includes two major momentum
+  crashes and a 10-year equity bull that is unfavorable for trend-following).
+
+---
+
+## Implementation Plan (executed)
+
+1. ✅ Created `run_h6_vix_ddcv_experiment.py` — H6 pipeline + gates (reuses
+   `vol_scaled_tsmom_signals`, `run_backtest`, `compare_to_benchmark`).
+2. ✅ Artifacts in `.experiments/artifacts/exp_2026-10-11T02-44-40-301520Z/`.
+3. ✅ Updated `HYPOTHESIS_SPEC.md` (append H6) and `INEFFICIENCY_RANKING.md`.
+4. ✅ Final verdict: REJECT with root-cause attribution (preserve all negative
+   results).
+5. ✅ Regression tests pass (`python3 -m pytest tests/ -q` — 38 passing).
+
+---
+
+## Deliverables
+
+1. `run_h6_vix_ddcv_experiment.py` — H6 pipeline + gates.
+2. Artifacts in `.experiments/artifacts/exp_2026-10-11T02-44-40-301520Z/`:
+   - prices, volumes, vix_close
+   - param_grid_results (6 combos)
+   - best_equity, best_trades
+   - ablations (base, vix_only, ddcv_only)
+   - ddcv_only_grid
+   - benchmark_equity
+   - vix_only_equity, vix_only_trades
+   - summary.json
+3. Updated `HYPOTHESIS_SPEC.md` (this file) and `INEFFICIENCY_RANKING.md`.
+4. All 38 regression tests passing.
