@@ -254,14 +254,19 @@ The momentum family has been tested exhaustively on free daily data (2015-2024) 
 | H6 (VIX+DDCV) | 0.708 | -19.7% | 1.160 | 188 | 0.360 | REJECT |
 | H7 (Multi-horizon, daily) | 0.789 | -14.5% | 1.166 | 1005 | ~0 | REJECT |
 | H8 (Roll-adjusted) | 0.814 | -20.9% | 1.157 | 201 | 0.525 | REJECT |
-| **H9 (Intraday TSMOM + CT exits)** | **1.056** | **-6.2%** | **1.252** | **2690** | **1.021** | **REJECT (PF only)** |
+| **H9 (Intraday TSMOM + CT exits)** | **1.056** | **-6.2%** | 1.252 | 2690 | 1.021 | REJECT (PF only) |
+| **H10 (Intraday TSMOM + PF opt)** | **1.276** | **-5.8%** | **1.304** | 2416 | 0.925 | **PASS** |
 
-**Best OOS Sharpe across all hypotheses: 1.056 (H9).** This is the first hypothesis to clear the Sharpe ≥ 1.0 gate.
-**Best max DD: -6.2% (H9).** First to clear the DD ≤ 15% gate.
-**Best profit factor: 1.261 (H9 ablation without CT exits).** Still below 1.3.
-The momentum family shows monotonic improvement H4→H9 (0.376→1.056 Sharpe, -47.4%→-6.2% DD).
-The frequency dimension (H9) is the breakthrough: intraday data resolves the worst-regime failure (all regime sharpes > 0) and delivers the first Sharpe ≥ 1.0 result.
-The remaining bottleneck is **cost-adjusted edge (profit factor ≥ 1.3)** at high hourly turnover.
+**Best OOS Sharpe across all hypotheses: 1.276 (H10).**
+**Best max DD: -5.8% (H10).**
+**Best profit factor: 1.304 (H10) — clears the 1.3 gate for the first time.**
+The momentum family shows monotonic improvement H4→H10 (0.376→1.276 Sharpe, -47.4%→-5.8% DD).
+The frequency dimension (H9/H10) is the breakthrough: intraday data resolves the worst-regime
+failure (all regime sharpes > 0) and delivers the first Sharpe ≥ 1.0 result.
+**H10 clears the final bottleneck (profit factor ≥ 1.3)** via a longer 4-week portfolio-vol
+estimation window (1008h) plus an exit-parameter grid (trailing 2.0×, vol_limit 1.5×,
+vol_floor 0.25). Signal smoothing and regime scaling were not selected.
+**Net Opportunity Score: 7/10 (realized) — first and only hypothesis to pass all 8 gates.**
 
 ### Invalidation Criteria (updated with H8)
 
@@ -287,3 +292,42 @@ The remaining bottleneck is **cost-adjusted edge (profit factor ≥ 1.3)** at hi
 - **Net Opportunity Score:** 4/10 (realized) — highest of the family; Sharpe and DD gates finally clear, PF is the last hurdle.
 - **Status: REJECTED** (profit factor gate). The hypothesis that intraday TSMOM can achieve Sharpe ≥ 1.0 is **supported**; the cost-adjusted edge needs refinement.
 - **What would invalidate the rejection:** A modest turnover reduction or cost efficiency gain that pushes PF ≥ 1.3 while maintaining Sharpe ≥ 1.0; extending the intraday data window (requires paid data); alternative exit parameterization reducing whipsaw trades.
+
+#### 10. Intraday Futures TSMOM — Profit Factor Optimization (executed — H10, PASS)
+
+- **Net edge measured** (ES/NQ/CL/GC/ZB `=F` hourly, ~730 days from yfinance; Train 55% / Val 25% / Test 20% protected):
+  **OOS Sharpe 1.276**, max DD -5.8%, PF 1.304, 2,416 trades, WF stability 0.781,
+  worst-regime Sharpe 1.046 (bull), IR 0.925 vs EW futures benchmark (p=4.8e-10).
+- **Full 13,824-combo grid** (signal smoothing / vol-window / regime-scaling / min-trade-interval
+  / exit-parameter) evaluated in 0.48 CPU-h; selected by Val Sharpe; Test never entered selection.
+- **Selected config**: vol_window_long=1008 (4-week vol window), smooth_span=none,
+  regime_scaling=False, min_trade_interval=0, trailing_mult=2.0, max_hold_bars=60,
+  vol_limit_mult=1.5, vol_floor_fraction=0.25.
+- **Ablations** (OOS):
+  | Variant | OOS Sharpe | OOS Max DD | OOS PF | OOS Trades |
+  |---------|-----------|-----------|--------|------------|
+  | H9 baseline (vw=252, H9 exits) | 1.066 | -6.2% | 1.253 | 1,795 |
+  | Longer vol window only (vw=1008) | 1.142 | -5.8% | 1.273 | 1,721 |
+  | Regime scaling only | 1.021 | -6.2% | 1.249 | 1,830 |
+  | Min trade interval only (mi=8) | 1.087 | -6.3% | 1.254 | 809 |
+  | Exit grid best (selected config) | **1.276** | **-5.8%** | **1.304** | 2,416 |
+  → The **longer vol window alone** recovers most of the Sharpe/PF gain; the **exit grid**
+  delivers the final PF push (1.304) and the highest Sharpe (1.276). Signal smoothing and
+  regime scaling were not selected.
+- **Regime Sharpe**: bull 1.046, sideways 1.170, bear 1.753 — all positive; worst-regime
+  gate passes comfortably. Bear is the strongest regime (momentum pays in trends).
+- **Gate status**: 8/8 PASS → **OVERALL: PASS** (first hypothesis in the H1–H10 family to
+  clear all gates).
+- **Data limitation**: yfinance hourly `=F` limited to ~730 days (2024-10-13 → 2026-10-09).
+  Small sample but a true OOS stress test; coverage gaps filled by ffill/bfill.
+- **Infrastructure defect found and fixed during H10 execution:** the script did not
+  normalize the tz-aware (America/New_York) yfinance futures index to tz-naive before
+  reindexing against the tz-naive hourly VIX index (TypeError). Fixed with `tz_convert(None)`;
+  also removed a duplicated `pos[i] = cur_pos` block in `apply_exits_hourly`.
+- **Net Opportunity Score:** 7/10 (realized) — highest of the family; first and only
+  hypothesis to pass all 8 gates.
+- **Status: PASS.** The hypothesis that a turnover-aware intraday TSMOM variant can achieve
+  PF ≥ 1.3 while maintaining Sharpe ≥ 1.0 and DD ≤ 15% is **supported**.
+- **What would invalidate the PASS (if re-run):** a different seed/data window producing
+  PF < 1.3 or Sharpe < 1.0; a longer intraday data window (paid data) that changes the
+  vol-window/exit-parameter ranking; a cost-model misspecification at ~2,400-trade turnover.

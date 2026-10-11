@@ -1,0 +1,136 @@
+{
+  "experiment_id": "exp_2026-10-11T17-41-18-169363Z",
+  "hypothesis": "H10",
+  "selected_config": {
+    "vol_window_long": 1008,
+    "smooth_span": "none",
+    "regime_scaling": false,
+    "min_trade_interval": 0,
+    "trailing_mult": 2.0,
+    "max_hold_bars": 60,
+    "vol_limit_mult": 1.5,
+    "vol_floor_fraction": 0.25
+  },
+  "grid_size": 13824,
+  "n_evaluated": 13824,
+  "grid_elapsed_sec": 1735.1,
+  "total_elapsed_sec": 1738.2,
+  "compute_cpu_hours": 0.483,
+  "metrics": {
+    "train_sharpe": 0.9588934313666013,
+    "val_sharpe": null,
+    "test_sharpe": 1.0930742500890243,
+    "oos_sharpe": 1.2757590680990518,
+    "profit_factor": 1.3041645169434146,
+    "max_drawdown": -0.05842847204487622,
+    "trades": 2416,
+    "wf_stability": 0.7805709265313979,
+    "worst_regime_sharpe": 1.045717651017743,
+    "regime_sharpes": {
+      "bull": 1.045717651017743,
+      "sideways": 1.1697883985727624,
+      "bear": 1.7530420313316548
+    },
+    "benchmark_p_value": 4.790305556723297e-10,
+    "information_ratio": 0.9247889169803807,
+    "ablations": {
+      "h9_baseline": {
+        "oos_sharpe": 1.0657926643372737,
+        "oos_profit_factor": 1.2532180751449158,
+        "oos_max_drawdown": -0.061967708465627824,
+        "oos_trades": 1795,
+        "test_sharpe": 1.0509351867915173
+      },
+      "signal_smoothing_only(span=None)": {
+        "oos_sharpe": 1.0657926643372737,
+        "oos_profit_factor": 1.2532180751449158,
+        "oos_max_drawdown": -0.061967708465627824,
+        "oos_trades": 1795,
+        "test_sharpe": 1.0509351867915173
+      },
+      "longer_vol_window_only(vw=1008)": {
+        "oos_sharpe": 1.1418856805169109,
+        "oos_profit_factor": 1.2734949807994138,
+        "oos_max_drawdown": -0.05842847204487689,
+        "oos_trades": 1721,
+        "test_sharpe": 1.0424457489844516
+      },
+      "regime_scaling_only": {
+        "oos_sharpe": 1.0212242716355602,
+        "oos_profit_factor": 1.2485589178667436,
+        "oos_max_drawdown": -0.061967708465626825,
+        "oos_trades": 1830,
+        "test_sharpe": 1.0497523295683875
+      },
+      "min_trade_interval_only(mi=8)": {
+        "oos_sharpe": 1.0870444104855663,
+        "oos_profit_factor": 1.253866130266929,
+        "oos_max_drawdown": -0.06319638261732585,
+        "oos_trades": 809,
+        "test_sharpe": 1.0464729242091284
+      },
+      "exit_grid_best": {
+        "oos_sharpe": 1.2757590680990518,
+        "oos_profit_factor": 1.3041645169434146,
+        "oos_max_drawdown": -0.05842847204487622,
+        "oos_trades": 2416,
+        "test_sharpe": 1.0930742500890243
+      }
+    }
+  },
+  "best_val_pf_config": {
+    "config": {
+      "vol_window_long": 1008,
+      "smooth_span": "None",
+      "regime_scaling": false,
+      "min_trade_interval": 0,
+      "trailing_mult": 2.5,
+      "max_hold_bars": 60,
+      "vol_limit_mult": 1.5,
+      "vol_floor_fraction": 0.25
+    },
+    "val_pf": 1.3592088665821347,
+    "oos_metrics": {
+      "sharpe": 1.258920571027274,
+      "max_drawdown": -0.058270278777241,
+      "profit_factor": 1.3081022622107665,
+      "trades": 2385,
+      "gross_profit": 3.61132433467359,
+      "gross_loss": 2.760735486054621,
+      "n_periods": 5148
+    },
+    "test_metrics": {
+      "sharpe": 1.0803971690219818,
+      "max_drawdown": -0.0417663120433428,
+      "profit_factor": 1.2450589247490425,
+      "trades": 833,
+      "gross_profit": 1.5389199698424822,
+      "gross_loss": 1.2360217972435894,
+      "n_periods": 2288
+    },
+    "gates": {
+      "sharpe": true,
+      "trades": true,
+      "pf": true,
+      "dd": true,
+      "stab": true,
+      "worst": true,
+      "p": true,
+      "ir": true
+    },
+    "verdict": "PASS"
+  },
+  "passes": {
+    "sharpe": true,
+    "trades": true,
+    "pf": true,
+    "dd": true,
+    "stab": true,
+    "worst": true,
+    "p": true,
+    "ir": true
+  },
+  "all_pass": true,
+  "verdict": "PASS",
+  "selection_rule": "best Val Sharpe; Test protected (not used for selection); gates on OOS Val+Test"
+}

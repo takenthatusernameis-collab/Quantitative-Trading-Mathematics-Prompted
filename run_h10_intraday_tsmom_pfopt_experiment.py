@@ -223,11 +223,6 @@ def apply_exits_hourly(
 
             pos[i] = cur_pos
 
-            if in_pos:
-                bars_held += 1
-
-            pos[i] = cur_pos
-
         positions[sym] = pos
 
     return positions.ffill().fillna(0.0)
@@ -406,7 +401,9 @@ def main():
             df = data.get(sym, pd.DataFrame())
             if len(df) == 0:
                 continue
-            if hasattr(df.index, "tz_convert") and df.index.tzinfo:
+            # yfinance futures return tz-aware (America/New_York) hourly indexes;
+            # normalize to tz-naive UTC so they align with the tz-naive VIX index.
+            if hasattr(df.index, "tz_convert") and df.index.tzinfo is not None:
                 df.index = df.index.tz_convert(None)
             else:
                 df.index = pd.to_datetime(df.index)
@@ -417,13 +414,14 @@ def main():
         prices = prices.ffill().bfill()
         volumes = volumes.reindex(prices.index).fillna(0)
 
-        # Hourly VIX (cached)
+        # Hourly VIX (cached). yfinance ^VIX hourly comes back tz-naive; keep it
+        # tz-naive so the reindex against the (now tz-naive) prices index works.
         vix_df = fetcher.fetch_yahoo(
             [VIX_SYMBOL], start=DATA_START, end=DATA_END, interval="1h"
         )
         vix = vix_df.get(VIX_SYMBOL, pd.DataFrame())
         if len(vix) > 0:
-            if hasattr(vix.index, "tz_convert") and vix.index.tzinfo:
+            if hasattr(vix.index, "tz_convert") and vix.index.tzinfo is not None:
                 vix.index = vix.index.tz_convert(None)
             else:
                 vix.index = pd.to_datetime(vix.index)
