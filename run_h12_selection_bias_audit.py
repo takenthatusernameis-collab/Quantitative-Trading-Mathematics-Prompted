@@ -16,8 +16,8 @@ Borwein, Lopez de Prado & Zhu (2014):
 
   2. Probability of Backtest Overfitting (PBO) via Combinatorially-Symmetric
      Cross-Validation (CSCV). The H10 run logged only Val metrics per combo, so
-     we re-run the H10 grid logging per-combo OOS (Val+Test) metrics, then compute
-     PBO with S=16 combinatorially-symmetric blocks over the OOS window.
+     we re-run the H10 grid logging per-combo OOS (Val+Test) returns, then compute
+     PBO with S=12 combinatorially-symmetric blocks over the OOS window.
 
   3. Family-wide multiple-testing audit. Pool the trial counts of every grid
      search in the H1-H12 family (~14,389) and recompute the deflated Sharpe /
@@ -79,7 +79,6 @@ from run_h10_intraday_tsmom_pfopt_experiment import (
     _splits,
     _period_metrics,
     _count_in,
-    _full_gate_eval,
     smooth_signal,
     regime_factor_hourly,
 )
@@ -123,6 +122,9 @@ FAMILY_TOTAL = sum(FAMILY_TRIAL_COUNTS.values())
 
 # CSCV block count S (must divide the OOS window evenly).
 CSCV_S = 12
+
+# Benchmark p-value from H11 (bit-exact reproduction of the H10 artifact).
+BENCHMARK_P_VALUE = 4.790305556723297e-10
 
 
 # ---------------------------------------------------------------------------
@@ -181,31 +183,6 @@ def _moments(returns):
 # ---------------------------------------------------------------------------
 # PBO via CSCV (Bailey, Borwein, Lopez de Prado & Zhu 2014)
 # ---------------------------------------------------------------------------
-def _cscv_pbo(performance_scores, n_blocks):
-    """Probability of Backtest Overfitting via combinatorially-symmetric CV.
-
-    performance_scores: array of length T (one score per OOS bar, e.g. the
-        strategy's per-bar return). The function partitions the T bars into
-        n_blocks contiguous blocks of equal size, then for every combination of
-        (n_blocks // 2) blocks treats those as the in-sample (IS) set and the
-        remaining blocks as the out-of-sample (OOS) set. Within each combination
-        the IS-optimal strategy is the one with the best mean IS score; PBO is
-        the fraction of combinations in which that IS-optimal strategy ranks
-        below the median OOS rank.
-
-    Here "strategy" is a single fixed strategy (the H10 config), so the
-        IS/OOS split is over TIME blocks and the "strategy" ranking is trivial
-        (one strategy). The PBO then measures the probability that the
-        IS-optimal (only) strategy underperforms the median OOS -- which, for a
-        single strategy, reduces to: fraction of time-block combinations where
-        the strategy's OOS mean is below the cross-strategy median. With one
-        strategy the cross-strategy median is the strategy itself, so we instead
-        implement the general N-strategy form (below) and pass the H10 grid's
-        per-combo OOS scores.
-    """
-    raise NotImplementedError("use _cscv_pbo_multi below")
-
-
 def _cscv_pbo_multi(performance_matrix, n_blocks):
     """CSCV PBO for N strategies evaluated over T periods.
 
@@ -259,10 +236,8 @@ def _cscv_pbo_multi(performance_matrix, n_blocks):
 
 
 # ---------------------------------------------------------------------------
-# Data + grid re-run (logs per-combo OOS metrics for the PBO audit)
+# Data + grid re-run (logs per-combo OOS returns for the PBO audit)
 # ---------------------------------------------------------------------------
-
-
 def _rebuild_grid_oos(prices, volumes, vix_hourly, cfg, masks):
     """Re-run the H10 grid, logging per-combo OOS (Val+Test) returns.
 
@@ -271,7 +246,13 @@ def _rebuild_grid_oos(prices, volumes, vix_hourly, cfg, masks):
       - oos_matrix: (N, T_oos) float32 array of per-bar net OOS returns.
       - oos_index: the DatetimeIndex of the OOS window.
     """
-    atr, vol_exit = _build_exit_inputs(prices)
+    # price-derived exit inputs (config-independent)
+    pct = prices.pct_change().fillna(0)
+    atr = prices * pct.rolling(14, min_periods=7).std()
+    atr = atr.replace(0, np.nan).ffill().fillna(prices * 0.001)
+    vol_exit = pct.rolling(20, min_periods=10).std() * np.sqrt(252 * 6.5)
+    vol_exit = vol_exit.replace(0, np.nan).ffill()
+
     oos_mask = masks["oos"]
     oos_index = prices.index[oos_mask]
     T_oos = int(oos_mask.sum())
@@ -332,6 +313,6 @@ def _rebuild_grid_oos(prices, volumes, vix_hourly, cfg, masks):
         meta["oos_trades"][i] = om["trades"]
         oos_matrix[i, :] = oos_ret.to_numpy(dtype=np.float32)
         if (i + 1) % 2000 == 0:
-            print(f"    grid re-run {i+1}/{N} ({(time.time()-t0)/60:.1f} min)")
+            print(f"    grid re-run {i+1}/{N} ({(time.time()-t0)/60:.1f} min)", flush=True)
     grid_meta = pd.DataFrame(meta)
     return grid_meta, oos_matrix, oos_index

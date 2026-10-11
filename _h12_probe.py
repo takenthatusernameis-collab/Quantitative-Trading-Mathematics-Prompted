@@ -1,1 +1,2 @@
-# H12 probe
+#!/usr/bin/env python3
+print("hello")
