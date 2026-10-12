@@ -10,8 +10,8 @@ export TMPDIR="$RUNNER_TEMP/kilo-tmp"
 mkdir -p "$XDG_CONFIG_HOME/kilo" "$XDG_DATA_HOME/kilo" "$XDG_CACHE_HOME/kilo" "$TMPDIR" "$RUNNER_TEMP/kilo"
 for directory in "$HOME" "$XDG_CONFIG_HOME/kilo" "$XDG_DATA_HOME/kilo" "$XDG_CACHE_HOME/kilo" "$TMPDIR" "$RUNNER_TEMP/kilo"; do
   if ! ( : > "$directory/.kilo-write-test" ) 2>/dev/null; then
-    echo "::warning::Runtime directory is not writable: $directory; continuing with a clean no-op rather than a hard workflow failure."
-    exit 0
+    echo "::error::Runtime directory is not writable: $directory."
+    exit 1
   fi
   rm -f "$directory/.kilo-write-test"
 done
@@ -27,8 +27,8 @@ fi
 if [ "$one_shot_mode" -eq 1 ]; then
   DEFAULT_BRANCH="$KILO_DEFAULT_BRANCH"
   if [ -z "$DEFAULT_BRANCH" ] || ! git fetch origin "$DEFAULT_BRANCH"; then
-    echo "::warning::Could not verify the one-shot marker on the remote branch; deferring this activation safely."
-    exit 0
+    echo "::error::Could not verify the one-shot marker on the remote branch."
+    exit 1
   fi
   if ! git cat-file -e "origin/$DEFAULT_BRANCH:.kilo/TWO_AGENT_ONCE" 2>/dev/null; then
     echo "::notice::The one-shot marker is absent from origin/$DEFAULT_BRANCH; this is a stale/duplicate activation, exiting without invoking Kilo."
@@ -42,19 +42,19 @@ if [ "$one_shot_mode" -eq 0 ] && [ -f ".kilo/SKIP_NEXT_ROUTINE_KILO" ]; then
   git config user.email "kilo-autonomous@users.noreply.github.com"
   DEFAULT_BRANCH="$KILO_DEFAULT_BRANCH"
   if [ -z "$DEFAULT_BRANCH" ]; then
-    echo "::warning::Default branch is unavailable; retaining the skip marker for a later activation."
-    exit 0
+    echo "::error::Default branch is unavailable; retaining the skip marker for recovery."
+    exit 1
   fi
   if ! git rm -f -- .kilo/SKIP_NEXT_ROUTINE_KILO || ! git commit -m "chore(kilo): consume one-time post-run skip"; then
-    echo "::warning::Could not create the skip-marker consumption commit; the next routine activation will retry."
-    exit 0
+    echo "::error::Could not create the skip-marker consumption commit."
+    exit 1
   fi
   delay=5
   while true; do
     remaining=$((cutoff_epoch - $(date +%s)))
     if [ "$remaining" -le 0 ]; then
-      echo "::warning::Could not verify skip-marker persistence before the cutoff; stopping safely."
-      exit 0
+      echo "::error::Could not verify skip-marker persistence before the cutoff."
+      exit 1
     fi
     if git fetch origin "$DEFAULT_BRANCH" && git merge-base --is-ancestor "origin/$DEFAULT_BRANCH" HEAD && git push origin "HEAD:$DEFAULT_BRANCH"; then
       remote_sha="$(git ls-remote origin "refs/heads/$DEFAULT_BRANCH" 2>/dev/null | awk 'NR==1 {print $1}')"
@@ -66,7 +66,7 @@ if [ "$one_shot_mode" -eq 0 ] && [ -f ".kilo/SKIP_NEXT_ROUTINE_KILO" ]; then
     fi
     echo "::warning::Could not verify skip-marker removal; retrying without a fixed attempt limit."
     remaining=$((cutoff_epoch - $(date +%s)))
-    if [ "$remaining" -le 0 ]; then exit 0; fi
+    if [ "$remaining" -le 0 ]; then exit 1; fi
     if [ "$delay" -gt "$remaining" ]; then delay="$remaining"; fi
     sleep "$delay"
     if [ "$delay" -lt 30 ]; then delay=$((delay * 2)); if [ "$delay" -gt 30 ]; then delay=30; fi; fi
@@ -84,8 +84,8 @@ until timeout --signal=TERM --kill-after=10s 180s npm install --no-audit --no-fu
   install_attempt=$((install_attempt + 1))
   remaining=$((cutoff_epoch - $(date +%s)))
   if [ "$remaining" -le 0 ]; then
-    echo "::warning::Kilo installation did not recover before the 355-minute cutoff; no agent session was started."
-    exit 0
+    echo "::error::Kilo installation did not recover before the 355-minute cutoff; no agent session was started."
+    exit 1
   fi
   delay="$install_backoff"
   if [ "$remaining" -lt "$delay" ]; then delay="$remaining"; fi
@@ -183,8 +183,8 @@ PROMPT
 DEFAULT_BRANCH="$KILO_DEFAULT_BRANCH"
 
 if [ -z "$DEFAULT_BRANCH" ]; then
-  echo "::warning::GitHub did not provide the default branch; preserving the repository and ending this activation safely."
-  exit 0
+  echo "::error::GitHub did not provide the default branch; refusing to report a successful activation."
+  exit 1
 fi
 
 echo "Repository default branch: $DEFAULT_BRANCH"
