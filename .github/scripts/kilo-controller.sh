@@ -36,7 +36,7 @@ if [ "$one_shot_mode" -eq 1 ]; then
   fi
 fi
 
-if [ "$one_shot_mode" -eq 0 ] && [ -f ".kilo/SKIP_NEXT_ROUTINE_KILO" ]; then
+if [ "$one_shot_mode" -eq 0 ] && [ "${GITHUB_EVENT_NAME:-${KILO_TRIGGER_EVENT:-}}" = "schedule" ] && [ -f ".kilo/SKIP_NEXT_ROUTINE_KILO" ]; then
   echo "::notice::Consuming the one-time post-smoke skip; this activation will not start Kilo."
   git config user.name "kilo-autonomous"
   git config user.email "kilo-autonomous@users.noreply.github.com"
@@ -244,7 +244,17 @@ for agent_index in $(seq 1 "$agents"); do
     rc=${PIPESTATUS[0]}
     set -e
     if [ "$rc" -eq 0 ]; then break; fi
-    if [ "$rc" -ne 124 ] && [ "$rc" -ne 137 ] && [ "$session_attempt" -lt 3 ] && grep -Eiq 'Upstream idle timeout exceeded|upstream.{0,40}idle.{0,40}timeout|ECONNRESET|socket hang up|fetch failed' "$attempt_log"; then
+    normalized_attempt_log="$attempt_log.normalized"
+    python - "$attempt_log" "$normalized_attempt_log" <<'PY'
+import re
+import sys
+from pathlib import Path
+source, target = map(Path, sys.argv[1:3])
+text = source.read_text(encoding="utf-8", errors="replace")
+text = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", text)
+target.write_text(text, encoding="utf-8")
+PY
+    if [ "$rc" -ne 124 ] && [ "$rc" -ne 137 ] && [ "$session_attempt" -lt 3 ] && grep -Eiq 'Upstream idle timeout exceeded|upstream.{0,40}idle.{0,40}timeout|ECONNRESET|socket hang up|fetch failed' "$normalized_attempt_log"; then
       idle_timeout_retry_count=$((idle_timeout_retry_count + 1))
       retry_delay=$((15 * session_attempt))
       remaining_global=$((cutoff_epoch - $(date +%s)))
