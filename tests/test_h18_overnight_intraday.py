@@ -198,8 +198,10 @@ def test_determinism():
             )
 
             # Signals should be identical
-            pd.testing.assert_series_equal(signal1, signal2,
-                                         msg=f"Signal not deterministic for {predictor}_{hold_conv}")
+            pd.testing.assert_series_equal(signal1, signal2)
+            assert signal1.equals(signal2), (
+                f"Signal not deterministic for {predictor}_{hold_conv}"
+            )
 
 
 def test_executed_outcome():

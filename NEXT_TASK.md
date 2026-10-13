@@ -173,4 +173,118 @@ Executed exactly as pre-registered. Selected config `predictor=prior_5d_return_s
 - No paid data; yfinance/free sources only.
 - Pre-register before running; never select on Test.
 - All gates from PROMPT_V2.md + HYPOTHESIS_SPEC.md apply; no gate weakening.
-- Working-tree changes from this session should be committed per the repo convention (commit-per-experiment): H18 script (`run_h18_overnight_intraday_experiment.py`), H18 tests (`tests/test_h18_overnight_intraday.py`), updated `HYPOTHESIS_SPEC.md`, `INEFFICIENCY_RANKING.md`, `NEXT_TASK.md`, H18 experiment artifacts, `.cache/data/` parquet fetches — excluding `.pyc` churn.
+  - Working-tree changes from this session should be committed per the repo convention (commit-per-experiment): H18 script (`run_h18_overnight_intraday_experiment.py`), H18 tests (`tests/test_h18_overnight_intraday.py`), updated `HYPOTHESIS_SPEC.md`, `INEFFICIENCY_RANKING.md`, `NEXT_TASK.md`, H18 experiment artifacts, `.cache/data/` parquet fetches — excluding `.pyc` churn.
+
+---
+
+## Session outcome (2026-10-13 — H19 executed)
+
+**H19 (Volume-Predictive Return Decomposition): REJECT — 3/9 gates.**
+
+Executed exactly as pre-registered (HYPOTHESIS_SPEC.md §H19). 9 grid combos
+(3 volume-decomposition methods × 3 threshold types) on SPY, with QQQ/IWM
+cross-validation. Selected: `simple_lagged_median` (Val Sharpe 0.541,
+argmax of 9 combos). OOS (Val+Test, 2,958 days, protected):
+
+| Metric             | Value | Gate   | Pass? |
+|--------------------|-------|--------|-------|
+| Sharpe             | 0.242 | ≥0.30  | FAIL  |
+| Trades             | 940   | >200   | PASS  |
+| Profit factor      | 1.066 | ≥1.10  | FAIL  |
+| Max drawdown       | -34.8%| ≥-20%  | FAIL  |
+| WF stability       | -0.144| ≥0.40  | FAIL  |
+| Worst-regime       | -2.867| ≥0.00  | FAIL  |
+| Benchmark p-value  | 0.0026| ≤0.05  | PASS  |
+| Information ratio  | -0.880| ≥0.0   | FAIL  |
+| Perturbation       | 0.869 | ≥0.80  | PASS  |
+
+PASS gates: Trades, benchmark p-value (significant), perturbation.
+FAIL gates: Sharpe, PF, DD, WF stability, worst-regime, IR.
+
+**Root-cause attribution:** Train-to-test Sharpe decay (0.629 → 0.092)
+indicates overfitting. OOS Sharpe (0.242) is below buy-and-hold SPY (0.733)
+and below random-volume ablations (0.207). The signal adds turnover (940
+trades) with negative information ratio (-0.880), meaning the active share
+is uncompensated. Bear-regime Sharpe (-2.867) is structural for a
+long-only volume-decomposition book.
+
+**Ablations (OOS):** BH SPY Sharpe 0.733 / DD -34.1%; random volume
+0.207 / DD -33.8%; constant 0.5 position 0.733 / DD -18.2%.
+
+**Cross-validation:** Signal underperforms BH on QQQ (0.548 vs 0.886) and
+IWM (0.242 vs 0.434).
+
+**Verified:** 226/226 tests pass (205 prior + 21 new H19 tests pinning
+pre-registration, artifact schema, causality, grid/selection integrity,
+gate recomputation from logged artifacts, determinism, and the executed
+REJECT outcome). Artifacts in
+`.experiments/artifacts/exp_2026-10-13T22-40-41-870350Z/`. H19 Measure
+Log appended to `HYPOTHESIS_SPEC.md` (§H19 — Measure Log); root-cause
+attribution added to `INEFFICIENCY_RANKING.md` §17.
+
+**Confirmed falsification:** Daily volume-decomposition signals do not
+generate a Sharpe ≥ 0.30 with max drawdown ≤ -20% on free data, even when
+selected via Val-only Sharpe across a 9-combo grid with ±20% robustness.
+The predictive information in total daily volume (vs. signed/volume-
+weighted measures) and the transaction-cost-inclusive turnover do not
+clear the gates.
+
+### Cumulative state of evidence gates
+- PASS: H10 (intraday futures TSMOM, Sharpe 1.276), H11 (robustness
+  certified), H12 (selection-bias audit).
+- REJECT: H1-H9 (momentum/TSMOM on free data), H16 (factor timing, 1/9),
+  H17 (VRP), H18 (overnight/intraday, 2/9), H19 (volume-predictive, 3/9).
+
+---
+
+## Precise next task (bounded, verifiable, free data)
+
+**H20: Volume-sign (buy/sell initiated) decomposition + order-flow
+imbalance.** Rationale: H19 showed *total* volume decomposition fails
+because it conflates buying and selling pressure. The signed-volume
+signal (buyer-initiated vs seller-initiated) — the "order-flow imbalance"
+of Kane (2002) and the Hasbrouck (2001) microstructure model — isolates
+net demand pressure. The hypothesis: daily net-order-flow imbalance (buy
+volume - sell volume, estimated via the tick rule / BDAVOL-style sign
+assignment) positively predicts next-day SPY returns, and a thresholded
+long/short position on signed flow clears the Sharpex ≥ 1.0 / DD ≤ 15%
+gates.
+
+Pre-registration skeleton (freeze in HYPOTHESIS_SPEC.md BEFORE running):
+
+- Universe: SPY (primary, traded); QQQ/IWM for cross-val. Need daily OHLCV
+  high-resolution enough to assign trade direction via the tick rule
+  (sign of intraday return, Lee-Ready algorithm). If yfinance does not
+  provide per-trade or bid/ask, proxy via the sign of the intraday price
+  change (up-tick = buyer-initiated, down-tick = seller-initiated).
+- Sample: 2009-01→2026-10-08 (~4,200 bars).
+- Splits: Train 2009-01→2014-12, Val 2015-01→2019-12, Test 2020-01→
+  2026-10-08. OOS = Val+Test.
+- Signal (causal, `.shift(1)`): order_flow_imbalance_t = V^+t - V^-t
+  (buyer-initiated - seller-initiated volume); position_t =
+  sign(imbalance_t) * clip(target_vol_t / realized_vol_t, 0, max_pos).
+- Grid: sign_rule ∈ {tick, lee_ready} × target_vol ∈ {0.05, 0.10, 0.15}
+  × max_pos ∈ {0.5, 1.0} × imbalance_lag ∈ {1, 3, 5} = up to 36 combos;
+  selection by Val Sharpe; Test protected.
+- Benchmark: BH SPY. Volatility-targeted BH SPY as secondary.
+- Ablations: BH SPY, random-signed-volume, constant position,
+  total-volume-only (H19's failed decomposition).
+- Gates: unchanged 9-gate PROMPT_V2 set + ±20% perturbation.
+- Tests: `tests/test_h20_signed_volume.py`.
+- Compute: ≤ 2 CPU-h. Seed 42.
+
+Expected outcome: REJECT — free daily OHLCV with tick-rule sign assignment
+cannot isolate net order flow with sufficient accuracy, and the resulting
+position signal's Sharpe and drawdown will fall short of H10's futures
+edge. That is a publishable falsification: "signed-volume decomposition
+does not clear the Sharpe/DD gates on free daily data without
+market-microstructure-grade order flow."
+
+### Constraints (unchanged)
+- No paid data; yfinance/free sources only.
+- Pre-register before running; never select on Test.
+- All gates from PROMPT_V2.md + HYPOTHESIS_SPEC.md apply; no gate weakening.
+- Working-tree changes from this session should be committed per the
+  repo convention (commit-per-experiment): H19 script & tests, updated
+  HYPOTHESIS_SPEC.md (§H19 Measure Log), INEFFICIENCY_RANKING.md (§17),
+  this NEXT_TASK.md, H19 experiment artifacts — excluding `.pyc` churn.

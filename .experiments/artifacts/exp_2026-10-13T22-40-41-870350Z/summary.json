@@ -1,0 +1,102 @@
+{
+  "experiment_id": "exp_2026-10-13T22-40-41-870350Z",
+  "hypothesis": "H19",
+  "selected_config": {
+    "volume_decomp_method": "simple_lagged",
+    "threshold_type": "median",
+    "lookback": 21,
+    "adaptive_z_threshold": null
+  },
+  "selection_rule": "argmax Val Sharpe; Test 2020-2026 protected (never used for selection); gates on OOS Val+Test",
+  "grid_size": 9,
+  "n_evaluated": 9,
+  "grid_elapsed_sec": 0.7,
+  "total_elapsed_sec": 1.2,
+  "compute_cpu_hours": 0.0,
+  "lookback": 21,
+  "adaptive_z_threshold": 0.5,
+  "metrics": {
+    "train_sharpe": 0.6289248545204701,
+    "val_sharpe": 0.5414936887149596,
+    "test_sharpe": 0.09204287145410894,
+    "oos_sharpe": 0.24191247106765312,
+    "profit_factor": 1.0661753967874734,
+    "max_drawdown": -0.34753296052267346,
+    "trades": 940,
+    "wf_stability": -0.14358382663600755,
+    "worst_regime_sharpe": -2.8674483054600692,
+    "regime_sharpes": {
+      "bull": 2.7897470286280925,
+      "sideways": -1.5255958056940198,
+      "bear": -2.8674483054600692
+    },
+    "benchmark_p_value": 0.0026021954893175585,
+    "information_ratio": -0.8797993277834989,
+    "benchmark_alpha_annual": -0.04635124535640427,
+    "perturbation": {
+      "variants": {
+        "lookback=17": 0.2103396150023112,
+        "lookback=25": 0.37561583111738023
+      },
+      "min_perturbed_sharpe_ratio": 0.8694864472013422
+    },
+    "ablations": {
+      "bh_spy": {
+        "oos_metrics": {
+          "sharpe": 0.7328151525678137,
+          "max_drawdown": -0.3410474689324394,
+          "profit_factor": 1.1509864400543073,
+          "trades": 0,
+          "gross_profit": 11.528376073508019,
+          "gross_loss": 10.0160833110806,
+          "n_periods": 2958
+        }
+      },
+      "random_volume_signal": {
+        "oos_metrics": {
+          "sharpe": 0.20667025171040468,
+          "max_drawdown": -0.33826847914220504,
+          "profit_factor": 1.056309113888831,
+          "trades": 1418,
+          "gross_profit": 5.9780438017794335,
+          "gross_loss": 5.659369708333862,
+          "n_periods": 2958
+        }
+      },
+      "constant_0.5_position": {
+        "oos_metrics": {
+          "sharpe": 0.7328151525678137,
+          "max_drawdown": -0.1820635673044564,
+          "profit_factor": 1.1509864400543073,
+          "trades": 0,
+          "gross_profit": 5.7641880367540095,
+          "gross_loss": 5.0080416555403,
+          "n_periods": 2958
+        }
+      }
+    },
+    "cross_validation": {
+      "QQQ": {
+        "bh_sharpe": 0.8858731567758752,
+        "signal_sharpe": 0.5480471496743399
+      },
+      "IWM": {
+        "bh_sharpe": 0.43385712865465015,
+        "signal_sharpe": 0.2417427113431715
+      }
+    }
+  },
+  "passes": {
+    "sharpe": false,
+    "trades": true,
+    "pf": false,
+    "dd": false,
+    "stab": false,
+    "worst": false,
+    "p": true,
+    "ir": false,
+    "perturbation": true
+  },
+  "all_pass": false,
+  "verdict": "REJECT"
+}

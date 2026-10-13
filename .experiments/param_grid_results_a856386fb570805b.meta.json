@@ -1,0 +1,29 @@
+{
+  "shape": [
+    9,
+    9
+  ],
+  "columns": [
+    "volume_decomp_method",
+    "threshold_type",
+    "combo_name",
+    "lookback",
+    "adaptive_z_threshold",
+    "train_sharpe",
+    "val_sharpe",
+    "test_sharpe",
+    "oos_sharpe"
+  ],
+  "dtypes": {
+    "volume_decomp_method": "str",
+    "threshold_type": "str",
+    "combo_name": "str",
+    "lookback": "int64",
+    "adaptive_z_threshold": "float64",
+    "train_sharpe": "float64",
+    "val_sharpe": "float64",
+    "test_sharpe": "float64",
+    "oos_sharpe": "float64"
+  },
+  "index_type": "int64"
+}

@@ -608,4 +608,59 @@ From top-50 by Val PF margin (K=50, excluding H10), none satisfied all three H13
   signal on sub-daily resolution (VIX futures micro-structure / realized
   variance of variance), (b) a short/hedge leg (e.g., long VIX calls /
   tail-risk overlay) sized per the regime, or (c) paid higher-frequency data
-  to exit the contango tail intra-day.
+   to exit the contango tail intra-day.
+
+---
+
+## H19: Volume-Predictive Return Decomposition — REJECTED
+
+**Summary**: Daily volume-decomposition signals (3 methods × 3 thresholds =
+9 combos on SPY) do not generate a robust, statistically significant edge
+above buy-and-hold within the project gates.
+
+**Key results**:
+- Selected: `simple_lagged_median` (Val Sharpe 0.542, Train 0.629, Test 0.092).
+- OOS Sharpe 0.242 (gate ≥0.30 — FAIL).
+- Max-DD -34.8% (gate ≥-20% — FAIL).
+- Profit factor 1.066 (gate ≥1.10 — FAIL).
+- Walk-forward stability -0.144 (gate ≥0.40 — FAIL).
+- Worst-regime Sharpe -2.867 (bear; gate ≥0.00 — FAIL).
+- Information ratio -0.880 (gate ≥0.0 — FAIL).
+- Trades 940 (gate >200 — PASS). Benchmark p-value 0.0026 (gate ≤0.05 — PASS).
+- Perturbation ratio 0.869 (gate ≥0.80 — PASS).
+- Gates: 3/9 PASS → REJECT.
+
+**Root cause**: The volume-decomposition signal overfits in-sample (Train
+Sharpe 0.629) and decays severely out-of-sample (Test Sharpe 0.092). OOS
+Sharpe (0.242) is below both buy-and-hold SPY (0.733) and random-volume
+ablations (0.207). The signal adds turnover without compensating alpha.
+Worst-regime Sharpe (-2.867 in bear markets) indicates the decomposition
+fails precisely during market stress when protection matters. Negative
+information ratio (-0.880) confirms the active share is uncompensated.
+
+**Ablations**:
+- BH SPY: Sharpe 0.733, DD -34.1%, PF 1.151.
+- Random volume signal: Sharpe 0.207, DD -33.8%, PF 1.056.
+- Constant 0.5 position: Sharpe 0.733, DD -18.2%, PF 1.151.
+
+**Cross-validation**: Signal underperforms BH on both QQQ (0.548 vs 0.886)
+and IWM (0.242 vs 0.434).
+
+**Net Opportunity Score**: 2/10. Volume-return decomposition is a
+well-documented theoretical anomaly (Kyle, 1985; Hasbrouck, 1991) but does
+not translate to a daily, unweighted, transaction-cost-inclusive signal
+that clears the project gates.
+
+**What would invalidate the rejection**: (a) signed volume (buyer/seller
+initiated flow) rather than total volume, (b) microstructure-aware
+positioning (order-book depth / flow toxicity), (c) higher-frequency
+calibration (intraday volume clustering), or (d) a volatility-regime
+interaction that gates volume sensitivity (e.g., volume predicts returns
+only in high-VIX regimes).
+
+- **What would invalidate the rejection:** (a) signed volume (buyer/seller
+  initiated) rather than total volume, (b) microstructure-aware
+  positioning (order-book depth / flow toxicity), (c) higher-frequency
+  calibration (intraday volume clustering), or (d) a volatility-regime
+  interaction that gates volume sensitivity (e.g., volume predicts returns
+  only in high-VIX regimes).

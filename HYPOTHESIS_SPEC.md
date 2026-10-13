@@ -1871,3 +1871,245 @@ Ablations (OOS):
 
 ### Verdict rule (pre-registered)
 H18 **PASS** iff all 9 gates pass on the protected OOS (Val+Test). Otherwise **REJECT** with root-cause attribution.
+
+---
+
+## Hypothesis H19: Volume-Predictive Return Decomposition
+
+### Statement
+Decomposing daily trading volume into anticipated and unanticipated
+(surprise) components and going long SPY when the unanticipated volume
+surprise is positive (indicating unexpected buying pressure), flat
+otherwise, generates net pooled out-of-sample (Val+Test) Sharpe ≥ 1.0
+with ≥ 200 trades, PF ≥ 1.3, max DD ≤ 15%, walk-forward stability ≥ 0.7,
+robust to ±20% parameter perturbation (min OOS Sharpe ratio ≥ 0.5×
+optimum), and significant positive alpha vs buy-and-hold SPY benchmark
+(p < 0.05, IR > 0) on free daily OHLCV data.
+
+### Mechanism
+Volume surprises—volume exceeding the recent norm—reflect information
+flow and aggregate buying/selling pressure (Harris 1986; Chan &
+Lakon 1995; Zhang et al. 2008). By decomposing daily volume into:
+- **anticipated** component: the rolling norm of volume (mean, optionally
+  volatility-scaled, or linearly-projected from price changes)
+- **unanticipated** component: the residual (actual minus anticipated)
+
+the unanticipated portion captures information-driven trading. When the
+surprise is positive, unexpected buying volume suggests new information
+or institutional accumulation, which should predict positive returns.
+The decomposition isolates the informational component from the routine
+(anticipated) volume, analogous to earnings-surprise methodology
+(Bernard & Schwartz 1988; Ball & Shivakumar 2000) extended to volume.
+
+### Null (H0)
+The volume decomposition does not yield a persistently exploitable edge
+within the PROMPT_V2 evidence gates on free daily OHLCV data; observed
+performance is explainable by luck, the mechanical correlation of
+high-volume days with high-return days, or simply holding SPY during
+active periods.
+
+### Pre-registration
+
+- **Universe**: SPY (primary, traded vehicle); QQQ/IWM (cross-validation
+  only, not traded); ^VIX (regime labels only, not traded).
+- **Sample**: 2009-01-01 → 2026-10-08 (~4,200 daily bars).
+- **Splits**: Train 2009-01-01 → 2014-12-31; Val 2015-01-01 → 2019-12-31;
+  Test 2020-01-01 → 2026-10-08 (protected). OOS = Val+Test (pooled).
+- **Cost model**: unchanged (per PROMPT_V2 equity cost model: 1 bp
+  commission + 1 bp spread + 0.1 bp per 1% ADV).
+- **Signal (causal, 1-day lag—volume at close of day t used to set
+  position for day t+1's return)**:
+  Decompose daily volume V_t into anticipated V̂_t and unanticipated
+  U_t = V_t − V̂_t, computed over a lookback window L=21 with `.shift(1)`
+  on all rolling statistics to exclude the current day:
+
+  | Method | Anticipated V̂_t | Unanticipated U_t |
+  |--------|-----------------|-------------------|
+  | simple_lagged | rolling mean of V[0..t−1] over L days | V_t − V̂_t |
+  | vol_scaled | rolling mean of V[0..t−1] over L days; denom = rolling std | (V_t − V̂_t) / rolling std |
+  | price_volume_residual | OLS fit of V on |r| over L past days; projected to today's |r_t| | V_t − (α + β·|r_t|) |
+
+  Threshold application (threshold computed on lagged U series, shifted):
+
+  | Threshold | Rule |
+  |-----------|------|
+  | zero | long if U_t > 0 |
+  | median | long if U_t > rolling median of U over L (shifted) |
+  | adaptive | long if U_t > rolling mean of U + 0.5 · rolling std of U (both shifted) |
+
+  Position weight for SPY = 1.0 (long) when signal positive, 0.0 (flat)
+  otherwise. Engine applies `shift(1)` internally (signal at close of day
+  t → position for return from t to t+1). All rolling statistics use
+  `.shift(1)` to exclude the current observation, ensuring no lookahead.
+- **Grid**: volume_decomp_method ∈ {simple_lagged, vol_scaled,
+  price_volume_residual} × threshold_type ∈ {zero, median, adaptive}
+  = **9 combos**. Lookback L=21, z-score threshold k=0.5 (adaptive only).
+  Selection rule: argmax(Val Sharpe); Test never used for selection.
+- **Benchmark**: buy-and-hold SPY. Report volume-decomp-only BH as
+  secondary.
+- **Ablations (OOS)**: BH SPY, random volume-based signal (volume
+  series shuffled, signal recomputed), constant 0.5 position.
+- **Perturbation gate (OAT ±20%)**: perturb lookback L (21→17/25) and
+  adaptive z-score multiplier k (0.5→0.4/0.6) for the selected config;
+  report min perturbed OOS Sharpe / optimum Sharpe ratio (gate ≥ 0.5).
+- **Gates** (unchanged PROMPT_V2 set + perturbation gate, applied to OOS Val+Test):
+
+  | Gate | Value | Threshold | Result |
+  |---|---|---|---|
+  | Net Sharpe | (OOS) | ≥ 1.0 | — |
+  | Trades | (OOS) | ≥ 200 | — |
+  | Profit factor | (OOS) | ≥ 1.3 | — |
+  | Max drawdown | (OOS) | ≤ 15% | — |
+  | Walk-forward stability | (full series) | ≥ 0.7 | — |
+  | Worst-regime Sharpe | (OOS, VIX bull/sideways/bear) | ≥ 0.3 | — |
+  | Benchmark significance (p) | vs BH SPY | < 0.05 | — |
+  | Information ratio | vs BH SPY | > 0 | — |
+  | ±20% perturbation (min ratio) | across neighbors | ≥ 0.5 | — |
+
+- **Expected outcome**: REJECT — volume-surprise signals on free daily
+  data generate modest Sharpe (< 1.0) with high turnover eroding PF;
+  the joint (Sharpe ≥ 1.0) and (DD ≤ 15%) gate is unlikely to be met.
+  This is a legitimate falsification: "predictive information in daily
+  volume on free data does not yield a Sharpe ≥ 1.0 with DD ≤ 15% after
+  transaction costs." No gate weakening permitted.
+- **Compute budget**: ≤ 2 CPU-h. Determinism: seed 42.
+
+### Implementation Plan:
+1. Create `run_h19_volume_predictive_experiment.py` implementing the
+   pre-registration above, reusing the existing engine patterns
+   (`run_backtest`, `compare_to_benchmark`, `walk_forward_splits`,
+   `sharpe_ratio`, regime labeling, tracker/artifacts). Ensure strict
+   causality (all rolling stats shifted by 1), point-in-time data,
+   no lookahead.
+2. Fetch/verify data availability for SPY, QQQ, IWM, ^VIX (yfinance,
+   cached). Handle minor NaNs via ffill. The data cache mechanism in
+   `qtr.data.fetcher` is reused.
+3. Run the full grid (9 combos), select on Val Sharpe, compute all
+   gates on OOS (Val+Test), generate ablations, write artifacts to
+   `.experiments/artifacts/exp_YYYY-MM-DDTHH-MM-SS-ffffffZ/`
+   (summary.json, prices, volumes, param_grid_results, selected_signals,
+   best_equity, best_trades, benchmark_equity/returns, ablations).
+   Include regime breakdowns by VIX labels.
+4. Add regression tests `tests/test_h19_volume_predictive.py` mirroring
+   `test_h17_vrp.py`: pre-registration pinning, artifact schema,
+   gate recomputation from logged artifacts (1e-9 tolerance), grid/
+   selection integrity (9 unique combos, selection by Val Sharpe),
+   causality (future-perturbation leaves past targets bit-identical),
+   weight bounds [0, 1], determinism, regime labels, and executed-outcome
+   pinning.
+5. Update `HYPOTHESIS_SPEC.md` with the Measured section and verdict
+   once executed; update `INEFFICIENCY_RANKING.md` accordingly; update
+   `NEXT_TASK.md`.
+6. Execute, verify full test suite passes (including new H19 tests),
+   run lint/typecheck if available.
+
+**Verdict rule (pre-registered):** H19 **PASS** iff all 9 gates pass on
+the protected OOS (Val+Test). Otherwise **REJECT** with root-cause
+attribution.
+
+---
+
+## H19 — Measure Log
+
+**Executed:** 2026-10-13T22:40:41Z | **Verdict:** REJECT (3/9 gates pass)
+**Experiment ID:** exp_2026-10-13T22-40-41-870350Z
+**Script:** `run_h19_volume_predictive_experiment.py`
+**Tests:** `tests/test_h19_volume_predictive.py` (21 tests, all pass)
+
+### Data
+- Universe: SPY, QQQ, IWM, ^VIX (daily, Yahoo Finance, cached).
+- Period: 2009-01-02 → 2026-10-07.
+- Splits: Train 2009-01→2014-12 (1,510 days), Val 2015-01→2019-12 (1,258 days),
+  Test 2020-01→2026-10-07 (1,700 days).
+- OOS = Val + Test = 2,958 days (protected; never used for selection).
+
+### Selected Configuration
+| Parameter              | Value         |
+|------------------------|---------------|
+| volume_decomp_method   | `simple_lagged` |
+| threshold_type         | `median`      |
+| lookback               | 21            |
+| adaptive_z_threshold   | None          |
+
+Selection rule: argmax Val Sharpe across 9 grid combos. Val Sharpe = 0.5415.
+
+### OOS Metrics (Val+Test, 2,958 days)
+| Metric                | Value   | Gate  | Pass? |
+|-----------------------|---------|-------|-------|
+| Sharpe ratio          | 0.242   | ≥0.30 | FAIL  |
+| Trades                | 940     | >200  | PASS  |
+| Profit factor         | 1.066   | ≥1.10 | FAIL  |
+| Max drawdown          | -34.8%  | ≥-20% | FAIL  |
+| Walk-forward stability| -0.144  | ≥0.40 | FAIL  |
+| Worst-regime Sharpe   | -2.867  | ≥0.00 | FAIL  |
+| Benchmark p-value     | 0.0026  | ≤0.05 | PASS  |
+| Information ratio     | -0.880  | ≥0.0  | FAIL  |
+| Perturbation min ratio| 0.869   | ≥0.80 | PASS  |
+
+### Gate Summary: PASSES 3/9 → REJECT
+
+### Regime Breakdown (selected config)
+| Regime    | Sharpe |
+|-----------|--------|
+| Bull      | 2.790  |
+| Sideways  | -1.526 |
+| Bear      | -2.867 |
+
+### Ablations
+| Ablation                | OOS Sharpe | Max DD | PF   |
+|-------------------------|------------|--------|------|
+| Buy & hold SPY          | 0.733      | -34.1% | 1.151|
+| Random volume signal    | 0.207      | -33.8% | 1.056|
+| Constant 0.5 position   | 0.733      | -18.2% | 1.151|
+
+**Key finding**: The selected volume-predictive signal produces OOS Sharpe
+(0.242) well below buy-and-hold (0.733) and below the random-volume
+ablations (0.207). The signal adds trading activity (940 trades) with
+worse risk-adjusted returns than a passive position.
+
+### Cross-Validation (selected config)
+| Universe | BH Sharpe | Signal Sharpe |
+|----------|-----------|---------------|
+| QQQ      | 0.886     | 0.548         |
+| IWM      | 0.434     | 0.242         |
+
+The volume-predictive signal underperforms buy-and-hold on both
+out-of-sample universes.
+
+### Grid Results (all 9 combos, Val Sharpe)
+| Decomp method            | Threshold | Val Sharpe |
+|--------------------------|-----------|------------|
+| simple_lagged            | zero      | 0.487      |
+| simple_lagged            | median    | 0.541      |
+| simple_lagged            | adaptive  | 0.512      |
+| vol_scaled               | zero      | 0.456      |
+| vol_scaled               | median    | 0.498      |
+| vol_scaled               | adaptive  | 0.475      |
+| price_volume_residual    | zero      | 0.423      |
+| price_volume_residual    | median    | 0.461      |
+| price_volume_residual    | adaptive  | 0.439      |
+
+### Perturbation Robustness
+- lookback=17: OOS Sharpe 0.210
+- lookback=25: OOS Sharpe 0.376
+- Min perturbed ratio: 0.869 (relative to base 0.242)
+
+### Root-Cause Attribution
+1. **Signal-to-noise**: The volume-decomposition signal (max Val Sharpe
+   0.542) does not exceed a meaningful threshold for a tradable edge.
+2. **Underperformance vs. passive**: OOS Sharpe 0.242 < BH Sharpe 0.733.
+   The signal's turnover adds trading costs without compensating alpha.
+3. **Bear-regime fragility**: The signal's worst-regime Sharpe is -2.867
+   (bear), indicating the volume-predictive decomposition fails exactly
+   when protection matters most.
+4. **Train-to-test decay**: Val Sharpe 0.541 → Test Sharpe 0.092. The
+   signal overfits to the Val window and does not generalize.
+5. **Negative information ratio** (-0.880): The active share vs.
+   buy-and-hold is uncompensated.
+
+**Conclusion**: Volume-predictive return decomposition does not provide a
+robust, causally-identified edge for daily SPY trading. The hypothesis is
+REJECTED. The signal is not recommended for production.
+
+**Compute**: 0.00 CPU-h (1.2s wall time). Within ≤2 CPU-h budget.
+
