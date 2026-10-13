@@ -513,3 +513,46 @@ fragility nulls could not be rejected).** Artifacts:
 
 ### H14 (2026-10-13): PF-margin fragility is a family property
 From top-50 by Val PF margin (K=50, excluding H10), none satisfied all three H13 gates (PF bootstrap CI LB≥1.3, worst-case DSR-adj OOS Sharpe≥1.0 at N=K, all symbols dispensable). The failure is driven by symbol dispensability (CL=F/GC=F indispensable) rather than Sharpe deflation. Cost is not the driver (H13). Remedy requires longer OOS window (paid data) or different construction (PF-targeted exits).
+
+---
+
+### 14. Cross-Sectional Equity Factor Timing (Value/Momentum/Quality Rotation) (executed 2026-10-13 — H16, **REJECTED**)
+
+- **Net edge measured** (9 factor ETFs — VLUE/IJS/VTV, MTUM/QQQ/SPYG,
+  QUAL/SPHQ/USMF — Yahoo daily 2010-2024, point-in-time universe,
+  corrected equity cost model): selected config (lookback=63, skip=5,
+  regime triple 1.0/0.5/0.25, n_factors=2, selected by train-only
+  4-fold walk-forward Sharpe = 1.107) **OOS Sharpe 0.579**, max DD
+  -19.95%, PF 1.106, 184 trades, WF stability 0.353, worst-regime
+  Sharpe -3.680 (bear), IR -0.353 vs EW benchmark (p = 0.351,
+  α = +1.24%/yr). 3.9 s, 0.001 CPU-h.
+- **Regime Sharpe**: bull 2.801, sideways -1.929, bear -3.680.
+- **Ablations (OOS)**: ungated full exposure 0.758 / DD -30.9%;
+  EW benchmark 0.606 / DD -34.9%; value family -0.028; momentum
+  family 0.819; quality family 0.555.
+- **Gates**: 1/9 PASS (only the ±20% perturbation gate, min ratio
+  0.734). **Status: REJECTED.**
+- **Root-cause attribution:**
+  1. The rotation adds no value over the factor zoo: OOS Sharpe
+     0.579 < EW benchmark 0.606 (IR -0.353, p = 0.351) — the
+     63-day cross-sectional factor ranking is noise on 2018-2024
+     factor ETFs.
+  2. The edge is momentum-family exposure: momentum family alone
+     (0.819) beats the rotation; value-family momentum is negative
+     OOS (-0.028). "Factor timing" is de facto a momentum-factor
+     bet with extra turnover.
+  3. The VIX regime gate is procyclical: ungated (0.758) beats
+     gated (0.579) — exposure cuts removed participation in
+     recoveries (replicates H3's finding).
+  4. Worst-regime failure is structural: bear Sharpe -3.680; a
+     long-only factor-momentum book cannot survive high-vol
+     reversal regimes without a short/hedge leg.
+  5. Monthly rebalancing with n_factors=2 yields 184 OOS trades
+     (< 200): the turnover structure itself misses the trades gate.
+- **Net Opportunity Score:** 2/10 (realized). Factor timing on free
+  daily factor-ETF data does not clear the evidence gates; the
+  measured edge is momentum-like and regime-fragile.
+- **What would invalidate the rejection:** factor-timing signals
+  beyond 63-252d momentum (macro/valuation-conditioned rotation),
+  short/hedge legs for bear regimes, or intra-month rebalancing
+  to clear the trades gate (at higher cost).

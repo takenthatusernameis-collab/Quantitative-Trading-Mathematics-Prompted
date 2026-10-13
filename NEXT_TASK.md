@@ -1,62 +1,136 @@
-# Next Task — H15 (regime-aware exit redesign) is DATA-WALLED; pivot to new hypothesis family
+# Next Task — H16 executed (factor timing REJECTED); pivot to VRP harvesting (H17)
 
-## Status of completed work
-- **H10–H12**: certified chain (Sharpe-robust, selection-bias-corrected). All gates PASS.
-- **H13**: REJECT on PF-fragility axes — OOS Sharpe deflation-robust (worst-case DSR-adj 1.2745, p = 0.00102) but PF margin statistically fragile (bootstrap 95% CI [1.190, 1.425], P(PF ≥ 1.3) = 51.7%) and single-symbol-dependent (CL=F, GC=F indispensable: leave-one-out PF 1.249 / 1.282).
-- **H14**: REJECT — PF-margin fragility is a family property (0/50 top-by-Val-PF-margin configs clear all gates; CI-LB max 1.199).
-- **H15-prep (COMPLETED THIS SESSION)**: bar-level per-symbol OOS contribution decomposition on frozen H10 artifacts.
-  - Artifacts produced: `.experiments/probes/h15_loss_offset_decomposition.parquet`, `.experiments/probes/h15_loss_offset_decomposition.md`, `.experiments/probes/h15_loss_offset_decomposition_report.json`
-  - Tests added: `tests/test_h15_loss_offset_decomposition.py` (5 tests)
-  - Key findings (from report):
-    - Pooled OOS PF (bar-level Σup/Σdn): 1.3378
-    - Leave-one-out PF: no_CL_F=1.273, no_GC_F=1.310, no_ES_F=1.349, no_NQ_F=1.334, no_ZB_F=1.344
-    - CL/GC loss-bar overlap (both loss | either loss): 0.153
-    - CL/GC contribution correlation OOS: 0.057
-    - CL/GC indispensable flag: True (both LOO PF < 1.3)
-  - All 154 tests pass (149 prior + 5 new).
+## What changed this session (H16 — executed 2026-10-13)
+- **H16 (cross-sectional equity factor timing)**: implemented the
+  frozen pre-registration in `HYPOTHESIS_SPEC.md` exactly as specified
+  (9 factor ETFs, 3 families, VIX regime filter, 54-combo grid,
+  train-only 4-fold walk-forward selection, gates on protected
+  OOS Val+Test 2018-2024).
+- Script: `run_h16_factor_timing_experiment.py` (3.9 s, 0.001 CPU-h).
+- Artifacts: `.experiments/artifacts/exp_2026-10-13T21-22-02-751156Z/`
+  (prices, volumes, vix_close, param_grid_results, selected_signals,
+  best_equity, best_trades, benchmark_equity/returns,
+  family_exposure, summary.json).
+- Tests: `tests/test_h16_factor_timing.py` (24 tests). **Full suite:
+  178 passed** (154 prior + 24 new).
+- **Verdict: REJECT — 1/9 gates** (only ±20% perturbation passes,
+  min ratio 0.734). Selected config (lookback=63, skip=5, regime
+  1.0/0.5/0.25, n_factors=2): OOS Sharpe 0.579 (< 1.0), PF 1.106
+  (< 1.3), DD -19.95% (> 15%), trades 184 (< 200), WF stability
+  0.353 (< 0.7), worst-regime Sharpe -3.680 (bear; < 0.3),
+  benchmark p = 0.351 & IR -0.353 (fail).
+- Root causes (see HYPOTHESIS_SPEC.md for full attribution):
+  (1) rotation adds no value over the EW factor benchmark (0.579 vs
+  0.606, IR -0.353); (2) the edge is momentum-family exposure
+  (momentum family alone 0.819; value family -0.028); (3) the VIX
+  regime gate is procyclical (ungated 0.758 beats gated 0.579 —
+  replicates H3); (4) bear-regime Sharpe -3.680 is structural for a
+  long-only momentum book; (5) monthly rebalancing with n_factors=2
+  yields only 184 OOS trades.
+- Two implementation defects found and fixed during execution:
+  (a) all-NA rows crashed `idxmax` in family-representative
+  selection (pre-inception/warmup) — fixed with an explicit
+  validity mask; (b) `resample('ME')` anchored monthly targets on
+  calendar month-ends (non-trading days), shifting targets one
+  trading day late at month boundaries — fixed by anchoring on the
+  actual last trading day of each month (unit-tested).
 
-## What remains unresolved (the H10–H14 line is data-walled)
-- **Data horizon**: free `yfinance` hourly `=F` hard-capped at ~730 days (no bars past 2026-10-09). Hard stop for extending the *futures TSMOM* line; paid data (CQG/Rithmic/IQFeed/Databento/Polygon) required.
-- **PF-margin fragility is structural**, not selection-mined: H14 showed 0/50 even when selecting on Val PF margin. The margin (+0.004 over 1.3) is thinner than bootstrap noise (CI half-width ±0.117) and carried by commodity loss-offsetting (CL=F net PF 1.358 is the only symbol above pooled PF, yet its removal collapses pooled PF to 1.249).
-- **H15 regime-aware exit redesign** (the only un-tried signal-redesign lever) **requires paid/longer data** and is explicitly out of scope until then. The H15-prep diagnostic confirmed the loss-offset mechanism but cannot redesign exits without a longer OOS window to validate.
+## What was actually verified
+- 178/178 tests pass, including 24 H16 tests that recompute the
+  OOS gates from the logged equity/trades artifacts (exact match to
+  summary.json at 1e-9), verify signal causality (future-price
+  perturbation leaves past targets bit-identical), point-in-time
+  universe (zero weight before each ETF's inception), monthly
+  rebalancing (positions change only on month-end trading days),
+  weight bounds, top-1-per-family, determinism, and grid/selection
+  integrity (54 unique combos; selection = argmax train-WF Sharpe).
+- Experiment is deterministic: two independent runs reproduced
+  identical OOS metrics for the same code version.
 
-## Approaches already failed and why
-- PF-margin-targeted selection over top-K by Val PF margin (H14): all 50 fail OOS PF bootstrap CI-LB gate (max 1.199); fragility is family-level.
-- Extended-data feasibility probe: needs ~5× OOS bars (~25k) to plausibly move CI-LB ≥ 1.3 *if* point estimate holds; not available; CL/GC indispensability is structural, not N-limited.
-- Regime-aware **vol** scaling (frozen H10 ablation): lowers PF (1.304→1.249), Sharpe (1.276→1.021).
-- H1–H9 momentum family on free daily/intraday data: all rejected (Sharpe < 1.0, PF < 1.3, DD > 15%, or regime failure).
+## Approaches already failed and why (cumulative)
+- H1-H9 momentum family on free daily/intraday data: all REJECT.
+- H10 intraday futures TSMOM: the only PASS (Sharpe 1.276, PF
+  1.304), but H13/H14 showed the PF margin (+0.004) is bootstrap-
+  fragile (CI LB 1.190) and CL=F/GC=F-indispensable. Data-walled:
+  yfinance hourly `=F` hard-capped at ~730 days (no bars past
+  2026-10-09). Extending requires paid data.
+- H16 factor timing: REJECT (this session) — realized edge is
+  momentum-like and regime-fragile; rotation is noise over the
+  factor zoo on 2018-2024.
+- VRP feasibility EDA (probe, not a registered experiment):
+  SVXY BH 2011-2026 Sharpe 0.576, vol 0.548, max DD -95.2%;
+  21d-vol-targeted at 5%/10%/15% gives Sharpe 0.459/0.459/0.465
+  with max DD -13.5%/-21.3%/-26.5%. Worst days: 2018-02-05 -32.0%,
+  2016-06-24 -26.5%, 2018-02-08 -22.3%, 2024-08-05 -21.4% — all
+  arrive *in contango* (the term-structure gate cannot pre-warn;
+  VIX prints 37 only on the crash day itself).
 
-## One precise next task (bounded, verifiable, no network, no paid data)
-**Pivot to a new hypothesis family outside the momentum line.** The free-data TSMOM family (H1–H14) is exhausted — certified but PF-fragile on a 730-day hourly window, with no path to resolution without paid data. The next agent should:
+## What remains unresolved
+- No hypothesis besides H10/H11 clears the evidence gates; every
+  new family tested on free data lands at OOS Sharpe 0.5-0.8 with
+  regime-fragile worst-regime Sharpes.
+- The two structural walls: (a) the 730-day hourly data cap (paid
+  data needed for the intraday line); (b) the ≤15% DD + ≥1.0 Sharpe
+  joint gate, which no long-only free-data family has met.
 
-1. **Select a new market/strategy family** from `INEFFICIENCY_RANKING.md` that is feasible on free data (daily ETFs, equities, crypto, or futures with different edge).
-2. **Pre-register a falsifiable hypothesis** (H16) with explicit mechanism, null, data splits, gates, and compute budget.
-3. **Implement the minimal experiment** reusing existing infrastructure (`src/qtr/backtest/engine`, `src/qtr/data/fetcher`, `src/qtr/tracking/experiment`, `src/qtr/strategies/baselines`, `src/qtr/validation/statistics`).
-4. **Run gates rigorously** — no weakening. Preserve all artifacts and add regression tests.
+## One precise next task (bounded, verifiable, free data)
+**Pre-register and execute H17: Volatility-Risk-Premium harvesting
+(term-structure-gated, vol-targeted long SVXY).** Rationale: it is
+the highest-information untested family — a genuinely different
+mechanism (vol selling / insurance premium) on the longest free
+daily sample (SVXY, ^VIX, ^VIX3M from 2011-10-04; ~15 years,
+3,775 bars), and it directly addresses the momentum-crash regime
+problem that killed H1-H3/H16.
 
-### Candidate families (from INEFFICIENCY_RANKING.md, ranked by net opportunity on free data)
-| Rank | Family | Edge hypothesis | Data feasibility | Why now |
-|------|--------|-----------------|------------------|---------|
-| 1 | **Cross-sectional equity factor timing** (value/momentum/quality rotation) | Regime-dependent factor persistence | Daily ETFs, 20+ years free | Momentum exhausted; factor timing untested |
-| 2 | **Crypto basis / funding-rate carry** | Perpetual funding rate ≠ spot carry | Hourly crypto free (Binance/CCXT) | New asset class, different microstructure |
-| 3 | **Intraday equity mean-reversion** (overnight vs day session) | Overnight drift / day-session reversal | Hourly SPY/QQQ free (yfinance) | Different regime than trend-following |
-| 4 | **Volatility risk premium (VRP) harvesting** | VIX term structure / VXX contango decay | Daily VIX + VXX free | Directly addresses momentum crash regime |
+Pre-registration skeleton (freeze in HYPOTHESIS_SPEC.md BEFORE
+running; the EDA above is the feasibility probe):
+- Universe: SVXY (traded vehicle); ^VIX, ^VIX3M (signal only,
+  not traded); SPY (secondary reference).
+- Splits: Train 2011-10→2019-12 (includes volmageddon 2018-02 —
+  public knowledge before Val), Val 2020-01→2021-12 (COVID),
+  Test 2022-01→2026-10-08 (protected). OOS = Val+Test.
+- Signal (causal, 1-day lag): contango_t = ^VIX3M_t/^VIX_t - 1;
+  gate_t = 1{contango_t > gate_thresh}; vol_t = rolling realized
+  vol of SVXY returns (window ∈ {21, 63}); position_t =
+  gate_t × clip(target_vol / vol_t, 0, max_pos).
+- Grid: gate_thresh ∈ {0.00, 0.02, 0.05} × vol_window ∈ {21, 63}
+  × target_vol ∈ {0.05, 0.10, 0.15, 0.25, 0.50} × max_pos ∈
+  {0.5, 1.0} = 60 combos; selection by Val Sharpe; Test protected.
+- Benchmark (gate-relevant): buy-and-hold SVXY; report SPY BH as
+  secondary reference.
+- Gates: the unchanged 8-gate PROMPT_V2 set + ±20% OAT perturbation
+  gate (as in H16). Reuse `run_backtest`, `compare_to_benchmark`,
+  `walk_forward_splits`, the tracker, and the H16 gate-eval pattern
+  (`full_gate_eval` in `run_h16_factor_timing_experiment.py`).
+- Ablations: BH SVXY, ungated vol-target-only, gate-only (no vol
+  target), BH SPY.
+- Expected outcome (from the EDA): REJECT — the DD ≤ 15% gate
+  forces target_vol ≈ 5% where Sharpe ≈ 0.46 < 1.0; the 2018-02-05
+  tail (-32% in one day, inside contango) is un-gateable on daily
+  data. That is a legitimate, publishable falsification: "the VRP
+  is not harvestable within a 15% max-DD budget on free daily
+  data; the binding constraint is the volmageddon tail, not the
+  carry." Do NOT weaken gates to force a pass.
+- Add `tests/test_h17_vrp.py` (mirror `tests/test_h16_factor_timing.py`
+  structure: causality, point-in-time, gate recomputation, outcome
+  pinning).
+- Alternative if VRP is judged uninteresting: overnight-vs-intraday
+  equity decomposition on daily OHLC (overnight return =
+  open/close_prev - 1; 2009-2026 sample; ~2 trades/day clears the
+  trades gate trivially; expect REJECT on Sharpe/DD).
 
-### Constraints
-- No paid data, no network for new data acquisition (use `yfinance` / free sources only).
-- Reuse existing backtest engine, cost model, experiment tracker — do not rebuild.
-- Pre-register *before* running (append to `HYPOTHESIS_SPEC.md`).
+## Constraints (unchanged)
+- No paid data; yfinance/free sources only; network is available
+  in this environment (yfinance installed and verified working).
+- Reuse existing engine/cost model/tracker/validation — no rebuilds.
+- Pre-register before running; never select on Test.
 - Compute budget ≤ 2 CPU-h per hypothesis.
-- All gates from `PROMPT_V2.md` + `HYPOTHESIS_SPEC.md` apply (Sharpe ≥ 1.0, PF ≥ 1.3, DD ≤ 15%, trades ≥ 200, WF stability ≥ 0.7, ±20% perturbation, worst-regime Sharpe ≥ 0.3, benchmark p < 0.05 & IR > 0).
-- Add `tests/test_h16_*.py` for artifact pinning and invariants.
-
-## Evidence / constraints
-- All H10–H14 frozen artifacts in `.experiments/artifacts/exp_2026-10-11T17-41-18-169363Z/` and `exp_2026-10-13T19-01-59-371405Z/`.
-- H15-prep probe artifacts in `.experiments/probes/h15_loss_offset_decomposition.*`.
-- `INEFFICIENCY_RANKING.md` has 6-factor rankings with measured net edge (post-cost-fix).
-- `MATHEMATICAL_DISCOVERY_REPORT.md` has literature traceability chains.
-- Repository is clean: `git status` shows only `.pyc` cache churn (ignored).
-
-## Handoff
-**Completed:** H15-prep diagnostic (bar-level CL/GC loss-offset decomposition). All tests pass. No further work possible on H10–H15 line without paid data.
-**Next agent:** Pick a new hypothesis family from the candidates above (or another justified by `INEFFICIENCY_RANKING.md`), pre-register as H16, implement minimal experiment, run gates, report verdict. Do not attempt to extend H10–H15 without paid data — it is a hard wall.
+- All gates from PROMPT_V2.md + HYPOTHESIS_SPEC.md apply; no
+  gate weakening.
+- Note: working-tree changes from this session (H16 script, tests,
+  HYPOTHESIS_SPEC.md, INEFFICIENCY_RANKING.md, NEXT_TASK.md, new
+  experiment artifacts, and the new `.cache/data/*.parquet` fetches
+  for the 9 factor ETFs + ^VIX, which the repo tracks for offline
+  reproduction) are NOT yet committed; the repo convention is
+  commit-per-experiment — commit them (excluding `.pyc` churn)
+  when starting the next session.

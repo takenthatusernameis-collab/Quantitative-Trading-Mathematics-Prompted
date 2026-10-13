@@ -1,0 +1,17 @@
+{
+  "shape": [
+    3773,
+    3
+  ],
+  "columns": [
+    "value",
+    "momentum",
+    "quality"
+  ],
+  "dtypes": {
+    "value": "float64",
+    "momentum": "float64",
+    "quality": "float64"
+  },
+  "index_type": "datetime64[ms]"
+}

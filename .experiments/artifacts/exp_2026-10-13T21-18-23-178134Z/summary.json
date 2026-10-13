@@ -1,0 +1,136 @@
+{
+  "experiment_id": "exp_2026-10-13T21-18-23-178134Z",
+  "hypothesis": "H16",
+  "selected_config": {
+    "lookback": 63,
+    "skip": 5,
+    "regime_exposure": [
+      1.0,
+      0.5,
+      0.25
+    ],
+    "n_factors": 2
+  },
+  "selection_rule": "best train-only 4-fold walk-forward Sharpe; Test 2021-2024 protected (never used for selection); gates on OOS Val+Test",
+  "grid_size": 54,
+  "n_evaluated": 54,
+  "grid_elapsed_sec": 3.2,
+  "total_elapsed_sec": 3.9,
+  "compute_cpu_hours": 0.001,
+  "inception_dates": {
+    "VLUE": "2013-04-18",
+    "IJS": "2010-01-04",
+    "VTV": "2010-01-04",
+    "MTUM": "2013-04-18",
+    "QQQ": "2010-01-04",
+    "SPYG": "2010-01-04",
+    "QUAL": "2013-07-18",
+    "SPHQ": "2010-01-04",
+    "USMF": "2017-06-29"
+  },
+  "metrics": {
+    "train_sharpe": 0.8064120626210989,
+    "val_sharpe": 0.7093324420307558,
+    "test_sharpe": 0.6491150369932985,
+    "oos_sharpe": 0.5786663443465089,
+    "profit_factor": 1.106166857606192,
+    "max_drawdown": -0.1994711711522863,
+    "trades": 184,
+    "wf_stability": 0.35255577286881384,
+    "worst_regime_sharpe": -3.6802126872952763,
+    "regime_sharpes": {
+      "bull": 2.801240723819955,
+      "sideways": -1.9288550943748948,
+      "bear": -3.6802126872952763
+    },
+    "benchmark_p_value": 0.3510297076109353,
+    "information_ratio": -0.3530817929808074,
+    "benchmark_alpha_annual": 0.012416037500524973,
+    "perturbation": {
+      "variants": {
+        "lookback=50": 0.42451330760966927,
+        "lookback=76": 0.5681373738273878,
+        "skip=4": 0.5733761510578163,
+        "skip=6": 0.5785732631077126
+      },
+      "min_perturbed_sharpe_ratio": 0.733606354952394
+    },
+    "ablations": {
+      "ungated_full_exposure": {
+        "oos_metrics": {
+          "sharpe": 0.7582696236691974,
+          "max_drawdown": -0.3094898592212868,
+          "profit_factor": 1.149238412874608,
+          "trades": 154,
+          "gross_profit": 8.056019628418632,
+          "gross_loss": 7.009876748087443,
+          "n_periods": 1760
+        },
+        "worst_regime_sharpe": -2.1630360809461386,
+        "regime_sharpes": {
+          "bull": 3.135696875171833,
+          "sideways": -0.27481136569093945,
+          "bear": -2.1630360809461386
+        }
+      },
+      "ew_benchmark": {
+        "oos_metrics": {
+          "sharpe": 0.6060211579450885,
+          "max_drawdown": -0.3493139820093454,
+          "profit_factor": 1.1206524163882208,
+          "trades": 0,
+          "gross_profit": 7.757285299733697,
+          "gross_loss": 6.922115355566581,
+          "n_periods": 1760
+        },
+        "train_sharpe": 0.9003632479364099
+      },
+      "family_value": {
+        "oos_metrics": {
+          "sharpe": -0.02801958105593794,
+          "max_drawdown": -0.3016361066142109,
+          "profit_factor": 0.9950906742487385,
+          "trades": 78,
+          "gross_profit": 5.685461212805488,
+          "gross_loss": 5.713510698005313,
+          "n_periods": 1760
+        }
+      },
+      "family_momentum": {
+        "oos_metrics": {
+          "sharpe": 0.8185015333243106,
+          "max_drawdown": -0.24065581791331625,
+          "profit_factor": 1.1535460929438204,
+          "trades": 71,
+          "gross_profit": 6.685285450869861,
+          "gross_loss": 5.795421172819529,
+          "n_periods": 1760
+        }
+      },
+      "family_quality": {
+        "oos_metrics": {
+          "sharpe": 0.5549504519103237,
+          "max_drawdown": -0.21701301450554955,
+          "profit_factor": 1.1017849317983275,
+          "trades": 84,
+          "gross_profit": 4.983626977210972,
+          "gross_loss": 4.523230290576512,
+          "n_periods": 1760
+        }
+      }
+    }
+  },
+  "passes": {
+    "sharpe": false,
+    "trades": false,
+    "pf": false,
+    "dd": false,
+    "stab": false,
+    "worst": false,
+    "p": false,
+    "ir": false,
+    "perturbation": true
+  },
+  "all_pass": false,
+  "verdict": "REJECT"
+}

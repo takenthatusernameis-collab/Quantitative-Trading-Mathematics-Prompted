@@ -1521,17 +1521,127 @@ The regime-conditioned factor rotation is a data-mining artifact; its OOS Sharpe
 - **Gates** (unchanged PROMPT_V2 set): Sharpe ≥ 1.0, ≥ 200 trades, PF ≥ 1.3, DD ≤ 15%, WF stability ≥ 0.7, ±20% perturbation OOS Sharpe ≥ 0.5×optimum, worst-regime Sharpe ≥ 0.3, benchmark p < 0.05 **and IR > 0**.
 - **Compute budget**: ≤ 2 CPU-h (expected < 5 min). Seed: 42.
 
-### Measured (experiment `exp_<H16>`):
+### Measured (experiment `exp_2026-10-13T21-22-02-751156Z`):
 
-*To be filled after execution.*
+Script: `run_h16_factor_timing_experiment.py` (3.9 s, 0.001 CPU-h;
+well inside the ≤ 2 CPU-h budget). Regression tests:
+`tests/test_h16_factor_timing.py` (24 tests). Data: Yahoo Finance
+daily, cached; point-in-time universe (VLUE/MTUM from 2013-04-18,
+QUAL from 2013-07-18, USMF from 2017-06-29; the other 5 ETFs from
+2010-01-04). The pre-registered Train window (2010-2017) therefore
+starts with a partial universe and reaches all 9 ETFs only from
+2017-06-29 — a documented data-availability limitation of the
+pre-registered universe, not a look-ahead.
+
+**Selection** (train-only 4-fold walk-forward Sharpe, mean of test
+folds = 1.107): `lookback=63, skip=5, regime_exposure=(1.0, 0.5,
+0.25), n_factors=2`.
+
+| Split | Sharpe |
+|-------|--------|
+| Train (2010-2017) | 0.806 |
+| Val (2018-2020) | 0.495 |
+| Test (2021-2024, protected) | 0.649 |
+| **OOS Val+Test (gated)** | **0.579** |
+
+| Gate (OOS) | Value | Threshold | Result |
+|------------|-------|-----------|--------|
+| Net Sharpe | 0.579 | ≥ 1.0 | FAIL |
+| Trades | 184 | ≥ 200 | FAIL |
+| Profit factor | 1.106 | ≥ 1.3 | FAIL |
+| Max drawdown | -19.95% | ≤ 15% | FAIL |
+| Walk-forward stability | 0.353 | ≥ 0.7 | FAIL |
+| Worst-regime Sharpe | -3.680 (bear) | ≥ 0.3 | FAIL |
+| Benchmark p-value | 0.351 | < 0.05 | FAIL |
+| Information ratio | -0.353 | > 0 | FAIL |
+| ±20% perturbation (min OOS Sharpe ratio) | 0.734 | ≥ 0.5 | PASS |
+
+**Gates: 1/9 PASS → OVERALL: REJECT.**
+
+Per-regime OOS Sharpe: bull **2.801**, sideways **-1.929**, bear
+**-3.680**. The strategy earns strongly in low-vol bull regimes and
+loses heavily in sideways/bear regimes — the same momentum-crash
+failure mode as H1-H3 (factor momentum *is* momentum-family
+exposure; the long-only rotation cannot hedge it).
+
+Ablations (OOS, not selected):
+
+| Variant | OOS Sharpe | OOS Max DD | OOS PF | OOS Trades |
+|---------|-----------|-----------|--------|------------|
+| **H16 selected (gated)** | **0.579** | **-19.95%** | 1.106 | 184 |
+| Ungated full exposure (regime factor ≡ 1.0) | 0.758 | -30.9% | 1.149 | 154 |
+| EW benchmark (9 ETFs, BH) | 0.606 | -34.9% | 1.121 | — |
+| Value family only | -0.028 | -30.2% | 0.995 | 78 |
+| Momentum family only | 0.819 | -24.1% | 1.154 | 71 |
+| Quality family only | 0.555 | -21.7% | 1.102 | 84 |
+
+**Root-cause attribution (what H16 actually proved):**
+
+1. **The rotation adds no value over the factor zoo.** The selected
+   strategy's OOS Sharpe (0.579) is *below* the equal-weight
+   benchmark (0.606): IR -0.353, alpha p = 0.351. The
+   cross-sectional ranking of factor ETFs by 63-day momentum is
+   noise on 2018-2024 data (train-WF → OOS correlation across the
+   54-combo grid was 0.388 in the pre-fix run).
+2. **The edge is pure momentum-family exposure.** The momentum
+   family alone (0.819) beats the rotation (0.579); the value
+   family's momentum is negative OOS (-0.028); quality is middling
+   (0.555). The "factor timing" is de facto a momentum-factor bet
+   with extra turnover.
+3. **The VIX regime gate is procyclical on this sample.** Ungated
+   full exposure (0.758) *beats* the gated strategy (0.579):
+   cutting exposure to 0.5/0.25 in sideways/bear regimes removed
+   participation in recoveries. This replicates H3's finding —
+   VIX-level regime cuts do not fix a momentum-family signal.
+4. **The worst-regime failure is structural.** Bear-regime Sharpe
+   -3.680: a long-only factor-momentum book cannot survive
+   high-vol reversal regimes (2018-02, 2020-03, 2022) without a
+   short/hedge leg, which the pre-registration excludes.
+5. **Turnover structure misses the trades gate.** Monthly
+   rebalancing with n_factors=2 generates 184 OOS trades (< 200);
+   the trades gate fails alongside everything else.
+6. **Only the perturbation gate passes** (min ratio 0.734): the
+   (weak) signal is at least stable under ±20% parameter moves.
+
+**Verdict: REJECT H16.** The hypothesis that regime-conditioned
+factor rotation across value/momentum/quality ETFs generates
+Sharpe ≥ 1.0 with controlled drawdown is falsified on 2010-2024
+free daily data. The factor-timing family joins H1-H3: the
+realized edge is momentum-like (bull-regime-dependent, crash-prone
+in sideways/bear) and does not survive the PROMPT_V2 evidence
+gates. What would invalidate the rejection: factor-timing signals
+beyond 63-252d momentum (e.g., macro/valuation-conditioned
+rotation), short/hedge legs to survive bear regimes, or daily
+frequency with intra-month rebalancing (to clear the trades gate —
+though that would raise costs).
 
 ### Verdict rule (pre-registered)
 H16 **PASS** iff all 8 gates pass on the protected OOS (Val+Test). Otherwise **REJECT** with root-cause attribution.
 
 ---
 
-## Implementation Plan (for H16)
-1. Create `run_h16_factor_timing_experiment.py` — factor ETF universe, VIX regime filter, factor momentum signals, 54-combo grid, Val-only selection, full gate evaluation, artifact tracking.
-2. Artifacts in `.experiments/artifacts/exp_<H16>/`.
-3. Update `HYPOTHESIS_SPEC.md` (this section) and `INEFFICIENCY_RANKING.md` with final PASS/REJECT verdict and root-cause attribution.
-4. Regression tests `tests/test_h16_factor_timing.py` for artifact pinning and invariants.
+## Implementation Plan (for H16) — EXECUTED 2026-10-13
+1. ✅ Created `run_h16_factor_timing_experiment.py` — factor ETF universe,
+   VIX regime filter, factor momentum signals, 54-combo grid,
+   train-only 4-fold walk-forward selection, full gate evaluation
+   (+/-20% OAT perturbation gate), artifact tracking.
+2. ✅ Artifacts in `.experiments/artifacts/exp_2026-10-13T21-22-02-751156Z/`
+   (prices, volumes, vix_close, param_grid_results, selected_signals,
+   best_equity, best_trades, benchmark_equity/returns, family_exposure,
+   summary.json).
+3. ✅ Updated `HYPOTHESIS_SPEC.md` (Measured section above) and
+   `INEFFICIENCY_RANKING.md` with the REJECT verdict and root-cause
+   attribution.
+4. ✅ Regression tests `tests/test_h16_factor_timing.py` (24 tests:
+   pre-registration pinning, artifact schema, gate recomputation from
+   logged artifacts, grid/selection integrity, signal causality,
+   point-in-time universe, monthly rebalancing, weight bounds,
+   top-1-per-family, determinism, executed-outcome pinning).
+   Full suite: 178 tests passing.
+   Two implementation defects found and fixed during execution:
+   (a) all-NA rows crashed `idxmax` in the family-representative
+   selection (pre-inception/warmup periods) — fixed with an
+   explicit validity mask; (b) `resample('ME')` anchored monthly
+   targets on calendar month-ends (non-trading days), shifting
+   each target one trading day late at month boundaries — fixed
+   by anchoring on the actual last trading day of each month.

@@ -1,0 +1,29 @@
+{
+  "shape": [
+    3773,
+    9
+  ],
+  "columns": [
+    "VLUE",
+    "IJS",
+    "VTV",
+    "MTUM",
+    "QQQ",
+    "SPYG",
+    "QUAL",
+    "SPHQ",
+    "USMF"
+  ],
+  "dtypes": {
+    "VLUE": "float64",
+    "IJS": "int64",
+    "VTV": "int64",
+    "MTUM": "float64",
+    "QQQ": "int64",
+    "SPYG": "int64",
+    "QUAL": "float64",
+    "SPHQ": "int64",
+    "USMF": "float64"
+  },
+  "index_type": "datetime64[ms]"
+}
