@@ -1484,3 +1484,54 @@ interpolation, which only sharpens the estimate
 **Result (artifact `exp_2026-10-13T19-01-59-371405Z`):**
 - Evaluated 50 top-by-Val-PF-margin configs (excluding H10). PF bootstrap CI LB: mean 1.186, max 1.199 (all < 1.3). DSR-adj OOS Sharpe at N=K: mean 1.244 (all >= 1.0). All-symbols-dispensable: 0/50 (CL=F and/or GC=F dependencies persist).
 - Verdict: **REJECT** (no config passes all three gates). H0 is not rejected; PF-margin fragility is a **family property** on this window.
+
+---
+
+## H16: Cross-Sectional Equity Factor Timing (Value/Momentum/Quality Rotation)
+
+### Statement
+A cross-sectional factor-timing strategy that rotates between value, momentum, and quality equity factors based on a volatility-regime filter generates net pooled out-of-sample (Val+Test) Sharpe ≥ 1.0 with ≥ 200 trades, PF ≥ 1.3, max DD ≤ 15%, walk-forward stability ≥ 0.7, robust to ±20% parameter perturbation (OOS Sharpe ≥ 0.5 × optimum), and significant positive alpha vs equal-weight benchmark (p < 0.05, IR > 0).
+
+### Mechanism
+Factor returns exhibit regime-dependent persistence (Asness et al. 2017; Blitz 2022; Baz et al. 2015). In low-volatility regimes, momentum and quality factors tend to outperform; in high-volatility regimes, value and low-volatility factors tend to outperform (the "factor momentum" effect). A simple VIX-regime filter (VIX < 20 → bull, VIX 20-30 → sideways, VIX > 30 → bear) allocates to the factor with the strongest expected persistence in the current regime. This is distinct from time-series momentum (H1, H4-H11) and cross-sectional momentum (H2) — it rotates *between factor portfolios* rather than individual assets, and the signal is the factor's recent performance persistence conditioned on the macro regime.
+
+### Null (H0)
+The regime-conditioned factor rotation is a data-mining artifact; its OOS Sharpe ≤ equal-weight factor benchmark in the protected holdout.
+
+### Pre-registration
+
+- **Universe**: 9 liquid factor ETFs representing 3 factors across US equities:
+  - Value: VLUE (large-cap value), IJS (small-cap value), VTV (value)
+  - Momentum: MTUM (momentum), QQQ (growth/proxy), SPYG (growth)
+  - Quality: QUAL (quality), SPHQ (quality), USMF (multifactor quality tilt)
+  - All from Yahoo Finance daily, cached; `^VIX` for regime labels only.
+- **Splits**: Train 2010-01-01 → 2017-12-31; Val 2018-01-01 → 2020-12-31; Test 2021-01-01 → 2024-12-31 (protected holdout — never for selection).
+- **Signal**:
+  - Factor-level momentum: 12-month return (skip 1 month) on each factor ETF.
+  - Regime factor: VIX < 20 → 1.0 (bull), VIX 20-30 → 0.5 (sideways), VIX > 30 → 0.25 (bear).
+  - Within-regime factor selection: rank factor ETFs by momentum; top-1 per factor family gets weight; regime factor scales total exposure.
+  - Monthly rebalance.
+- **Selection grid** (train-only walk-forward Sharpe):
+  - `lookback ∈ {63, 126, 252}` (momentum lookback in trading days)
+  - `skip ∈ {1, 5, 21}` (skip period)
+  - `regime_exposure ∈ {(1.0, 0.5, 0.25), (1.0, 0.25, 0.10)}` (bull/sideways/bear)
+  - `n_factors ∈ {1, 2, 3}` (number of factor families to hold)
+  - Total combos: 3 × 3 × 2 × 3 = **54 combos**.
+- **Cost model**: Equity — 1 bp commission + 1 bp spread + 0.1 bp per 1% ADV.
+- **Gates** (unchanged PROMPT_V2 set): Sharpe ≥ 1.0, ≥ 200 trades, PF ≥ 1.3, DD ≤ 15%, WF stability ≥ 0.7, ±20% perturbation OOS Sharpe ≥ 0.5×optimum, worst-regime Sharpe ≥ 0.3, benchmark p < 0.05 **and IR > 0**.
+- **Compute budget**: ≤ 2 CPU-h (expected < 5 min). Seed: 42.
+
+### Measured (experiment `exp_<H16>`):
+
+*To be filled after execution.*
+
+### Verdict rule (pre-registered)
+H16 **PASS** iff all 8 gates pass on the protected OOS (Val+Test). Otherwise **REJECT** with root-cause attribution.
+
+---
+
+## Implementation Plan (for H16)
+1. Create `run_h16_factor_timing_experiment.py` — factor ETF universe, VIX regime filter, factor momentum signals, 54-combo grid, Val-only selection, full gate evaluation, artifact tracking.
+2. Artifacts in `.experiments/artifacts/exp_<H16>/`.
+3. Update `HYPOTHESIS_SPEC.md` (this section) and `INEFFICIENCY_RANKING.md` with final PASS/REJECT verdict and root-cause attribution.
+4. Regression tests `tests/test_h16_factor_timing.py` for artifact pinning and invariants.
