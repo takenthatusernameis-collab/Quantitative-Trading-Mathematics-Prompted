@@ -664,3 +664,77 @@ only in high-VIX regimes).
   calibration (intraday volume clustering), or (d) a volatility-regime
   interaction that gates volume sensitivity (e.g., volume predicts returns
   only in high-VIX regimes).
+- H20 directly tests (a) above: it replaces total-volume surprise with
+  *signed* (buyer/seller-initiated) volume / order-flow imbalance.
+
+## H20: Volume-Sign (Buy/Sell-Initiated) Decomposition + Order-Flow Imbalance — REJECTED
+
+**Summary**: Isolating net demand pressure via signed volume (tick rule /
+Lee-Ready algorithm proxy on daily OHLCV) and trading a volatility-targeted
+long/short position on the cumulative order-flow imbalance (2 rules × 3
+target vols × 2 max positions × 3 lag windows = 36 combos on SPY) does not
+generate a robust, statistically significant edge above buy-and-hold within
+the project gates. This is the direct invalidation attempt for the H19
+"signed volume would help" escape hatch — it does not.
+
+**Key results**:
+- Selected: `lee_ready / target_vol=0.05 / max_pos=1.0 / imbalance_lag=3`
+  (Val Sharpe 0.170; Train -0.256, Test -0.398).
+- OOS Sharpe **-0.156** (gate ≥1.0 — FAIL); below BH SPY (0.733) and below
+  the randomized-direction control (-0.080).
+- Max-DD -22.1% (gate ≤15% — FAIL).
+- Profit factor 0.973 (gate ≥1.3 — FAIL).
+- Walk-forward stability -0.480 (gate ≥0.7 — FAIL).
+- Worst-regime Sharpe -0.627 (bull; gate ≥0.3 — FAIL).
+- Information ratio -0.704 (gate ≥0 — FAIL).
+- Trades 2,958 (gate ≥200 — **PASS**). Benchmark p-value 0.0159 (gate ≤0.05 —
+  **PASS**). ±20% perturbation 0.000 (gate ≥0.5 — FAIL; selected optimum is
+  non-positive so the stability reference is undefined).
+- Gates: **2/9 PASS → REJECT**.
+
+**Root cause**: The daily tick/Lee-Ready proxy cannot resolve true
+buyer-/seller-initiated flow — the selected signal's OOS Sharpe is negative
+and below both the market (BH SPY) and a randomized-direction ablation using
+identical turnover. The sign assignment carries no directional information at
+daily resolution; worst performance occurs in quiet bull markets where the
+proxy is purest noise, confirming the signal is noise, not alpha. Train→Val
+Sharpe decay (best Val 0.170 selected from 36 combos) is a selection artifact
+that inverts OOS (Test -0.398). Vol-targeting across target_vol ∈ {0.05,
+0.10, 0.15} is nearly flat (all negative), so it is not the binding
+constraint.
+
+**Ablations (OOS)**:
+- BH SPY: Sharpe 0.733, DD -34.1%, PF 1.151.
+- Constant 0.5 position: Sharpe 0.733, DD -18.2%, PF 1.151.
+- Random signed volume (shuffled direction): Sharpe -0.080, DD -13.2%, PF 0.986.
+- Total-volume-only (H19): Sharpe 0.242, DD -34.8%, PF 1.066.
+
+**Cross-validation**: Signal underperforms BH on QQQ (0.124 vs 0.886) and IWM
+(-0.287 vs 0.434).
+
+**Net Opportunity Score**: 2/10. Signed-volume / order-flow imbalance is a
+well-documented microstructural predictor (Kyle, 1985; Hasbrouck, 2001; Kane,
+2002) but requires trade-level or bid/ask data to assign direction; the free
+daily OHLCV proxy yields net flow that is statistically indistinguishable
+from a random direction sequence.
+
+**What would invalidate the rejection**: (a) intraday / tick-level volume
+sign assignment (bid-ask or trade-classification data, e.g. BDAVOL-style
+buy/sell volume from a broker or paid microstructure feed); (b) a
+higher-frequency volatility estimator so vol-targeting actually scales down
+ahead of regime stress; or (c) pooling signed flow across a cross-section of
+high-volume names with a market-neutral (dollar-neutral) construction so
+that sign noise is averaged out while systematic flow-to-return coupling
+survives.
+
+### 16. Cumulative state of evidence gates (updated with H20)
+- The signed-volume escape hatch for H19 is closed: H20 (signed volume) fails
+  with an even worse Sharpe (-0.156) and fails the perturbation gate.
+- Structural walls unchanged: (a) the yfinance hourly `=F` 730-day cap
+  blocks intraday extension beyond H10/H11 without paid data; (b) the
+  ≤15–20% DD joint gate has been met by no long-only free-data family except
+  the futures-carry edge of H10/H11.
+- New finding: direction-classification granularity, not vol-targeting or
+  costs, is the binding constraint for *all* volume-based hypotheses (H19
+  total volume and H20 signed volume both fail; signing the flow does not
+  help on free daily data).

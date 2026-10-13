@@ -2113,3 +2113,311 @@ REJECTED. The signal is not recommended for production.
 
 **Compute**: 0.00 CPU-h (1.2s wall time). Within ≤2 CPU-h budget.
 
+---
+
+## Hypothesis H20: Volume-Sign (Buy/Sell-Initiated) Decomposition + Order-Flow Imbalance
+
+### Statement
+Decomposing daily volume into buyer-initiated (V+) and seller-initiated (V−)
+components via the daily tick rule / Lee-Ready algorithm, and forming a
+causal, volatility-targeted position on the cumulative **order-flow
+imbalance** (V+ − V− over a trailing window) of SPY, generates net pooled
+out-of-sample (Val+Test) Sharpe ≥ 1.0 with ≥ 200 trades, PF ≥ 1.3, max DD ≤
+15%, walk-forward stability ≥ 0.7, robust to ±20% parameter perturbation (min
+OOS Sharpe ratio ≥ 0.5 × optimum), and significant positive alpha vs
+buy-and-hold SPY (p < 0.05, IR > 0) on free daily OHLCV data.
+
+### Mechanism
+H19 showed *total* volume decomposition fails because it conflates buying
+and selling pressure. The **signed-volume / order-flow imbalance** of Kane
+(2002) and Hasbrouck (2001) isolates net demand pressure: on each day the
+volume is classified as buyer-initiated (price rose intraday → buying
+pressure) or seller-initiated (price fell intraday → selling pressure). A
+positive cumulative imbalance (net buying) should predict upward price
+pressure, and a volatility-targeted long/short position on its sign should
+earn a positive risk premium net of costs. The key added discipline over
+H19 is **direction separation**: only net flow (not gross volume) drives
+the position, and vol-targeting (downscaling exposure when realized
+volatility spikes) is intended to respect the DD budget during stress.
+Because yfinance does not deliver per-trade bid/ask or tick data, trade
+direction is proxied by the intraday price-change sign (the daily tick rule)
+or the daily-adapted Lee-Ready algorithm, using only close-of-day OHLCV
+available at the end of day t to set the position held for day t+1's
+return.
+
+### Null (H0)
+The signed-volume / order-flow-imbalance decomposition does not yield a
+persistently exploitable edge within the PROMPT_V2 evidence gates on free
+daily OHLCV data; observed performance is explainable by the coarseness of
+the tick/Lee-Ready proxy, the noise of net-flow at daily resolution, or
+simply by holding SPY (long-only) — i.e. the directional signal adds
+uncompensated turnover and negative information ratio.
+
+### Pre-registration
+
+- **Universe**: SPY (primary, traded vehicle); QQQ/IWM (cross-validation
+  only, not traded); ^VIX (regime labels only, not traded). Daily OHLCV
+  (open/high/low/close/volume) required.
+- **Sample**: 2009-01-01 → 2026-10-08 (~4,200 daily bars; cached daily range
+  2009-01-02 → 2026-10-07).
+- **Splits**: Train 2009-01-01 → 2014-12-31 (1,510 days); Val 2015-01-01 →
+  2019-12-31 (1,258 days); Test 2020-01-01 → 2026-10-08 (1,700 days,
+  protected). OOS = Val+Test = 2,958 days.
+- **Cost model**: unchanged (PROMPT_V2 equity model: 1 bp commission +
+  1 bp spread + 0.1 bp per 1% ADV; long/short permitted via `allow_short=True`;
+  costs charged on |weight delta|).
+- **Trade-direction sign rules (per day, from daily OHLCV, no lookahead)**:
+  - `tick`: `direction_t = sign(close_t − open_t)`; on a flat day
+    (close == open) fall back to `sign(close_t − close_{t-1})`.
+  - `lee_ready`: Lee-Ready (1982) algorithm adapted to daily bars:
+    primary `sign(close_t − close_{t-1})`; flat-primary-tie falls back to
+    intraday `sign(close_t − open_t)`; fully-flat tie broken by the intraday
+    range position (`(close-low) − (high-close)` > 0 → up-tick). V_t split as
+    V+_t = direction_t>0 ? V_t : 0, V−_t = direction_t<0 ? V_t : 0.
+  Signed volume `sv_t = V+_t − V−_t = direction_t × V_t`.
+- **Order-flow imbalance**: cumulative net signed volume over a trailing
+  window of length `imbalance_lag` (causal; uses only days ≤ t). With
+  `imbalance_lag = 1` this collapses to the single-day signed volume
+  (the naive sign-of-flow signal); `imbalance_lag ∈ {3, 5}` accumulates a
+  multi-day net flow.
+- **Signal (causal, 1-day lag)**:
+  - `realized_vol_t = annualized rolling std (window 63) of SPY daily returns,
+    shifted(1)` (vol of past returns, no lookahead; annualized by ×√252).
+  - `vol_scale_t = clip(target_vol / realized_vol_t, 0, max_pos)` (downscale
+    exposure on vol spikes).
+  - `position_t = sign(imbalance_t) × vol_scale_t ∈ [−max_pos, +max_pos]`.
+  - The engine applies `signals.shift(1)` internally: weight set at close of
+    day t earns the return of day t→t+1 (strictly causal; no lookahead).
+    All rolling statistics shifted(1) exclude the current observation.
+- **Grid**: `sign_rule ∈ {tick, lee_ready}` × `target_vol ∈ {0.05, 0.10,
+  0.15}` × `max_pos ∈ {0.5, 1.0}` × `imbalance_lag ∈ {1, 3, 5}` = **36
+  combos**. Selection rule: argmax(Val Sharpe); Test never used; gates on
+  OOS Val+Test.
+- **Benchmark**: buy-and-hold SPY (long 1.0).
+- **Ablations (OOS)**: (a) buy-and-hold SPY; (b) random-signed-volume (per-day
+  direction signs independently randomized with seed 42, imbalance/vol-scale
+  retained — tests whether the sign assignment matters); (c) constant
+  position 0.5 long; (d) total-volume-only = H19's `simple_lagged` long-only
+  volume-surprise signal (unweighted, no sign split).
+- **±20% perturbation gate (OAT)**: for the selected config, perturb
+  `target_vol` (×0.8 / ×1.2) and `max_pos` (×0.8 / ×1.2); recompute OOS
+  Sharpe for each perturbed neighbor; `min_perturbed_sharpe_ratio =
+  min(perturbed_sharpes) / selected_oos_sharpe` (gate ≥ 0.5; if selected
+  OOS Sharpe ≤ 0 the ratio is 0.0 — gate fails, since a non-positive optimum
+  is not a stable reference).
+- **Gates** (unchanged PROMPT_V2 set + perturbation gate, applied to OOS
+  Val+Test):
+
+  | Gate | Value | Threshold | Result |
+  |---|---|---|---|
+  | Net Sharpe | (OOS) | ≥ 0.30 | — |
+  | Trades | (OOS) | ≥ 200 | — |
+  | Profit factor | (OOS) | ≥ 1.10 | — |
+  | Max drawdown | (OOS) | ≤ 20% | — |
+  | Walk-forward stability | (full series) | ≥ 0.40 | — |
+  | Worst-regime Sharpe | (OOS, VIX bull/sideways/bear) | ≥ 0.00 | — |
+  | Benchmark significance (p) | vs BH SPY | ≤ 0.05 | — |
+  | Information ratio | vs BH SPY | ≥ 0.0 | — |
+  | ±20% perturbation (min ratio) | across neighbors | ≥ 0.50 | — |
+
+  > Note: consistent with H19/H16, the gate thresholds are the repo-wide
+  > `PROMPT_V2`/`GATES` constants in the experiment script (Net Sharpe ≥ 1.0,
+  > Trades ≥ 200, PF ≥ 1.3, max DD ≤ 15%, WF stability ≥ 0.7, worst-regime ≥
+  > 0.3, p ≤ 0.05, IR ≥ 0, perturbation ratio ≥ 0.5). The table above records
+  > the threshold column as used in code so outcomes are reproducible.
+
+- **Expected outcome**: REJECT — the daily tick/Lee-Ready proxy cannot
+  isolate net order flow with sufficient fidelity on free daily OHLCV; the
+  sign-of-flow signal is dominated by noise, yielding OOS Sharpe well below
+  the Sharpe gate with negative information ratio vs BH SPY. The binding
+  constraint is signal granularity, not vol-targeting. This is a legitimate,
+  publishable falsification: "signed-volume / order-flow-imbalance
+  decomposition does not clear the evidence gates on free daily data without
+  market-microstructure-grade order flow." **No gate weakening permitted.**
+- **Compute budget**: ≤ 2 CPU-h. Determinism: seed 42.
+
+### Implementation Plan:
+1. Create `run_h20_signed_volume_experiment.py` implementing the
+   pre-registration above, reusing existing engine patterns (`run_backtest`,
+   `compare_to_benchmark`, `walk_forward_splits`, `sharpe_ratio`, regime
+   labeling, tracker/artifacts). Strict causality (1-day lag + all rolling
+   stats shifted(1)), point-in-time data, no lookahead; `allow_short=True`.
+2. Reuse cached daily OHLCV for SPY, QQQ, IWM, ^VIX (2009-01-02 → 2026-10-07)
+   from `qtr.data.fetcher`. Handle minor NaNs via ffill.
+3. Run the full grid (36 combos), select on Val Sharpe, compute all gates on
+   OOS (Val+Test), generate ablations, write artifacts to
+   `.experiments/artifacts/exp_<timestamp>/` (summary.json, prices,
+   volumes, param_grid_results, selected_signals, best_equity, best_trades,
+   benchmark_equity/returns, ablations, cross-validation, perturbation).
+   Include regime breakdowns by VIX labels.
+4. Add regression tests `tests/test_h20_signed_volume.py` mirroring
+   `test_h19_volume_predictive.py`: pre-registration pinning (36 combos,
+   gates, symbols, splits, seed), artifact schema, gate recomputation from
+   logged artifacts (1e-9 tolerance), grid/selection integrity (36 unique
+   combos; selection = argmax Val Sharpe), causality (future-price/volume
+   perturbation leaves past targets bit-identical), weight bounds
+   [−1, +1], determinism, regime labels, and executed-outcome pinning.
+5. Update `HYPOTHESIS_SPEC.md` with the Measured section + verdict once
+   executed; update `INEFFICIENCY_RANKING.md` accordingly; update
+   `NEXT_TASK.md`.
+6. Execute, verify full suite passes (incl. new H20 tests), run `ruff` if
+   available.
+
+**Verdict rule (pre-registered):** H20 **PASS** iff all 9 gates pass on
+the protected OOS (Val+Test). Otherwise **REJECT** with root-cause
+attribution.
+
+---
+
+## H20 — Measure Log
+
+**Executed:** 2026-10-13T23:06:33Z | **Verdict:** REJECT (2/9 gates pass)
+**Experiment ID:** exp_2026-10-13T23-06-33-191710Z
+**Script:** `run_h20_signed_volume_experiment.py`
+**Tests:** `tests/test_h20_signed_volume.py` (23 tests, all pass)
+
+### Data
+- Universe: SPY (traded), QQQ/IWM (cross-validated), ^VIX (regime labels);
+  daily OHLCV from Yahoo Finance (cached).
+- Period: 2009-01-02 → 2026-10-07.
+- Splits: Train 2009-01→2014-12 (1,510 days), Val 2015-01→2019-12 (1,258
+  days), Test 2020-01→2026-10-07 (1,700 days).
+- OOS = Val + Test = 2,958 days (protected; never used for selection).
+
+### Selected Configuration
+| Parameter        | Value        |
+|------------------|--------------|
+| sign_rule        | `lee_ready`  |
+| target_vol       | `0.05`       |
+| max_pos          | `1.0`        |
+| imbalance_lag    | `3`          |
+| vol_window       | `63`         |
+
+Selection rule: argmax Val Sharpe across 36 grid combos (Val Sharpe = 0.1702).
+allow_short = True (long/short order-flow signal).
+
+### OOS Metrics (Val+Test, 2,958 days)
+| Metric                | Value   | Gate    | Pass? |
+|-----------------------|---------|---------|-------|
+| Sharpe ratio          | -0.156  | ≥ 1.0   | FAIL  |
+| Trades                | 2,958   | ≥ 200   | **PASS** |
+| Profit factor         | 0.973   | ≥ 1.3   | FAIL  |
+| Max drawdown          | -22.13% | ≤ 15%   | FAIL  |
+| Walk-forward stability| -0.480  | ≥ 0.7   | FAIL  |
+| Worst-regime Sharpe   | -0.627  | ≥ 0.3   | FAIL  |
+| Benchmark significance (p) | 0.0159 | ≤ 0.05 | **PASS** |
+| Information ratio     | -0.704  | ≥ 0.0   | FAIL  |
+| ±20% perturbation (min ratio) | 0.000 | ≥ 0.5 | FAIL |
+
+Per-regime OOS Sharpe: bull **-0.627**, sideways **0.460**, bear **0.758**.
+Worst regime = bull (the signal performs worst in low-volatility bull
+markets, where the tick/Lee-Ready direction proxy is purest noise).
+
+### Gate Summary: PASSES 2/9 → REJECT
+
+### Ablations (OOS)
+| Variant                | OOS Sharpe | OOS Max DD | OOS PF | OOS Trades |
+|------------------------|------------|------------|--------|------------|
+| Buy & hold SPY         | 0.733      | -34.1%     | 1.151  | 0          |
+| Constant 0.5 position  | 0.733      | -18.2%     | 1.151  | 0          |
+| Random signed volume   | -0.080     | -13.2%     | 0.986  | 2,958      |
+| Total-volume-only (H19, simple_lagged/median) | 0.242 | -34.8% | 1.066 | 940 |
+
+### Cross-Validation (selected signal applied to QQQ/IWM returns, OOS)
+| Universe | BH Sharpe | Signal Sharpe |
+|----------|-----------|---------------|
+| QQQ      | 0.886     | 0.124         |
+| IWM      | 0.434     | -0.287        |
+
+The signed-volume signal underperforms buy-and-hold on both cross-val
+universes, and underperforms even the randomized-direction control
+(Sharpe -0.080 with the same turnover), confirming the sign assignment
+carries no usable directional information at daily resolution.
+
+### Perturbation Robustness
+Perturbed neighbors of the selected config (target_vol×{0.8,1.2},
+max_pos×{0.8,1.2}):
+
+| Variant              | OOS Sharpe |
+|----------------------|------------|
+| target_vol=0.06      | -0.15503   |
+| target_vol=0.04      | -0.15642   |
+| max_pos=0.8          | -0.15587   |
+| max_pos=1.2          | -0.15642   |
+
+All perturbed neighbors remain negative. Because the selected OOS optimum is
+itself non-positive (-0.156), a non-positive optimum is not a stable
+reference: the perturbation gate is scored 0.0 (per the pre-registered rule)
+and cannot pass. (Had the optimum been positive, the ratio of the perturbed
+negatives to it would be ~1.0, a degenerate but non-informative "PASS"; the
+pre-registered rule correctly refuses to certify stability around a
+non-positive optimum.)
+
+### Grid Results (all 36 combos, sorted by Val Sharpe)
+| sign_rule  | target_vol | max_pos | imbalance_lag | Train   | Val    | Test   | OOS    |
+|------------|------------|---------|---------------|---------|--------|--------|--------|
+| lee_ready  | 0.05       | 1.0     | 3             | -0.256  | 0.170  | -0.398 | -0.156 |
+| lee_ready  | 0.05       | 1.0     | 5             | 0.036   | 0.126  | -0.407 | -0.180 |
+| tick       | 0.05       | 1.0     | 5             | -0.322  | 0.105  | -0.529 | -0.260 |
+| lee_ready  | 0.05       | 0.5     | 3             | -0.212  | 0.073  | -0.379 | -0.197 |
+| lee_ready  | 0.10       | 0.5     | 3             | -0.212  | 0.073  | -0.379 | -0.197 |
+| lee_ready  | 0.15       | 0.5     | 5             | 0.103   | 0.054  | -0.519 | -0.316 |
+| lee_ready  | 0.10       | 0.5     | 5             | 0.132   | 0.028  | -0.488 | -0.295 |
+| lee_ready  | 0.10       | 1.0     | 5             | 0.058   | 0.025  | -0.409 | -0.234 |
+| lee_ready  | 0.05       | 0.5     | 5             | 0.058   | 0.025  | -0.409 | -0.234 |
+| tick       | 0.15       | 0.5     | 3             | -0.568  | 0.024  | -0.842 | -0.534 |
+| tick       | 0.15       | 0.5     | 5             | -0.233  | 0.017  | -0.671 | -0.427 |
+| lee_ready  | 0.15       | 1.0     | 3             | -0.083  | 0.016  | -0.404 | -0.241 |
+| lee_ready  | 0.15       | 0.5     | 3             | -0.031  | 0.007  | -0.390 | -0.249 |
+| tick       | 0.10       | 1.0     | 5             | -0.342  | 0.004  | -0.544 | -0.323 |
+| tick       | 0.05       | 0.5     | 5             | -0.342  | 0.004  | -0.544 | -0.323 |
+| lee_ready  | 0.15       | 1.0     | 5             | 0.119   | 0.002  | -0.487 | -0.297 |
+| tick       | 0.10       | 0.5     | 5             | -0.238  | 0.000  | -0.675 | -0.422 |
+| lee_ready  | 0.10       | 0.5     | 3             | -0.043  | 0.000  | -0.398 | -0.249 |
+| tick       | 0.10       | 0.5     | 3             | -0.603  | -0.001 | -0.848 | -0.530 |
+| tick       | 0.15       | 1.0     | 5             | -0.287  | -0.036 | -0.627 | -0.397 |
+| tick       | 0.15       | 1.0     | 3             | -0.670  | -0.110 | -0.842 | -0.557 |
+| tick       | 0.05       | 1.0     | 3             | -0.747  | -0.136 | -0.797 | -0.516 |
+| tick       | 0.05       | 0.5     | 3             | -0.759  | -0.174 | -0.826 | -0.563 |
+| tick       | 0.10       | 1.0     | 3             | -0.759  | -0.174 | -0.826 | -0.563 |
+| lee_ready  | 0.05       | 1.0     | 1             | -0.317  | -0.244 | -0.535 | -0.411 |
+| lee_ready  | 0.15       | 1.0     | 1             | -0.223  | -0.254 | -0.667 | -0.506 |
+| lee_ready  | 0.10       | 0.5     | 1             | -0.230  | -0.269 | -0.736 | -0.559 |
+| lee_ready  | 0.05       | 0.5     | 1             | -0.263  | -0.270 | -0.533 | -0.427 |
+| lee_ready  | 0.10       | 1.0     | 1             | -0.263  | -0.270 | -0.533 | -0.427 |
+| lee_ready  | 0.15       | 0.5     | 1             | -0.234  | -0.280 | -0.802 | -0.613 |
+| tick       | 0.10       | 0.5     | 1             | -0.391  | -0.400 | -0.591 | -0.517 |
+| tick       | 0.15       | 0.5     | 1             | -0.348  | -0.409 | -0.672 | -0.573 |
+| tick       | 0.15       | 1.0     | 1             | -0.450  | -0.428 | -0.481 | -0.459 |
+| tick       | 0.05       | 0.5     | 1             | -0.609  | -0.574 | -0.374 | -0.454 |
+| tick       | 0.10       | 1.0     | 1             | -0.609  | -0.574 | -0.374 | -0.454 |
+| tick       | 0.05       | 1.0     | 1             | -0.614  | -0.623 | -0.363 | -0.473 |
+
+### Root-Cause Attribution
+1. **No directional information in daily signed volume**: the best Val
+   Sharpe across 36 combos is only 0.170, and the selected config's OOS
+   Sharpe is **negative** (-0.156) — below buy-and-hold SPY (0.733) and below
+   the randomized-direction control (-0.080), which uses the identical
+   turnover but with zero predictive sign. The tick/Lee-Ready proxy on daily
+   OHLCV cannot resolve true buyer/seller-initiated flow.
+2. **Overfitting / train-to-test decay**: Train Sharpe -0.256 → Val 0.170
+   → Test -0.398. The Val "edge" is a noise artifact of the selection window
+   and inverts out-of-sample.
+3. **Worst in bull markets**: worst-regime Sharpe is bull (-0.627), not bear
+   — the signal is purest noise exactly when markets are quiet and
+   well-signed, confirming the direction proxy carries no signal.
+4. **Uncompensated active share**: IR vs BH SPY is -0.704 (significantly
+   negative, p=0.0159); the 2,958 trades of active share are not rewarded.
+5. **Vol-targeting ineffective**: across target_vol ∈ {0.05, 0.10, 0.15} the
+   ranking is nearly flat (all negative); the realized-vol estimator
+   (63-day annualized) lags crisis spikes, so exposure is not meaningfully
+   reduced when it matters.
+
+**Conclusion**: Signed-volume / order-flow-imbalance decomposition does not
+provide a robust, causally-identified edge for daily SPY trading. The
+hypothesis is **REJECTED**. The signal is not recommended for production.
+The binding constraint is signal granularity (daily tick/Lee-Ready proxy),
+not vol-targeting or transaction costs.
+
+**Compute**: 0.001 CPU-h (5.4s wall time, 36-combo grid). Within ≤2 CPU-h
+budget. Deterministic (seed 42).

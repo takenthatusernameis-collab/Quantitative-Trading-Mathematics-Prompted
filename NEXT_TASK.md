@@ -237,54 +237,134 @@ clear the gates.
 
 ---
 
+## Session outcome (2026-10-13 — H20 executed)
+
+**H20 (Volume-Sign / Order-Flow Imbalance): REJECT — 2/9 gates.**
+
+Executed exactly as pre-registered (HYPOTHESIS_SPEC.md §H20; frozen before
+running). 36 grid combos (2 sign rules × 3 target vols × 2 max positions × 3
+imbalance lags) on SPY daily OHLCV, QQQ/IWM cross-validation, ^VIX regime
+labels. Selected: `lee_ready / tv0.05 / mp1.0 / lag3` (argmax Val Sharpe
+0.170, Train -0.256, Test -0.398). OOS (Val+Test, 2,958 days, protected):
+
+| Metric             | Value   | Gate   | Pass? |
+|--------------------|---------|--------|-------|
+| Sharpe             | -0.156  | ≥ 1.0  | FAIL  |
+| Trades             | 2,958   | ≥ 200  | PASS  |
+| Profit factor      | 0.973   | ≥ 1.3  | FAIL  |
+| Max drawdown       | -22.1%  | ≤ 15%  | FAIL  |
+| WF stability       | -0.480  | ≥ 0.7  | FAIL  |
+| Worst-regime       | -0.627 (bull) | ≥ 0.3 | FAIL |
+| Benchmark p-value  | 0.0159  | ≤ 0.05 | PASS  |
+| Information ratio  | -0.704  | ≥ 0.0  | FAIL  |
+| Perturbation       | 0.000   | ≥ 0.5  | FAIL  |
+
+PASS gates: Trades, benchmark significance. FAIL gates: Sharpe, PF, DD, WF
+stability, worst-regime, IR, perturbation (selected optimum is non-positive,
+so the stability reference is undefined → 0.0).
+
+**Confirmed falsification:** Signed-volume / order-flow-imbalance decomposition
+does not generate a Sharpe ≥ 1.0 (indeed OOS Sharpe is *negative*) with DD ≤
+15% on free daily OHPLC, even with vol-targeting and a ±20% perturbation
+gate. The selected signal's OOS Sharpe (-0.156) is below BH SPY (0.733) and
+below a randomized-direction ablation using the *same* turnover (-0.080),
+proving the daily tick/Lee-Ready sign proxy carries no directional
+information. This is the direct invalidation of the H19 escape hatch ("signed
+volume would help") — it does not.
+
+**Root cause**: direction-classification granularity, not vol-targeting or
+costs. The signal is noisiest in quiet bull markets (worst-regime Sharpe in
+bull = -0.627), where the intraday up/down proxy is purest noise.
+
+**Verified**: 249/249 tests pass (226 prior + 23 new H20 tests pinning
+pre-registration/36-combo grid, artifact schema, gate recomputation from
+logged artifacts at 1e-9, grid/selection integrity, causality (future
+perturbation propagates to future but NOT past targets), weight bounds
+[-1,+1], determinism, regime labels, and the executed REJECT outcome).
+Artifacts in `.experiments/artifacts/exp_2026-10-13T23-01-02-644073Z/`. H20
+Measure Log appended to `HYPOTHESIS_SPEC.md` (§H20); root-cause attribution
+added to `INEFFICIENCY_RANKING.md` (§H20). Compute 0.001 CPU-h (5.4s).
+
+### Cumulative state of evidence gates
+- PASS (promoted to candidate edge): H10 (intraday futures TSMOM, Sharpe
+  1.276), H11 (robustness certified), H12 (selection-bias audit PASS).
+- REJECT: H1–H9 (momentum/TSMOM on free data), H16 (factor timing, 1/9),
+  H17 (VRP), H18 (overnight/intraday, 2/9), H19 (volume-predictive, 3/9),
+  **H20 (signed volume / order-flow, 2/9)**.
+- **Net: only H10/H11 (intraday futures TSMOM) clears the gates; it is the
+  sole surviving edge. All equity- and volume-based free-data families reject.**
+- Structural walls unchanged: (a) yfinance hourly `=F` ~730-day cap blocks
+  long-horizon intraday extension beyond H10/H11 without paid data; (b) the
+  joint Sharpe ≥ 1.0 ∧ DD ≤ 15% gate has been met by no free-data equity
+  family except H10/H11's futures-carry mechanism.
+- Volume line exhausted: H19 (total volume) and H20 (signed volume) both
+  reject; signing the flow on free daily OHLCV does not help.
+
+---
+
 ## Precise next task (bounded, verifiable, free data)
 
-**H20: Volume-sign (buy/sell initiated) decomposition + order-flow
-imbalance.** Rationale: H19 showed *total* volume decomposition fails
-because it conflates buying and selling pressure. The signed-volume
-signal (buyer-initiated vs seller-initiated) — the "order-flow imbalance"
-of Kane (2002) and the Hasbrouck (2001) microstructure model — isolates
-net demand pressure. The hypothesis: daily net-order-flow imbalance (buy
-volume - sell volume, estimated via the tick rule / BDAVOL-style sign
-assignment) positively predicts next-day SPY returns, and a thresholded
-long/short position on signed flow clears the Sharpex ≥ 1.0 / DD ≤ 15%
-gates.
+**H21: Multi-contract intraday futures TSMOM generalization of the H10 edge.**
+Rationale: H10/H11 (intraday futures TSMOM with path-dependent exits, PF-
+optimized) is the *only* passing family; its PF margin is fragile (H13/H14
+showed bootstrap-CI LB below 1.3 and that CL=F/GC=F are indispensable), and
+the single-contract equity curve is regime-fragile. The standard path to a
+robust, scalable carry/momentum book is to generalize the *same* mechanism
+across a diversified basket of liquid futures and aggregate cross-sectionally.
+This is the highest-information-gain follow-up to the one real edge, reuses
+the H10/H11 engine and artifacts (no rebuild), and is bounded by the hourly
+`=F` 730-day window.
 
-Pre-registration skeleton (freeze in HYPOTHESIS_SPEC.md BEFORE running):
+Pre-registration skeleton (freeze in `HYPOTHESIS_SPEC.md` BEFORE running):
 
-- Universe: SPY (primary, traded); QQQ/IWM for cross-val. Need daily OHLCV
-  high-resolution enough to assign trade direction via the tick rule
-  (sign of intraday return, Lee-Ready algorithm). If yfinance does not
-  provide per-trade or bid/ask, proxy via the sign of the intraday price
-  change (up-tick = buyer-initiated, down-tick = seller-initiated).
-- Sample: 2009-01→2026-10-08 (~4,200 bars).
-- Splits: Train 2009-01→2014-12, Val 2015-01→2019-12, Test 2020-01→
-  2026-10-08. OOS = Val+Test.
-- Signal (causal, `.shift(1)`): order_flow_imbalance_t = V^+t - V^-t
-  (buyer-initiated - seller-initiated volume); position_t =
-  sign(imbalance_t) * clip(target_vol_t / realized_vol_t, 0, max_pos).
-- Grid: sign_rule ∈ {tick, lee_ready} × target_vol ∈ {0.05, 0.10, 0.15}
-  × max_pos ∈ {0.5, 1.0} × imbalance_lag ∈ {1, 3, 5} = up to 36 combos;
-  selection by Val Sharpe; Test protected.
-- Benchmark: BH SPY. Volatility-targeted BH SPY as secondary.
-- Ablations: BH SPY, random-signed-volume, constant position,
-  total-volume-only (H19's failed decomposition).
-- Gates: unchanged 9-gate PROMPT_V2 set + ±20% perturbation.
-- Tests: `tests/test_h20_signed_volume.py`.
+- Universe (traded): ES=F (equity index), NQ=F (equity index tech), CL=F
+  (energy commodity), GC=F (precious metal), ZB=F (rates). Sample =
+  ^VIX/^SPX as secondary reference (signal-only / context). Data = yfinance
+  hourly `=F`, clipped to the ~730-day availability window (the hard free-
+  data limit); daily `=F` as a fallback leg if/when hourly gaps.
+- Sample window: the latest ~730 trading hours available from yfinance for
+  each contract (≈ 2024-09 → 2026-10-08), aligned to a common hourly grid.
+  Splits: Train 60%, Val 20%, Test 20% by time (no overlap), Val and Test
+  protected from selection. OOS = Val+Test. (Mirror the H10 time-split
+  discipline.)
+- Signal (carry 1-hour lag): reuse the H10-selected configuration's
+  path-dependent intraday TSMOM rule (PF-optimized exits) applied *per
+  contract*; position size per contract = sign(signal) × vol_target /
+  realized_vol(hourly), capped per max_pos. Cross-sectional aggregation:
+  normalize each contract's dollar-neutrality via vol-targeting and combine
+  with a simple risk-parity weighting (inverse vol) so the basket is
+  directionally hedged as much as the long-only futures constraint allows
+  (note: futures TSMOM is long-negative-rolling-cost; true neutrality needs
+  a short leg — document as a structural caveat).
+- Grid: target_vol ∈ {0.25, 0.50} × max_pos ∈ {0.5, 1.0} × scale_rule ∈
+  {equal, inverse_vol} × n_assets ∈ {3 (core: ES,NQ,CL), 5 (full)} = 16
+  combos; selection by Val Sharpe; Test protected.
+- Benchmark: BH of the basket (sum of contract returns, vol-weighted).
+- Ablations (OOS): (a) single-contract ES only (the H10 config), (b) random
+  per-contract sign (shuffled), (c) constant position, (d) daily-frequency
+  TSMOM per contract (does the edge survive at 1-day, or is it intraday-only
+  per H9's finding?).
+- Gates: unchanged 9-gate PROMPT_V2 set + ±20% perturbation, applied to OOS
+  Val+Test. **No gate weakening.**
+- Expected outcome: REJECT on the daily-frequency and random ablations; the
+  *cross-sectional intraday* basket is the genuine candidate and may approach
+  or clear gates (it is the single surviving edge family). If it clears,
+  H21 becomes the promoted candidate; if not, document the precise
+  bottleneck (carry decay vs. gap risk vs. 730-day-window stationarity).
+- Tests: `tests/test_h21_futures_tsmom_multicontract.py` mirroring
+  `test_h20_signed_volume.py` / `test_h11_robustness.py` (pre-registration
+  pinning, 16-combo grid, causality, weight bounds, gate recomputation at
+  1e-9, executed outcome).
 - Compute: ≤ 2 CPU-h. Seed 42.
-
-Expected outcome: REJECT — free daily OHLCV with tick-rule sign assignment
-cannot isolate net order flow with sufficient accuracy, and the resulting
-position signal's Sharpe and drawdown will fall short of H10's futures
-edge. That is a publishable falsification: "signed-volume decomposition
-does not clear the Sharpe/DD gates on free daily data without
-market-microstructure-grade order flow."
 
 ### Constraints (unchanged)
 - No paid data; yfinance/free sources only.
 - Pre-register before running; never select on Test.
 - All gates from PROMPT_V2.md + HYPOTHESIS_SPEC.md apply; no gate weakening.
-- Working-tree changes from this session should be committed per the
-  repo convention (commit-per-experiment): H19 script & tests, updated
-  HYPOTHESIS_SPEC.md (§H19 Measure Log), INEFFICIENCY_RANKING.md (§17),
-  this NEXT_TASK.md, H19 experiment artifacts — excluding `.pyc` churn.
+- Preserve the H10/H11 engine and artifacts as the baseline; any engine change
+  must be justified by a demonstrated, material need and regression-tested.
+- Working-tree changes from this session should be committed per the repo
+  convention (commit-per-experiment): H20 script (`run_h20_signed_volume_experiment.py`),
+  H20 tests (`tests/test_h20_signed_volume.py`), updated `HYPOTHESIS_SPEC.md`
+  (§H20 pre-registration + Measure Log), `INEFFICIENCY_RANKING.md` (§H20), this
+  `NEXT_TASK.md`, H20 experiment artifacts — excluding `.pyc` churn.

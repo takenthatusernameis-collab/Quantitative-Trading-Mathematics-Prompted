@@ -1,0 +1,10 @@
+{
+  "run_id": "exp_2026-10-13T23-06-33-191710Z",
+  "script": "run_h20_signed_volume_experiment.py",
+  "start_time": 1791932793.1914504,
+  "end_time": 1791932799.9038413,
+  "duration_seconds": 6.712390899658203,
+  "duration_cpu_hours": 0.0018645530276828342,
+  "timestamp_start": "2026-10-13T23:06:33.191450",
+  "timestamp_end": "2026-10-13T23:06:39.903841"
+}
