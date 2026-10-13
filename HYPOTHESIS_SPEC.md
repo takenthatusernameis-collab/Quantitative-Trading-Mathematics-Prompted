@@ -2421,3 +2421,42 @@ not vol-targeting or transaction costs.
 
 **Compute**: 0.001 CPU-h (5.4s wall time, 36-combo grid). Within ≤2 CPU-h
 budget. Deterministic (seed 42).
+
+---
+
+## Hypothesis H21: Multi-Contract Intraday Futures TSMOM Generalization
+
+### Statement
+Generalizing the H10/H11 certified intraday TSMOM edge (vol-scaled, path-dependent exits) across a diversified basket of 5 liquid futures contracts (ES=F, NQ=F, CL=F, GC=F, ZB=F) with risk-parity aggregation generates net pooled out-of-sample (Val+Test) Sharpe ≥ 1.0 with ≥ 200 trades, PF ≥ 1.3, max DD ≤ 15%, walk-forward stability ≥ 0.7, robust to ±20% parameter perturbation (OOS Sharpe ≥ 0.5 × optimum), and significant positive alpha vs equal-weight basket benchmark (p < 0.05, IR > 0) on the ~730-day yfinance hourly window.
+
+### Mechanism
+H10/H11 established that intraday TSMOM with CT-style exits (trailing stop, time stop, vol stop) on a single-contract universe achieves Sharpe 1.276 and PF 1.304 on the 2024-10 → 2026-10 hourly window. However, H13/H14 showed the PF margin (+0.004) is fragile (bootstrap CI LB 1.190) and CL=F/GC=F are indispensable for the pooled PF. The standard path to a robust, scalable managed-futures book is to apply the *same* mechanism cross-sectionally and aggregate with risk-parity (inverse-vol) weighting so the basket is diversified and less dependent on any single symbol. This directly tests whether the H10 edge generalizes or is a single-contract artifact.
+
+### Null (H0)
+The multi-contract intraday TSMOM basket OOS Sharpe ≤ 1.0 OR max DD > 15% OR PF < 1.3 on the protected holdout; the H10 edge does not survive cross-sectional diversification on the free hourly window.
+
+### Pre-registration
+
+- **Universe (traded)**: ES=F (equity index), NQ=F (equity index tech), CL=F (energy commodity), GC=F (precious metal), ZB=F (rates). Sample = ^VIX/^SPX as secondary reference (signal-only / context). Data = yfinance hourly `=F`, clipped to the ~730-day availability window (the hard free-data limit); daily `=F` as a fallback leg if/when hourly gaps.
+- **Sample window**: The latest ~730 trading hours available from yfinance for each contract (≈ 2024-09 → 2026-10-08), aligned to a common hourly grid.
+- **Splits**: Train 60%, Val 20%, Test 20% by time (no overlap), Val and Test protected from selection. OOS = Val+Test. (Mirror the H10 time-split discipline.)
+- **Signal (causal, 1-hour lag)**: Reuse the H10-selected configuration's path-dependent intraday TSMOM rule (PF-optimized exits) applied *per contract*; position size per contract = sign(signal) × vol_target / realized_vol(hourly), capped per max_pos. Cross-sectional aggregation: normalize each contract's dollar-neutrality via vol-targeting and combine with a simple risk-parity weighting (inverse vol) so the basket is directionally hedged as much as the long-only futures constraint allows (note: futures TSMOM is long-negative-rolling-cost; true neutrality needs a short leg — documented as a structural caveat).
+- **Grid**: target_vol ∈ {0.25, 0.50} × max_pos ∈ {0.5, 1.0} × scale_rule ∈ {equal, inverse_vol} × n_assets ∈ {3 (core: ES,NQ,CL), 5 (full)} = 16 combos; selection by Val Sharpe; Test protected.
+- **Benchmark**: BH of the basket (sum of contract returns, vol-weighted).
+- **Ablations (OOS)**: (a) single-contract ES only (the H10 config), (b) random per-contract sign (shuffled), (c) constant position, (d) daily-frequency TSMOM per contract (does the edge survive at 1-day, or is it intraday-only per H9's finding?).
+- **Gates**: Unchanged 9-gate PROMPT_V2 set + ±20% perturbation, applied to OOS Val+Test. **No gate weakening.**
+- **Expected outcome**: REJECT on the daily-frequency and random ablations; the *cross-sectional intraday* basket is the genuine candidate and may approach or clear gates (it is the single surviving edge family). If it clears, H21 becomes the promoted candidate; if not, document the precise bottleneck (carry decay vs. gap risk vs. 730-day-window stationarity).
+- **Tests**: `tests/test_h21_futures_tsmom_multicontract.py` mirroring `test_h20_signed_volume.py` / `test_h11_robustness.py` (pre-registration pinning, 16-combo grid, causality, weight bounds, gate recomputation at 1e-9, executed outcome).
+- **Compute**: ≤ 2 CPU-h. Seed 42.
+
+### Implementation Plan
+
+1. Create `run_h21_futures_tsmom_multicontract.py` implementing the pre-registration above, reusing the H10/H11 engine patterns (`vol_scaled_tsmom_hourly`, `build_hourly_target`, `apply_exits_hourly`, `run_backtest`, `compare_to_benchmark`, `walk_forward_splits`, regime labeling, tracker/artifacts). Ensure strict causality (1-hour lag: use shifted returns/levels appropriately), point-in-time data, no lookahead.
+2. Fetch/verify data availability for ES=F, NQ=F, CL=F, GC=F, ZB=F, ^VIX (using yfinance). The H10/H11 cached data mechanism should be reused. Handle tz-normalization exactly as H10 (America/New_York → tz-naive). Align all contracts to a common hourly grid (inner join on timestamps).
+3. Run the full grid (16 combos), select on Val Sharpe, compute all gates on OOS (Val+Test), generate ablations, write artifacts to `.experiments/artifacts/exp_YYYY-MM-DDTHH-MM-SS-ffffffZ/` (summary.json, equity/trades, prices/volumes/vix, param_grid_results, selected signals, per-contract positions, ablations). Include regime breakdowns by VIX labels.
+4. Add regression tests `tests/test_h21_futures_tsmom_multicontract.py` mirroring `test_h20_signed_volume.py`: pre-registration pinning, artifact schema, gate recomputation from logged artifacts (1e-9 tolerance), grid/selection integrity (16 unique combos, selection by Val Sharpe), causality (future perturbation does not change past targets), weight bounds [0, max_pos] per contract, determinism, regime labels, and executed-outcome pinning.
+5. Update `HYPOTHESIS_SPEC.md` with the Measured section and verdict once executed; update `INEFFICIENCY_RANKING.md` accordingly; update `NEXT_TASK.md` to reflect pivot post-H21.
+6. Execute, verify full test suite still passes (including new H21 tests), run any relevant lint/typecheck commands if available in the repo (check for common commands like `ruff`, `mypy`, `pytest -q`).
+
+### Verdict rule (pre-registered)
+H21 **PASS** iff all 9 gates pass on the protected OOS (Val+Test). Otherwise **REJECT** with root-cause attribution.

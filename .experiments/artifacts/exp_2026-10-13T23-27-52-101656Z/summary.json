@@ -1,0 +1,86 @@
+{
+  "experiment_id": "exp_2026-10-13T23-27-52-101656Z",
+  "hypothesis": "H21",
+  "selected_config": {
+    "target_vol_mult": 0.5,
+    "max_pos": 0.5,
+    "scale_rule": "equal",
+    "n_assets": 5,
+    "h10_base_config": {
+      "vol_window_long": 1008,
+      "smooth_span": null,
+      "regime_scaling": false,
+      "min_trade_interval": 0,
+      "trailing_mult": 2.0,
+      "max_hold_bars": 60,
+      "vol_limit_mult": 1.5,
+      "vol_floor_fraction": 0.25
+    }
+  },
+  "grid_size": 16,
+  "n_evaluated": 16,
+  "grid_elapsed_sec": 11.9,
+  "total_elapsed_sec": 17.7,
+  "compute_cpu_hours": 0.005,
+  "metrics": {
+    "train_sharpe": 0.9534439542270774,
+    "val_sharpe": 0.8393598580201286,
+    "test_sharpe": 0.7653815291467686,
+    "oos_sharpe": 0.8393598580201286,
+    "profit_factor": 1.2058898228640889,
+    "max_drawdown": -0.08603487195947013,
+    "trades": 5920,
+    "wf_stability": 0.9883111122625694,
+    "worst_regime_sharpe": 0.7780463612248392,
+    "regime_sharpes": {
+      "bull": 0.9362003734821918,
+      "sideways": 0.7780463612248392,
+      "bear": 0.9750550885280462
+    },
+    "benchmark_p_value": 1.914795347616254e-10,
+    "information_ratio": 0.9459483422829976,
+    "ablations": {
+      "es_only_h10": {
+        "oos_sharpe": 0.6084417328442836,
+        "oos_profit_factor": 1.173993149109761,
+        "oos_max_drawdown": -0.05415209087381856,
+        "oos_trades": 224,
+        "test_sharpe": 0.6083681662869481
+      },
+      "random_sign_shuffled": {
+        "oos_sharpe": -0.47036412017563356,
+        "oos_profit_factor": 0.9035450425508711,
+        "oos_max_drawdown": -0.7020320956642843,
+        "oos_trades": 19241,
+        "test_sharpe": -0.7154892113229278
+      },
+      "constant_0.5": {
+        "oos_sharpe": 0.3317335529417415,
+        "oos_profit_factor": 1.0667728161613772,
+        "oos_max_drawdown": -0.050574874255934765,
+        "oos_trades": 0,
+        "test_sharpe": -0.03408314837411975
+      },
+      "daily_tsmom": {
+        "oos_sharpe": 0.5137580766707338,
+        "oos_profit_factor": 1.1153778466786293,
+        "oos_max_drawdown": -0.23687842876224408,
+        "oos_trades": 1262,
+        "test_sharpe": 0.1845284424976476
+      }
+    }
+  },
+  "passes": {
+    "sharpe": false,
+    "trades": true,
+    "pf": false,
+    "dd": true,
+    "stab": true,
+    "worst": true,
+    "p": true,
+    "ir": true
+  },
+  "all_pass": false,
+  "verdict": "REJECT",
+  "selection_rule": "best Val Sharpe; Test protected (not used for selection); gates on OOS Val+Test"
+}
