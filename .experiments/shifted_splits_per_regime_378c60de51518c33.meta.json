@@ -1,0 +1,23 @@
+{
+  "shape": [
+    9,
+    6
+  ],
+  "columns": [
+    "split",
+    "regime",
+    "profit_factor",
+    "bars",
+    "base_profit_factor",
+    "base_bars"
+  ],
+  "dtypes": {
+    "split": "str",
+    "regime": "str",
+    "profit_factor": "float64",
+    "bars": "int64",
+    "base_profit_factor": "float64",
+    "base_bars": "int64"
+  },
+  "index_type": "int64"
+}

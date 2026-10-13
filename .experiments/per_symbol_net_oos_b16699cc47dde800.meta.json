@@ -1,0 +1,21 @@
+{
+  "shape": [
+    5,
+    5
+  ],
+  "columns": [
+    "symbol",
+    "net_profit_factor",
+    "net_pnl",
+    "pnl_share",
+    "leave_one_out_pooled_pf"
+  ],
+  "dtypes": {
+    "symbol": "str",
+    "net_profit_factor": "float64",
+    "net_pnl": "float64",
+    "pnl_share": "float64",
+    "leave_one_out_pooled_pf": "float64"
+  },
+  "index_type": "int64"
+}

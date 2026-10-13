@@ -1,0 +1,19 @@
+{
+  "shape": [
+    7,
+    4
+  ],
+  "columns": [
+    "cost_multiplier",
+    "oos_profit_factor",
+    "oos_sharpe",
+    "oos_trades"
+  ],
+  "dtypes": {
+    "cost_multiplier": "float64",
+    "oos_profit_factor": "float64",
+    "oos_sharpe": "float64",
+    "oos_trades": "int64"
+  },
+  "index_type": "int64"
+}

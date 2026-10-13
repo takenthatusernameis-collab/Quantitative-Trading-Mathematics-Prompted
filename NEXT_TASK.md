@@ -1,118 +1,109 @@
-# Next Task: H12 complete — PASS (selection bias rejected)
+# Next Task: H13 complete — REJECT on the fragility axes (PF margin is fragile)
 
-## H12 executed 2026-10-13 — **PASS**
+## H13 executed 2026-10-13 — **REJECT** (2 of 3 fragility nulls not rejected)
 
-Selection-bias audit of the frozen H10-selected config.
-39.1 min, 0.652 CPU-h (budget ≤ 4 CPU-h). Artifacts:
-`.experiments/artifacts/exp_2026-10-13T12-51-06-515939Z/`
-(`summary.json`, `grid_oos_metrics.parquet` — per-combo OOS
-metrics for all 13,824 configs, `cscv_rank_distribution.parquet`,
-`val_sharpe_distribution.parquet`). Script:
-`run_h12_selection_bias_audit.py`. Regression tests:
-`tests/test_h12_selection_bias.py`.
+OOS-level deflation & PF-margin fragility audit of the
+frozen H10-selected config (< 0.1 CPU-h,
+artifact-reuse-only). Artifacts:
+`.experiments/artifacts/exp_2026-10-13T14-35-58-316759Z/`
+(`summary.json`, `per_symbol_net_oos.parquet`,
+`pf_bootstrap.parquet`, `shifted_splits*.parquet`,
+`cost_sensitivity.parquet`). Script:
+`run_h13_oos_deflation_pf_audit.py`. Regression tests:
+`tests/test_h13_oos_deflation_pf.py` (105/105 passing).
 
-| Pre-registered component | Result |
-|---|---|
-| 1. Deflated Sharpe Ratio (N=13,824) | E[max SR \| null] = 0.6214 vs observed best-of-N Val SR 1.4134 (+2.86 grid SD); **DSR-adjusted Sharpe 1.4094, p = 0.00283** |
-| 2. PBO via CSCV (S=12, T=5,148, 924 combos) | **PBO = 0.0552** (< 0.3 strict, < 0.5 H0); median OOS rank of IS-optimal = 1,716/13,824 (top 12%) |
-| 3. Family-wide multiple testing (N=14,389) | DSR (family) = 1.4093, p = 0.00288; benchmark p 4.79e-10 → Bonferroni/BH/Šidák ≈ **6.89e-06** (< 0.05) |
-| 4. PF-margin sensitivity (diagnostic) | Selected Val PF 1.3527 (rank 9/13,824); PF ≥ 1.3 fraction: **7.26% Val vs 0.32% OOS** |
+| Pre-registered component | Result | Gate |
+|---|---|---|
+| 1. OOS worst-case deflation (N=13,824) | E[max SR \| null] = 0.6095 vs OOS SR 1.2758; **DSR-adj OOS Sharpe 1.2745, p = 0.00102**; single-peek (N=1) DSR 1.2758, p < 1e-06 | **PASS** (≥ 1.0) |
+| 2. OOS PF bootstrap 95% CI (2,000 resamples, seed 42) | CI **[1.1900, 1.4248]**, median 1.3022, **P(PF ≥ 1.3) = 51.7%** | **FAIL** (LB < 1.3) |
+| 3. Symbol dispensability (leave-one-out pooled OOS PF) | ES 1.3070 ✓, NQ 1.3006 ✓, **CL 1.2494 ✗**, **GC 1.2821 ✗**, ZB 1.3114 ✓ | **FAIL** (CL=F, GC=F indispensable) |
+| 2c. Shifted splits (confirm + attribution) | 50/25/25 → 1.2806, 60/20/20 → 1.3298, 45/30/25 → 1.2916 — all reproduce H11 E4a bit-exactly (\|Δ\|=0); shortfall driven by **CL=F** (net-PF delta −0.076/−0.084) and the **bull regime** | diagnostic |
+| 2d. Cost break-even | **1.5420×** (H11 interpolated 1.5418×, \|Δ\|=0.0002); cost ×2 moves PF only −0.008 | diagnostic |
 
-**Verdict: PASS.** The H10 certification is not a best-of-N
-selection artifact. The re-run grid reproduces the H10 OOS
-metrics of the selected config bit-exactly (OOS Sharpe
-1.275759, PF 1.304165).
+**Verdict: REJECT** (pre-registered: PASS iff all three
+gates hold). Root cause: the H10 certification's binding
+constraint — the OOS PF margin (+0.004) — is (a) within
+bootstrap sampling noise (CI half-width ±0.117) and
+(b) carried by the two highest-PF symbols: CL=F (net PF
+1.358, the only symbol above the pooled 1.304; removal
+drops pooled PF to 1.249) and GC=F (removal drops it to
+1.282 — its below-pooled net PF masks its role offsetting
+other symbols' loss bars, so pooled PF is non-monotone in
+per-symbol PF). The Sharpe edge is deflation-robust; the
+PF gate is not. Costs are not the driver (break-even
+1.542×).
 
-**Fix applied during H12:** the pre-written CSCV helper had an
-inverted rank comparison (`pbo = mean(ranks < median_rank)`);
-rank 1 is the best OOS rank, so "below the OOS median" is
-`rank > median_rank`. The new regression tests caught this
-(a perfectly-skilled synthetic strategy returned PBO=1.0 before
-the fix). Always trust the tests over pre-written machinery.
-
-**Caveats carried forward:**
-1. CSCV's exchangeability assumption holds only approximately
-   for a correlated candidate grid — the low PBO partly measures
-   selection *stability within* the family, not independence
-   across families.
-2. The profit factor remains the fragile gate: OOS PF 1.304
-   clears 1.3 by only +0.004; only 0.32% of configs clear
-   PF ≥ 1.3 OOS.
-3. Free yfinance hourly `=F` data is hard-capped at ~730 days
-   (no bars beyond 2026-10-09); the sample is a single ~2-year
-   hourly window. Both require a paid data source to lift.
-
-**Note on repo state:** all H12 changes (script, tests, docs)
-are in the working tree, **uncommitted** (commit policy: only
-commit when explicitly asked). Intended commit, if desired:
-`run_h12_selection_bias_audit.py`, `tests/test_h12_selection_bias.py`,
-`HYPOTHESIS_SPEC.md`, `INEFFICIENCY_RANKING.md`, `FINAL_REPORT.md`,
-`NEXT_TASK.md`, plus the H11 public-API refactor of
-`run_h11_robustness_experiment.py` (fixes the 13 failing
-regression tests: `FROZEN_CONFIG`, `PERTURBATIONS` ±20% pairs,
-`JOINT_PERTURBATIONS`, `build_positions`, `make_cost_stressed_config`,
-`per_symbol_contributions`, `bootstrap_sharpe_distribution`,
-`probe_live_extension`, `MAX_POSITION_SIZE`) and the H12
-experiment artifacts under `.experiments/`. Do not stage
-`__pycache__/*.pyc` (ignored, but force-added in commit
-8015413 — they show as modified; leave them).
+**Repo state:** all H13 changes (script, tests, docs) are
+in the working tree, **uncommitted** (commit policy: only
+commit when explicitly asked). Intended commit, if
+desired: `run_h13_oos_deflation_pf_audit.py`,
+`tests/test_h13_oos_deflation_pf.py`, `HYPOTHESIS_SPEC.md`,
+`INEFFICIENCY_RANKING.md`, `FINAL_REPORT.md`,
+`NEXT_TASK.md`, plus the H13 artifacts under
+`.experiments/`. Do not stage `__pycache__/*.pyc`
+(ignored, but force-added in commit 8015413 — they show
+as modified; leave them). H12 and H11-refactor changes
+from the prior session are likewise still uncommitted.
 
 ---
 
-## Next Task (for next agent): H13 — OOS-Level Deflation & PF-Margin Fragility Audit
+## Next Task (for next agent): H14 — PF-Margin-Targeted Selection Audit
 
-H12 deflated the *Val* (selection-metric) Sharpe. Two bounded,
-artifact-reuse-only follow-ups remain (no new backtests, ≤ 0.1 CPU-h):
+H13 established that the H10 config's PF margin is
+fragile. The open question: is the fragility a property
+of the *selection* (Val-Sharpe selection happened to pick
+a thin-PF-margin config) or of the *family* (no config
+in the 13,824-combo grid has a robust PF margin on this
+window)? Bounded, artifact-reuse-first design (≤ 0.2 CPU-h):
 
-1. **OOS worst-case deflation.** Using the H12 artifact
-   `grid_oos_metrics.parquet` (per-combo OOS Sharpe for all
-   13,824 configs — the H12 grid re-run), compute the DSR of
-   the selected config's **OOS** Sharpe (1.275759) under the
-   *worst-case* assumption that OOS had been the selection
-   metric with N=13,824 trials (moments: OOS-Sharpe
-   distribution mean/SD from the same artifact; OOS-return
-   skew/kurtosis from the H10 artifact `returns.parquet` on
-   the OOS mask). This is a conservative "peeking" bound: the
-   config was actually selected on Val, so the true OOS
-   deflation is weaker (N≈1 for a single OOS evaluation).
-   Report both the worst-case (N=13,824) and the single-peek
-   (N=1) DSR.
-2. **PF-margin fragility decomposition.** Using the H10 artifact
-   (`returns.parquet`, `trades.parquet`, `positions.parquet`,
-   `prices.parquet`) and the H11 per-symbol machinery
-   (`run_h11_robustness_experiment.per_symbol_contributions`):
-   (a) net per-symbol OOS profit factors (decompose the pooled
-   PF 1.304 into the 5 symbols' contributions); (b) bootstrap
-   95% CI of the OOS PF (2,000 resamples of OOS returns, seeded);
-   (c) PF under the H11 shifted splits (already computed:
-   1.281–1.292 — confirm and attribute which symbol/regime
-   drives the shortfall); (d) the cost multiplier at which the
-   *selected* config's OOS PF crosses 1.3 (H11 found the
-   break-even at 1.542× — verify against the H12 re-run).
+1. **Rank by Val PF margin.** From the H10 artifact
+   `exp_2026-10-11T17-41-18-169363Z/grid_results.parquet`
+   (per-combo `val_profit_factor`), take the top K=50
+   configs by Val PF margin (`val_profit_factor − 1.3`),
+   excluding the frozen H10 config (already audited).
+2. **Re-run the K configs logging per-combo OOS returns**
+   (reuse `run_h12_selection_bias_audit._rebuild_grid_oos`
+   machinery, restricted to the K configs — ~1 min).
+3. **H13 fragility gates per config:** OOS PF bootstrap
+   95% CI lower bound (2,000 seeded resamples), worst-case
+   DSR-adj OOS Sharpe (N=K), and leave-one-out symbol
+   dispensability (reuse `per_symbol_contributions`).
+4. **Decision rule (pre-register before execution):**
+   - If ≥ 1 config passes all three gates, report it as a
+     strictly more robust certification candidate — but it
+     then requires its own H12-style selection-bias audit
+     at N=K (it was selected on Val PF, so the DSR must
+     use the Val-PF distribution and N=K trials).
+   - If none pass, the PF-margin fragility is a family
+     property on this ~2-year hourly window — a durable
+     negative result that closes the H10 line: the only
+     remedies are a longer OOS window (paid data) or a
+     different construction (e.g., PF-targeted exits).
 
-**Pre-registration for H13** (write before execution):
-- Null (H0): the OOS Sharpe does not survive the worst-case
-  OOS-level deflation (DSR-adjusted OOS Sharpe < 1.0), or the
-  OOS PF bootstrap CI lower bound < 1.3, or no single symbol
-  is dispensable (each symbol's removal keeps PF ≥ 1.3 — i.e.
-  the margin is robust).
-- Deliverables: `run_h13_oos_deflation_pf_audit.py`, artifacts
-  in `.experiments/artifacts/exp_<H13>/`, updated
-  `HYPOTHESIS_SPEC.md` and `INEFFICIENCY_RANKING.md`, final
-  PASS/REJECT verdict with root-cause attribution.
-- Reuse `run_h12_selection_bias_audit.deflated_sharpe_ratio`,
-  `_expected_max_sharpe`, `_load_cached_data`, `_splits`,
-  `_period_metrics`, `_count_in` and the H11 public API — no
-  new engine code.
+**Pre-registration for H14** (write before execution):
+- Null (H0): no config in the top-K-by-Val-PF-margin
+  set passes all three H13 fragility gates (PF bootstrap
+  CI LB ≥ 1.3, worst-case DSR-adj OOS Sharpe ≥ 1.0 at
+  N=K, all symbols dispensable).
+- Deliverables: `run_h14_pf_margin_selection_audit.py`,
+  artifacts in `.experiments/artifacts/exp_<H14>/`,
+  updated `HYPOTHESIS_SPEC.md` and `INEFFICIENCY_RANKING.md`,
+  final verdict with root-cause attribution, regression
+  tests.
+- Reuse the H12 grid machinery, H13 fragility helpers
+  (`_profit_factor`, `bootstrap_profit_factor_distribution`,
+  `_leave_one_out_pf`, `deflated_sharpe_ratio`,
+  `deflated_sharpe_ratio_single_peek`) and the H11 public
+  API — no new engine code.
 
-**Constraints (unchanged):** no live trading, no secrets, no paid
-data, Test never enters selection, preserve negative results,
-≤ 4 CPU-h per experiment, reuse existing engine / tracking /
-validation infrastructure, all regression tests passing (78/78
-at the time of this writing).
+**Constraints (unchanged):** no live trading, no secrets, no
+paid data, Test never enters selection, preserve negative
+results, ≤ 4 CPU-h per experiment, reuse existing engine /
+tracking / validation infrastructure, all regression tests
+passing (105/105 at the time of this writing).
 
-**Documented-but-infeasible items (do not re-attempt without a
-new data source):** longer intraday history and ongoing OOS
-time-extension — a live (uncached) yfinance fetch verified on
-2026-10-11 returns no hourly `=F` bars beyond 2026-10-09.
-Both require a paid data source.
+**Documented-but-infeasible items (do not re-attempt
+without a new data source):** longer intraday history and
+ongoing OOS time-extension — a live (uncached) yfinance
+fetch verified on 2026-10-11 returns no hourly `=F` bars
+beyond 2026-10-09. Both require a paid data source.

@@ -440,3 +440,72 @@ vol_floor 0.25). Signal smoothing and regime scaling were not selected.
   statistical power — both require a paid data source.
 - **Net Opportunity Score:** 7/10 (realized) — unchanged;
   the audit adds statistical confidence, not new edge.
+
+
+#### 13. OOS-Level Deflation & PF-Margin Fragility Audit (executed 2026-10-13 — H13, **REJECT** on the fragility axes)
+
+**Status: Executed — REJECT (2 of 3 pre-registered
+fragility nulls could not be rejected).** Artifacts:
+`.experiments/artifacts/exp_2026-10-13T14-35-58-316759Z/`
+(< 0.1 CPU-h, artifact-reuse-only). Script:
+`run_h13_oos_deflation_pf_audit.py`; regression tests:
+`tests/test_h13_oos_deflation_pf.py` (105/105 passing).
+
+- **(1) OOS worst-case deflation — PASS.** DSR of the
+  selected config's OOS Sharpe (1.275759) under the
+  worst-case assumption that OOS had been the selection
+  metric with N=13,824 trials (OOS-Sharpe grid moments
+  from the H12 re-run: mean 0.9363, SD 0.1547;
+  OOS-return moments: skew 1.006, kurtosis 22.45,
+  5,148 bars): expected max SR under the null =
+  **0.6095**; **DSR-adjusted OOS Sharpe 1.2745,
+  p = 0.00102** (gate ≥ 1.0). Single-peek (N=1, the
+  true deflation of one OOS evaluation): DSR =
+  **1.2758**, p < 1e-06. The OOS Sharpe survives even
+  the absurd peeking bound.
+- **(2) PF bootstrap 95% CI — FAIL.** 2,000 seeded
+  i.i.d. resamples of the OOS net returns: CI =
+  **[1.1900, 1.4248]** (median 1.3022),
+  **P(PF ≥ 1.3) = 51.7%** (gate: CI lower bound
+  ≥ 1.3). The observed PF 1.304 is statistically
+  indistinguishable from the 1.3 gate — the margin
+  (+0.004) is ~30× smaller than the CI half-width
+  (±0.117).
+- **(3) Symbol dispensability — FAIL.** Net per-symbol
+  OOS decomposition (per-symbol gross P&L −
+  per-symbol costs; reconstruction max |Δ| vs engine
+  net returns = 6.9e-18): ES=F net PF 1.218 (P&L
+  share 0.214), NQ=F 1.237 (0.242), **CL=F 1.358
+  (0.215)**, GC=F 1.224 (0.232), ZB=F 1.118 (0.097).
+  Leave-one-out pooled OOS PF: ES 1.3070 ✓,
+  NQ 1.3006 ✓, **CL 1.2494 ✗**, **GC 1.2821 ✗**,
+  ZB 1.3114 ✓ (gate: every removal keeps PF ≥ 1.3).
+  **CL=F and GC=F are indispensable** — the margin
+  is single-symbol-dependent.
+- **(4) Shifted splits — confirmed bit-exactly**
+  (positions fixed, only the OOS mask changes):
+  50/25/25 → PF 1.2806 (SR 1.2035), 60/20/20 →
+  1.3298 (SR 1.3651), 45/30/25 → 1.2916
+  (SR 1.2336) — all reproduce the H11 E4a values
+  with |diff| = 0. The two gate-failing splits are
+  driven by **CL=F** (net-PF delta −0.076 / −0.084
+  vs base OOS) and the **bull regime** (PF delta
+  −0.029 / −0.013).
+- **(5) Cost break-even — verified.** Fine sweep +
+  bisection: **1.5420×** (H11 interpolated 1.5418×,
+  |Δ| = 0.0002). Doubling all costs moves OOS PF by
+  only −0.008 — costs are NOT the fragility driver.
+- **Root-cause attribution.** The H10 PASS rests on a
+  PF margin (+0.004) that is (a) within bootstrap
+  sampling noise (48.3% of resamples fall below the
+  1.3 gate), and (b) carried by the two highest-PF
+  symbols — CL=F (the only symbol whose net PF, 1.358,
+  exceeds the pooled 1.304) and GC=F (whose losses
+  offset other symbols' loss bars). The Sharpe edge is
+  deflation-robust; the PF gate is not.
+- **Net Opportunity Score:** 6/10 (realized) — the
+  certified edge is real in Sharpe terms but the PF
+  certification is fragile; any production use requires
+  a longer OOS window (paid data) or a PF-targeted
+  re-optimization with the PF margin as the selection
+  metric.

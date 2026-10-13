@@ -1,0 +1,19 @@
+{
+  "shape": [
+    15,
+    4
+  ],
+  "columns": [
+    "split",
+    "symbol",
+    "net_profit_factor",
+    "net_pnl"
+  ],
+  "dtypes": {
+    "split": "str",
+    "symbol": "str",
+    "net_profit_factor": "float64",
+    "net_pnl": "float64"
+  },
+  "index_type": "int64"
+}

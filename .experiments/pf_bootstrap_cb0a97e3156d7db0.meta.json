@@ -1,0 +1,15 @@
+{
+  "shape": [
+    2000,
+    2
+  ],
+  "columns": [
+    "bootstrap_index",
+    "profit_factor"
+  ],
+  "dtypes": {
+    "bootstrap_index": "int64",
+    "profit_factor": "float64"
+  },
+  "index_type": "int64"
+}

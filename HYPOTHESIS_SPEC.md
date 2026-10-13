@@ -1312,3 +1312,160 @@ The single-sample window (~2 years hourly) and the
 free-data horizon limit (no bars beyond 2026-10-09) remain
 the binding constraints on statistical power — both require
 a paid data source to lift.
+
+## H13: OOS-Level Deflation & PF-Margin Fragility Audit (pre-registered 2026-10-13, BEFORE execution)
+
+**Objective.** H12 deflated the *Val* (selection-metric)
+Sharpe. Two bounded, artifact-reuse-only follow-ups remain
+(no new signal machinery, ≤ 4 CPU-h, expected < 0.1 CPU-h):
+
+1. **OOS worst-case deflation.** Compute the Deflated
+   Sharpe Ratio of the selected config's **OOS** Sharpe
+   (1.275759) under the *worst-case* assumption that OOS
+   had been the selection metric with N=13,824 trials
+   (moments: OOS-Sharpe distribution mean/SD from the H12
+   artifact `exp_2026-10-13T12-51-06-515939Z/
+   grid_oos_metrics.parquet`; OOS-return skew/kurtosis and
+   n_obs from the H10 artifact `returns.parquet` on the
+   OOS mask). This is a conservative "peeking" bound: the
+   config was actually selected on Val, so the true OOS
+   deflation is weaker (N≈1 for a single OOS evaluation).
+   Report both the worst-case (N=13,824) and the
+   single-peek (N=1) DSR. For N=1 the deflation benchmark
+   E[max SR | null, N=1] = 0 (a single null Sharpe
+   estimate has expectation zero), so the N=1 DSR reduces
+   to the non-normality-corrected Sharpe significance test
+   (Bailey & López de Prado 2014, Eq. 4 with SR0 = 0).
+
+2. **PF-margin fragility decomposition.** Using the H10
+   artifact (`prices.parquet`, `volumes.parquet`,
+   `vix_hourly.parquet`, `returns.parquet`) and the H11
+   public API (`build_positions`, `per_symbol_contributions`,
+   `make_cost_stressed_config`):
+   (a) net per-symbol OOS profit factors — decompose the
+   pooled PF 1.304 into the 5 symbols' *net* contributions
+   (gross P&L − per-symbol transaction costs, reconstructed
+   from the engine's post-constraint positions; the sum
+   over symbols must reconstruct the engine's net returns
+   to float precision);
+   (b) bootstrap 95% CI of the OOS PF (2,000 i.i.d.
+   resamples of the OOS net returns, seeded with SEED=42,
+   the same resampling scheme as the H11 Sharpe bootstrap);
+   (c) PF under the H11 shifted splits (50/25/25, 60/20/20,
+   45/30/25 — positions fixed, only the OOS mask changes;
+   confirm the H11 E4a values 1.281 / 1.330 / 1.292) and
+   attribute which symbol and which VIX regime drives the
+   shortfall (per-symbol net PF and per-regime PF on each
+   shifted OOS mask vs the base OOS mask);
+   (d) the cost multiplier at which the selected config's OOS
+   PF crosses 1.3 — a fine sweep + bisection around the H11
+   estimate (1.5418×), re-verified against the H12 re-run
+   positions (costs do not affect the position path, so the
+   engine is re-run with identical signals and stressed
+   cost models).
+
+**Null hypotheses (H0, pre-registered).** The H10 OOS edge
+is fragile — at least one of:
+- H0_DSR: the OOS Sharpe does not survive the worst-case
+  OOS-level deflation: DSR-adjusted OOS Sharpe < 1.0 at
+  N=13,824 (the config would not clear the Sharpe gate
+  even if OOS had been the selection metric).
+- H0_PF_CI: the OOS PF bootstrap 95% CI lower bound < 1.3
+  (the PF gate is not statistically robust at the observed
+  sample size).
+- H0_SYMBOL: the PF margin is single-symbol-dependent:
+  at least one symbol is *indispensable* — its removal
+  drops the pooled OOS PF below 1.3. (Equivalently, the
+  margin is robust iff *each symbol's removal keeps
+  PF ≥ 1.3* — every symbol is dispensable.)
+
+**Verdict rule (pre-registered).** H13 **PASS** iff all
+three nulls are rejected: worst-case DSR-adjusted OOS
+Sharpe ≥ 1.0, OOS PF bootstrap 95% CI lower bound ≥ 1.3,
+and every symbol is dispensable (each leave-one-out pooled
+OOS PF ≥ 1.3). If any fails, H13 **REJECT** (on that
+axis) with root-cause attribution. The N=1 single-peek DSR
+and the cost break-even multiplier are reported as
+diagnostics (they do not gate PASS/REJECT).
+
+**Constraints.** No live trading, no secrets, no paid data,
+Test never enters selection, preserve negative results,
+≤ 4 CPU-h per experiment, reuse existing engine / tracking /
+validation infrastructure (no new engine code), all
+regression tests passing. Reuse
+`run_h12_selection_bias_audit.deflated_sharpe_ratio`,
+`_expected_max_sharpe`, `_load_cached_data`, `_splits`,
+`_period_metrics`, `_count_in` and the H11 public API.
+
+**Deliverables.** `run_h13_oos_deflation_pf_audit.py`,
+artifacts in `.experiments/artifacts/exp_<H13>/`,
+regression tests `tests/test_h13_oos_deflation_pf.py`,
+updated `HYPOTHESIS_SPEC.md` (this section) and
+`INEFFICIENCY_RANKING.md` with final PASS/REJECT verdict
+and root-cause attribution.
+
+## H13: OOS-Level Deflation & PF-Margin Fragility Audit (executed 2026-10-13 — **REJECT** on the fragility axes)
+
+Artifacts: `.experiments/artifacts/exp_2026-10-13T14-35-58-316759Z/`
+(`summary.json`, `per_symbol_net_oos.parquet`,
+`pf_bootstrap.parquet`, `shifted_splits.parquet`,
+`shifted_splits_per_symbol.parquet`,
+`shifted_splits_per_regime.parquet`,
+`cost_sensitivity.parquet`). Script:
+`run_h13_oos_deflation_pf_audit.py` (< 0.1 CPU-h,
+artifact-reuse-only). Regression tests:
+`tests/test_h13_oos_deflation_pf.py` (105/105 passing
+with the full suite). The frozen pipeline reproduces the
+H10 artifact returns bit-exactly (max |Δ| = 0) and the
+per-symbol net decomposition reconstructs the engine's
+net returns to 6.9e-18.
+
+### Results
+
+| Pre-registered component | Result |
+|---|---|
+| 1. OOS worst-case deflation (N=13,824) | OOS-Sharpe grid mean 0.9363, SD 0.1547; OOS-return skew 1.006, kurtosis 22.45, n = 5,148. E[max SR \| null] = **0.6095** vs observed OOS SR **1.2758**. **DSR-adjusted OOS Sharpe 1.2745, p = 0.00102** (gate ≥ 1.0). Single-peek (N=1): DSR = **1.2758**, p < 1e-06 |
+| 2a. Net per-symbol OOS PF | ES=F **1.218** (P&L share 0.214), NQ=F **1.237** (0.242), CL=F **1.358** (0.215), GC=F **1.224** (0.232), ZB=F **1.118** (0.097). Only CL=F's net PF exceeds the pooled 1.304 |
+| 2b. OOS PF bootstrap 95% CI (2,000 resamples, seed 42) | CI = **[1.1900, 1.4248]** (median 1.3022), **P(PF ≥ 1.3) = 51.7%** — the observed PF 1.304 is statistically indistinguishable from the 1.3 gate (CI LB < 1.3 ⇒ H0_PF_CI not rejected) |
+| 2c. Shifted splits | 50/25/25 → PF **1.2806** (SR 1.2035), 60/20/20 → **1.3298** (SR 1.3651), 45/30/25 → **1.2916** (SR 1.2336) — all reproduce the H11 E4a values bit-exactly (\|Δ\| = 0). Shortfall attribution: **CL=F drives both gate-failing splits** (net-PF delta −0.076 / −0.084 vs base OOS); worst regime is **bull** (PF delta −0.029 / −0.013) |
+| 2d. Cost break-even | Fine sweep + bisection: **1.5420×** (H11 interpolated 1.5418×, \|Δ\| = 0.0002). Cost ×2 moves OOS PF by only −0.008 — costs are not the fragility driver |
+| 3. Symbol dispensability (leave-one-out pooled OOS PF) | ES 1.3070 ✓, NQ 1.3006 ✓, **CL 1.2494 ✗**, **GC 1.2821 ✗**, ZB 1.3114 ✓ — **CL=F and GC=F are indispensable** (H0_SYMBOL not rejected) |
+
+**Verdict: REJECT** (pre-registered rule: PASS iff
+worst-case DSR-adj OOS Sharpe ≥ 1.0 AND PF bootstrap
+CI LB ≥ 1.3 AND every symbol dispensable). Gate 1
+(deflation) **PASSES** with wide margin; gates 2 and 3
+**FAIL**: the PF margin is statistically fragile and
+single-symbol-dependent.
+
+**Root-cause attribution.** The H10 certification's
+binding constraint is the profit-factor margin (+0.004
+over the 1.3 gate), which is (a) smaller than bootstrap
+sampling noise — 48.3% of 2,000 seeded OOS resamples
+fall below 1.3, CI half-width ±0.117 — and (b) carried
+by the two highest-PF symbols: CL=F (net PF 1.358, the
+only symbol above the pooled PF; its removal drops the
+pooled PF to 1.249) and GC=F (removal drops it to
+1.282 — GC's below-pooled net PF masks its role
+offsetting other symbols' loss bars, so pooled PF is
+non-monotone in per-symbol PF). The Sharpe edge itself
+is deflation-robust (DSR 1.2745 even under the
+worst-case N=13,824 peeking bound, p = 0.001), and
+costs are immaterial (break-even 1.542×). The fragility
+is specifically in the PF gate, concentrated in the
+commodity/bond legs' loss-offsetting structure, and it
+shows up as the shifted-split PF shortfalls (1.281 /
+1.292 on 50/25/25 and 45/30/25, both driven by CL=F).
+
+**What would resolve it:** a longer OOS window (paid
+data — the free yfinance hourly `=F` source is
+hard-capped at ~730 days, no bars beyond 2026-10-09),
+or re-optimizing with the PF margin itself as the
+selection metric on a PF-targeted grid.
+
+**Deviations from the pre-registration draft.** None
+material: all components executed as pre-registered;
+the cost break-even used a 7-point sweep + bisection
+(tol 0.002) instead of the H11 4-point linear
+interpolation, which only sharpens the estimate
+(1.5420× vs 1.5418×).
