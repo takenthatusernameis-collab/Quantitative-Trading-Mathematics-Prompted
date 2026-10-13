@@ -1,0 +1,10 @@
+{
+  "run_id": "exp_2026-10-13T22-14-50-729923Z",
+  "script": "run_h18_overnight_intraday_experiment.py",
+  "start_time": 1791929690.729672,
+  "end_time": 1791929691.0154011,
+  "duration_seconds": 0.28572916984558105,
+  "duration_cpu_hours": 7.936921384599474e-05,
+  "timestamp_start": "2026-10-13T22:14:50.729672",
+  "timestamp_end": "2026-10-13T22:14:51.015401"
+}

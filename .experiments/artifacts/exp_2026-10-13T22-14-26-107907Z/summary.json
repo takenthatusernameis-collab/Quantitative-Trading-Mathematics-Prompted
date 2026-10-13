@@ -1,0 +1,148 @@
+{
+  "hypothesis": "H18",
+  "selected_config": {
+    "predictor": "prior_5d_return_sign",
+    "hold_convention": "next_intraday",
+    "combo_name": "prior_5d_return_sign_next_intraday"
+  },
+  "oos_metrics": {
+    "sharpe": 0.4424368131799029,
+    "total_return": 0.7162049014199334,
+    "max_drawdown": -0.22230414028780243,
+    "profit_factor": 1.0890543891778597,
+    "trades": 589
+  },
+  "gate_metrics": {
+    "sharpe": {
+      "value": 0.4424368131799029,
+      "threshold": 1.0,
+      "passes": "False"
+    },
+    "trades": {
+      "value": 589,
+      "threshold": 200,
+      "passes": "True"
+    },
+    "profit_factor": {
+      "value": 1.0890543891778597,
+      "threshold": 1.3,
+      "passes": "False"
+    },
+    "max_drawdown": {
+      "value": 0.22230414028780243,
+      "threshold": 0.15,
+      "passes": "True"
+    },
+    "walk_forward_stability": {
+      "value": NaN,
+      "threshold": 0.7,
+      "passes": false
+    },
+    "worst_regime_sharpe": {
+      "value": -2.4374551647038296,
+      "threshold": 0.3,
+      "passes": "False"
+    },
+    "benchmark_p": {
+      "value": 1.0,
+      "threshold": 0.05,
+      "passes": false
+    },
+    "information_ratio": {
+      "value": -0.5967666565674836,
+      "threshold": 0,
+      "passes": "False"
+    },
+    "perturbation_ratio": {
+      "value": 1.0,
+      "threshold": 0.5,
+      "passes": true
+    }
+  },
+  "all_combo_results": [
+    {
+      "predictor": "lagged_1d_overnight_sign",
+      "hold_convention": "next_overnight",
+      "combo_name": "lagged_1d_overnight_sign_next_overnight",
+      "train_sharpe": 0.02544446957157947,
+      "val_sharpe": 0.27461813487475534,
+      "test_sharpe": 0.17686469349232078,
+      "oos_sharpe": 0.21153802483932957,
+      "total_return": 0.2095523042036198,
+      "max_drawdown": -0.3345423206898871,
+      "profit_factor": 1.0287782158062961,
+      "trades": 1,
+      "final_equity": 120931.0393742779
+    },
+    {
+      "predictor": "lagged_1d_overnight_sign",
+      "hold_convention": "next_intraday",
+      "combo_name": "lagged_1d_overnight_sign_next_intraday",
+      "train_sharpe": 1.1755334190718416,
+      "val_sharpe": 0.7683354122164193,
+      "test_sharpe": 0.8594601519157002,
+      "oos_sharpe": 0.8163376817732043,
+      "total_return": 5.912309688769987,
+      "max_drawdown": -0.2384529607913034,
+      "profit_factor": 1.196696504571185,
+      "trades": 1,
+      "final_equity": 691092.7226832233
+    },
+    {
+      "predictor": "vix_regime",
+      "hold_convention": "next_overnight",
+      "combo_name": "vix_regime_next_overnight",
+      "train_sharpe": 0.6155466922436104,
+      "val_sharpe": 0.47102836004206106,
+      "test_sharpe": 0.44192020050851066,
+      "oos_sharpe": 0.44837534536027596,
+      "total_return": 1.6905159840835098,
+      "max_drawdown": -0.33899712976634366,
+      "profit_factor": 1.0960278098325995,
+      "trades": 1,
+      "final_equity": 268997.7880886693
+    },
+    {
+      "predictor": "vix_regime",
+      "hold_convention": "next_intraday",
+      "combo_name": "vix_regime_next_intraday",
+      "train_sharpe": 0.5851065178698251,
+      "val_sharpe": 0.5800719274752318,
+      "test_sharpe": 0.6372649086188942,
+      "oos_sharpe": 0.6104976822374734,
+      "total_return": 2.1075080619781845,
+      "max_drawdown": -0.36257458919571617,
+      "profit_factor": 1.1276852802245523,
+      "trades": 1,
+      "final_equity": 310688.6560365789
+    },
+    {
+      "predictor": "prior_5d_return_sign",
+      "hold_convention": "next_overnight",
+      "combo_name": "prior_5d_return_sign_next_overnight",
+      "train_sharpe": 0.30580257746996586,
+      "val_sharpe": 0.10648206171439543,
+      "test_sharpe": 0.8640736370272324,
+      "oos_sharpe": 0.5975257474790286,
+      "total_return": 1.6377497678213402,
+      "max_drawdown": -0.23275957878167797,
+      "profit_factor": 1.1011623738871916,
+      "trades": 1,
+      "final_equity": 263722.2217867776
+    },
+    {
+      "predictor": "prior_5d_return_sign",
+      "hold_convention": "next_intraday",
+      "combo_name": "prior_5d_return_sign_next_intraday",
+      "train_sharpe": 0.9135914369604291,
+      "val_sharpe": 0.979716529860369,
+      "test_sharpe": 0.19300417248121352,
+      "oos_sharpe": 0.4424368131799029,
+      "total_return": 2.169671442460739,
+      "max_drawdown": -0.22230414028780243,
+      "profit_factor": 1.1198707170446833,
+      "trades": 1,
+      "final_equity": 316903.7508172247
+    }
+  ]
+}

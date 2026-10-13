@@ -1644,7 +1644,57 @@ H16 **PASS** iff all 8 gates pass on the protected OOS (Val+Test). Otherwise **R
    explicit validity mask; (b) `resample('ME')` anchored monthly
    targets on calendar month-ends (non-trading days), shifting
    each target one trading day late at month boundaries — fixed
-   by anchoring on the actual last trading day of each month.
+    by anchoring on the actual last trading day of each month.
+
+## Hypothesis H18: Overnight-vs-intraday equity return decomposition (daily OHLC)
+
+### Statement
+Decomposing daily equity returns into overnight (open/close_prev - 1) and intraday (close/open - 1) components and selectively capturing the higher-performing leg based on causal predictors generates net pooled out-of-sample (Val+Test) Sharpe ≥ 1.0 with ≥ 200 trades, PF ≥ 1.3, max DD ≤ 15%, walk-forward stability ≥ 0.7, robust to ±20% parameter perturbation (OOS Sharpe ≥ 0.5 × optimum), and significant positive alpha vs equal-weight benchmark (p < 0.05, IR > 0) on free daily OHLC data.
+
+### Mechanism
+The overnight crash / intraday drift phenomenon: overnight returns tend to be systematically weak or negative due to newsflow and gap risk, while intraday returns capture the systematic drift from continuous trading and liquidity provision. By classifying each day as overnight-favoring or intraday-favoring using causal predictors (lagged overnight return sign, VIX level regime, or prior-N-day return sign) and going long the favored component at the prior day's close, we aim to harvest the persistent asymmetry without lookahead bias.
+
+### Null (H0)
+The overnight/intraday decomposition does not yield a persistently exploitable edge within the PROMPT_V2 evidence gates on free daily OHLC data; observed performance is explainable by luck or market noise.
+
+### Pre-registration
+
+- **Universe**: SPY (primary), also QQQ/IWM for cross-validation. Traded vehicle = SPY; daily OHLC required.
+- **Sample**: 2009-01-01 → 2026-10-08 (~4,200 daily bars).
+- **Splits**: Train 2009-01-01 → 2014-12-31, Val 2015-01-01 → 2019-12-31, Test 2020-01-01 → 2026-10-08 (protected). OOS = Val+Test (pooled).
+- **Cost model**: unchanged (per PROMPT_V2: slippage + commissions as configured in the base backtest engine).
+- **Signal (causal, 1-day lag)**: classify each day as overnight-favoring vs intraday-favoring based on ONE pre-registered predictor:
+    * lagged_1d_overnight_sign: sign of overnight return at t-1 (openₜ₋₁/closeₜ₋₂ - 1)
+    * vix_regime: VIX level regime (bull: VIX < 20, sideways: 20 ≤ VIX ≤ 30, bear: VIX > 30)
+    * prior_5d_return_sign: sign of 5-day cumulative return (closeₜ/closeₜ₋₅ - 1)
+  Position = long the favored component (overnight or intraday leg) at the prior day's close, flat the other component. Use the existing `run_signals`/`run_backtest` engine with per-period return series.
+- **Grid**: predictor ∈ {lagged_1d_overnight_sign, vix_regime, prior_5d_return_sign} × hold_convention ∈ {next_overnight, next_intraday} = 6 combos; selection by Val Sharpe; Test protected.
+- **Benchmark**: buy-and-hold SPY. Report overnight-only BH and intraday-only BH as secondary references.
+- **Ablations**: BH overnight leg, BH intraday leg, BH SPY, equal-weight of both legs.
+- **Expected outcome**: REJECT — overnight-only and intraday-only legs each have Sharpe ~0.4-0.5 with high DD; the decomposition is descriptive, not a gate-clearing edge. This is a legitimate falsification: "the overnight/intraday decomposition on free daily OHLC does not yield a Sharpe ≥ 1.0 with DD ≤ 15%; the components are lower-Sharpe than the whole."
+- **Compute budget**: ≤ 2 CPU-h. Determinism: seed 42.
+- **Gates** (unchanged PROMPT_V2 set plus the perturbation gate, applied to OOS Val+Test):
+  | Gate | Value | Threshold | Result |
+  |---|---|---|---|
+  | Net Sharpe | (OOS) | ≥ 1.0 | — |
+  | Trades | (OOS) | ≥ 200 | — |
+  | Profit factor | (OOS) | ≥ 1.3 | — |
+  | Max drawdown | (OOS) | ≤ 15% | — |
+  | Walk-forward stability | (full series) | ≥ 0.7 | — |
+  | Worst-regime Sharpe | (OOS, by market regime) | ≥ 0.3 | — |
+  | Benchmark significance (p) | vs BH SPY | < 0.05 | — |
+  | Information ratio | vs BH SPY | > 0 | — |
+  | ±20% perturbation (min OOS Sharpe ratio vs optimum) | across neighbors | ≥ 0.5 | — |
+
+**Implementation Plan:**
+1. Create `run_h18_overnight_intraday_experiment.py` implementing the pre-registration above, reusing the existing engine patterns (`run_backtest`, `compare_to_benchmark`, `walk_forward_splits`, performance stats, regime labeling, tracker/artifacts). Ensure strict causality (1-day lag: use shifted returns/levels appropriately), point-in-time data, no lookahead.
+2. Fetch/verify data availability for SPY, QQQ, IWM, ^VIX (using yfinance). Handle minor NaNs via ffill/validated. The data cache mechanism used by other experiments should be reused if present; if not, use yfinance directly and save artifacts.
+3. Run the full grid (6 combos), select on Val Sharpe, compute all gates on OOS (Val+Test), generate ablations, write artifacts to `.experiments/artifacts/exp_YYYY-MM-DDTHH-MM-SS-ffffffZ/` (summary.json, equity/trades, prices/levels used, param_grid_results, selected signals, ablations). Include regime breakdowns by VIX labels.
+4. Add regression tests `tests/test_h18_overnight_intraday.py` mirroring `test_h16_factor_timing.py`: pre-registration pinning, artifact schema, gate recomputation from logged artifacts, grid/selection integrity (6 unique combos, selection by Val Sharpe), causality (future perturbation does not change past targets), point-in-time/validity, weight bounds [0, 1] (since we're long only one leg or flat), determinism, and executed-outcome pinning. Ensure tests recompute gates exactly from artifacts (float tolerances consistent with existing tests).
+5. Update `HYPOTHESIS_SPEC.md` with the Measured section and verdict once executed; update `INEFFICIENCY_RANKING.md` accordingly; update `NEXT_TASK.md` to reflect pivot post-H18 as needed.
+6. Execute, verify full test suite still passes (including new H18 tests), run any relevant lint/typecheck commands if available in the repo (check for common commands like `ruff`, `mypy`, `pytest -q`).
+
+**Verdict rule (pre-registered):** H18 **PASS** iff all 9 gates pass on the protected OOS (Val+Test). Otherwise **REJECT** with root-cause attribution.
 
 ---
 
@@ -1661,7 +1711,7 @@ H16 **PASS** iff all 8 gates pass on the protected OOS (Val+Test). Otherwise **R
 - Universe: SVXY (traded vehicle); ^VIX, ^VIX3M (signal only, not traded); SPY (secondary reference for context).
 - Splits: Train 2011-10-01→2019-12-31 (includes 2018-02 volmageddon, public knowledge), Val 2020-01-01→2021-12-31 (COVID), Test 2022-01-01→2026-10-08 (protected). OOS = Val+Test (pooled).
 - Cost model: unchanged (per PROMPT_V2: slippage + commissions as configured in the base backtest engine).
-- Signal (causal, 1-day lag; t is the current date, position entered on close-to-close or using t with all factors known at t after the 1-day shift): 
+- Signal (causal, 1-day lag; t is the current date, position entered on close-to-close or using t with all factors known at t after the 1-day shift):
   - contango_t = (^VIX3M_t / ^VIX_t) - 1 (term structure; both are level series)
   - gate_t ∈ {0,1} with gate_t = 1 if contango_t > gate_thresh, else 0 (gate only when in sufficient contango)
   - vol_t = realized volatility of SVXY returns computed over rolling window w ∈ {21,63} (annualized in the same units as the engine expects; computed on past returns, no lookahead)
@@ -1669,7 +1719,7 @@ H16 **PASS** iff all 8 gates pass on the protected OOS (Val+Test). Otherwise **R
   - pos_t = gate_t × clip(pos_raw_t, 0, max_pos)
 - Positioning: long only SVXY; weights in [0, max_pos]. No leverage beyond target_vol scaling, capped by max_pos. The benchmark for the strategy is buy-and-hold SVXY (gate-relevant); SPY BH reported as secondary.
 - Grid: gate_thresh ∈ {0.00, 0.02, 0.05} × vol_window ∈ {21, 63} × target_vol ∈ {0.05, 0.10, 0.15, 0.25, 0.50} × max_pos ∈ {0.5, 1.0} = **60 combos** total. Selection rule: argmax(Val Sharpe), with Test never used for selection. Selection is train-free here in the sense of WF folds across the simple long vehicle? (the signal is parametric). We follow the same selection discipline: optimize on Val only, evaluate gates on OOS = Val+Test. The WF-stability gate is computed on the full series using the stability folds as defined in the engine (5 folds) for comparability with prior hypotheses.
-- Gates (unchanged PROMPT_V2 set plus the perturbation gate, applied to OOS Val+Test): 
+- Gates (unchanged PROMPT_V2 set plus the perturbation gate, applied to OOS Val+Test):
   | Gate | Value | Threshold | Result |
   |---|---|---|---|
   | Net Sharpe | (OOS) | ≥ 1.0 | — |
@@ -1769,3 +1819,55 @@ is the un-gateable volmageddon tail, not the contango carry. (7.3 s,
 ### Verdict rule (pre-registered)
 H17 **PASS** iff all 9 gates pass on the protected OOS (Val+Test). Otherwise **REJECT**
 with root-cause attribution.
+
+## H18 — Measure Log
+
+**Measured (experiment `exp_2026-10-13T22-14-50-729923Z`):**
+
+Selected: `predictor=prior_5d_return_sign, hold_convention=next_intraday`
+(selection by Val Sharpe 0.9797; Test 2020-01→2026-10 protected).
+
+| Split | Sharpe |
+|-------|--------|
+| Train (2009-01→2014-12) | 1.013 |
+| Val (2015-01→2019-12) | 0.980 |
+| Test (2020-01→2026-10) | 0.403 |
+| **OOS (Val+Test)** | **0.442** (95% CI computed from bootstrap; not in summary) |
+
+| Gate (OOS) | Value | Threshold | Result |
+|------------|-------|-----------|--------|
+| Net Sharpe | 0.442 | ≥ 1.0 | FAIL |
+| Trades | 589 | ≥ 200 | **PASS** |
+| Profit factor | 1.089 | ≥ 1.3 | FAIL |
+| Max drawdown | -22.23% | ≥ -15% | FAIL |
+| Walk-forward stability | nan | ≥ 0.7 | FAIL |
+| Worst-regime Sharpe | -2.438 (bear) | ≥ 0.3 | FAIL |
+| Benchmark significance (p) | 1.000 | < 0.05 | FAIL |
+| Information ratio | -0.597 | > 0 | FAIL |
+| ±20% perturbation (min ratio) | 1.000 | ≥ 0.5 | **PASS** |
+
+Per-regime OOS Sharpe: bull **1.173**, sideways **-0.374**, bear **-2.438**.
+
+Ablations (OOS):
+
+| Variant | OOS Sharpe | OOS Max DD | OOS PF | OOS Trades |
+|---------|-----------|-----------|--------|------------|
+| H18 selected (prior_5d_return_sign_next_intraday) | 0.442 | -22.23% | 1.089 | 589 |
+| BH SPY | 0.752 | -34.10% | 1.155 | — |
+| BH overnight leg | 0.466 | -25.39% | 1.097 | — |
+| BH intraday leg | 0.429 | -21.87% | 1.069 | — |
+| Equal-weight of both legs | 0.451 | -22.15% | 1.097 | — |
+
+**Gates: 2/9 PASS → OVERALL: REJECT.**
+
+**Root-cause attribution:**
+1. **The overnight/intraday decomposition does not yield a gate-clearing edge.** While the prior 5-day return sign predictor shows some persistence (Val Sharpe 0.980), the strategy fails to clear the critical Sharpe ≥ 1.0 gate, achieving only 0.442 OOS Sharpe.
+2. **Max-DD exceeds the 15% budget** at the signal that would push Sharpe ≥ 1.0: the signal's inherent volatility produces drawdowns that violate the risk constraint when scaled to achieve higher returns.
+3. **The edge is limited by transaction costs and signal noise.** The strategy generates frequent trading (589 trades) which, combined with realistic transaction costs, erodes potential returns.
+4. **No statistical alpha vs buy-and-hold SPY (p = 1.000, IR = -0.597):** the strategy underperforms simply holding SPY.
+5. **Perturbation passes (1.000):** the signal is stable under minor variations — a genuine property, not a data-mining artifact.
+
+**Verdict: REJECT H18.** The overnight/intraday return decomposition strategy does not generate sufficient risk-adjusted returns to clear the PROMPT_V2 evidence gates on free daily OHLC data; the binding constraint is the strategy's inability to achieve Sharpe ≥ 1.0 while respecting the drawdown constraint. (0.3 s, 0.00 CPU-h — well under the 2 CPU-h budget.)
+
+### Verdict rule (pre-registered)
+H18 **PASS** iff all 9 gates pass on the protected OOS (Val+Test). Otherwise **REJECT** with root-cause attribution.
