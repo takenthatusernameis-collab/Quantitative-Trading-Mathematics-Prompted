@@ -47,63 +47,38 @@ from the prior session are likewise still uncommitted.
 
 ---
 
-## Next Task (for next agent): H14 — PF-Margin-Targeted Selection Audit
+## H14 completed 2026-10-13 — REJECT (family property)
 
-H13 established that the H10 config's PF margin is
-fragile. The open question: is the fragility a property
-of the *selection* (Val-Sharpe selection happened to pick
-a thin-PF-margin config) or of the *family* (no config
-in the 13,824-combo grid has a robust PF margin on this
-window)? Bounded, artifact-reuse-first design (≤ 0.2 CPU-h):
+H14 executed per pre-registration. Top K=50 configs by Val PF margin
+(`val_profit_factor - 1.3`), excluding the frozen H10 config, were evaluated
+on OOS using H13 fragility gates (artifact reuse). Artifacts:
+`.experiments/artifacts/exp_2026-10-13T19-01-59-371405Z/`
+(`summary.json`, `h14_results.parquet`, `topk_selected.parquet`,
+`subset_oos_metrics.parquet`). Script: `run_h14_pf_margin_selection_audit.py`.
 
-1. **Rank by Val PF margin.** From the H10 artifact
-   `exp_2026-10-11T17-41-18-169363Z/grid_results.parquet`
-   (per-combo `val_profit_factor`), take the top K=50
-   configs by Val PF margin (`val_profit_factor − 1.3`),
-   excluding the frozen H10 config (already audited).
-2. **Re-run the K configs logging per-combo OOS returns**
-   (reuse `run_h12_selection_bias_audit._rebuild_grid_oos`
-   machinery, restricted to the K configs — ~1 min).
-3. **H13 fragility gates per config:** OOS PF bootstrap
-   95% CI lower bound (2,000 seeded resamples), worst-case
-   DSR-adj OOS Sharpe (N=K), and leave-one-out symbol
-   dispensability (reuse `per_symbol_contributions`).
-4. **Decision rule (pre-register before execution):**
-   - If ≥ 1 config passes all three gates, report it as a
-     strictly more robust certification candidate — but it
-     then requires its own H12-style selection-bias audit
-     at N=K (it was selected on Val PF, so the DSR must
-     use the Val-PF distribution and N=K trials).
-   - If none pass, the PF-margin fragility is a family
-     property on this ~2-year hourly window — a durable
-     negative result that closes the H10 line: the only
-     remedies are a longer OOS window (paid data) or a
-     different construction (e.g., PF-targeted exits).
+| Gate (per config) | Result across top-K=50 | Pass criterion |
+|---|---|---|
+| OOS PF bootstrap 95% CI lower bound | mean 1.186, max 1.199 (all < 1.3) | CI LB ≥ 1.3 |
+| Worst-case DSR-adj OOS Sharpe (N=K) | mean 1.244 (all ≥ 1.0) | ≥ 1.0 at N=K |
+| All symbols dispensable (LOO PF ≥ 1.3) | 0/50 | all dispensable |
 
-**Pre-registration for H14** (write before execution):
-- Null (H0): no config in the top-K-by-Val-PF-margin
-  set passes all three H13 fragility gates (PF bootstrap
-  CI LB ≥ 1.3, worst-case DSR-adj OOS Sharpe ≥ 1.0 at
-  N=K, all symbols dispensable).
-- Deliverables: `run_h14_pf_margin_selection_audit.py`,
-  artifacts in `.experiments/artifacts/exp_<H14>/`,
-  updated `HYPOTHESIS_SPEC.md` and `INEFFICIENCY_RANKING.md`,
-  final verdict with root-cause attribution, regression
-  tests.
-- Reuse the H12 grid machinery, H13 fragility helpers
-  (`_profit_factor`, `bootstrap_profit_factor_distribution`,
-  `_leave_one_out_pf`, `deflated_sharpe_ratio`,
-  `deflated_sharpe_ratio_single_peek`) and the H11 public
-  API — no new engine code.
+**Verdict: REJECT.** No config passed all three gates. The H0 ("no config in
+top-K-by-Val-PF-margin set passes all three gates") is **not rejected**. Sharpe
+deflation is not the issue; symbol dispensability remains the blocker (CL=F and
+GC=F dependencies persist). **Conclusion: PF-margin fragility is a family property**
+on this ~2-year hourly window. The H10 line closes with this durable negative
+result. Remedies (if pursued) require longer OOS window (paid data) or different
+construction (PF-targeted exits). Test never entered selection; artifacts and
+docs updated.
 
-**Constraints (unchanged):** no live trading, no secrets, no
-paid data, Test never enters selection, preserve negative
-results, ≤ 4 CPU-h per experiment, reuse existing engine /
-tracking / validation infrastructure, all regression tests
-passing (105/105 at the time of this writing).
+## Next Task (for next agent): No new hypothesis specified — H14 closes the H10 family line
 
-**Documented-but-infeasible items (do not re-attempt
-without a new data source):** longer intraday history and
-ongoing OOS time-extension — a live (uncached) yfinance
-fetch verified on 2026-10-11 returns no hourly `=F` bars
-beyond 2026-10-09. Both require a paid data source.
+All changes from H14 are uncommitted (commit policy: only when explicitly
+asked). Intended files if committing: `run_h14_pf_margin_selection_audit.py`,
+`HYPOTHESIS_SPEC.md`, `INEFFICIENCY_RANKING.md`, `NEXT_TASK.md`, and the H14
+artifact under `.experiments/`. Do not stage `__pycache__/*.pyc`.
+
+**Documented-but-infeasible items (do not re-attempt without a new data source):**
+longer intraday history and ongoing OOS time-extension — a live (uncached)
+yfinance fetch verified on 2026-10-11 returns no hourly `=F` bars beyond
+2026-10-09. Both require a paid data source.

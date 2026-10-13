@@ -1,0 +1,15 @@
+{
+  "experiment_id": "exp_2026-10-13T19-01-59-371405Z",
+  "hypothesis": "H14",
+  "k_top": 50,
+  "n_trials_family_k": 50,
+  "topk_count": 50,
+  "configs_evaluated": 50,
+  "min_pf_gate": 1.3,
+  "min_sr_gate": 1.0,
+  "n_passing": 0,
+  "all_pass": false,
+  "verdict": "REJECT",
+  "null_h0": "no config in top-K-by-Val-PF-margin passes all three gates",
+  "passes": []
+}

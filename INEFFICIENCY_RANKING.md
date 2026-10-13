@@ -509,3 +509,7 @@ fragility nulls could not be rejected).** Artifacts:
   a longer OOS window (paid data) or a PF-targeted
   re-optimization with the PF margin as the selection
   metric.
+
+
+### H14 (2026-10-13): PF-margin fragility is a family property
+From top-50 by Val PF margin (K=50, excluding H10), none satisfied all three H13 gates (PF bootstrap CI LB≥1.3, worst-case DSR-adj OOS Sharpe≥1.0 at N=K, all symbols dispensable). The failure is driven by symbol dispensability (CL=F/GC=F indispensable) rather than Sharpe deflation. Cost is not the driver (H13). Remedy requires longer OOS window (paid data) or different construction (PF-targeted exits).

@@ -196,3 +196,9 @@ binding constraints are data-horizon (free yfinance caps hourly
 to a paid data source for a longer OOS window, and/or (b) a
 PF-margin-targeted re-optimization (select on PF margin, not
 Val Sharpe) of the certified config family.
+
+
+## H14 Summary (2026-10-13)
+
+H14: PF-margin-targeted selection audit (top-K=50 by Val PF margin, K=50, excluding H10). Gates: PF bootstrap CI LB≥1.3, worst-case DSR-adj OOS Sharpe≥1.0 at N=K, all symbols dispensable. No config satisfied all three (CI LB max 1.199, all 0/50 dispensable despite all DSR≥1.0). Verdict: REJECT — PF-margin fragility is a family property on this window; H10 line closed.
+Artifacts: `.experiments/artifacts/exp_2026-10-13T19-01-59-371405Z/`

@@ -1469,3 +1469,18 @@ the cost break-even used a 7-point sweep + bisection
 (tol 0.002) instead of the H11 4-point linear
 interpolation, which only sharpens the estimate
 (1.5420× vs 1.5418×).
+
+
+## H14 — PF-Margin-Targeted Selection Audit (2026-10-13)
+
+**Question:** Is PF-margin fragility (H13: H10 passes Sharpe deflation but fails PF bootstrap CI LB>=1.3 and has indispensable symbols) a property of selection (the specific H10 config won on Val Sharpe with thin PF margin) or of the family (no config in the 13,824-combo grid has a robust PF margin on this window)?
+
+**Pre-registration (bounded, artifact-reuse-only, ≤ 0.2 CPU-h):**
+- From H10 grid artifact `exp_2026-10-11T17-41-18-169363Z/grid_results.parquet`, rank by Val PF margin (val_profit_factor − 1.3), take top K=50 configs excluding the frozen H10 config.
+- Re-run the K configs logging per-combo OOS returns (reuse H12 grid machinery).
+- H13 fragility gates per config: OOS PF bootstrap 95% CI lower bound (2,000 seeded resamples, seed 42), worst-case DSR-adj OOS Sharpe (N=K), and leave-one-out symbol dispensability.
+- Null (H0): no config in the top-K-by-Val-PF-margin set passes all three gates (PF CI LB>=1.3, worst-case DSR-adj OOS Sharpe>=1.0 at N=K, all symbols dispensable).
+
+**Result (artifact `exp_2026-10-13T19-01-59-371405Z`):**
+- Evaluated 50 top-by-Val-PF-margin configs (excluding H10). PF bootstrap CI LB: mean 1.186, max 1.199 (all < 1.3). DSR-adj OOS Sharpe at N=K: mean 1.244 (all >= 1.0). All-symbols-dispensable: 0/50 (CL=F and/or GC=F dependencies persist).
+- Verdict: **REJECT** (no config passes all three gates). H0 is not rejected; PF-margin fragility is a **family property** on this window.
