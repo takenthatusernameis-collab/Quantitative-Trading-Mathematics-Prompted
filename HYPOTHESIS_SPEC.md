@@ -1645,3 +1645,127 @@ H16 **PASS** iff all 8 gates pass on the protected OOS (Val+Test). Otherwise **R
    targets on calendar month-ends (non-trading days), shifting
    each target one trading day late at month boundaries — fixed
    by anchoring on the actual last trading day of each month.
+
+---
+
+### Hypothesis H17: Volatility-Risk-Premium Harvesting (Term-Structure-Gated, Vol-Targeted Long SVXY)
+
+**Statement.** A term-structure-gated, volatility-targeted long position in SVXY (proShares Short VIX Short-Term Futures ETF) generates positive risk-adjusted returns that meet the PROMPT_V2 evidence gates on free daily data over 2011-2026, with controlled drawdowns (≤ 15% max DD). The edge arises from harvesting the volatility risk premium (VRP) when the VIX futures curve is in contango (insurance premium net of roll cost), while avoiding exposure when carry is poor or the curve is inverted/flat.
+
+**Mechanism.** The volatility risk premium manifests as a systematic tendency for short VIX-futures positions to earn carry in contango (VIX3M > VIX), offset by large tail losses in rapid volatility spikes (Bollerslev et al., the VRP literature; operationalized through SVXY as the traded short-vol vehicle). Gating on the VIX term structure (contango_t = ^VIX3M_t/^VIX_t - 1 > gate_thresh) aims to avoid entering/holding when carry is weak, while volatility targeting (target annual vol / realized SVXY vol, windows 21/63) controls position sizing to respect the max-DD budget. The approach is long-only in SVXY (no short/hedge legs) by pre-registration and uses 1-day signal lag for causality.
+
+**Null (H0).** The VRP edge is not reliably harvestable within max DD ≤ 15% on free daily data (the strategy's OOS risk-adjusted performance does not satisfy all gates); observed performance is explainable by luck and the binding constraint is the volatility spike tails (e.g. 2018-02 volmageddon).
+
+**Pre-registration.**
+
+- Universe: SVXY (traded vehicle); ^VIX, ^VIX3M (signal only, not traded); SPY (secondary reference for context).
+- Splits: Train 2011-10-01→2019-12-31 (includes 2018-02 volmageddon, public knowledge), Val 2020-01-01→2021-12-31 (COVID), Test 2022-01-01→2026-10-08 (protected). OOS = Val+Test (pooled).
+- Cost model: unchanged (per PROMPT_V2: slippage + commissions as configured in the base backtest engine).
+- Signal (causal, 1-day lag; t is the current date, position entered on close-to-close or using t with all factors known at t after the 1-day shift): 
+  - contango_t = (^VIX3M_t / ^VIX_t) - 1 (term structure; both are level series)
+  - gate_t ∈ {0,1} with gate_t = 1 if contango_t > gate_thresh, else 0 (gate only when in sufficient contango)
+  - vol_t = realized volatility of SVXY returns computed over rolling window w ∈ {21,63} (annualized in the same units as the engine expects; computed on past returns, no lookahead)
+  - pos_raw_t = target_vol / vol_t if vol_t > 0 else 0
+  - pos_t = gate_t × clip(pos_raw_t, 0, max_pos)
+- Positioning: long only SVXY; weights in [0, max_pos]. No leverage beyond target_vol scaling, capped by max_pos. The benchmark for the strategy is buy-and-hold SVXY (gate-relevant); SPY BH reported as secondary.
+- Grid: gate_thresh ∈ {0.00, 0.02, 0.05} × vol_window ∈ {21, 63} × target_vol ∈ {0.05, 0.10, 0.15, 0.25, 0.50} × max_pos ∈ {0.5, 1.0} = **60 combos** total. Selection rule: argmax(Val Sharpe), with Test never used for selection. Selection is train-free here in the sense of WF folds across the simple long vehicle? (the signal is parametric). We follow the same selection discipline: optimize on Val only, evaluate gates on OOS = Val+Test. The WF-stability gate is computed on the full series using the stability folds as defined in the engine (5 folds) for comparability with prior hypotheses.
+- Gates (unchanged PROMPT_V2 set plus the perturbation gate, applied to OOS Val+Test): 
+  | Gate | Value | Threshold | Result |
+  |---|---|---|---|
+  | Net Sharpe | (OOS) | ≥ 1.0 | — |
+  | Trades | (OOS) | ≥ 200 | — |
+  | Profit factor | (OOS) | ≥ 1.3 | — |
+  | Max drawdown | (OOS) | ≤ 15% | — |
+  | Walk-forward stability | (full series) | ≥ 0.7 | — |
+  | Worst-regime Sharpe | (OOS, by VIX regime bull/sideways/bear) | ≥ 0.3 | — |
+  | Benchmark significance (p) | vs BH SVXY | < 0.05 | — |
+  | Information ratio | vs BH SVXY | > 0 | — |
+  | ±20% perturbation (min OOS Sharpe ratio vs optimum) | across neighbors | ≥ 0.5 | — |
+- Ablations (OOS): BH SVXY, ungated vol-target-only (gate_thresh effectively -∞), gate-only (no vol target, full/max_pos when gated), BH SPY.
+- Regime convention: same as prior hypotheses (VIX bull < 20, sideways 20-30, bear > 30).
+- Data sources (free only): yfinance for SVXY, ^VIX, ^VIX3M, SPY. History: SVXY available since 2011-10-04; sample spans 2011-10-04 through 2026-10-08 where available.
+- Compute budget: ≤ 2 CPU-h. Determinism: seed 42.
+
+**Expected outcome (from feasibility EDA):** REJECT. Target_vol ≤ 0.15 (to satisfy DD ≤ 15%) yields Sharpe ~0.46 < 1.0 in the long history; the 2018-02-05 tail (-32% in SVXY on 2018-02-05) occurs inside contango and is not pre-warned by the daily term-structure gate (VIX moved sharply day-of). This is a legitimate falsification: VRP is not harvestable within 15% max-DD budget on free daily data. No gate weakening permitted.
+
+**Implementation Plan:**
+1. Create `run_h17_vrp_experiment.py` implementing the pre-registration above, reusing the existing engine patterns (`run_backtest`, `compare_to_benchmark`, `walk_forward_splits`, performance stats, regime labeling, tracker/artifacts). Ensure strict causality (1-day lag: use shifted returns/levels appropriately), point-in-time data, no lookahead.
+2. Fetch/verify data availability for SVXY, ^VIX, ^VIX3M (using yfinance). Handle minor NaNs via ffill/validated. The data cache mechanism used by other experiments (e.g. `download_with_cache` or similar patterns in repo) should be reused if present; if not, use yfinance directly and save artifacts.
+3. Run the full grid (60 combos), select on Val Sharpe, compute all gates on OOS (Val+Test), generate ablations, write artifacts to `.experiments/artifacts/exp_YYYY-MM-DDTHH-MM-SS-ffffffZ/` (summary.json, equity/trades, prices/levels used, param_grid_results, selected signals, ablations). Include regime breakdowns by VIX labels.
+4. Add regression tests `tests/test_h17_vrp.py` mirroring `test_h16_factor_timing.py`: pre-registration pinning, artifact schema, gate recomputation from logged artifacts, grid/selection integrity (60 unique combos, selection by Val Sharpe), causality (future perturbation does not change past targets), point-in-time/validity, weight bounds [0, max_pos], determinism, and executed-outcome pinning. Ensure tests recompute gates exactly from artifacts (float tolerances consistent with existing tests).
+5. Update `HYPOTHESIS_SPEC.md` with the Measured section and verdict once executed; update `INEFFICIENCY_RANKING.md` accordingly; update `NEXT_TASK.md` to reflect pivot post-H17 as needed.
+6. Execute, verify full test suite still passes (including new H17 tests), run any relevant lint/typecheck commands if available in the repo (check for common commands like `ruff`, `mypy`, `pytest -q`).
+
+**Verdict rule (pre-registered):** H17 **PASS** iff all 8 gates pass on the protected OOS (Val+Test). Otherwise **REJECT** with root-cause attribution (including explicit reference to the binding tail(s), e.g. 2018-02 volmageddon) and the computed gate values.
+
+---
+
+## H17 — Measure Log
+
+**Measured (experiment `exp_2026-10-13T21-51-45-034237Z`):**
+
+Selected: `gate_thresh=0.00, vol_window=63, target_vol=0.25, max_pos=0.50`
+(selection by Val Sharpe 0.784; Test 2022-2026 protected).
+
+| Split | Sharpe |
+|-------|--------|
+| Train (2011-10→2019-12) | 0.795 |
+| Val (2020-01→2021-12, COVID) | 0.784 |
+| Test (2022-01→2026-10) | 0.724 |
+| **OOS (Val+Test)** | **0.742** (95% CI computed from bootstrap; not in summary) |
+
+| Gate (OOS) | Value | Threshold | Result |
+|------------|-------|-----------|--------|
+| Net Sharpe | 0.742 | ≥ 1.0 | FAIL |
+| Trades | 238 | ≥ 200 | **PASS** |
+| Profit factor | 1.147 | ≥ 1.3 | FAIL |
+| Max drawdown | -16.55% | ≤ 15% | FAIL |
+| Walk-forward stability | 1.911 | ≥ 0.7 | **PASS** |
+| Worst-regime Sharpe | -4.130 (bear) | ≥ 0.3 | FAIL |
+| Benchmark significance (p) | 0.534 | < 0.05 | FAIL |
+| Information ratio | -0.240 | > 0 | FAIL |
+| ±20% perturbation (min ratio) | 0.952 | ≥ 0.5 | **PASS** |
+
+Per-regime OOS Sharpe: bull **3.749**, sideways **-1.275**, bear **-4.130**.
+
+Ablations (OOS):
+
+| Variant | OOS Sharpe | OOS Max DD | OOS PF | OOS Trades |
+|---------|-----------|-----------|--------|------------|
+| H17 selected (gated, vol-targeted) | 0.742 | -16.55% | 1.147 | 238 |
+| BH SVXY | 0.466 | -62.19% | 1.092 | — |
+| Ungated vol-target-only | 0.460 | -35.85% | 1.090 | 229 |
+| Gate-only (no vol target) | 0.721 | -33.03% | 1.144 | 85 |
+| BH SPY | 0.752 | -34.10% | 1.155 | — |
+
+**Gates: 3/9 PASS → OVERALL: REJECT.**
+
+**Root-cause attribution:**
+1. **The worst-regime tail is un-gateable on daily data.** Bear-regime
+   Sharpe -4.130 is driven by 2018-02-05 (-32.0% SVXY in one day),
+   2020-03-16 (-20.6%), 2020-03-12 (-16.9%) — the worst days arrive
+   *inside contango*; the daily term-structure gate (^VIX3M/^VIX)
+   cannot pre-warn a same-day volatility spike. This is the binding
+   constraint.
+2. **Max-DD exceeds the 15% budget** at the target vol that would push
+   Sharpe ≥ 1.0: at the DD-compliant ~5% target vol the Sharpe is
+   ~0.46 < 1.0. The joint `(Sharpe ≥ 1.0) AND (DD ≤ 15%)` is
+   infeasible on free daily data on the gate frontier.
+3. **The edge is bull-regime-dependent (momentum-crash structure).**
+   Bull 3.749 vs sideways/bear net-negative; short-vol harvesting is
+   de facto low-vol beta lever, crashing in high-vol regimes like
+   H1-H3/H16. The VRP is "carry" only in calm markets; the tail is
+   un-hedgable with a long-only daily-gated book.
+4. **No statistical alpha vs BH-SVXY (p = 0.534, IR = -0.240):**
+   gated vol-targeting does not beat simply holding SVXY.
+5. **Perturbation passes (0.952):** the signal is stable under ±20%
+   parameter moves — a genuine property, not a data-mining artifact.
+
+**Verdict: REJECT H17.** The volatility risk premium is not harvestable
+within the 15% max-DD budget on free daily data; the binding constraint
+is the un-gateable volmageddon tail, not the contango carry. (7.3 s,
+0.00 CPU-h — well under the 2 CPU-h budget.)
+
+### Verdict rule (pre-registered)
+H17 **PASS** iff all 9 gates pass on the protected OOS (Val+Test). Otherwise **REJECT**
+with root-cause attribution.

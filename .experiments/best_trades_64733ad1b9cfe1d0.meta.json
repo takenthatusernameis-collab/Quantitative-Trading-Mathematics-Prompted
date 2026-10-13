@@ -1,0 +1,23 @@
+{
+  "shape": [
+    1467,
+    6
+  ],
+  "columns": [
+    "timestamp",
+    "symbol",
+    "side",
+    "weight_change",
+    "price",
+    "cost"
+  ],
+  "dtypes": {
+    "timestamp": "datetime64[ms]",
+    "symbol": "str",
+    "side": "str",
+    "weight_change": "float64",
+    "price": "float64",
+    "cost": "float64"
+  },
+  "index_type": "int64"
+}

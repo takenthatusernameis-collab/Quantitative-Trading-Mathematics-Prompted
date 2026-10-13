@@ -1,0 +1,13 @@
+{
+  "shape": [
+    3774,
+    1
+  ],
+  "columns": [
+    "equity"
+  ],
+  "dtypes": {
+    "equity": "float64"
+  },
+  "index_type": "datetime64[ms]"
+}

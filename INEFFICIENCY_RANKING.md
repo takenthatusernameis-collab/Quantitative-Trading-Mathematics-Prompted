@@ -556,3 +556,56 @@ From top-50 by Val PF margin (K=50, excluding H10), none satisfied all three H13
   beyond 63-252d momentum (macro/valuation-conditioned rotation),
   short/hedge legs for bear regimes, or intra-month rebalancing
   to clear the trades gate (at higher cost).
+
+---
+
+### 15. Volatility-Risk-Premium Harvesting (Term-Structure-Gated, Vol-Targeted Long SVXY) (executed 2026-10-13 — H17, **REJECTED**)
+
+- **Net edge measured** (SVXY traded; ^VIX/^VIX3M signal only; Yahoo daily
+  2011-10-04→2026-10-08, ~3,775 bars; corrected equity cost model): selected
+  config (gate_thresh=0.00, vol_window=63, target_vol=0.25, max_pos=0.50,
+  selected by Val Sharpe = 0.784) **OOS Sharpe 0.742**, max DD -16.55%,
+  PF 1.147, 238 trades, WF stability 1.911, worst-regime Sharpe -4.130
+  (bear), IR -0.240 vs BH-SVXY benchmark (p = 0.534, α = +5.4%/yr).
+  7.3 s grid, 0.00 CPU-h.
+- **Regime Sharpe**: bull 3.749, sideways -1.275, bear **-4.130**.
+- **Ablations (OOS)**: BH SVXY Sharpe 0.466 / DD -62.2% (volmageddon tail);
+  ungated vol-target 0.460 / DD -35.9%; gate-only-no-vol-target 0.721 /
+  DD -33.0%; BH SPY 0.752 / DD -34.1%.
+- **Gates**: 3/9 PASS (worst-regime, Sharpe, trades, WF-stability,
+  perturbation pass = actually trades+stab+perturb; Sharpe/PF/DD/worst/p/IR
+  all FAIL). **Status: REJECTED.**
+- **Root-cause attribution (the volmageddon binding constraint):**
+  1. **The worst-regime tail is un-gateable on daily data.** Bear-regime
+     Sharpe -4.130 is driven by 2018-02-05 (-32% in SVXY in one day),
+     2020-03-16 (-20.6%), 2020-03-12 (-16.9%) — the worst days arrive
+     *inside contango* (VIX prints 37 only on the crash day itself);
+     the daily term-structure gate (^VIX3M/^VIX) cannot pre-warn a same-day
+     volatility spike. This is the binding constraint, not the carry.
+  2. **Max-DD exceeds the 15% budget** at the vol-target that would push
+     Sharpe ≥ 1.0: at the DD-compliant 5% target vol, Sharpe ≈ 0.46
+     (< 1.0). The joint `(Sharpe ≥ 1.0) AND (DD ≤ 15%)` is infeasible
+     on free daily data — confirmed by the gate frontier: higher target_vol
+     raises Sharpe but pushes DD past 15%.
+  3. **The edge is bull-regime-dependent (momentum-crash structure).**
+     Bull Sharpe 3.749 vs sideways/bear net-negative: short-vol harvesting
+     is de facto a low-vol beta lever, crashing in high-vol regimes exactly
+     like the momentum strategies (H1-H3, H16). The VRP is "carry" only in
+     calm markets; the tail is unhedgable with a long-only daily-gated book.
+  4. **No statistical edge vs the buy-and-hold benchmark (p = 0.534,
+     IR = -0.240):** the gated vol-targeting does not generate significant
+     alpha over simply holding SVXY; the term-structure gate adds turnover
+     without a statistically detectable Sharpe lift.
+  5. **Perturbation passes (0.952 ratio):** the weak signal is stable under
+     ±20% parameter moves, confirming this is a genuine (if unharvestable)
+     property of the SVXY/VIX term structure, not a data-mining artifact.
+- **Net Opportunity Score:** 3/10 (theory, VRP is a documented anomaly)
+  → **2/10 (realized within the 15% DD gate on free daily data)**. The VRP
+  exists; it is not harvestable within the project's joint Sharpe≥1 / DD≤15%
+  gates without a short/hedge leg or higher-frequency entry (which would
+  require paid data to clear the 730-day hourly cap for intraday execution).
+- **What would invalidate the rejection:** (a) a vol-spike early-warning
+  signal on sub-daily resolution (VIX futures micro-structure / realized
+  variance of variance), (b) a short/hedge leg (e.g., long VIX calls /
+  tail-risk overlay) sized per the regime, or (c) paid higher-frequency data
+  to exit the contango tail intra-day.

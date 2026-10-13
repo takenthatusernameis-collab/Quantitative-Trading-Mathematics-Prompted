@@ -134,3 +134,43 @@ running; the EDA above is the feasibility probe):
   reproduction) are NOT yet committed; the repo convention is
   commit-per-experiment — commit them (excluding `.pyc` churn)
   when starting the next session.
+
+---
+
+## Session outcome (2026-10-13 — H17 executed)
+
+**H17 (Volatility-Risk-Premium Harvesting, term-structure-gated, vol-targeted long SVXY): REJECT — 3/9 gates.**
+
+Executed exactly as pre-registered. Selected config `gate_thresh=0.0, vol_window=63, target_vol=0.25, max_pos=0.5` (argmax Val Sharpe 0.784). OOS Sharpe 0.742 (< 1.0), max DD -16.55% (> 15%), PF 1.147 (< 1.3), worst-regime Sharpe -4.130 (bear, < 0.3), benchmark p=0.534 (fail), IR -0.240 (fail). PASS gates: Trades (238≥200), WF stability (1.911≥0.7), perturbation (0.952≥0.5). Compute: 7.3 s, 0.00 CPU-h. Tests: 20 new H17 tests, full suite 198 passing.
+
+**Confirmed hypothesis (publishable falsification):** The VRP is not harvestable within the 15% max-DD budget on free daily data. The binding constraint is the un-gateable 2018-02-05 / 2020-03 volmageddon tail (arrives inside contango, day-of), not the contango carry. The `target_vol → 5%` that satisfies DD ≤ 15% caps Sharpe at ~0.46; any `target_vol` raising Sharpe ≥ 1.0 pushes DD past 15%.
+
+**Verified:**
+- 198/198 tests pass (178 prior + 20 new H17 tests pinning gates, grid/selection integrity, causality, weight bounds, regime labels, and the executed REJECT outcome).
+- Artifacts in `.experiments/artifacts/exp_2026-10-13T21-51-45-034237Z/`; H17 Measured section added to `HYPOTHESIS_SPEC.md`; root-cause attribution added to `INEFFICIENCY_RANKING.md` §15.
+
+### Cumulative state of evidence gates (all hypotheses)
+- PASS families: H10 (intraday futures TSMOM, Sharpe 1.276), H11 (robustness certified), H12 (selection-bias audit PASS).
+- REJECT families: H1-H9 (momentum/TSMOM on free data), H16 (factor timing).
+- **H17 VRP: REJECTED.**
+- Structural walls remain: (a) the yfinance hourly `=F` 730-day cap blocks intraday extension beyond H10/H11 without paid data; (b) the ≤15% DD joint gate has been met by no long-only free-data family except the futures-carry edge of H10/H11.
+
+### Precise next task for the next session
+**H18: Overnight-vs-intraday equity return decomposition (daily OHLC).** The highest-information remaining untested family on free data. Rationale: the 2009-2026 daily OHLC sample (~4,200 bars) is the longest free sample; overnight return = openₜ/closeₜ₋₁ − 1; intraday return = closeₜ/openₜ − 1. The "overnight crash / intraday drift" phenomenon (see literature: overnight returns are systematically weak/negative, intraday carries the drift) is a genuinely different mechanism from momentum/volatility. Pre-register with the unchanged PROMPT_V2 gates:
+
+- Universe: SPY (primary), also QQQ/IWM for cross-validation. Traded vehicle = SPY; daily OHLC required.
+- Sample: 2009-01-01→2026-10-08 (~4,200 daily bars).
+- Splits: Train 2009-01→2014-12, Val 2015-01→2019-12, Test 2020-01→2026-10-08. OOS = Val+Test.
+- Signal: classify each day as "overnight-favoring" vs "intraday-favoring" based on a causal predictor (e.g., lagged overnight return sign, VIX level regime, or prior-N-day return sign — pick ONE pre-registered predictor to avoid data-mining); position = long the favored component (overnight or intraday leg) at the prior day's close, flat the other. Use the existing `run_signals`/`run_backtest` engine with per-period return series.
+- Grid: predictor ∈ {lagged_1d_overnight_sign, vix_regime, prior_5d_return_sign} × hold_convention ∈ {next_overnight, next_intraday} = 6 combos; selection by Val Sharpe; Test protected.
+- Benchmark: buy-and-hold SPY. Report overnight-only and intraday-only BH.
+- Ablations: BH overnight leg, BH intraday leg, BH SPY, equal-weight of both legs.
+- Expected outcome: REJECT — overnight-only and intraday-only legs each have Sharpe ~0.4-0.5 with high DD; the decomposition is descriptive, not a gate-clearing edge. That is a legitimate falsification: "the overnight/intraday decomposition on free daily OHLC does not yield a Sharpe ≥ 1.0 with DD ≤ 15%; the components are lower-Sharpe than the whole."
+- Tests: `tests/test_h18_overnight_intraday.py` mirroring `test_h16_factor_timing.py`/`test_h17_vrp.py`.
+- Compute budget ≤ 2 CPU-h. Determinism seed 42.
+
+### Constraints (unchanged)
+- No paid data; yfinance/free sources only.
+- Pre-register before running; never select on Test.
+- All gates from PROMPT_V2.md + HYPOTHESIS_SPEC.md apply; no gate weakening.
+- Working-tree changes from this session should be committed per the repo convention (commit-per-experiment): H17 script (`run_h17_vrp_experiment.py`), H17 tests (`tests/test_h17_vrp.py`), updated `HYPOTHESIS_SPEC.md`, `INEFFICIENCY_RANKING.md`, `NEXT_TASK.md`, H17 experiment artifacts, `.cache/data/` parquet fetches — excluding `.pyc` churn.

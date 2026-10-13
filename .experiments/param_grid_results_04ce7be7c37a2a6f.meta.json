@@ -1,0 +1,23 @@
+{
+  "shape": [
+    60,
+    6
+  ],
+  "columns": [
+    "gate_thresh",
+    "vol_window",
+    "target_vol",
+    "max_pos",
+    "val_sharpe",
+    "oos_sharpe"
+  ],
+  "dtypes": {
+    "gate_thresh": "float64",
+    "vol_window": "int64",
+    "target_vol": "float64",
+    "max_pos": "float64",
+    "val_sharpe": "float64",
+    "oos_sharpe": "float64"
+  },
+  "index_type": "int64"
+}
