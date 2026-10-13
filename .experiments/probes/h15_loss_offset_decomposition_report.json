@@ -1,0 +1,30 @@
+{
+  "oos_bars": 4576,
+  "total_bars": 11441,
+  "reconstruction": {
+    "max_abs_diff_portfolio_vs_contrib_sum": 0.0003415239354523786,
+    "pf_pooled_oos": 1.3378381937319406,
+    "gross_up_all_oos": 3.291656360081668,
+    "gross_dn_all_oos": 2.4604293519977123
+  },
+  "leave_one_out_pf": {
+    "no_CL_F": 1.2734407613814651,
+    "no_GC_F": 1.3103364765699415,
+    "no_ES_F": 1.3485618408924622,
+    "no_NQ_F": 1.3342344217225812,
+    "no_ZB_F": 1.3442907268141773
+  },
+  "cl_gc_loss_offset": {
+    "overlap_both_loss_either_loss": 0.15329218106995884,
+    "corr_cl_gc_contrib_oos": 0.05709028493617955
+  },
+  "cl_gc_indispensable_flag": true,
+  "pf_threshold": 1.3,
+  "symbols": [
+    "ES=F",
+    "NQ=F",
+    "CL=F",
+    "GC=F",
+    "ZB=F"
+  ]
+}
