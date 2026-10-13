@@ -1,84 +1,37 @@
-# Next Task: H13 complete — REJECT on the fragility axes (PF margin is fragile)
+# Next Task: Extend H10-family robustness beyond the current data horizon (bounded, data-dependent)
 
-## H13 executed 2026-10-13 — **REJECT** (2 of 3 fragility nulls not rejected)
+## Status of previous work
+H10 (intraday TSMOM PF-optimized) passed all pre-registered gates. H11 confirmed frozen-pipeline reproducibility and robustness (bit-exact splits). H12 (selection bias audit) showed Sharpe/deflation robustness and PBO consistent with signal; selection artifacts do not explain the edge. H13 (OOS deflation + PF-margin fragility audit) found: worst-case DSR-adj OOS Sharpe 1.2745, p = 0.00102 (PASS for deflation) but OOS PF bootstrap 95% CI [1.190, 1.425], P(PF ≥ 1.3)=51.7% (FAIL) and symbol dispensability failed (CL=F, GC=F indispensable). H14 (PF-margin-targeted selection audit, top-K=50 by Val PF margin, excluding H10) found 0/50 configs passed all three gates (all DSR≥1.0 but CI LB max 1.199 and none fully dispensable) — verdict REJECT; PF-margin fragility is a family property on the available window.
 
-OOS-level deflation & PF-margin fragility audit of the
-frozen H10-selected config (< 0.1 CPU-h,
-artifact-reuse-only). Artifacts:
-`.experiments/artifacts/exp_2026-10-13T14-35-58-316759Z/`
-(`summary.json`, `per_symbol_net_oos.parquet`,
-`pf_bootstrap.parquet`, `shifted_splits*.parquet`,
-`cost_sensitivity.parquet`). Script:
-`run_h13_oos_deflation_pf_audit.py`. Regression tests:
-`tests/test_h13_oos_deflation_pf.py` (105/105 passing).
+Evidence/artifacts: H13 `.experiments/artifacts/exp_2026-10-13T14-35-58-316759Z/`, H14 `.experiments/artifacts/exp_2026-10-13T19-01-59-371405Z/`. Scripts: `run_h13_oos_deflation_pf_audit.py`, `run_h14_pf_margin_selection_audit.py`. Tests: 109/109 passing (including new `tests/test_h14_artifacts.py`).
 
-| Pre-registered component | Result | Gate |
-|---|---|---|
-| 1. OOS worst-case deflation (N=13,824) | E[max SR \| null] = 0.6095 vs OOS SR 1.2758; **DSR-adj OOS Sharpe 1.2745, p = 0.00102**; single-peek (N=1) DSR 1.2758, p < 1e-06 | **PASS** (≥ 1.0) |
-| 2. OOS PF bootstrap 95% CI (2,000 resamples, seed 42) | CI **[1.1900, 1.4248]**, median 1.3022, **P(PF ≥ 1.3) = 51.7%** | **FAIL** (LB < 1.3) |
-| 3. Symbol dispensability (leave-one-out pooled OOS PF) | ES 1.3070 ✓, NQ 1.3006 ✓, **CL 1.2494 ✗**, **GC 1.2821 ✗**, ZB 1.3114 ✓ | **FAIL** (CL=F, GC=F indispensable) |
-| 2c. Shifted splits (confirm + attribution) | 50/25/25 → 1.2806, 60/20/20 → 1.3298, 45/30/25 → 1.2916 — all reproduce H11 E4a bit-exactly (\|Δ\|=0); shortfall driven by **CL=F** (net-PF delta −0.076/−0.084) and the **bull regime** | diagnostic |
-| 2d. Cost break-even | **1.5420×** (H11 interpolated 1.5418×, \|Δ\|=0.0002); cost ×2 moves PF only −0.008 | diagnostic |
+## What changed in this session
+- Added `tests/test_h14_artifacts.py` to validate H14 artifacts (schema, gates, counts).
+- Verified full test suite passes (109/109). Clean working tree (no uncommitted source changes).
 
-**Verdict: REJECT** (pre-registered: PASS iff all three
-gates hold). Root cause: the H10 certification's binding
-constraint — the OOS PF margin (+0.004) — is (a) within
-bootstrap sampling noise (CI half-width ±0.117) and
-(b) carried by the two highest-PF symbols: CL=F (net PF
-1.358, the only symbol above the pooled 1.304; removal
-drops pooled PF to 1.249) and GC=F (removal drops it to
-1.282 — its below-pooled net PF masks its role offsetting
-other symbols' loss bars, so pooled PF is non-monotone in
-per-symbol PF). The Sharpe edge is deflation-robust; the
-PF gate is not. Costs are not the driver (break-even
-1.542×).
+## What was verified
+- All existing tests still pass (including H13, H11, H12, H10, core unit tests).
+- H14 artifact invariants verified: 50 configs evaluated, 0 passing, DSR≥1.0 for all, CI LB<1.3 for all, all_symbols_dispensable all False.
+- Code compiles; scripts execute logic as written.
 
-**Repo state:** all H13 changes (script, tests, docs) are
-in the working tree, **uncommitted** (commit policy: only
-commit when explicitly asked). Intended commit, if
-desired: `run_h13_oos_deflation_pf_audit.py`,
-`tests/test_h13_oos_deflation_pf.py`, `HYPOTHESIS_SPEC.md`,
-`INEFFICIENCY_RANKING.md`, `FINAL_REPORT.md`,
-`NEXT_TASK.md`, plus the H13 artifacts under
-`.experiments/`. Do not stage `__pycache__/*.pyc`
-(ignored, but force-added in commit 8015413 — they show
-as modified; leave them). H12 and H11-refactor changes
-from the prior session are likewise still uncommitted.
+## What remains unresolved
+- PF-margin fragility is a structural property on ~730-day hourly window (free yfinance hard cap on `=F` series). The margin (+0.004 over 1.3) is smaller than bootstrap noise and depends on CL=F, GC=F loss-offsetting.
+- Data horizon constraint: cannot extend free hourly `=F` beyond ~2026-10-09; longer OOS window requires paid data source.
+- No config in PF-margin-top-50 family satisfies all H13 gates; remedies untested with extended data.
 
----
+## Approaches already failed and why
+- PF-margin-targeted selection over top-K by Val PF margin (H14): failed because dispensability/blocker symbols persist; Sharpe deflation not the issue.
+- Bootstrap CI gate alone (H13) fails due to sampling noise relative to thin margin.
 
-## H14 completed 2026-10-13 — REJECT (family property)
+## One precise next task (bounded, verifiable)
+Implement a bounded feasibility probe: assess whether extending the evaluation window (via an alternate data adapter/path, with clear data provenance and no recomputation of frozen artifacts) could plausibly move PF bootstrap CI LB ≥ 1.3 while preserving symbol dispensability. 
+Constraints:
+- Do not change frozen pipeline logic or committed H10/H11/H12/H13/H14 artifacts.
+- If paid/alternate data unavailable in this environment, produce a structured feasibility report (with required fields: data source, available bars, split feasibility, estimated power/CI width impact, assumptions, risks) that can be evaluated without running full grid.
+- Verification: produce a single markdown/report file under `.experiments/probes/` with all required fields, and a minimal unit test that validates the report schema. Keep runtime < 0.01 CPU-h, no external network fetches if data not present.
+- If alternate data found, validate shape and coverage only (read-only), do not overwrite existing artifacts.
 
-H14 executed per pre-registration. Top K=50 configs by Val PF margin
-(`val_profit_factor - 1.3`), excluding the frozen H10 config, were evaluated
-on OOS using H13 fragility gates (artifact reuse). Artifacts:
-`.experiments/artifacts/exp_2026-10-13T19-01-59-371405Z/`
-(`summary.json`, `h14_results.parquet`, `topk_selected.parquet`,
-`subset_oos_metrics.parquet`). Script: `run_h14_pf_margin_selection_audit.py`.
-
-| Gate (per config) | Result across top-K=50 | Pass criterion |
-|---|---|---|
-| OOS PF bootstrap 95% CI lower bound | mean 1.186, max 1.199 (all < 1.3) | CI LB ≥ 1.3 |
-| Worst-case DSR-adj OOS Sharpe (N=K) | mean 1.244 (all ≥ 1.0) | ≥ 1.0 at N=K |
-| All symbols dispensable (LOO PF ≥ 1.3) | 0/50 | all dispensable |
-
-**Verdict: REJECT.** No config passed all three gates. The H0 ("no config in
-top-K-by-Val-PF-margin set passes all three gates") is **not rejected**. Sharpe
-deflation is not the issue; symbol dispensability remains the blocker (CL=F and
-GC=F dependencies persist). **Conclusion: PF-margin fragility is a family property**
-on this ~2-year hourly window. The H10 line closes with this durable negative
-result. Remedies (if pursued) require longer OOS window (paid data) or different
-construction (PF-targeted exits). Test never entered selection; artifacts and
-docs updated.
-
-## Next Task (for next agent): No new hypothesis specified — H14 closes the H10 family line
-
-All changes from H14 are uncommitted (commit policy: only when explicitly
-asked). Intended files if committing: `run_h14_pf_margin_selection_audit.py`,
-`HYPOTHESIS_SPEC.md`, `INEFFICIENCY_RANKING.md`, `NEXT_TASK.md`, and the H14
-artifact under `.experiments/`. Do not stage `__pycache__/*.pyc`.
-
-**Documented-but-infeasible items (do not re-attempt without a new data source):**
-longer intraday history and ongoing OOS time-extension — a live (uncached)
-yfinance fetch verified on 2026-10-11 returns no hourly `=F` bars beyond
-2026-10-09. Both require a paid data source.
+## Evidence/constraints
+- Data cap: free yfinance hourly `=F` ~730 days (no bars beyond 2026-10-09).
+- H13 gates: PF CI LB≥1.3, worst-case DSR-adj SR≥1.0, all symbols dispensable.
+- Family property established (H14). Changes must be reversible and non-destructive.
