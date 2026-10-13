@@ -1,0 +1,15 @@
+{
+  "shape": [
+    848,
+    2
+  ],
+  "columns": [
+    "rank",
+    "count"
+  ],
+  "dtypes": {
+    "rank": "int64",
+    "count": "int64"
+  },
+  "index_type": "int64"
+}

@@ -1,0 +1,13 @@
+{
+  "shape": [
+    13824,
+    1
+  ],
+  "columns": [
+    "val_sharpe"
+  ],
+  "dtypes": {
+    "val_sharpe": "float64"
+  },
+  "index_type": "int64"
+}

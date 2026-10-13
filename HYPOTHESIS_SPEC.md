@@ -1248,3 +1248,67 @@ artifacts in `.experiments/artifacts/exp_<H12>/`,
 updated `HYPOTHESIS_SPEC.md` (this section) and
 `INEFFICIENCY_RANKING.md` with final PASS/REJECT verdict and
 root-cause attribution.
+
+## H12: Selection-Bias Audit (executed 2026-10-13 — **PASS**)
+
+Artifacts: `.experiments/artifacts/exp_2026-10-13T12-51-06-515939Z/`
+(`summary.json`, `grid_oos_metrics.parquet` — per-combo OOS
+metrics for all 13,824 configs, `cscv_rank_distribution.parquet`,
+`val_sharpe_distribution.parquet`). Script:
+`run_h12_selection_bias_audit.py` (39.1 min, 0.652 CPU-h —
+within the ≤ 4 CPU-h budget). Regression tests:
+`tests/test_h12_selection_bias.py` (78/78 passing; the test
+suite caught and fixed an inverted rank comparison in the
+CSCV PBO computation before the full run).
+
+### Results
+
+| Pre-registered component | Result |
+|---|---|
+| 1. Deflated Sharpe Ratio (N=13,824) | E[max SR \| null] = **0.6214** vs observed best-of-N Val SR **1.4134**; DSR-adjusted Sharpe **1.4094**, p = **0.00283** ⇒ the best-of-N Sharpe is distinguishable from the expected maximum of 13,824 random trials |
+| 2. PBO via CSCV | **PBO = 0.0552** (S=12 blocks, T=5,148 OOS bars, 924 combinations). Median OOS rank of the IS-optimal config = 1,716 / 13,824 (top 12%); only 5.5% of CSCV combinations rank the IS-optimal config in the bottom OOS half. **PBO < 0.3 (pre-registered strict) and < 0.5 (H0 threshold)** |
+| 3. Family-wide multiple testing | Pooled N = **14,389** trials (H1:18, H2:54, H3:108, H4:18, H5:6, H6:6, H8:5, H10:13,824, H11:350). DSR (family) = **1.4093**, p = 0.00288. Benchmark p = 4.79e-10 → Bonferroni **6.89e-06**, BH-FDR **6.89e-06**, Šidák ≈ 6.89e-06 (all ≈ each other at this scale; all < 0.05) |
+| 4. PF-margin sensitivity (diagnostic) | Selected config Val PF = 1.3527 (rank 9/13,824). Val PF quantiles: 5%=1.176, 50%=1.243, 95%=1.308. Fraction of combos with PF ≥ 1.3: **7.26% (Val)** vs **0.32% (OOS)** — the PF gate is heavily selection-pressured on Val but the selected config also clears it OOS (PF 1.304) |
+
+**Execution notes (deviations from the pre-registration draft).**
+- CSCV used **S=12** blocks (C(12,6)=924 combinations), the
+  block count fixed in the operative script; the OOS window
+  (5,289 bars) was trimmed to 5,148 bars (0.2%) so the 12
+  blocks are combinatorially symmetric. The verdict is
+  insensitive: PBO 0.0552 clears both the strict 0.3 and the
+  H0 0.5 thresholds with wide margin.
+- Šidák correction reported here (1 − (1−p)^N ≈ 6.89e-06);
+  it coincides with Bonferroni/BH at this p and N.
+
+**Verdict: PASS.** The H10 certification survives the
+selection-bias audit on all three pre-registered nulls:
+the best-of-13,824 Val Sharpe is ~2.3× the expected maximum
+under the null (DSR p = 0.0028), the selection is not a
+CSCV overfitting artifact (PBO = 0.055), and the OOS
+benchmark alpha remains significant after family-wide
+Bonferroni/BH/Šidák correction (p ≈ 6.9e-06).
+
+**Root-cause attribution (why the result is not a selection
+artifact).** (a) The Val-Sharpe distribution across the grid
+is tight (mean 0.962, SD 0.158) and the selected config's
+Val Sharpe (1.413) is +2.86 SD above the grid mean — far
+beyond the expected max of 13,824 null trials (0.621).
+(b) The candidate pool is a highly correlated family (same
+signal machinery, overlapping parameters), so CSCV IS-splits
+select stably: the IS-optimal config's median OOS rank is in
+the top 12%. (c) The re-run grid reproduces the H10 OOS
+metrics of the selected config bit-exactly (OOS Sharpe
+1.275759, PF 1.304165), confirming the audit evaluated the
+identical pipeline.
+
+**Remaining caveat (carried forward).** PBO's CSCV
+assumption of exchangeable candidate strategies is only
+approximately valid for a correlated grid; the low PBO is
+partly a statement about selection *stability* within this
+family, not independence across families. The PF gate
+remains the fragile margin: only 0.32% of configs clear
+PF ≥ 1.3 OOS and the selected config clears it by +0.004.
+The single-sample window (~2 years hourly) and the
+free-data horizon limit (no bars beyond 2026-10-09) remain
+the binding constraints on statistical power — both require
+a paid data source to lift.

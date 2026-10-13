@@ -37,7 +37,9 @@ import numpy as np
 import pandas as pd
 
 from qtr.data.fetcher import get_data_fetcher
-from qtr.backtest.engine import run_backtest, BacktestConfig, CostModel
+from qtr.backtest.engine import (
+    run_backtest, BacktestConfig, CostModel, AssetClass,
+)
 from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
     sharpe_ratio,
@@ -67,6 +69,8 @@ from run_h10_intraday_tsmom_pfopt_experiment import (
     smooth_signal,
     regime_factor_hourly,
 )
+# Position-size ceiling (single source of truth: H9).
+from run_h9_intraday_tsmom_experiment import MAX_POSITION_SIZE
 
 EXPERIMENT_NAME = "h11_robustness_certification"
 EXPERIMENT_DESC = (
@@ -89,25 +93,79 @@ SEL = {
     "vol_floor_fraction": 0.25,
 }
 
-# Perturbation grid: +/-20% on the continuous params, discrete alternatives on
-# the discrete ones.  All evaluated on the SAME Val/Test split as H10.
+# The frozen config as a single dict, including the fixed target-vol
+# parameter (the frozen pipeline's complete configuration).
+FROZEN_CONFIG = dict(SEL, target_vol=TARGET_VOL)
+
+# Numeric parameters of the frozen config that are perturbed by exactly
+# +/-20% (the frozen perturbation gate from H1-H9).
+PERTURBATION_KEYS = (
+    "vol_window_long",
+    "trailing_mult",
+    "max_hold_bars",
+    "vol_limit_mult",
+    "vol_floor_fraction",
+    "target_vol",
+)
+
+
+def _perturbed_value(param, factor):
+    """Frozen value scaled by factor (integer-rounded where required)."""
+    value = FROZEN_CONFIG[param] * factor
+    if param in ("vol_window_long", "max_hold_bars"):
+        return int(round(value))
+    return value
+
+
+# Perturbation grid: exactly +/-20% on every numeric parameter of the
+# frozen config. Each entry is (param, perturbed_value).
 PERTURBATIONS = [
-    # (label, perturbed dict)
-    ("baseline", dict(SEL)),
-    ("vol_window_long_840", dict(SEL, **{"vol_window_long": 840})),
-    ("vol_window_long_1210", dict(SEL, **{"vol_window_long": 1210})),
-    ("trailing_mult_1.6", dict(SEL, **{"trailing_mult": 1.6})),
-    ("trailing_mult_2.4", dict(SEL, **{"trailing_mult": 2.4})),
-    ("max_hold_bars_48", dict(SEL, **{"max_hold_bars": 48})),
-    ("max_hold_bars_72", dict(SEL, **{"max_hold_bars": 72})),
-    ("vol_limit_mult_1.2", dict(SEL, **{"vol_limit_mult": 1.2})),
-    ("vol_limit_mult_1.8", dict(SEL, **{"vol_limit_mult": 1.8})),
-    ("vol_floor_fraction_0.2", dict(SEL, **{"vol_floor_fraction": 0.2})),
-    ("vol_floor_fraction_0.3", dict(SEL, **{"vol_floor_fraction": 0.3})),
-    ("smooth_span_4", dict(SEL, **{"smooth_span": 4})),
-    ("regime_scaling_on", dict(SEL, **{"regime_scaling": True})),
-    ("min_trade_interval_4", dict(SEL, **{"min_trade_interval": 4})),
+    (param, _perturbed_value(param, factor))
+    for param in PERTURBATION_KEYS
+    for factor in (0.8, 1.2)
 ]
+
+# Joint perturbations: all numeric parameters moved simultaneously.
+# Each entry is (label, overrides) covering every numeric parameter.
+JOINT_PERTURBATIONS = [
+    (
+        "joint_all_down",
+        {param: _perturbed_value(param, 0.8) for param in PERTURBATION_KEYS},
+    ),
+    (
+        "joint_all_up",
+        {param: _perturbed_value(param, 1.2) for param in PERTURBATION_KEYS},
+    ),
+    (
+        "joint_mixed",
+        {
+            "vol_window_long": _perturbed_value("vol_window_long", 0.8),
+            "trailing_mult": _perturbed_value("trailing_mult", 1.2),
+            "max_hold_bars": _perturbed_value("max_hold_bars", 0.8),
+            "vol_limit_mult": _perturbed_value("vol_limit_mult", 1.2),
+            "vol_floor_fraction": _perturbed_value("vol_floor_fraction", 0.8),
+            "target_vol": _perturbed_value("target_vol", 1.2),
+        },
+    ),
+]
+
+# Structural (non-numeric) perturbations preserved from the original H11
+# design: discrete alternatives on the categorical parameters.
+STRUCTURAL_PERTURBATIONS = [
+    ("smooth_span_4", {"smooth_span": 4}),
+    ("regime_scaling_on", {"regime_scaling": True}),
+    ("min_trade_interval_4", {"min_trade_interval": 4}),
+]
+
+
+def perturbation_table():
+    """(label, overrides) rows: baseline + single + joint + structural."""
+    rows = [("baseline", {})]
+    for param, value in PERTURBATIONS:
+        rows.append((f"{param}_{value}", {param: value}))
+    rows.extend(JOINT_PERTURBATIONS)
+    rows.extend(STRUCTURAL_PERTURBATIONS)
+    return rows
 
 # Cost stress multipliers (applied to commission, spread, slippage equally).
 COST_MULTIPLIERS = [0.5, 1.0, 1.5, 2.0]
@@ -222,11 +280,157 @@ def _fresh_oos_window(prices, test_end):
     return prices.index > test_end
 
 
+def make_cost_stressed_config(mult):
+    """Base futures config with all cost components scaled by ``mult``.
+
+    Commission, spread and slippage (per contract / per tick) are all
+    scaled by the same multiplier; contract specifications (multiplier,
+    tick value) are unchanged.
+    """
+    return _config_with_cost_mult(make_futures_config(), mult)
+
+
+def build_positions(
+    prices, atr, vol_exit, vix,
+    vol_window_long, smooth_span, regime_scaling, min_trade_interval,
+    trailing_mult, max_hold_bars, vol_limit_mult, vol_floor_fraction,
+    target_vol=TARGET_VOL,
+):
+    """Compose the frozen H10 pipeline into hourly positions.
+
+    vol-scaled TSMOM signal -> (optional EWMA smoothing) -> daily
+    target collapse -> hourly expansion -> (optional VIX regime
+    scaling) -> CT-style path-dependent exits.
+    """
+    base_signal = vol_scaled_tsmom_hourly(
+        prices,
+        vol_window_long=vol_window_long,
+        vol_window_short=vol_window_long // VOL_WINDOW_SHORT_RATIO,
+    )
+    hourly_target = build_hourly_target(
+        base_signal, smooth_span, vol_window_long,
+        regime_scaling, vix, prices.index,
+    )
+    return apply_exits_hourly(
+        hourly_target, prices, atr, vol_exit,
+        trailing_mult=trailing_mult, max_hold_bars=max_hold_bars,
+        vol_limit_mult=vol_limit_mult,
+        vol_floor_fraction=vol_floor_fraction,
+        target_vol=target_vol, min_trade_interval=min_trade_interval,
+    )
+
+
+def per_symbol_contributions(result, prices, cfg):
+    """Per-symbol decomposition of the engine's net bar returns.
+
+    contribution[s, t] = gross P&L of symbol s at bar t minus the
+    transaction costs attributable to symbol s at bar t, replicating
+    the engine's cost model exactly. Summing over symbols
+    reconstructs ``result.returns`` (to float precision).
+    """
+    positions = result.positions
+    price_returns = prices.pct_change().fillna(0)
+    position_changes = positions.diff().fillna(positions.iloc[0])
+    gross = (positions.shift(1) * price_returns).fillna(0.0)
+
+    contrib = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
+    for sym in prices.columns:
+        changes = position_changes[sym].abs()
+        if changes.sum() == 0:
+            cost_s = pd.Series(0.0, index=prices.index)
+        elif cfg.asset_class == AssetClass.FUTURE:
+            contract_cost = cfg.cost_model.future_cost_per_contract(sym)
+            multiplier = cfg.cost_model.get_future_contract_multiplier(sym)
+            contracts_traded = (
+                changes * cfg.initial_capital / (prices[sym] * multiplier)
+            )
+            cost_s = (
+                contracts_traded.abs() * contract_cost / cfg.initial_capital
+            )
+        elif cfg.asset_class == AssetClass.EQUITY:
+            cost_bps = cfg.cost_model.equity_cost_bps(
+                cfg.cost_model.equity_spread_bps, 0.0
+            )
+            cost_s = changes * (cost_bps / 10000.0)
+        elif cfg.asset_class == AssetClass.CRYPTO:
+            cost_bps = cfg.cost_model.crypto_cost_bps(0.0)
+            cost_s = changes * (cost_bps / 10000.0)
+        else:
+            cost_s = pd.Series(0.0, index=prices.index)
+        contrib[sym] = gross[sym] - cost_s.fillna(0.0)
+    return contrib
+
+
+def bootstrap_sharpe_distribution(rets, seed=SEED, n_bootstrap=2000):
+    """Bootstrap distribution of the annualized Sharpe ratio.
+
+    Deterministic given ``seed`` (i.i.d. resampling with replacement).
+    """
+    r = np.asarray(rets, dtype=float)
+    r = r[np.isfinite(r)]
+    rng = np.random.default_rng(seed)
+    out = np.empty(n_bootstrap, dtype=float)
+    for i in range(n_bootstrap):
+        idx = rng.integers(0, len(r), size=len(r))
+        out[i] = sharpe_ratio(r[idx])
+    return out
+
+
+# H10 artifact directory (cached hourly futures + VIX, tz-normalized).
+H10_ARTIFACT_DIR = Path(
+    ".experiments/artifacts/exp_2026-10-11T17-41-18-169363Z"
+)
+
+
+def _cached_data_end():
+    """Last bar of the cached H10 hourly futures data."""
+    try:
+        prices = pd.read_parquet(H10_ARTIFACT_DIR / "prices.parquet")
+        return pd.to_datetime(prices.index).max()
+    except Exception:
+        return pd.Timestamp(DATA_END)
+
+
+def probe_live_extension(fetcher, start=DATA_START, end=DATA_END):
+    """Probe for fresh hourly bars beyond the cached H10 data.
+
+    Returns a dict with ``fresh_bars_beyond_cached`` (bool). On any
+    fetch error the probe fails closed (``fresh_bars_beyond_cached``
+    False, ``error`` populated) rather than raising.
+    """
+    cached_end = _cached_data_end()
+    try:
+        data = fetcher.fetch_futures(
+            FUTURES_UNIVERSE, start=start, end=end, interval="1h"
+        )
+        max_ts = None
+        n_fresh = 0
+        for sym, df in data.items():
+            if df is None or len(df) == 0:
+                continue
+            idx = df.index
+            if hasattr(idx, "tz_convert") and idx.tzinfo is not None:
+                idx = idx.tz_convert(None)
+            idx = pd.to_datetime(idx)
+            sym_max = idx.max()
+            max_ts = sym_max if max_ts is None else max(max_ts, sym_max)
+            n_fresh += int((idx > cached_end).sum())
+        return {
+            "fresh_bars_beyond_cached": bool(n_fresh > 0),
+            "cached_data_end": str(cached_end),
+            "live_data_end": str(max_ts) if max_ts is not None else None,
+            "n_fresh_bars": int(n_fresh),
+        }
+    except Exception as e:
+        return {"fresh_bars_beyond_cached": False, "error": str(e)}
+
+
 def main():
     np.random.seed(SEED)
     t_start = time.time()
     tracker = get_tracker()
-    grid_size = len(PERTURBATIONS) * len(COST_MULTIPLIERS)
+    pert_rows_table = perturbation_table()
+    grid_size = len(pert_rows_table)
     exp_id = tracker.start_experiment(
         name=EXPERIMENT_NAME,
         description=EXPERIMENT_DESC,
@@ -238,7 +442,11 @@ def main():
             "gates": GATES,
             "seed": SEED,
             "h10_selected_config": SEL,
-            "perturbations": [p[0] for p in PERTURBATIONS],
+            "frozen_config": FROZEN_CONFIG,
+            "perturbations": [label for label, _ in pert_rows_table],
+            "joint_perturbations": [
+                label for label, _ in JOINT_PERTURBATIONS
+            ],
             "cost_multipliers": COST_MULTIPLIERS,
             "grid_size": grid_size,
         },
@@ -287,30 +495,16 @@ def main():
         print("[H11] --- 1. Perturbation robustness ---")
         pert_rows = []
         baseline_oos_sharpe = None
-        for label, params in PERTURBATIONS:
-            tgt = build_hourly_target(
-                base_signal if params["vol_window_long"] == SEL["vol_window_long"]
-                else vol_scaled_tsmom_hourly(
-                    prices,
-                    vol_window_long=params["vol_window_long"],
-                    vol_window_short=params["vol_window_long"] // VOL_WINDOW_SHORT_RATIO,
-                ),
-                params["smooth_span"], params["vol_window_long"],
-                params["regime_scaling"], vix_hourly, prices.index,
-            )
-            pos = apply_exits_hourly(
-                tgt, prices, atr, vol_exit,
-                trailing_mult=params["trailing_mult"],
-                max_hold_bars=params["max_hold_bars"],
-                vol_limit_mult=params["vol_limit_mult"],
-                vol_floor_fraction=params["vol_floor_fraction"],
-                target_vol=TARGET_VOL, min_trade_interval=params["min_trade_interval"],
+        for label, overrides in pert_rows_table:
+            params = dict(FROZEN_CONFIG, **overrides)
+            pos = build_positions(
+                prices, atr, vol_exit, vix_hourly, **params
             )
             res, gate = _eval_positions(
                 pos, prices, volumes, cfg, masks, vix_hourly, bh_result
             )
             om = gate["oos_metrics"]
-            row = {"label": label, **{f"p_{k}": v for k, v in params.items()},
+            row = {"label": label, **{f"p_{k}": v for k, v in overrides.items()},
                    "oos_sharpe": om["sharpe"], "oos_pf": om["profit_factor"],
                    "oos_dd": om["max_drawdown"], "oos_trades": om["trades"],
                    "test_sharpe": gate["test_metrics"]["sharpe"],
@@ -342,15 +536,8 @@ def main():
         # ============================================================
         print("[H11] --- 2. Cost-model sensitivity ---")
         cost_rows = []
-        tgt = build_hourly_target(
-            base_signal, SEL["smooth_span"], SEL["vol_window_long"],
-            SEL["regime_scaling"], vix_hourly, prices.index,
-        )
-        base_pos = apply_exits_hourly(
-            tgt, prices, atr, vol_exit,
-            trailing_mult=SEL["trailing_mult"], max_hold_bars=SEL["max_hold_bars"],
-            vol_limit_mult=SEL["vol_limit_mult"], vol_floor_fraction=SEL["vol_floor_fraction"],
-            target_vol=TARGET_VOL, min_trade_interval=SEL["min_trade_interval"],
+        base_pos = build_positions(
+            prices, atr, vol_exit, vix_hourly, **FROZEN_CONFIG
         )
         for mult in COST_MULTIPLIERS:
             cm_cfg = _config_with_cost_mult(cfg, mult)

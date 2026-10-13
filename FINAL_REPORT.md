@@ -96,6 +96,31 @@ Both hypotheses evaluated against the full PROMPT_V2 + HYPOTHESIS_SPEC gate set
 on pooled Val+Test OOS. Neither passed. Negative results preserved with full
 reproducibility metadata (git commit, seeds, dependency versions, data hashes).
 
+## Phase 6 (continued) — H1–H12 research arc (later agents)
+The H1/H2 rejection motivated the H3–H12 hypothesis family (documented in
+`HYPOTHESIS_SPEC.md` and `INEFFICIENCY_RANKING.md`):
+
+| Hyp | Construction | OOS Sharpe | PF | Verdict |
+|-----|--------------|-----------|-----|---------|
+| H3 | Regime-gated vol-scaled momentum | — | — | REJECTED |
+| H4 | Futures TSMOM + ensemble selection | — | — | REJECTED (cost-model bug found & fixed) |
+| H5 | Drawdown-conditioned vol targeting | — | — | REJECTED |
+| H6 | VIX-gated + DDCV combo | — | — | REJECTED |
+| H7 | Multi-horizon regime-weighted TSMOM | — | — | REJECTED |
+| H8 | Roll-adjusted futures TSMOM | — | — | REJECTED |
+| H9 | Intraday futures TSMOM + CT exits | — | — | REJECTED |
+| **H10** | **Intraday TSMOM PF-optimization (13,824-combo grid, Val-selected)** | **1.276** | **1.304** | **PASS (first to clear all 8 gates)** |
+| H11 | Robustness certification of H10 | 1.276 | 1.304 | **PASS** (seeds, ±20% perturbation, ±50% costs, shifted splits, concentration) |
+| **H12** | **Selection-bias audit of H10** | — | — | **PASS** (DSR-adj Sharpe 1.409, p=0.0028; PBO=0.055; family-corrected p=6.9e-06) |
+
+H12 confirms the H10 result is not a best-of-13,824 selection artifact: the
+observed Val Sharpe (1.413) is 2.3× the expected maximum of 13,824 null
+trials (0.621), CSCV finds no backtest overfitting (PBO 0.055 < 0.3), and the
+OOS benchmark alpha (p 4.79e-10) survives Bonferroni/BH/Šidák correction at
+the pooled family trial count (14,389). The fragile margin remains the profit
+factor: OOS PF 1.304 clears the 1.3 gate by only +0.004, and only 0.32% of
+grid configs clear PF ≥ 1.3 OOS.
+
 ## Phase 7 — Process Improvement
 - **Bottleneck:** cost-model units bug (fixed). Secondary: single-sample period
   (2015-2024 incl. two crisis episodes) is harsh on momentum; a regime-aware or
@@ -120,7 +145,12 @@ reproducible from `.experiments/` artifacts.
 ## Conclusion
 - **Supported:** the cost-model bug is real and fixed; volatility-scaled
   momentum *implementation* is correct; the infra runs end-to-end.
-- **Rejected:** H1 and H2 as *profitable* on 2015-2024 ETFs (both fail gates).
+- **Rejected:** H1 and H2 as *profitable* on 2015-2024 ETFs (both fail gates);
+  H3–H9 across regime-gating, DDCV, multi-horizon, roll-adjustment and
+  intraday-CT-exit variants (all fail gates — see HYPOTHESIS_SPEC.md).
+- **Certified:** H10 (intraday futures TSMOM, PF-optimized) passes all 8
+  gates; H11 certifies robustness; H12 certifies the result against
+  selection bias (DSR, PBO, family-wide multiple testing).
 - **Uncertain → actionable:** regime-aware / crisis-resilient momentum is the
   highest-value next step (see `NEXT_TASK.md`).
 
@@ -132,9 +162,14 @@ reproducible from `.experiments/` artifacts.
 | Train→OOS decay is the failure driver | HIGH | train 0.59 vs test -0.04 |
 | Momentum crashes (2020/2022) dominate | HIGH | bear-regime Sharpe -2.4/-3.0 |
 | No significant alpha vs EW benchmark | HIGH | p = 0.78 / 0.57 |
+| H10 intraday TSMOM clears all 8 gates | HIGH | OOS Sharpe 1.276, PF 1.304, DD -5.8%, 2,416 trades |
+| H10 result is not a selection artifact | HIGH (H12) | DSR p=0.0028; PBO=0.055; Bonferroni p=6.9e-06 @ N=14,389 |
+| Profit factor is the fragile gate | HIGH | OOS PF margin +0.004; only 0.32% of combos pass PF OOS |
 
 ## Next Task
-See `NEXT_TASK.md`: build a **regime-aware / crisis-resilient** momentum variant
-(VIX-gated, volatility-scaled, tail-risk hedged) with a proper futures/contango
-data layer, and re-test against the same gates. This directly targets the
-*identified* failure mode rather than re-running raw momentum.
+See `NEXT_TASK.md`: the H10/H11/H12 chain is certified on the
+available (~2-year hourly) window. The binding constraints are
+data-horizon (free yfinance caps hourly `=F` at ~730 days) and
+the thin PF margin. Next steps: (a) extend to a paid data source
+for a longer OOS window, and/or (b) a PF-robustness / capacity
+study of the certified config.

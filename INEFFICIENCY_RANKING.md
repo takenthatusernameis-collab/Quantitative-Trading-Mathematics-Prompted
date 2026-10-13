@@ -387,12 +387,56 @@ vol_floor 0.25). Signal smoothing and regime scaling were not selected.
   share is a roll-date artifact of the `=F` continuous contract.
 
 
-#### 12. Selection-Bias Audit (pre-registered — H12)
+#### 12. Selection-Bias Audit (executed 2026-10-13 — H12, **PASS**)
 
-**Status:** Not yet executed (pending agent).
+**Status: Executed — PASS.** Artifacts:
+`.experiments/artifacts/exp_2026-10-13T12-51-06-515939Z/`
+(39.1 min, 0.652 CPU-h). Script:
+`run_h12_selection_bias_audit.py`; regression tests:
+`tests/test_h12_selection_bias.py` (78/78 passing).
 
-**Task:** Correct for multiple testing and backtest overfitting via (1) Deflated Sharpe Ratio (DSR) on the 13,824-trial Val-Sharpe distribution (reuses H10 grid artifact, no new backtests), (2) Probability of Backtest Overfitting (PBO) via CSCV on per-combo OOS metrics (re-runs H10 grid to log Val+Test per combo, ~0.5 CPU-h), (3) family-wide multiple-testing audit pooling all grid trials (H1–H11, ~14,400), and (4) PF-margin distribution diagnostic.
-
-**Pre-registered verdict:** H12 PASS iff DSR-adjusted Sharpe ≥ 1.0, PBO < 0.3, and family-wide corrected p-value < 0.05. If any fails → REJECT with root-cause attribution. PF distribution is diagnostic only.
-
-**Key dependency:** The H10 grid artifact at `.experiments/artifacts/exp_2026-10-11T17-41-18-169363Z/grid_results.parquet` contains the full per-combo Val statistics (N=13824) needed for DSR and PF distribution analysis.
+- **(1) Deflated Sharpe Ratio (Bailey & López de Prado 2014),**
+  N=13,824 trials, moments of the preserved per-combo
+  Val-Sharpe distribution (mean 0.962, SD 0.158) + the
+  selected config's Val-return moments (skew 1.415,
+  kurtosis 29.13, 2,860 bars): expected max SR under the
+  null = **0.6214** vs observed best-of-N Val SR **1.4134**
+  (+2.86 grid SD). **DSR-adjusted Sharpe 1.4094, p = 0.00283**
+  ⇒ the selection is distinguishable from the expected
+  maximum of 13,824 random trials (gate: DSR ≥ 1.0).
+- **(2) PBO via CSCV** (grid re-run logging per-combo OOS
+  returns; S=12 blocks, T=5,148 OOS bars, 924 combinations):
+  **PBO = 0.0552** (gate: < 0.3 pre-registered strict /
+  < 0.5 H0). Median OOS rank of the IS-optimal config =
+  1,716/13,824 (top 12%); the IS-optimal config ranks in
+  the OOS bottom half in only 5.5% of CSCV combinations.
+  The re-run reproduces the H10 OOS metrics of the selected
+  config bit-exactly (Sharpe 1.275759, PF 1.304165).
+- **(3) Family-wide multiple testing:** pooled N = **14,389**
+  (H1:18, H2:54, H3:108, H4:18, H5:6, H6:6, H8:5,
+  H10:13,824, H11:350). DSR (family) = **1.4093**
+  (p = 0.00288); benchmark p 4.79e-10 → Bonferroni
+  **6.89e-06**, BH-FDR **6.89e-06**, Šidák ≈ 6.89e-06 —
+  all < 0.05. The H10 OOS benchmark alpha survives
+  family-wide correction.
+- **(4) PF-margin diagnostic:** selected Val PF 1.3527
+  (rank 9/13,824); Val PF quantiles 5%/50%/95% =
+  1.176/1.243/1.308. Fraction of combos with PF ≥ 1.3:
+  **7.26% Val vs 0.32% OOS** — the PF gate is heavily
+  selection-pressured on Val, but the selected config
+  also clears it OOS (1.304, margin +0.004).
+- **Verdict: PASS** — the H10 result is not a selection
+  artifact: best-of-N Sharpe is 2.3× the null-expected
+  maximum, CSCV finds no overfitting (PBO 0.055), and the
+  benchmark alpha is significant after Bonferroni/BH/Šidák
+  correction at the pooled family trial count.
+- **Caveats carried forward:** (a) CSCV's exchangeability
+  assumption holds only approximately for a correlated
+  candidate grid — the low PBO partly measures selection
+  *stability within* the family, not independence across
+  families; (b) the PF margin (+0.004) remains the fragile
+  gate; (c) single ~2-year hourly sample and the free-data
+  horizon limit (no bars beyond 2026-10-09) bound the
+  statistical power — both require a paid data source.
+- **Net Opportunity Score:** 7/10 (realized) — unchanged;
+  the audit adds statistical confidence, not new edge.

@@ -1,91 +1,115 @@
-# Next Task: H11 complete — PASS (certified robust)
+# Next Task: H12 complete — PASS (selection bias rejected)
 
-## H11 executed 2026-10-11 — **PASS**
+## H12 executed 2026-10-13 — **PASS**
 
-Robustness / certification of the frozen H10-selected config.
-0.016 CPU-h. Artifacts: `.experiments/artifacts/exp_2026-10-11T18-40-37-427062Z/`.
-Script: `run_h11_robustness_experiment.py`.
+Selection-bias audit of the frozen H10-selected config.
+39.1 min, 0.652 CPU-h (budget ≤ 4 CPU-h). Artifacts:
+`.experiments/artifacts/exp_2026-10-13T12-51-06-515939Z/`
+(`summary.json`, `grid_oos_metrics.parquet` — per-combo OOS
+metrics for all 13,824 configs, `cscv_rank_distribution.parquet`,
+`val_sharpe_distribution.parquet`). Script:
+`run_h12_selection_bias_audit.py`. Regression tests:
+`tests/test_h12_selection_bias.py`.
 
 | Pre-registered component | Result |
 |---|---|
-| F1 gate re-verification | 8/8 PASS, **bit-exact** reproduction of the H10 artifact (max \|Δ\| = 0) |
-| E1 seed determinism | HOLDS — seeds {42, 7, 123, 2026} give identical equity (pipeline is deterministic; seeds inert) |
-| E1 bootstrap OOS Sharpe CI | **[0.839, 1.698]**, P(Sharpe ≥ 1.0) = 0.888 (2,000 resamples) |
-| E2 ±20% perturbation gate (≥ 0.5×) | **PASS** — min perturbed Sharpe 1.027 = **0.805×** optimum (gate previously unevaluated in the family) |
-| E3 cost stress ±50% (PF ≥ 1.3) | **PASS** — PF 1.308 (0.5×) / 1.300 (1.5×); break-even cost multiplier **1.542×** |
-| E4 shifted splits (diagnostic) | Sharpe 1.204 / 1.365 / 1.234 (all ≥ 1.0); PF 1.281 / 1.330 / 1.292 (**PF fails on 2 of 3 shifted windows**) |
-| E4 rolling 25% windows | min 0.709, mean 1.201, max 1.436; 93.75% of 16 windows ≥ 1.0 |
-| E4c shifted-window re-selection (324 combos) | **Re-selects the identical config** (vw=1008, tm=2.0, mhb=60, vlm=1.5, vff=0.25) — selection stable |
-| E5 per-symbol concentration | HHI(|P&L|) = 0.214 (equal-weight 0.200), max GP share 0.233, all 5 symbols positive Sharpe (0.337–0.797) — **diversified** |
-| Live-extension probe | No fresh bars beyond 2026-10-09 (free yfinance hourly source is hard-limited to ~730 days) |
+| 1. Deflated Sharpe Ratio (N=13,824) | E[max SR \| null] = 0.6214 vs observed best-of-N Val SR 1.4134 (+2.86 grid SD); **DSR-adjusted Sharpe 1.4094, p = 0.00283** |
+| 2. PBO via CSCV (S=12, T=5,148, 924 combos) | **PBO = 0.0552** (< 0.3 strict, < 0.5 H0); median OOS rank of IS-optimal = 1,716/13,824 (top 12%) |
+| 3. Family-wide multiple testing (N=14,389) | DSR (family) = 1.4093, p = 0.00288; benchmark p 4.79e-10 → Bonferroni/BH/Šidák ≈ **6.89e-06** (< 0.05) |
+| 4. PF-margin sensitivity (diagnostic) | Selected Val PF 1.3527 (rank 9/13,824); PF ≥ 1.3 fraction: **7.26% Val vs 0.32% OOS** |
 
-**Verdict: PASS.** The H10 certification is robust on the
-pre-registered window.
+**Verdict: PASS.** The H10 certification is not a best-of-N
+selection artifact. The re-run grid reproduces the H10 OOS
+metrics of the selected config bit-exactly (OOS Sharpe
+1.275759, PF 1.304165).
 
-**Critical caveat carried forward:** the OOS profit factor (1.304)
-clears the 1.3 gate by only **+0.004 (+0.3%)**. Under +50% costs
-PF = 1.300 (margin +0.0003); on shifted OOS windows PF =
-1.281–1.292 (gate fails). **Sharpe is robust; profit factor is
-the fragile gate.**
+**Fix applied during H12:** the pre-written CSCV helper had an
+inverted rank comparison (`pbo = mean(ranks < median_rank)`);
+rank 1 is the best OOS rank, so "below the OOS median" is
+`rank > median_rank`. The new regression tests caught this
+(a perfectly-skilled synthetic strategy returned PBO=1.0 before
+the fix). Always trust the tests over pre-written machinery.
 
-**Largest uncorrected threat:** the H10 selection searched
-**13,824 configurations** (and the H1–H11 family has evaluated
-~14,400+). No multiple-testing / selection-bias correction has
-been applied to the certification. With that many trials, the
-expected maximum Sharpe under the null is substantial — the
-certification is not yet statistically defensible without a
-deflated-Sharpe / PBO audit.
+**Caveats carried forward:**
+1. CSCV's exchangeability assumption holds only approximately
+   for a correlated candidate grid — the low PBO partly measures
+   selection *stability within* the family, not independence
+   across families.
+2. The profit factor remains the fragile gate: OOS PF 1.304
+   clears 1.3 by only +0.004; only 0.32% of configs clear
+   PF ≥ 1.3 OOS.
+3. Free yfinance hourly `=F` data is hard-capped at ~730 days
+   (no bars beyond 2026-10-09); the sample is a single ~2-year
+   hourly window. Both require a paid data source to lift.
+
+**Note on repo state:** all H12 changes (script, tests, docs)
+are in the working tree, **uncommitted** (commit policy: only
+commit when explicitly asked). Intended commit, if desired:
+`run_h12_selection_bias_audit.py`, `tests/test_h12_selection_bias.py`,
+`HYPOTHESIS_SPEC.md`, `INEFFICIENCY_RANKING.md`, `FINAL_REPORT.md`,
+`NEXT_TASK.md`, plus the H11 public-API refactor of
+`run_h11_robustness_experiment.py` (fixes the 13 failing
+regression tests: `FROZEN_CONFIG`, `PERTURBATIONS` ±20% pairs,
+`JOINT_PERTURBATIONS`, `build_positions`, `make_cost_stressed_config`,
+`per_symbol_contributions`, `bootstrap_sharpe_distribution`,
+`probe_live_extension`, `MAX_POSITION_SIZE`) and the H12
+experiment artifacts under `.experiments/`. Do not stage
+`__pycache__/*.pyc` (ignored, but force-added in commit
+8015413 — they show as modified; leave them).
 
 ---
 
-## Next Task (for next agent): H12 — Selection-Bias Audit
+## Next Task (for next agent): H13 — OOS-Level Deflation & PF-Margin Fragility Audit
 
-H11 certified the H10 config as robust to seeds, perturbations,
-costs and split shifts. The remaining question is whether a
-13,824-combo grid search can manufacture a "passing" config by
-chance alone. H12 applies the standard corrections:
+H12 deflated the *Val* (selection-metric) Sharpe. Two bounded,
+artifact-reuse-only follow-ups remain (no new backtests, ≤ 0.1 CPU-h):
 
-1. **Deflated Sharpe Ratio (Bailey & López de Prado 2014)**:
-   compute the DSR of the H10 selected config given
-   N = 13,824 trials, using the moments (mean, std, skew,
-   kurtosis) of the preserved per-combo Val-Sharpe distribution
-   (`.experiments/artifacts/exp_2026-10-11T17-41-18-169363Z/grid_results.parquet`,
-   column `val_sharpe` — no new backtests needed). The DSR tests
-   whether the best-of-N Val Sharpe is distinguishable from the
-   expected maximum of N random trials.
-2. **Probability of Backtest Overfitting (PBO) via CSCV**
-   (Bailey et al. 2014; Arroyo et al. 2022): re-run the H10
-   grid logging **per-combo OOS (Val+Test) metrics** (the H10
-   run only logged Val metrics per combo; ~29 min, 0.5 CPU-h —
-   within the ≤ 4 CPU-h budget), then compute PBO with S = 16
-   combinatorially-symmetric blocks. PBO < 0.3 indicates the
-   selection is not an overfitting artifact.
-3. **Family-wide multiple-testing audit**: pool the trial counts
-   of every grid search in the family (H1: 18, H2: 54, H3: 108,
-   H4: 18, H5: 6, H6: 6, H8: 5, H10: 13,824, H11: ~350 →
-   ~14,400) and recompute the deflated Sharpe / Bonferroni- and
-   FDR-adjusted significance of the H10 OOS benchmark p-value
-   (4.8e-10) under the pooled trial count.
-4. **PF-margin sensitivity (diagnostic)**: using the H10 grid
-   artifact, report the distribution of `val_profit_factor` and
-   the fraction of combos with PF ≥ 1.3 — quantifies how much of
-   the PF "pass" is selection pressure vs genuine edge.
+1. **OOS worst-case deflation.** Using the H12 artifact
+   `grid_oos_metrics.parquet` (per-combo OOS Sharpe for all
+   13,824 configs — the H12 grid re-run), compute the DSR of
+   the selected config's **OOS** Sharpe (1.275759) under the
+   *worst-case* assumption that OOS had been the selection
+   metric with N=13,824 trials (moments: OOS-Sharpe
+   distribution mean/SD from the same artifact; OOS-return
+   skew/kurtosis from the H10 artifact `returns.parquet` on
+   the OOS mask). This is a conservative "peeking" bound: the
+   config was actually selected on Val, so the true OOS
+   deflation is weaker (N≈1 for a single OOS evaluation).
+   Report both the worst-case (N=13,824) and the single-peek
+   (N=1) DSR.
+2. **PF-margin fragility decomposition.** Using the H10 artifact
+   (`returns.parquet`, `trades.parquet`, `positions.parquet`,
+   `prices.parquet`) and the H11 per-symbol machinery
+   (`run_h11_robustness_experiment.per_symbol_contributions`):
+   (a) net per-symbol OOS profit factors (decompose the pooled
+   PF 1.304 into the 5 symbols' contributions); (b) bootstrap
+   95% CI of the OOS PF (2,000 resamples of OOS returns, seeded);
+   (c) PF under the H11 shifted splits (already computed:
+   1.281–1.292 — confirm and attribute which symbol/regime
+   drives the shortfall); (d) the cost multiplier at which the
+   *selected* config's OOS PF crosses 1.3 (H11 found the
+   break-even at 1.542× — verify against the H12 re-run).
 
-**Pre-registration for H12** (to be written by the next agent
-before execution):
-- Null (H0): the H10 selected config's edge does not survive
-  selection-bias correction — DSR-adjusted Sharpe < 1.0, or
-  PBO ≥ 0.5, or the benchmark alpha is not significant after
-  family-wide multiple-testing correction.
-- Deliverables: `run_h12_selection_bias_audit.py`, artifacts in
-  `.experiments/artifacts/exp_<H12>/`, updated `HYPOTHESIS_SPEC.md`
-  and `INEFFICIENCY_RANKING.md`, final PASS/REJECT verdict with
-  root-cause attribution.
+**Pre-registration for H13** (write before execution):
+- Null (H0): the OOS Sharpe does not survive the worst-case
+  OOS-level deflation (DSR-adjusted OOS Sharpe < 1.0), or the
+  OOS PF bootstrap CI lower bound < 1.3, or no single symbol
+  is dispensable (each symbol's removal keeps PF ≥ 1.3 — i.e.
+  the margin is robust).
+- Deliverables: `run_h13_oos_deflation_pf_audit.py`, artifacts
+  in `.experiments/artifacts/exp_<H13>/`, updated
+  `HYPOTHESIS_SPEC.md` and `INEFFICIENCY_RANKING.md`, final
+  PASS/REJECT verdict with root-cause attribution.
+- Reuse `run_h12_selection_bias_audit.deflated_sharpe_ratio`,
+  `_expected_max_sharpe`, `_load_cached_data`, `_splits`,
+  `_period_metrics`, `_count_in` and the H11 public API — no
+  new engine code.
 
 **Constraints (unchanged):** no live trading, no secrets, no paid
 data, Test never enters selection, preserve negative results,
 ≤ 4 CPU-h per experiment, reuse existing engine / tracking /
-validation infrastructure, all regression tests passing.
+validation infrastructure, all regression tests passing (78/78
+at the time of this writing).
 
 **Documented-but-infeasible items (do not re-attempt without a
 new data source):** longer intraday history and ongoing OOS
