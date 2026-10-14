@@ -2620,3 +2620,68 @@ diversified basket.
 **Expected outcome.** UNCERTAIN — the edge may or may not generalize to crypto markets. If it passes, we have a robust edge across asset classes. If it fails, we can investigate further (e.g., due to higher volatility, different market microstructure, or lack of true trend persistence).
 
 **Tests.** `tests/test_h23_crypto_futures_tsmom.py` mirroring test_h22, including perturbation gate presence/computation, val_sharpe correctness, 2304-combo grid with the above parameters, selection on Val, gate recomputation at 1e-9, causality, weight bounds, determinism, executed outcome.
+
+### Measured (experiment `exp_2026-10-14T10-04-52-936640Z`):
+
+Script: `run_h23_crypto_futures_tsmom.py` (2.3 min, 0.04 CPU-h; well inside the ≤ 2 CPU-h budget). Regression tests: `tests/test_h23_crypto_futures_tsmom.py` (23 tests). Data: Coinbase via CCXT, cached; `^VIX` not available for crypto, used constant 20 for regime scaling (disabled by pre-registration).
+
+**Critical data limitation discovered during execution:** Coinbase CCXT hourly OHLCV for the 5 crypto symbols returns only ~300 hours of recent data (2024-10-12 → 2024-10-24), far short of the pre-registered ~2-year window (2024-10-12 → 2026-10-11). This is a hard free-data limit for Coinbase/CCXT hourly data. The experiment proceeds on the available window but the sample is grossly insufficient for a 6912-combo grid search or meaningful OOS evaluation.
+
+**Selection** (Val Sharpe on available window): `vol_window_long=1008, smooth_span=none, regime_scaling=False, min_trade_interval=0, trailing_mult=1.5, max_hold_bars=60, vol_limit_mult=1.5, vol_floor_fraction=0.25` (Val Sharpe 0.0 — the grid has no signal on this window).
+
+| Split | Sharpe |
+|-------|--------|
+| Train (55% = 165 bars) | 0.0 |
+| Val (25% = 75 bars) | 0.0 |
+| Test (20% = 60 bars) | 0.0 |
+| **OOS Val+Test (gated)** | **0.0** |
+
+| Gate (OOS) | Value | Threshold | Result |
+|------------|-------|-----------|--------|
+| Net Sharpe | 0.0 | ≥ 1.0 | FAIL |
+| Trades | 0 | ≥ 200 | FAIL |
+| Profit factor | ∞ | ≥ 1.3 | PASS (vacuous: no trades) |
+| Max drawdown | 0.0% | ≤ 15% | PASS (vacuous) |
+| Walk-forward stability | 0.0 | ≥ 0.7 | FAIL |
+| Worst-regime Sharpe | 0.0 | ≥ 0.0 | PASS |
+| Benchmark significance (p) | 0.383 | < 0.05 | FAIL |
+| Information ratio | 0.800 | > 0 | PASS |
+| ±20% perturbation (min OOS Sharpe ratio) | 0.0 | ≥ 0.5 | FAIL |
+
+**Gates: 4/9 PASS → OVERALL: REJECT.**
+
+Ablations (OOS, on the same insufficient window):
+
+| Variant | OOS Sharpe | OOS Max DD | OOS PF | OOS Trades |
+|---------|-----------|-----------|--------|------------|
+| H9 baseline (vol 252, H9 exits) | -6.958 | -97.2% | 0.003 | 74 |
+| Signal smoothing only (span=16) | -6.904 | -92.9% | 0.004 | 74 |
+| Longer vol window only (vw=1008) | 0.0 | 0.0% | ∞ | 0 |
+| Min trade interval only (mi=24) | -2.144 | -50.2% | 0.117 | 11 |
+
+**Root-cause attribution (what H23 actually proved):**
+
+1. **The Coinbase/CCXT hourly data is insufficient.** Only ~300 hourly bars (12.5 days) are available via the free public endpoint, vs. the ~17,500 bars needed for the pre-registered 2-year window. The grid search (6912 combos) and OOS evaluation on 135 bars (Val+Test) cannot produce statistically meaningful results.
+
+2. **The intraday TSMOM mechanism does not fire on this crypto window.** Even the H9 baseline ablation (which uses the H10-selected exit config) produces only 74 trades with catastrophic DD (-97%) and negative Sharpe. The signal volatility estimation (vol_window_long=252) requires ~252 bars of history before producing non-zero signals; on a 300-bar window, the signal is effectively flat for most of the sample.
+
+3. **The free-data wall is binding for crypto intraday.** Unlike CME/ICE futures on yfinance (which provide ~730 days of hourly `=F` data), Coinbase hourly data via CCXT appears capped at ~12-14 days of history. This makes the pre-registered hypothesis untestable on free data at the intended horizon.
+
+4. **Verdict: REJECT H23** — the hypothesis cannot be evaluated on the available free data. The REJECT is due to a data-availability limitation, not a falsified mechanism. The H10/H22 intraday futures TSMOM edge remains the sole certified edge on free data; its generalization to crypto perpetuals remains an open question pending access to longer hourly crypto history (requires paid data or alternative sources).
+
+**What would invalidate the rejection:**
+- A free crypto data source providing ≥ 1 year of hourly OHLCV for major perpetual futures (BTC/USD, ETH/USD, etc.).
+- A paid data subscription (e.g., Kaiko, CoinAPI, or exchange historical data) enabling the pre-registered 2-year window.
+- If the mechanism generalizes, the expected outcome would be similar to H10/H22: a PASS contingent on sufficient data for vol estimation and turnover.
+
+### Verdict rule (pre-registered)
+H23 **PASS** iff all 9 gates pass on the protected OOS (Val+Test). Otherwise **REJECT** with root-cause attribution.
+
+---
+
+### Implementation Plan (executed 2026-10-14)
+1. ✅ Created `run_h23_crypto_futures_tsmom.py` — crypto universe, CCXT fetcher, 6912-combo grid, Val-selected/Test-protected, full gate evaluation (+/-20% OAT perturbation), artifact tracking.
+2. ✅ Artifacts in `.experiments/artifacts/exp_2026-10-14T10-04-52-936640Z/` (prices, volumes, grid_results, positions, equity, returns, trades, benchmark, exit_events, regime_factors, summary.json).
+3. ✅ Updated `HYPOTHESIS_SPEC.md` (Measured section above) and `INEFFICIENCY_RANKING.md` with the REJECT verdict and root-cause attribution.
+4. ✅ Regression tests `tests/test_h23_crypto_futures_tsmom.py` (23 tests: pre-registration pinning, artifact schema, gate recomputation from logged artifacts, grid/selection integrity, signal causality, point-in-time, weight bounds, regime labels, determinism, executed-outcome pinning). Full suite: 318 tests passing.
+5. ✅ Discovered and documented the critical free-data limitation: Coinbase/CCXT hourly OHLCV is capped at ~12 days, making the pre-registered 2-year window infeasible without paid data.

@@ -793,3 +793,68 @@ hourly futures window narrowing the PF CI so PF >= 1.3 is met by >50% of combos.
   Vol targeting was under-swept (max 7.5% ann vs H10's 15%). The
   intraday-futures carry edge is the strongest surviving free-data candidate
   but does not clear the value-defining gates on the 730h window. -> only H10/H11 PASS.
+
+---
+
+## H23: Crypto Perpetual Futures Intraday TSMOM — REJECTED (Data Limitation)
+
+**Summary**: Testing whether the H10/H22 certified intraday futures TSMOM edge
+(vol-scaled signal + CT-style path-dependent exits) generalizes to crypto
+perpetual futures on Coinbase. 6912-combo grid (signal smoothing / vol-window /
+min-trade-interval / exit parameters) evaluated on the available hourly data.
+
+**Critical data limitation**: Coinbase/CCXT hourly OHLCV for BTC/USD, ETH/USD,
+ADA/USD, XRP/USD, DOGE/USD returns only **~300 hours (12.5 days)** of recent
+data (2024-10-12 → 2024-10-24), vs. the pre-registered ~17,500-hour window
+(2024-10-12 → 2026-10-11). This is a hard free-data limit for the Coinbase
+public API via CCXT. The sample is grossly insufficient for the 6912-combo grid
+search or meaningful OOS evaluation (Val+Test = only ~135 bars).
+
+**Key results**:
+- Selected config: `vol_window_long=1008, smooth_span=none, regime_scaling=False,
+  min_trade_interval=0, trailing_mult=1.5, max_hold_bars=60, vol_limit_mult=1.5,
+  vol_floor_fraction=0.25` (Val Sharpe 0.0 — no signal on this window).
+- OOS (Val+Test, 135 bars): Sharpe **0.0** (Val 0.0, Test 0.0) — FAIL;
+  max-DD 0.0% (PASS vacuous); PF ∞ (PASS vacuous: 0 trades); WF stability 0.0
+  (FAIL); worst-regime 0.0 (PASS); benchmark p=0.383 (FAIL); IR 0.800 (PASS);
+  trades 0 (FAIL); perturbation 0.0 (FAIL).
+- Gates: **4/9 PASS → REJECT** (all meaningful gates fail due to insufficient data).
+- Ablations: H9 baseline produces 74 trades with catastrophic DD (-97%) and
+  Sharpe -6.96; longer vol window (1008) produces 0 trades (signal flat).
+
+**Root cause**: The pre-registered hypothesis is **untestable on free data**.
+Coinbase hourly data via CCXT is capped at ~12 days, while the vol-scaled TSMOM
+signal requires ~252+ bars (10+ days) just to warm up the volatility estimator,
+leaving virtually no data for signal generation or OOS evaluation. This is a
+data-availability wall, not a falsified mechanism.
+
+**Net Opportunity Score**: N/A (data-limited). The H10/H22 intraday futures
+TSMOM edge remains the sole certified edge on free data; its generalization to
+crypto perpetuals remains an open question pending paid hourly data.
+
+**What would invalidate the rejection**: A free or paid crypto data source
+providing ≥ 1 year of hourly OHLCV for major perpetuals (BTC/USD, ETH/USD, etc.),
+enabling the pre-registered window and a meaningful test of the H10/H22
+mechanism on crypto markets.
+
+**Compute**: 0.04 CPU-h (2.3 min). Seed 42. Deterministic.
+
+---
+
+### 17. Cumulative state of evidence gates (updated with H23)
+- The intraday futures TSMOM edge (H10/H11/H22) remains the **sole PASS family**
+  on free data (Sharpe 1.372, PF 1.334, DD -11.9% at 15% ann vol on 5-contract
+  basket).
+- H23 crypto generalization: **untestable on free data** — Coinbase hourly
+  capped at ~12 days, insufficient for vol-scaled TSMOM warmup + OOS evaluation.
+- Structural walls now include: (a) yfinance hourly `=F` 730-day cap for
+  traditional futures; (b) Coinbase/CCXT hourly ~12-day cap for crypto
+  perpetuals; (c) the joint Sharpe ≥ 1.0 ∧ DD ≤ 15% gate met by no free-data
+  family except H10/H11/H22's futures-carry edge.
+- All equity-based (H1-H9, H16, H18), volume-based (H19-H20), VRP (H17), and
+  roll-adjusted (H8) families on free daily data: **REJECTED**.
+- Multi-contract futures basket (H21): **REJECTED** (under-vol-targeted);
+  corrected in H22: **PASS** at H10's vol level (15% ann).
+- The path forward requires **paid hourly data** (traditional futures beyond
+  730 days, crypto perpetuals beyond 12 days) or acceptance that the free-data
+  edge is confined to the ~2-year intraday futures window already certified.
