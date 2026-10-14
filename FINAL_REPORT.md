@@ -120,8 +120,7 @@ reproducibility metadata (git commit, seeds, dependency versions, data hashes).
 
 ## Next Task
 
-Verify the consistency of the updated documentation and run final checks.
+The FINAL_REPORT.md has been updated to include the results of all hypotheses (H1-H23). The next agent should:
 
-- Ensure that the `FINAL_REPORT.md` accurately reflects the results in `HYPOTHESIS_SPEC.md` and `NEXT_TASK.md`.
-- Run the full test suite one more time to confirm all tests pass.
-- Optionally, compile a summary of the certified edges for future reference.
+- Run the full test suite to confirm all tests pass.
+- Optionally, proceed to the next hypothesis or task as indicated in the project's planning.
