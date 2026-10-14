@@ -2600,3 +2600,23 @@ diversified basket.
 **Expected outcome.** REJECT in typical case (DD rises at 15%/22.5% ann; PF likely <1.3 per H13/H14/H21). A PASS would require Sharpe>=1.0 & PF>=1.3 & DD<=15% simultaneously at some combo (likely 15% ann). Either way, evidence-based closure.
 
 **Tests.** `tests/test_h22_futures_tsmom_voltarget.py` mirroring test_h21, including perturbation gate presence/computation, val_sharpe correctness, 16-combo grid with new TARGET_VOLS, selection on Val, gate recomputation at 1e-9, causality, weight bounds, determinism, executed verdict.
+
+## Hypothesis H23: Crypto Perpetual Futures Intraday TSMOM
+
+**Statement.** Test whether the intraday futures TSMOM mechanism (H10/H22) generalizes to crypto perpetual futures on Coinbase. If the mechanism works, we should see a Sharpe >= 1.0 and PF >= 1.3 with DD <= 15% on OOS (Val+Test). If it fails, we can investigate the causes.
+
+**Mechanism.** The H10/H22 mechanism uses a vol-scaled TSMOM signal (vol_window_long) with optional smoothing and regime scaling, combined with CT-style path-dependent exits (trailing stop, max hold, vol stop). Applied to crypto hourly data, we test if the same logic yields a profitable strategy.
+
+**Null (H0).** The intraday futures TSMOM mechanism does not produce Sharpe >= 1.0 and PF >= 1.3 simultaneously with DD <= 15% on crypto perpetual futures data.
+
+**Pre-registration (frozen).**
+- **Universe/Data:** `CRYPTO_UNIVERSE = ["BTC/USD", "ETH/USD", "ADA/USD", "XRP/USD", "DOGE/USD"]`, `EXCHANGE="coinbase"`, `DATA_START="2024-10-12"`, `DATA_END="2026-10-11"`, hourly, 55/25/20 splits (Train/Val/Test), OOS = Val+Test. Data fetched via ccxt, cached.
+- **Grid:** `SMOOTH_SPANS = [None, 4, 8, 16]`, `VOL_WINDOWS_LONG = [252, 504, 1008]`, `REGIME_SCALING_FLAGS = [False]`, `MIN_TRADE_INTERVALS = [0, 4, 8, 24]`, `TRAILING_MULTS = [1.5, 2.0, 2.5, 3.0]`, `MAX_HOLD_BARS = [60, 120, 240, 480]`, `VOL_LIMIT_MULTS = [1.5, 2.0, 2.5]`, `VOL_FLOOR_FRACTIONS = [0.25, 0.5, 0.75]` → 2*3*1*4*4*3*2*2 = 2304 combos. Selection by Val Sharpe only; Test protected.
+- **Gates (all):** `{min_sharpe:1.0, min_trades:200, min_profit_factor:1.3, max_drawdown:0.15, min_walkforward_stability:0.7, min_worst_regime_sharpe:0.0, max_p_value:0.05, min_information_ratio:0.0, min_perturbed_sharpe_ratio:0.5}`. Implement `perturbation_eval` for +/-20% on `vol_window_long` (as a proxy for signal strength) and `max_pos`, record `gate["passes"]["perturbation"]`.
+- **Fixes from H21:** set `metrics.val_sharpe = gate["val_metrics"]["sharpe"]` (true Val Sharpe); include `perturbation` in passes and enforce in summary; preserve causality, point-in-time, weight bounds.
+- **Ablations (OOS):** (a) BTC/USD-only at target_vol_mult=1.0 (15% ann) — approximates H10 baseline for a single asset, (b) random per-contract sign, (c) daily TSMOM, (d) constant position.
+- **Budget:** <=2 CPU-h. Seed 42.
+
+**Expected outcome.** UNCERTAIN — the edge may or may not generalize to crypto markets. If it passes, we have a robust edge across asset classes. If it fails, we can investigate further (e.g., due to higher volatility, different market microstructure, or lack of true trend persistence).
+
+**Tests.** `tests/test_h23_crypto_futures_tsmom.py` mirroring test_h22, including perturbation gate presence/computation, val_sharpe correctness, 2304-combo grid with the above parameters, selection on Val, gate recomputation at 1e-9, causality, weight bounds, determinism, executed outcome.
