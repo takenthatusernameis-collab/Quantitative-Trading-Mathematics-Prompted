@@ -52,7 +52,7 @@ VOL_WINDOW_SHORT_RATIO = 4  # H9 used 252 long / 63 short (4:1)
 DATA_START = "2024-10-12"
 DATA_END = "2026-10-11"
 
-# Grids (per NEXT_TASK / H10 pre-registration).
+# Grids (per NEXT_TASK / H23 pre-registration).
 SMOOTH_SPANS = [None, 4, 8, 16]
 VOL_WINDOWS_LONG = [252, 504, 1008]
 REGIME_SCALING_FLAGS = [False]
@@ -61,6 +61,10 @@ TRAILING_MULTS = [1.5, 2.0, 2.5, 3.0]
 MAX_HOLD_BARS = [60, 120, 240, 480]
 VOL_LIMIT_MULTS = [1.5, 2.0, 2.5]
 VOL_FLOOR_FRACTIONS = [0.25, 0.5, 0.75]
+
+# Perturbation parameters (OAT +/-20% on vol_window_long and max_position_size)
+PERTURB_PARAMS = ["vol_window_long", "max_position_size"]
+PERTURB_FACTORS = [0.8, 1.2]
 
 # Exit-internal fixed parameters (not in the grid; identical to H9).
 EXIT_VOL_WINDOW = 20
@@ -324,6 +328,82 @@ def _full_gate_eval(
     }
 
 
+def perturbation_eval(
+    selected_config: dict,
+    prices: pd.DataFrame,
+    vix_hourly: pd.Series,
+    base_signals: dict,
+    volumes: pd.DataFrame,
+    atr,
+    vol_exit,
+    oos_mask,
+    cfg,
+    opt_oos_sharpe: float,
+    sel_positions: pd.DataFrame,
+):
+    """OAT +/-20% perturbation on vol_window_long and max_position_size."""
+    variants = {}
+    # Get max_position_size from config
+    max_pos = cfg.max_position_size
+    for param in PERTURB_PARAMS:
+        if param == "vol_window_long":
+            base = selected_config["vol_window_long"]
+        elif param == "max_position_size":
+            base = max_pos
+        else:
+            continue
+        for factor in PERTURB_FACTORS:
+            v = base * factor
+            if abs(v - base) < 1e-12:
+                continue
+            if param == "vol_window_long":
+                # Rebuild signal with perturbed vol_window_long
+                vw = int(round(v))
+                if vw not in base_signals:
+                    # Compute signal for this vol window
+                    pert_signal = vol_scaled_tsmom_hourly(
+                        prices, vol_window_long=vw, vol_window_short=vw // VOL_WINDOW_SHORT_RATIO
+                    )
+                else:
+                    pert_signal = base_signals[vw]
+                # Use the same smooth_span, regime, min_trade_interval, exit params as selected
+                pert_target = build_hourly_target(
+                    pert_signal,
+                    selected_config["smooth_span"],
+                    vw,
+                    selected_config["regime_scaling"],
+                    vix_hourly,
+                    prices.index,
+                )
+                pert_positions = apply_exits_hourly(
+                    pert_target, prices, atr, vol_exit,
+                    trailing_mult=selected_config["trailing_mult"],
+                    max_hold_bars=selected_config["max_hold_bars"],
+                    vol_limit_mult=selected_config["vol_limit_mult"],
+                    vol_floor_fraction=selected_config["vol_floor_fraction"],
+                    target_vol=TARGET_VOL,
+                    min_trade_interval=selected_config["min_trade_interval"],
+                )
+            else:  # max_position_size
+                # Temporarily modify config max_position_size
+                old_max_pos = cfg.max_position_size
+                cfg.max_position_size = float(v)
+                # Re-run with same positions but clipped to new max
+                pert_positions = sel_positions.clip(-float(v), float(v))
+                cfg.max_position_size = old_max_pos
+            res = run_backtest(
+                prices=prices, signals=pert_positions, volumes=volumes, config=cfg
+            )
+            oos_r = res.returns[oos_mask].dropna()
+            sr = float(sharpe_ratio(oos_r.values)) if len(oos_r) > 1 else 0.0
+            variants[f"{param}={v:.3f}"] = sr
+    if opt_oos_sharpe > 0 and variants:
+        min_ratio = float(min(variants.values()) / opt_oos_sharpe)
+    else:
+        min_ratio = 0.0
+    return {"variants": variants, "min_perturbed_sharpe_ratio": min_ratio}
+
+
 def main():
     np.random.seed(SEED)
     t_start = time.time()
@@ -519,6 +599,26 @@ def main():
             sel_result, oos_mask, val_mask, test_mask, prices, vix_hourly, bh_result
         )
 
+        # --- perturbation evaluation (+/-20% OAT on vol_window_long and max_position_size) ---
+        sel_config_for_pert = {
+            "vol_window_long": tk[0],
+            "smooth_span": tk[1],
+            "regime_scaling": tk[2],
+            "min_trade_interval": min_int,
+            **exit_params,
+        }
+        pert = perturbation_eval(
+            sel_config_for_pert, prices, vix_hourly, base_signals, volumes,
+            atr, vol_exit, oos_mask, cfg, gate["oos_metrics"]["sharpe"],
+            sel_positions
+        )
+        gate["perturbation"] = pert
+        gate["passes"]["perturbation"] = (
+            pert["min_perturbed_sharpe_ratio"] >= GATES["min_perturbed_sharpe_ratio"]
+        )
+        gate["all_pass"] = all(gate["passes"].values())
+        gate["verdict"] = "PASS" if gate["all_pass"] else "REJECT"
+
         # --- ablations (OOS, Test-protected) ---
         ablations = {}
         ablation_equity = {}
@@ -568,7 +668,7 @@ def main():
             target_vol=TARGET_VOL, min_trade_interval=0)
         _ablation(f"signal_smoothing_only(span={best_sp})", a2_pos)
 
-        # A3: longer vol window only (best vw, smooth none, no regime, default exits)
+        # A4: longer vol window only (best vw, smooth none, no regime, default exits)
         vw_pfs = []
         for vw in VOL_WINDOWS_LONG:
             ht = targets[(vw, None, False)]
@@ -585,14 +685,27 @@ def main():
             target_vol=TARGET_VOL, min_trade_interval=0)
         _ablation(f"longer_vol_window_only(vw={best_vw})", a3_pos)
 
-        # A4: regime scaling only (vol 252, smooth none, regime on, default exits)
-        a4_pos = apply_exits_hourly(targets[(252, None, True)], prices, atr, vol_exit,
+        # A4: signal smoothing only (best smooth_span across vol=252, no regime,
+        #     default exits, min_int 0) - moved from A2 for logical ordering
+        smooth_pfs = []
+        for sp in SMOOTH_SPANS:
+            ht = targets[(252, sp, False)]
+            pos = apply_exits_hourly(ht, prices, atr, vol_exit,
+                trailing_mult=EXIT_TRAILING_DEFAULT, max_hold_bars=EXIT_MAX_HOLD_DEFAULT,
+                vol_limit_mult=EXIT_VOL_LIMIT_DEFAULT, vol_floor_fraction=EXIT_VOL_FLOOR_DEFAULT,
+                target_vol=TARGET_VOL, min_trade_interval=0)
+            r = run_backtest(prices=prices, signals=pos, volumes=volumes, config=cfg)
+            smooth_pfs.append((sp, _count_in(r.trades, oos_mask, prices),
+                               _period_metrics(r.returns[oos_mask], _count_in(r.trades, oos_mask, prices))))
+        best_sp = max(smooth_pfs, key=lambda x: x[2]["profit_factor"])[0]
+        a4_pos = targets[(252, best_sp, False)]
+        a4_pos = apply_exits_hourly(a4_pos, prices, atr, vol_exit,
             trailing_mult=EXIT_TRAILING_DEFAULT, max_hold_bars=EXIT_MAX_HOLD_DEFAULT,
             vol_limit_mult=EXIT_VOL_LIMIT_DEFAULT, vol_floor_fraction=EXIT_VOL_FLOOR_DEFAULT,
             target_vol=TARGET_VOL, min_trade_interval=0)
-        _ablation("regime_scaling_only", a4_pos)
+        _ablation(f"signal_smoothing_only(span={best_sp})", a4_pos)
 
-        # A5: min trade interval only (vol 252, smooth none, no regime, default exits)
+        # A3: min trade interval only (vol 252, smooth none, no regime, default exits)
         mi_pfs = []
         for mi in MIN_TRADE_INTERVALS:
             pos = apply_exits_hourly(targets[(252, None, False)], prices, atr, vol_exit,
@@ -602,16 +715,13 @@ def main():
             r = run_backtest(prices=prices, signals=pos, volumes=volumes, config=cfg)
             mi_pfs.append((mi, _period_metrics(r.returns[oos_mask], _count_in(r.trades, oos_mask, prices))))
         best_mi = max(mi_pfs, key=lambda x: x[1]["profit_factor"])[0]
-        a5_pos = apply_exits_hourly(targets[(252, None, False)], prices, atr, vol_exit,
+        a3_pos = apply_exits_hourly(targets[(252, None, False)], prices, atr, vol_exit,
             trailing_mult=EXIT_TRAILING_DEFAULT, max_hold_bars=EXIT_MAX_HOLD_DEFAULT,
             vol_limit_mult=EXIT_VOL_LIMIT_DEFAULT, vol_floor_fraction=EXIT_VOL_FLOOR_DEFAULT,
             target_vol=TARGET_VOL, min_trade_interval=best_mi)
-        _ablation(f"min_trade_interval_only(mi={best_mi})", a5_pos)
+        _ablation(f"min_trade_interval_only(mi={best_mi})", a3_pos)
 
-        # A6: exit grid best (selected config already = exit grid best under best signal)
-        #     Report the same selected config but isolate exit contribution:
-        a6_pos = sel_positions
-        _ablation("exit_grid_best", a6_pos)
+        # A4: exit grid best (selected config already = exit grid best under best signal)
 
         # log ablation equity curves + results
         for name, eq in ablation_equity.items():
@@ -674,7 +784,7 @@ def main():
         total_elapsed = time.time() - t_start
         summary = {
             "experiment_id": exp_id,
-            "hypothesis": "H10",
+            "hypothesis": "H23",
             "selected_config": {
                 "vol_window_long": tk[0],
                 "smooth_span": (str(tk[1]) if tk[1] is not None else "none"),
@@ -689,7 +799,7 @@ def main():
             "compute_cpu_hours": float(round(total_elapsed / 3600, 3)),
             "metrics": {
                 "train_sharpe": gate["train_sharpe"],
-                "val_sharpe": None,  # not primary; OOS used
+                "val_sharpe": gate["val_sharpe"],
                 "test_sharpe": gate["test_metrics"]["sharpe"],
                 "oos_sharpe": gate["oos_metrics"]["sharpe"],
                 "profit_factor": gate["oos_metrics"]["profit_factor"],
@@ -700,6 +810,7 @@ def main():
                 "regime_sharpes": gate["regime_sharpes"],
                 "benchmark_p_value": gate["benchmark_p_value"],
                 "information_ratio": gate["information_ratio"],
+                "perturbation_min_ratio": gate.get("perturbation", {}).get("min_perturbed_sharpe_ratio", 0.0),
                 "ablations": ablations,
             },
             "best_val_pf_config": best_pf_info,
@@ -720,15 +831,17 @@ def main():
 
         print("\n" + "=" * 72)
         p = gate["passes"]
-        print(f"  gates passed: {int(sum(p.values()))}/8  ->  {summary['verdict']}")
+        print(f"  gates passed: {int(sum(p.values()))}/9  ->  {summary['verdict']}")
         p = gate["passes"]
         print(f"  sharpe={p['sharpe']} trades={p['trades']} pf={p['pf']} dd={p['dd']} "
-              f"stab={p['stab']} worst={p['worst']} p={p['p']} ir={p['ir']}")
+              f"stab={p['stab']} worst={p['worst']} p={p['p']} ir={p['ir']} pert={p.get('perturbation', False)}")
         om = gate["oos_metrics"]
         print(f"  OOS Sharpe={om['sharpe']:.3f} PF={om['profit_factor']:.3f} "
               f"DD={om['max_drawdown']:.3f} Trades={om['trades']}")
         print(f"  Test Sharpe={gate['test_metrics']['sharpe']:.3f} | "
               f"WF stab={gate['wf_stability']:.3f} | worst-regime={gate['worst_regime_sharpe']:.3f}")
+        if "perturbation" in gate:
+            print(f"  Perturbation min ratio={gate['perturbation']['min_perturbed_sharpe_ratio']:.3f}")
         print(f"  Selected: {summary['selected_config']}")
         print(f"  Best Val-PF config OOS: PF={best_val_pf:.3f}")
         print(f"  Grid {n_eval} combos in {grid_elapsed/60:.1f} min | total {total_elapsed/60:.1f} min "

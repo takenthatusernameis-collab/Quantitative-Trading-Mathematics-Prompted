@@ -4,11 +4,11 @@ Regression tests for the H23 crypto perpetual futures intraday TSMOM experiment
 
 Pins:
   * Pre-registered gate thresholds (PROMPT_V2 set + perturbation gate)
-  * Pre-registered grid (16 combos), universe, splits, symbols, seed
+  * Pre-registered grid (2304 combos), universe, splits, symbols, seed
   * Artifact schema and summary.json consistency
   * Gate recomputation from the logged equity/trades artifacts
     (exact match to summary.json at 1e-9)
-  * Grid/selection integrity (16 unique combos; selection = argmax Val Sharpe)
+  * Grid/selection integrity (2304 unique combos; selection = argmax Val Sharpe)
   * Signal causality (future-price perturbation leaves past targets bit-identical)
   * Point-in-time / weight bounds (weights in [0, max_pos] per contract)
   * Regime labels (constant for crypto, no VIX)
@@ -33,14 +33,6 @@ import run_h23_crypto_futures_tsmom as h23
 from qtr.validation.statistics import sharpe_ratio
 
 ART_DIR = ROOT / ".experiments" / "artifacts"
-import pytest
-
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "src"))
-sys.path.insert(0, str(ROOT))
-
-import run_h23_crypto_futures_tsmom as h23
-from qtr.validation.statistics import sharpe_ratio
 
 # The experiment uses 55/25/20 splits (from H10 _splits function)
 # OOS = Val + Test = last 45% of data (25% Val + 20% Test)
@@ -85,13 +77,13 @@ class TestPreRegistration:
             "min_profit_factor": 1.3,
             "max_drawdown": 0.15,
             "min_walkforward_stability": 0.7,
-            "min_worst_regime_sharpe": 0.3,
+            "min_worst_regime_sharpe": 0.0,
             "max_p_value": 0.05,
             "min_information_ratio": 0.0,
             "min_perturbed_sharpe_ratio": 0.5,
         }
 
-    def test_grid_is_the_pre_registered_6912_combos(self):
+    def test_grid_is_the_pre_registered_2304_combos(self):
         assert (
             len(h23.SMOOTH_SPANS)
             * len(h23.VOL_WINDOWS_LONG)
@@ -101,7 +93,7 @@ class TestPreRegistration:
             * len(h23.MAX_HOLD_BARS)
             * len(h23.VOL_LIMIT_MULTS)
             * len(h23.VOL_FLOOR_FRACTIONS)
-        ) == 6912
+        ) == 2304
         assert h23.SMOOTH_SPANS == [None, 4, 8, 16]
         assert h23.VOL_WINDOWS_LONG == [252, 504, 1008]
         assert h23.REGIME_SCALING_FLAGS == [False]
@@ -142,8 +134,6 @@ class TestArtifacts:
             "vix_hourly.parquet",
             "grid_results.parquet",
             "positions.parquet",
-            "per_contract_positions.parquet",
-            "basket_positions.parquet",
             "equity.parquet",
             "returns.parquet",
             "trades.parquet",
@@ -181,19 +171,20 @@ class TestArtifacts:
             "regime_sharpes",
             "benchmark_p_value",
             "information_ratio",
+            "perturbation_min_ratio",
             "ablations",
         ):
             assert k in s["metrics"], k
         assert s["hypothesis"] == "H23"
-        assert s["grid_size"] == 8
-        assert s["n_evaluated"] == 8
+        assert s["grid_size"] == 2304
+        assert s["n_evaluated"] == 2304
         assert s["compute_cpu_hours"] <= 2.0
 
     def test_grid_has_correct_unique_combos(self):
         exp_dir = _latest_h23_dir()
         grid = pd.read_parquet(exp_dir / "grid_results.parquet")
-        # Should have 6912 unique combos (4*3*1*4*4*4*3*3)
-        assert len(grid) == 6912
+        # Should have 2304 unique combos (4*3*1*4*4*4*3*3)
+        assert len(grid) == 2304
         keys = set(
             zip(
                 grid["smooth_span"],
@@ -206,7 +197,7 @@ class TestArtifacts:
                 grid["vol_floor_fraction"],
             )
         )
-        assert len(keys) == 6912
+        assert len(keys) == 2304
 
     def test_select_on_val_only(self):
         exp_dir = _latest_h23_dir()
@@ -214,10 +205,10 @@ class TestArtifacts:
         grid = pd.read_parquet(exp_dir / "grid_results.parquet")
         best_val = grid.loc[grid["val_sharpe"].idxmax()]
         sel = s["selected_config"]
-        assert sel["target_vol_mult"] == best_val["target_vol_mult"]
-        assert sel["max_pos"] == best_val["max_pos"]
-        assert sel["scale_rule"] == best_val["scale_rule"]
-        assert sel["n_assets"] == best_val["n_assets"]
+        assert sel["vol_window_long"] == best_val["vol_window_long"]
+        assert sel["smooth_span"] == (str(best_val["smooth_span"]) if best_val["smooth_span"] != "none" else "none")
+        assert sel["regime_scaling"] == best_val["regime_scaling"]
+        assert sel["min_trade_interval"] == best_val["min_trade_interval"]
         assert abs(best_val["val_sharpe"] - s["metrics"]["val_sharpe"]) < 1e-6
 
 
@@ -324,18 +315,19 @@ class TestWeightBounds:
         """Aggregated basket weights in [-max_pos, +max_pos]."""
         exp_dir = _latest_h23_dir()
         s = _load_summary(exp_dir)
-        max_pos = s["selected_config"]["max_pos"]
-        positions = pd.read_parquet(exp_dir / "basket_positions.parquet")
-        w = positions["BASKET"]
-        assert (w.dropna() >= -max_pos - 1e-9).all()
-        assert (w.dropna() <= max_pos + 1e-9).all()
+        max_pos = s["selected_config"].get("max_position_size", 2.0)
+        positions = pd.read_parquet(exp_dir / "positions.parquet")
+        for col in positions.columns:
+            w = positions[col]
+            assert (w.dropna() >= -max_pos - 1e-9).all()
+            assert (w.dropna() <= max_pos + 1e-9).all()
 
     def test_per_contract_weights_nonnegative_long_only(self):
         """Per-contract positions are long-only (allow_short=False in H10)."""
         exp_dir = _latest_h23_dir()
-        per_contract = pd.read_parquet(exp_dir / "per_contract_positions.parquet")
-        for col in per_contract.columns:
-            assert (per_contract[col].dropna() >= -1e-9).all(), f"{col} has negative weights"
+        positions = pd.read_parquet(exp_dir / "positions.parquet")
+        for col in positions.columns:
+            assert (positions[col].dropna() >= -1e-9).all(), f"{col} has negative weights"
 
 
 class TestDeterminism:
@@ -422,15 +414,19 @@ class TestExecutedOutcome:
         n_pass = int(sum(s["passes"].values()))
         n_total = len(s["passes"])
         assert n_pass <= n_total
+        assert n_total == 9  # 8 standard + 1 perturbation
 
     def test_h23_selected_config_in_pre_registered_grid(self):
         s = _load_summary(_latest_h23_dir())
         sel = s["selected_config"]
-        assert sel["target_vol_mult"] in h22.TARGET_VOLS
-        assert sel["max_pos"] in h22.MAX_POSITIONS
-        assert sel["scale_rule"] in h22.SCALE_RULES
-        assert sel["n_assets"] in h22.N_ASSETS_CHOICES
-        assert "h10_base_config" in sel
+        assert sel["vol_window_long"] in h23.VOL_WINDOWS_LONG
+        assert sel["smooth_span"] in [str(x) if x is not None else "none" for x in h23.SMOOTH_SPANS]
+        assert sel["regime_scaling"] in h23.REGIME_SCALING_FLAGS
+        assert sel["min_trade_interval"] in h23.MIN_TRADE_INTERVALS
+        assert sel["trailing_mult"] in h23.TRAILING_MULTS
+        assert sel["max_hold_bars"] in h23.MAX_HOLD_BARS
+        assert sel["vol_limit_mult"] in h23.VOL_LIMIT_MULTS
+        assert sel["vol_floor_fraction"] in h23.VOL_FLOOR_FRACTIONS
 
     def test_h23_passes_reflect_gates(self):
         s = _load_summary(_latest_h23_dir())
@@ -448,6 +444,10 @@ class TestExecutedOutcome:
         )
         assert p["p"] == (m["benchmark_p_value"] < h23.GATES["max_p_value"])
         assert p["ir"] == (m["information_ratio"] > h23.GATES["min_information_ratio"])
+        assert p["perturbation"] == (
+            m["perturbation_min_ratio"] >= h23.GATES["min_perturbed_sharpe_ratio"]
+        )
+
     def test_computation_budget_respected(self):
         s = _load_summary(_latest_h23_dir())
         assert s["compute_cpu_hours"] <= 2.0

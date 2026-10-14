@@ -1,0 +1,47 @@
+{
+  "experiment_id": "exp_2026-10-14T08-20-39-255883Z",
+  "metrics": {
+    "train_sharpe": 1.167089261412385,
+    "val_sharpe": 1.114029410748178,
+    "test_sharpe": 0.9273839685234182,
+    "oos_sharpe": 1.0344800097009492,
+    "profit_factor": 1.2581962447557546,
+    "max_drawdown": -0.05350482099886056,
+    "trades": 2715,
+    "wf_stability": 0.779323448847141,
+    "worst_regime_sharpe": -0.040536639117071976,
+    "regime_sharpes": {
+      "bull": 1.1359312712258163,
+      "sideways": 1.1254923028987722,
+      "bear": -0.040536639117071976
+    },
+    "benchmark_p_value": 3.2602085788258746e-12,
+    "information_ratio": 1.0338737442216517,
+    "ablations": {
+      "daily_target_no_exits": {
+        "oos_sharpe": 1.1410690203622742,
+        "max_drawdown": -0.052730540065115905,
+        "profit_factor": 1.2659550023889032,
+        "trades": 1797
+      },
+      "raw_hourly_no_exits": {
+        "oos_sharpe": -0.11777961661176155,
+        "max_drawdown": -0.2526526050537762,
+        "profit_factor": 0.985523848045885,
+        "trades": 31590
+      }
+    }
+  },
+  "passes": {
+    "sharpe": "True",
+    "trades": true,
+    "pf": false,
+    "dd": true,
+    "stab": true,
+    "worst": false,
+    "p": "True",
+    "ir": "True"
+  },
+  "all_pass": false,
+  "verdict": "REJECT"
+}

@@ -1,0 +1,21 @@
+{
+  "shape": [
+    300,
+    5
+  ],
+  "columns": [
+    "BTC/USD",
+    "ETH/USD",
+    "ADA/USD",
+    "XRP/USD",
+    "DOGE/USD"
+  ],
+  "dtypes": {
+    "BTC/USD": "float64",
+    "ETH/USD": "float64",
+    "ADA/USD": "float64",
+    "XRP/USD": "float64",
+    "DOGE/USD": "float64"
+  },
+  "index_type": "datetime64[ms]"
+}

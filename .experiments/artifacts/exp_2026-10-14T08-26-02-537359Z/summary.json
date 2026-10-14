@@ -1,0 +1,103 @@
+{
+  "experiment_id": "exp_2026-10-14T08-26-02-537359Z",
+  "strategy_metrics": {
+    "total_return": 1.8633597413960814,
+    "annualized_return": 0.11116466309386963,
+    "annualized_volatility": 0.1769360780684527,
+    "sharpe": 0.6845946588741453,
+    "sortino": 0.8297366853628554,
+    "max_drawdown": -0.34104746893243937,
+    "max_drawdown_duration": 512,
+    "profit_factor": 1.1401092954223697,
+    "num_trades": 1,
+    "avg_trade_cost": 0.00020009711746988646,
+    "calmar": 0.32595070545998117
+  },
+  "validation": {
+    "sharpe": 0.6847308017926383,
+    "sharpe_pass": "False",
+    "n_trades": 1,
+    "trades_pass": false,
+    "profit_factor": 1.1401092954223697,
+    "profit_factor_pass": "False",
+    "max_drawdown": -0.3410474689324393,
+    "drawdown_pass": "False",
+    "walkforward_stability": 0.9334874636232273,
+    "walkforward_pass": "True",
+    "annualized_return": 0.11114238280047561,
+    "annualized_volatility": 0.1769360780684527,
+    "total_return": 1.862786791365549,
+    "all_pass": false,
+    "sharpe_ci_lower": 0.1293216503909596,
+    "sharpe_ci_upper": 1.3151311922938238,
+    "walkforward_folds": [
+      {
+        "train": 0.16239582164673827,
+        "test": 1.1119865321189748
+      },
+      {
+        "train": 1.3239933544723095,
+        "test": -0.7936102639047615
+      },
+      {
+        "train": 0.6040914739966374,
+        "test": 2.0351389849246866
+      },
+      {
+        "train": 0.3648748973385781,
+        "test": -0.23848973795232045
+      },
+      {
+        "train": 1.9430316656497748,
+        "test": 1.4690501906721911
+      }
+    ],
+    "train_sharpe": 0.6349556154519402,
+    "val_sharpe": 0.15570686199144698,
+    "test_sharpe": 1.7474645028170541
+  },
+  "config": {
+    "symbols": [
+      "SPY"
+    ],
+    "start_date": "2015-01-01",
+    "end_date": "2024-12-31",
+    "interval": "1d",
+    "strategy": "buy_and_hold",
+    "strategy_params": {
+      "weight": 1.0
+    },
+    "backtest": {
+      "initial_capital": 1000000,
+      "asset_class": "equity",
+      "max_position_size": 1.0,
+      "max_leverage": 1.0,
+      "allow_short": false,
+      "cost_model": {
+        "equity_commission_bps": 1.0,
+        "equity_spread_bps": 1.0,
+        "equity_impact_bps_per_pct_adv": 0.1
+      }
+    },
+    "validation": {
+      "min_sharpe": 1.0,
+      "min_trades": 200,
+      "min_profit_factor": 1.3,
+      "max_drawdown": 0.15,
+      "min_walkforward_stability": 0.7,
+      "min_param_stability": 0.8
+    },
+    "data_splits": {
+      "train_end": "2020-12-31",
+      "val_end": "2022-12-31",
+      "test_start": "2023-01-01"
+    },
+    "random_seeds": {
+      "numpy": 42,
+      "python": 42
+    },
+    "compute_budget": {
+      "max_cpu_hours": 1.0
+    }
+  }
+}
