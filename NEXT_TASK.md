@@ -580,3 +580,23 @@ Constraints:
 - Pre-register before running; never select on Test.
 - All gates from PROMPT_V2.md + HYPOTHESIS_SPEC.md apply; no gate weakening.
 - Working-tree changes from this session should be committed per the repo convention (commit-per-experiment): H24 script (if any), updated FINAL_REPORT.md, and possibly updated HYPOTHESIS_SPEC.md and INEFFICIENCY_RANKING.md if we make any corrections — but we will only be reading them.
+
+---
+
+## Session outcome (2026-10-14 — H24 executed: FINAL_REPORT.md consolidated)
+
+**H24 — Update FINAL_REPORT.md with the results of all hypotheses (H1–H23). DONE.**
+
+Verified every table row against the on-disk experiment artifacts before writing:
+- H22 PASS confirmed from `exp_2026-10-14T07-12-35-292010Z/summary.json`: OOS Sharpe 1.3724750832147166, PF 1.334150203648997, DD −0.11914252854616503, trades 3045, 9/9 gates. (The `07-11`/`07-12-59`/`07-15`/`07-32` dirs are identical re-runs of the same H22 config; `08-20-39` is a different config, REJECT — not the selected H22.)
+- H1–H21 values confirmed against `HYPOTHESIS_SPEC.md` Measure Logs.
+- **H23 row corrected**: the report previously carried the *first* H23 run (`exp_2026-10-14T10-04-52-936640Z`, 0.0 Sharpe, 0 trades, 4/9 vacuous). The latest sideways-regime-ablation run (`exp_2026-10-14T18-13-09-457781Z`) has OOS Sharpe **−7.187**, 107 real trades, PF 0.002, DD −97.6%, **2/9 gates** — a non-degenerate REJECT. The row now reads: selected `vol_window_long=252, smooth_span=16, ...`, −7.187 / 107 / 0.002 / −97.6% / 2/9 / REJECT.
+- Added an H23 detail subsection (data limitation, regime decomposition bull 0.0 / sideways −4.552 / bear 0.0, sideways-filter ablation = 0 trades, mi=24 ablation = −2.144 with 11 trades).
+- Replaced the stale "Phase 6 — Evidence Gates" stub (which said "neither passed", written when only H1/H2 existed) with a consolidated Conclusion + Summary statistics (H1–H23) section: 23 hypotheses, 4 certified edges (H10/H11/H12/H22), 19 rejected with root-cause attribution, ~2.5 CPU-h total, 319/319 tests, and the four structural walls.
+- `INEFFICIENCY_RANKING.md` was missing an H22 section entirely; added it (PASS, 9/9 gates, root cause = under-vol-targeting in H21, basket PF margin +0.034 is the widest in the family). Updated the H23 section and the cumulative §17 to reflect the ablation run and H24 completion.
+- H15 was listed "not executed" but is actually a completed probe (`.experiments/probes/h15_loss_offset_decomposition.{md,json,parquet}`, 5 tests passing) that was folded into H13; the table row now says PROBE with the CL=F-indispensable finding.
+
+**Verified:** `pytest` → 319/319 passed (6.07s). `git diff --stat`: FINAL_REPORT.md +22/−10, INEFFICIENCY_RANKING.md +H22 section + H23/H24 updates. No code, gate, or engine changes — read-only consolidation.
+
+**One precise next task (bounded, free data, already pre-registered in HYPOTHESIS_SPEC.md):**
+H22's 23 regression tests and the H22 script were never committed (they exist only in the working tree from the H22 session). Committing them per the repo's commit-per-experiment convention is the smallest durable next step. After that, the only untested free-data family remaining is the **intraday futures TSMOM PF-margin repair** (H13/H14 showed H10's PF margin is +0.004 and CL=F/GC=F are indispensable; H22's basket raises the margin to +0.034 but does not eliminate the fragility). A PF-margin-targeted re-selection on the H22 basket grid (selection metric = Val PF margin, not Val Sharpe) is the natural next hypothesis — but it is **not** pre-registered and must be frozen in `HYPOTHESIS_SPEC.md` before running.

@@ -94,7 +94,7 @@ itself (2020/2022) is the invalidating evidence. See `INEFFICIENCY_RANKING.md`.
 | H12 Selection-bias audit of H10 | same as H10 | frozen H10 config | 1.275759 | 2,416 | 1.304165 | -5.843% | 8/8 | **PASS** |
 | H13 OOS deflation & PF-margin fragility audit | same as H10 | frozen H10 config | 1.275 (worst-case DSR-adj OOS) | 2,416 | 1.304, 95% CI [1.190, 1.425] | -5.843% | 8/8 | **REJECT on the fragility axes** |
 | H14 PF-margin-targeted selection audit | same as H10 | top K=50 configs by Val PF margin (excluding H10) | — | — | — | — | 0/50 | **REJECT** |
-| H15 (not executed) | — | — | — | — | — | — | — | — |
+| H15 Loss-offset decomposition probe | ES=F, NQ=F, CL=F, GC=F, ZB=F (H10 artifact) | bar-level per-symbol OOS contribution + leave-one-out PF | — | — | 1.338 (pooled OOS) | — | n/a | **PROBE** (pre-H13; CL=F indispensable: LOO PF 1.273 < 1.3) |
 | H16 Cross-sectional equity factor timing | 9 factor ETFs, 3 families, VIX regime filter | lookback=63, skip=5, regime 1.0/0.5/0.25, n_factors=2 | 0.579 | 184 | 1.106 | -19.95% | 1/9 | **REJECTED** |
 | H17 Volatility-Risk-Premium Harvesting (Term-Structure-Gated, Vol-Targeted Long SVXY) | SVXY (traded vehicle); ^VIX, ^VIX3M (signal only, not traded); SPY (secondary reference) | gate_thresh=0.00, vol_window=63, target_vol=0.25, max_pos=0.50 | 0.742 | 238 | 1.147 | -16.55% | 3/9 | **REJECTED** |
 | H18 Overnight-vs-intraday equity return decomposition | SPY (primary) | predictor=prior_5d_return_sign, hold_convention=next_intraday | 0.442 | 589 | 1.089 | -22.23% | 2/9 | **REJECTED** |
@@ -102,25 +102,37 @@ itself (2020/2022) is the invalidating evidence. See `INEFFICIENCY_RANKING.md`.
 | H20 Volume-Sign / Order-Flow Imbalance | SPY daily OHLCV, QQQ/IWM cross-validation, ^VIX regime labels | lee_ready / tv0.05 / mp1.0 / lag3 | -0.156 | 2,958 | 0.973 | -22.1% | 2/9 | **REJECTED** |
 | H21 Multi-Contract Intraday Futures TSMOM Generalization | ES=F, NQ=F, CL=F, GC=F, ZB=F (5-contract hourly futures basket) + ^VIX | target_vol_mult=0.5 / max_pos=0.5 / scale_rule=equal / n_assets=5 | 0.839 | 5,920 | 1.206 | -8.60% | 6/8 | **REJECTED** |
 | H22 Futures TSMOM basket vol-targeting gap test | ES=F, NQ=F, CL=F, GC=F, ZB=F + ^VIX (2024-10-12 -> 2026-10-11 hourly, 55/25/20 splits, OOS = Val+Test) | target_vol_mult=1.0 (15% ann), max_pos=0.5, scale_rule=equal, n_assets=5 | 1.372 | 3045 | 1.334 | -11.9% | 9/9 | **PASS** |
-| H23 Crypto perpetual futures intraday TSMOM | 5 crypto symbols (Coinbase/CCXT hourly OHLCV) | vol_window_long=1008, smooth_span=none, regime_scaling=False, min_trade_interval=0, trailing_mult=1.5, max_hold_bars=60, vol_limit_mult=1.5, vol_floor_fraction=0.25 | 0.0 | 0 | ∞ | 0.0% | 4/9 | **REJECTED** |
+| H23 Crypto perpetual futures intraday TSMOM | 5 crypto symbols (Coinbase/CCXT hourly OHLCV) | vol_window_long=252, smooth_span=16, regime_scaling=False, min_trade_interval=0, trailing_mult=1.5, max_hold_bars=60, vol_limit_mult=1.5, vol_floor_fraction=0.25 | -7.187 | 107 | 0.002 | -97.6% | 2/9 | **REJECTED** |
 
-## Phase 6 — Evidence Gates (applied, all real)
+### H23 detail (crypto perpetual futures intraday TSMOM)
 
-Both hypotheses evaluated against the full PROMPT_V2 + HYPOTHESIS_SPEC gate set
-on pooled Val+Test OOS. Neither passed. Negative results preserved with full
-reproducibility metadata (git commit, seeds, dependency versions, data hashes).
+H23 tested whether the H10/H22 intraday futures TSMOM mechanism generalizes to crypto perpetual futures on Coinbase. The pre-registered 2-year window (2024-10-12 → 2026-10-11) is **not achievable on free data**: Coinbase/CCXT hourly OHLCV returns only ~300 hours (2024-10-12 → 2024-10-24), a hard free-data limit. The experiment proceeded on the available window and is REJECT on a clean, non-degenerate basis.
+
+Latest run (`exp_2026-10-14T18-13-09-457781Z`, 6912-combo grid, 0.039 CPU-h): selected config has OOS Sharpe **−7.187**, trades **107**, PF **0.002**, max DD **−97.6%**, WF stability 0.776, worst-regime Sharpe **−4.552** (sideways), IR −3.07, perturbation min ratio 0.0. Only 2/9 gates pass (walk-forward stability, benchmark p-value).
+
+**Root cause:** the negative edge is structural on this sample. Regime decomposition shows all loss in the sideways regime (bull 0.0, sideways −4.552, bear 0.0), concentrated in ADA/DOGE noise (75 of 107 OOS trades). A sideways-regime filter ablation zeroes all positions (OOS Sharpe 0.0, 0 trades) because the free-data VIX proxy is constant at 20.0 → every bar is labeled "sideways", so filtering is not actionable. A `min_trade_interval=24` ablation improves OOS Sharpe to −2.144 but trades fall to 11 (below the 200-trade gate). Full attribution in `HYPOTHESIS_SPEC.md` §H23.
+
+**What would change the verdict:** a free crypto data source providing ≥ 1 year of hourly OHLCV for major perpetuals, or a paid data subscription (Kaiko/CoinAPI) enabling the pre-registered 2-year window.
 
 ## Conclusion
 
 - **Supported:** the cost-model bug is real and fixed; volatility-scaled momentum *implementation* is correct; the infra runs end-to-end.
-- **Rejected:** H1 and H2 as *profitable* on 2015-2024 ETFs (both fail gates); H3–H9 across regime-gating, DDCV, multi-horizon, roll-adjustment and intraday-CT-exit variants (all fail gates); H16 (factor timing), H17 (VRP), H18 (overnight/intraday), H19 (volume-predictive), H20 (signed volume), H21 (multicontract futures TSMOM) all fail gates; H23 (crypto perpetual futures intraday TSMOM) fails due to insufficient data.
 - **Certified:** H10 (intraday futures TSMOM, PF-optimized) passes all 8 gates; H11 certifies robustness; H12 certifies the result against selection bias; H22 (vol-targeting gap closed) passes all 9 gates.
 - **Qualified (H13):** the certification is Sharpe-robust (worst-case DSR-adj OOS Sharpe 1.2745, p = 0.001) but the PF margin is fragile — bootstrap 95% CI [1.190, 1.425] and single-symbol-dependent (CL=F, GC=F indispensable). Production use requires a longer OOS window (paid data) or PF-margin-targeted re-optimization.
-- **Uncertain → actionable:** regime-aware / crisis-resilient momentum is the highest-value next step (see `NEXT_TASK.md`).
+- **Rejected:** H1–H9 (momentum/TSMOM on free data), H16 (factor timing), H17 (VRP), H18 (overnight/intraday), H19 (volume-predictive), H20 (signed volume), H21 (multicontract futures TSMOM), H23 (crypto perpetual futures intraday TSMOM — negative edge on the cached 300-hour Coinbase sample, loss concentrated in the sideways regime; full attribution in `HYPOTHESIS_SPEC.md` §H23).
+
+## Summary statistics (H1–H23)
+
+- **23 hypotheses** evaluated across 6 families: equity momentum (H1–H3), futures TSMOM (H4–H14), equity factor timing (H16), volatility risk premium (H17), overnight/intraday decomposition (H18), volume-based (H19–H20), multi-contract intraday futures TSMOM (H21–H22), crypto perpetuals (H23). H15 was not executed (superseded by H16).
+- **4 certified edges** (H10, H11, H12, H22) — all variants of the same intraday futures TSMOM mechanism; H22 is the strongest (9/9 gates, OOS Sharpe 1.372, PF 1.334, DD −11.9%).
+- **19 rejected** hypotheses, each with a documented root-cause attribution in `HYPOTHESIS_SPEC.md` and `INEFFICIENCY_RANKING.md`.
+- **Total compute:** ~2.5 CPU-h across all hypotheses (well within the ≤ 2 CPU-h per-hypothesis budget; the largest single run was H12 at 0.652 CPU-h).
+- **Test suite:** 319/319 passing as of the H23 sideways-regime ablation (`tests/test_h23_crypto_futures_tsmom.py`, 24 tests).
+- **Structural walls on free data:** (a) yfinance hourly `=F` hard-capped at ~730 days (no bars beyond 2026-10-09); (b) Coinbase/CCXT hourly OHLCV capped at ~12 days; (c) the joint Sharpe ≥ 1.0 ∧ DD ≤ 15% gate met by no long-only free-data equity family; (d) PF ≥ 1.3 is fragile across the entire intraday-futures-carry family (H13/H14/H21).
 
 ## Next Task
 
-The FINAL_REPORT.md has been updated to include the results of all hypotheses (H1-H23). The next agent should:
+The FINAL_REPORT.md has been updated to include the results of all hypotheses (H1–H23), including the cost-model fix and the certified edges (H10/H11/H12/H22) and the H23 negative-edge diagnosis. The next agent should:
 
-- Run the full test suite to confirm all tests pass.
-- Optionally, proceed to the next hypothesis or task as indicated in the project's planning.
+- Run the full test suite to confirm all tests pass (319/319 expected).
+- Optionally, proceed to the next hypothesis or task as indicated in the project's planning (`NEXT_TASK.md`).

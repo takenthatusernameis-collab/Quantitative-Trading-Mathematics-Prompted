@@ -796,6 +796,55 @@ hourly futures window narrowing the PF CI so PF >= 1.3 is met by >50% of combos.
 
 ---
 
+## H22: Futures TSMOM Basket — Vol-Targeting Gap Test — **PASS (9/9 gates)**
+
+**Summary**: Re-ran the H21 cross-sectional intraday futures TSMOM basket with
+H10's full vol-targeting range to test whether H21's Sharpe/PF shortfall was an
+under-vol-targeting artifact. 16-combo grid (`target_vol_mult` in {0.50, 0.75,
+1.0, 1.5} → 7.5/11.25/15/22.5% ann × n_assets in {3,5} × scale_rule in
+{equal, inverse_vol}), same universe and cached hourly data as H21, Val-selected,
+Test-protected, full 9-gate PROMPT_V2 set **including the ±20% perturbation gate
+H21 omitted**. Also fixed the H21 `val_sharpe = oos_sharpe` reporting bug.
+
+**Key results**:
+- Selected: `target_vol_mult=1.0 (15% ann) / max_pos=0.5 / equal / n_assets=5`
+  (Val Sharpe 1.474, argmax of 16 combos).
+- OOS (Val+Test, ~730h): Sharpe **1.372** (≥1.0 — PASS); PF **1.334** (≥1.3 — PASS);
+  max-DD **-11.9%** (≤15% — PASS); WF stability 0.759 (≥0.7 — PASS); worst-regime
+  Sharpe 1.129 (sideways, ≥0.3 — PASS); benchmark p<0.05 (PASS); IR 0.946 (≥0 — PASS);
+  trades 3,045 (≥200 — PASS); perturbation min ratio 0.816 (≥0.5 — PASS).
+- **Gates: 9/9 PASS → OVERALL: PASS.** The diversified basket edge is certified.
+- H21 baseline (tv_mult=0.5) reproduces prior: Sharpe 0.839 / PF 1.206 — confirms
+  vol-targeting was the gap, not a broken edge.
+- Ablations (OOS): ES-only at 15% ann 0.851 (< basket); random sign -0.185;
+  daily-TSMOM 0.514; constant 0.332; H21 baseline tv05 0.839/1.206. Signal is real.
+
+**Root cause**: H21's failure was **under-vol-targeting**, not a broken mechanism.
+The intraday-futures-carry edge is real and scales with vol targeting: at 15% ann
+(H10's certified level) the basket clears all 9 gates. Diversification lifts the
+single-contract edge (ES-only 0.851 → basket 1.372). PF margin (1.334, +0.034 over
+the gate) is wider than H10's (+0.004) — the basket's loss-offsetting structure
+(CL/GC offsetting each other) partially repairs the single-symbol PF fragility
+H13 documented.
+
+**Net Opportunity Score**: 8/10. The strongest certified free-data edge. Remaining
+caveats: (a) the 730h `=F` cap still bounds the OOS CI and the PF estimate; (b) the
+±20% perturbation min ratio (0.816) is comfortable but not overwhelming; (c) the
+edge is long-only futures carry — true neutrality needs a short leg.
+
+**What would invalidate the PASS**: fresh hourly bars (paid data) pushing PF < 1.3
+or Sharpe < 1.0; a cost-model misspecification > break-even; or evidence that the
+15%-ann-vol level over-leverages on a longer window.
+
+**Compute**: 0.01 CPU-h (12s wall). Seed 42. Deterministic.
+
+**Tests**: `tests/test_h22_futures_tsmom_voltarget.py` (23 tests, pinning the
+perturbation gate, val_sharpe correctness, 16-combo grid, gate recomputation at
+1e-9, causality, weight bounds, determinism, and the executed PASS verdict).
+Full suite: 319/319 passing.
+
+---
+
 ## H23: Crypto Perpetual Futures Intraday TSMOM — REJECTED (Data Limitation)
 
 **Summary**: Testing whether the H10/H22 certified intraday futures TSMOM edge
@@ -810,51 +859,74 @@ data (2024-10-12 → 2024-10-24), vs. the pre-registered ~17,500-hour window
 public API via CCXT. The sample is grossly insufficient for the 6912-combo grid
 search or meaningful OOS evaluation (Val+Test = only ~135 bars).
 
-**Key results**:
-- Selected config: `vol_window_long=1008, smooth_span=none, regime_scaling=False,
+**Key results** (latest run `exp_2026-10-14T18-13-09-457781Z`, 6912-combo grid,
+0.039 CPU-h; the sideways-regime ablation diagnostic run):
+- Selected config: `vol_window_long=252, smooth_span=16, regime_scaling=False,
   min_trade_interval=0, trailing_mult=1.5, max_hold_bars=60, vol_limit_mult=1.5,
-  vol_floor_fraction=0.25` (Val Sharpe 0.0 — no signal on this window).
-- OOS (Val+Test, 135 bars): Sharpe **0.0** (Val 0.0, Test 0.0) — FAIL;
-  max-DD 0.0% (PASS vacuous); PF ∞ (PASS vacuous: 0 trades); WF stability 0.0
-  (FAIL); worst-regime 0.0 (PASS); benchmark p=0.383 (FAIL); IR 0.800 (PASS);
-  trades 0 (FAIL); perturbation 0.0 (FAIL).
-- Gates: **4/9 PASS → REJECT** (all meaningful gates fail due to insufficient data).
-- Ablations: H9 baseline produces 74 trades with catastrophic DD (-97%) and
-  Sharpe -6.96; longer vol window (1008) produces 0 trades (signal flat).
+  vol_floor_fraction=0.25` (Val Sharpe -1.845, Val trades 4).
+- OOS (Val+Test, 134 bars): Sharpe **-7.187** — FAIL; max-DD **-97.6%** — FAIL;
+  PF **0.002** — FAIL; WF stability 0.776 (PASS); worst-regime Sharpe **-4.552**
+  (sideways, FAIL); benchmark p=0.0009 (PASS); IR -3.07 (FAIL); trades 107 (FAIL);
+  perturbation 0.0 (FAIL).
+- **Gates: 2/9 PASS → REJECT** on a clean, non-degenerate basis (the earlier
+  `exp_2026-10-14T10-04-52-936640Z` run produced 0 trades / vacuous PASSes on PF
+  and DD; this run has real trades and real losses, so the REJECT is meaningful).
+- Regime decomposition: bull 0.0, sideways **-4.552**, bear 0.0 — all loss is in
+  the sideways regime, concentrated in ADA/DOGE noise (75 of 107 OOS trades).
+- Ablations: sideways-regime filter → OOS Sharpe 0.0, 0 trades (not actionable:
+  the free-data VIX proxy is constant at 20.0, so every bar is "sideways");
+  `min_trade_interval=24` → OOS Sharpe -2.144 but only 11 trades (below the
+  200-trade gate).
 
-**Root cause**: The pre-registered hypothesis is **untestable on free data**.
-Coinbase hourly data via CCXT is capped at ~12 days, while the vol-scaled TSMOM
-signal requires ~252+ bars (10+ days) just to warm up the volatility estimator,
-leaving virtually no data for signal generation or OOS evaluation. This is a
-data-availability wall, not a falsified mechanism.
+**Root cause**: The pre-registered hypothesis is **untestable on free data**, and
+on the available window the edge is structurally negative. Coinbase hourly data
+via CCXT is capped at ~12 days, while the vol-scaled TSMOM signal requires ~252+
+bars just to warm up the volatility estimator. Where the signal does fire, it
+loses money in the sideways regime on ADA/DOGE noise — the crypto sample has no
+VIX variation, so regime filtering cannot be implemented. This is a
+data-availability wall combined with a negative edge, not a falsified
+mechanism that could be repaired by parameter choice.
 
-**Net Opportunity Score**: N/A (data-limited). The H10/H22 intraday futures
-TSMOM edge remains the sole certified edge on free data; its generalization to
-crypto perpetuals remains an open question pending paid hourly data.
+**Net Opportunity Score**: N/A (data-limited + negative edge). The H10/H22
+intraday futures TSMOM edge remains the sole certified edge on free data; its
+generalization to crypto perpetuals remains an open question pending paid
+hourly data.
 
 **What would invalidate the rejection**: A free or paid crypto data source
 providing ≥ 1 year of hourly OHLCV for major perpetuals (BTC/USD, ETH/USD, etc.),
 enabling the pre-registered window and a meaningful test of the H10/H22
-mechanism on crypto markets.
+mechanism on crypto markets. (A sideways-regime filter would also need a
+non-constant VIX proxy to be actionable.)
 
 **Compute**: 0.04 CPU-h (2.3 min). Seed 42. Deterministic.
 
 ---
 
-### 17. Cumulative state of evidence gates (updated with H23)
+### 17. Cumulative state of evidence gates (updated with H23, post-ablation)
 - The intraday futures TSMOM edge (H10/H11/H22) remains the **sole PASS family**
-  on free data (Sharpe 1.372, PF 1.334, DD -11.9% at 15% ann vol on 5-contract
-  basket).
-- H23 crypto generalization: **untestable on free data** — Coinbase hourly
-  capped at ~12 days, insufficient for vol-scaled TSMOM warmup + OOS evaluation.
+  on free data (H22 strongest: Sharpe 1.372, PF 1.334, DD -11.9% at 15% ann vol
+  on the 5-contract basket, 9/9 gates).
+- H23 crypto generalization: **REJECT on a non-degenerate basis** — on the
+  available 300-hour Coinbase sample the selected config has OOS Sharpe -7.187,
+  107 real trades, PF 0.002, DD -97.6%, 2/9 gates; the loss is entirely in the
+  sideways regime (ADA/DOGE noise). The sideways-regime filter ablation is not
+  actionable (VIX constant at 20 → 0 trades). The hypothesis is also untestable
+  at the pre-registered 2-year horizon (Coinbase hourly capped at ~12 days).
 - Structural walls now include: (a) yfinance hourly `=F` 730-day cap for
   traditional futures; (b) Coinbase/CCXT hourly ~12-day cap for crypto
   perpetuals; (c) the joint Sharpe ≥ 1.0 ∧ DD ≤ 15% gate met by no free-data
-  family except H10/H11/H22's futures-carry edge.
+  family except H10/H11/H22's futures-carry edge; (d) PF ≥ 1.3 is fragile
+  across the whole intraday-futures-carry family (H13/H14 for H10; H21 for the
+  basket; H22's basket PF margin +0.034 is the widest yet).
 - All equity-based (H1-H9, H16, H18), volume-based (H19-H20), VRP (H17), and
   roll-adjusted (H8) families on free daily data: **REJECTED**.
 - Multi-contract futures basket (H21): **REJECTED** (under-vol-targeted);
   corrected in H22: **PASS** at H10's vol level (15% ann).
+- H15 loss-offset decomposition (probe, pre-H15-as-experiment): confirmed CL=F
+  is indispensable (LOO PF 1.273 < 1.3) on the H10 artifact; folded into H13.
 - The path forward requires **paid hourly data** (traditional futures beyond
   730 days, crypto perpetuals beyond 12 days) or acceptance that the free-data
   edge is confined to the ~2-year intraday futures window already certified.
+- **H24 (report consolidation) complete**: `FINAL_REPORT.md` updated with the
+  H1-H23 table, the H23 negative-edge diagnosis, the cost-model fix, certified
+  edges, and summary statistics. All 319 tests pass.
