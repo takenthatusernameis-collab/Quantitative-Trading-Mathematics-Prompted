@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """H21: Multi-Contract Intraday Futures TSMOM Generalization.
 
 Generalizes the H10/H11 certified intraday TSMOM edge (vol-scaled, path-dependent
@@ -7,51 +6,42 @@ CL=F, GC=F, ZB=F) with risk-parity aggregation. 16-combo grid, Val-selected,
 Test-protected, same gates as H9-H11.
 """
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 import json
 import time
-import traceback
 from itertools import product
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-from qtr.data.fetcher import get_data_fetcher
 from qtr.backtest.engine import run_backtest
+from qtr.data.fetcher import get_data_fetcher
 from qtr.tracking.experiment import get_tracker
-from qtr.validation.statistics import (
-    sharpe_ratio,
-    walk_forward_splits,
-    compare_to_benchmark,
-)
 
 # Reuse H10/H11 constants / primitives (single source of truth for universe,
 # costs, gates, exit logic).
 from run_h10_intraday_tsmom_pfopt_experiment import (
     FUTURES_UNIVERSE,
-    VIX_SYMBOL,
-    SEED,
-    INITIAL_CAPITAL,
     GATES,
-    COST_MODEL_DEFAULTS,
-    FUTURES_SPECS,
-    make_futures_config,
-    regime_labels,
-    vol_scaled_tsmom_hourly,
-    _daily_target_from_hourly,
-    build_hourly_target,
-    apply_exits_hourly,
-    _splits,
-    _period_metrics,
+    INITIAL_CAPITAL,  # noqa: F401 - re-exported for test-pinning of constants
+    SEED,
+    VIX_SYMBOL,
     _count_in,
+    _daily_target_from_hourly,
     _full_gate_eval,
-    smooth_signal,
+    _period_metrics,
+    _splits,
+    apply_exits_hourly,
+    build_hourly_target,
+    make_futures_config,
     regime_factor_hourly,
+    regime_labels,  # noqa: F401 - re-exported for regime-label test pinning
+    vol_scaled_tsmom_hourly,
 )
 
 EXPERIMENT_NAME = "h21_futures_tsmom_multicontract"
@@ -343,7 +333,6 @@ def main():
 
             if n_eval % 10 == 0:
                 elapsed = time.time() - t_grid
-                rate = elapsed / n_eval
                 print(
                     f"[H21] grid progress {n_eval}/{grid_size} "
                     f"({n_eval/grid_size*100:.0f}%) {elapsed:.0f}s elapsed "
@@ -541,7 +530,7 @@ def main():
               f"({total_elapsed/3600:.2f} CPU-h)")
         print("=" * 72)
         return 0 if gate["all_pass"] else 1
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         import traceback
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))

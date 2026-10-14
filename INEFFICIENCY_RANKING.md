@@ -727,7 +727,55 @@ high-volume names with a market-neutral (dollar-neutral) construction so
 that sign noise is averaged out while systematic flow-to-return coupling
 survives.
 
-### 16. Cumulative state of evidence gates (updated with H20)
+## H21: Multi-Contract Intraday Futures TSMOM Generalization — REJECTED
+
+**Summary**: Generalizing the H10/H11 certified intraday futures TSMOM edge
+(vol-scaled, path-dependent exits) across a 5-contract basket (ES=F, NQ=F, CL=F,
+GC=F, ZB=F) with equal-weight aggregation. 16-combo grid (target_vol_mult in
+{0.25, 0.50} x max_pos in {0.5, 1.0} x scale_rule in {equal, inverse_vol} x
+n_assets in {3, 5}), Val-selected, Test-protected on the ~730-hour yfinance
+`=F` window (2024-10-12 -> 2026-10-11). The basket is a **real** signal
+(random-sign ablation -0.470; benchmark p = 1.9e-10) and is the **most robust
+surviving candidate** — it clears DD, worst-regime, IR, WF-stability,
+significance and trade-count gates — but fails Sharpe (0.839 < 1.0) and PF
+(1.206 < 1.3).
+
+**Key results**:
+- Selected: `tv_mult=0.5 / max_pos=0.5 / equal / n_assets=5` (Val Sharpe 0.899,
+  argmax of 16 combos).
+- OOS (Val+Test, ~730h): Sharpe **0.839** (Val 0.899, Test 0.765) — < 1.0 — FAIL;
+  max-DD -8.60% (<=15% — PASS); PF **1.206** (< 1.3 — FAIL); WF stability 0.988
+  (>=0.7 — PASS); worst-regime 0.778/sideways (>=0.3 — PASS); benchmark p=1.9e-10
+  (<=0.05 — PASS); IR 0.946 (>=0 — PASS); trades 5,920 (>=200 — PASS).
+- Gates: **6/8 PASS -> REJECT** (perturbation pre-registered but not evaluated;
+  see Deviation notes).
+- Ablations (OOS): ES-only 0.608 (diversification adds +0.231); random-sign -0.470
+  (signal is real); daily-TSMOM 0.514 (edge is intraday-only, H9).
+- Grid degeneracy: `scale_rule` and `max_pos` have **zero** effect on Val
+  Sharpe -> 16 combos collapse to 4 effective points (target_vol x n_assets).
+  H10's `TARGET_VOL=0.15` (15% ann) was outside H21's grid (max 7.5%).
+
+**Root cause**: (1) Sharpe shortfall from **under-vol-targeting** — H21 swept only
+3.75%/7.5% annualized vol vs H10's certified 15% that yields Sharpe 1.276; the edge
+is real and intraday but under-capitalized at H21's vol levels. (2) PF < 1.3
+across **all** 16 grid combos (max Val PF 1.246) — PF-fragility is a family property
+of the intraday-futures-carry edge on the 730h window (H13/H14 for H10; now
+confirmed on the diversified basket). (3) The 730-hour `=F` cap is the data wall.
+
+**Net Opportunity Score**: 4/10. The diversified intraday futures TSMOM is the
+strongest surviving free-data candidate (real signal, robust DD/regime/IR) but
+fails the two value-defining gates (Sharpe, PF) and cannot be repaired by
+selection or diversification alone on the free window. The binding constraints are
+**data horizon** (730h cap) and **vol-targeting range not swept to H10's level**.
+
+**What would invalidate the rejection**: (a) sweeping `target_vol_mult` to H10's
+range (>=1.0 -> 15% ann) and clearing Sharpe >= 1.0 at acceptable DD — i.e. the
+shortfall is vol-targeting, not a broken edge (this is H22); or (b) a longer free
+hourly futures window narrowing the PF CI so PF >= 1.3 is met by >50% of combos.
+
+**Compute**: 0.005 CPU-h (17.7s). Seed 42. Deterministic.
+
+### 16. Cumulative state of evidence gates (updated with H21)
 - The signed-volume escape hatch for H19 is closed: H20 (signed volume) fails
   with an even worse Sharpe (-0.156) and fails the perturbation gate.
 - Structural walls unchanged: (a) the yfinance hourly `=F` 730-day cap
@@ -738,3 +786,10 @@ survives.
   costs, is the binding constraint for *all* volume-based hypotheses (H19
   total volume and H20 signed volume both fail; signing the flow does not
   help on free daily data).
+- H21 generalization: cross-sectional diversification of the H10 edge lifts
+  OOS Sharpe (0.608 -> 0.839) and clears DD/regime/IR/stability/significance/
+  trades, but Sharpe (0.839 < 1.0) and PF (1.206 < 1.3) stay below gates and
+  PF < 1.3 across all 16 grid combos confirms PF-fragility is a family property.
+  Vol targeting was under-swept (max 7.5% ann vs H10's 15%). The
+  intraday-futures carry edge is the strongest surviving free-data candidate
+  but does not clear the value-defining gates on the 730h window. -> only H10/H11 PASS.

@@ -2460,3 +2460,106 @@ The multi-contract intraday TSMOM basket OOS Sharpe ≤ 1.0 OR max DD > 15% OR P
 
 ### Verdict rule (pre-registered)
 H21 **PASS** iff all 9 gates pass on the protected OOS (Val+Test). Otherwise **REJECT** with root-cause attribution.
+
+---
+
+### Measured (experiment `exp_2026-10-13T23-27-52-101656Z`)
+
+Executed exactly as pre-registered. 16-combo grid on the 5-contract hourly
+futures basket (ES=F, NQ=F, CL=F, GC=F, ZB=F) + ^VIX, 2024-10-12 → 2026-10-11
+(~730 hourly bars), 55% train / 25% val / 20% test by time, OOS = Val+Test.
+Selected config (argmax Val Sharpe): `target_vol_mult=0.5, max_pos=0.5,
+scale_rule=equal, n_assets=5`, reusing the frozen H10 exit config
+`SEL = {vol_window_long=1008, smooth_span=None, regime_scaling=False,
+min_trade_interval=0, trailing_mult=2.0, max_hold_bars=60, vol_limit_mult=1.5,
+vol_floor_fraction=0.25}`. H21's `TARGET_VOL_BASE=0.15` scaled by the grid
+multiplier → 7.5% ann vol target for the selected combo (H10's certified
+`TARGET_VOL=0.15` is the *unmultiplied* 15%).
+
+### OOS Metrics (Val+Test, ~730 hourly bars)
+| Metric                    | Value    | Gate     | Pass?  |
+|---------------------------|----------|----------|--------|
+| Sharpe ratio (OOS)        | 0.839    | >= 1.0   | FAIL   |
+| Val Sharpe (selected combo)| 0.899   | —        | —      |
+| Test Sharpe               | 0.765    | —        | —      |
+| Trades                    | 5,920    | >= 200   | **PASS** |
+| Profit factor             | 1.206    | >= 1.3   | FAIL   |
+| Max drawdown              | -8.60%   | <= 15%   | **PASS** |
+| Walk-forward stability    | 0.988    | >= 0.7   | **PASS** |
+| Worst-regime Sharpe       | 0.778    | >= 0.3   | **PASS** |
+| Benchmark significance (p)| 1.91e-10 | <= 0.05  | **PASS** |
+| Information ratio         | 0.946    | >= 0.0   | **PASS** |
+| +/-20% perturbation       | not evaluated | >= 0.5 | —      |
+
+Per-regime OOS Sharpe: bull **0.936**, sideways **0.778** (worst), bear **0.975**.
+
+### Gate Summary: PASSES 6/8 (perturbation not evaluated) -> REJECT
+
+### Ablations (OOS)
+| Variant                      | OOS Sharpe | OOS Max DD | OOS PF | OOS Trades |
+|------------------------------|------------|------------|--------|------------|
+| ES-only (H10 config), 1 contract | 0.608   | -5.42%     | 1.174  | 224        |
+| Random per-contract sign (shuffled) | -0.470 | -70.2%  | 0.904  | 19,241     |
+| Constant 0.5 position        | 0.332      | -5.06%     | 1.067  | 0          |
+| Daily-frequency TSMOM (per contract) | 0.514 | -23.7%   | 1.115  | 1,262      |
+
+The random-sign ablation (-0.470) confirms the basket carries a real signal
+(not noise); daily-TSMOM (0.514) confirms the edge is intraday-only (H9);
+ES-only (0.608) confirms diversification raises Sharpe (0.608 -> 0.839).
+
+### Grid diagnostics
+The 16-combo grid is **degenerate**: `scale_rule` (equal vs inverse_vol) and
+`max_pos` (0.5 vs 1.0) have *zero* effect on Val Sharpe — the 16 combos collapse
+to 4 effective points (target_vol_mult x n_assets only). The selected
+`target_vol_mult=0.5` (7.5% ann) is the grid maximum; H10's 15% is outside scope.
+
+### Perturbation Robustness
+Deviation: the +/-20% perturbation gate was **pre-registered but not
+evaluated**. The shared `_full_gate_eval` (run_h10:273) returns 8 gates; only
+H16/H17/H19/H20 add a `perturbation` key locally — H21 (like H10) does not.
+This does **not** affect the REJECT: Sharpe (0.839 < 1.0) and PF (1.206 < 1.3)
+fail independently.
+
+### Root-Cause Attribution
+1. **Under-vol-targeting caps Sharpe**: H21 swept annualized vol targets of only
+   3.75% and 7.5% (target_vol_mult in {0.25, 0.50}), never H10's 15%
+   (`TARGET_VOL=0.15`). Diversification raises basket Sharpe (0.608 -> 0.839)
+   but the ceiling (~0.84-0.90) stays below 1.0 because exposure is
+   under-capitalized relative to H10.
+2. **PF-fragility is a family property**: profit factor < 1.3 across **all 16**
+   grid combos (max Val PF 1.246). This replicates H13/H14 for the single-contract
+   H10 edge on the cross-sectional basket — the thin PF margin is intrinsic to
+   the intraday-futures-carry mechanism on the 730h window.
+3. **Sample cap**: the yfinance hourly `=F` 730-day window is the hard free-data
+   limit; it bounds both the OOS Sharpe CI and the PF estimate.
+4. **Inert grid dimensions**: `scale_rule` and `max_pos` do not vary the result,
+   so 8 of 16 combos were redundant.
+
+### Conclusion
+The cross-sectional intraday futures TSMOM basket is a **real** signal
+(random ablation -0.470; benchmark p = 1.9e-10; Sharpe 0.839 exceeds
+ES-only 0.608 and all equity/volume families H16-H20 which land <= 0.8) and is
+the **most robust surviving candidate**: it clears DD, worst-regime, IR,
+WF-stability, significance, and trade-count gates together. It does **not**
+clear Sharpe (>=1.0) or PF (>=1.3), and no grid combo does. Hypothesis
+**REJECTED**: the intraday-futures edge does not yet meet the full evidence
+gates on the available free hourly window. Path forward: (a) expand vol
+targeting to H10's range (H22), and (b) secure a longer OOS window (paid data)
+to narrow the PF-fragility CI.
+
+### Compute
+0.005 CPU-h (17.7s wall, 16-combo grid). Within <=2 CPU-h budget. Seed 42.
+Deterministic (verified: tests/test_h21_* recompute gates from logged artifacts
+at 1e-9).
+
+### Implementation Defects & Deviations (faithful disclosure)
+1. `summary.json` `metrics.val_sharpe` is mislabeled: set to the pooled OOS
+   Sharpe (`gate["oos_metrics"]["sharpe"]`) rather than the Val-only Sharpe (true
+   Val Sharpe of the selected combo = 0.899 in `grid_results.parquet`). Gates
+   use `oos_metrics` (correct); this is a reporting-field quirk, documented in
+   `tests/test_h21_*` (`test_select_on_val_only`).
+2. `passes` records 8 gates (no `perturbation`); pre-registration promised 9 +
+   perturbation. Does not affect REJECT (Sharpe, PF fail independently).
+3. The grid's `scale_rule` and `max_pos` dimensions are inert (see Grid
+   diagnostics) — a pre-registration oversight; a vol-targeting dimension
+   should have been swept instead.

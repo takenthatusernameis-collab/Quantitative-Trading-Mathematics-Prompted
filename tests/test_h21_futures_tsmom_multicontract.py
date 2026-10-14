@@ -42,8 +42,7 @@ ART_DIR = ROOT / ".experiments" / "artifacts"
 def _get_oos_start(exp_dir: Path) -> pd.Timestamp:
     prices = pd.read_parquet(exp_dir / "prices.parquet")
     n = len(prices)
-    train_end = prices.index[int(n * 0.55)]
-    # OOS starts right after train_end
+    # OOS starts right after the 55% train cutoff
     return prices.index[int(n * 0.55) + 1]
 
 
@@ -228,7 +227,6 @@ class TestGateRecomputation:
     def test_oos_window_is_protected(self):
         """Test (after VAL_END) is never used for selection."""
         exp_dir = _latest_h21_dir()
-        s = _load_summary(exp_dir)
         grid = pd.read_parquet(exp_dir / "grid_results.parquet")
         assert "test_sharpe" not in grid.columns  # grid only has val_* metrics
         # Selection is explicitly on val_sharpe (tested in test_select_on_val_only)
@@ -325,7 +323,6 @@ class TestDeterminism:
             },
             index=rng,
         )
-        base_signals = {}
         for sym in prices.columns:
             s1 = h21.vol_scaled_tsmom_hourly(
                 prices[[sym]], vol_window_long=1008, vol_window_short=252
