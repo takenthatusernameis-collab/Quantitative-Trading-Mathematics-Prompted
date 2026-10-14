@@ -665,9 +665,88 @@ All pre-registered free-data hypotheses are now executed. The only remaining fre
 
 **Verified:**
 - `run_h25_pf_robustness.py` + `tests/test_h25_pf_robustness.py` (12 tests): pre-registration constants frozen, determinism (bit-identical across calls), point estimates reproduce H25 `summary.json` at 1e-9, committed-artifact fidelity at 1e-9, CI sanity (point inside CI, LB<UB, fractions in [0,1]), and the executed characterization pinned (PF CI LB < 1.3; P(PF≥1.3) < 0.90).
-- `pytest -q` → **354/354 passed** (342 prior + 12 new). `ruff check` clean on both new files.
-- Artifact: `.experiments/artifacts/pf_robustness/` (`summary.json`, `pf_bootstrap.parquet`, `sharpe_bootstrap.parquet`).
+- `pytest -q` → **354/354 passed** at the time of the original audit commit
+  (342 prior + 12 new i.i.d. tests). After this session's cleanup +
+  block-bootstrap formalization the suite is **359/359 passing** (17 H25
+  Robustness tests: 12 i.i.d. + 5 block-bootstrap sensitivity). `ruff check`
+  clean on both new files.
+- Artifact: `.experiments/artifacts/pf_robustness/` (`summary.json`,
+  `pf_bootstrap.parquet`, `sharpe_bootstrap.parquet`, plus the block-bootstrap
+  `pf_bootstrap_block.parquet` / `sharpe_bootstrap_block.parquet` added in the
+  block-bootstrap sensitivity formalization).
 - Docs synced: `HYPOTHESIS_SPEC.md` §H25 + addendum (pre-registered + measured), `INEFFICIENCY_RANKING.md` §H25/§17, `FINAL_REPORT.md` (H25 row + qualified-edge + statistics), `NEXT_TASK.md` (this section).
 
 ### Precise next task
 The pre-registered free-data hypothesis space is exhausted (H1–H25, H15 probe). The single surviving certified edge family is intraday futures TSMOM (H10/H11/H22/H25), all **qualified** by a wide PF/Sharpe bootstrap CI rooted in the ~730-hour free-data horizon. The next bounded, verifiable, free-data task is therefore **not a new hypothesis** (the data wall defeats it, per H1–H9/H19–H23) — it is **securing paid hourly futures data** to widen the OOS window so the PF CI LB clears ≥ 1.3 with margin (the H25 Robustness audit pins exactly how much: CI half-width ≈ ±0.120 must shrink by ~3–4×). Until then, H25 stands as the best free-data edge with an honest, quantified frailty rather than a weakened gate.
+
+---
+
+## Session outcome (2026-10-14 — code cleanup + block-bootstrap sensitivity formalized)
+
+### Defect found and fixed
+The committed `run_h25_pf_robustness.py` contained **8 duplicate top-level `main()`
+definitions** (728 lines; canonical implementation is 286). Python uses the last
+definition, so behavior was unchanged — but the file was dead-code bloat that
+violates the repo's conventions and would confuse any reader. Removed the 7
+redundant copies. **Verified**: the cleaned script reproduces the committed
+`summary.json` byte-for-byte (all fields except the wall-clock `elapsed_sec`),
+`python -m pytest -q` → 359/359 passing (no regression), `ruff` clean on both
+files, AST confirms exactly 1 top-level `main()`.
+
+### Bounded, high-value task executed: block-bootstrap sensitivity formalization
+The block-bootstrap sensitivity was **pre-registered** in `HYPOTHESIS_SPEC.md`
+(§H25 Robustness, "Block-bootstrap sensitivity (pre-registered addition)") and
+**implemented** in the audit (`stationary_block_bootstrap`,
+`_optimal_block_length_pwh`, block-bootstrap parquets + CI in `summary.json`), but
+the frozen interpretation rule was never applied or written up, and the
+block-bootstrap outputs were not pinned by tests. This session closes that gap
+(no new selection, no gate change).
+
+**Method:** stationary block bootstrap (Politis-White automatic block length,
+floor b=2), `seed=SEED+12345`, 2,000 resamples, same point estimates and
+canonical PF/Sharpe calculations as the i.i.d. baseline.
+
+| Quantity | i.i.d. baseline | Block bootstrap (b=2) |
+|---|---|---|
+| PF 95% CI | [1.2049, 1.4425] | [1.2046, 1.4458] |
+| P(PF ≥ 1.3) | 0.6215 | 0.6460 |
+| PF CI LB ≥ 1.3 | False | False |
+| Sharpe 95% CI | [0.8834, 1.7506] | [0.8974, 1.7511] |
+| P(Sharpe ≥ 1.0) | 0.9275 | 0.9380 |
+| Sharpe CI LB ≥ 1.0 | False | False |
+
+**Interpretation against the frozen rule:**
+- **PF:** block-boot CI LB (1.2046) ≤ i.i.d. CI LB (1.2049) → the fragility
+  characterization is **REINFORCED** under time-series dependence. The PF margin
+  (+0.020) is inside the block-boot noise floor (half-width ≈ ±0.120) and the
+  block LB still sits below 1.3. The i.i.d. assumption was not hiding dependence.
+- **Sharpe:** block-boot CI LB (0.8974) > i.i.d. CI LB (0.8834) → the Sharpe edge
+  is **not weakened** by dependence, but still dips below 1.0 at the CI LB.
+
+**Conclusion:** H25 stays **PASS 9/9 on the registered gates** (point-wise,
+perturbation-robust at 0.946) and stays **qualified** — the PF margin survives
+neither i.i.d. nor block resampling at the 90% bootstrap level. The block length
+floors at b=2 on this 5,148-bar slice, so the block bootstrap is a
+weak-dependence sensitivity check rather than a long-memory characterization;
+it cannot rescue the PF margin.
+
+**Verified:** 5 new tests in `tests/test_h25_pf_robustness.py`
+(`TestBlockBootstrapSensitivity`, file now 17 tests) pin the block length (b=2),
+block parquet fidelity at 1e-9, block CI LBs below their gates, and the frozen
+interpretation rule. Full suite **359/359 passing**. `ruff` clean on both files.
+
+### Docs synced
+- `HYPOTHESIS_SPEC.md` §H25 Robustness — added the Block-Bootstrap Sensitivity
+  Measured section (method, table, interpretation, verification).
+- `INEFFICIENCY_RANKING.md` §H25 + §17 — test counts 354→359, block-bootstrap
+  numbers, cumulative wall update.
+- `FINAL_REPORT.md` — qualified-edge note now cites the block-bootstrap result,
+  test count 354→359, hypothesis count 24→26.
+- `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_NEXT.md` — this session's record.
+
+### Precise next task (unchanged)
+The free-data hypothesis space is exhausted (H1–H25, H15 probe). The only
+non-redundant next step is **securing paid hourly futures data** (beyond the
+730-day `=F` cap) to widen the OOS window so the PF CI LB clears ≥ 1.3 with
+margin (the audit pins: CI half-width ±0.120 must shrink ~3–4× for
+P(PF≥1.3) ≥ 0.90). No bounded, verifiable free-data task remains.

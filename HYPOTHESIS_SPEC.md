@@ -2860,7 +2860,55 @@ Closing the gap requires a longer OOS window (paid hourly futures data); P(PF≥
 rise toward ≥0.90 only as the CI narrows with more bars.
 
 **Verified:** `tests/test_h25_pf_robustness.py` (12 tests) — pinned to the committed
-`pf_robustness/` artifact at 1e-9, determinism, point-estimate reproduction of H25's
-`summary.json`, and CI sanity. Full suite 354/354 passing. `ruff` clean on
-`run_h25_pf_robustness.py` + `tests/test_h25_pf_robustness.py`. Compute 0.7s (0.0002 CPU-h).
+  `pf_robustness/` artifact at 1e-9, determinism, point-estimate reproduction of H25's
+  `summary.json`, and CI sanity. Full suite 354/354 passing. `ruff` clean on
+  `run_h25_pf_robustness.py` + `tests/test_h25_pf_robustness.py`. Compute 0.7s (0.0002 CPU-h).
+
+  ### H25 Robustness — Block-Bootstrap Sensitivity (executed 2026-10-14)
+
+  The block-bootstrap sensitivity was **pre-registered** (this section, "Block-bootstrap
+  sensitivity (pre-registered addition)") and **implemented** in the audit, but the frozen
+  interpretation rule was never applied or written up, and the block-bootstrap outputs were
+  not pinned by tests. This session closes that gap (no new selection, no gate change).
+
+  **Block-bootstrap method:** stationary block bootstrap (Politis-White automatic block
+  length selection via `_optimal_block_length_pwh`, fallback to a capped fixed block, floor at
+  b=2), `seed=SEED+12345`, 2,000 resamples, same point estimates and canonical PF/Sharpe
+  calculations as the i.i.d. baseline. Outputs committed as `pf_bootstrap_block.parquet` and
+  `sharpe_bootstrap_block.parquet` alongside the i.i.d. parquets.
+
+  **Block length selected: b = 2 (the minimum).** The PWH heuristic floors at the minimum on
+  this 5,148-bar OOS slice, so the block bootstrap is a weak-dependence sensitivity check
+  rather than a long-memory characterization. It therefore cannot rescue the PF margin: with
+  b=2 the block CI tracks the i.i.d. CI almost exactly.
+
+  | Quantity | i.i.d. baseline | Block bootstrap (b=2) |
+  |---|---|---|
+  | PF 95% CI | [1.2049, 1.4425] | [1.2046, 1.4458] |
+  | P(PF ≥ 1.3) | 0.6215 | 0.6460 |
+  | PF CI LB ≥ 1.3 | False | False |
+  | Sharpe 95% CI | [0.8834, 1.7506] | [0.8974, 1.7511] |
+  | P(Sharpe ≥ 1.0) | 0.9275 | 0.9380 |
+  | Sharpe CI LB ≥ 1.0 | False | False |
+
+  **Interpretation against the frozen rule:**
+  - **PF:** block-boot CI LB (1.2046) ≤ i.i.d. CI LB (1.2049) → the fragility
+    characterization is **REINFORCED** under time-series dependence. The PF margin (+0.020) is
+    inside the block-boot noise floor (half-width ≈ ±0.120), and the block LB still sits below
+    1.3. The i.i.d. assumption was not hiding dependence.
+  - **Sharpe:** block-boot CI LB (0.8974) > i.i.d. CI LB (0.8834) → the Sharpe edge is **not
+    weakened** by dependence (the block LB is actually slightly higher), but it still dips
+    below the 1.0 gate at the CI LB. Point-robust (P ≥ 0.90 in both schemes) but CI-fragile.
+
+  **Conclusion:** the block-bootstrap sensitivity does not change the H25 certification. H25
+  stays **PASS 9/9 on the registered gates** (point-wise, perturbation-robust at 0.946) and
+  stays **qualified** — the PF margin is narrow and survives neither i.i.d. nor block
+  resampling at the 90% bootstrap level. The residual blocker is the free-data horizon
+  (730h `=F` cap → wide CI), not a selection or gate defect, and not an i.i.d. artifact.
+
+  **Verified:** 5 new tests in `tests/test_h25_pf_robustness.py` (`TestBlockBootstrapSensitivity`,
+  bringing the file to 17 tests) pin the block length (b=2), block parquet fidelity at 1e-9,
+  block CI LBs below their gates, and the frozen interpretation rule (PF block LB ≤ i.i.d. LB →
+  reinforced; Sharpe block LB > i.i.d. LB but < 1.0 → not weakened but still CI-fragile). Full
+  suite 359/359 passing. `ruff` clean on both files.
 

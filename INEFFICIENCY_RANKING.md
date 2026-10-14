@@ -956,7 +956,7 @@ non-constant VIX proxy to be actionable.)
 
 **Compute**: 0.003 CPU-h (9.8s wall). Seed 42. Deterministic.
 
-**Tests**: `tests/test_h25_futures_tsmom_pfmargin.py` (23 tests, pinning the PF-margin selection metric, 8-combo grid, gate recomputation at 1e-9, causality, weight bounds, determinism, executed verdict). **Robustness audit**: `tests/test_h25_pf_robustness.py` (12 tests) + `run_h25_pf_robustness.py` — OOS PF 95% CI [1.2049, 1.4425], P(PF≥1.3)=0.6215; OOS Sharpe 95% CI [0.8834, 1.7506], P(Sharpe≥1.0)=0.9275. Full suite: 354/354 passing.
+**Tests**: `tests/test_h25_futures_tsmom_pfmargin.py` (23 tests, pinning the PF-margin selection metric, 8-combo grid, gate recomputation at 1e-9, causality, weight bounds, determinism, executed verdict). **Robustness audit**: `tests/test_h25_pf_robustness.py` (17 tests: 12 i.i.d. + 5 block-bootstrap sensitivity) + `run_h25_pf_robustness.py` — OOS PF 95% CI [1.2049, 1.4425], P(PF≥1.3)=0.6215; OOS Sharpe 95% CI [0.8834, 1.7506], P(Sharpe≥1.0)=0.9275; **block-bootstrap sensitivity (b=2, pre-registered)** PF CI [1.2046, 1.4458] P(PF≥1.3)=0.6460, Sharpe CI [0.8974, 1.7511] P(Sharpe≥1.0)=0.9380 — PF block LB ≤ i.i.d. LB (fragility REINFORCED under dependence), Sharpe block LB > i.i.d. LB but < 1.0 (not weakened, still CI-fragile). Full suite: 359/359 passing.
 
 ---
 
@@ -976,11 +976,14 @@ non-constant VIX proxy to be actionable.)
    perpendiculars): (c) the joint Sharpe ≥ 1.0 ∧ DD ≤ 15% gate met by no free-data
    family except H10/H11/H22/H25's futures-carry edge; (d) PF ≥ 1.3 is fragile
    across the whole intraday-futures-carry family (H13/H14 for H10; H21 for the
-   basket; H22's basket PF margin +0.034; H25's repair margin +0.020 — perturbation-
-   robust at 0.946 but **CI-fragile**: H25 Robustness audit 95% CI [1.205, 1.443],
-   P(PF≥1.3)=0.6215); (e) the H25 Sharpe margin clears point-wise (1.324) and is
-   point-robust (P(Sharpe≥1.0)=0.9275) but its 95% CI lower bound (0.883) dips below
-   1.0.
+basket; H22's basket PF margin +0.034; H25's repair margin +0.020 — perturbation-
+    robust at 0.946 but **CI-fragile**: H25 Robustness audit 95% CI [1.205, 1.443],
+    P(PF≥1.3)=0.6215; the pre-registered block-bootstrap sensitivity (b=2) gives
+    PF CI [1.205, 1.446] P(PF≥1.3)=0.6460 with block LB ≤ i.i.d. LB, so the
+    fragility is REINFORCED under time-series dependence, not an i.i.d. artifact);
+  (e) the H25 Sharpe margin clears point-wise (1.324) and is
+    point-robust (P(Sharpe≥1.0)=0.9275) but its 95% CI lower bound (0.883) dips below
+    1.0 (block-boot LB 0.897 > i.i.d. LB 0.883, so not weakened by dependence).
 - All equity-based (H1-H9, H16, H18), volume-based (H19-H20), VRP (H17), and
   roll-adjusted (H8) families on free daily data: **REJECTED**.
 - Multi-contract futures basket (H21): **REJECTED** (under-vol-targeted);
@@ -993,5 +996,6 @@ non-constant VIX proxy to be actionable.)
   edge is confined to the ~2-year intraday futures window already certified.
 - **H24 (report consolidation) complete**: `FINAL_REPORT.md` updated with the
   H1-H23 table, the H23 negative-edge diagnosis, the cost-model fix, certified
-  edges, and summary statistics. All 354 tests pass (including the 12-test H25
-  Robustness bootstrap-CI audit).
+  edges, and summary statistics. All 359 tests pass (including the 17-test H25
+  Robustness bootstrap-CI audit, which now also pins the pre-registered
+  block-bootstrap sensitivity).

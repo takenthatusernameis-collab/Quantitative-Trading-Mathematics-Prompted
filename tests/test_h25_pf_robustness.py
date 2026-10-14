@@ -167,3 +167,63 @@ class TestExecutedCharacterization:
     def test_exactly_5148_oos_bars(self, summary):
         # Pins the OOS slice to H25's `_splits` 55/25/20 boundary on this data.
         assert summary["n_oos_bars"] == 5148
+
+
+class TestBlockBootstrapSensitivity:
+    """Pins the pre-registered block-bootstrap sensitivity (HYPOTHESIS_SPEC.md
+    §H25 Robustness, "Block-bootstrap sensitivity (pre-registered addition)":
+    stationary block bootstrap alongside the i.i.d. baseline, with a frozen
+    interpretation threshold comparing block-boot CI LBs vs i.i.d. CI LBs).
+
+    The block length is auto-selected by the Politis-White heuristic; on this
+    5,148-bar OOS slice it floors at the minimum (b=2), so the block bootstrap
+    is effectively a 2-block scheme and the i.i.d. CI is the binding baseline.
+    """
+
+    def test_block_length_floored_at_minimum(self, summary):
+        bb = summary["block_bootstrap"]
+        # The PWH heuristic selects the minimum block length on this slice;
+        # the block bootstrap is therefore a weak-dependence sensitivity check,
+        # not a long-memory characterization. Pin the effective block length.
+        assert bb["block_len_selected"] == 2
+
+    def test_block_pf_ci_lb_below_gate(self, summary):
+        bb = summary["block_bootstrap"]
+        # Fragility reinforced under block resampling: the block-boot PF CI
+        # lower bound stays below the 1.3 gate.
+        assert bb["pf_ci_95"][0] < 1.3
+        assert bb["pf_frac_ge_gate"] < 0.90
+        assert bb["pf_ci_lower_ge_gate"] is False
+
+    def test_block_sharpe_ci_lb_below_gate(self, summary):
+        bb = summary["block_bootstrap"]
+        # Sharpe block-boot CI LB (0.8974) is still below 1.0, though the
+        # fraction above the gate is high (0.938) -> point-robust, CI-fragile.
+        assert bb["sharpe_ci_lower_ge_gate"] is False
+        assert bb["sharpe_frac_ge_gate"] >= 0.90
+
+    def test_block_parquet_fidelity(self, oos_returns):
+        # The committed block-bootstrap parquets equal the recomputed arrays.
+        res = aud.bootstrap_arrays(oos_returns)
+        pf_b_pq = pd.read_parquet(aud.ART_DIR / "pf_bootstrap_block.parquet")
+        sr_b_pq = pd.read_parquet(aud.ART_DIR / "sharpe_bootstrap_block.parquet")
+        assert len(pf_b_pq) == aud.N_BOOTSTRAP
+        assert len(sr_b_pq) == aud.N_BOOTSTRAP
+        assert np.allclose(pf_b_pq["profit_factor"].values, res[2], atol=1e-9)
+        assert np.allclose(sr_b_pq["sharpe"].values, res[3], atol=1e-9)
+
+    def test_interpretation_rule_frozen(self, summary):
+        # Pre-registered rule: if block-boot CI LB <= i.i.d. CI LB (or widens
+        # materially), the fragility characterization is REINFORCED; if the
+        # block-boot CI LB is similar or HIGHER, point-robustness is not
+        # weakened by time-series dependence.
+        bb = summary["block_bootstrap"]
+        iid_pf_lb = summary["pf_bootstrap_ci_95"][0]
+        iid_sr_lb = summary["sharpe_bootstrap_ci_95"][0]
+        # PF: block LB <= i.i.d. LB -> fragility reinforced (the documented
+        # caveat survives the dependence check).
+        assert bb["pf_ci_95"][0] <= iid_pf_lb + 1e-9
+        # Sharpe: block LB > i.i.d. LB -> the Sharpe edge is not weakened by
+        # dependence, but the block LB still sits below the 1.0 gate.
+        assert bb["sharpe_ci_95"][0] > iid_sr_lb
+        assert bb["sharpe_ci_95"][0] < 1.0
