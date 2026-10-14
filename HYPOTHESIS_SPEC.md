@@ -38,6 +38,7 @@ rejecting H0 on the protected OOS window only.
 - Signal: portfolio-level volatility targeting (target 15% annual, 3× over-leverage
   cap, 0% lower bound), monthly rebalance. Cost model: 1+1 bp + 0.1 bp/1% ADV.
 - Compute budget: ≤ 2 CPU-h (actual < 3 min). Seed: 42.
+- **Block-bootstrap sensitivity (pre-registered addition):** To confirm the i.i.d. CI is not anti-conservative under time-series dependence, we add a stationary block bootstrap alongside the i.i.d. baseline (Politis-White automatic block length selection; fallback to optimal fixed block if selection fails; capped at reasonable bounds [2, 0.1*n]). This change affects the audit only (no selection). The block bootstrap reuses the same point estimates and the same canonical PF/Sharpe calculation; only the resampling scheme differs. **Interpretation threshold (frozen):** compare the block-bootstrap 95% CI lower bounds vs the i.i.d. baseline. If the block-boot CI LB ≤ i.i.d. CI LB (or widens materially), the fragility characterization is reinforced; if block-boot CI LB is similar or higher, the point-robustness is not weakened by dependence. The gate judgments remain the same point-based certification (already completed); this is a sensitivity characterization.
 
 **Measured (experiment `exp_2026-10-10T21-08-54-188263Z`):**
 
@@ -166,6 +167,7 @@ Sharpe ≤ benchmark Sharpe in OOS.
   (2020-03 and 2022 drawdowns ≤ 20%). Benchmark gate made
   direction-aware (requires IR > 0 in addition to p < 0.05).
 - Compute budget: ≤ 2 CPU-h (actual ≈ 4 min). Seed: 42.
+- **Block-bootstrap sensitivity (pre-registered addition):** To confirm the i.i.d. CI is not anti-conservative under time-series dependence, we add a stationary block bootstrap alongside the i.i.d. baseline (Politis-White automatic block length selection; fallback to optimal fixed block if selection fails; capped at reasonable bounds [2, 0.1*n]). This change affects the audit only (no selection). The block bootstrap reuses the same point estimates and the same canonical PF/Sharpe calculation; only the resampling scheme differs. **Interpretation threshold (frozen):** compare the block-bootstrap 95% CI lower bounds vs the i.i.d. baseline. If the block-boot CI LB ≤ i.i.d. CI LB (or widens materially), the fragility characterization is reinforced; if block-boot CI LB is similar or higher, the point-robustness is not weakened by dependence. The gate judgments remain the same point-based certification (already completed); this is a sensitivity characterization.
 
 **Measured (experiment `exp_2026-10-10T21-28-20-920399Z`):**
 
@@ -636,6 +638,7 @@ base −38.5%), but neither metric clears the gates.
 - Selection: single pre-registered config (no grid on Test); Val used only for gate evaluation.
 - Cost model: futures per-contract (multiplier/tick_value + commission/spread/slippage) as in H4–H6.
 - Compute budget: ≤ 4 CPU-h. Seed 42.
+- **Block-bootstrap sensitivity (pre-registered addition):** To confirm the i.i.d. CI is not anti-conservative under time-series dependence, we add a stationary block bootstrap alongside the i.i.d. baseline (Politis-White automatic block length selection; fallback to optimal fixed block if selection fails; capped at reasonable bounds [2, 0.1*n]). This change affects the audit only (no selection). The block bootstrap reuses the same point estimates and the same canonical PF/Sharpe calculation; only the resampling scheme differs. **Interpretation threshold (frozen):** compare the block-bootstrap 95% CI lower bounds vs the i.i.d. baseline. If the block-boot CI LB ≤ i.i.d. CI LB (or widens materially), the fragility characterization is reinforced; if block-boot CI LB is similar or higher, the point-robustness is not weakened by dependence. The gate judgments remain the same point-based certification (already completed); this is a sensitivity characterization.
 
 **Limitations (documented).**
 - Intraday (1–5 min) data for 2018–2024 not available via free public sources (yfinance limits); implementation uses daily OHLC with exit approximation. This is a documented approximation per fallback plan in NEXT_TASK.md.
@@ -1735,6 +1738,7 @@ The overnight/intraday decomposition does not yield a persistently exploitable e
 - Regime convention: same as prior hypotheses (VIX bull < 20, sideways 20-30, bear > 30).
 - Data sources (free only): yfinance for SVXY, ^VIX, ^VIX3M, SPY. History: SVXY available since 2011-10-04; sample spans 2011-10-04 through 2026-10-08 where available.
 - Compute budget: ≤ 2 CPU-h. Determinism: seed 42.
+- **Block-bootstrap sensitivity (pre-registered addition):** To confirm the i.i.d. CI is not anti-conservative under time-series dependence, we add a stationary block bootstrap alongside the i.i.d. baseline (Politis-White automatic block length selection; fallback to optimal fixed block if selection fails; capped at reasonable bounds [2, 0.1*n]). This change affects the audit only (no selection). The block bootstrap reuses the same point estimates and the same canonical PF/Sharpe calculation; only the resampling scheme differs. **Interpretation threshold (frozen):** compare the block-bootstrap 95% CI lower bounds vs the i.i.d. baseline. If the block-boot CI LB ≤ i.i.d. CI LB (or widens materially), the fragility characterization is reinforced; if block-boot CI LB is similar or higher, the point-robustness is not weakened by dependence. The gate judgments remain the same point-based certification (already completed); this is a sensitivity characterization.
 
 **Expected outcome (from feasibility EDA):** REJECT. Target_vol ≤ 0.15 (to satisfy DD ≤ 15%) yields Sharpe ~0.46 < 1.0 in the long history; the 2018-02-05 tail (-32% in SVXY on 2018-02-05) occurs inside contango and is not pre-warned by the daily term-structure gate (VIX moved sharply day-of). This is a legitimate falsification: VRP is not harvestable within 15% max-DD budget on free daily data. No gate weakening permitted.
 
@@ -2825,6 +2829,7 @@ OOS window, and gates are exactly H25's already-executed values.
       `>= 1.3`. Point-wise clearance (PF=1.320) alone is insufficient — this is exactly the
       fragility H13 flags for H10.
   - Compute budget: `< 2 CPU-h` (2,000 resamples × 5,148 bars × 2 metrics ≈ seconds). Seed 42.
+- **Block-bootstrap sensitivity (pre-registered addition):** To confirm the i.i.d. CI is not anti-conservative under time-series dependence, we add a stationary block bootstrap alongside the i.i.d. baseline (Politis-White automatic block length selection; fallback to optimal fixed block if selection fails; capped at reasonable bounds [2, 0.1*n]). This change affects the audit only (no selection). The block bootstrap reuses the same point estimates and the same canonical PF/Sharpe calculation; only the resampling scheme differs. **Interpretation threshold (frozen):** compare the block-bootstrap 95% CI lower bounds vs the i.i.d. baseline. If the block-boot CI LB ≤ i.i.d. CI LB (or widens materially), the fragility characterization is reinforced; if block-boot CI LB is similar or higher, the point-robustness is not weakened by dependence. The gate judgments remain the same point-based certification (already completed); this is a sensitivity characterization.
 
 ### H25 Robustness — Measured (executed 2026-10-14)
 

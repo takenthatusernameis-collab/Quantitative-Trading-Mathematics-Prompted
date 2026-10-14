@@ -75,10 +75,17 @@ class TestDeterminism:
         assert a == b
 
     def test_bootstrap_arrays_bit_identical(self, oos_returns):
-        pf1, sr1 = aud.bootstrap_arrays(oos_returns)
-        pf2, sr2 = aud.bootstrap_arrays(oos_returns)
+        res1 = aud.bootstrap_arrays(oos_returns)
+        res2 = aud.bootstrap_arrays(oos_returns)
+        pf1, sr1 = res1[0], res1[1]
+        pf2, sr2 = res2[0], res2[1]
         assert np.array_equal(pf1, pf2)
         assert np.array_equal(sr1, sr2)
+        # block bootstrap also deterministic
+        pf1b, sr1b = res1[2], res1[3]
+        pf2b, sr2b = res2[2], res2[3]
+        assert np.array_equal(pf1b, pf2b)
+        assert np.array_equal(sr1b, sr2b)
 
 
 class TestCommittedArtifact:
@@ -108,13 +115,21 @@ class TestCommittedArtifact:
             summary["sharpe_frac_ge_gate"], abs=1e-9)
 
     def test_parquet_matches_recompute(self, oos_returns):
-        pf_boot, sr_boot = aud.bootstrap_arrays(oos_returns)
+        res = aud.bootstrap_arrays(oos_returns)
+        pf_boot, sr_boot = res[0], res[1]
         pf_pq = pd.read_parquet(aud.ART_DIR / "pf_bootstrap.parquet")
         sr_pq = pd.read_parquet(aud.ART_DIR / "sharpe_bootstrap.parquet")
         assert len(pf_pq) == aud.N_BOOTSTRAP
         assert len(sr_pq) == aud.N_BOOTSTRAP
         assert np.allclose(pf_pq["profit_factor"].values, pf_boot, atol=1e-9)
         assert np.allclose(sr_pq["sharpe"].values, sr_boot, atol=1e-9)
+        # block bootstrap parquet fidelity
+        pf_b_pq = pd.read_parquet(aud.ART_DIR / "pf_bootstrap_block.parquet")
+        sr_b_pq = pd.read_parquet(aud.ART_DIR / "sharpe_bootstrap_block.parquet")
+        assert len(pf_b_pq) == aud.N_BOOTSTRAP
+        assert len(sr_b_pq) == aud.N_BOOTSTRAP
+        assert np.allclose(pf_b_pq["profit_factor"].values, res[2], atol=1e-9)
+        assert np.allclose(sr_b_pq["sharpe"].values, res[3], atol=1e-9)
 
 
 class TestSanity:
