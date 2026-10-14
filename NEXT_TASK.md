@@ -537,7 +537,7 @@ Pre-registration (freeze in HYPOTHESIS_SPEC.md §H23 BEFORE running):
 - **Universe/data**: BTC/USD, ETH/USD, ADA/USD, XRP/USD, DOGE/USD from Coinbase exchange, hourly OHLCV, 2024-10-12 -> 2026-10-11 (same window as H22), 55/25/20 splits, OOS = Val+Test. Data fetched via ccxt, cached.
 - **Signal**: vol-scaled TSMOM signal with smooth_span in {None, 4, 8, 16}, vol_window_long in {252, 504, 1008} (h; short = long//4), regime_scaling fixed to False (no VIX regime scaling for crypto).
 - **Exit / turnover**: min_trade_interval in {0, 4, 8, 24} (h; 0 = disabled, H9 behaviour), trailing_mult in {1.5, 2.0, 2.5, 3.0}, max_hold_bars in {60, 120, 240, 480}, vol_limit_mult in {1.5, 2.0, 2.5}, vol_floor_fraction in {0.25, 0.5, 0.75}.
-- **Grid**: full Cartesian product of the above parameters (2*3*2*4*4*3*2*2 = 2304 combos). Selection by Val Sharpe; Test protected.
+- **Grid**: full Cartesian product of the above parameters (4*3*1*4*4*4*3*3 = 6912 combos). Selection by Val Sharpe; Test protected.
 - **Gates**: same 9-gate PROMPT_V2 set + +/-20% perturbation gate (OAT on vol_window_long (scaled) and max_pos). We'll define the perturbation as: for each combo, create a perturbed version by multiplying vol_window_long by 0.8 and 1.2, and max_pos by 0.8 and 1.2, and check that the gate passes for all four perturbations.
 - **Fixes**: set `metrics.val_sharpe = gate["val_metrics"]["sharpe"]` (true Val Sharpe); include `perturbation` in passes and enforce in summary; preserve causality, point-in-time, weight bounds.
 - **Ablations (OOS)**: (a) BTC/USD-only at 15% ann (reproduce H10 baseline for a single asset), (b) random per-contract sign, (c) daily TSMOM, (d) constant position.

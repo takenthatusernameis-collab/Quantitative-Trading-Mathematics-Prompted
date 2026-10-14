@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 import json
 import time
+
 CRYPTO_UNIVERSE = ["BTC/USD", "ETH/USD", "ADA/USD", "XRP/USD", "DOGE/USD"]
 from itertools import product
 from pathlib import Path
@@ -13,38 +14,33 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from qtr.data.fetcher import get_data_fetcher
 from qtr.backtest.engine import run_backtest
+from qtr.data.fetcher import get_data_fetcher
 from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
+    compare_to_benchmark,
     sharpe_ratio,
     walk_forward_splits,
-    compare_to_benchmark,
 )
 
 # Reuse H9 constants / primitives (single source of truth for universe, costs, gates).
 from run_h9_intraday_tsmom_experiment import (
-    FUTURES_UNIVERSE,
-    VIX_SYMBOL,
     SEED,
-    INITIAL_CAPITAL,
-    GATES,
-    COST_MODEL_DEFAULTS,
-    FUTURES_SPECS,
+    VIX_SYMBOL,
+    _daily_target_from_hourly,
     make_futures_config,
     regime_labels,
     vol_scaled_tsmom_hourly,
-    _daily_target_from_hourly,
 )
 
 EXPERIMENT_NAME = "h23_crypto_futures_tsmom"
 EXPERIMENT_DESC = (
-    "H23: Intraday TSMOM on crypto perpetual futures (Binance) — generalization of the H10 edge. "
+    "H23: Intraday TSMOM on crypto perpetual futures (Coinbase) — generalization of the H10 edge. "
     "Tests whether the intraday futures TSMOM mechanism generalizes to crypto markets. "
-    "Val-selected, Test-protected, same gates as H9."
+    "Val-selected, Test-protected, gates per H23 pre-registration."
 )
 
-INITIAL_CAPITAL = INITIAL_CAPITAL
+INITIAL_CAPITAL = 1_000_000.0
 TARGET_VOL = 0.15
 VOL_WINDOW_SHORT_RATIO = 4  # H9 used 252 long / 63 short (4:1)
 
@@ -53,6 +49,8 @@ DATA_START = "2024-10-12"
 DATA_END = "2026-10-11"
 
 # Grids (per NEXT_TASK / H23 pre-registration).
+# 4 * 3 * 1 * 4 * 4 * 4 * 3 * 3 = 6912 combos (pre-registration calculation was 2304 but
+# listed parameters yield 6912; we follow the listed parameters).
 SMOOTH_SPANS = [None, 4, 8, 16]
 VOL_WINDOWS_LONG = [252, 504, 1008]
 REGIME_SCALING_FLAGS = [False]
@@ -61,6 +59,20 @@ TRAILING_MULTS = [1.5, 2.0, 2.5, 3.0]
 MAX_HOLD_BARS = [60, 120, 240, 480]
 VOL_LIMIT_MULTS = [1.5, 2.0, 2.5]
 VOL_FLOOR_FRACTIONS = [0.25, 0.5, 0.75]
+
+# H23 pre-registered gates (PROMPT_V2 set + perturbation gate).
+# Note: min_worst_regime_sharpe = 0.0 per H23 pre-registration (differs from H9's 0.3).
+GATES = {
+    "min_sharpe": 1.0,
+    "min_trades": 200,
+    "min_profit_factor": 1.3,
+    "max_drawdown": 0.15,
+    "min_walkforward_stability": 0.7,
+    "min_worst_regime_sharpe": 0.0,
+    "max_p_value": 0.05,
+    "min_information_ratio": 0.0,
+    "min_perturbed_sharpe_ratio": 0.5,
+}
 
 # Perturbation parameters (OAT +/-20% on vol_window_long and max_position_size)
 PERTURB_PARAMS = ["vol_window_long", "max_position_size"]
@@ -166,13 +178,8 @@ def apply_exits_hourly(
 
             # --- in-position exit checks (H9 semantics, gated by min interval) ---
             if in_pos and cur_pos > 0:
-                if cur_px > high_water:
-                    high_water = cur_px
-                if can_trade and cur_px < high_water - trailing_mult * atr_i:
-                    cur_pos = 0.0
-                    in_pos = False
-                    last_trade_bar = i
-                elif can_trade and bars_held >= max_hold_bars and cur_px <= entry_price:
+                high_water = max(high_water, cur_px)
+                if can_trade and cur_px < high_water - trailing_mult * atr_i or can_trade and bars_held >= max_hold_bars and cur_px <= entry_price:
                     cur_pos = 0.0
                     in_pos = False
                     last_trade_bar = i
@@ -238,7 +245,7 @@ def _period_metrics(ret: pd.Series, n_trades: int) -> dict:
         "trades": int(n_trades),
         "gross_profit": gp,
         "gross_loss": gl,
-        "n_periods": int(len(r)),
+        "n_periods": len(r),
     }
 
 
@@ -293,8 +300,7 @@ def _full_gate_eval(
         else:
             s = 0.0
         regime_sharpes[reg] = s
-        if s < worst:
-            worst = s
+        worst = min(worst, s)
 
     bench = compare_to_benchmark(result.returns, bh_result.returns)
     cum = (1 + oos_ret).cumprod()
@@ -304,7 +310,7 @@ def _full_gate_eval(
         "sharpe": oos_m["sharpe"] >= GATES["min_sharpe"],
         "trades": oos_m["trades"] >= GATES["min_trades"],
         "pf": oos_m["profit_factor"] >= GATES["min_profit_factor"],
-        "dd": abs(oos_max_dd) <= GATES["max_drawdown"] if oos_max_dd < 0 else False,
+        "dd": abs(oos_max_dd) <= GATES["max_drawdown"],
         "stab": wf_stab >= GATES["min_walkforward_stability"],
         "worst": worst >= GATES["min_worst_regime_sharpe"] if worst != np.inf else False,
         "p": float(bench.get("alpha_p_value", 1.0)) < GATES["max_p_value"],
@@ -740,6 +746,7 @@ def main():
         tracker.log_dataframe("returns", sel_result.returns.to_frame("returns"))
         tracker.log_dataframe("trades", sel_result.trades)
         tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
+        tracker.log_dataframe("benchmark_returns", bh_result.returns.to_frame("returns"))
 
         # exit events (CT-style) for selected config
         prev_pos = sel_positions.shift(1).fillna(0.0)

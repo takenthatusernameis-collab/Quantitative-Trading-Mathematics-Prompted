@@ -93,7 +93,7 @@ class TestPreRegistration:
             * len(h23.MAX_HOLD_BARS)
             * len(h23.VOL_LIMIT_MULTS)
             * len(h23.VOL_FLOOR_FRACTIONS)
-        ) == 2304
+        ) == 6912
         assert h23.SMOOTH_SPANS == [None, 4, 8, 16]
         assert h23.VOL_WINDOWS_LONG == [252, 504, 1008]
         assert h23.REGIME_SCALING_FLAGS == [False]
@@ -176,15 +176,15 @@ class TestArtifacts:
         ):
             assert k in s["metrics"], k
         assert s["hypothesis"] == "H23"
-        assert s["grid_size"] == 2304
-        assert s["n_evaluated"] == 2304
+        assert s["grid_size"] == 6912
+        assert s["n_evaluated"] == 6912
         assert s["compute_cpu_hours"] <= 2.0
 
     def test_grid_has_correct_unique_combos(self):
         exp_dir = _latest_h23_dir()
         grid = pd.read_parquet(exp_dir / "grid_results.parquet")
-        # Should have 2304 unique combos (4*3*1*4*4*4*3*3)
-        assert len(grid) == 2304
+        # Should have 6912 unique combos (4*3*1*4*4*4*3*3)
+        assert len(grid) == 6912
         keys = set(
             zip(
                 grid["smooth_span"],
@@ -197,7 +197,7 @@ class TestArtifacts:
                 grid["vol_floor_fraction"],
             )
         )
-        assert len(keys) == 2304
+        assert len(keys) == 6912
 
     def test_select_on_val_only(self):
         exp_dir = _latest_h23_dir()
