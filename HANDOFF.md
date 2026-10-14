@@ -1,69 +1,57 @@
 # Agent Handoff
 
 ## Summary
-Executed the incoming task: added an in-sample trade-count guard to H23's
-Val Sharpe selection to eliminate the degenerate zero-trade config selection,
-re-ran H23, and updated tests to match the intentionally-modified selection rule.
-All tests pass (319/319).
+Executed the incoming task: added a sideways-regime filter ablation to H23 to diagnose the negative edge, re-ran H23, and verified all tests pass. The ablation confirms the failure mode: since crypto data uses constant VIX=20 (sideways regime), filtering sideways eliminates all trades (0 trades, OOS Sharpe 0.0). The min_trade_interval_only(mi=24) ablation improves OOS Sharpe from -7.187 to -2.144 but remains negative. H23 is finalized as REJECT with a clean, non-degenerate basis. All tests pass (319/319).
 
 ## Incoming state (prior agent)
-- 318 tests pass; no source code modifications (only `__pycache__` artifacts).
+- 319 tests pass; H23 trade-count guard already applied (from previous session).
 - H22 PASS (OOS Sharpe 1.372, PF 1.334, max DD -11.9%, 3045 trades, 9/9 gates).
-- H23 (prior run `exp_2026-10-14T10-04-52`) REJECT: selected a zero-trade config
-  (val_sharpe 0.0, OOS Sharpe 0.0, 0 trades) because the pure argmax of Val Sharpe
-  fell on the 2304 degenerate zero-trade configs (Val Sharpe 0.0), which beat every
-  live-trading config (Val Sharpe max ~ -1.85).
+- H23 (prior run `exp_2026-10-14T11-53-37-996139Z`) REJECT: selected config has strongly negative edge (OOS Sharpe -7.187, 2/9 gates), loss entirely in sideways regime (-4.552 Sharpe).
 
 ## What changed
 1. `run_h23_crypto_futures_tsmom.py`
-   - Added `MIN_VAL_TRADES_FOR_SELECTION = 1` (after `GATES`), with a comment
-     documenting the post-mortem rationale.
-   - Guarded the `best_by_sharpe` update so a config is only a Sharpe candidate
-     when `vm["trades"] >= MIN_VAL_TRADES_FOR_SELECTION` (i.e. it actually traded
-     in-sample).
-   - Updated the logged `selection_rule` string to:
-     `"best Val Sharpe among configs with >= 1 Val trade(s); Test protected ...;
-     gates on OOS Val+Test"`.
-   - `best_by_pf` logic left unchanged (already excludes `inf` PF = zero-trade).
-2. `tests/test_h23_crypto_futures_tsmom.py`
-   - Updated `test_select_on_val_only` to take the argmax of `val_sharpe` only over
-     in-sample-trading configs (`val_trades >= MIN_VAL_TRADES_FOR_SELECTION`),
-     matching the modified, intentionally-tuned rule.
-   - Added `test_selection_excludes_zero_trade_configs`: locks the robustness fix —
-     the selected config's grid row must have `val_trades >= threshold`, and the
-     pure (unfiltered) argmax must not be selected when it is a zero-trade config.
-3. Regenerated H23 artifacts via a fresh offline re-run
-   (`exp_2026-10-14T11-53-37-996139Z`).
+   - Added sideways-regime filter ablation (after existing ablations, ~line 739):
+     - Computes regime labels via `regime_labels(vix_hourly)`
+     - Creates `sideways_mask` where regime == "sideways"
+     - Zeroes selected positions during sideways regime bars
+     - Evaluates via `_ablation("sideways_regime_filter", filtered_positions)`
+   - No changes to grid, selection logic, or gates.
+
+2. Regenerated H23 artifacts via fresh offline re-run
+   (`exp_2026-10-14T18-13-09-457781Z`).
 
 ## What was actually verified
-- Re-ran H23 (offline, cached 300-row crypto sample 2024-10-12 -> 2024-10-24):
-  grid eval 6912 combos in ~128s (0.038 CPU-h, within the 2.0 CPU-h budget).
-- New selected config: `vol_window_long=252, smooth_span=16, regime_scaling=False,
+- Re-ran H23 (offline, cached 300-hour crypto sample 2024-10-12 -> 2024-10-24):
+  grid eval 6912 combos in ~140s (0.039 CPU-h, within 2.0 CPU-h budget).
+- Selected config unchanged: `vol_window_long=252, smooth_span=16, regime_scaling=False,
   min_trade_interval=0, trailing_mult=1.5, max_hold_bars=60, vol_limit_mult=1.5,
-  vol_floor_fraction=0.25` — the best *trading* config (val_sharpe=-1.845,
-  val_trades=4). No longer the degenerate zero-trade argmax.
-- New H23 verdict: REJECT, 2/9 gates (stab=True, p=True; sharpe/trades/pf/dd/
-  worst/ir/perturbation=False). OOS Sharpe=-7.187, OOS trades=107, PF=0.002,
-  DD=-0.976, WF stability=0.776, worst-regime Sharpe=-4.552, IR fails, pert=0.0.
+  vol_floor_fraction=0.25` (val_sharpe=-1.845, val_trades=4).
+- H23 verdict: REJECT, 2/9 gates (stab=True, p=True; sharpe/trades/pf/dd/worst/ir/perturbation=False).
+  OOS Sharpe=-7.187, OOS trades=107, PF=0.002, DD=-0.976, WF stability=0.776,
+  worst-regime Sharpe=-4.552, IR=-3.07, perturbation min ratio=0.0.
+- Sideways-regime filter ablation results:
+  OOS Sharpe=0.0, PF=inf, DD=0.0, trades=0, Test Sharpe=0.0.
+  (All bars are "sideways" because VIX=20 constant for crypto; filtering removes all trades.)
+- Min-trade-interval ablation (mi=24) improves OOS Sharpe to -2.144 (trades=11) but remains negative.
 - `pytest tests/test_h23_crypto_futures_tsmom.py` -> 24 passed.
-- `pytest` (full suite) -> 319 passed in 5.97s (was 318; +1 new robustness test).
-- `ruff check` on modified files: only 5 errors, ALL pre-existing (lines 211, 314,
-  375, 873 of run_h23 and line 64 of the test file). No errors in any added line.
-  No mypy config present; project is untyped.
+- `pytest` (full suite) -> 319 passed in 6.54s.
+- `ruff check` on modified file: only 4 pre-existing errors (lines 211, 314, 375, 881). No errors in added lines.
 - Artifact/summary internal consistency: grid argmax(eligible) == selected config;
-  `selection_rule` reflects the new rule; metrics/gates consistent.
+  `selection_rule` reflects trade-count guard; metrics/gates consistent; ablation recorded.
 
 ## What remains unresolved
-- H23 still REJECTs — and now for a *real* reason rather than a degenerate artifact.
-  The selected trading config has a strongly negative edge on this sample.
-- Root cause of the negative edge is clear and localized (see evidence below); it
-  is not a bug in the selection logic. The liveness guard has done its job of
-  steering selection away from the zero-trade trap; the hypothesis itself lacks
-  edge on the cached 300-hour crypto sample.
+- H23 REJECTs — the hypothesis lacks edge on the cached 300-hour crypto sample.
+- Root cause confirmed: negative edge is entirely in sideways regime (VIX=20 constant),
+  driven by ADA/DOGE noise (75 of 107 OOS trades). The `mi=24` ablation reduces
+  trade frequency and improves OOS Sharpe to -2.144 but cannot overcome the structural
+  negative expectancy on this sample.
+- Sideways filter ablation produces 0 trades (not actionable on this data) because
+  the free-data VIX proxy is constant at 20.0 → all bars labeled "sideways".
 - The broader H1-H21 non-futures families remain documented as REJECT (free-data
   constraints) in FINAL_REPORT.md; unchanged.
+- Only H10/H11/H12/H22 (intraday futures TSMOM family) clear the evidence gates.
 
-## Evidence (latest H23 run `exp_2026-10-14T11-53-37-996139Z`)
+## Evidence (latest H23 run `exp_2026-10-14T18-13-09-457781Z`)
 - Grid: 6912 combos; 2304 zero-trade configs (val_sharpe 0.0); 4608 trading configs
   (val_sharpe max -1.845, val_trades max 4 — sample is only ~12.5 days hourly).
 - Regime decomposition of selected config OOS: bull=0.0, sideways=-4.552, bear=0.0.
@@ -72,42 +60,38 @@ All tests pass (319/319).
 - Ablation `min_trade_interval_only(mi=24)` OOS Sharpe = -2.144 (vs -7.187 for the
   selected min_int=0 config) — reducing trade frequency materially improves OOS SR,
   but remains negative.
+- Ablation `sideways_regime_filter` OOS Sharpe = 0.0, trades = 0 — confirms that
+  all loss occurs in sideways regime, but filtering it out is not viable on this
+  data (no VIX variation).
 
 ## Which approaches have already failed and why
-- Pure argmax-of-Val-Sharfe selection (original H23 rule): degenerate on this
-  sample — selects a 0-trade config. Fixed in this session via the trade-count
+- Pure argmax-of-Val-Sharpe selection (original H23 rule): degenerate on this
+  sample — selects a 0-trade config. Fixed in prior session via the trade-count
   guard (not "retried", replaced with a corrected, tested rule).
 - Declaring H23 PASS on crypto intraday TSMOM: the edge is structurally negative
   (sideways regime, ADA/DOGE noise). Not a latent bug — an outcome.
-- A `val_trades >= GATES["min_trades"]/2` (=100) threshold was considered but is
-  infeasible on this sample (max val_trades=4) and would select nothing; `>= 1`
-  was chosen as the minimal viability guard that excludes exactly the degenerate
-  configs.
+- Sideways-regime filter: eliminates all trades on this sample (VIX constant at 20).
+  Would need real VIX data or regime variation to be actionable.
+- Increasing `min_trade_interval` to 24 improves OOS Sharpe (-7.187 → -2.144) but
+  trades drop to 11 (below OOS gate of 200) and Sharpe remains negative.
 
 ## One precise next task (for the next agent)
-**Diagnose and gate the sideways-regime exposure of the selected H23 config.**
-Evidence: the selected config's OOS loss (-7.187 Sharpe) is
-*entirely* in the sideways VIX regime (-4.552; bull/bear are flat at 0.0), and is
-driven by ADA/USD and DOGE/USD noise (75 of 107 OOS trades). The `mi=24`
-ablation already lifts OOS Sharpe to -2.144, indicating trade-frequency/noise is a
-key driver.
+**H24: Update the FINAL_REPORT.md to include the results of all hypotheses from H1 to H23, including the cost-model fix and the certified edges.**
 
-Bounded scope (single session, ~2-3 min):
-1. In `run_h23_crypto_futures_tsmom.py`, add a "sideways-regime filter" ablation
-   variant of the selected config that zeroes the position when regime == "sideways"
-   (reuse `regime_labels`/`regime_factor_hourly`; set the sideways regime factor to
-   0.0), then re-evaluate OOS/Test gates.
-2. Record OOS Sharpe, trades, PF, DD, worst-regime Sharpe, and the 9-gate
-   pass/fail for (a) current selected config and (b) sideways-filtered variant.
-3. If the sideways-filtered variant passes all gates (esp. sharpness and worst-
-   regime), promote the regime factor / min_trade_interval change and re-run the
-   full grid (the `MIN_TRADE_INTERVALS` grid already contains `mi=24`).
-4. If still negative, record the failure mode (likely signal noise on low-mcap
-   alts) and finalize H23 as REJECT with a clean, non-degenerate basis — and stop
-   (do not keep chasing).
+Rationale: The current FINAL_REPORT.md only covers up to H2/H3 and does not reflect the later hypotheses and the certified edge (H10/H11/H12/H22). Updating the final report will provide a comprehensive summary of the project's findings.
 
-Constraints: preserve determinism (SEED=42, offline cached data); keep changes
-reversible; run only H23; validate with
-`pytest tests/test_h23_crypto_futures_tsmom.py`. Do NOT regress H22 or other
-hypotheses. If a regime filter flips the verdict to PASS, also add a test pinning
-the regime factor value used.
+Pre-registration (to be done before updating):
+- Extract the Measured sections from HYPOTHESIS_SPEC.md for each hypothesis (H1-H23).
+- Include the cost-model defect and fix from Phase 2.
+- Summarize the evidence gates and verdicts for each hypothesis.
+- Highlight the certified edges: H10 (intraday futures TSMOM), H11 (robustness certified), H12 (selection-bias audit PASS), H22 (vol-targeting gap closed, PASS).
+- Note the rejected hypotheses and the root-cause attributions.
+- Include the execution statistics (CPU-h, test counts) for each hypothesis.
+
+Expected outcome: An updated FINAL_REPORT.md that accurately reflects the project's results.
+
+Constraints:
+- No paid data; yfinance/CCXT/free sources only.
+- Pre-register before running; never select on Test.
+- All gates from PROMPT_V2.md + HYPOTHESIS_SPEC.md apply; no gate weakening.
+- Working-tree changes from this session should be committed per the repo convention (commit-per-experiment): H24 script (if any), updated FINAL_REPORT.md, and possibly updated HYPOTHESIS_SPEC.md and INEFFICIENCY_RANKING.md if we make any corrections — but we will only be reading them.

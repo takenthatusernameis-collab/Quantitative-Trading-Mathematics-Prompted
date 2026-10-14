@@ -738,6 +738,14 @@ def main():
             target_vol=TARGET_VOL, min_trade_interval=best_mi)
         _ablation(f"min_trade_interval_only(mi={best_mi})", a3_pos)
 
+        # A5: sideways-regime filter ablation (HANDOFF.md) — zero positions when regime == "sideways"
+        # Reuse regime_labels/regime_factor_hourly but set sideways factor to 0.0
+        regimes = regime_labels(vix_hourly)
+        sideways_mask = (regimes == "sideways").reindex(sel_positions.index).fillna(False)
+        filtered_positions = sel_positions.copy()
+        filtered_positions[sideways_mask] = 0.0
+        _ablation("sideways_regime_filter", filtered_positions)
+
         # A4: exit grid best (selected config already = exit grid best under best signal)
 
         # log ablation equity curves + results

@@ -539,6 +539,28 @@ Executed exactly as pre-registered. Selected config (vol_window_long=1008, smoot
 
 **Verified:** 23/23 H23 tests pass. Full suite: 318 tests passing (including 23 H23 tests). Artifacts in `.experiments/artifacts/exp_2026-10-14T10-04-52-936640Z/`. H23 Measure Log added to `HYPOTHESIS_SPEC.md`; root-cause attribution added to `INEFFICIENCY_RANKING.md`.
 
+---
+
+## Session outcome (2026-10-14 — H23 sideways-regime filter ablation)
+
+**H23 follow-up: Added sideways-regime filter ablation to diagnose negative edge.**
+
+Added ablation that zeroes positions when regime == "sideways" (using `regime_labels`/`regime_factor_hourly` with sideways factor = 0.0). Re-ran H23 on cached 300-hour crypto sample.
+
+**Results:**
+- Selected config unchanged: vol_window_long=252, smooth_span=16, regime_scaling=False, min_trade_interval=0, trailing_mult=1.5, max_hold_bars=60, vol_limit_mult=1.5, vol_floor_fraction=0.25 (val_sharpe=-1.845, val_trades=4).
+- H23 verdict: REJECT, 2/9 gates (stab=True, p=True). OOS Sharpe=-7.187, trades=107, PF=0.002, DD=-0.976, worst-regime Sharpe=-4.552 (sideways).
+- **Sideways-regime filter ablation:** OOS Sharpe=0.0, PF=inf, DD=0.0, trades=0, Test Sharpe=0.0.
+  - All bars are "sideways" because VIX=20 constant for crypto; filtering removes all trades.
+  - Confirms failure mode: all loss occurs in sideways regime, but filtering is not viable on this data (no VIX variation).
+- **Min-trade-interval ablation (mi=24):** OOS Sharpe improves to -2.144 (trades=11) but remains negative and below trades gate.
+
+**Verified:** 24/24 H23 tests pass. Full suite: 319/319 tests pass. `ruff check`: only 4 pre-existing errors, no new errors. Artifacts in `.experiments/artifacts/exp_2026-10-14T18-13-09-457781Z/`.
+
+**Conclusion:** H23 finalized as REJECT with clean, non-degenerate basis. The hypothesis lacks edge on the cached 300-hour crypto sample; negative edge is structural (sideways regime, ADA/DOGE noise). No further H23 work needed.
+
+---
+
 ## Precise next task (H24): Update final report with all hypotheses
 
 **H24 — Update the FINAL_REPORT.md to include the results of all hypotheses from H1 to H23, including the cost-model fix and the certified edges.** Rationale: The current FINAL_REPORT.md only covers up to H2/H3 and does not reflect the later hypotheses and the certified edge (H10/H11/H12/H22). Updating the final report will provide a comprehensive summary of the project's findings.
