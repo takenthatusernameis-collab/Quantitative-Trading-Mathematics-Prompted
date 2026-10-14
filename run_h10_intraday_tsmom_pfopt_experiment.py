@@ -278,8 +278,10 @@ def _full_gate_eval(
     train_mask = prices.index <= prices.index[int(len(prices) * 0.55)]
 
     oos_ret = result.returns[oos_mask]
+    val_ret = result.returns[val_mask]
     test_ret = result.returns[test_mask]
     oos_m = _period_metrics(oos_ret, _count_in(result.trades, oos_mask, prices))
+    val_m = _period_metrics(val_ret, _count_in(result.trades, val_mask, prices))
     test_m = _period_metrics(test_ret, _count_in(result.trades, test_mask, prices))
 
     # Walk-forward stability (5 folds over full series, like H9)
@@ -331,7 +333,9 @@ def _full_gate_eval(
     return {
         "oos_metrics": {**oos_m, "sharpe": oos_m["sharpe"]},
         "test_metrics": test_m,
+        "val_metrics": val_m,
         "train_sharpe": float(sharpe_ratio(result.returns[train_mask].values)) if train_mask.sum() > 1 else 0.0,
+        "val_sharpe": val_m["sharpe"],
         "wf_stability": float(wf_stab),
         "worst_regime_sharpe": float(worst) if worst != np.inf else 0.0,
         "regime_sharpes": regime_sharpes,
