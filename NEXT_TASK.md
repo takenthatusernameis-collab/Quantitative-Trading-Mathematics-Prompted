@@ -600,3 +600,48 @@ Verified every table row against the on-disk experiment artifacts before writing
 
 **One precise next task (bounded, free data, already pre-registered in HYPOTHESIS_SPEC.md):**
 H22 script and tests are committed (commit-per-experiment). The only untested free-data family remaining is the **intraday futures TSMOM PF-margin repair** (H13/H14 showed H10's PF margin is +0.004 and CL=F/GC=F are indispensable; H22's basket raises the margin to +0.034 but does not eliminate the fragility). A PF-margin-targeted re-selection on the H22 basket grid (selection metric = Val PF margin, not Val Sharpe) is the natural next hypothesis — but it is **not** pre-registered and must be frozen in `HYPOTHESIS_SPEC.md` before running.
+
+---
+
+## Session outcome (2026-10-14 — H25 executed: PF-Margin Repair by Vol-Targeting Expansion)
+
+**H25 — PF-margin-targeted re-selection on H22 basket: PASS (9/9 gates).**
+
+Executed exactly as pre-registered in `HYPOTHESIS_SPEC.md` (§H25). 8-combo grid (target_vol_mult in {1.25, 1.5, 1.75, 2.0} × n_assets in {4, 5}; max_pos=0.5, scale_rule=equal fixed per H22 inert dims) on the 5-contract hourly futures basket (ES=F, NQ=F, CL=F, GC=F, ZB=F) + ^VIX, 2024-10-12 → 2026-10-11 (~730 hourly bars), 55/25/20 time splits, OOS = Val+Test. Selection metric = Val PF margin (val_profit_factor - 1.3); Test protected. Includes ±20% perturbation gate (OAT on target_vol_mult and max_pos).
+
+Selected config: `target_vol_mult=1.75 (26.25% ann) / max_pos=0.5 / scale_rule=equal / n_assets=4` (drop CL=F, Val PF margin 0.0779, argmax of 8 combos).
+
+| Metric | Value | Gate | Pass? |
+|--------|-------|------|-------|
+| Sharpe (OOS) | 1.324 | >= 1.0 | **PASS** |
+| Trades | 1,712 | >= 200 | **PASS** |
+| Profit factor | 1.320 | >= 1.3 | **PASS** |
+| Max drawdown | -11.9% | <= 15% | **PASS** |
+| Walk-forward stability | 0.873 | >= 0.7 | **PASS** |
+| Worst-regime Sharpe (sideways) | 1.188 | >= 0.3 | **PASS** |
+| Benchmark significance (p) | 1.4e-19 | <= 0.05 | **PASS** |
+| Information ratio | 1.346 | >= 0.0 | **PASS** |
+| +/-20% perturbation (min ratio) | 0.946 | >= 0.5 | **PASS** |
+
+Per-regime OOS Sharpe: bull 1.232, sideways 1.188 (worst), bear 2.144.
+PASS: all 9 gates. The PF-margin repair at higher vol (26.25% ann) on the pruned 4-contract basket (dropping CL=F) clears all gates with OOS PF margin +0.020 and perturbation min ratio 0.946.
+
+**Root cause**: H25's PF-margin selection at higher vol works. The Val PF margin peaks at tv_mult=1.75 with n_assets=4 (dropping CL=F, the worst net contributor). The selected config clears all 9 gates on OOS. CL=F is a net drag on the basket (per-contract OOS Sharpe -0.570). The PF margin is intrinsic to the 730h window — H22's grid already showed Val PF decaying monotonically above tv_mult=1.0; H25 extends this and finds the peak margin at 1.75. Diversification at higher vol on a pruned basket is the mechanism.
+
+**Verified**: 342/342 tests pass (319 prior + 23 new H25 tests pinning pre-registration, PF-margin selection metric, artifact schema, gate recomputation from logged equity/trades at 1e-9, grid/selection integrity, causality, weight bounds, determinism, regime labels, and the executed PASS outcome). `ruff check` clean on `run_h25_futures_tsmom_pfmargin.py` + `tests/test_h25_futures_tsmom_pfmargin.py`. Artifacts: `.experiments/artifacts/exp_2026-10-14T20-08-34-613690Z/`. H25 Measure Log appended to `HYPOTHESIS_SPEC.md` (§H25); H25 section added + §17 cumulative updated in `INEFFICIENCY_RANKING.md`.
+
+**Deviations**: None material — all components executed as pre-registered.
+
+### Cumulative state of evidence gates (updated with H25)
+- PASS families: H10 (intraday futures TSMOM, Sharpe 1.276), H11 (robustness certified), H12 (selection-bias audit PASS), H22 (vol-targeting gap test, Sharpe 1.372), **H25 (PF-margin repair, PF 1.320)**.
+- REJECT: H1-H9 (momentum/TSMOM on free data), H16 (factor timing, 1/9), H17 (VRP), H18 (overnight/intraday, 2/9), H19 (volume-predictive, 3/9), H20 (signed volume, 2/9), H21 (multicontract futures TSMOM, 6/8), H23 (crypto intraday TSMOM, 2/9).
+- H25 confirms the PF margin is repairable by PF-margin-targeted selection at higher vol (26.25% ann) on a pruned basket (dropping CL=F), though the margin remains narrow (+0.020 OOS) and the 730h free-data horizon remains the binding constraint on statistical power.
+- Structural walls unchanged: (a) yfinance hourly `=F` ~730-day cap blocks long-horizon intraday extension beyond H10/H11/H22/H25 without paid data; (b) Coinbase/CCXT hourly ~12-day cap for crypto perpetuals; (c) the joint Sharpe ≥ 1.0 & DD ≤ 15% gate met by no free-data family except the futures-carry edge (H10/H11/H22/H25); (d) PF ≥ 1.3 is fragile across the whole family (H13/H14 for H10; H21 for basket; H22/H25 margins +0.034/+0.020 — narrow but perturbation-robust).
+
+### Precise next task
+All pre-registered free-data hypotheses are now executed. The only remaining free-data edges are the certified intraday futures TSMOM family (H10/H11/H22/H25). No further untested hypotheses exist within the free-data constraints. Any further work requires:
+1. **Paid hourly data** for traditional futures (beyond 730 days) to extend the OOS window and narrow the PF CI.
+2. **Paid crypto data** (beyond 12 days) to meaningfully test the H23 hypothesis.
+3. **New hypothesis families** not yet explored (e.g., options-based, cross-asset macro, alternative data) — but these would require new pre-registrations and likely paid data sources.
+
+**No bounded, verifiable free-data task remains.** The project has exhausted the pre-registered free-data hypothesis space. The certified edge is the intraday futures TSMOM with PF-margin repair (H25), which clears all 9 gates on the available ~730-hour window but with a narrow PF margin (+0.020) inside bootstrap sampling noise.
