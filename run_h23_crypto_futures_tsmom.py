@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-CRYPTO_UNIVERSE = ["BTC/USDT", "ETH/USDT", "BNB/USDT", "ADA/USDT", "XRP/USDT"]
 import sys
 import os
 
@@ -373,12 +372,10 @@ def main():
     print(f"[H23] started {exp_id}  grid_size={grid_size}")
 
     try:
-        fetcher = get_data_fetcher()
-            f"[H23] prices={prices.shape} train/val/test="
         # --- data (cached) via CCXT ---
         fetcher = get_data_fetcher()
         prices_list, volumes_list = [], []
-        exchange_id = "binance"
+        exchange_id = "coinbase"
         for sym in CRYPTO_UNIVERSE:
             df = fetcher.fetch_ccxt(
                 exchange_id, [sym], start=DATA_START, end=DATA_END, timeframe="1h"
@@ -407,8 +404,6 @@ def main():
         oos_mask = val_mask | test_mask
         print(
             f"[H23] prices={prices.shape} train/val/test="
-            f"{int(train_mask.sum())}/{int(val_mask.sum())}/{int(test_mask.sum())}"
-        )
             f"{int(train_mask.sum())}/{int(val_mask.sum())}/{int(test_mask.sum())}"
         )
 

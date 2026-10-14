@@ -1,4 +1,3 @@
-  * Point-in-time / weight bounds (weights in [0, max_pos] per contract)
 """
 Regression tests for the H23 crypto perpetual futures intraday TSMOM experiment
 (run_h23_crypto_futures_tsmom.py).
@@ -16,10 +15,7 @@ Pins:
   * Determinism
   * The executed outcome (PASS or REJECT)
 """
-  * Regime labels consistent with VIX convention
-  * Determinism
-  * The executed outcome (PASS or REJECT)
-"""
+
 
 import json
 import sys
@@ -27,6 +23,16 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pytest
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(ROOT))
+
+import run_h23_crypto_futures_tsmom as h23
+from qtr.validation.statistics import sharpe_ratio
+
+ART_DIR = ROOT / ".experiments" / "artifacts"
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -64,7 +70,6 @@ def _latest_h23_dir() -> Path:
             continue
     assert h23_dirs, "no H23 artifacts; run run_h23_crypto_futures_tsmom.py"
     return sorted(h23_dirs, key=lambda p: p.stat().st_mtime)[-1]
-    return max(h22_dirs, key=lambda d: d.name)
 
 
 def _load_summary(exp_dir: Path) -> dict:
@@ -74,7 +79,7 @@ def _load_summary(exp_dir: Path) -> dict:
 
 class TestPreRegistration:
     def test_gates_are_the_pre_registered_set(self):
-        assert h22.GATES == {
+        assert h23.GATES == {
             "min_sharpe": 1.0,
             "min_trades": 200,
             "min_profit_factor": 1.3,
@@ -86,38 +91,45 @@ class TestPreRegistration:
             "min_perturbed_sharpe_ratio": 0.5,
         }
 
-    def test_grid_is_the_pre_registered_8_combos(self):
+    def test_grid_is_the_pre_registered_6912_combos(self):
         assert (
-            len(h22.TARGET_VOLS)
-            * len(h22.MAX_POSITIONS)
-            * len(h22.SCALE_RULES)
-            * len(h22.N_ASSETS_CHOICES)
-            == 8
-        )
-        assert h22.TARGET_VOLS == [0.50, 0.75, 1.0, 1.5]
-        assert h22.MAX_POSITIONS == [0.5, 1.0]
-        assert h22.SCALE_RULES == ["equal"]
-        assert h22.N_ASSETS_CHOICES == [5]
+            len(h23.SMOOTH_SPANS)
+            * len(h23.VOL_WINDOWS_LONG)
+            * len(h23.REGIME_SCALING_FLAGS)
+            * len(h23.MIN_TRADE_INTERVALS)
+            * len(h23.TRAILING_MULTS)
+            * len(h23.MAX_HOLD_BARS)
+            * len(h23.VOL_LIMIT_MULTS)
+            * len(h23.VOL_FLOOR_FRACTIONS)
+        ) == 6912
+        assert h23.SMOOTH_SPANS == [None, 4, 8, 16]
+        assert h23.VOL_WINDOWS_LONG == [252, 504, 1008]
+        assert h23.REGIME_SCALING_FLAGS == [False]
+        assert h23.MIN_TRADE_INTERVALS == [0, 4, 8, 24]
+        assert h23.TRAILING_MULTS == [1.5, 2.0, 2.5, 3.0]
+        assert h23.MAX_HOLD_BARS == [60, 120, 240, 480]
+        assert h23.VOL_LIMIT_MULTS == [1.5, 2.0, 2.5]
+        assert h23.VOL_FLOOR_FRACTIONS == [0.25, 0.5, 0.75]
 
     def test_universe_symbols_are_pre_registered(self):
-        assert h22.FUTURES_UNIVERSE == ["ES=F", "NQ=F", "CL=F", "GC=F", "ZB=F"]
-        assert h22.VIX_SYMBOL == "^VIX"
+        assert h23.CRYPTO_UNIVERSE == ["BTC/USD", "ETH/USD", "ADA/USD", "XRP/USD", "DOGE/USD"]
+        assert h23.VIX_SYMBOL == "^VIX"
 
     def test_splits_are_the_pre_registered_proportions(self):
-        assert h22.DATA_START == "2024-10-12"
-        assert h22.DATA_END == "2026-10-11"
-        # Splits are 60/20/20 by time (verified in _splits)
+        assert h23.DATA_START == "2024-10-12"
+        assert h23.DATA_END == "2026-10-11"
+        # Splits are 55/25/20 by time (verified in _splits)
 
     def test_seed_and_config_pre_registered(self):
-        assert h22.SEED == 42
-        assert h22.INITIAL_CAPITAL == 1_000_000.0
-        assert h22.TARGET_VOL_BASE == 0.15
-        assert h22.VOL_WINDOW_SHORT_RATIO == 4
-        assert h22.SEL["vol_window_long"] == 1008
-        assert h22.SEL["trailing_mult"] == 2.0
-        assert h22.SEL["max_hold_bars"] == 60
-        assert h22.SEL["vol_limit_mult"] == 1.5
-        assert h22.SEL["vol_floor_fraction"] == 0.25
+        assert h23.SEED == 42
+        assert h23.INITIAL_CAPITAL == 1_000_000.0
+        assert h23.TARGET_VOL == 0.15
+        assert h23.VOL_WINDOW_SHORT_RATIO == 4
+        # Check fixed exit parameters (analogous to H22 SEL checks)
+        assert h23.EXIT_TRAILING_DEFAULT == 2.0
+        assert h23.EXIT_MAX_HOLD_DEFAULT == 120
+        assert h23.EXIT_VOL_LIMIT_DEFAULT == 2.0
+        assert h23.EXIT_VOL_FLOOR_DEFAULT == 0.5
 
 
 class TestArtifacts:
@@ -177,14 +189,24 @@ class TestArtifacts:
         assert s["n_evaluated"] == 8
         assert s["compute_cpu_hours"] <= 2.0
 
-    def test_grid_has_8_unique_combos(self):
+    def test_grid_has_correct_unique_combos(self):
         exp_dir = _latest_h23_dir()
         grid = pd.read_parquet(exp_dir / "grid_results.parquet")
-        assert len(grid) == 8
+        # Should have 6912 unique combos (4*3*1*4*4*4*3*3)
+        assert len(grid) == 6912
         keys = set(
-            zip(grid["target_vol_mult"], grid["max_pos"], grid["scale_rule"], grid["n_assets"])
+            zip(
+                grid["smooth_span"],
+                grid["vol_window_long"],
+                grid["regime_scaling"],
+                grid["min_trade_interval"],
+                grid["trailing_mult"],
+                grid["max_hold_bars"],
+                grid["vol_limit_mult"],
+                grid["vol_floor_fraction"],
+            )
         )
-        assert len(keys) == 8
+        assert len(keys) == 6912
 
     def test_select_on_val_only(self):
         exp_dir = _latest_h23_dir()
@@ -251,7 +273,7 @@ class TestCausality:
         # Build base signals with shorter lookback for test
         base_signals = {}
         for sym in prices.columns:
-            base_signals[sym] = h22.vol_scaled_tsmom_hourly(
+            base_signals[sym] = h23.vol_scaled_tsmom_hourly(
                 prices[[sym]],
                 vol_window_long=500,
                 vol_window_short=500 // 4,
@@ -259,7 +281,7 @@ class TestCausality:
         vix_hourly = pd.Series(20.0, index=prices.index)
 
         for sym in prices.columns:
-            t0 = h22.build_hourly_target(
+            t0 = h23.build_hourly_target(
                 base_signals[sym], None, 500, False, vix_hourly, prices.index
             )
             # perturb a future price
@@ -270,13 +292,13 @@ class TestCausality:
 
             base_signals_pert = {}
             for s in prices.columns:
-                base_signals_pert[s] = h22.vol_scaled_tsmom_hourly(
+                base_signals_pert[s] = h23.vol_scaled_tsmom_hourly(
                     prices_pert[[s]],
                     vol_window_long=500,
                     vol_window_short=500 // 4,
                 )
 
-            t1 = h22.build_hourly_target(
+            t1 = h23.build_hourly_target(
                 base_signals_pert[sym], None, 500, False, vix_hourly, prices.index
             )
 
@@ -328,10 +350,10 @@ class TestDeterminism:
             index=rng,
         )
         for sym in prices.columns:
-            s1 = h22.vol_scaled_tsmom_hourly(
+            s1 = h23.vol_scaled_tsmom_hourly(
                 prices[[sym]], vol_window_long=1008, vol_window_short=252
             )
-            s2 = h22.vol_scaled_tsmom_hourly(
+            s2 = h23.vol_scaled_tsmom_hourly(
                 prices[[sym]], vol_window_long=1008, vol_window_short=252
             )
             assert (s1.values == s2.values).all(), f"base signal not deterministic for {sym}"
@@ -348,13 +370,13 @@ class TestDeterminism:
             {"ES=F": np.ones(len(rng))}, index=rng
         )
 
-        pos1 = h22.apply_exits_hourly(
+        pos1 = h23.apply_exits_hourly(
             daily_target, prices, atr, vol_exit,
             trailing_mult=2.0, max_hold_bars=60,
             vol_limit_mult=1.5, vol_floor_fraction=0.25,
             target_vol=0.15, min_trade_interval=0,
         )
-        pos2 = h22.apply_exits_hourly(
+        pos2 = h23.apply_exits_hourly(
             daily_target, prices, atr, vol_exit,
             trailing_mult=2.0, max_hold_bars=60,
             vol_limit_mult=1.5, vol_floor_fraction=0.25,
@@ -372,7 +394,7 @@ class TestRegimeLabels:
                 pd.Series([35.0], index=pd.to_datetime(["2024-10-14"])),
             ]
         )
-        labels = h22.regime_labels(vix)
+        labels = h23.regime_labels(vix)
         assert labels.iloc[0] == "bull"
         assert labels.iloc[1] == "sideways"
         assert labels.iloc[2] == "bear"
