@@ -200,16 +200,47 @@ class TestArtifacts:
         assert len(keys) == 6912
 
     def test_select_on_val_only(self):
+        # Selection is argmax of Val Sharpe, but only among in-sample-trading
+        # configs (val_trades >= MIN_VAL_TRADES_FOR_SELECTION) to avoid the
+        # degenerate zero-trade configs that win a pure argmax (HANDOFF.md).
         exp_dir = _latest_h23_dir()
         s = _load_summary(exp_dir)
         grid = pd.read_parquet(exp_dir / "grid_results.parquet")
-        best_val = grid.loc[grid["val_sharpe"].idxmax()]
+        eligible = grid[grid["val_trades"] >= h23.MIN_VAL_TRADES_FOR_SELECTION]
+        best_val = eligible.loc[eligible["val_sharpe"].idxmax()]
         sel = s["selected_config"]
         assert sel["vol_window_long"] == best_val["vol_window_long"]
         assert sel["smooth_span"] == (str(best_val["smooth_span"]) if best_val["smooth_span"] != "none" else "none")
         assert sel["regime_scaling"] == best_val["regime_scaling"]
         assert sel["min_trade_interval"] == best_val["min_trade_interval"]
         assert abs(best_val["val_sharpe"] - s["metrics"]["val_sharpe"]) < 1e-6
+
+    def test_selection_excludes_zero_trade_configs(self):
+        """Robustness lock: the selected config must be a live-trading (val-trades>0)
+        config, never the degenerate zero-trade argmax (HANDOFF.md post-mortem)."""
+        exp_dir = _latest_h23_dir()
+        s = _load_summary(exp_dir)
+        grid = pd.read_parquet(exp_dir / "grid_results.parquet")
+        sel = s["selected_config"]
+        # Locate the selected row in the grid by full key match.
+        rows = grid[
+            (grid["vol_window_long"] == sel["vol_window_long"])
+            & (grid["smooth_span"] == sel["smooth_span"])
+            & (grid["regime_scaling"] == sel["regime_scaling"])
+            & (grid["min_trade_interval"] == sel["min_trade_interval"])
+            & (grid["trailing_mult"] == sel["trailing_mult"])
+            & (grid["max_hold_bars"] == sel["max_hold_bars"])
+            & (grid["vol_limit_mult"] == sel["vol_limit_mult"])
+            & (grid["vol_floor_fraction"] == sel["vol_floor_fraction"])
+        ]
+        assert len(rows) == 1, "selected config not uniquely present in grid"
+        assert int(rows["val_trades"].iloc[0]) >= h23.MIN_VAL_TRADES_FOR_SELECTION
+        # And the pure (unfiltered) argmax must NOT have been selected.
+        pure_best = grid.loc[grid["val_sharpe"].idxmax()]
+        if pure_best["val_trades"] < h23.MIN_VAL_TRADES_FOR_SELECTION:
+            assert (
+                int(rows["val_trades"].iloc[0]) > 0
+            ), "selected a zero-trade config despite eligibility threshold"
 
 
 class TestGateRecomputation:

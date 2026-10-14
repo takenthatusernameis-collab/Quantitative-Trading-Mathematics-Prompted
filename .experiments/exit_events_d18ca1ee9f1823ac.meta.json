@@ -1,0 +1,23 @@
+{
+  "shape": [
+    88,
+    6
+  ],
+  "columns": [
+    "timestamp",
+    "symbol",
+    "type",
+    "prev_position",
+    "new_position",
+    "price"
+  ],
+  "dtypes": {
+    "timestamp": "datetime64[ms]",
+    "symbol": "str",
+    "type": "str",
+    "prev_position": "float64",
+    "new_position": "float64",
+    "price": "float64"
+  },
+  "index_type": "int64"
+}

@@ -74,6 +74,14 @@ GATES = {
     "min_perturbed_sharpe_ratio": 0.5,
 }
 
+# Post-mortem selection robustness (HANDOFF.md): the pure argmax of Val Sharpe is
+# degenerate on the cached crypto sample because zero-trade configs carry a 0.0
+# Val Sharpe (zero variance) that beats every live-trading config (Val Sharpe ~ -1.85).
+# Require at least one trade in-sample so selection never locks onto a non-trading
+# config. This is intentionally below GATES["min_trades"] (an OOS gate) — selection is
+# a separate, weaker liveness guard; feasibility on this sample caps val trades at 4.
+MIN_VAL_TRADES_FOR_SELECTION = 1
+
 # Perturbation parameters (OAT +/-20% on vol_window_long and max_position_size)
 PERTURB_PARAMS = ["vol_window_long", "max_position_size"]
 PERTURB_FACTORS = [0.8, 1.2]
@@ -574,7 +582,10 @@ def main():
                             f"best_val_sr={best_val_sharpe:.3f} best_val_pf={best_val_pf:.3f}",
                             flush=True,
                         )
-                    if vm["sharpe"] > best_val_sharpe:
+                    if (
+                        vm["trades"] >= MIN_VAL_TRADES_FOR_SELECTION
+                        and vm["sharpe"] > best_val_sharpe
+                    ):
                         best_val_sharpe = vm["sharpe"]
                         best_by_sharpe = ((vw, smooth_span, regime), min_int, {"trailing_mult": tm, "max_hold_bars": mhb, "vol_limit_mult": vlm, "vol_floor_fraction": vff})
                     if vm["profit_factor"] > best_val_pf and vm["profit_factor"] != float("inf"):
@@ -824,7 +835,11 @@ def main():
             "passes": gate["passes"],
             "all_pass": gate["all_pass"],
             "verdict": gate["verdict"],
-            "selection_rule": "best Val Sharpe; Test protected (not used for selection); gates on OOS Val+Test",
+            "selection_rule": (
+                f"best Val Sharpe among configs with >= {MIN_VAL_TRADES_FOR_SELECTION} "
+                "Val trade(s); Test protected (not used for selection); "
+                "gates on OOS Val+Test"
+            ),
         }
 
         exp_dir = Path(tracker.log_dir) / "artifacts" / exp_id
