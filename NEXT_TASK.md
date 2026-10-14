@@ -645,3 +645,29 @@ All pre-registered free-data hypotheses are now executed. The only remaining fre
 3. **New hypothesis families** not yet explored (e.g., options-based, cross-asset macro, alternative data) — but these would require new pre-registrations and likely paid data sources.
 
 **No bounded, verifiable free-data task remains.** The project has exhausted the pre-registered free-data hypothesis space. The certified edge is the intraday futures TSMOM with PF-margin repair (H25), which clears all 9 gates on the available ~730-hour window but with a narrow PF margin (+0.020) inside bootstrap sampling noise.
+
+---
+
+## Session outcome (2026-10-14 — H25 Robustness bootstrap-CI audit, executed)
+
+**H25 Robustness (post-hoc statistical audit, mirror of the H13 audit of H10): quantifies the one acknowledged residual caveat of the H25 certification.** This was NOT a new selection or a gate change — it is a CI characterization of the already-certified H25 config on its committed artifact `exp_2026-10-14T20-08-34-613690Z`, reusing the project's canonical, already-tested bootstrap primitives (`run_h13.bootstrap_profit_factor_distribution`, `run_h11.bootstrap_sharpe_distribution`; i.i.d. resample, `default_rng(42)`, 2,000 resamples) on the H25 OOS slice (Val+Test, n=5,148 bars, via H25's `_splits` so point estimates reproduce `summary.json` exactly).
+
+| Quantity | Value |
+|---|---|
+| OOS PF point (gate 1.3) | **1.3201** (≥ gate ✓) |
+| PF 95% CI | **[1.2049, 1.4425]** |
+| P(PF ≥ 1.3) | **0.6215** (CI-fragile; < 0.90) |
+| OOS Sharpe point (gate 1.0) | **1.3236** (≥ gate ✓) |
+| Sharpe 95% CI | [0.8834, 1.7506] |
+| P(Sharpe ≥ 1.0) | 0.9275 (point-robust; < 0.90 at the CI-LB) |
+
+**Interpretation:** H25 stays **PASS 9/9 on the registered gates** (point-wise + ±20% perturbation-robust at 0.946), but the certification is **qualified** exactly as H13 qualifies H10: the PF margin (+0.020) is inside the bootstrap CI noise floor (PF CI half-width ≈ ±0.120 vs margin +0.020), P(PF≥1.3)=0.6215. The Sharpe edge is point-robust (92.75% of resamples ≥ 1.0) but its CI lower bound dips below 1.0. The residual blocker is the free-data horizon (730h `=F` cap → wide CI), **not** a selection or gate defect. Narrowing the CI to P(PF≥1.3) ≥ 0.90 requires ~3–4× more OOS bars (paid hourly futures data).
+
+**Verified:**
+- `run_h25_pf_robustness.py` + `tests/test_h25_pf_robustness.py` (12 tests): pre-registration constants frozen, determinism (bit-identical across calls), point estimates reproduce H25 `summary.json` at 1e-9, committed-artifact fidelity at 1e-9, CI sanity (point inside CI, LB<UB, fractions in [0,1]), and the executed characterization pinned (PF CI LB < 1.3; P(PF≥1.3) < 0.90).
+- `pytest -q` → **354/354 passed** (342 prior + 12 new). `ruff check` clean on both new files.
+- Artifact: `.experiments/artifacts/pf_robustness/` (`summary.json`, `pf_bootstrap.parquet`, `sharpe_bootstrap.parquet`).
+- Docs synced: `HYPOTHESIS_SPEC.md` §H25 + addendum (pre-registered + measured), `INEFFICIENCY_RANKING.md` §H25/§17, `FINAL_REPORT.md` (H25 row + qualified-edge + statistics), `NEXT_TASK.md` (this section).
+
+### Precise next task
+The pre-registered free-data hypothesis space is exhausted (H1–H25, H15 probe). The single surviving certified edge family is intraday futures TSMOM (H10/H11/H22/H25), all **qualified** by a wide PF/Sharpe bootstrap CI rooted in the ~730-hour free-data horizon. The next bounded, verifiable, free-data task is therefore **not a new hypothesis** (the data wall defeats it, per H1–H9/H19–H23) — it is **securing paid hourly futures data** to widen the OOS window so the PF CI LB clears ≥ 1.3 with margin (the H25 Robustness audit pins exactly how much: CI half-width ≈ ±0.120 must shrink by ~3–4×). Until then, H25 stands as the best free-data edge with an honest, quantified frailty rather than a weakened gate.

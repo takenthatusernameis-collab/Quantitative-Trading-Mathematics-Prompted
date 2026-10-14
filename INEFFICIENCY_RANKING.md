@@ -947,16 +947,16 @@ non-constant VIX proxy to be actionable.)
 **Root cause**:
 1. **PF-margin selection at higher vol works.** The Val PF margin peaks at tv_mult=1.75 (26.25% ann) with n_assets=4 (dropping CL=F, the worst net contributor). The selected config clears all 9 gates on OOS, with OOS PF margin +0.020 and min perturbed Sharpe ratio 0.946. The selection metric shift from Val Sharpe to Val PF margin correctly identified the configuration with the widest PF margin.
 2. **CL=F is a net drag on the basket.** Dropping CL=F raises Val PF from 1.334 (n=5) to 1.378 (n=4) and Val Sharpe from 1.293 to 1.436 at tv_mult=1.25. At tv_mult=1.75, the n=4 subset gives the highest Val PF margin. The random-sign ablation confirms the signal is real (-0.142 OOS Sharpe); the daily-TSMOM ablation confirms the edge is intraday-only (0.514).
-3. **The PF margin is intrinsic to the 730h window, not a vol-leveling artifact.** H22's grid already showed Val PF decaying monotonically above tv_mult=1.0 (1.379 → 1.351). H25 extends this: Val PF rises to 1.378 at 1.75 then falls to 1.339 at 2.0. The maximum Val PF margin (0.078) occurs at 1.75/26.25% ann vol, and the OOS PF margin at that config is +0.020. The PF gate clears but remains fragile — the margin is inside the bootstrap sampling noise of the H13 audit (CI half-width ±0.117).
+3. **The PF margin is intrinsic to the 730h window, not a vol-leveling artifact.** H22's grid already showed Val PF decaying monotonically above tv_mult=1.0 (1.379 → 1.351). H25 extends this: Val PF rises to 1.378 at 1.75 then falls to 1.339 at 2.0. The maximum Val PF margin (0.078) occurs at 1.75/26.25% ann vol, and the OOS PF margin at that config is +0.020. The PF gate clears (point-wise, perturbation-robust at 0.946) but is **not CI-robust** — the H25 Robustness bootstrap audit gives OOS PF 95% CI [1.2049, 1.4425] (half-width ≈ ±0.119, matching the H13 ±0.117 reference) with P(PF≥1.3)=0.6215.
 4. **Diversification at higher vol is the mechanism.** The selected config uses equal-weight aggregation of 4 contracts (ES, NQ, GC, ZB) at 26.25% annual vol target. The higher vol target allows the portfolio to express the intraday carry signal at scale, while dropping CL=F removes the largest noise source.
 
-**Net Opportunity Score**: 8/10. The PF-margin repair is real on the free window (OOS PF 1.320 clears the gate with +0.020 margin; perturbation robustness is strong at 0.946). The edge is the same H10/H22 intraday-futures-carry mechanism, now at a higher vol target on a pruned basket. Remaining caveats: (a) the 730h `=F` cap still bounds the OOS CI and the PF estimate; (b) the PF margin is narrow (+0.020) and inside the bootstrap CI noise floor; (c) the edge is long-only futures carry — true neutrality needs a short leg.
+**Net Opportunity Score**: 8/10. The PF-margin repair is real on the free window (OOS PF 1.320 clears the gate with +0.020 margin; perturbation robustness is strong at 0.946). The edge is the same H10/H22 intraday-futures-carry mechanism, now at a higher vol target on a pruned basket. Remaining caveats: (a) the 730h `=F` cap still bounds the OOS CI and the PF estimate; (b) the PF margin is narrow (+0.020) and **not CI-robust** — the H25 Robustness audit (2,000-resample PF bootstrap) gives a 95% CI of [1.2049, 1.4425] with P(PF≥1.3)=0.6215, i.e. only ~62% of resamples clear the gate (point-wise pass but CI-fragile, same qualified-certification status H13 assigns H10); (c) the edge is long-only futures carry — true neutrality needs a short leg.
 
 **What would invalidate the PASS**: fresh hourly bars (paid data) pushing PF < 1.3 or Sharpe < 1.0; a cost-model misspecification > break-even; evidence that the 26.25%-ann-vol level over-leverages on a longer window.
 
 **Compute**: 0.003 CPU-h (9.8s wall). Seed 42. Deterministic.
 
-**Tests**: `tests/test_h25_futures_tsmom_pfmargin.py` (23 tests, pinning the PF-margin selection metric, 8-combo grid, gate recomputation at 1e-9, causality, weight bounds, determinism, executed verdict). Full suite: 342/342 passing.
+**Tests**: `tests/test_h25_futures_tsmom_pfmargin.py` (23 tests, pinning the PF-margin selection metric, 8-combo grid, gate recomputation at 1e-9, causality, weight bounds, determinism, executed verdict). **Robustness audit**: `tests/test_h25_pf_robustness.py` (12 tests) + `run_h25_pf_robustness.py` — OOS PF 95% CI [1.2049, 1.4425], P(PF≥1.3)=0.6215; OOS Sharpe 95% CI [0.8834, 1.7506], P(Sharpe≥1.0)=0.9275. Full suite: 354/354 passing.
 
 ---
 
@@ -973,9 +973,14 @@ non-constant VIX proxy to be actionable.)
 - Structural walls now include: (a) yfinance hourly `=F` 730-day cap for
   traditional futures; (b) Coinbase/CCXT hourly ~12-day cap for crypto
   perpetuals; (c) the joint Sharpe ≥ 1.0 ∧ DD ≤ 15% gate met by no free-data
-  family except H10/H11/H22/H25's futures-carry edge; (d) PF ≥ 1.3 is fragile
-  across the whole intraday-futures-carry family (H13/H14 for H10; H21 for the
-  basket; H22's basket PF margin +0.034; H25's repair margin +0.020 — narrow but robust to ±20% perturbation).
+   perpendiculars): (c) the joint Sharpe ≥ 1.0 ∧ DD ≤ 15% gate met by no free-data
+   family except H10/H11/H22/H25's futures-carry edge; (d) PF ≥ 1.3 is fragile
+   across the whole intraday-futures-carry family (H13/H14 for H10; H21 for the
+   basket; H22's basket PF margin +0.034; H25's repair margin +0.020 — perturbation-
+   robust at 0.946 but **CI-fragile**: H25 Robustness audit 95% CI [1.205, 1.443],
+   P(PF≥1.3)=0.6215); (e) the H25 Sharpe margin clears point-wise (1.324) and is
+   point-robust (P(Sharpe≥1.0)=0.9275) but its 95% CI lower bound (0.883) dips below
+   1.0.
 - All equity-based (H1-H9, H16, H18), volume-based (H19-H20), VRP (H17), and
   roll-adjusted (H8) families on free daily data: **REJECTED**.
 - Multi-contract futures basket (H21): **REJECTED** (under-vol-targeted);
@@ -988,4 +993,5 @@ non-constant VIX proxy to be actionable.)
   edge is confined to the ~2-year intraday futures window already certified.
 - **H24 (report consolidation) complete**: `FINAL_REPORT.md` updated with the
   H1-H23 table, the H23 negative-edge diagnosis, the cost-model fix, certified
-  edges, and summary statistics. All 342 tests pass.
+  edges, and summary statistics. All 354 tests pass (including the 12-test H25
+  Robustness bootstrap-CI audit).

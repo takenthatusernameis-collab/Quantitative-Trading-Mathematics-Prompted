@@ -1,39 +1,46 @@
-# Agent Handoff
+# Agent Handoff — For the next agent
 
-## Summary
-Executed the task assigned by the previous agent. The repo state shows H1-H23 are fully documented (FINAL_REPORT.md, HYPOTHESIS_SPEC.md, INEFFICIENCY_RANKING.md), all tests pass (319/319). Corrected a stale note in NEXT_TASK.md about H22 files being uncommitted (they are already committed). Prepared a precise next task for the subsequent agent.
+## State you are inheriting
+The repo is at **HEAD `28a3b69`** (with H25 committed at `cecc9d5`). Everything through
+H25 is committed and verifiable. The **task the previous (stale) handoff assigned —
+"H24a: PF-margin-targeted re-selection on the H22 basket" — is already done** (it is H25:
+PASS 9/9, OOS Sharpe 1.324, PF 1.320, DD -11.9%, perturbation-robust 0.946, seed 42).
+Do NOT redo it. The previous handoff files said "319 tests, H24a pending" — that is
+stale; the real baseline is **354/354 tests** (see `HANDOFF.md` for the full diff
+between then and now).
 
-## Incoming state (prior agent)
-- H1-H23 complete with consolidated reporting (commit 5f22b61)
-- H23 latest run (exp_2026-10-14T18-13-09-457781Z) with sideways-regime ablation committed in d1bc12e
-- H22 script/tests committed
-- All 319 tests passing
-- NEXT_TASK.md had stale note saying H22 script/tests not committed
+## What this session just did (so you don't repeat it)
+Ran a **H25 Robustness bootstrap-CI audit** (post-hoc, mirrors H13's audit of H10;
+does NOT re-select on Test, does NOT weaken any gate):
+- `run_h25_pf_robustness.py` reuses `run_h13.bootstrap_profit_factor_distribution` +
+  `run_h11.bootstrap_sharpe_distribution` (i.i.d., `default_rng(42)`, 2,000 resamples)
+  on the H25 OOS slice (Val+Test, n=5,148, via H25 `_splits`).
+- Result (committed in `.experiments/artifacts/pf_robustness/summary.json`):
+  **PF 95% CI [1.2049, 1.4425], P(PF≥1.3)=0.6215; Sharpe 95% CI [0.8834, 1.7506],
+  P(Sharpe≥1.0)=0.9275.** H25 stays PASS 9/9 but is **CI-fragile** on PF (the margin
+  +0.020 is inside the ±0.120 CI half-width).
+- `tests/test_h25_pf_robustness.py` (12 tests) pins everything to the committed
+  artifact at 1e-9 and asserts determinism. Full suite: **354/354 passing**, ruff clean
+  on both new files.
 
-## What changed
-1. `NEXT_TASK.md` - Updated the stale next-task text to reflect H22 script/tests are committed; clarified next step is PF-margin-targeted re-selection on H22 basket (not yet pre-registered).
+## Precise next task (your call, but these are the only two that aren't re-treading exhausted ground)
+The free-data hypothesis space is **exhausted** (H1-H25, H15 probe). The sole passing
+edge family (intraday futures TSMOM: H10/H11/H22/H25) is real but **qualified/CI-fragile**
+on the ~730-hour free window. So the only non-redundant next steps are:
 
-## What was actually verified
-- `python -m pytest -q` → 319 passed (6.10s)
-- Confirmed H22/H23 committed files are present in HEAD
-- Confirmed latest experiment artifacts for H23 are committed
-- Git status clean except cached pyc files
+1. **H25 Robustness — block-bootstrap sensitivity (FREE data, bounded, ~high-value).** Confirm the i.i.d. CI is not anti-conservative under time-series dependence by adding a stationary (Politis-White) block bootstrap alongside the i.i.d. baseline. Expected: either the CI widens (reinforcing "fragile") or stays (reinforcing "point-robust"). Reuse H13's i.i.d. as baseline; the change is in the audit only. Deliverable: extend `run_h25_pf_robustness.py`, add tests, commit. Pre-register the interpretation threshold (block-boot CI LB vs i.i.d. CI LB) in `HYPOTHESIS_SPEC.md` before running. **This is the safest next task and stays fully in free data.**
+2. **Acquire paid hourly futures data (NEEDS BUDGET/APPROVAL — out of free-data scope).** The audit pins the target: the PF CI half-width (±0.120) must shrink ~3-4x for P(PF≥1.3) ≥ 0.90, which needs ~3-4x more bars (≈2-3 years of hourly `=F`, e.g. Databento/Polygon/CMC). Re-run H25's pipeline verbatim (`run_h25_futures_tsmom_pfmargin.py`) on the longer window, then re-run `run_h25_pf_robustness.py`. **Do NOT** run any new free-data hypothesis — H1-H25 already prove free-data families land at Sharpe 0.2-0.8 / CI-fragile PF < 1.3.
 
-## What remains unresolved
-- The only untested free-data family remaining is intraday futures TSMOM PF-margin repair (H13/H14 showed H10 PF margin +0.004, fragile; H22 basket PF margin +0.034 but still fragile - CL=F/GC=F indispensable)
-- PF-margin-targeted re-selection on H22 basket grid (select by Val PF margin, not Val Sharpe) is a natural next hypothesis but is NOT pre-registered in HYPOTHESIS_SPEC.md
-- Data walls persist: yfinance hourly `=F` capped ~730 days; crypto hourly capped ~12 days (as documented)
+## Constraints handed down
+- No paid data available in this session (free only); respect the ≤2 CPU-h budget.
+- Do NOT weaken gates (PROMPT_V2 §H15): the honest outcome is "qualified pass, CI-fragile,"
+  not a forced pass.
+- Do NOT re-run/repurpose committed H25 artifacts or tests — they're pinned at 1e-9.
+- Commit-per-experiment convention; exclude `.pyc`.
 
-## Which approaches have already failed and why
-- H10 PF-optimized selection by Sharpe gave PF margin +0.004 (fragile per H13/H14 bootstrap CI [1.190,1.425]); cannot rely on that margin
-- H22 closed vol-targeting gap (target_vol_mult=1.0) achieving PF 1.334, Sharpe 1.372, 9/9 gates - but fragility remains
-- Attempting to force PASS by weakening gates is not allowed per repo constraints
+## Files added this session (committed)
+- `run_h25_pf_robustness.py`, `tests/test_h25_pf_robustness.py`
+- `.experiments/artifacts/pf_robustness/{summary.json, pf_bootstrap.parquet, sharpe_bootstrap.parquet}`
+- Edits to `HYPOTHESIS_SPEC.md`, `INEFFICIENCY_RANKING.md`, `FINAL_REPORT.md`, `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_NEXT.md`.
 
-## One precise next task (for the next agent)
-**H24a (PF-margin-targeted re-selection on H22 basket)**: Pre-register a new hypothesis in `HYPOTHESIS_SPEC.md` that re-executes selection on the H22 family/grid but optimizes for **Val profit-factor margin** (or PF directly with appropriate guards) rather than Val Sharpe. The H22 script/infra already exists (`run_h22_futures_tsmom_voltarget.py`, tests) - reuse it. Constraints: freeze pre-registration before running; never select on Test; all gates from PROMPT_V2.md + HYPOTHESIS_SPEC.md apply; no gate weakening; use only free data (yfinance/CCXT). After pre-registration, run and evaluate against gates. If it improves PF margin robustness, document in FINAL_REPORT/INEFFICIENCY_RANKING; if not, document root cause.
-
-**Immediate concrete steps:**
-1. Read `HYPOTHESIS_SPEC.md` §H22 and understand the grid/config space used. Review H13/H14 findings.
-2. Add a new hypothesis section (e.g., H24 or H25 depending on numbering convention - check existing numbering; H23 is last executed; next sequential is H24 conceptually but H24 was "consolidate report" - maybe call it H24b or follow the convention; alternatively look up how the project numbers future work. But better to follow the repo's explicit instruction in NEXT_TASK.md tail which says "PF-margin-targeted re-selection on the H22 basket grid..." and must be frozen in HYPOTHESIS_SPEC.md before running - treat as the next hypothesis with proper numbering.)
-3. Pre-register fully (universe, splits, grid, selection metric change, gates, ablations) in `HYPOTHESIS_SPEC.md` before execution.
-4. Implement/run using existing H22 infrastructure; add tests as appropriate; verify with full suite.
+Run `python -m pytest -q` and `python -m ruff check run_h25_pf_robustness.py tests/test_h25_pf_robustness.py` to confirm the green baseline before starting.

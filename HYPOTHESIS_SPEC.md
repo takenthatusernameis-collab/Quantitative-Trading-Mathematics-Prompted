@@ -2786,3 +2786,76 @@ Grid results (all 8 combos, Val PF margin = val_profit_factor - 1.3):
 3. ✅ Updated `HYPOTHESIS_SPEC.md` (Measured section above) and `INEFFICIENCY_RANKING.md` with the PASS verdict and root-cause attribution.
 4. ✅ Regression tests `tests/test_h25_futures_tsmom_pfmargin.py` (23 tests: pre-registration pinning, artifact schema, gate recomputation from logged artifacts at 1e-9, grid/selection integrity, signal causality, point-in-time, weight bounds, regime labels, determinism, executed-outcome pinning). Full suite: 342 tests passing.
 5. ✅ Ruff clean on `run_h25_futures_tsmom_pfmargin.py` + `tests/test_h25_futures_tsmom_pfmargin.py`.
+
+---
+
+## H25 Robustness: Bootstrap CI Characterization (Measure-Log addendum)
+
+**Status:** not a new selection/hypothesis; a post-hoc statistical-robustness audit of the
+committed H25 selected config, mirror of the H13 audit of H10. Purpose: quantify the single
+acknowledged residual caveat of the H25 certification — that the OOS profit-factor margin
+(+0.020) sits "inside the bootstrap CI noise floor" of the H13 audit (CI half-width ≈ ±0.117).
+No selection occurs on Test; no gate is weakened; no new data is fetched. The selected config,
+OOS window, and gates are exactly H25's already-executed values.
+
+- **Source artifact:** `.experiments/artifacts/exp_2026-10-14T20-08-34-613690Z/` (read-only).
+- **OOS returns:** `returns.parquet["returns"]` restricted to Val+Test by H25's `_splits`
+  (`train_end = prices.index[int(n*0.55)]`, `val_mask | test_mask`) — the identical OOS slice the
+  H25 gate evaluation uses, so point estimates reproduce `summary.json` exactly.
+- **Selection metric:** none changed — point of the audit is the *confidence interval*, not a new
+  argmax. Selected config stays `{target_vol_mult=1.75, max_pos=0.5, scale_rule=equal, n_assets=4}`.
+- **Bootstrap scheme:** i.i.d. resampling with replacement, seeded, `n_bootstrap=2000`, reusing the
+  project's canonical, already-tested functions:
+  - PF distribution: `run_h13_oos_deflation_pf_audit.bootstrap_profit_factor_distribution` (seed 42).
+  - Sharpe distribution: `run_h11_robustness_experiment.bootstrap_sharpe_distribution` (seed 42).
+  - Point estimates: `qtr.validation.statistics.sharpe_ratio` (periods_per_year=252, the H25/H10
+    convention) and `run_h13_oos_deflation_pf_audit._profit_factor`.
+- **Outputs (written to `.experiments/artifacts/pf_robustness/`, `hypothesis` label
+  `H25_ROBUSTNESS` so it is not mistaken for an H25 run by the artifact-discovery helpers):**
+  - `summary.json`: n_oos_bars, point estimates, 95% CIs, CI medians, `P(PF>=1.3)`,
+    `P(Sharpe>=1.0)`, seed, source artifact.
+  - `pf_bootstrap.parquet` (bootstrap_index, profit_factor) and `sharpe_bootstrap.parquet`
+    (bootstrap_index, sharpe).
+- **Pre-registered interpretation rule (frozen before computing):**
+  - The H25 gate-set itself is unchanged (9/9 PASS, already recorded). This audit does NOT re-
+    certify; it *characterizes*. Interpretation:
+    - **Sharpe gate (≥1.0):** certified robust iff `P(Sharpe>=1.0) >= 0.90` AND the 95% CI upper
+      bound is comfortably above 1.0 (no downward CI creep below 1.0 at the median).
+    - **PF gate (≥1.3):** certified robust iff `P(PF>=1.3) >= 0.90` AND the 95% CI lower bound
+      `>= 1.3`. Point-wise clearance (PF=1.320) alone is insufficient — this is exactly the
+      fragility H13 flags for H10.
+  - Compute budget: `< 2 CPU-h` (2,000 resamples × 5,148 bars × 2 metrics ≈ seconds). Seed 42.
+
+### H25 Robustness — Measured (executed 2026-10-14)
+
+Source artifact `exp_2026-10-14T20-08-34-613690Z`; OOS = Val+Test, n=5,148 bars. Reuse of
+`run_h13.bootstrap_profit_factor_distribution` + `run_h11.bootstrap_sharpe_distribution`
+(i.i.d., `default_rng(42)`, 2,000 resamples).
+
+| Quantity | Value |
+|---|---|
+| PF point (OOS) | 1.3201 |
+| PF 95% CI | [1.2049, 1.4425] |
+| P(PF ≥ 1.3) | 0.6215 |
+| Sharpe point (OOS) | 1.3236 |
+| Sharpe 95% CI | [0.8834, 1.7506] |
+| P(Sharpe ≥ 1.0) | 0.9275 |
+| PF CI lower bound ≥ 1.3 | **False** |
+| Sharpe CI lower bound ≥ 1.0 | **False** |
+
+**Interpretation against the frozen rule:** Point-wise both gates clear (PF 1.320 ≥ 1.3;
+Sharpe 1.324 ≥ 1.0), but neither is CI-robust at the 90% bootstrap level — P(PF≥1.3)=0.6215
+and P(Sharpe≥1.0)=0.9275, with both 95% CI lower bounds below their gates. This **confirms
+precisely** the §H25 root-cause attribution: the PF margin (+0.020) is inside the bootstrap
+sampling noise floor, and the OOS CI width (PF half-width ≈ ±0.119) is comparable to the
+margin itself. The classification stays **PASS 9/9 on the registered gates** (point-wise,
+perturbation-robust at 0.946), but the edge is **qualified** by statistical fragility — the
+same "qualified certification" status the project assigns H10 via H13 (CI LB 1.190 < 1.3).
+Closing the gap requires a longer OOS window (paid hourly futures data); P(PF≥1.3) would
+rise toward ≥0.90 only as the CI narrows with more bars.
+
+**Verified:** `tests/test_h25_pf_robustness.py` (12 tests) — pinned to the committed
+`pf_robustness/` artifact at 1e-9, determinism, point-estimate reproduction of H25's
+`summary.json`, and CI sanity. Full suite 354/354 passing. `ruff` clean on
+`run_h25_pf_robustness.py` + `tests/test_h25_pf_robustness.py`. Compute 0.7s (0.0002 CPU-h).
+
