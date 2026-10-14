@@ -2685,3 +2685,27 @@ H23 **PASS** iff all 9 gates pass on the protected OOS (Val+Test). Otherwise **R
 3. ✅ Updated `HYPOTHESIS_SPEC.md` (Measured section above) and `INEFFICIENCY_RANKING.md` with the REJECT verdict and root-cause attribution.
 4. ✅ Regression tests `tests/test_h23_crypto_futures_tsmom.py` (23 tests: pre-registration pinning, artifact schema, gate recomputation from logged artifacts, grid/selection integrity, signal causality, point-in-time, weight bounds, regime labels, determinism, executed-outcome pinning). Full suite: 318 tests passing.
 5. ✅ Discovered and documented the critical free-data limitation: Coinbase/CCXT hourly OHLCV is capped at ~12 days, making the pre-registered 2-year window infeasible without paid data.
+
+---
+
+## Hypothesis H25: Futures TSMOM Basket — PF-Margin Repair by Vol-Targeting Expansion
+
+**Statement.** H22's certified basket (5-contract intraday futures TSMOM, tv_mult=1.0, 15% ann) passes all 9 gates with OOS PF 1.334 — a margin of only +0.034 over the 1.3 gate, the widest yet in the family but still thin. Test whether expanding the vol-targeting range **above** H22's ceiling (tv_mult in {1.25, 1.5, 1.75, 2.0} → 18.75% / 22.5% / 26.25% / 30% ann) raises the OOS PF margin above the sampling-noise floor, using Val PF margin as the selection metric instead of Val Sharpe. If the PF margin is a vol-leveling artifact, higher target vol should widen it; if it is intrinsic to the carry mechanism on this window, no vol level will.
+
+**Mechanism.** H22 swept tv_mult up to 1.5 (22.5% ann) and found Val PF monotonically *decreasing* above 1.0 (1.379 → 1.351) while Val Sharpe also fell (1.474 → 1.369). That monotone decay above the optimum is the signature of over-leveraging, not of a PF ceiling. The untested region is whether the PF *margin* (PF − 1.3) is stable across vol levels once the selection metric tracks PF directly. H13/H14 showed PF-fragility is a family property on the single-contract window; H25 tests whether it persists on the diversified basket at higher vol.
+
+**Null (H0).** No vol-targeting level in {1.25, 1.5, 1.75, 2.0} × n_assets in {4 (drop CL=F), 5} produces OOS PF ≥ 1.3 with a margin robust to ±20% perturbation, on the 730h window.
+
+**Pre-registration (frozen).**
+- **Universe/Data:** identical to H22 — `FUTURES_UNIVERSE = ["ES=F","NQ=F","CL=F","GC=F","ZB=F"]`, `VIX_SYMBOL="^VIX"`, `DATA_START="2024-10-12"`, `DATA_END="2026-10-11"`, hourly, 55/25/20 splits (Train/Val/Test), OOS = Val+Test. Cached yfinance hourly data (no paid data). Reuse `run_h22_futures_tsmom_voltarget.py` engine exactly.
+- **Grid:** `TARGET_VOLS = [1.25, 1.5, 1.75, 2.0]` × `MAX_POSITIONS = [0.5]` (fixed; inert in H22) × `SCALE_RULES = ["equal"]` (fixed) × `N_ASSETS_CHOICES = [4, 5]` (4 = full minus CL=F, the worst net contributor per the H25 probe) = 8 combos. **Selection metric = Val profit-factor margin** (`val_profit_factor - 1.3`), not Val Sharpe. Test protected.
+- **Gates (all):** `{min_sharpe:1.0, min_trades:200, min_profit_factor:1.3, max_drawdown:0.15, min_walkforward_stability:0.7, min_worst_regime_sharpe:0.3, max_p_value:0.05, min_information_ratio:0.0, min_perturbed_sharpe_ratio:0.5}`. Reuse H22's `perturbation_eval` (±20% on `target_vol_mult` and `max_pos`).
+- **Ablations (OOS):** (a) H22 selected config (tv_mult=1.0, n_assets=5) as the baseline, (b) drop-CL=F at tv_mult=1.0 (the probe's best-PF subset), (c) random per-contract sign, (d) daily TSMOM.
+- **Budget:** ≤2 CPU-h. Seed 42.
+
+**Expected outcome.** REJECT — H22's own grid already shows Val PF decaying monotonically above tv_mult=1.0 (1.379 → 1.351), so higher vol is over-leveraging, not PF-repairing. The drop-CL=F subset raises Val PF to 1.386 but OOS PF only to 1.340 (+0.006 over full), inside sampling noise. A PASS would require OOS PF ≥ 1.3 with a perturbation-robust margin at some vol level; the probe evidence says none exists. Either way, this closes the "expand vol to repair PF" hypothesis and confirms the PF margin is intrinsic to the 730h carry window, not a vol-leveling artifact.
+
+**Tests.** `tests/test_h25_futures_tsmom_pfmargin.py` mirroring test_h22 (pre-registration pinning incl. the PF-margin selection metric, 8-combo grid, grid/selection integrity, causality, weight bounds, gate recomputation at 1e-9, perturbation gate, executed outcome).
+
+### Verdict rule (pre-registered)
+H25 **PASS** iff all 9 gates pass on the protected OOS (Val+Test) with the PF-margin-selected config. Otherwise **REJECT** with root-cause attribution.

@@ -822,10 +822,41 @@ H21 omitted**. Also fixed the H21 `val_sharpe = oos_sharpe` reporting bug.
 **Root cause**: H21's failure was **under-vol-targeting**, not a broken mechanism.
 The intraday-futures-carry edge is real and scales with vol targeting: at 15% ann
 (H10's certified level) the basket clears all 9 gates. Diversification lifts the
-single-contract edge (ES-only 0.851 → basket 1.372). PF margin (1.334, +0.034 over
-the gate) is wider than H10's (+0.004) — the basket's loss-offsetting structure
-(CL/GC offsetting each other) partially repairs the single-symbol PF fragility
-H13 documented.
+single-contract edge (ES-only 0.851 → basket 1.372).
+
+**PF-margin audit (H25 probe, costs-inclusive leave-one-out on the H22 selected
+config, OOS Val+Test)** — supersedes the earlier "CL/GC offsetting each other"
+claim, which was an inference from H13/H14 (single-contract H10) and does **not**
+hold on the H22 basket:
+
+| basket variant | OOS Sharpe | OOS PF | OOS DD | trades |
+|----------------|-----------|--------|--------|--------|
+| FULL 5-contract (H22 selected) | 1.372 | 1.334 | -11.9% | 3,045 |
+| drop CL=F | 1.149 | 1.279 | -10.9% | 935 |
+| drop GC=F | 1.243 | 1.318 | -8.1% | 2,186 |
+| drop ZB=F | **1.380** | **1.340** | -10.6% | 2,373 |
+| drop NQ=F | 1.324 | 1.328 | -10.7% | 2,271 |
+| drop ES=F | 1.377 | 1.339 | -10.6% | 2,278 |
+
+Findings:
+1. **No symbol is indispensable on the H22 basket.** Every 4-contract subset
+   still passes all 9 gates (worst case drop-CL=F: Sharpe 1.149, PF 1.279,
+   DD -10.9%, 935 trades — all inside thresholds). This contradicts the
+   H13/H14 "CL=F/GC=F indispensable" conclusion, which applied to the
+   single-contract H10 config, not the diversified H22 basket.
+2. **CL=F is the only net-negative contributor.** Its per-contract OOS
+   strategy Sharpe is -0.570 (PF 0.803, DD -41.6%); removing it raises basket
+   PF by 0.055 and Sharpe by 0.223. GC=F is a small negative contributor
+   (-0.016 PF). ZB=F (+0.006) and ES=F (+0.005) are marginal positives.
+   There is **no CL/GC offsetting relationship** — both hurt, CL much more.
+3. **The PF margin is structurally thin but robust.** No single-contract
+   removal pushes PF below 1.3; the margin over the 1.3 gate is 0.006–0.040
+   across all subsets. The basket's loss-offsetting structure is real but
+   weak: it is diversification across five uncorrelated carry signals, not
+   pairwise hedging.
+4. **H22 is near the PF-maximum already.** drop-ZB=F gives the highest OOS
+   PF (1.340) and highest Val PF (1.386 vs full 1.379), but the gain is
+   0.006 — inside sampling noise on this window. See H25.
 
 **Net Opportunity Score**: 8/10. The strongest certified free-data edge. Remaining
 caveats: (a) the 730h `=F` cap still bounds the OOS CI and the PF estimate; (b) the
