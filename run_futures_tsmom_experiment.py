@@ -280,7 +280,7 @@ def main():
         for i, (long_only, lookback, skip) in enumerate(grid):
             try:
                 result, sig = evaluate_combo(prices, volumes, adv, long_only, lookback, skip)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 -- per-combo grid failure is non-fatal; log and skip the combo
                 print(f"  ERR on {i}: {e}")
                 continue
             train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(result.returns)
@@ -315,7 +315,7 @@ def main():
         # Build ensemble weights: average of top-K configs' monthly weights
         ensemble_sig = None
         for _, r in top_k.iterrows():
-            res, sig = evaluate_combo(prices, volumes, adv, bool(r['long_only']), int(r['lookback']), int(r['skip']))
+            _, sig = evaluate_combo(prices, volumes, adv, bool(r['long_only']), int(r['lookback']), int(r['skip']))
             if ensemble_sig is None:
                 ensemble_sig = sig.copy() / len(top_k)
             else:
@@ -391,7 +391,7 @@ def main():
 
         # Ablation: argmax vs ensemble
         best_combo = combos_df.iloc[0]
-        argmax_res, argmax_sig = evaluate_combo(prices, volumes, adv, bool(best_combo['long_only']),
+        argmax_res, _ = evaluate_combo(prices, volumes, adv, bool(best_combo['long_only']),
                                                 int(best_combo['lookback']), int(best_combo['skip']))
         argmax_oos = argmax_res.returns[argmax_res.returns.index > pd.Timestamp(TRAIN_END)]
         argmax_oos_sh = sharpe_ratio(argmax_oos.values) if len(argmax_oos) else 0.0
@@ -418,7 +418,7 @@ def main():
         tracker.finish_experiment(status="completed")
         print(f"\nAll pass: {all_pass}")
         return all_pass
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))

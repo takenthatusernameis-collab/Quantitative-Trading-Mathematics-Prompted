@@ -49,6 +49,7 @@ from qtr.validation.statistics import (
 
 # Position-size ceiling (single source of truth: H9).
 from run_h9_intraday_tsmom_experiment import MAX_POSITION_SIZE  # noqa: F401  (re-exported for test access)
+
 # Reuse H10 constants / primitives (single source of truth for universe, costs, gates).
 from run_h10_intraday_tsmom_pfopt_experiment import (
     COST_MODEL_DEFAULTS,
@@ -250,7 +251,6 @@ def _eval_positions(positions, prices, volumes, cfg, masks, vix_hourly, bh_resul
 def _per_symbol_metrics(result, prices, mask):
     """Per-symbol OOS Sharpe / PF / trade count on the pooled-price universe."""
     sym_metrics = {}
-    ret = result.returns[mask]
     for sym in prices.columns:
         # Symbol contribution = its position-weighted price return (gross, pre-cost)
         # as a proxy for where the edge lives; net attribution is pooled.
@@ -382,7 +382,7 @@ def _cached_data_end():
     try:
         prices = pd.read_parquet(H10_ARTIFACT_DIR / "prices.parquet")
         return pd.to_datetime(prices.index).max()
-    except Exception:
+    except Exception:  # noqa: BLE001 -- cached artifact may be absent; fall back to the configured data end
         return pd.Timestamp(DATA_END)
 
 
@@ -416,7 +416,7 @@ def probe_live_extension(fetcher, start=DATA_START, end=DATA_END):
             "live_data_end": str(max_ts) if max_ts is not None else None,
             "n_fresh_bars": int(n_fresh),
         }
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 -- live-data probe failure is non-fatal; return a structured error payload
         return {"fresh_bars_beyond_cached": False, "error": str(e)}
 
 
@@ -476,12 +476,6 @@ def main():
         )
         bh_result = run_backtest(
             prices=prices, signals=bh_weights, volumes=volumes, config=cfg
-        )
-
-        # --- base signal (frozen H10 selected vol window) ---
-        base_signal = vol_scaled_tsmom_hourly(
-            prices, vol_window_long=SEL["vol_window_long"],
-            vol_window_short=SEL["vol_window_long"] // VOL_WINDOW_SHORT_RATIO,
         )
 
         # ============================================================
@@ -614,13 +608,6 @@ def main():
                     target_vol=TARGET_VOL, min_trade_interval=SEL["min_trade_interval"],
                 )
                 fresh_cfg = make_futures_config()
-                fresh_bh = run_backtest(
-                    prices=fresh_prices,
-                    signals=pd.DataFrame(
-                        1.0 / len(fresh_prices.columns), index=fresh_prices.index,
-                        columns=fresh_prices.columns),
-                    volumes=fresh_volumes, config=fresh_cfg,
-                )
                 # Evaluate the FROZEN config on the fresh OOS slice only.
                 fresh_res = run_backtest(
                     prices=fresh_prices, signals=fresh_pos, volumes=fresh_volumes,
@@ -647,7 +634,7 @@ def main():
             else:
                 fresh_rows.append({"n_bars": 0, "note": "no fresh bars available"})
                 print("  no fresh bars beyond H10 Test window")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 -- fresh-OOS extension failure is non-fatal; record the error and continue
             fresh_rows.append({"error": str(e)})
             print(f"  fresh-OOS extension failed: {e}")
         fresh_df = pd.DataFrame(fresh_rows)
@@ -742,7 +729,7 @@ def main():
               f"({total_elapsed/60:.1f} min, {total_elapsed/3600:.3f} CPU-h)")
         print("=" * 72)
         return 0 if all_pass else 1
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))

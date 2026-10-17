@@ -311,7 +311,6 @@ def _full_gate_eval(
         worst = min(worst, s)
 
     bench = compare_to_benchmark(result.returns, bh_result.returns)
-    cum = (1 + oos_ret).cumprod()
     oos_max_dd = oos_m["max_drawdown"]
 
     passes = {
@@ -878,7 +877,7 @@ def main():
               f"({total_elapsed/3600:.2f} CPU-h)")
         print("=" * 72)
         return 0 if gate["all_pass"] else 1
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))

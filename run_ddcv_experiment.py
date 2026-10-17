@@ -257,8 +257,7 @@ def main():
                                   volumes=volumes, adv=adv, config=bh_cfg)
         tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
         tracker.log_metrics({f"benchmark_{k}": float(v) for k, v in bh_result.metrics.items()}, step=0)
-        print("Benchmark Sharpe=%.3f" % bh_result.metrics["sharpe"])
-
+        print(f"Benchmark Sharpe={bh_result.metrics['sharpe']:.3f}")
         # Base signal (H4 best combo)
         base_sig = vol_scaled_tsmom_signals(
             prices, lookback=LOOKBACK, skip=SKIP, long_only=LONG_ONLY,
@@ -268,15 +267,14 @@ def main():
         base_sig = resample_monthly_signals(base_sig)
         base_result = evaluate(prices, base_sig, volumes, adv)
         train_r, _, _, oos_r = split_returns_by_date(base_result.returns)
-        print("Base TSMOM: train_sharpe=%.3f oos_sharpe=%.3f dd=%.3f" %
-              (sharpe_ratio(train_r.values), sharpe_ratio(oos_r.values), base_result.metrics["max_drawdown"]))
+        print(f"Base TSMOM: train_sharpe={sharpe_ratio(train_r.values):.3f} oos_sharpe={sharpe_ratio(oos_r.values):.3f} dd={base_result.metrics['max_drawdown']:.3f}")
 
 
         # ---- DDCV grid search (selection on Val only) ----
         ddcv_records = []
         for dd_trigger in DD_TRIGGER_GRID:
             for dd_factor in DD_FACTOR_GRID:
-                scaled, base_res, scale = apply_ddcv(prices, base_sig, dd_trigger, dd_factor)
+                scaled, _, _ = apply_ddcv(prices, base_sig, dd_trigger, dd_factor)
                 result = evaluate(prices, scaled, volumes, adv)
                 train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(result.returns)
                 rec = {
@@ -295,8 +293,7 @@ def main():
         ddcv_df = pd.DataFrame(ddcv_records)
         ddcv_df = ddcv_df.sort_values("val_sharpe", ascending=False)
         best = ddcv_df.iloc[0]
-        print("DDCV grid (%d combos); best on Val: trigger=%s factor=%s val_sharpe=%.3f" %
-            (len(ddcv_df), best["dd_trigger"], best["dd_factor"], best["val_sharpe"]))
+        print(f"DDCV grid ({len(ddcv_df)} combos); best on Val: trigger={best['dd_trigger']} factor={best['dd_factor']} val_sharpe={best['val_sharpe']:.3f}")
 
         # ---- Fallback ablations (evaluated on full OOS, not selected) ----
         ablations = {}
@@ -305,7 +302,7 @@ def main():
         # (b) fixed 50% vol-target cut
         for cut in [0.5]:
             scaled, _ = apply_fixed_cut(prices, base_sig, cut)
-            ablations["fixed_cut_%s" % cut] = evaluate(prices, scaled, volumes, adv)
+            ablations[f"fixed_cut_{cut}"] = evaluate(prices, scaled, volumes, adv)
         # (c) VIX-gated vol target
         scaled, _ = apply_vix_gate(prices, base_sig, vix)
         ablations["vix_gate"] = evaluate(prices, scaled, volumes, adv)
@@ -354,8 +351,7 @@ def main():
             "ir": bool(ir > GATES.get("min_information_ratio", -1e18)),
         }
         all_pass = all(passes.values())
-        print("DDCV best OOS: sharpe=%.3f trades=%d pf=%.3f dd=%.3f stab=%.3f worst=%.3f p=%.4f ir=%.3f" %
-              (oos_sharpe, len(oos_trades), oos_pf, oos_dd, wf_stab, worst, p, ir))
+        print(f"DDCV best OOS: sharpe={oos_sharpe:.3f} trades={len(oos_trades)} pf={oos_pf:.3f} dd={oos_dd:.3f} stab={wf_stab:.3f} worst={worst:.3f} p={p:.4f} ir={ir:.3f}")
         print("Passes:", {k: bool(v) for k, v in passes.items()})
 
         # ---- Ablation summary ----
@@ -406,7 +402,7 @@ def main():
         tracker.finish_experiment(status="completed")
         print("All pass:", all_pass)
         return all_pass
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))

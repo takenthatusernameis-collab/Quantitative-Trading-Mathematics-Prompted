@@ -461,7 +461,7 @@ def main():
 
         combo_records = []
         for i, (long_only, lookback, skip, triple, hedge_w) in enumerate(grid):
-            result, sig = evaluate_combo(
+            result, _ = evaluate_combo(
                 prices, volumes, adv, vix, long_only, lookback, skip, triple, hedge_w
             )
             train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(result.returns)
@@ -539,7 +539,7 @@ def main():
             sf = np.array(rec["wf_oos_sharpes"])
             sf = sf[~np.isnan(sf)]
             if len(sf) > 1 and sf.std() > 0:
-                t, p = stats.ttest_1samp(sf, 0.0)
+                _, p = stats.ttest_1samp(sf, 0.0)
                 pvals.append(float(p))
             else:
                 pvals.append(1.0)
@@ -576,7 +576,6 @@ def main():
 
         # Trades split
         oos_trades = final_result.trades[final_result.trades["timestamp"] > pd.Timestamp(TRAIN_END)]
-        train_trades = final_result.trades[final_result.trades["timestamp"] <= pd.Timestamp(TRAIN_END)]
 
         # Profit factor / drawdown on OOS equity
         oos_equity = (1 + oos_returns).cumprod()
@@ -612,7 +611,7 @@ def main():
         # Parameter perturbation (+/-20%) on OOS
         def perturbed_sharpe(lb, sk, triple, hedge_w):
             res, _ = evaluate_combo(prices, volumes, adv, vix, sel_allow_short, lb, sk, triple, hedge_w)
-            _, _, test_r, oos_r = split_returns_by_date(res.returns)
+            _, _, _, oos_r = split_returns_by_date(res.returns)
             return sharpe_ratio(oos_r.values)
 
         # +/-20% around each selected parameter (nearest valid value)
@@ -849,7 +848,7 @@ def main():
         print(f"All gates passed: {all_pass}")
         return all_pass
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))

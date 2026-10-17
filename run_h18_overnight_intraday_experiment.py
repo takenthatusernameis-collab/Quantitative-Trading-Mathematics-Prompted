@@ -73,7 +73,6 @@ def _overnight_intraday_signal(
     """
     # Calculate overnight and intraday returns
     overnight_ret = open_ / close.shift(1) - 1  # open_t / close_{t-1} - 1
-    intraday_ret = close / open_ - 1           # close_t / open_t - 1
 
     # Determine which leg is favored based on predictor
     if predictor == "lagged_1d_overnight_sign":
@@ -298,16 +297,6 @@ def main() -> None:
 
     # Track results
     results = []
-
-    # Base configuration
-    base_config = BacktestConfig(
-        initial_capital=100000.0,
-        cost_model=CostModel(),
-        asset_class=AssetClass.EQUITY,
-        max_position_size=1.0,
-        max_leverage=1.0,
-        allow_short=False,
-    )
 
     print("Running grid search...")
     for predictor in predictors:
@@ -648,7 +637,7 @@ def main() -> None:
             if np.mean(train_sharpes) != 0
             else 0.0
         )
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 -- walk-forward stability is advisory; a failure degrades to 0.0 and continues
         print(f"Warning: Could not compute walk-forward stability: {e}")
         wf_stability = 0.0
 
@@ -671,7 +660,7 @@ def main() -> None:
         bear_sharpe = sharpe_ratio(bear_returns) if len(bear_returns) > 0 else 0.0
 
         worst_regime_sharpe = min(bull_sharpe, sideways_sharpe, bear_sharpe)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 -- regime Sharpe is advisory; a failure degrades to 0.0 and continues
         print(f"Warning: Could not compute regime Sharpe: {e}")
         worst_regime_sharpe = 0.0
 
@@ -684,7 +673,7 @@ def main() -> None:
         )
         benchmark_p = benchmark_comparison.get("p_value", 1.0)
         information_ratio = benchmark_comparison.get("information_ratio", 0.0)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 -- benchmark comparison is advisory; a failure degrades to defaults and continues
         print(f"Warning: Could not compute benchmark comparison: {e}")
         benchmark_p = 1.0
         information_ratio = 0.0

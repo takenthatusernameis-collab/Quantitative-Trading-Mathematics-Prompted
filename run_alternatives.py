@@ -252,7 +252,7 @@ def main():
         
         return best_sharpe > bh_result.metrics["sharpe"]
         
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         print(f"Experiment failed: {e}")
         import traceback
         traceback.print_exc()

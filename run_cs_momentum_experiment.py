@@ -371,7 +371,7 @@ def main():
         tracker.finish_experiment(status="completed")
         print(f"\nExperiment ID: {exp_id} | All gates passed: {all_pass}")
         return all_pass
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))

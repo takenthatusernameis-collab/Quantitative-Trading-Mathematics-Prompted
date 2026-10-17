@@ -34,7 +34,6 @@ from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import sharpe_ratio
 from run_h10_intraday_tsmom_pfopt_experiment import (
     GATES,
-    INITIAL_CAPITAL,
     SEED,
     make_futures_config,
 )
@@ -43,10 +42,8 @@ from run_h11_robustness_experiment import (
     per_symbol_contributions,
 )
 from run_h12_selection_bias_audit import (
-    PERIODS_PER_YEAR,
     SEL,
     _count_in,
-    _expected_max_sharpe,
     _load_cached_data,
     _period_metrics,
     _splits,
@@ -192,7 +189,7 @@ def main():
 
     try:
         # Load data
-        prices, volumes, vix_hourly, returns = _load_cached_data()
+        prices, volumes, vix_hourly = _load_cached_data()
         _, val_mask, test_mask = _splits(prices)
         oos_mask = val_mask | test_mask
         masks = {"train": ~val_mask & ~test_mask, "val": val_mask, "oos": oos_mask, "test": test_mask}
@@ -212,37 +209,16 @@ def main():
             prices, volumes, vix_hourly, cfg, masks, topk_df
         )
 
-        # Build per-symbol net contributions for the frozen config on OOS (to compute LOO PF)
-        # Get frozen positions and contribs
-        exits = _build_exit_inputs(prices)
-        atr_e, vol_exit_e = exits
-        from run_h10_intraday_tsmom_pfopt_experiment import (
-            apply_exits_hourly,
-            build_hourly_target,
-            vol_scaled_tsmom_hourly,
-        )
-        base = vol_scaled_tsmom_hourly(prices, vol_window_long=1008, vol_window_short=252)
-        hourly_target = build_hourly_target(base, None, 1008, False, vix_hourly, prices.index)
-        positions = apply_exits_hourly(
-            hourly_target, prices, atr_e, vol_exit_e,
-            trailing_mult=2.0, max_hold_bars=60, vol_limit_mult=1.5, vol_floor_fraction=0.25,
-            target_vol=0.15, min_trade_interval=0,
-        )
-        contrib_frozen = per_symbol_contributions(run_backtest(prices=prices, signals=positions, volumes=volumes, config=cfg), prices, cfg)
+        # Build per-symbol net contributions for the frozen config on OOS (to compute LOO PF).
+        # Per-config LOO is computed inside the grid loop below; the frozen
+        # contrib block was exploratory and is not part of the audited result.
 
         results = []
         min_pf_gate = GATES["min_profit_factor"]
         min_sr_gate = GATES["min_sharpe"]
 
-        # Get OOS return series for frozen (sum of contribs gives per-bar net return in engine units? check)
-        # per_symbol_contributions returns per-bar $ P&L contributions? Or returns. Let us look up.
-        frozen_oos_pnl = contrib_frozen.sum(axis=1)
-        # Convert to returns if needed - look up how used
-        frozen_oos_ret = frozen_oos_pnl / INITIAL_CAPITAL if False else frozen_oos_pnl  # but need to be consistent with engine returns scale
-        # Actually engine returns are per-bar net returns (frac). Contribs from H11: per_symbol_contributions gives contributions - check units.
-        # From H11: it uses res.returns and positions; easier to get frozen returns from engine
-        res_frozen = run_backtest(prices=prices, signals=positions, volumes=volumes, config=cfg)
-        frozen_oos_ret_series = res_frozen.returns[oos_mask]
+        # Exit-model inputs reused by the per-combo LOO rebuild below.
+        atr_e, vol_exit_e = _build_exit_inputs(prices)
 
         for i in range(len(grid_meta)):
             cfg_row = grid_meta.iloc[i]
@@ -257,16 +233,12 @@ def main():
             # DSR at N=K_TOP (worst-case N trials = K)
             sr_oos = float(sharpe_ratio(oos_ret))
             n_obs = len(oos_ret)
-            var_trials = float(np.var(grid_meta["oos_sharpe"].values, ddof=1)) if len(grid_meta) > 1 else 0.0
-            # compute moments of oos_ret
+            # Moments of oos_ret feed the non-normality correction in the
+            # deflated Sharpe ratio.
             skew = float(stats.skew(oos_ret.values))
             kurt = float(stats.kurtosis(oos_ret.values, fisher=False))
-            # worst-case DSR at N=K
-            sr0_k, _ = _expected_max_sharpe(K_TOP, var_trials / PERIODS_PER_YEAR)
-            # deflated using formula with sr0 = E[max SR | N trials] scaled appropriately
-            dsr_adj_k, p_k = deflated_sharpe_ratio(sr_oos, K_TOP, n_obs, var_trials, skew, kurt)
-            # recompute properly: deflated_sharpe_ratio takes observed_sr annualized, n_trials, n_obs, var_trials (annualized var of trials?), skew/kurt of returns
-            # but deflated_sharpe_ratio expects var_trials as variance of per-trial Sharpe estimates
+            # DSR at N=K_TOP (worst-case N trials = K), deflated against
+            # the expected-max Sharpe for K independent trials.
             dsr_adj_k, p_k = deflated_sharpe_ratio(sr_oos, K_TOP, n_obs, float(np.var(grid_meta["oos_sharpe"].values, ddof=1)), skew, kurt)
 
             # LOO dispensability on frozen contribs? Or better compute contribs for this config?
@@ -363,7 +335,7 @@ def main():
         print(f"    Time: {total_elapsed/60:.1f} min")
         print("=" * 72)
         return 0 if all_pass_flag else 1
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))

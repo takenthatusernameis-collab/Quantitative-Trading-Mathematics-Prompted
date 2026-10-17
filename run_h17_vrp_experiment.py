@@ -488,7 +488,6 @@ def main():
         ablations["gate_only_no_vol_target"] = {"oos_metrics": go_gate["oos_metrics"]}
         # (d) BH SPY reference
         if not spy.isna().all():
-            spy_prices = pd.DataFrame({"SPY": spy.values}, index=common)
             spy_eq = pd.Series(((1 + spy.pct_change().fillna(0)).cumprod() * INITIAL_CAPITAL), index=common)
             ablations["bh_spy"] = {
                 "oos_metrics": _period_metrics(
@@ -587,7 +586,7 @@ def main():
         )
         print("=" * 72)
         return 0 if gate["all_pass"] else 1
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))

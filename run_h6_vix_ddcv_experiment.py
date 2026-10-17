@@ -313,7 +313,7 @@ def main():
                                   volumes=volumes, adv=adv, config=bh_cfg)
         tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
         tracker.log_metrics({f"benchmark_{k}": float(v) for k, v in bh_result.metrics.items()}, step=0)
-        print("Benchmark Sharpe=%.3f" % bh_result.metrics["sharpe"])
+        print(f"Benchmark Sharpe={bh_result.metrics['sharpe']:.3f}")
 
         # Base signal (H4 best combo)
         base_sig = vol_scaled_tsmom_signals(
@@ -324,15 +324,13 @@ def main():
         base_sig = resample_monthly_signals(base_sig)
         base_result = evaluate(prices, base_sig, volumes, adv)
         train_r, _, _, oos_r = split_returns_by_date(base_result.returns)
-        print("Base TSMOM: train_sharpe=%.3f oos_sharpe=%.3f dd=%.3f" %
-              (sharpe_ratio(train_r.values), sharpe_ratio(oos_r.values), base_result.metrics["max_drawdown"]))
+        print(f"Base TSMOM: train_sharpe={sharpe_ratio(train_r.values):.3f} oos_sharpe={sharpe_ratio(oos_r.values):.3f} dd={base_result.metrics['max_drawdown']:.3f}")
 
         # VIX-gated only (ablation)
-        vix_only_sig, vix_only_scale = apply_vix_gate(base_sig, vix)
+        vix_only_sig, _ = apply_vix_gate(base_sig, vix)
         vix_only_result = evaluate(prices, vix_only_sig, volumes, adv)
         train_r, _, _, oos_r = split_returns_by_date(vix_only_result.returns)
-        print("VIX-only: train_sharpe=%.3f oos_sharpe=%.3f dd=%.3f" %
-              (sharpe_ratio(train_r.values), sharpe_ratio(oos_r.values), vix_only_result.metrics["max_drawdown"]))
+        print(f"VIX-only: train_sharpe={sharpe_ratio(train_r.values):.3f} oos_sharpe={sharpe_ratio(oos_r.values):.3f} dd={vix_only_result.metrics['max_drawdown']:.3f}")
 
         # DDCV-only (ablation, on base signals)
         ddcv_only_records = []
@@ -351,8 +349,7 @@ def main():
         ddcv_only_df = pd.DataFrame(ddcv_only_records)
         ddcv_only_df = ddcv_only_df.sort_values("val_sharpe", ascending=False)
         best_ddcv_only = ddcv_only_df.iloc[0]
-        print("DDCV-only best on Val: trigger=%s factor=%s val_sharpe=%.3f" %
-              (best_ddcv_only["dd_trigger"], best_ddcv_only["dd_factor"], best_ddcv_only["val_sharpe"]))
+        print(f"DDCV-only best on Val: trigger={best_ddcv_only['dd_trigger']} factor={best_ddcv_only['dd_factor']} val_sharpe={best_ddcv_only['val_sharpe']:.3f}")
 
         # ---- Combined VIX+DDCV grid search (selection on Val only) ----
         combo_records = []
@@ -377,8 +374,7 @@ def main():
         combo_df = pd.DataFrame(combo_records)
         combo_df = combo_df.sort_values("val_sharpe", ascending=False)
         best = combo_df.iloc[0]
-        print("VIX+DDCV grid (%d combos); best on Val: trigger=%s factor=%s val_sharpe=%.3f" %
-            (len(combo_df), best["dd_trigger"], best["dd_factor"], best["val_sharpe"]))
+        print(f"VIX+DDCV grid ({len(combo_df)} combos); best on Val: trigger={best['dd_trigger']} factor={best['dd_factor']} val_sharpe={best['val_sharpe']:.3f}")
 
         # ---- Evaluate best combo on full OOS with gates ----
         best_trigger = best["dd_trigger"]
@@ -423,8 +419,7 @@ def main():
             "ir": bool(ir > GATES.get("min_information_ratio", -1e18)),
         }
         all_pass = all(passes.values())
-        print("VIX+DDCV best OOS: sharpe=%.3f trades=%d pf=%.3f dd=%.3f stab=%.3f worst=%.3f p=%.4f ir=%.3f" %
-              (oos_sharpe, len(oos_trades), oos_pf, oos_dd, wf_stab, worst, p, ir))
+        print(f"VIX+DDCV best OOS: sharpe={oos_sharpe:.3f} trades={len(oos_trades)} pf={oos_pf:.3f} dd={oos_dd:.3f} stab={wf_stab:.3f} worst={worst:.3f} p={p:.4f} ir={ir:.3f}")
         print("Passes:", {k: bool(v) for k, v in passes.items()})
 
         # ---- Ablation summary (evaluated on full OOS) ----
@@ -488,7 +483,7 @@ def main():
         tracker.finish_experiment(status="completed")
         print("All pass:", all_pass)
         return all_pass
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))

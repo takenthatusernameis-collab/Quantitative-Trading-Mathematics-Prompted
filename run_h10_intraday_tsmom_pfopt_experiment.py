@@ -51,7 +51,7 @@ from run_h9_intraday_tsmom_experiment import (
     FUTURES_SPECS,  # noqa: F401  (re-exported for downstream modules)
     FUTURES_UNIVERSE,
     GATES,
-    INITIAL_CAPITAL,
+    INITIAL_CAPITAL,  # noqa: F401  (re-exported for run_h21/run_h22/run_h25 test-pinning)
     SEED,
     VIX_SYMBOL,
     _daily_target_from_hourly,
@@ -66,7 +66,6 @@ EXPERIMENT_DESC = (
     "optimization; Val-selected, Test-protected, same gates as H9"
 )
 
-INITIAL_CAPITAL = INITIAL_CAPITAL
 TARGET_VOL = 0.15
 VOL_WINDOW_SHORT_RATIO = 4  # H9 used 252 long / 63 short (4:1)
 
@@ -309,7 +308,6 @@ def _full_gate_eval(
         worst = min(worst, s)
 
     bench = compare_to_benchmark(result.returns, bh_result.returns)
-    cum = (1 + oos_ret).cumprod()
     oos_max_dd = oos_m["max_drawdown"]
 
     passes = {
@@ -761,7 +759,7 @@ def main():
               f"({total_elapsed/3600:.2f} CPU-h)")
         print("=" * 72)
         return 0 if gate["all_pass"] else 1
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))

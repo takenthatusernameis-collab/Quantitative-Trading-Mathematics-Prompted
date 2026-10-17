@@ -342,7 +342,7 @@ def main():
         # Data: H10 cached window + H12 grid re-run artifacts
         # =================================================================
         prices, volumes, vix_hourly, h10_returns = _load_cached_data()
-        train_mask, val_mask, test_mask = _splits(prices)
+        val_mask, test_mask = _splits(prices)
         oos_mask = val_mask | test_mask
         grid_oos = pd.read_parquet(H12_GRID_PARQUET)
         sel_grid_row = _selected_row(grid_oos)
@@ -666,10 +666,10 @@ def main():
             pd.DataFrame({
                 "symbol": list(sym_pf.keys()),
                 "net_profit_factor": list(sym_pf.values()),
-                "net_pnl": [sym_pnl[s] for s in sym_pf.keys()],
-                "pnl_share": [sym_share[s] for s in sym_pf.keys()],
+                "net_pnl": [sym_pnl[s] for s in sym_pf],
+                "pnl_share": [sym_share[s] for s in sym_pf],
                 "leave_one_out_pooled_pf": [
-                    lou_pf[s] for s in sym_pf.keys()
+                    lou_pf[s] for s in sym_pf
                 ],
             }),
         )
@@ -715,7 +715,7 @@ def main():
               f"{total_elapsed/3600:.3f} CPU-h)")
         print("=" * 72)
         return 0 if all_pass else 1
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))

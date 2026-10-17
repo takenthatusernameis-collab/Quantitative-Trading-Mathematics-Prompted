@@ -390,7 +390,6 @@ def main():
 
     try:
         prices, volumes, vix_hourly, h10_returns = _load_cached_data()
-        atr, vol_exit = _build_exit_inputs(prices)
         train_mask, val_mask, test_mask = _splits(prices)
         masks = {
             "train": train_mask, "val": val_mask, "test": test_mask,
@@ -642,7 +641,7 @@ def main():
               f"({total_elapsed/60:.1f} min, {total_elapsed/3600:.3f} CPU-h)")
         print("=" * 72)
         return 0 if all_pass else 1
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))

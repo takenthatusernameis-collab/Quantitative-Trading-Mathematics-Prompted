@@ -129,14 +129,11 @@ def resample_monthly_signals(signals: pd.DataFrame) -> pd.DataFrame:
 
 
 def compute_atr(prices: pd.DataFrame, window: int = 14) -> pd.DataFrame:
-    high = prices.copy()
-    low = prices.copy()
-    close = prices.copy()
-    if hasattr(prices.attrs, "__dict__"):
-        pass
-    # Use close price as proxy if we only have close series
-    # For single-column close dataframes, approximate ATR from close pct moves scaled
-    # Simpler: use close-to-close volatility * price level as proxy
+    """Proxy ATR from close-to-close volatility at the price level.
+
+    True high/low ATR is unavailable on the daily futures slice used here;
+    the close-based proxy is documented as a limitation of H7.
+    """
     daily_ret = prices.pct_change()
     vol = daily_ret.rolling(window).std() * np.sqrt(252)
     atr_proxy = prices * (vol / np.sqrt(252))  # daily ATR approx
@@ -223,10 +220,7 @@ def apply_path_dependent_exits_daily(signals: pd.DataFrame, prices: pd.DataFrame
     modified = signals.copy()
     pct = prices.pct_change()
 
-    # Track entry time conceptually - simplified: on signal changes
-    sig_diff = modified.diff().fillna(modified)
-    # Identify position starts (simplified heuristic)
-    pos = modified.copy()
+    # Rolling realized vol feeds the vol-stop regime gate.
     vol = pct.rolling(vol_window).std() * np.sqrt(252)
     vol = vol.replace(0, np.nan).ffill()
 
@@ -337,7 +331,7 @@ def main():
                 "ir": bench_res.get("information_ratio", np.nan),
                 "p_value": bench_res.get("p_value", np.nan),
             }
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 -- benchmark comparison is advisory; a failure is logged and the run continues
             print(f"Benchmark comparison failed: {e}")
 
         n_trades = len(result.trades) if result.trades is not None else 0
@@ -386,9 +380,9 @@ def main():
         tracker.log_metric("all_pass", 1.0 if all_pass else 0.0)
 
         print(json.dumps(summary, indent=2, default=str))
-        print(f"Artifacts at: {Path(tracker.log_dir) / "artifacts" / exp_id}")
+        print(f"Artifacts at: {Path(tracker.log_dir) / 'artifacts' / exp_id}")
         return 0 if all_pass else 1
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         print(f"Experiment failed: {e}", file=sys.stderr)
         import traceback
         traceback.print_exc(file=sys.stderr)

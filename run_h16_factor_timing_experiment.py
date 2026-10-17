@@ -314,7 +314,6 @@ def full_gate_eval(
         oos_ret.dropna().values,
         bench_result.returns[oos_mask].dropna().values,
     )
-    cum = (1 + oos_ret).cumprod()
     oos_max_dd = oos_m["max_drawdown"]
 
     passes = {
@@ -687,7 +686,7 @@ def main():
         )
         print("=" * 72)
         return 0 if gate["all_pass"] else 1
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
 
         traceback.print_exc()

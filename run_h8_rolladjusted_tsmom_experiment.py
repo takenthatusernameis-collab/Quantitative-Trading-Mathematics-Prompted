@@ -348,7 +348,6 @@ def compute_gate_metrics(result, prices, vix, label=""):
                 worst = min(worst, s)
 
     # Benchmark comparison: equal-weight futures buy-and-hold
-    bench_pf = (1.0 / len(prices.columns))
     bh_signals = pd.DataFrame(
         1.0 / len(prices.columns),
         index=prices.index, columns=prices.columns,
@@ -511,7 +510,6 @@ def main():
         best_val_sharpe = -np.inf
         best_weight = None
         best_result = None
-        best_P_adj = None
 
         for weight in ROLL_CARRY_WEIGHT_GRID:
             # Build roll-adjusted returns and prices
@@ -563,7 +561,6 @@ def main():
                 best_val_sharpe = val_s
                 best_weight = weight
                 best_result = result
-                best_P_adj = P_adj
 
         grid_df = pd.DataFrame(grid_records)
         grid_df = grid_df.sort_values("val_sharpe", ascending=False)
@@ -696,7 +693,7 @@ def main():
 
         return 0 if gate_metrics["all_pass"] else 1
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))

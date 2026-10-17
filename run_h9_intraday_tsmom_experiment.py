@@ -453,7 +453,7 @@ def main():
         print(f"Val SR: {val_sharpe:.3f} | Test SR: {test_sharpe:.3f} | WF stab: {wf_stab:.3f}")
         print("=" * 70)
         return 0 if all_pass else 1
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))
