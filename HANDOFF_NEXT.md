@@ -2,44 +2,40 @@
 
 ## State you are inheriting
 
-The repo is at HEAD `8cead58` (branch up to date with `origin/main`).
+Repo at HEAD `ddd49c5` (branch `main` in sync with `origin/main`). Working tree clean.
 Baseline: **359/359 tests**, `ruff check src tests run_*.py` all clean,
 `ruff format --check src tests run_*.py` all clean (61 files formatted).
 
-Working tree has **27 modified files uncommitted** from `ruff format`
-applied this session (8 in `src/`, 19 in `tests/`). `git status` is NOT
-clean — these changes need to be committed and pushed before progress is
-durable.
+The Session 18 work (27 `ruff format`-reformatted `src/`/`tests/` files) is
+already committed in `d6eed70` and pushed to `origin/main`. Session 18's
+HANDOFF.md / HANDOFF_NEXT.md / NEXT_TASK.md are stale — they describe the files
+as uncommitted. This file reflects the actual committed state.
 
 ## What this session did
 
-Lifted the `src/`/`tests/` hands-off constraint and applied `ruff format`
-to those directories, resolving the last ruff format debt. 27 files
-reformatted, 34 already formatted. No `src/`/`tests/` semantics altered.
+Verified the durable baseline:
+- `git status` clean; `main` == `origin/main` == `ddd49c5`
+- `ruff format --check` / `ruff check` -> all clean
+- `pytest -q` -> 359 passed in 203.83 s
 
-Verified:
-- `ruff format --check src tests run_*.py` -> All 61 files formatted.
-- `ruff check src tests run_*.py` -> All checks passed.
-- `pytest -q` -> 359 passed in 206.35 s (count unchanged -> semantics
-  preserved).
-
-Updated `HANDOFF.md`, `NEXT_TASK.md`, and this file.
+Corrected `HANDOFF.md`, `HANDOFF_NEXT.md`, and `NEXT_TASK.md` to reflect that
+commit/push is complete.
 
 ## Precise next task
 
-1. `git add src tests` and commit the 27 formatted files (one commit).
-2. Push to `origin/main`.
-3. Verify persistence: `git status` clean, remote in sync.
-4. Declare the free-data phase complete. No bounded task remains under
-   current constraints; paid hourly futures data work is out of scope.
+None — declare the free-data phase complete. No bounded task remains under
+current constraints; paid hourly futures data work is out of scope.
+
+Resume only if paid hourly futures data becomes available, to widen the OOS
+window for the certified intraday futures TSMOM family (H10/H22/H25), whose
+PF/Sharpe bootstrap CIs are CI-fragile on the free ~730-day yfinance `=F`
+window (see FINAL_REPORT.md §Conclusion and INEFFICIENCY_RANKING.md §17).
 
 ## Constraints handed down
 
-- Do NOT re-open any ruff lint rule — the sweep is finished.
-- Do NOT touch `src/`/`tests/` semantics — formatting only is permitted.
-- The free-data hypothesis space (H1–H25) is exhausted; no bounded
-  free-data experiment remains. Paid hourly futures data required for next
-  step (out of free-data scope).
+- Do NOT re-open any ruff lint rule (sweep finished).
+- `src/`/`tests/` changes are formatting-only; no semantic changes.
+- Free-data hypothesis space (H1–H25) exhausted; paid data out of scope.
 - Commit-per-experiment convention; bytecode is gitignored.
 - Reconcile remote changes instead of blindly overwriting; verify
   persistence before declaring done.
