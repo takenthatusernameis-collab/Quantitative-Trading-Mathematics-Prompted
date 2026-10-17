@@ -116,9 +116,7 @@ EXPERIMENT_DESC = (
 )
 
 # H12 artifact (per-combo OOS metrics for all 13,824 configs).
-H12_ARTIFACT_DIR = Path(
-    ".experiments/artifacts/exp_2026-10-13T12-51-06-515939Z"
-)
+H12_ARTIFACT_DIR = Path(".experiments/artifacts/exp_2026-10-13T12-51-06-515939Z")
 H12_GRID_PARQUET = H12_ARTIFACT_DIR / "grid_oos_metrics.parquet"
 
 # Original H11 experiment (E4a shifted splits to confirm).
@@ -166,7 +164,7 @@ def deflated_sharpe_ratio_single_peek(
     sr_per_bar = observed_sr / np.sqrt(PERIODS_PER_YEAR)
     numerator = sr_per_bar * np.sqrt(n_obs - 1.0)
     skew_term = 1.0 - skewness * sr_per_bar
-    kurt_term = (kurtosis - 1.0) / 4.0 * sr_per_bar ** 2
+    kurt_term = (kurtosis - 1.0) / 4.0 * sr_per_bar**2
     denom = float(np.sqrt(max(1e-12, skew_term + kurt_term)))
     dsr_adj = numerator / denom
     p = float(stats.norm.cdf(dsr_adj))
@@ -200,9 +198,7 @@ def _shifted_splits(prices, train_frac, val_frac):
     return train_mask, val_mask, test_mask
 
 
-def bootstrap_profit_factor_distribution(
-    returns, seed=SEED, n_bootstrap=N_BOOTSTRAP
-):
+def bootstrap_profit_factor_distribution(returns, seed=SEED, n_bootstrap=N_BOOTSTRAP):
     """Bootstrap distribution of the profit factor.
 
     Deterministic given ``seed`` (i.i.d. resampling with
@@ -221,10 +217,7 @@ def bootstrap_profit_factor_distribution(
 
 def _per_symbol_pf(contrib, mask):
     """Net profit factor of each symbol's contribution on a mask."""
-    return {
-        sym: _profit_factor(contrib[sym][mask])
-        for sym in contrib.columns
-    }
+    return {sym: _profit_factor(contrib[sym][mask]) for sym in contrib.columns}
 
 
 def _leave_one_out_pf(contrib, mask):
@@ -249,17 +242,15 @@ def _regime_pf(pooled_returns, regimes, mask):
 def _oos_pf_of_positions(positions, prices, volumes, cfg, oos_mask):
     """Run the engine on fixed positions with ``cfg`` and
     return (OOS PF, OOS Sharpe, OOS trades)."""
-    res = run_backtest(prices=prices, signals=positions,
-                       volumes=volumes, config=cfg)
+    res = run_backtest(prices=prices, signals=positions, volumes=volumes, config=cfg)
     oos_ret = res.returns[oos_mask]
-    om = _period_metrics(
-        oos_ret, _count_in(res.trades, oos_mask, prices)
-    )
+    om = _period_metrics(oos_ret, _count_in(res.trades, oos_mask, prices))
     return om["profit_factor"], om["sharpe"], om["trades"]
 
 
-def _cost_breakeven(positions, prices, volumes, oos_mask,
-                    lo, hi, tol=COST_BREAKEVEN_TOL):
+def _cost_breakeven(
+    positions, prices, volumes, oos_mask, lo, hi, tol=COST_BREAKEVEN_TOL
+):
     """Bisect the cost multiplier at which OOS PF = 1.3.
 
     ``lo`` must keep PF >= 1.3 and ``hi`` must drop below;
@@ -268,17 +259,17 @@ def _cost_breakeven(positions, prices, volumes, oos_mask,
     fixed).
     """
     pf_lo, _, _ = _oos_pf_of_positions(
-        positions, prices, volumes, make_cost_stressed_config(lo),
-        oos_mask)
+        positions, prices, volumes, make_cost_stressed_config(lo), oos_mask
+    )
     pf_hi, _, _ = _oos_pf_of_positions(
-        positions, prices, volumes, make_cost_stressed_config(hi),
-        oos_mask)
+        positions, prices, volumes, make_cost_stressed_config(hi), oos_mask
+    )
     assert pf_lo >= MIN_PF >= pf_hi, (lo, pf_lo, hi, pf_hi)
     while hi - lo > tol:
         mid = (lo + hi) / 2.0
         pf_mid, _, _ = _oos_pf_of_positions(
-            positions, prices, volumes,
-            make_cost_stressed_config(mid), oos_mask)
+            positions, prices, volumes, make_cost_stressed_config(mid), oos_mask
+        )
         if pf_mid >= MIN_PF:
             lo, pf_lo = mid, pf_mid
         else:
@@ -288,8 +279,7 @@ def _cost_breakeven(positions, prices, volumes, oos_mask,
 
 def _selected_row(grid_meta):
     """Row of the frozen selected config in a re-run grid."""
-    smooth = "none" if SEL["smooth_span"] is None else str(
-        SEL["smooth_span"])
+    smooth = "none" if SEL["smooth_span"] is None else str(SEL["smooth_span"])
     mask = (
         (grid_meta["vol_window_long"] == SEL["vol_window_long"])
         & (grid_meta["smooth_span"] == smooth)
@@ -361,33 +351,48 @@ def main():
         # Selected config's OOS Sharpe (H12 re-run / H10 artifact).
         sel_oos_sharpe = float(sel_grid_row["oos_sharpe"])
         sel_oos_pf = float(sel_grid_row["oos_profit_factor"])
-        h12_summary = json.loads(
-            (H12_ARTIFACT_DIR / "summary.json").read_text()
+        h12_summary = json.loads((H12_ARTIFACT_DIR / "summary.json").read_text())
+        assert (
+            abs(
+                sel_oos_sharpe - h12_summary["rerun_oos_metrics"]["selected_oos_sharpe"]
+            )
+            < 1e-12
         )
-        assert abs(sel_oos_sharpe - h12_summary["rerun_oos_metrics"][
-            "selected_oos_sharpe"]) < 1e-12
-        assert abs(sel_oos_pf - h12_summary["rerun_oos_metrics"][
-            "selected_oos_profit_factor"]) < 1e-12
-        print(f"[H13] window: {prices.shape} OOS bars={n_obs} "
-              f"selected OOS SR={sel_oos_sharpe:.6f} PF={sel_oos_pf:.6f}")
-        print(f"[H13] OOS-Sharpe grid: mean={mean_trials_oos:.6f} "
-              f"SD={std_trials_oos:.6f} var={var_trials_oos:.6f}")
-        print(f"[H13] OOS return moments: skew={skew:.4f} "
-              f"kurtosis={kurt:.4f}")
+        assert (
+            abs(
+                sel_oos_pf
+                - h12_summary["rerun_oos_metrics"]["selected_oos_profit_factor"]
+            )
+            < 1e-12
+        )
+        print(
+            f"[H13] window: {prices.shape} OOS bars={n_obs} "
+            f"selected OOS SR={sel_oos_sharpe:.6f} PF={sel_oos_pf:.6f}"
+        )
+        print(
+            f"[H13] OOS-Sharpe grid: mean={mean_trials_oos:.6f} "
+            f"SD={std_trials_oos:.6f} var={var_trials_oos:.6f}"
+        )
+        print(f"[H13] OOS return moments: skew={skew:.4f} kurtosis={kurt:.4f}")
 
         # =================================================================
         # 1. OOS deflation: worst-case (N=13,824) and single-peek (N=1)
         # =================================================================
         print("[H13] --- 1. OOS deflation (DSR) ---")
         sr0_wc_per_bar, max_z_wc = _expected_max_sharpe(
-            N_GRID, var_trials_oos / PERIODS_PER_YEAR)
+            N_GRID, var_trials_oos / PERIODS_PER_YEAR
+        )
         sr0_wc_annual = sr0_wc_per_bar * np.sqrt(PERIODS_PER_YEAR)
         dsr_wc, p_wc = deflated_sharpe_ratio(
-            sel_oos_sharpe, N_GRID, n_obs, var_trials_oos, skew, kurt)
+            sel_oos_sharpe, N_GRID, n_obs, var_trials_oos, skew, kurt
+        )
         dsr_1, p_1 = deflated_sharpe_ratio_single_peek(
-            sel_oos_sharpe, n_obs, var_trials_oos, skew, kurt)
-        print(f"  worst-case N={N_GRID}: E[max SR | null] = "
-              f"{sr0_wc_annual:.4f} (annualized)")
+            sel_oos_sharpe, n_obs, var_trials_oos, skew, kurt
+        )
+        print(
+            f"  worst-case N={N_GRID}: E[max SR | null] = "
+            f"{sr0_wc_annual:.4f} (annualized)"
+        )
         print(f"  DSR (worst-case) = {dsr_wc:.4f}  p = {p_wc:.6f}")
         print(f"  DSR (single-peek N=1) = {dsr_1:.4f}  p = {p_1:.6f}")
 
@@ -395,15 +400,17 @@ def main():
         # Frozen pipeline: one backtest, bit-exact reproduction check
         # =================================================================
         atr, vol_exit = _build_exit_inputs(prices)
-        positions = build_positions(prices, atr, vol_exit, vix_hourly,
-                                  **FROZEN_CONFIG)
+        positions = build_positions(prices, atr, vol_exit, vix_hourly, **FROZEN_CONFIG)
         cfg = make_futures_config()
-        res = run_backtest(prices=prices, signals=positions,
-                           volumes=volumes, config=cfg)
+        res = run_backtest(
+            prices=prices, signals=positions, volumes=volumes, config=cfg
+        )
         max_ret_diff = float((res.returns - h10_returns).abs().max())
         assert max_ret_diff < 1e-9, max_ret_diff
-        print(f"[H13] frozen pipeline reproduces the H10 artifact "
-              f"returns (max |diff| = {max_ret_diff:.2e})")
+        print(
+            f"[H13] frozen pipeline reproduces the H10 artifact "
+            f"returns (max |diff| = {max_ret_diff:.2e})"
+        )
 
         # =================================================================
         # 2a. Net per-symbol OOS decomposition
@@ -411,39 +418,37 @@ def main():
         print("[H13] --- 2a. Net per-symbol OOS PF ---")
         contrib = per_symbol_contributions(res, prices, cfg)
         pooled = contrib.sum(axis=1)
-        recon_max_diff = float(
-            (pooled[oos_mask] - res.returns[oos_mask]).abs().max())
+        recon_max_diff = float((pooled[oos_mask] - res.returns[oos_mask]).abs().max())
         assert recon_max_diff < 1e-9, recon_max_diff
         sym_pf = _per_symbol_pf(contrib, oos_mask)
-        sym_pnl = {
-            sym: float(contrib[sym][oos_mask].sum())
-            for sym in contrib.columns
-        }
+        sym_pnl = {sym: float(contrib[sym][oos_mask].sum()) for sym in contrib.columns}
         total_pnl = float(pooled[oos_mask].sum())
-        sym_share = {
-            sym: sym_pnl[sym] / total_pnl for sym in contrib.columns
-        }
+        sym_share = {sym: sym_pnl[sym] / total_pnl for sym in contrib.columns}
         lou_pf = _leave_one_out_pf(contrib, oos_mask)
         print(f"  reconstruction max |diff| = {recon_max_diff:.2e}")
         for sym in contrib.columns:
-            print(f"  {sym}: net PF={sym_pf[sym]:.4f} "
-                  f"P&L={sym_pnl[sym]:+.4f} (share {sym_share[sym]:.3f}) "
-                  f"leave-one-out PF={lou_pf[sym]:.4f}")
+            print(
+                f"  {sym}: net PF={sym_pf[sym]:.4f} "
+                f"P&L={sym_pnl[sym]:+.4f} (share {sym_share[sym]:.3f}) "
+                f"leave-one-out PF={lou_pf[sym]:.4f}"
+            )
 
         # =================================================================
         # 2b. Bootstrap 95% CI of the OOS PF
         # =================================================================
         print("[H13] --- 2b. OOS PF bootstrap CI ---")
         pf_boot = bootstrap_profit_factor_distribution(
-            res.returns[oos_mask].values, seed=SEED,
-            n_bootstrap=N_BOOTSTRAP)
+            res.returns[oos_mask].values, seed=SEED, n_bootstrap=N_BOOTSTRAP
+        )
         ci_lo = float(np.percentile(pf_boot, 2.5))
         ci_hi = float(np.percentile(pf_boot, 97.5))
         pf_boot_median = float(np.median(pf_boot))
         pf_pass_frac = float((pf_boot >= MIN_PF).mean())
-        print(f"  OOS PF bootstrap 95% CI = [{ci_lo:.4f}, {ci_hi:.4f}] "
-              f"(median {pf_boot_median:.4f}, P(PF >= 1.3) = "
-              f"{pf_pass_frac:.4%})")
+        print(
+            f"  OOS PF bootstrap 95% CI = [{ci_lo:.4f}, {ci_hi:.4f}] "
+            f"(median {pf_boot_median:.4f}, P(PF >= 1.3) = "
+            f"{pf_pass_frac:.4%})"
+        )
 
         # =================================================================
         # 2c. Shifted splits (confirm H11 E4a + attribution)
@@ -455,53 +460,63 @@ def main():
         shifted_sym_rows = []
         shifted_regime_rows = []
         for label, train_frac, val_frac in SHIFTED_SPLITS:
-            _, s_val, s_test = _shifted_splits(
-                prices, train_frac, val_frac)
+            _, s_val, s_test = _shifted_splits(prices, train_frac, val_frac)
             s_oos = s_val | s_test
-            om = _period_metrics(
-                pooled[s_oos],
-                _count_in(res.trades, s_oos, prices))
+            om = _period_metrics(pooled[s_oos], _count_in(res.trades, s_oos, prices))
             spf = _per_symbol_pf(contrib, s_oos)
             srgp = _regime_pf(pooled, regimes, s_oos)
-            shifted_rows.append({
-                "split": label, "train_frac": train_frac,
-                "val_frac": val_frac, "oos_bars": int(s_oos.sum()),
-                "oos_sharpe": om["sharpe"],
-                "oos_profit_factor": om["profit_factor"],
-                "oos_max_drawdown": om["max_drawdown"],
-                "oos_trades": om["trades"],
-            })
+            shifted_rows.append(
+                {
+                    "split": label,
+                    "train_frac": train_frac,
+                    "val_frac": val_frac,
+                    "oos_bars": int(s_oos.sum()),
+                    "oos_sharpe": om["sharpe"],
+                    "oos_profit_factor": om["profit_factor"],
+                    "oos_max_drawdown": om["max_drawdown"],
+                    "oos_trades": om["trades"],
+                }
+            )
             for sym in contrib.columns:
-                shifted_sym_rows.append({
-                    "split": label, "symbol": sym,
-                    "net_profit_factor": spf[sym],
-                    "net_pnl": float(contrib[sym][s_oos].sum()),
-                })
+                shifted_sym_rows.append(
+                    {
+                        "split": label,
+                        "symbol": sym,
+                        "net_profit_factor": spf[sym],
+                        "net_pnl": float(contrib[sym][s_oos].sum()),
+                    }
+                )
             for reg in ("bull", "sideways", "bear"):
-                shifted_regime_rows.append({
-                    "split": label, "regime": reg,
-                    "profit_factor": srgp[reg],
-                    "bars": srgp[f"{reg}_bars"],
-                    "base_profit_factor": base_regime_pf[reg],
-                    "base_bars": base_regime_pf[f"{reg}_bars"],
-                })
-            print(f"  {label}: OOS bars={int(s_oos.sum())} "
-                  f"SR={om['sharpe']:.4f} PF={om['profit_factor']:.4f} "
-                  f"DD={om['max_drawdown']:.4f} trades={om['trades']}")
+                shifted_regime_rows.append(
+                    {
+                        "split": label,
+                        "regime": reg,
+                        "profit_factor": srgp[reg],
+                        "bars": srgp[f"{reg}_bars"],
+                        "base_profit_factor": base_regime_pf[reg],
+                        "base_bars": base_regime_pf[f"{reg}_bars"],
+                    }
+                )
+            print(
+                f"  {label}: OOS bars={int(s_oos.sum())} "
+                f"SR={om['sharpe']:.4f} PF={om['profit_factor']:.4f} "
+                f"DD={om['max_drawdown']:.4f} trades={om['trades']}"
+            )
 
         # Confirm against the original H11 E4a measurements.
         h11_e4a = {}
         if H11_ORIGINAL_SUMMARY.exists():
             h11_orig = json.loads(H11_ORIGINAL_SUMMARY.read_text())
-            for row in h11_orig["e4_window_robustness"][
-                    "shifted_splits"]:
+            for row in h11_orig["e4_window_robustness"]["shifted_splits"]:
                 h11_e4a[row["split"]] = float(row["oos_profit_factor"])
         for row in shifted_rows:
             if row["split"] in h11_e4a:
                 diff = abs(row["oos_profit_factor"] - h11_e4a[row["split"]])
                 assert diff < 1e-9, (row["split"], diff)
-                print(f"  {row['split']} PF reproduces H11 E4a "
-                      f"({h11_e4a[row['split']]:.6f}, |diff|={diff:.2e})")
+                print(
+                    f"  {row['split']} PF reproduces H11 E4a "
+                    f"({h11_e4a[row['split']]:.6f}, |diff|={diff:.2e})"
+                )
 
         # Attribution: largest per-symbol and per-regime PF drops
         # vs the base OOS mask, for the gate-failing splits.
@@ -512,11 +527,13 @@ def main():
             label = row["split"]
             sym_deltas = {
                 r["symbol"]: r["net_profit_factor"] - sym_pf[r["symbol"]]
-                for r in shifted_sym_rows if r["split"] == label
+                for r in shifted_sym_rows
+                if r["split"] == label
             }
             reg_deltas = {
                 r["regime"]: r["profit_factor"] - base_regime_pf[r["regime"]]
-                for r in shifted_regime_rows if r["split"] == label
+                for r in shifted_regime_rows
+                if r["split"] == label
             }
             worst_sym = min(sym_deltas, key=sym_deltas.get)
             worst_reg = min(reg_deltas, key=reg_deltas.get)
@@ -528,10 +545,12 @@ def main():
                 "worst_regime_pf_delta": reg_deltas[worst_reg],
                 "regime_pf_deltas": reg_deltas,
             }
-            print(f"  {label} shortfall attribution: worst symbol "
-                  f"{worst_sym} (PF delta {sym_deltas[worst_sym]:+.4f}), "
-                  f"worst regime {worst_reg} "
-                  f"({reg_deltas[worst_reg]:+.4f})")
+            print(
+                f"  {label} shortfall attribution: worst symbol "
+                f"{worst_sym} (PF delta {sym_deltas[worst_sym]:+.4f}), "
+                f"worst regime {worst_reg} "
+                f"({reg_deltas[worst_reg]:+.4f})"
+            )
 
         # =================================================================
         # 2d. Cost break-even verification
@@ -540,14 +559,17 @@ def main():
         cost_rows = []
         for mult in COST_SWEEP:
             pf, sr, trades = _oos_pf_of_positions(
-                positions, prices, volumes,
-                make_cost_stressed_config(mult), oos_mask)
-            cost_rows.append({
-                "cost_multiplier": mult, "oos_profit_factor": pf,
-                "oos_sharpe": sr, "oos_trades": trades,
-            })
-            print(f"  cost x{mult:.2f}: OOS PF={pf:.4f} "
-                  f"SR={sr:.4f} trades={trades}")
+                positions, prices, volumes, make_cost_stressed_config(mult), oos_mask
+            )
+            cost_rows.append(
+                {
+                    "cost_multiplier": mult,
+                    "oos_profit_factor": pf,
+                    "oos_sharpe": sr,
+                    "oos_trades": trades,
+                }
+            )
+            print(f"  cost x{mult:.2f}: OOS PF={pf:.4f} SR={sr:.4f} trades={trades}")
         cost_df = pd.DataFrame(cost_rows)
         # Bracket the crossing from the sweep, then bisect.
         below = cost_df[cost_df.oos_profit_factor < MIN_PF]
@@ -555,18 +577,24 @@ def main():
         lo = float(above.cost_multiplier.max())
         hi = float(below.cost_multiplier.min())
         breakeven, pf_lo, pf_hi = _cost_breakeven(
-            positions, prices, volumes, oos_mask, lo, hi)
+            positions, prices, volumes, oos_mask, lo, hi
+        )
         h11_breakeven = None
         if H11_ORIGINAL_SUMMARY.exists():
             h11_orig = json.loads(H11_ORIGINAL_SUMMARY.read_text())
-            h11_breakeven = float(h11_orig["e3_cost_stress"][
-                "breakeven_cost_multiplier_for_pf_1_3"])
-        print(f"  break-even cost multiplier for PF = 1.3: "
-              f"{breakeven:.4f} (bracket [{lo}, {hi}], "
-              f"PF {pf_lo:.4f} / {pf_hi:.4f})")
+            h11_breakeven = float(
+                h11_orig["e3_cost_stress"]["breakeven_cost_multiplier_for_pf_1_3"]
+            )
+        print(
+            f"  break-even cost multiplier for PF = 1.3: "
+            f"{breakeven:.4f} (bracket [{lo}, {hi}], "
+            f"PF {pf_lo:.4f} / {pf_hi:.4f})"
+        )
         if h11_breakeven is not None:
-            print(f"  H11 interpolated estimate: {h11_breakeven:.4f} "
-                  f"(|diff| = {abs(breakeven - h11_breakeven):.4f})")
+            print(
+                f"  H11 interpolated estimate: {h11_breakeven:.4f} "
+                f"(|diff| = {abs(breakeven - h11_breakeven):.4f})"
+            )
 
         # =================================================================
         # Verdict (pre-registered)
@@ -580,13 +608,19 @@ def main():
         symbol_gate = bool(all(v >= MIN_PF for v in lou_pf.values()))
         all_pass = bool(dsr_gate and ci_gate and symbol_gate)
         verdict = "PASS" if all_pass else "REJECT"
-        print(f"[H13] gates: worst-case DSR-adj OOS SR {dsr_wc:.4f} "
-              f">= {MIN_SR} -> {'PASS' if dsr_gate else 'FAIL'}")
-        print(f"[H13] gates: PF bootstrap CI LB {ci_lo:.4f} "
-              f">= {MIN_PF} -> {'PASS' if ci_gate else 'FAIL'}")
-        print(f"[H13] gates: all leave-one-out PF >= {MIN_PF} -> "
-              f"{'PASS' if symbol_gate else 'FAIL'} "
-              f"(min {min(lou_pf.values()):.4f})")
+        print(
+            f"[H13] gates: worst-case DSR-adj OOS SR {dsr_wc:.4f} "
+            f">= {MIN_SR} -> {'PASS' if dsr_gate else 'FAIL'}"
+        )
+        print(
+            f"[H13] gates: PF bootstrap CI LB {ci_lo:.4f} "
+            f">= {MIN_PF} -> {'PASS' if ci_gate else 'FAIL'}"
+        )
+        print(
+            f"[H13] gates: all leave-one-out PF >= {MIN_PF} -> "
+            f"{'PASS' if symbol_gate else 'FAIL'} "
+            f"(min {min(lou_pf.values()):.4f})"
+        )
 
         total_elapsed = time.time() - t_start
         summary = {
@@ -663,24 +697,23 @@ def main():
 
         tracker.log_dataframe(
             "per_symbol_net_oos",
-            pd.DataFrame({
-                "symbol": list(sym_pf.keys()),
-                "net_profit_factor": list(sym_pf.values()),
-                "net_pnl": [sym_pnl[s] for s in sym_pf],
-                "pnl_share": [sym_share[s] for s in sym_pf],
-                "leave_one_out_pooled_pf": [
-                    lou_pf[s] for s in sym_pf
-                ],
-            }),
+            pd.DataFrame(
+                {
+                    "symbol": list(sym_pf.keys()),
+                    "net_profit_factor": list(sym_pf.values()),
+                    "net_pnl": [sym_pnl[s] for s in sym_pf],
+                    "pnl_share": [sym_share[s] for s in sym_pf],
+                    "leave_one_out_pooled_pf": [lou_pf[s] for s in sym_pf],
+                }
+            ),
         )
         tracker.log_dataframe(
             "pf_bootstrap",
-            pd.DataFrame({"bootstrap_index": np.arange(N_BOOTSTRAP),
-                          "profit_factor": pf_boot}),
+            pd.DataFrame(
+                {"bootstrap_index": np.arange(N_BOOTSTRAP), "profit_factor": pf_boot}
+            ),
         )
-        tracker.log_dataframe(
-            "shifted_splits", pd.DataFrame(shifted_rows)
-        )
+        tracker.log_dataframe("shifted_splits", pd.DataFrame(shifted_rows))
         tracker.log_dataframe(
             "shifted_splits_per_symbol",
             pd.DataFrame(shifted_sym_rows),
@@ -694,29 +727,42 @@ def main():
         exp_dir = Path(tracker.log_dir) / "artifacts" / exp_id
         exp_dir.mkdir(parents=True, exist_ok=True)
         with open(exp_dir / "summary.json", "w") as f:
-            json.dump(summary, f, indent=2,
-                      default=lambda x: float(x)
-                      if isinstance(x, (np.integer, np.floating))
-                      else str(x))
+            json.dump(
+                summary,
+                f,
+                indent=2,
+                default=lambda x: (
+                    float(x) if isinstance(x, (np.integer, np.floating)) else str(x)
+                ),
+            )
         tracker.log_artifact("summary", exp_dir / "summary.json")
         tracker.finish_experiment(status="completed")
 
         print("\n" + "=" * 72)
         print("  H13 OOS deflation & PF-margin fragility audit:")
-        print(f"    worst-case DSR-adj OOS Sharpe {dsr_wc:.4f} "
-              f"(>= 1.0) -> {'PASS' if dsr_gate else 'FAIL'}")
-        print(f"    PF bootstrap CI LB {ci_lo:.4f} (>= 1.3) -> "
-              f"{'PASS' if ci_gate else 'FAIL'}")
-        print(f"    all symbols dispensable (min LOO PF "
-              f"{min(lou_pf.values()):.4f} >= 1.3) -> "
-              f"{'PASS' if symbol_gate else 'FAIL'}")
-        print(f"  OVERALL: {verdict}  "
-              f"({total_elapsed/60:.1f} min, "
-              f"{total_elapsed/3600:.3f} CPU-h)")
+        print(
+            f"    worst-case DSR-adj OOS Sharpe {dsr_wc:.4f} "
+            f"(>= 1.0) -> {'PASS' if dsr_gate else 'FAIL'}"
+        )
+        print(
+            f"    PF bootstrap CI LB {ci_lo:.4f} (>= 1.3) -> "
+            f"{'PASS' if ci_gate else 'FAIL'}"
+        )
+        print(
+            f"    all symbols dispensable (min LOO PF "
+            f"{min(lou_pf.values()):.4f} >= 1.3) -> "
+            f"{'PASS' if symbol_gate else 'FAIL'}"
+        )
+        print(
+            f"  OVERALL: {verdict}  "
+            f"({total_elapsed / 60:.1f} min, "
+            f"{total_elapsed / 3600:.3f} CPU-h)"
+        )
         print("=" * 72)
         return 0 if all_pass else 1
     except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
+
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))
         return 2

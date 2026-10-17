@@ -60,15 +60,30 @@ from qtr.validation.statistics import (
 # ============================================================
 UNIVERSE = [
     # Equities (6)
-    "SPY", "QQQ", "IWM", "EFA", "EEM", "VWO",
+    "SPY",
+    "QQQ",
+    "IWM",
+    "EFA",
+    "EEM",
+    "VWO",
     # Bonds (3)
-    "TLT", "AGG", "HYG",
+    "TLT",
+    "AGG",
+    "HYG",
     # Commodities (4)
-    "GLD", "USO", "PDBC", "GSG",
+    "GLD",
+    "USO",
+    "PDBC",
+    "GSG",
     # Currencies (3)
-    "UUP", "FXE", "FXY",
+    "UUP",
+    "FXE",
+    "FXY",
     # International / Real Estate (4)
-    "VNQ", "EWJ", "EWZ", "INDA",
+    "VNQ",
+    "EWJ",
+    "EWZ",
+    "INDA",
 ]
 VIX_SYMBOL = "^VIX"
 
@@ -76,13 +91,13 @@ START_DATE = "2015-01-01"
 END_DATE = "2024-12-31"
 
 TRAIN_END = "2019-12-31"
-VAL_END = "2021-12-31"   # Test = 2022-2024 (protected holdout)
+VAL_END = "2021-12-31"  # Test = 2022-2024 (protected holdout)
 
 # Parameter grid for selection
-LOOKBACKS = [63, 126, 252]    # ~1M, 6M, 12M
-SKIPS = [1, 5, 21]            # 1d, 1w, 1m skip to avoid reversal
+LOOKBACKS = [63, 126, 252]  # ~1M, 6M, 12M
+SKIPS = [1, 5, 21]  # 1d, 1w, 1m skip to avoid reversal
 LONG_ONLY_CHOICES = [True, False]
-TARGET_VOL = 0.15            # annualized vol target (Kim et al. 2016)
+TARGET_VOL = 0.15  # annualized vol target (Kim et al. 2016)
 
 # Evidence gates (union of PROMPT_V2 + HYPOTHESIS_SPEC; stricter wins)
 GATES = {
@@ -91,7 +106,7 @@ GATES = {
     "min_profit_factor": 1.3,
     "max_drawdown": 0.15,
     "min_walkforward_stability": 0.7,
-    "min_perturbed_sharpe_ratio": 0.5,   # OOS Sharpe >= 0.5 x optimum under +/-20%
+    "min_perturbed_sharpe_ratio": 0.5,  # OOS Sharpe >= 0.5 x optimum under +/-20%
     "min_worst_regime_sharpe": 0.3,
     "max_p_value": 0.05,
     "alpha_multiple_testing": "benjamini_hochberg",
@@ -99,7 +114,9 @@ GATES = {
 
 SEED = 42
 INITIAL_CAPITAL = 1_000_000.0
-MAX_LEVERAGE = 5.0   # headroom; portfolio-level vol targeting sets scale (engine won't bind)
+MAX_LEVERAGE = (
+    5.0  # headroom; portfolio-level vol targeting sets scale (engine won't bind)
+)
 MAX_POSITION_SIZE = 2.0  # per-asset cap enforced both here and in the engine
 
 COST_MODEL = {
@@ -139,7 +156,9 @@ def make_config(allow_short: bool) -> BacktestConfig:
     )
     cfg.cost_model.equity_commission_bps = COST_MODEL["equity_commission_bps"]
     cfg.cost_model.equity_spread_bps = COST_MODEL["equity_spread_bps"]
-    cfg.cost_model.equity_impact_bps_per_pct_adv = COST_MODEL["equity_impact_bps_per_pct_adv"]
+    cfg.cost_model.equity_impact_bps_per_pct_adv = COST_MODEL[
+        "equity_impact_bps_per_pct_adv"
+    ]
     return cfg
 
 
@@ -277,8 +296,11 @@ def main():
             "vix_symbol": VIX_SYMBOL,
             "start_date": START_DATE,
             "end_date": END_DATE,
-            "data_splits": {"train_end": TRAIN_END, "val_end": VAL_END,
-                            "test_start": VAL_END.replace("-12-31", "-01-01")},
+            "data_splits": {
+                "train_end": TRAIN_END,
+                "val_end": VAL_END,
+                "test_start": VAL_END.replace("-12-31", "-01-01"),
+            },
             "target_lookbacks": LOOKBACKS,
             "target_skips": SKIPS,
             "long_only_choices": LONG_ONLY_CHOICES,
@@ -333,12 +355,17 @@ def main():
         valid_assets = prices.columns[prices.notna().any(axis=0)].tolist()
         prices = prices[valid_assets]
         volumes = volumes[valid_assets]
-        print(f"Loaded {len(prices.columns)} traded assets x {len(prices)} days "
-              f"({prices.index[0].date()} -> {prices.index[-1].date()})")
+        print(
+            f"Loaded {len(prices.columns)} traded assets x {len(prices)} days "
+            f"({prices.index[0].date()} -> {prices.index[-1].date()})"
+        )
 
         vix_df = raw.get(VIX_SYMBOL)
-        vix = vix_df["close"] if (vix_df is not None and not vix_df.empty
-                                  and "close" in vix_df.columns) else pd.Series(np.nan, index=prices.index)
+        vix = (
+            vix_df["close"]
+            if (vix_df is not None and not vix_df.empty and "close" in vix_df.columns)
+            else pd.Series(np.nan, index=prices.index)
+        )
         vix = vix.reindex(prices.index).ffill()
 
         tracker.log_dataframe("prices", prices)
@@ -353,22 +380,30 @@ def main():
         # ------------------------------------------------------------
         print("Building equal-weight benchmark...")
         bh_cfg = make_config(allow_short=False)
-        bh_signals = run_strategy(prices, "buy_and_hold", weight=1.0 / len(prices.columns))
+        bh_signals = run_strategy(
+            prices, "buy_and_hold", weight=1.0 / len(prices.columns)
+        )
         bh_signals = resample_monthly_signals(bh_signals)
-        bh_result = run_backtest(prices=prices, signals=bh_signals, volumes=volumes, adv=adv, config=bh_cfg)
-        tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
+        bh_result = run_backtest(
+            prices=prices, signals=bh_signals, volumes=volumes, adv=adv, config=bh_cfg
+        )
+        tracker.log_dataframe(
+            "benchmark_equity", bh_result.equity_curve.to_frame("equity")
+        )
         tracker.log_dataframe("benchmark_trades", bh_result.trades)
-        tracker.log_metrics({f"benchmark_{k}": float(v) for k, v in bh_result.metrics.items()}, step=0)
-        print(f"  Benchmark equal-weight Sharpe={bh_result.metrics['sharpe']:.3f} "
-              f"Ret={bh_result.metrics['annualized_return']:.2%} Trades={bh_result.metrics['num_trades']}")
+        tracker.log_metrics(
+            {f"benchmark_{k}": float(v) for k, v in bh_result.metrics.items()}, step=0
+        )
+        print(
+            f"  Benchmark equal-weight Sharpe={bh_result.metrics['sharpe']:.3f} "
+            f"Ret={bh_result.metrics['annualized_return']:.2%} Trades={bh_result.metrics['num_trades']}"
+        )
 
         # ------------------------------------------------------------
         # 3. PARAMETER GRID SEARCH -- TRAIN ONLY (internal walk-forward)
         # ------------------------------------------------------------
         print("Grid search on TRAIN period (walk-forward selection)...")
-        grid = list(itertools.product(
-            LONG_ONLY_CHOICES, LOOKBACKS, SKIPS
-        ))
+        grid = list(itertools.product(LONG_ONLY_CHOICES, LOOKBACKS, SKIPS))
         print(f"  {len(grid)} combinations")
 
         combo_records = []
@@ -377,7 +412,9 @@ def main():
             result, _ = evaluate_combo(
                 prices, volumes, adv, allow_short, lookback, skip
             )
-            train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(result.returns)
+            train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(
+                result.returns
+            )
 
             # Internal walk-forward on train
             train_sharpes = wf_oos_sharpes(train_ret, n_splits=4)
@@ -396,8 +433,12 @@ def main():
                 "val_sharpe": float(sharpe_ratio(val_ret.values)),
                 "test_sharpe": float(sharpe_ratio(test_ret.values)),
                 "oos_sharpe": float(sharpe_ratio(oos_ret.values)),
-                "oos_trades": int((result.trades["timestamp"] > pd.Timestamp(TRAIN_END)).sum()),
-                "train_trades": int((result.trades["timestamp"] <= pd.Timestamp(TRAIN_END)).sum()),
+                "oos_trades": int(
+                    (result.trades["timestamp"] > pd.Timestamp(TRAIN_END)).sum()
+                ),
+                "train_trades": int(
+                    (result.trades["timestamp"] <= pd.Timestamp(TRAIN_END)).sum()
+                ),
                 "full_sharpe": float(result.metrics["sharpe"]),
                 "full_max_dd": float(result.metrics["max_drawdown"]),
                 "full_pf": float(result.metrics["profit_factor"]),
@@ -405,8 +446,10 @@ def main():
             }
             combo_records.append(rec)
             tracker.log_metrics(rec, step=i)
-            print(f"  [{i+1}/{len(grid)}] long_only={long_only} lb={lookback} skip={skip}: "
-                  f"train Sharpe={train_sharpe:.3f} wfOOS={sel:.3f} val={rec['val_sharpe']:.3f} test={rec['test_sharpe']:.3f}")
+            print(
+                f"  [{i + 1}/{len(grid)}] long_only={long_only} lb={lookback} skip={skip}: "
+                f"train Sharpe={train_sharpe:.3f} wfOOS={sel:.3f} val={rec['val_sharpe']:.3f} test={rec['test_sharpe']:.3f}"
+            )
 
         combos_df = pd.DataFrame(combo_records)
         tracker.log_dataframe("param_grid_results", combos_df)
@@ -420,8 +463,10 @@ def main():
         sel_lookback = int(best["lookback"])
         sel_skip = int(best["skip"])
         sel_allow_short = not sel_long_only
-        print(f"\nSELECTED: long_only={sel_long_only} lookback={sel_lookback} skip={sel_skip} "
-              f"(wfOOS Sharpe={best['wf_oos_mean_sharpe']:.3f}, train Sharpe={best['train_sharpe']:.3f})")
+        print(
+            f"\nSELECTED: long_only={sel_long_only} lookback={sel_lookback} skip={sel_skip} "
+            f"(wfOOS Sharpe={best['wf_oos_mean_sharpe']:.3f}, train Sharpe={best['train_sharpe']:.3f})"
+        )
 
         # Multiple testing correction for the grid (Benjamini-Hochberg on walk-forward p-values).
         # Per-fold Sharpe sign test -> p-value of wf_oos_mean_sharpe > 0
@@ -449,10 +494,14 @@ def main():
         final_result, final_signals = evaluate_combo(
             prices, volumes, adv, sel_allow_short, sel_lookback, sel_skip
         )
-        train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(final_result.returns)
+        train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(
+            final_result.returns
+        )
 
         tracker.log_dataframe("selected_signals", final_signals)
-        tracker.log_dataframe("selected_equity", final_result.equity_curve.to_frame("equity"))
+        tracker.log_dataframe(
+            "selected_equity", final_result.equity_curve.to_frame("equity")
+        )
         tracker.log_dataframe("selected_trades", final_result.trades)
 
         # ------------------------------------------------------------
@@ -462,10 +511,14 @@ def main():
         oos_returns = oos_ret
         oos_sharpe = sharpe_ratio(oos_returns.values)
         oos_returns_arr = oos_returns.values
-        sharpe_ci = sharpe_ratio_ci(oos_returns_arr, n_bootstrap=1000, random_state=SEED)
+        sharpe_ci = sharpe_ratio_ci(
+            oos_returns_arr, n_bootstrap=1000, random_state=SEED
+        )
 
         # Trades split
-        oos_trades = final_result.trades[final_result.trades["timestamp"] > pd.Timestamp(TRAIN_END)]
+        oos_trades = final_result.trades[
+            final_result.trades["timestamp"] > pd.Timestamp(TRAIN_END)
+        ]
 
         # Profit factor / drawdown on OOS equity
         oos_equity = (1 + oos_returns).cumprod()
@@ -523,13 +576,20 @@ def main():
         oos_returns_arr = oos_returns_arr[mask]
         bench_arr = bench_arr[mask]
         cmp = compare_to_benchmark(oos_returns_arr, bench_arr)
+
         # Bootstrap CI for Information Ratio
         def ir_func(x):
-            b = bench_arr[:len(x)]
+            b = bench_arr[: len(x)]
             excess = x - b
-            return float(excess.mean() / excess.std() * np.sqrt(252)) if excess.std() > 0 else 0.0
-        ir_ci = bootstrap_confidence_interval(oos_returns_arr - bench_arr,
-                                              ir_func, n_bootstrap=1000, random_state=SEED)
+            return (
+                float(excess.mean() / excess.std() * np.sqrt(252))
+                if excess.std() > 0
+                else 0.0
+            )
+
+        ir_ci = bootstrap_confidence_interval(
+            oos_returns_arr - bench_arr, ir_func, n_bootstrap=1000, random_state=SEED
+        )
         ir_ci = (float(ir_ci[0]), float(ir_ci[1]))
         # alpha p-value (two-sided t-test on daily excess returns)
         excess = oos_returns_arr - bench_arr
@@ -570,7 +630,9 @@ def main():
             "param_perturbation": {
                 "value": round(min_perturbed, 4),
                 "threshold": round(oos_sharpe * GATES["min_perturbed_sharpe_ratio"], 4),
-                "pass": bool(min_perturbed >= oos_sharpe * GATES["min_perturbed_sharpe_ratio"]),
+                "pass": bool(
+                    min_perturbed >= oos_sharpe * GATES["min_perturbed_sharpe_ratio"]
+                ),
                 "details": {k: round(float(v), 4) for k, v in perturbations.items()},
             },
             "regime_stability": {
@@ -601,11 +663,21 @@ def main():
         print("\n" + "=" * 72)
         print("TIME-SERIES MOMENTUM EXPERIMENT -- EVIDENCE GATES (OOS: Val+Test)")
         print("=" * 72)
-        print(f"Selected: long_only={sel_long_only} lookback={sel_lookback} skip={sel_skip} vol_target={TARGET_VOL}")
-        print(f"OOS Sharpe={oos_sharpe:.3f} (95% CI [{sharpe_ci[0]:.3f}, {sharpe_ci[1]:.3f}])")
-        print(f"Train Sharpe={train_sharpe:.3f}  Val Sharpe={sharpe_ratio(val_ret.values):.3f}  Test Sharpe={sharpe_ratio(test_ret.values):.3f}")
-        print(f"OOS trades={len(oos_trades)}  Profit factor={oos_pf:.3f}  Max DD={oos_dd:.2%}")
-        print(f"WF stability={wf_stability:.3f}  Worst regime Sharpe={worst_regime_sharpe:.3f}")
+        print(
+            f"Selected: long_only={sel_long_only} lookback={sel_lookback} skip={sel_skip} vol_target={TARGET_VOL}"
+        )
+        print(
+            f"OOS Sharpe={oos_sharpe:.3f} (95% CI [{sharpe_ci[0]:.3f}, {sharpe_ci[1]:.3f}])"
+        )
+        print(
+            f"Train Sharpe={train_sharpe:.3f}  Val Sharpe={sharpe_ratio(val_ret.values):.3f}  Test Sharpe={sharpe_ratio(test_ret.values):.3f}"
+        )
+        print(
+            f"OOS trades={len(oos_trades)}  Profit factor={oos_pf:.3f}  Max DD={oos_dd:.2%}"
+        )
+        print(
+            f"WF stability={wf_stability:.3f}  Worst regime Sharpe={worst_regime_sharpe:.3f}"
+        )
         print(f"Benchmark IR={cmp['information_ratio']:.3f}  alpha p={alpha_p:.4f}")
         print()
         for name, g in gates.items():
@@ -652,7 +724,9 @@ def main():
             "param_grid_summary": {
                 "n_combos": len(combo_records),
                 "selection_metric": "mean walk-forward OOS Sharpe on TRAIN",
-                "benjamini_hochberg_significant": int(sum(1 for r in combo_records if r.get("wf_oos_significant"))),
+                "benjamini_hochberg_significant": int(
+                    sum(1 for r in combo_records if r.get("wf_oos_significant"))
+                ),
             },
             "gates_spec": GATES,
         }
@@ -662,9 +736,13 @@ def main():
         tracker.log_artifact("summary", exp_dir / "summary.json")
 
         tracker.log_dataframe("param_grid_results", combos_df)
-        tracker.log_dataframe("selected_equity", final_result.equity_curve.to_frame("equity"))
+        tracker.log_dataframe(
+            "selected_equity", final_result.equity_curve.to_frame("equity")
+        )
         tracker.log_dataframe("selected_trades", final_result.trades)
-        tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
+        tracker.log_dataframe(
+            "benchmark_equity", bh_result.equity_curve.to_frame("equity")
+        )
 
         tracker.finish_experiment(status="completed")
 
@@ -674,6 +752,7 @@ def main():
 
     except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
+
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))
         return False

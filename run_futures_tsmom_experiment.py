@@ -14,6 +14,7 @@ Pre-registered design:
   * Selection: ensemble - average weights of top-K (K=5) configs by train WF Sharpe
   * Gates: same PROMPT_V2 gates including p<0.05 and IR>0 requirement via alpha test
 """
+
 import os
 import sys
 
@@ -91,22 +92,102 @@ EXPERIMENT_DESC = (
 
 # Futures contract specs (approximate common specs)
 FUTURES_SPECS = {
-    "ES=F": {"multiplier": 50.0, "tick_value": 12.50, "tick_size": 0.25, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "NQ=F": {"multiplier": 20.0, "tick_value": 5.0, "tick_size": 0.25, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "CL=F": {"multiplier": 1000.0, "tick_value": 10.0, "tick_size": 0.01, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "GC=F": {"multiplier": 100.0, "tick_value": 10.0, "tick_size": 0.10, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "ZB=F": {"multiplier": 1000.0, "tick_value": 31.25, "tick_size": 0.03125, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "ZN=F": {"multiplier": 1000.0, "tick_value": 15.625, "tick_size": 0.015625, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "TY=F": {"multiplier": 1000.0, "tick_value": 15.625, "tick_size": 0.015625, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "SI=F": {"multiplier": 5000.0, "tick_value": 25.0, "tick_size": 0.005, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "HG=F": {"multiplier": 25000.0, "tick_value": 12.50, "tick_size": 0.0005, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "KC=F": {"multiplier": 37500.0, "tick_value": 12.50, "tick_size": 0.0005, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "JB=F": {"multiplier": 37500.0, "tick_value": 12.50, "tick_size": 0.0005, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
+    "ES=F": {
+        "multiplier": 50.0,
+        "tick_value": 12.50,
+        "tick_size": 0.25,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "NQ=F": {
+        "multiplier": 20.0,
+        "tick_value": 5.0,
+        "tick_size": 0.25,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "CL=F": {
+        "multiplier": 1000.0,
+        "tick_value": 10.0,
+        "tick_size": 0.01,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "GC=F": {
+        "multiplier": 100.0,
+        "tick_value": 10.0,
+        "tick_size": 0.10,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "ZB=F": {
+        "multiplier": 1000.0,
+        "tick_value": 31.25,
+        "tick_size": 0.03125,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "ZN=F": {
+        "multiplier": 1000.0,
+        "tick_value": 15.625,
+        "tick_size": 0.015625,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "TY=F": {
+        "multiplier": 1000.0,
+        "tick_value": 15.625,
+        "tick_size": 0.015625,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "SI=F": {
+        "multiplier": 5000.0,
+        "tick_value": 25.0,
+        "tick_size": 0.005,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "HG=F": {
+        "multiplier": 25000.0,
+        "tick_value": 12.50,
+        "tick_size": 0.0005,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "KC=F": {
+        "multiplier": 37500.0,
+        "tick_value": 12.50,
+        "tick_size": 0.0005,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "JB=F": {
+        "multiplier": 37500.0,
+        "tick_value": 12.50,
+        "tick_size": 0.0005,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
 }
+
 
 def make_futures_config(allow_short: bool = False) -> BacktestConfig:
     cm = CostModel(
-        future_commission_per_contract=COST_MODEL_DEFAULTS["future_commission_per_contract"],
+        future_commission_per_contract=COST_MODEL_DEFAULTS[
+            "future_commission_per_contract"
+        ],
         future_spread_ticks=COST_MODEL_DEFAULTS["future_spread_ticks"],
         future_slippage_ticks=COST_MODEL_DEFAULTS["future_slippage_ticks"],
         futures_specs=FUTURES_SPECS,
@@ -121,6 +202,7 @@ def make_futures_config(allow_short: bool = False) -> BacktestConfig:
     )
     return cfg
 
+
 def split_returns_by_date(returns: pd.Series):
     train = returns[returns.index <= TRAIN_END]
     val = returns[(returns.index > TRAIN_END) & (returns.index <= VAL_END)]
@@ -128,16 +210,22 @@ def split_returns_by_date(returns: pd.Series):
     oos = returns[returns.index > TRAIN_END]
     return train, val, test, oos
 
+
 def resample_monthly_signals(signals: pd.DataFrame) -> pd.DataFrame:
     monthly = signals.resample("ME").last()
     full_index = signals.index
     monthly = monthly.reindex(full_index, method="ffill").fillna(0)
     return monthly
 
-def vol_scaled_tsmom_signals(prices: pd.DataFrame, lookback: int = 252,
-                              skip: int = 1, long_only: bool = False,
-                              target_vol: float = TARGET_VOL,
-                              vol_window: int = 63) -> pd.DataFrame:
+
+def vol_scaled_tsmom_signals(
+    prices: pd.DataFrame,
+    lookback: int = 252,
+    skip: int = 1,
+    long_only: bool = False,
+    target_vol: float = TARGET_VOL,
+    vol_window: int = 63,
+) -> pd.DataFrame:
     """Canonical volatility-scaled TSMOM (Moskowitz, Ooi & Pedersen 2012).
 
     Delegates to the shared library implementation in
@@ -146,6 +234,7 @@ def vol_scaled_tsmom_signals(prices: pd.DataFrame, lookback: int = 252,
     equals sign of momentum.
     """
     from qtr.strategies.baselines import vol_scaled_tsmom_signals as _impl
+
     return _impl(
         prices,
         lookback=lookback,
@@ -156,16 +245,22 @@ def vol_scaled_tsmom_signals(prices: pd.DataFrame, lookback: int = 252,
         max_position_size=MAX_POSITION_SIZE,
     )
 
+
 def evaluate_combo(prices, volumes, adv, long_only, lookback, skip):
     cfg = make_futures_config(allow_short=not long_only)
-    sig = vol_scaled_tsmom_signals(prices, lookback=lookback, skip=skip,
-                                   long_only=long_only, target_vol=TARGET_VOL)
+    sig = vol_scaled_tsmom_signals(
+        prices, lookback=lookback, skip=skip, long_only=long_only, target_vol=TARGET_VOL
+    )
     sig_monthly = resample_monthly_signals(sig)
-    result = run_backtest(prices=prices, signals=sig_monthly, volumes=volumes, adv=adv, config=cfg)
+    result = run_backtest(
+        prices=prices, signals=sig_monthly, volumes=volumes, adv=adv, config=cfg
+    )
     return result, sig_monthly
+
 
 def selection_metric(train_returns, fold_sharpes):
     return float(np.mean(fold_sharpes)) if len(fold_sharpes) else -np.inf
+
 
 def wf_oos_sharpes(train_returns, n_splits=4):
     train_vals = train_returns.values
@@ -177,6 +272,7 @@ def wf_oos_sharpes(train_returns, n_splits=4):
             sharpes.append(sharpe_ratio(te_vals))
     return sharpes
 
+
 def regime_labels(vix_daily: pd.Series) -> pd.Series:
     regimes = pd.Series(index=vix_daily.index, dtype=object)
     vix_ff = vix_daily.ffill()
@@ -185,12 +281,14 @@ def regime_labels(vix_daily: pd.Series) -> pd.Series:
     regimes[vix_ff > 30] = "bear"
     return regimes
 
+
 def window_max_drawdown(equity: pd.Series, start: str, end: str) -> float:
     eq = equity.loc[start:end]
     if len(eq) < 2:
         return 0.0
     dd = eq / eq.cummax() - 1.0
     return float(dd.min())
+
 
 def main():
     np.random.seed(SEED)
@@ -229,7 +327,13 @@ def main():
     try:
         print("Fetching futures data...")
         fetcher = get_data_fetcher()
-        raw_fut = fetcher.fetch_futures(FUTURES_UNIVERSE, start=START_DATE, end=END_DATE, interval="1d", use_cache=True)
+        raw_fut = fetcher.fetch_futures(
+            FUTURES_UNIVERSE,
+            start=START_DATE,
+            end=END_DATE,
+            interval="1d",
+            use_cache=True,
+        )
         prices = pd.DataFrame()
         volumes = pd.DataFrame()
         for sym in FUTURES_UNIVERSE:
@@ -248,9 +352,15 @@ def main():
         print(f"Loaded {len(prices.columns)} futures x {len(prices)} days")
 
         # VIX
-        raw_vix = fetcher.fetch_yahoo([VIX_SYMBOL], start=START_DATE, end=END_DATE, interval="1d", use_cache=True)
+        raw_vix = fetcher.fetch_yahoo(
+            [VIX_SYMBOL], start=START_DATE, end=END_DATE, interval="1d", use_cache=True
+        )
         vix_df = raw_vix.get(VIX_SYMBOL)
-        vix = vix_df["close"] if (vix_df is not None and "close" in vix_df.columns) else pd.Series(np.nan, index=prices.index)
+        vix = (
+            vix_df["close"]
+            if (vix_df is not None and "close" in vix_df.columns)
+            else pd.Series(np.nan, index=prices.index)
+        )
         vix = vix.reindex(prices.index).ffill()
 
         tracker.log_dataframe("prices", prices)
@@ -263,31 +373,53 @@ def main():
         if len(prices.columns) > 0:
             bh_cfg = make_futures_config(allow_short=False)
             n = len(prices.columns)
-            bh_signals = run_strategy(prices, "buy_and_hold", weight=1.0 / n if n > 0 else 0.0)
+            bh_signals = run_strategy(
+                prices, "buy_and_hold", weight=1.0 / n if n > 0 else 0.0
+            )
             bh_signals = resample_monthly_signals(bh_signals)
-            bh_result = run_backtest(prices=prices, signals=bh_signals, volumes=volumes, adv=adv, config=bh_cfg)
-            tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
-            tracker.log_metrics({f"benchmark_{k}": float(v) for k, v in bh_result.metrics.items()}, step=0)
+            bh_result = run_backtest(
+                prices=prices,
+                signals=bh_signals,
+                volumes=volumes,
+                adv=adv,
+                config=bh_cfg,
+            )
+            tracker.log_dataframe(
+                "benchmark_equity", bh_result.equity_curve.to_frame("equity")
+            )
+            tracker.log_metrics(
+                {f"benchmark_{k}": float(v) for k, v in bh_result.metrics.items()},
+                step=0,
+            )
             print(f"Benchmark Sharpe={bh_result.metrics['sharpe']:.3f}")
         else:
             bh_result = None
 
         # Grid
         from itertools import product
+
         grid = list(product(LONG_ONLY_CHOICES, LOOKBACKS, SKIPS))
         print(f"Grid: {len(grid)} combos")
         combo_records = []
         for i, (long_only, lookback, skip) in enumerate(grid):
             try:
-                result, sig = evaluate_combo(prices, volumes, adv, long_only, lookback, skip)
+                result, sig = evaluate_combo(
+                    prices, volumes, adv, long_only, lookback, skip
+                )
             except Exception as e:  # noqa: BLE001 -- per-combo grid failure is non-fatal; log and skip the combo
                 print(f"  ERR on {i}: {e}")
                 continue
-            train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(result.returns)
+            train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(
+                result.returns
+            )
             train_sharpes = wf_oos_sharpes(train_ret, n_splits=4)
             sel = selection_metric(train_ret, train_sharpes)
             train_sharpe = sharpe_ratio(train_ret.values)
-            train_vol = float(np.std(train_ret.values) * np.sqrt(252)) if len(train_ret) else 0.0
+            train_vol = (
+                float(np.std(train_ret.values) * np.sqrt(252))
+                if len(train_ret)
+                else 0.0
+            )
             rec = {
                 "long_only": bool(long_only),
                 "lookback": lookback,
@@ -296,9 +428,15 @@ def main():
                 "train_vol_annual": train_vol,
                 "wf_oos_mean_sharpe": float(sel),
                 "wf_oos_sharpes": [float(s) for s in train_sharpes],
-                "val_sharpe": float(sharpe_ratio(val_ret.values)) if len(val_ret) else 0.0,
-                "test_sharpe": float(sharpe_ratio(test_ret.values)) if len(test_ret) else 0.0,
-                "oos_sharpe": float(sharpe_ratio(oos_ret.values)) if len(oos_ret) else 0.0,
+                "val_sharpe": float(sharpe_ratio(val_ret.values))
+                if len(val_ret)
+                else 0.0,
+                "test_sharpe": float(sharpe_ratio(test_ret.values))
+                if len(test_ret)
+                else 0.0,
+                "oos_sharpe": float(sharpe_ratio(oos_ret.values))
+                if len(oos_ret)
+                else 0.0,
             }
             combo_records.append(rec)
         if not combo_records:
@@ -306,16 +444,27 @@ def main():
             tracker.finish_experiment(status="failed", error="No valid combinations")
             return False
         combos_df = pd.DataFrame(combo_records)
-        combos_df = combos_df.sort_values(["wf_oos_mean_sharpe", "train_sharpe"], ascending=[False, False])
+        combos_df = combos_df.sort_values(
+            ["wf_oos_mean_sharpe", "train_sharpe"], ascending=[False, False]
+        )
         top_k = combos_df.head(min(ENSEMBLE_K, len(combos_df)))
         print(f"Top {len(top_k)} by wf_oos_mean:")
         for _, r in top_k.iterrows():
-            print(f"  lo={r['long_only']} lb={r['lookback']} sk={r['skip']} wf={r['wf_oos_mean_sharpe']:.3f}")
+            print(
+                f"  lo={r['long_only']} lb={r['lookback']} sk={r['skip']} wf={r['wf_oos_mean_sharpe']:.3f}"
+            )
 
         # Build ensemble weights: average of top-K configs' monthly weights
         ensemble_sig = None
         for _, r in top_k.iterrows():
-            _, sig = evaluate_combo(prices, volumes, adv, bool(r['long_only']), int(r['lookback']), int(r['skip']))
+            _, sig = evaluate_combo(
+                prices,
+                volumes,
+                adv,
+                bool(r["long_only"]),
+                int(r["lookback"]),
+                int(r["skip"]),
+            )
             if ensemble_sig is None:
                 ensemble_sig = sig.copy() / len(top_k)
             else:
@@ -326,11 +475,15 @@ def main():
 
         # Evaluate ensemble on full series
         # Use avg config settings for long_only? take majority or default
-        avg_long_only = bool(top_k['long_only'].mode().iloc[0]) if len(top_k) else False
+        avg_long_only = bool(top_k["long_only"].mode().iloc[0]) if len(top_k) else False
         cfg_ens = make_futures_config(allow_short=not avg_long_only)
         ens_monthly = resample_monthly_signals(ensemble_sig)
-        ens_result = run_backtest(prices=prices, signals=ens_monthly, volumes=volumes, adv=adv, config=cfg_ens)
-        train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(ens_result.returns)
+        ens_result = run_backtest(
+            prices=prices, signals=ens_monthly, volumes=volumes, adv=adv, config=cfg_ens
+        )
+        train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(
+            ens_result.returns
+        )
         oos_sharpe = sharpe_ratio(oos_ret.values) if len(oos_ret) else 0.0
         oos_equity = (1 + oos_ret).cumprod() if len(oos_ret) else pd.Series([1])
         if len(oos_equity) >= 2:
@@ -340,25 +493,34 @@ def main():
         gross_p = oos_ret[oos_ret > 0].sum() if len(oos_ret) else 0
         gross_l = abs(oos_ret[oos_ret < 0].sum()) if len(oos_ret) else 1e-18
         oos_pf = float(gross_p / gross_l) if gross_l > 0 else np.inf
-        oos_trades = ens_result.trades[ens_result.trades["timestamp"] > pd.Timestamp(TRAIN_END)] if len(ens_result.trades) else pd.DataFrame()
+        oos_trades = (
+            ens_result.trades[ens_result.trades["timestamp"] > pd.Timestamp(TRAIN_END)]
+            if len(ens_result.trades)
+            else pd.DataFrame()
+        )
         train_sharpe = sharpe_ratio(train_ret.values) if len(train_ret) else 0.0
         wf_stab = oos_sharpe / train_sharpe if train_sharpe != 0 else 0.0
         regimes = regime_labels(vix)
         worst = np.inf
         for reg in ["bull", "sideways", "bear"]:
             mask = regimes.loc[oos_ret.index] == reg if len(oos_ret) else []
-            if hasattr(mask, '__len__') and len(mask) > 0 and mask.any():
+            if hasattr(mask, "__len__") and len(mask) > 0 and mask.any():
                 r = oos_ret[mask]
                 if len(r) > 1 and r.std() > 0:
                     s = sharpe_ratio(r.values)
                     worst = min(worst, s)
-        if worst == np.inf: worst = oos_sharpe
+        if worst == np.inf:
+            worst = oos_sharpe
         if bh_result is not None and len(oos_ret) > 0:
-            bh_oos = bh_result.returns[bh_result.returns.index > pd.Timestamp(TRAIN_END)]
-            alpha_res = compare_to_benchmark(oos_ret.values if hasattr(oos_ret, 'values') else oos_ret,
-                                        bh_oos.values if hasattr(bh_oos, 'values') else bh_oos)
-            p = float(alpha_res.get('p_value', 1.0))
-            ir = float(alpha_res.get('information_ratio', -np.inf))
+            bh_oos = bh_result.returns[
+                bh_result.returns.index > pd.Timestamp(TRAIN_END)
+            ]
+            alpha_res = compare_to_benchmark(
+                oos_ret.values if hasattr(oos_ret, "values") else oos_ret,
+                bh_oos.values if hasattr(bh_oos, "values") else bh_oos,
+            )
+            p = float(alpha_res.get("p_value", 1.0))
+            ir = float(alpha_res.get("information_ratio", -np.inf))
         else:
             p, ir = 1.0, -np.inf
         passes = {
@@ -391,18 +553,26 @@ def main():
 
         # Ablation: argmax vs ensemble
         best_combo = combos_df.iloc[0]
-        argmax_res, _ = evaluate_combo(prices, volumes, adv, bool(best_combo['long_only']),
-                                                int(best_combo['lookback']), int(best_combo['skip']))
-        argmax_oos = argmax_res.returns[argmax_res.returns.index > pd.Timestamp(TRAIN_END)]
+        argmax_res, _ = evaluate_combo(
+            prices,
+            volumes,
+            adv,
+            bool(best_combo["long_only"]),
+            int(best_combo["lookback"]),
+            int(best_combo["skip"]),
+        )
+        argmax_oos = argmax_res.returns[
+            argmax_res.returns.index > pd.Timestamp(TRAIN_END)
+        ]
         argmax_oos_sh = sharpe_ratio(argmax_oos.values) if len(argmax_oos) else 0.0
-        summary['ablation'] = {
-            'argmax': {
-                'long_only': bool(best_combo['long_only']),
-                'lookback': int(best_combo['lookback']),
-                'skip': int(best_combo['skip']),
-                'oos_sharpe': float(argmax_oos_sh),
+        summary["ablation"] = {
+            "argmax": {
+                "long_only": bool(best_combo["long_only"]),
+                "lookback": int(best_combo["lookback"]),
+                "skip": int(best_combo["skip"]),
+                "oos_sharpe": float(argmax_oos_sh),
             },
-            'ensemble_oos_sharpe': float(oos_sharpe),
+            "ensemble_oos_sharpe": float(oos_sharpe),
         }
         exp_dir = Path(tracker.log_dir) / "artifacts" / exp_id
         exp_dir.mkdir(parents=True, exist_ok=True)
@@ -410,19 +580,25 @@ def main():
             json.dump(summary, f, indent=2, default=str)
         tracker.log_artifact("summary", exp_dir / "summary.json")
         tracker.log_dataframe("param_grid_results", combos_df)
-        tracker.log_dataframe("ensemble_equity", ens_result.equity_curve.to_frame("equity"))
+        tracker.log_dataframe(
+            "ensemble_equity", ens_result.equity_curve.to_frame("equity")
+        )
         tracker.log_dataframe("ensemble_trades", ens_result.trades)
         if bh_result is not None:
-            tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
+            tracker.log_dataframe(
+                "benchmark_equity", bh_result.equity_curve.to_frame("equity")
+            )
 
         tracker.finish_experiment(status="completed")
         print(f"\nAll pass: {all_pass}")
         return all_pass
     except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
+
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))
         return False
+
 
 if __name__ == "__main__":
     success = main()

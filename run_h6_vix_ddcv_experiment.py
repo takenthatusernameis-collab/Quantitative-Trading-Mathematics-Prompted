@@ -95,11 +95,46 @@ COST_MODEL_DEFAULTS = {
 }
 
 FUTURES_SPECS = {
-    "ES=F": {"multiplier": 50.0, "tick_value": 12.50, "tick_size": 0.25, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "NQ=F": {"multiplier": 20.0, "tick_value": 5.0, "tick_size": 0.25, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "CL=F": {"multiplier": 1000.0, "tick_value": 10.0, "tick_size": 0.01, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "GC=F": {"multiplier": 100.0, "tick_value": 10.0, "tick_size": 0.10, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "ZB=F": {"multiplier": 1000.0, "tick_value": 31.25, "tick_size": 0.03125, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
+    "ES=F": {
+        "multiplier": 50.0,
+        "tick_value": 12.50,
+        "tick_size": 0.25,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "NQ=F": {
+        "multiplier": 20.0,
+        "tick_value": 5.0,
+        "tick_size": 0.25,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "CL=F": {
+        "multiplier": 1000.0,
+        "tick_value": 10.0,
+        "tick_size": 0.01,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "GC=F": {
+        "multiplier": 100.0,
+        "tick_value": 10.0,
+        "tick_size": 0.10,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "ZB=F": {
+        "multiplier": 1000.0,
+        "tick_value": 31.25,
+        "tick_size": 0.03125,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
 }
 
 EXPERIMENT_NAME = "h6_vix_ddcv_futures_tsmom_v1"
@@ -114,7 +149,9 @@ EXPERIMENT_DESC = (
 
 def make_futures_config(allow_short=False):
     cm = CostModel(
-        future_commission_per_contract=COST_MODEL_DEFAULTS["future_commission_per_contract"],
+        future_commission_per_contract=COST_MODEL_DEFAULTS[
+            "future_commission_per_contract"
+        ],
         future_spread_ticks=COST_MODEL_DEFAULTS["future_spread_ticks"],
         future_slippage_ticks=COST_MODEL_DEFAULTS["future_slippage_ticks"],
         futures_specs=FUTURES_SPECS,
@@ -151,7 +188,13 @@ def ddcv_drawdown(equity, peak_window=DD_PEAK_WINDOW):
     return dd
 
 
-def apply_vix_gate(base_signals, vix, bull_factor=VIX_BULL_FACTOR, sid_factor=VIX_SIDEWAYS_FACTOR, bear_factor=VIX_BEAR_FACTOR):
+def apply_vix_gate(
+    base_signals,
+    vix,
+    bull_factor=VIX_BULL_FACTOR,
+    sid_factor=VIX_SIDEWAYS_FACTOR,
+    bear_factor=VIX_BEAR_FACTOR,
+):
     """Apply VIX-regime exposure gate to signals.
 
     VIX < 20 (bull):    full exposure (1.0)
@@ -184,14 +227,18 @@ def apply_ddcv(prices, base_signals, dd_trigger, dd_factor, peak_window=DD_PEAK_
     return scaled_signals, base_result, scale
 
 
-def apply_combined(prices, base_signals, vix, dd_trigger, dd_factor, peak_window=DD_PEAK_WINDOW):
+def apply_combined(
+    prices, base_signals, vix, dd_trigger, dd_factor, peak_window=DD_PEAK_WINDOW
+):
     """Apply VIX gate first, then DDCV on the VIX-gated equity."""
     # Step 1: Apply VIX gate to base signals
     vix_gated_signals, vix_scale = apply_vix_gate(base_signals, vix)
 
     # Step 2: Build equity from VIX-gated signals
     cfg = make_futures_config(allow_short=not LONG_ONLY)
-    vix_gated_result = run_backtest(prices=prices, signals=vix_gated_signals, config=cfg)
+    vix_gated_result = run_backtest(
+        prices=prices, signals=vix_gated_signals, config=cfg
+    )
     vix_gated_equity = vix_gated_result.equity_curve
 
     # Step 3: Compute DDCV scale from VIX-gated equity
@@ -211,7 +258,9 @@ def apply_combined(prices, base_signals, vix, dd_trigger, dd_factor, peak_window
 def evaluate(prices, signals, volumes, adv):
     cfg = make_futures_config(allow_short=not LONG_ONLY)
     sig_monthly = resample_monthly_signals(signals)
-    return run_backtest(prices=prices, signals=sig_monthly, volumes=volumes, adv=adv, config=cfg)
+    return run_backtest(
+        prices=prices, signals=sig_monthly, volumes=volumes, adv=adv, config=cfg
+    )
 
 
 def window_max_drawdown(equity, start, end):
@@ -243,8 +292,11 @@ def main():
             "end_date": END_DATE,
             "data_splits": {"train_end": TRAIN_END, "val_end": VAL_END},
             "base_signal": {
-                "lookback": LOOKBACK, "skip": SKIP, "long_only": LONG_ONLY,
-                "target_vol": TARGET_VOL, "vol_window": VOL_WINDOW,
+                "lookback": LOOKBACK,
+                "skip": SKIP,
+                "long_only": LONG_ONLY,
+                "target_vol": TARGET_VOL,
+                "vol_window": VOL_WINDOW,
                 "max_position_size": MAX_POSITION_SIZE,
             },
             "vix_gate": {
@@ -261,8 +313,11 @@ def main():
             "compute_budget": {"max_cpu_hours": 2.0},
         },
         data_sources={
-            "source": "yahoo_futures", "symbols": FUTURES_UNIVERSE,
-            "start": START_DATE, "end": END_DATE, "interval": "1d",
+            "source": "yahoo_futures",
+            "symbols": FUTURES_UNIVERSE,
+            "start": START_DATE,
+            "end": END_DATE,
+            "interval": "1d",
             "notes": "Yahoo continuous futures (=F). Roll adjustment opaque.",
         },
         random_seeds={"numpy": SEED, "python": SEED},
@@ -271,8 +326,13 @@ def main():
     try:
         print("Fetching futures data...")
         fetcher = get_data_fetcher()
-        raw_fut = fetcher.fetch_futures(FUTURES_UNIVERSE, start=START_DATE,
-                                        end=END_DATE, interval="1d", use_cache=True)
+        raw_fut = fetcher.fetch_futures(
+            FUTURES_UNIVERSE,
+            start=START_DATE,
+            end=END_DATE,
+            interval="1d",
+            use_cache=True,
+        )
         prices = pd.DataFrame()
         volumes = pd.DataFrame()
         for sym in FUTURES_UNIVERSE:
@@ -290,11 +350,15 @@ def main():
         volumes = volumes[valid]
         print(f"Loaded {len(prices.columns)} futures x {len(prices)} days")
 
-        raw_vix = fetcher.fetch_yahoo([VIX_SYMBOL], start=START_DATE, end=END_DATE,
-                                       interval="1d", use_cache=True)
+        raw_vix = fetcher.fetch_yahoo(
+            [VIX_SYMBOL], start=START_DATE, end=END_DATE, interval="1d", use_cache=True
+        )
         vix_df = raw_vix.get(VIX_SYMBOL)
-        vix = vix_df["close"] if (vix_df is not None and "close" in vix_df.columns) \
+        vix = (
+            vix_df["close"]
+            if (vix_df is not None and "close" in vix_df.columns)
             else pd.Series(np.nan, index=prices.index)
+        )
         vix = vix.reindex(prices.index).ffill()
 
         tracker.log_dataframe("prices", prices)
@@ -306,31 +370,45 @@ def main():
         # Benchmark - equal weight buy and hold on available futures
         bh_cfg = make_futures_config(allow_short=False)
         n = len(prices.columns)
-        bh_signals = pd.DataFrame(1.0 / n if n > 0 else 0.0,
-                                  index=prices.index, columns=prices.columns)
+        bh_signals = pd.DataFrame(
+            1.0 / n if n > 0 else 0.0, index=prices.index, columns=prices.columns
+        )
         bh_signals = resample_monthly_signals(bh_signals)
-        bh_result = run_backtest(prices=prices, signals=bh_signals,
-                                  volumes=volumes, adv=adv, config=bh_cfg)
-        tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
-        tracker.log_metrics({f"benchmark_{k}": float(v) for k, v in bh_result.metrics.items()}, step=0)
+        bh_result = run_backtest(
+            prices=prices, signals=bh_signals, volumes=volumes, adv=adv, config=bh_cfg
+        )
+        tracker.log_dataframe(
+            "benchmark_equity", bh_result.equity_curve.to_frame("equity")
+        )
+        tracker.log_metrics(
+            {f"benchmark_{k}": float(v) for k, v in bh_result.metrics.items()}, step=0
+        )
         print(f"Benchmark Sharpe={bh_result.metrics['sharpe']:.3f}")
 
         # Base signal (H4 best combo)
         base_sig = vol_scaled_tsmom_signals(
-            prices, lookback=LOOKBACK, skip=SKIP, long_only=LONG_ONLY,
-            target_vol=TARGET_VOL, vol_window=VOL_WINDOW,
+            prices,
+            lookback=LOOKBACK,
+            skip=SKIP,
+            long_only=LONG_ONLY,
+            target_vol=TARGET_VOL,
+            vol_window=VOL_WINDOW,
             max_position_size=MAX_POSITION_SIZE,
         )
         base_sig = resample_monthly_signals(base_sig)
         base_result = evaluate(prices, base_sig, volumes, adv)
         train_r, _, _, oos_r = split_returns_by_date(base_result.returns)
-        print(f"Base TSMOM: train_sharpe={sharpe_ratio(train_r.values):.3f} oos_sharpe={sharpe_ratio(oos_r.values):.3f} dd={base_result.metrics['max_drawdown']:.3f}")
+        print(
+            f"Base TSMOM: train_sharpe={sharpe_ratio(train_r.values):.3f} oos_sharpe={sharpe_ratio(oos_r.values):.3f} dd={base_result.metrics['max_drawdown']:.3f}"
+        )
 
         # VIX-gated only (ablation)
         vix_only_sig, _ = apply_vix_gate(base_sig, vix)
         vix_only_result = evaluate(prices, vix_only_sig, volumes, adv)
         train_r, _, _, oos_r = split_returns_by_date(vix_only_result.returns)
-        print(f"VIX-only: train_sharpe={sharpe_ratio(train_r.values):.3f} oos_sharpe={sharpe_ratio(oos_r.values):.3f} dd={vix_only_result.metrics['max_drawdown']:.3f}")
+        print(
+            f"VIX-only: train_sharpe={sharpe_ratio(train_r.values):.3f} oos_sharpe={sharpe_ratio(oos_r.values):.3f} dd={vix_only_result.metrics['max_drawdown']:.3f}"
+        )
 
         # DDCV-only (ablation, on base signals)
         ddcv_only_records = []
@@ -338,57 +416,106 @@ def main():
             for dd_factor in DD_FACTOR_GRID:
                 scaled, _, _ = apply_ddcv(prices, base_sig, dd_trigger, dd_factor)
                 result = evaluate(prices, scaled, volumes, adv)
-                train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(result.returns)
+                train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(
+                    result.returns
+                )
                 rec = {
-                    "dd_trigger": dd_trigger, "dd_factor": dd_factor,
-                    "val_sharpe": float(sharpe_ratio(val_ret.values)) if len(val_ret) else 0.0,
-                    "oos_sharpe": float(sharpe_ratio(oos_ret.values)) if len(oos_ret) else 0.0,
-                    "oos_dd": window_max_drawdown(result.equity_curve, TRAIN_END, END_DATE),
+                    "dd_trigger": dd_trigger,
+                    "dd_factor": dd_factor,
+                    "val_sharpe": float(sharpe_ratio(val_ret.values))
+                    if len(val_ret)
+                    else 0.0,
+                    "oos_sharpe": float(sharpe_ratio(oos_ret.values))
+                    if len(oos_ret)
+                    else 0.0,
+                    "oos_dd": window_max_drawdown(
+                        result.equity_curve, TRAIN_END, END_DATE
+                    ),
                 }
                 ddcv_only_records.append(rec)
         ddcv_only_df = pd.DataFrame(ddcv_only_records)
         ddcv_only_df = ddcv_only_df.sort_values("val_sharpe", ascending=False)
         best_ddcv_only = ddcv_only_df.iloc[0]
-        print(f"DDCV-only best on Val: trigger={best_ddcv_only['dd_trigger']} factor={best_ddcv_only['dd_factor']} val_sharpe={best_ddcv_only['val_sharpe']:.3f}")
+        print(
+            f"DDCV-only best on Val: trigger={best_ddcv_only['dd_trigger']} factor={best_ddcv_only['dd_factor']} val_sharpe={best_ddcv_only['val_sharpe']:.3f}"
+        )
 
         # ---- Combined VIX+DDCV grid search (selection on Val only) ----
         combo_records = []
         for dd_trigger in DD_TRIGGER_GRID:
             for dd_factor in DD_FACTOR_GRID:
-                scaled, _, _, _ = apply_combined(prices, base_sig, vix, dd_trigger, dd_factor)
+                scaled, _, _, _ = apply_combined(
+                    prices, base_sig, vix, dd_trigger, dd_factor
+                )
                 result = evaluate(prices, scaled, volumes, adv)
-                train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(result.returns)
+                train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(
+                    result.returns
+                )
                 rec = {
-                    "dd_trigger": dd_trigger, "dd_factor": dd_factor,
-                    "val_sharpe": float(sharpe_ratio(val_ret.values)) if len(val_ret) else 0.0,
-                    "train_sharpe": float(sharpe_ratio(train_ret.values)) if len(train_ret) else 0.0,
-                    "test_sharpe": float(sharpe_ratio(test_ret.values)) if len(test_ret) else 0.0,
-                    "oos_sharpe": float(sharpe_ratio(oos_ret.values)) if len(oos_ret) else 0.0,
-                    "val_dd": window_max_drawdown(result.equity_curve, TRAIN_END, VAL_END),
-                    "oos_dd": window_max_drawdown(result.equity_curve, TRAIN_END, END_DATE),
+                    "dd_trigger": dd_trigger,
+                    "dd_factor": dd_factor,
+                    "val_sharpe": float(sharpe_ratio(val_ret.values))
+                    if len(val_ret)
+                    else 0.0,
+                    "train_sharpe": float(sharpe_ratio(train_ret.values))
+                    if len(train_ret)
+                    else 0.0,
+                    "test_sharpe": float(sharpe_ratio(test_ret.values))
+                    if len(test_ret)
+                    else 0.0,
+                    "oos_sharpe": float(sharpe_ratio(oos_ret.values))
+                    if len(oos_ret)
+                    else 0.0,
+                    "val_dd": window_max_drawdown(
+                        result.equity_curve, TRAIN_END, VAL_END
+                    ),
+                    "oos_dd": window_max_drawdown(
+                        result.equity_curve, TRAIN_END, END_DATE
+                    ),
                     "val_pf": float(result.metrics["profit_factor"]),
-                    "val_trades": len(result.trades[result.trades["timestamp"] > pd.Timestamp(TRAIN_END)])
-                        if len(result.trades) else 0,
+                    "val_trades": len(
+                        result.trades[
+                            result.trades["timestamp"] > pd.Timestamp(TRAIN_END)
+                        ]
+                    )
+                    if len(result.trades)
+                    else 0,
                 }
                 combo_records.append(rec)
         combo_df = pd.DataFrame(combo_records)
         combo_df = combo_df.sort_values("val_sharpe", ascending=False)
         best = combo_df.iloc[0]
-        print(f"VIX+DDCV grid ({len(combo_df)} combos); best on Val: trigger={best['dd_trigger']} factor={best['dd_factor']} val_sharpe={best['val_sharpe']:.3f}")
+        print(
+            f"VIX+DDCV grid ({len(combo_df)} combos); best on Val: trigger={best['dd_trigger']} factor={best['dd_factor']} val_sharpe={best['val_sharpe']:.3f}"
+        )
 
         # ---- Evaluate best combo on full OOS with gates ----
         best_trigger = best["dd_trigger"]
         best_factor = best["dd_factor"]
-        scaled_best, _, _, _ = apply_combined(prices, base_sig, vix, best_trigger, best_factor)
+        scaled_best, _, _, _ = apply_combined(
+            prices, base_sig, vix, best_trigger, best_factor
+        )
         best_result = evaluate(prices, scaled_best, volumes, adv)
-        train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(best_result.returns)
+        train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(
+            best_result.returns
+        )
         oos_sharpe = sharpe_ratio(oos_ret.values) if len(oos_ret) else 0.0
         oos_equity = (1 + oos_ret).cumprod() if len(oos_ret) else pd.Series([1])
-        oos_dd = float((oos_equity - oos_equity.expanding().max()).min()) if len(oos_equity) >= 2 else 0.0
+        oos_dd = (
+            float((oos_equity - oos_equity.expanding().max()).min())
+            if len(oos_equity) >= 2
+            else 0.0
+        )
         gross_p = oos_ret[oos_ret > 0].sum() if len(oos_ret) else 0
         gross_l = abs(oos_ret[oos_ret < 0].sum()) if len(oos_ret) else 1e-18
         oos_pf = float(gross_p / gross_l) if gross_l > 0 else np.inf
-        oos_trades = best_result.trades[best_result.trades["timestamp"] > pd.Timestamp(TRAIN_END)] if len(best_result.trades) else pd.DataFrame()
+        oos_trades = (
+            best_result.trades[
+                best_result.trades["timestamp"] > pd.Timestamp(TRAIN_END)
+            ]
+            if len(best_result.trades)
+            else pd.DataFrame()
+        )
         train_sharpe = sharpe_ratio(train_ret.values) if len(train_ret) else 0.0
         wf_stab = oos_sharpe / train_sharpe if train_sharpe != 0 else 0.0
         regimes = regime_labels(vix)
@@ -400,9 +527,12 @@ def main():
                 if len(r) > 1 and r.std() > 0:
                     s = sharpe_ratio(r.values)
                     worst = min(worst, s)
-        if worst == np.inf: worst = oos_sharpe
+        if worst == np.inf:
+            worst = oos_sharpe
         if len(oos_ret) > 0:
-            bh_oos = bh_result.returns[bh_result.returns.index > pd.Timestamp(TRAIN_END)]
+            bh_oos = bh_result.returns[
+                bh_result.returns.index > pd.Timestamp(TRAIN_END)
+            ]
             alpha_res = compare_to_benchmark(oos_ret.values, bh_oos.values)
             p = float(alpha_res.get("alpha_p_value", 1.0))
             ir = float(alpha_res.get("information_ratio", -np.inf))
@@ -419,7 +549,9 @@ def main():
             "ir": bool(ir > GATES.get("min_information_ratio", -1e18)),
         }
         all_pass = all(passes.values())
-        print(f"VIX+DDCV best OOS: sharpe={oos_sharpe:.3f} trades={len(oos_trades)} pf={oos_pf:.3f} dd={oos_dd:.3f} stab={wf_stab:.3f} worst={worst:.3f} p={p:.4f} ir={ir:.3f}")
+        print(
+            f"VIX+DDCV best OOS: sharpe={oos_sharpe:.3f} trades={len(oos_trades)} pf={oos_pf:.3f} dd={oos_dd:.3f} stab={wf_stab:.3f} worst={worst:.3f} p={p:.4f} ir={ir:.3f}"
+        )
         print("Passes:", {k: bool(v) for k, v in passes.items()})
 
         # ---- Ablation summary (evaluated on full OOS) ----
@@ -429,7 +561,9 @@ def main():
         # (b) VIX-gate only
         ablations["vix_only"] = vix_only_result
         # (c) DDCV-only (best from DDCV-only grid)
-        best_ddcv_only_sig, _, _ = apply_ddcv(prices, base_sig, best_ddcv_only["dd_trigger"], best_ddcv_only["dd_factor"])
+        best_ddcv_only_sig, _, _ = apply_ddcv(
+            prices, base_sig, best_ddcv_only["dd_trigger"], best_ddcv_only["dd_factor"]
+        )
         ablations["ddcv_only"] = evaluate(prices, best_ddcv_only_sig, volumes, adv)
 
         ablation_records = []
@@ -438,18 +572,29 @@ def main():
             _, _, _, oos_ar = split_returns_by_date(ar)
             eq = (1 + oos_ar).cumprod() if len(oos_ar) else pd.Series([1])
             dd_val = float((eq - eq.expanding().max()).min()) if len(eq) >= 2 else 0.0
-            ablation_records.append({
-                "name": name,
-                "oos_sharpe": float(sharpe_ratio(oos_ar.values)) if len(oos_ar) else 0.0,
-                "oos_max_dd": dd_val,
-                "oos_pf": float(res.metrics["profit_factor"]),
-                "oos_trades": len(res.trades[res.trades["timestamp"] > pd.Timestamp(TRAIN_END)]) if len(res.trades) else 0,
-            })
+            ablation_records.append(
+                {
+                    "name": name,
+                    "oos_sharpe": float(sharpe_ratio(oos_ar.values))
+                    if len(oos_ar)
+                    else 0.0,
+                    "oos_max_dd": dd_val,
+                    "oos_pf": float(res.metrics["profit_factor"]),
+                    "oos_trades": len(
+                        res.trades[res.trades["timestamp"] > pd.Timestamp(TRAIN_END)]
+                    )
+                    if len(res.trades)
+                    else 0,
+                }
+            )
         ablation_df = pd.DataFrame(ablation_records)
 
         summary = {
             "experiment_id": exp_id,
-            "best_combo": {"dd_trigger": float(best_trigger), "dd_factor": float(best_factor)},
+            "best_combo": {
+                "dd_trigger": float(best_trigger),
+                "dd_factor": float(best_factor),
+            },
             "grid": combo_df.to_dict(orient="records"),
             "oos_sharpe": float(oos_sharpe),
             "oos_pf": float(oos_pf),
@@ -469,15 +614,32 @@ def main():
         exp_dir = Path(tracker.log_dir) / "artifacts" / exp_id
         exp_dir.mkdir(parents=True, exist_ok=True)
         with open(exp_dir / "summary.json", "w") as f:
-            json.dump(summary, f, indent=2, default=lambda o: bool(o) if isinstance(o, (np.bool_,)) else (float(o) if isinstance(o, (np.integer, np.floating)) else str(o)))
+            json.dump(
+                summary,
+                f,
+                indent=2,
+                default=lambda o: (
+                    bool(o)
+                    if isinstance(o, (np.bool_,))
+                    else (
+                        float(o) if isinstance(o, (np.integer, np.floating)) else str(o)
+                    )
+                ),
+            )
         tracker.log_artifact("summary", exp_dir / "summary.json")
         tracker.log_dataframe("param_grid_results", combo_df)
-        tracker.log_dataframe("best_equity", best_result.equity_curve.to_frame("equity"))
+        tracker.log_dataframe(
+            "best_equity", best_result.equity_curve.to_frame("equity")
+        )
         tracker.log_dataframe("best_trades", best_result.trades)
         tracker.log_dataframe("ablations", ablation_df)
         tracker.log_dataframe("ddcv_only_grid", ddcv_only_df)
-        tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
-        tracker.log_dataframe("vix_only_equity", vix_only_result.equity_curve.to_frame("equity"))
+        tracker.log_dataframe(
+            "benchmark_equity", bh_result.equity_curve.to_frame("equity")
+        )
+        tracker.log_dataframe(
+            "vix_only_equity", vix_only_result.equity_curve.to_frame("equity")
+        )
         tracker.log_dataframe("vix_only_trades", vix_only_result.trades)
 
         tracker.finish_experiment(status="completed")
@@ -485,6 +647,7 @@ def main():
         return all_pass
     except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
+
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))
         return False

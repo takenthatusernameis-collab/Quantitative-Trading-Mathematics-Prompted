@@ -32,7 +32,7 @@ def main():
     - Mean reversion (Bollinger bands)
     Period: 2015-01-01 to 2024-12-31.
     """
-    
+
     CONFIG = {
         "symbols": ["SPY"],
         "start_date": "2015-01-01",
@@ -86,9 +86,9 @@ def main():
         compute_budget=CONFIG["compute_budget"],
         random_seeds=CONFIG["random_seeds"],
     )
-    
+
     print(f"Started experiment: {exp_id}")
-    
+
     try:
         # Fetch data
         print("Fetching data...")
@@ -100,7 +100,7 @@ def main():
             interval=CONFIG["interval"],
             use_cache=True,
         )
-        
+
         prices = pd.DataFrame()
         volumes = pd.DataFrame()
         for sym, df in raw_data.items():
@@ -108,13 +108,13 @@ def main():
                 prices[sym] = df["close"]
                 if "volume" in df.columns:
                     volumes[sym] = df["volume"]
-        
+
         prices = prices.ffill().dropna(how="all").dropna(axis=1, how="all")
         volumes = volumes.reindex(prices.index).ffill().fillna(0)
-        
+
         tracker.log_dataframe("prices", prices)
         tracker.log_dataframe("volumes", volumes)
-        
+
         # Backtest config
         bt_config = BacktestConfig(
             initial_capital=CONFIG["backtest"]["initial_capital"],
@@ -123,78 +123,106 @@ def main():
             max_leverage=CONFIG["backtest"]["max_leverage"],
             allow_short=CONFIG["backtest"]["allow_short"],
         )
-        bt_config.cost_model.equity_commission_bps = CONFIG["backtest"]["cost_model"]["equity_commission_bps"]
-        bt_config.cost_model.equity_spread_bps = CONFIG["backtest"]["cost_model"]["equity_spread_bps"]
-        bt_config.cost_model.equity_impact_bps_per_pct_adv = CONFIG["backtest"]["cost_model"]["equity_impact_bps_per_pct_adv"]
-        
+        bt_config.cost_model.equity_commission_bps = CONFIG["backtest"]["cost_model"][
+            "equity_commission_bps"
+        ]
+        bt_config.cost_model.equity_spread_bps = CONFIG["backtest"]["cost_model"][
+            "equity_spread_bps"
+        ]
+        bt_config.cost_model.equity_impact_bps_per_pct_adv = CONFIG["backtest"][
+            "cost_model"
+        ]["equity_impact_bps_per_pct_adv"]
+
         adv = volumes.rolling(20).mean().iloc[-1]
-        
+
         # Buy-and-hold benchmark
         bh_signals = run_strategy(prices, "buy_and_hold", weight=1.0)
         bh_result = run_backtest(
-            prices=prices, signals=bh_signals, volumes=volumes, adv=adv, config=bt_config
+            prices=prices,
+            signals=bh_signals,
+            volumes=volumes,
+            adv=adv,
+            config=bt_config,
         )
-        
-        print(f"Benchmark (Buy-and-Hold): Sharpe={bh_result.metrics['sharpe']:.3f}, "
-              f"Ret={bh_result.metrics['annualized_return']:.2%}, DD={bh_result.metrics['max_drawdown']:.2%}")
-        
+
+        print(
+            f"Benchmark (Buy-and-Hold): Sharpe={bh_result.metrics['sharpe']:.3f}, "
+            f"Ret={bh_result.metrics['annualized_return']:.2%}, DD={bh_result.metrics['max_drawdown']:.2%}"
+        )
+
         # Test each strategy
         all_results = []
         best_sharpe = -np.inf
         best_name = None
         best_result = None
-        
+
         for strat_name, param_list in CONFIG["strategies"].items():
             for params in param_list:
                 print(f"  Testing {strat_name} {params}...", end=" ", flush=True)
-                
+
                 signals = run_strategy(prices, strat_name, **params)
-                
+
                 # Check if signals have any variation
                 if signals.abs().sum().sum() == 0:
                     print("No signals generated")
                     continue
-                
+
                 result = run_backtest(
-                    prices=prices, signals=signals, volumes=volumes, adv=adv, config=bt_config
+                    prices=prices,
+                    signals=signals,
+                    volumes=volumes,
+                    adv=adv,
+                    config=bt_config,
                 )
-                
+
                 sharpe = result.metrics["sharpe"]
                 max_dd = result.metrics["max_drawdown"]
                 n_trades = result.metrics["num_trades"]
                 ann_return = result.metrics["annualized_return"]
-                
-                all_results.append({
-                    "strategy": strat_name,
-                    "params": params,
-                    "sharpe": sharpe,
-                    "max_drawdown": max_dd,
-                    "num_trades": n_trades,
-                    "annualized_return": ann_return,
-                    "annualized_volatility": result.metrics["annualized_volatility"],
-                    "profit_factor": result.metrics["profit_factor"],
-                })
-                
+
+                all_results.append(
+                    {
+                        "strategy": strat_name,
+                        "params": params,
+                        "sharpe": sharpe,
+                        "max_drawdown": max_dd,
+                        "num_trades": n_trades,
+                        "annualized_return": ann_return,
+                        "annualized_volatility": result.metrics[
+                            "annualized_volatility"
+                        ],
+                        "profit_factor": result.metrics["profit_factor"],
+                    }
+                )
+
                 if sharpe > best_sharpe:
                     best_sharpe = sharpe
                     best_name = strat_name
                     best_result = result
                     best_params = params
-                
-                print(f"Sharpe={sharpe:.3f}, DD={max_dd:.2%}, Trades={n_trades}, Ret={ann_return:.2%}")
-        
+
+                print(
+                    f"Sharpe={sharpe:.3f}, DD={max_dd:.2%}, Trades={n_trades}, Ret={ann_return:.2%}"
+                )
+
         # Log results
         results_df = pd.DataFrame(all_results)
         tracker.log_dataframe("strategy_results", results_df)
-        
+
         if best_result is not None:
-            tracker.log_dataframe("best_equity_curve", best_result.equity_curve.to_frame("equity"))
+            tracker.log_dataframe(
+                "best_equity_curve", best_result.equity_curve.to_frame("equity")
+            )
             tracker.log_dataframe("best_trades", best_result.trades)
-        
+
         tracker.log_metrics({"benchmark_sharpe": bh_result.metrics["sharpe"]}, step=0)
-        tracker.log_metrics({"benchmark_return": bh_result.metrics["annualized_return"]}, step=0)
-        tracker.log_metrics({"benchmark_max_dd": bh_result.metrics["max_drawdown"]}, step=0)
-        
+        tracker.log_metrics(
+            {"benchmark_return": bh_result.metrics["annualized_return"]}, step=0
+        )
+        tracker.log_metrics(
+            {"benchmark_max_dd": bh_result.metrics["max_drawdown"]}, step=0
+        )
+
         # Save summary
         summary = {
             "experiment_id": exp_id,
@@ -209,32 +237,34 @@ def main():
             },
             "config": CONFIG,
         }
-        
+
         exp_dir = Path(tracker.log_dir) / "artifacts" / exp_id
         with open(exp_dir / "summary.json", "w") as f:
             json.dump(summary, f, indent=2, default=str)
-        
+
         tracker.log_artifact("summary", exp_dir / "summary.json")
-        
+
         # Print summary
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("ALTERNATIVE STRATEGY RESULTS")
-        print("="*70)
+        print("=" * 70)
         print(f"Experiment ID: {exp_id}")
         print()
         print("ALL RESULTS:")
         for r in all_results:
             params_str = ", ".join(f"{k}={v}" for k, v in r["params"].items())
-            print(f"  {r['strategy']} ({params_str}): "
-                  f"Sharpe={r['sharpe']:.3f}, DD={r['max_drawdown']:.2%}, "
-                  f"Trades={r['num_trades']}, Ret={r['annualized_return']:.2%}")
-        
+            print(
+                f"  {r['strategy']} ({params_str}): "
+                f"Sharpe={r['sharpe']:.3f}, DD={r['max_drawdown']:.2%}, "
+                f"Trades={r['num_trades']}, Ret={r['annualized_return']:.2%}"
+            )
+
         print()
         print("BENCHMARK (Buy-and-Hold):")
         print(f"  Sharpe: {bh_result.metrics['sharpe']:.3f}")
         print(f"  Return: {bh_result.metrics['annualized_return']:.2%}")
         print(f"  Max DD: {bh_result.metrics['max_drawdown']:.2%}")
-        
+
         print()
         print("BEST STRATEGY:")
         if best_name:
@@ -244,17 +274,20 @@ def main():
             print(f"  Return: {best_result.metrics['annualized_return']:.2%}")
             print(f"  Max DD: {best_result.metrics['max_drawdown']:.2%}")
             print(f"  Trades: {best_result.metrics['num_trades']}")
-            print(f"  Beats benchmark: {'YES' if best_sharpe > bh_result.metrics['sharpe'] else 'NO'}")
-        
-        print("="*70)
-        
+            print(
+                f"  Beats benchmark: {'YES' if best_sharpe > bh_result.metrics['sharpe'] else 'NO'}"
+            )
+
+        print("=" * 70)
+
         tracker.finish_experiment(status="completed")
-        
+
         return best_sharpe > bh_result.metrics["sharpe"]
-        
+
     except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         print(f"Experiment failed: {e}")
         import traceback
+
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))
         return False

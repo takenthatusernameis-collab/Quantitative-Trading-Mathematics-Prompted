@@ -71,30 +71,45 @@ from qtr.validation.statistics import (
 # ============================================================
 UNIVERSE = [
     # Equities (6)
-    "SPY", "QQQ", "IWM", "EFA", "EEM", "VWO",
+    "SPY",
+    "QQQ",
+    "IWM",
+    "EFA",
+    "EEM",
+    "VWO",
     # Bonds (3)
-    "TLT", "AGG", "HYG",
+    "TLT",
+    "AGG",
+    "HYG",
     # Commodities (4)
-    "GLD", "USO", "PDBC", "GSG",
+    "GLD",
+    "USO",
+    "PDBC",
+    "GSG",
     # Currencies (3)
-    "UUP", "FXE", "FXY",
+    "UUP",
+    "FXE",
+    "FXY",
     # International / Real Estate (4)
-    "VNQ", "EWJ", "EWZ", "INDA",
+    "VNQ",
+    "EWJ",
+    "EWZ",
+    "INDA",
 ]
 VIX_SYMBOL = "^VIX"
-HEDGE_SYMBOL = "VXX"   # short-term volatility ETN; crisis hedge ONLY
+HEDGE_SYMBOL = "VXX"  # short-term volatility ETN; crisis hedge ONLY
 
 START_DATE = "2015-01-01"
 END_DATE = "2024-12-31"
 
 TRAIN_END = "2019-12-31"
-VAL_END = "2021-12-31"   # Test = 2022-2024 (protected holdout)
+VAL_END = "2021-12-31"  # Test = 2022-2024 (protected holdout)
 
 # Parameter grid for selection
-LOOKBACKS = [63, 126, 252]    # ~1M, 6M, 12M
-SKIPS = [1, 5, 21]            # 1d, 1w, 1m skip to avoid reversal
+LOOKBACKS = [63, 126, 252]  # ~1M, 6M, 12M
+SKIPS = [1, 5, 21]  # 1d, 1w, 1m skip to avoid reversal
 LONG_ONLY_CHOICES = [True, False]
-TARGET_VOL = 0.15            # annualized vol target (Kim et al. 2016)
+TARGET_VOL = 0.15  # annualized vol target (Kim et al. 2016)
 
 # Regime factor triples: (bull, sideways, bear) applied to the TSMOM book.
 # Base spec: 1.0 / 0.25 / 0.10 (NEXT_TASK.md); mild and bear-off ablations.
@@ -118,17 +133,17 @@ GATES = {
     "min_profit_factor": 1.3,
     "max_drawdown": 0.15,
     "min_walkforward_stability": 0.7,
-    "min_perturbed_sharpe_ratio": 0.5,   # OOS Sharpe >= 0.5 x optimum under +/-20%
+    "min_perturbed_sharpe_ratio": 0.5,  # OOS Sharpe >= 0.5 x optimum under +/-20%
     "min_worst_regime_sharpe": 0.3,
     "max_p_value": 0.05,
-    "min_information_ratio": 0.0,   # significance must be in the POSITIVE direction
-    "max_crisis_drawdown": 0.20,         # H3 regime gate: 2020-03 and 2022 DD <= 20%
+    "min_information_ratio": 0.0,  # significance must be in the POSITIVE direction
+    "max_crisis_drawdown": 0.20,  # H3 regime gate: 2020-03 and 2022 DD <= 20%
     "alpha_multiple_testing": "benjamini_hochberg",
 }
 
 SEED = 42
 INITIAL_CAPITAL = 1_000_000.0
-MAX_LEVERAGE = 5.0   # headroom; portfolio-level vol targeting sets scale
+MAX_LEVERAGE = 5.0  # headroom; portfolio-level vol targeting sets scale
 MAX_POSITION_SIZE = 2.0  # per-asset cap enforced both here and in the engine
 
 COST_MODEL = {
@@ -170,7 +185,9 @@ def make_config(allow_short: bool) -> BacktestConfig:
     )
     cfg.cost_model.equity_commission_bps = COST_MODEL["equity_commission_bps"]
     cfg.cost_model.equity_spread_bps = COST_MODEL["equity_spread_bps"]
-    cfg.cost_model.equity_impact_bps_per_pct_adv = COST_MODEL["equity_impact_bps_per_pct_adv"]
+    cfg.cost_model.equity_impact_bps_per_pct_adv = COST_MODEL[
+        "equity_impact_bps_per_pct_adv"
+    ]
     return cfg
 
 
@@ -265,8 +282,11 @@ def regime_gated_signals(
     2018-01-25; before that the hedge leg is flat — documented limitation).
     """
     book = vol_scaled_tsmom_signals(
-        prices, lookback=lookback, skip=skip,
-        long_only=long_only, target_vol=target_vol,
+        prices,
+        lookback=lookback,
+        skip=skip,
+        long_only=long_only,
+        target_vol=target_vol,
     )
     rf = regime_factor_series(vix, regime_triple)
     gated = book.multiply(rf, axis=0)
@@ -281,20 +301,30 @@ def regime_gated_signals(
     return out
 
 
-def evaluate_combo(prices, volumes, adv, vix, long_only, lookback, skip,
-                   regime_triple, hedge_weight):
+def evaluate_combo(
+    prices, volumes, adv, vix, long_only, lookback, skip, regime_triple, hedge_weight
+):
     """Run a single param combo over the full price series (no lookahead bias).
 
     Returns the BacktestResult and the (monthly, resampled) signal DataFrame.
     """
     cfg = make_config(allow_short=not long_only)
     sig = regime_gated_signals(
-        prices, vix, lookback=lookback, skip=skip, long_only=long_only,
-        regime_triple=regime_triple, hedge_weight=hedge_weight,
+        prices,
+        vix,
+        lookback=lookback,
+        skip=skip,
+        long_only=long_only,
+        regime_triple=regime_triple,
+        hedge_weight=hedge_weight,
     )
     sig_monthly = resample_monthly_signals(sig)
     result = run_backtest(
-        prices=prices, signals=sig_monthly, volumes=volumes, adv=adv, config=cfg,
+        prices=prices,
+        signals=sig_monthly,
+        volumes=volumes,
+        adv=adv,
+        config=cfg,
     )
     return result, sig_monthly
 
@@ -351,17 +381,22 @@ def main():
             "hedge_symbol": HEDGE_SYMBOL,
             "start_date": START_DATE,
             "end_date": END_DATE,
-            "data_splits": {"train_end": TRAIN_END, "val_end": VAL_END,
-                            "test_start": VAL_END.replace("-12-31", "-01-01")},
+            "data_splits": {
+                "train_end": TRAIN_END,
+                "val_end": VAL_END,
+                "test_start": VAL_END.replace("-12-31", "-01-01"),
+            },
             "target_lookbacks": LOOKBACKS,
             "target_skips": SKIPS,
             "long_only_choices": LONG_ONLY_CHOICES,
             "regime_triples": [list(t) for t in REGIME_TRIPLES],
             "hedge_weights": HEDGE_WEIGHTS,
             "target_vol": TARGET_VOL,
-            "overfit_guard": {"z_threshold": OVERFIT_Z_THRESHOLD,
-                              "penalty_weight": OVERFIT_PENALTY_WEIGHT,
-                              "metric": "train_sharpe / train_vol_annual"},
+            "overfit_guard": {
+                "z_threshold": OVERFIT_Z_THRESHOLD,
+                "penalty_weight": OVERFIT_PENALTY_WEIGHT,
+                "metric": "train_sharpe / train_vol_annual",
+            },
             "max_leverage": MAX_LEVERAGE,
             "max_position_size": MAX_POSITION_SIZE,
             "cost_model": COST_MODEL,
@@ -375,8 +410,10 @@ def main():
             "start": START_DATE,
             "end": END_DATE,
             "interval": "1d",
-            "notes": (f"{HEDGE_SYMBOL} history on Yahoo starts 2018-01-25; "
-                      "hedge leg flat before that date (documented limitation)"),
+            "notes": (
+                f"{HEDGE_SYMBOL} history on Yahoo starts 2018-01-25; "
+                "hedge leg flat before that date (documented limitation)"
+            ),
         },
         compute_budget={"max_cpu_hours": 2.0},
         random_seeds={"numpy": SEED, "python": SEED},
@@ -416,12 +453,17 @@ def main():
         valid_assets = prices.columns[prices.notna().any(axis=0)].tolist()
         prices = prices[valid_assets]
         volumes = volumes[valid_assets]
-        print(f"Loaded {len(prices.columns)} traded assets x {len(prices)} days "
-              f"({prices.index[0].date()} -> {prices.index[-1].date()})")
+        print(
+            f"Loaded {len(prices.columns)} traded assets x {len(prices)} days "
+            f"({prices.index[0].date()} -> {prices.index[-1].date()})"
+        )
 
         vix_df = raw.get(VIX_SYMBOL)
-        vix = vix_df["close"] if (vix_df is not None and not vix_df.empty
-                                  and "close" in vix_df.columns) else pd.Series(np.nan, index=prices.index)
+        vix = (
+            vix_df["close"]
+            if (vix_df is not None and not vix_df.empty and "close" in vix_df.columns)
+            else pd.Series(np.nan, index=prices.index)
+        )
         vix = vix.reindex(prices.index).ffill()
 
         tracker.log_dataframe("prices", prices)
@@ -431,8 +473,10 @@ def main():
         adv = volumes.rolling(20).mean().iloc[-1]
         tracker.log_metric("n_assets", len(prices.columns), step=0)
         hedge_available = HEDGE_SYMBOL in prices.columns
-        print(f"  Hedge ({HEDGE_SYMBOL}) data available: {hedge_available} "
-              f"(from {prices[HEDGE_SYMBOL].first_valid_index() if hedge_available else 'n/a'})")
+        print(
+            f"  Hedge ({HEDGE_SYMBOL}) data available: {hedge_available} "
+            f"(from {prices[HEDGE_SYMBOL].first_valid_index() if hedge_available else 'n/a'})"
+        )
 
         # ------------------------------------------------------------
         # 2. BENCHMARK: equal-weight buy-and-hold (long-only, 20 ETFs)
@@ -440,23 +484,39 @@ def main():
         print("Building equal-weight benchmark...")
         bh_cfg = make_config(allow_short=False)
         prices_20 = prices[UNIVERSE].dropna(axis=1, how="all")
-        bh_signals = run_strategy(prices_20, "buy_and_hold", weight=1.0 / len(prices_20.columns))
+        bh_signals = run_strategy(
+            prices_20, "buy_and_hold", weight=1.0 / len(prices_20.columns)
+        )
         bh_signals = resample_monthly_signals(bh_signals)
-        bh_result = run_backtest(prices=prices_20, signals=bh_signals, volumes=volumes[prices_20.columns], adv=adv, config=bh_cfg)
-        tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
+        bh_result = run_backtest(
+            prices=prices_20,
+            signals=bh_signals,
+            volumes=volumes[prices_20.columns],
+            adv=adv,
+            config=bh_cfg,
+        )
+        tracker.log_dataframe(
+            "benchmark_equity", bh_result.equity_curve.to_frame("equity")
+        )
         tracker.log_dataframe("benchmark_trades", bh_result.trades)
-        tracker.log_metrics({f"benchmark_{k}": float(v) for k, v in bh_result.metrics.items()}, step=0)
-        print(f"  Benchmark equal-weight Sharpe={bh_result.metrics['sharpe']:.3f} "
-              f"Ret={bh_result.metrics['annualized_return']:.2%} Trades={bh_result.metrics['num_trades']}")
+        tracker.log_metrics(
+            {f"benchmark_{k}": float(v) for k, v in bh_result.metrics.items()}, step=0
+        )
+        print(
+            f"  Benchmark equal-weight Sharpe={bh_result.metrics['sharpe']:.3f} "
+            f"Ret={bh_result.metrics['annualized_return']:.2%} Trades={bh_result.metrics['num_trades']}"
+        )
 
         # ------------------------------------------------------------
         # 3. PARAMETER GRID SEARCH -- TRAIN ONLY (internal walk-forward
         #    + overfit guard). Test dates never enter selection.
         # ------------------------------------------------------------
         print("Grid search on TRAIN period (walk-forward selection + overfit guard)...")
-        grid = list(itertools.product(
-            LONG_ONLY_CHOICES, LOOKBACKS, SKIPS, REGIME_TRIPLES, HEDGE_WEIGHTS
-        ))
+        grid = list(
+            itertools.product(
+                LONG_ONLY_CHOICES, LOOKBACKS, SKIPS, REGIME_TRIPLES, HEDGE_WEIGHTS
+            )
+        )
         print(f"  {len(grid)} combinations")
 
         combo_records = []
@@ -464,7 +524,9 @@ def main():
             result, _ = evaluate_combo(
                 prices, volumes, adv, vix, long_only, lookback, skip, triple, hedge_w
             )
-            train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(result.returns)
+            train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(
+                result.returns
+            )
 
             # Internal walk-forward on train
             train_sharpes = wf_oos_sharpes(train_ret, n_splits=4)
@@ -489,8 +551,12 @@ def main():
                 "val_sharpe": float(sharpe_ratio(val_ret.values)),
                 "test_sharpe": float(sharpe_ratio(test_ret.values)),
                 "oos_sharpe": float(sharpe_ratio(oos_ret.values)),
-                "oos_trades": int((result.trades["timestamp"] > pd.Timestamp(TRAIN_END)).sum()),
-                "train_trades": int((result.trades["timestamp"] <= pd.Timestamp(TRAIN_END)).sum()),
+                "oos_trades": int(
+                    (result.trades["timestamp"] > pd.Timestamp(TRAIN_END)).sum()
+                ),
+                "train_trades": int(
+                    (result.trades["timestamp"] <= pd.Timestamp(TRAIN_END)).sum()
+                ),
                 "full_sharpe": float(result.metrics["sharpe"]),
                 "full_max_dd": float(result.metrics["max_drawdown"]),
                 "full_pf": float(result.metrics["profit_factor"]),
@@ -498,9 +564,11 @@ def main():
             }
             combo_records.append(rec)
             tracker.log_metrics(rec, step=i)
-            print(f"  [{i+1}/{len(grid)}] lo={long_only} lb={lookback} sk={skip} "
-                  f"triple={triple} hedge={hedge_w}: train={train_sharpe:.3f} "
-                  f"wfOOS={sel:.3f} val={rec['val_sharpe']:.3f} test={rec['test_sharpe']:.3f}")
+            print(
+                f"  [{i + 1}/{len(grid)}] lo={long_only} lb={lookback} sk={skip} "
+                f"triple={triple} hedge={hedge_w}: train={train_sharpe:.3f} "
+                f"wfOOS={sel:.3f} val={rec['val_sharpe']:.3f} test={rec['test_sharpe']:.3f}"
+            )
 
         combos_df = pd.DataFrame(combo_records)
 
@@ -511,7 +579,9 @@ def main():
         q75, q25 = np.percentile(of, [75, 25])
         iqr = q75 - q25
         robust_z = (of - med) / (iqr + 1e-9)
-        penalty = OVERFIT_PENALTY_WEIGHT * np.maximum(0.0, robust_z - OVERFIT_Z_THRESHOLD)
+        penalty = OVERFIT_PENALTY_WEIGHT * np.maximum(
+            0.0, robust_z - OVERFIT_Z_THRESHOLD
+        )
         combos_df["overfit_robust_z"] = robust_z
         combos_df["overfit_penalty"] = penalty
         combos_df["selection_score"] = combos_df["wf_oos_mean_sharpe"] - penalty
@@ -525,13 +595,19 @@ def main():
         sel_long_only = bool(best["long_only"])
         sel_lookback = int(best["lookback"])
         sel_skip = int(best["skip"])
-        sel_triple = (float(best["regime_bull"]), float(best["regime_sideways"]), float(best["regime_bear"]))
+        sel_triple = (
+            float(best["regime_bull"]),
+            float(best["regime_sideways"]),
+            float(best["regime_bear"]),
+        )
         sel_hedge_w = float(best["hedge_weight"])
         sel_allow_short = not sel_long_only
-        print(f"\nSELECTED: long_only={sel_long_only} lookback={sel_lookback} skip={sel_skip} "
-              f"regime_triple={sel_triple} hedge={sel_hedge_w} "
-              f"(selection_score={best['selection_score']:.3f}, wfOOS={best['wf_oos_mean_sharpe']:.3f}, "
-              f"train Sharpe={best['train_sharpe']:.3f})")
+        print(
+            f"\nSELECTED: long_only={sel_long_only} lookback={sel_lookback} skip={sel_skip} "
+            f"regime_triple={sel_triple} hedge={sel_hedge_w} "
+            f"(selection_score={best['selection_score']:.3f}, wfOOS={best['wf_oos_mean_sharpe']:.3f}, "
+            f"train Sharpe={best['train_sharpe']:.3f})"
+        )
 
         # Multiple testing correction for the grid (Benjamini-Hochberg on walk-forward p-values).
         pvals = []
@@ -556,13 +632,24 @@ def main():
         # ------------------------------------------------------------
         print("\nRunning selected strategy on Val + Test...")
         final_result, final_signals = evaluate_combo(
-            prices, volumes, adv, vix, sel_long_only, sel_lookback, sel_skip,
-            sel_triple, sel_hedge_w
+            prices,
+            volumes,
+            adv,
+            vix,
+            sel_long_only,
+            sel_lookback,
+            sel_skip,
+            sel_triple,
+            sel_hedge_w,
         )
-        train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(final_result.returns)
+        train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(
+            final_result.returns
+        )
 
         tracker.log_dataframe("selected_signals", final_signals)
-        tracker.log_dataframe("selected_equity", final_result.equity_curve.to_frame("equity"))
+        tracker.log_dataframe(
+            "selected_equity", final_result.equity_curve.to_frame("equity")
+        )
         tracker.log_dataframe("selected_trades", final_result.trades)
 
         # ------------------------------------------------------------
@@ -572,10 +659,14 @@ def main():
         oos_returns = oos_ret
         oos_sharpe = sharpe_ratio(oos_returns.values)
         oos_returns_arr = oos_returns.values
-        sharpe_ci = sharpe_ratio_ci(oos_returns_arr, n_bootstrap=1000, random_state=SEED)
+        sharpe_ci = sharpe_ratio_ci(
+            oos_returns_arr, n_bootstrap=1000, random_state=SEED
+        )
 
         # Trades split
-        oos_trades = final_result.trades[final_result.trades["timestamp"] > pd.Timestamp(TRAIN_END)]
+        oos_trades = final_result.trades[
+            final_result.trades["timestamp"] > pd.Timestamp(TRAIN_END)
+        ]
 
         # Profit factor / drawdown on OOS equity
         oos_equity = (1 + oos_returns).cumprod()
@@ -605,12 +696,18 @@ def main():
 
         # H3 regime gate: crisis-window drawdowns (2020-03 COVID crash,
         # calendar 2022 inflation shock) on the strategy equity curve.
-        dd_2020_03 = window_max_drawdown(final_result.equity_curve, "2020-03-01", "2020-03-31")
-        dd_2022 = window_max_drawdown(final_result.equity_curve, "2022-01-01", "2022-12-31")
+        dd_2020_03 = window_max_drawdown(
+            final_result.equity_curve, "2020-03-01", "2020-03-31"
+        )
+        dd_2022 = window_max_drawdown(
+            final_result.equity_curve, "2022-01-01", "2022-12-31"
+        )
 
         # Parameter perturbation (+/-20%) on OOS
         def perturbed_sharpe(lb, sk, triple, hedge_w):
-            res, _ = evaluate_combo(prices, volumes, adv, vix, sel_allow_short, lb, sk, triple, hedge_w)
+            res, _ = evaluate_combo(
+                prices, volumes, adv, vix, sel_allow_short, lb, sk, triple, hedge_w
+            )
             _, _, _, oos_r = split_returns_by_date(res.returns)
             return sharpe_ratio(oos_r.values)
 
@@ -628,10 +725,18 @@ def main():
             "lookback-20%": perturbed_sharpe(lb_m, sel_skip, sel_triple, sel_hedge_w),
             "skip+20%": perturbed_sharpe(sel_lookback, sk_p, sel_triple, sel_hedge_w),
             "skip-20%": perturbed_sharpe(sel_lookback, sk_m, sel_triple, sel_hedge_w),
-            "regime_factor+20%": perturbed_sharpe(sel_lookback, sel_skip, triple_p, sel_hedge_w),
-            "regime_factor-20%": perturbed_sharpe(sel_lookback, sel_skip, triple_m, sel_hedge_w),
-            "hedge_weight+20%": perturbed_sharpe(sel_lookback, sel_skip, sel_triple, hedge_p),
-            "hedge_weight-20%": perturbed_sharpe(sel_lookback, sel_skip, sel_triple, hedge_m),
+            "regime_factor+20%": perturbed_sharpe(
+                sel_lookback, sel_skip, triple_p, sel_hedge_w
+            ),
+            "regime_factor-20%": perturbed_sharpe(
+                sel_lookback, sel_skip, triple_m, sel_hedge_w
+            ),
+            "hedge_weight+20%": perturbed_sharpe(
+                sel_lookback, sel_skip, sel_triple, hedge_p
+            ),
+            "hedge_weight-20%": perturbed_sharpe(
+                sel_lookback, sel_skip, sel_triple, hedge_m
+            ),
         }
         min_perturbed = min(perturbations.values())
         if not np.isfinite(min_perturbed) or min_perturbed == 0:
@@ -645,13 +750,20 @@ def main():
         oos_returns_arr = oos_returns_arr[mask]
         bench_arr = bench_arr[mask]
         cmp = compare_to_benchmark(oos_returns_arr, bench_arr)
+
         # Bootstrap CI for Information Rate
         def ir_func(x):
-            b = bench_arr[:len(x)]
+            b = bench_arr[: len(x)]
             excess = x - b
-            return float(excess.mean() / excess.std() * np.sqrt(252)) if excess.std() > 0 else 0.0
-        ir_ci = bootstrap_confidence_interval(oos_returns_arr - bench_arr,
-                                              ir_func, n_bootstrap=1000, random_state=SEED)
+            return (
+                float(excess.mean() / excess.std() * np.sqrt(252))
+                if excess.std() > 0
+                else 0.0
+            )
+
+        ir_ci = bootstrap_confidence_interval(
+            oos_returns_arr - bench_arr, ir_func, n_bootstrap=1000, random_state=SEED
+        )
         ir_ci = (float(ir_ci[0]), float(ir_ci[1]))
         # alpha p-value (two-sided t-test on daily excess returns)
         excess = oos_returns_arr - bench_arr
@@ -667,19 +779,35 @@ def main():
         zero_cfg.cost_model.equity_spread_bps = 0.0
         zero_cfg.cost_model.equity_impact_bps_per_pct_adv = 0.0
         sig_final = regime_gated_signals(
-            prices, vix, lookback=sel_lookback, skip=sel_skip,
-            long_only=sel_long_only, regime_triple=sel_triple, hedge_weight=sel_hedge_w,
+            prices,
+            vix,
+            lookback=sel_lookback,
+            skip=sel_skip,
+            long_only=sel_long_only,
+            regime_triple=sel_triple,
+            hedge_weight=sel_hedge_w,
         )
         sig_final_monthly = resample_monthly_signals(sig_final)
-        gross_result = run_backtest(prices=prices, signals=sig_final_monthly,
-                                    volumes=volumes, adv=adv, config=zero_cfg)
-        base_costs = (gross_result.returns - final_result.returns).reindex(oos_returns.index).fillna(0)
+        gross_result = run_backtest(
+            prices=prices,
+            signals=sig_final_monthly,
+            volumes=volumes,
+            adv=adv,
+            config=zero_cfg,
+        )
+        base_costs = (
+            (gross_result.returns - final_result.returns)
+            .reindex(oos_returns.index)
+            .fillna(0)
+        )
         stressed = stressed_cost_test(
             gross_result.returns.reindex(oos_returns.index).fillna(0).values,
             base_costs.values,
         )
         stressed = {k: float(v) for k, v in stressed.items()}
-        tracker.log_metrics({f"stressed_{k}": float(v) for k, v in stressed.items()}, step=0)
+        tracker.log_metrics(
+            {f"stressed_{k}": float(v) for k, v in stressed.items()}, step=0
+        )
 
         # ------------------------------------------------------------
         # 6. GATE EVALUATION
@@ -713,7 +841,9 @@ def main():
             "param_perturbation": {
                 "value": round(min_perturbed, 4),
                 "threshold": round(oos_sharpe * GATES["min_perturbed_sharpe_ratio"], 4),
-                "pass": bool(min_perturbed >= oos_sharpe * GATES["min_perturbed_sharpe_ratio"]),
+                "pass": bool(
+                    min_perturbed >= oos_sharpe * GATES["min_perturbed_sharpe_ratio"]
+                ),
                 "details": {k: round(float(v), 4) for k, v in perturbations.items()},
             },
             "regime_stability": {
@@ -727,8 +857,10 @@ def main():
                 "threshold": GATES["max_p_value"],
                 # Direction-aware: significance alone is not evidence for
                 # the hypothesis -- alpha must be positive (IR > 0).
-                "pass": bool(alpha_p < GATES["max_p_value"]
-                               and cmp["information_ratio"] > GATES["min_information_ratio"]),
+                "pass": bool(
+                    alpha_p < GATES["max_p_value"]
+                    and cmp["information_ratio"] > GATES["min_information_ratio"]
+                ),
                 "information_ratio": round(float(cmp["information_ratio"]), 4),
                 "alpha_p_value": round(float(alpha_p), 4),
             },
@@ -752,16 +884,28 @@ def main():
         print("\n" + "=" * 72)
         print("H3: REGIME-GATED MOMENTUM -- EVIDENCE GATES (OOS: Val+Test)")
         print("=" * 72)
-        print(f"Selected: long_only={sel_long_only} lookback={sel_lookback} skip={sel_skip} "
-              f"regime_triple={sel_triple} hedge={sel_hedge_w} vol_target={TARGET_VOL}")
-        print(f"OOS Sharpe={oos_sharpe:.3f} (95% CI [{sharpe_ci[0]:.3f}, {sharpe_ci[1]:.3f}])")
-        print(f"Train Sharpe={train_sharpe:.3f}  Val Sharpe={sharpe_ratio(val_ret.values):.3f}  "
-              f"Test Sharpe={sharpe_ratio(test_ret.values):.3f}")
-        print(f"OOS trades={len(oos_trades)}  Profit factor={oos_pf:.3f}  Max DD={oos_dd:.2%}")
-        print(f"WF stability={wf_stability:.3f}  Worst regime Sharpe={worst_regime_sharpe:.3f}")
+        print(
+            f"Selected: long_only={sel_long_only} lookback={sel_lookback} skip={sel_skip} "
+            f"regime_triple={sel_triple} hedge={sel_hedge_w} vol_target={TARGET_VOL}"
+        )
+        print(
+            f"OOS Sharpe={oos_sharpe:.3f} (95% CI [{sharpe_ci[0]:.3f}, {sharpe_ci[1]:.3f}])"
+        )
+        print(
+            f"Train Sharpe={train_sharpe:.3f}  Val Sharpe={sharpe_ratio(val_ret.values):.3f}  "
+            f"Test Sharpe={sharpe_ratio(test_ret.values):.3f}"
+        )
+        print(
+            f"OOS trades={len(oos_trades)}  Profit factor={oos_pf:.3f}  Max DD={oos_dd:.2%}"
+        )
+        print(
+            f"WF stability={wf_stability:.3f}  Worst regime Sharpe={worst_regime_sharpe:.3f}"
+        )
         print(f"Crisis DD: 2020-03={dd_2020_03:.2%}  2022={dd_2022:.2%}")
         print(f"Benchmark IR={cmp['information_ratio']:.3f}  alpha p={alpha_p:.4f}")
-        print(f"Stressed combined Sharpe={stressed.get('stressed_combined_sharpe', float('nan')):.3f}")
+        print(
+            f"Stressed combined Sharpe={stressed.get('stressed_combined_sharpe', float('nan')):.3f}"
+        )
         print()
         for name, g in gates.items():
             flag = "PASS" if g["pass"] else "FAIL"
@@ -816,17 +960,25 @@ def main():
             "stressed_costs": stressed,
             "param_grid_summary": {
                 "n_combos": len(combo_records),
-                "selection_metric": ("mean walk-forward OOS Sharpe on TRAIN minus "
-                                     "overfit-guard penalty (robust z of train Sharpe / train-vol)"),
-                "benjamini_hochberg_significant": int(sum(1 for r in combo_records if r.get("wf_oos_significant"))),
-                "overfit_guard": {"z_threshold": OVERFIT_Z_THRESHOLD,
-                                  "penalty_weight": OVERFIT_PENALTY_WEIGHT,
-                                  "median_overfit_metric": float(med),
-                                  "iqr_overfit_metric": float(iqr)},
+                "selection_metric": (
+                    "mean walk-forward OOS Sharpe on TRAIN minus "
+                    "overfit-guard penalty (robust z of train Sharpe / train-vol)"
+                ),
+                "benjamini_hochberg_significant": int(
+                    sum(1 for r in combo_records if r.get("wf_oos_significant"))
+                ),
+                "overfit_guard": {
+                    "z_threshold": OVERFIT_Z_THRESHOLD,
+                    "penalty_weight": OVERFIT_PENALTY_WEIGHT,
+                    "median_overfit_metric": float(med),
+                    "iqr_overfit_metric": float(iqr),
+                },
             },
             "hedge_data_availability": {
                 "symbol": HEDGE_SYMBOL,
-                "first_valid_date": str(prices[HEDGE_SYMBOL].first_valid_index()) if hedge_available else None,
+                "first_valid_date": str(prices[HEDGE_SYMBOL].first_valid_index())
+                if hedge_available
+                else None,
                 "note": "VXX hedge leg flat before first valid date (Yahoo history starts 2018-01-25)",
             },
             "gates_spec": GATES,
@@ -838,9 +990,13 @@ def main():
         tracker.log_artifact("summary", exp_dir / "summary.json")
 
         tracker.log_dataframe("param_grid_results", combos_df)
-        tracker.log_dataframe("selected_equity", final_result.equity_curve.to_frame("equity"))
+        tracker.log_dataframe(
+            "selected_equity", final_result.equity_curve.to_frame("equity")
+        )
         tracker.log_dataframe("selected_trades", final_result.trades)
-        tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
+        tracker.log_dataframe(
+            "benchmark_equity", bh_result.equity_curve.to_frame("equity")
+        )
 
         tracker.finish_experiment(status="completed")
 
@@ -850,6 +1006,7 @@ def main():
 
     except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
+
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))
         return False

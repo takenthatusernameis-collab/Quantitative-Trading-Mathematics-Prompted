@@ -94,16 +94,46 @@ COST_MODEL_DEFAULTS = {
 }
 
 FUTURES_SPECS = {
-    "ES=F": {"multiplier": 50.0, "tick_value": 12.50, "tick_size": 0.25,
-             "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "NQ=F": {"multiplier": 20.0, "tick_value": 5.0, "tick_size": 0.25,
-             "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "CL=F": {"multiplier": 1000.0, "tick_value": 10.0, "tick_size": 0.01,
-             "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "GC=F": {"multiplier": 100.0, "tick_value": 10.0, "tick_size": 0.10,
-             "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "ZB=F": {"multiplier": 1000.0, "tick_value": 31.25, "tick_size": 0.03125,
-             "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
+    "ES=F": {
+        "multiplier": 50.0,
+        "tick_value": 12.50,
+        "tick_size": 0.25,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "NQ=F": {
+        "multiplier": 20.0,
+        "tick_value": 5.0,
+        "tick_size": 0.25,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "CL=F": {
+        "multiplier": 1000.0,
+        "tick_value": 10.0,
+        "tick_size": 0.01,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "GC=F": {
+        "multiplier": 100.0,
+        "tick_value": 10.0,
+        "tick_size": 0.10,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "ZB=F": {
+        "multiplier": 1000.0,
+        "tick_value": 31.25,
+        "tick_size": 0.03125,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
 }
 
 # Futures roll schedules: which months roll for each symbol
@@ -186,7 +216,9 @@ def detect_all_roll_dates(prices, opens, volumes):
     for sym in prices.columns:
         close_s = prices[sym]
         open_s = opens[sym] if sym in opens.columns else close_s
-        vol_s = volumes[sym] if sym in volumes.columns else pd.Series(0, index=prices.index)
+        vol_s = (
+            volumes[sym] if sym in volumes.columns else pd.Series(0, index=prices.index)
+        )
         mask = detect_roll_dates_symbol(sym, close_s, open_s, vol_s)
         roll_masks[sym] = mask
     return roll_masks
@@ -208,7 +240,7 @@ def compute_roll_carry(prices, opens, roll_masks):
     for sym in prices.columns:
         mask = roll_masks.get(sym, pd.Series(False, index=prices.index))
         if mask.sum() > 0:
-            gap = (opens[sym] / prices[sym].shift(1) - 1.0)
+            gap = opens[sym] / prices[sym].shift(1) - 1.0
             roll_carry.loc[mask, sym] = gap.loc[mask]
     return roll_carry
 
@@ -268,7 +300,9 @@ def build_tsmom_signals(prices_adj):
 def make_futures_config(allow_short=False):
     """Create BacktestConfig with futures cost model."""
     cm = CostModel(
-        future_commission_per_contract=COST_MODEL_DEFAULTS["future_commission_per_contract"],
+        future_commission_per_contract=COST_MODEL_DEFAULTS[
+            "future_commission_per_contract"
+        ],
         future_spread_ticks=COST_MODEL_DEFAULTS["future_spread_ticks"],
         future_slippage_ticks=COST_MODEL_DEFAULTS["future_slippage_ticks"],
         futures_specs=FUTURES_SPECS,
@@ -332,7 +366,11 @@ def compute_gate_metrics(result, prices, vix, label=""):
     gross_l = abs(oos_ret[oos_ret < 0].sum()) if len(oos_ret) else 1e-18
     oos_pf = float(gross_p / gross_l) if gross_l > 0 else np.inf
 
-    oos_trades = result.trades[result.trades["timestamp"] > pd.Timestamp(TRAIN_END)] if len(result.trades) else pd.DataFrame()
+    oos_trades = (
+        result.trades[result.trades["timestamp"] > pd.Timestamp(TRAIN_END)]
+        if len(result.trades)
+        else pd.DataFrame()
+    )
 
     wf_stab = oos_sharpe / train_sharpe if abs(train_sharpe) > 1e-18 else 0.0
 
@@ -350,16 +388,15 @@ def compute_gate_metrics(result, prices, vix, label=""):
     # Benchmark comparison: equal-weight futures buy-and-hold
     bh_signals = pd.DataFrame(
         1.0 / len(prices.columns),
-        index=prices.index, columns=prices.columns,
+        index=prices.index,
+        columns=prices.columns,
     )
     bh_signals = resample_monthly_signals(bh_signals)
     bh_cfg = make_futures_config(allow_short=not LONG_ONLY)
-    bh_result = run_backtest(
-        prices=prices, signals=bh_signals, config=bh_cfg
-    )
+    bh_result = run_backtest(prices=prices, signals=bh_signals, config=bh_cfg)
     bh_oos = bh_result.returns[bh_result.returns.index > pd.Timestamp(TRAIN_END)]
     if len(oos_ret) > 0 and len(bh_oos) > 0:
-        alpha_res = compare_to_benchmark(oos_ret.values[-len(bh_oos):], bh_oos.values)
+        alpha_res = compare_to_benchmark(oos_ret.values[-len(bh_oos) :], bh_oos.values)
         p_val = float(alpha_res.get("alpha_p_value", 1.0))
         ir = float(alpha_res.get("information_ratio", -np.inf))
     else:
@@ -410,8 +447,11 @@ def main():
             "end_date": END_DATE,
             "data_splits": {"train_end": TRAIN_END, "val_end": VAL_END},
             "base_signal": {
-                "lookback": LOOKBACK, "skip": SKIP, "long_only": LONG_ONLY,
-                "target_vol": TARGET_VOL, "vol_window": VOL_WINDOW,
+                "lookback": LOOKBACK,
+                "skip": SKIP,
+                "long_only": LONG_ONLY,
+                "target_vol": TARGET_VOL,
+                "vol_window": VOL_WINDOW,
                 "max_position_size": MAX_POSITION_SIZE,
             },
             "roll_detection": {
@@ -448,8 +488,11 @@ def main():
         print("Fetching futures data...")
         fetcher = get_data_fetcher()
         raw_fut = fetcher.fetch_futures(
-            FUTURES_UNIVERSE, start=START_DATE, end=END_DATE,
-            interval="1d", use_cache=True,
+            FUTURES_UNIVERSE,
+            start=START_DATE,
+            end=END_DATE,
+            interval="1d",
+            use_cache=True,
         )
         prices = pd.DataFrame()
         opens = pd.DataFrame()
@@ -474,12 +517,18 @@ def main():
         print(f"Loaded {len(prices.columns)} futures x {len(prices)} days")
 
         raw_vix = fetcher.fetch_yahoo(
-            [VIX_SYMBOL], start=START_DATE, end=END_DATE,
-            interval="1d", use_cache=True,
+            [VIX_SYMBOL],
+            start=START_DATE,
+            end=END_DATE,
+            interval="1d",
+            use_cache=True,
         )
         vix_df = raw_vix.get(VIX_SYMBOL)
-        vix = vix_df["close"] if (vix_df is not None and "close" in vix_df.columns) \
+        vix = (
+            vix_df["close"]
+            if (vix_df is not None and "close" in vix_df.columns)
             else pd.Series(np.nan, index=prices.index)
+        )
         vix = vix.reindex(prices.index).ffill()
 
         tracker.log_dataframe("prices", prices)
@@ -496,7 +545,10 @@ def main():
 
         # Log roll masks
         roll_mask_df = pd.DataFrame(
-            {sym: roll_masks.get(sym, pd.Series(False, index=prices.index)) for sym in prices.columns}
+            {
+                sym: roll_masks.get(sym, pd.Series(False, index=prices.index))
+                for sym in prices.columns
+            }
         )
         tracker.log_dataframe("roll_dates", roll_mask_df)
 
@@ -524,22 +576,37 @@ def main():
             # Run backtest
             cfg = make_futures_config(allow_short=not LONG_ONLY)
             result = run_backtest(
-                prices=P_adj, signals=sig,
-                volumes=volumes, adv=None, config=cfg,
+                prices=P_adj,
+                signals=sig,
+                volumes=volumes,
+                adv=None,
+                config=cfg,
             )
 
-            train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(result.returns)
+            train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(
+                result.returns
+            )
             train_s = sharpe_ratio(train_ret.values) if len(train_ret) else 0.0
             val_s = sharpe_ratio(val_ret.values) if len(val_ret) else 0.0
             test_s = sharpe_ratio(test_ret.values) if len(test_ret) else 0.0
             oos_s = sharpe_ratio(oos_ret.values) if len(oos_ret) else 0.0
 
-            oos_eq = result.equity_curve[result.equity_curve.index > pd.Timestamp(TRAIN_END)]
-            oos_dd = float((oos_eq / oos_eq.expanding().max() - 1.0).min()) if len(oos_eq) >= 2 else 0.0
+            oos_eq = result.equity_curve[
+                result.equity_curve.index > pd.Timestamp(TRAIN_END)
+            ]
+            oos_dd = (
+                float((oos_eq / oos_eq.expanding().max() - 1.0).min())
+                if len(oos_eq) >= 2
+                else 0.0
+            )
             gross_p = oos_ret[oos_ret > 0].sum() if len(oos_ret) else 0
             gross_l = abs(oos_ret[oos_ret < 0].sum()) if len(oos_ret) else 1e-18
             oos_pf = float(gross_p / gross_l) if gross_l > 0 else np.inf
-            oos_trades = result.trades[result.trades["timestamp"] > pd.Timestamp(TRAIN_END)] if len(result.trades) else pd.DataFrame()
+            oos_trades = (
+                result.trades[result.trades["timestamp"] > pd.Timestamp(TRAIN_END)]
+                if len(result.trades)
+                else pd.DataFrame()
+            )
 
             rec = {
                 "roll_carry_weight": float(weight),
@@ -552,9 +619,11 @@ def main():
                 "oos_trades": len(oos_trades),
             }
             grid_records.append(rec)
-            print(f"  w={weight:.2f}: train_SR={train_s:.3f}, val_SR={val_s:.3f}, "
-                  f"test_SR={test_s:.3f}, OOS_SR={oos_s:.3f}, "
-                  f"DD={oos_dd:.3f}, PF={oos_pf:.3f}, trades={len(oos_trades)}")
+            print(
+                f"  w={weight:.2f}: train_SR={train_s:.3f}, val_SR={val_s:.3f}, "
+                f"test_SR={test_s:.3f}, OOS_SR={oos_s:.3f}, "
+                f"DD={oos_dd:.3f}, PF={oos_pf:.3f}, trades={len(oos_trades)}"
+            )
 
             # Selection by Val Sharpe (test never enters selection)
             if val_s > best_val_sharpe:
@@ -566,8 +635,10 @@ def main():
         grid_df = grid_df.sort_values("val_sharpe", ascending=False)
         tracker.log_dataframe("param_grid_results", grid_df)
 
-        print(f"\nBest weight (by Val Sharpe): w={best_weight:.2f} "
-              f"(val_SR={best_val_sharpe:.3f})")
+        print(
+            f"\nBest weight (by Val Sharpe): w={best_weight:.2f} "
+            f"(val_SR={best_val_sharpe:.3f})"
+        )
 
         # ---- Full gate evaluation on best config ----
         print("\nEvaluating gates on best config...")
@@ -580,26 +651,36 @@ def main():
         sig_base = build_tsmom_signals(P_base)
         cfg_base = make_futures_config(allow_short=not LONG_ONLY)
         base_result = run_backtest(
-            prices=P_base, signals=sig_base,
-            volumes=volumes, adv=None, config=cfg_base,
+            prices=P_base,
+            signals=sig_base,
+            volumes=volumes,
+            adv=None,
+            config=cfg_base,
         )
         base_metrics = compute_gate_metrics(base_result, prices, vix, label="base")
-        print(f"  Base: OOS_SR={base_metrics['oos_sharpe']:.3f}, "
-              f"DD={base_metrics['oos_max_dd']:.3f}, "
-              f"PF={base_metrics['oos_pf']:.3f}")
+        print(
+            f"  Base: OOS_SR={base_metrics['oos_sharpe']:.3f}, "
+            f"DD={base_metrics['oos_max_dd']:.3f}, "
+            f"PF={base_metrics['oos_pf']:.3f}"
+        )
 
         # Benchmark
         bh_signals = pd.DataFrame(
             1.0 / len(prices.columns),
-            index=prices.index, columns=prices.columns,
+            index=prices.index,
+            columns=prices.columns,
         )
         bh_signals = resample_monthly_signals(bh_signals)
         bh_cfg = make_futures_config(allow_short=False)
         bh_result = run_backtest(
-            prices=prices, signals=bh_signals, config=bh_cfg,
+            prices=prices,
+            signals=bh_signals,
+            config=bh_cfg,
         )
         print(f"  Benchmark (EW futures BH): Sharpe={bh_result.metrics['sharpe']:.3f}")
-        tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
+        tracker.log_dataframe(
+            "benchmark_equity", bh_result.equity_curve.to_frame("equity")
+        )
         tracker.log_dataframe("benchmark_trades", bh_result.trades)
 
         # ---- Ablation summary ----
@@ -615,22 +696,30 @@ def main():
                 "oos_trades": int(row["oos_trades"]),
             }
             ablations.append(rec)
-        ablations.append({
-            "name": "base_tsmom_no_roll_adj",
-            "weight": 0.0,
-            "oos_sharpe": float(base_metrics["oos_sharpe"]),
-            "oos_max_dd": float(base_metrics["oos_max_dd"]),
-            "oos_pf": float(base_metrics["oos_pf"]),
-            "oos_trades": int(base_metrics["oos_trades"]),
-        })
+        ablations.append(
+            {
+                "name": "base_tsmom_no_roll_adj",
+                "weight": 0.0,
+                "oos_sharpe": float(base_metrics["oos_sharpe"]),
+                "oos_max_dd": float(base_metrics["oos_max_dd"]),
+                "oos_pf": float(base_metrics["oos_pf"]),
+                "oos_trades": int(base_metrics["oos_trades"]),
+            }
+        )
         ablation_df = pd.DataFrame(ablations)
         tracker.log_dataframe("ablations", ablation_df)
 
         # ---- Best result artifacts ----
-        tracker.log_dataframe(f"best_equity_w{best_weight}", best_result.equity_curve.to_frame("equity"))
+        tracker.log_dataframe(
+            f"best_equity_w{best_weight}", best_result.equity_curve.to_frame("equity")
+        )
         tracker.log_dataframe(f"best_trades_w{best_weight}", best_result.trades)
-        tracker.log_dataframe(f"best_returns_w{best_weight}", best_result.returns.to_frame("returns"))
-        tracker.log_dataframe("base_equity", base_result.equity_curve.to_frame("equity"))
+        tracker.log_dataframe(
+            f"best_returns_w{best_weight}", best_result.returns.to_frame("returns")
+        )
+        tracker.log_dataframe(
+            "base_equity", base_result.equity_curve.to_frame("equity")
+        )
 
         # ---- Summary ----
         summary = {
@@ -660,16 +749,25 @@ def main():
             "benchmark_return": float(bh_result.metrics["annualized_return"]),
             "benchmark_max_dd": float(bh_result.metrics["max_drawdown"]),
             "data_available": list(prices.columns),
-            "roll_dates_count": {sym: int(roll_masks[sym].sum()) for sym in prices.columns},
+            "roll_dates_count": {
+                sym: int(roll_masks[sym].sum()) for sym in prices.columns
+            },
         }
 
         exp_dir = Path(tracker.log_dir) / "artifacts" / exp_id
         exp_dir.mkdir(parents=True, exist_ok=True)
         with open(exp_dir / "summary.json", "w") as f:
             json.dump(
-                summary, f, indent=2,
-                default=lambda o: bool(o) if isinstance(o, (np.bool_,)) else
-                              (float(o) if isinstance(o, (np.integer, np.floating)) else str(o)),
+                summary,
+                f,
+                indent=2,
+                default=lambda o: (
+                    bool(o)
+                    if isinstance(o, (np.bool_,))
+                    else (
+                        float(o) if isinstance(o, (np.integer, np.floating)) else str(o)
+                    )
+                ),
             )
         tracker.log_artifact("summary", exp_dir / "summary.json")
 
@@ -678,14 +776,30 @@ def main():
         print("\n" + "=" * 70)
         print(f"H8 Verdict: {summary['verdict']}")
         print(f"Best weight: {best_weight} (Val SR={best_val_sharpe:.3f})")
-        print(f"OOS Sharpe: {gate_metrics['oos_sharpe']:.3f} (gate >= {GATES['min_sharpe']})")
-        print(f"OOS Max DD: {gate_metrics['oos_max_dd']:.3f} (gate <= {GATES['max_drawdown']})")
-        print(f"OOS PF: {gate_metrics['oos_pf']:.3f} (gate >= {GATES['min_profit_factor']})")
-        print(f"OOS Trades: {gate_metrics['oos_trades']} (gate >= {GATES['min_trades']})")
-        print(f"WF Stability: {gate_metrics['wf_stability']:.3f} (gate >= {GATES['min_walkforward_stability']})")
-        print(f"Worst Regime SR: {gate_metrics['worst_regime_sharpe']:.3f} (gate >= {GATES['min_worst_regime_sharpe']})")
-        print(f"Benchmark p: {gate_metrics['benchmark_p_value']:.4f} (gate < {GATES['max_p_value']})")
-        print(f"Information Ratio: {gate_metrics['information_ratio']:.3f} (gate > {GATES['min_information_ratio']})")
+        print(
+            f"OOS Sharpe: {gate_metrics['oos_sharpe']:.3f} (gate >= {GATES['min_sharpe']})"
+        )
+        print(
+            f"OOS Max DD: {gate_metrics['oos_max_dd']:.3f} (gate <= {GATES['max_drawdown']})"
+        )
+        print(
+            f"OOS PF: {gate_metrics['oos_pf']:.3f} (gate >= {GATES['min_profit_factor']})"
+        )
+        print(
+            f"OOS Trades: {gate_metrics['oos_trades']} (gate >= {GATES['min_trades']})"
+        )
+        print(
+            f"WF Stability: {gate_metrics['wf_stability']:.3f} (gate >= {GATES['min_walkforward_stability']})"
+        )
+        print(
+            f"Worst Regime SR: {gate_metrics['worst_regime_sharpe']:.3f} (gate >= {GATES['min_worst_regime_sharpe']})"
+        )
+        print(
+            f"Benchmark p: {gate_metrics['benchmark_p_value']:.4f} (gate < {GATES['max_p_value']})"
+        )
+        print(
+            f"Information Ratio: {gate_metrics['information_ratio']:.3f} (gate > {GATES['min_information_ratio']})"
+        )
         print(f"Base (w=0) OOS Sharpe: {base_metrics['oos_sharpe']:.3f}")
         print(f"Roll-adjusted OOS Sharpe: {gate_metrics['oos_sharpe']:.3f}")
         print(f"Artifacts at: {exp_dir}")
@@ -695,6 +809,7 @@ def main():
 
     except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
+
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))
         return 2

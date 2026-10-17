@@ -112,7 +112,9 @@ def make_config(allow_short):
     )
     cfg.cost_model.equity_commission_bps = COST_MODEL["equity_commission_bps"]
     cfg.cost_model.equity_spread_bps = COST_MODEL["equity_spread_bps"]
-    cfg.cost_model.equity_impact_bps_per_pct_adv = COST_MODEL["equity_impact_bps_per_pct_adv"]
+    cfg.cost_model.equity_impact_bps_per_pct_adv = COST_MODEL[
+        "equity_impact_bps_per_pct_adv"
+    ]
     return cfg
 
 
@@ -121,7 +123,9 @@ def resample_monthly_signals(signals):
     return monthly.reindex(signals.index, method="ffill").fillna(0)
 
 
-def cs_momentum_vol_scaled(prices, lookback, skip, long_only, target_vol=TARGET_VOL, vol_window=VOL_WINDOW):
+def cs_momentum_vol_scaled(
+    prices, lookback, skip, long_only, target_vol=TARGET_VOL, vol_window=VOL_WINDOW
+):
     """Cross-sectional momentum with portfolio-level vol targeting.
 
     Base signal: direction from 12-month return (skip-period). For long/short the
@@ -177,17 +181,32 @@ def main():
         description=EXPERIMENT_DESC,
         config={
             "universe": UNIVERSE,
-            "start_date": START_DATE, "end_date": END_DATE,
-            "data_splits": {"train_end": TRAIN_END, "val_end": VAL_END, "test_start": "2022-01-01"},
-            "lookbacks": LOOKBACKS, "skips": SKIPS, "n_top_choices": N_TOP_CHOICES,
-            "long_only_choices": LONG_ONLY_CHOICES, "target_vol": TARGET_VOL,
-            "max_leverage": MAX_LEVERAGE, "max_position_size": MAX_POSITION_SIZE,
-            "cost_model": COST_MODEL, "gates": GATES,
+            "start_date": START_DATE,
+            "end_date": END_DATE,
+            "data_splits": {
+                "train_end": TRAIN_END,
+                "val_end": VAL_END,
+                "test_start": "2022-01-01",
+            },
+            "lookbacks": LOOKBACKS,
+            "skips": SKIPS,
+            "n_top_choices": N_TOP_CHOICES,
+            "long_only_choices": LONG_ONLY_CHOICES,
+            "target_vol": TARGET_VOL,
+            "max_leverage": MAX_LEVERAGE,
+            "max_position_size": MAX_POSITION_SIZE,
+            "cost_model": COST_MODEL,
+            "gates": GATES,
             "random_seeds": {"numpy": SEED, "python": SEED},
             "compute_budget": {"max_cpu_hours": 2.0},
         },
-        data_sources={"source": "yahoo", "symbols": UNIVERSE + [VIX_SYMBOL],
-                      "start": START_DATE, "end": END_DATE, "interval": "1d"},
+        data_sources={
+            "source": "yahoo",
+            "symbols": UNIVERSE + [VIX_SYMBOL],
+            "start": START_DATE,
+            "end": END_DATE,
+            "interval": "1d",
+        },
         compute_budget={"max_cpu_hours": 2.0},
         random_seeds={"numpy": SEED, "python": SEED},
     )
@@ -196,13 +215,19 @@ def main():
     try:
         print("Fetching data...")
         fetcher = get_data_fetcher()
-        raw = fetcher.fetch_yahoo(UNIVERSE + [VIX_SYMBOL], START_DATE, END_DATE, "1d", use_cache=True)
+        raw = fetcher.fetch_yahoo(
+            UNIVERSE + [VIX_SYMBOL], START_DATE, END_DATE, "1d", use_cache=True
+        )
         prices = pd.DataFrame({s: raw[s]["close"] for s in UNIVERSE})
         vol = pd.DataFrame({s: raw[s]["volume"] for s in UNIVERSE})
         prices = prices.ffill().dropna(how="all")
         vol = vol.reindex(prices.index).ffill().fillna(0)
         vix_df = raw.get(VIX_SYMBOL)
-        vix = vix_df["close"] if vix_df is not None and not vix_df.empty else pd.Series(np.nan, index=prices.index)
+        vix = (
+            vix_df["close"]
+            if vix_df is not None and not vix_df.empty
+            else pd.Series(np.nan, index=prices.index)
+        )
         vix = vix.reindex(prices.index).ffill()
         adv = vol.rolling(20).mean().iloc[-1]
         print(f"Loaded {len(prices.columns)} assets x {len(prices)} days")
@@ -213,12 +238,20 @@ def main():
         # Benchmark: equal-weight buy-and-hold (vol-scaled) on the 10 ETFs
         print("Benchmark equal-weight...")
         bh_cfg = make_config(False)
-        bh_signals = run_strategy(prices, "buy_and_hold", weight=1.0 / len(prices.columns))
+        bh_signals = run_strategy(
+            prices, "buy_and_hold", weight=1.0 / len(prices.columns)
+        )
         bh_signals = resample_monthly_signals(bh_signals)
-        bh_result = run_backtest(prices=prices, signals=bh_signals, volumes=vol, adv=adv, config=bh_cfg)
-        tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
+        bh_result = run_backtest(
+            prices=prices, signals=bh_signals, volumes=vol, adv=adv, config=bh_cfg
+        )
+        tracker.log_dataframe(
+            "benchmark_equity", bh_result.equity_curve.to_frame("equity")
+        )
 
-        grid = list(itertools.product(LONG_ONLY_CHOICES, LOOKBACKS, SKIPS, N_TOP_CHOICES))
+        grid = list(
+            itertools.product(LONG_ONLY_CHOICES, LOOKBACKS, SKIPS, N_TOP_CHOICES)
+        )
         print(f"Grid search on TRAIN period ({len(grid)} combos)...")
         records = []
         for i, (long_only, lb, sk, n_top) in enumerate(grid):
@@ -226,50 +259,75 @@ def main():
             sig = cs_momentum_vol_scaled(prices, lb, sk, long_only)
             sig_m = resample_monthly_signals(sig)
             cfg = make_config(allow_short)
-            res = run_backtest(prices=prices, signals=sig_m, volumes=vol, adv=adv, config=cfg)
+            res = run_backtest(
+                prices=prices, signals=sig_m, volumes=vol, adv=adv, config=cfg
+            )
             tr, va, te, oo = split_returns_by_date(res.returns)
             train_sr = sharpe_ratio(tr.values)
             wf = wf_oos_sharpes(tr)
             sel = float(np.mean(wf)) if wf else -np.inf
             rec = {
-                "long_only": bool(long_only), "lookback": lb, "skip": sk, "n_top": n_top,
-                "train_sharpe": float(train_sr), "wf_oos_mean_sharpe": sel,
+                "long_only": bool(long_only),
+                "lookback": lb,
+                "skip": sk,
+                "n_top": n_top,
+                "train_sharpe": float(train_sr),
+                "wf_oos_mean_sharpe": sel,
                 "wf_oos_sharpes": [float(x) for x in wf],
-                "val_sharpe": float(sharpe_ratio(va.values)), "test_sharpe": float(sharpe_ratio(te.values)),
+                "val_sharpe": float(sharpe_ratio(va.values)),
+                "test_sharpe": float(sharpe_ratio(te.values)),
                 "oos_sharpe": float(sharpe_ratio(oo.values)),
-                "oos_trades": int((res.trades["timestamp"] > pd.Timestamp(TRAIN_END)).sum()),
-                "full_sharpe": float(res.metrics["sharpe"]), "full_dd": float(res.metrics["max_drawdown"]),
+                "oos_trades": int(
+                    (res.trades["timestamp"] > pd.Timestamp(TRAIN_END)).sum()
+                ),
+                "full_sharpe": float(res.metrics["sharpe"]),
+                "full_dd": float(res.metrics["max_drawdown"]),
                 "full_pf": float(res.metrics["profit_factor"]),
             }
             records.append(rec)
-            print(f"  [{i+1}/{len(grid)}] lo={long_only} lb={lb} sk={sk} top={n_top}: "
-                  f"train={train_sr:.3f} wfOOS={sel:.3f} val={rec['val_sharpe']:.3f} test={rec['test_sharpe']:.3f}")
+            print(
+                f"  [{i + 1}/{len(grid)}] lo={long_only} lb={lb} sk={sk} top={n_top}: "
+                f"train={train_sr:.3f} wfOOS={sel:.3f} val={rec['val_sharpe']:.3f} test={rec['test_sharpe']:.3f}"
+            )
 
         combos = pd.DataFrame(records)
         tracker.log_dataframe("param_grid_results", combos)
         # Multiple-testing correction on train wf p-values
         pvals = []
         for r in records:
-            sf = np.array(r["wf_oos_sharpes"]); sf = sf[~np.isnan(sf)]
+            sf = np.array(r["wf_oos_sharpes"])
+            sf = sf[~np.isnan(sf)]
             if len(sf) > 1 and sf.std() > 0:
-                _, p = stats.ttest_1samp(sf, 0.0); pvals.append(float(p))
+                _, p = stats.ttest_1samp(sf, 0.0)
+                pvals.append(float(p))
             else:
                 pvals.append(1.0)
-        rej, adj = multiple_testing_correction(np.array(pvals), method="benjamini_hochberg", alpha=0.05)
+        rej, adj = multiple_testing_correction(
+            np.array(pvals), method="benjamini_hochberg", alpha=0.05
+        )
         for r, ap, j in zip(records, adj, rej):
-            r["wf_oos_adj_pvalue"] = float(ap); r["wf_oos_significant"] = bool(j)
+            r["wf_oos_adj_pvalue"] = float(ap)
+            r["wf_oos_significant"] = bool(j)
         combos = pd.DataFrame(records)
-        combos_sorted = combos.sort_values(["wf_oos_mean_sharpe", "train_sharpe"], ascending=[False, False])
+        combos_sorted = combos.sort_values(
+            ["wf_oos_mean_sharpe", "train_sharpe"], ascending=[False, False]
+        )
         best = combos_sorted.iloc[0]
-        sel_lo = bool(best["long_only"]); sel_lb = int(best["lookback"]); sel_sk = int(best["skip"])
+        sel_lo = bool(best["long_only"])
+        sel_lb = int(best["lookback"])
+        sel_sk = int(best["skip"])
         sel_allow_short = not sel_lo
-        print(f"\nSELECTED: long_only={sel_lo} lb={sel_lb} sk={sel_sk} (wfOOS={best['wf_oos_mean_sharpe']:.3f}, train={best['train_sharpe']:.3f})")
+        print(
+            f"\nSELECTED: long_only={sel_lo} lb={sel_lb} sk={sel_sk} (wfOOS={best['wf_oos_mean_sharpe']:.3f}, train={best['train_sharpe']:.3f})"
+        )
 
         # Final run with selected params
         sig = cs_momentum_vol_scaled(prices, sel_lb, sel_sk, sel_lo)
         sig_m = resample_monthly_signals(sig)
         cfg = make_config(sel_allow_short)
-        final = run_backtest(prices=prices, signals=sig_m, volumes=vol, adv=adv, config=cfg)
+        final = run_backtest(
+            prices=prices, signals=sig_m, volumes=vol, adv=adv, config=cfg
+        )
         tr, va, te, oo = split_returns_by_date(final.returns)
         tracker.log_dataframe("selected_signals", sig_m)
         tracker.log_dataframe("selected_equity", final.equity_curve.to_frame("equity"))
@@ -277,60 +335,121 @@ def main():
 
         oos_returns = oo
         oos_sharpe = sharpe_ratio(oos_returns.values)
-        sharpe_ci = sharpe_ratio_ci(oos_returns.values, n_bootstrap=1000, random_state=SEED)
+        sharpe_ci = sharpe_ratio_ci(
+            oos_returns.values, n_bootstrap=1000, random_state=SEED
+        )
         oos_trades = final.trades[final.trades["timestamp"] > pd.Timestamp(TRAIN_END)]
         oos_eq = (1 + oos_returns).cumprod()
         oos_dd = float((oos_eq / oos_eq.expanding().max()).min() - 1)
-        gp = oos_returns[oos_returns > 0].sum(); gl = abs(oos_returns[oos_returns < 0].sum())
+        gp = oos_returns[oos_returns > 0].sum()
+        gl = abs(oos_returns[oos_returns < 0].sum())
         oos_pf = float(gp / gl) if gl > 0 else np.inf
         train_sharpe = sharpe_ratio(tr.values)
         wf_stab = oos_sharpe / train_sharpe if train_sharpe != 0 else 0.0
         # regimes
-        oos_vix = vix.loc[oos_returns.index]; reg = regime_labels(oos_vix)
-        regime_metrics = {}; worst = np.inf
+        oos_vix = vix.loc[oos_returns.index]
+        reg = regime_labels(oos_vix)
+        regime_metrics = {}
+        worst = np.inf
         for r in ["bull", "sideways", "bear"]:
             rr = oos_returns[reg == r]
             if len(rr) > 1 and rr.std() > 0:
-                s = sharpe_ratio(rr.values); regime_metrics[r] = {"sharpe": float(s), "n": len(rr)}
+                s = sharpe_ratio(rr.values)
+                regime_metrics[r] = {"sharpe": float(s), "n": len(rr)}
                 worst = min(worst, s)
             else:
                 regime_metrics[r] = {"sharpe": 0.0, "n": len(rr)}
         worst = worst if np.isfinite(worst) else 0.0
+
         # perturbation
         def pert(lb, sk):
-            s2 = cs_momentum_vol_scaled(prices, lb, sk, sel_lo); s2m = resample_monthly_signals(s2)
+            s2 = cs_momentum_vol_scaled(prices, lb, sk, sel_lo)
+            s2m = resample_monthly_signals(s2)
             cfg2 = make_config(sel_allow_short)
-            r2 = run_backtest(prices=prices, signals=s2m, volumes=vol, adv=adv, config=cfg2)
+            r2 = run_backtest(
+                prices=prices, signals=s2m, volumes=vol, adv=adv, config=cfg2
+            )
             _, _, _, oo2 = split_returns_by_date(r2.returns)
             return sharpe_ratio(oo2.values)
-        lbp = max(1, round(sel_lb * 1.2)); lbm = max(1, round(sel_lb * 0.8))
-        skp = max(1, round(sel_sk * 1.2)); skm = max(1, round(sel_sk * 0.8))
-        perturbs = {"lookback+20%": pert(lbp, sel_sk), "lookback-20%": pert(lbm, sel_sk),
-                    "skip+20%": pert(sel_lb, skp), "skip-20%": pert(sel_lb, skm)}
+
+        lbp = max(1, round(sel_lb * 1.2))
+        lbm = max(1, round(sel_lb * 0.8))
+        skp = max(1, round(sel_sk * 1.2))
+        skm = max(1, round(sel_sk * 0.8))
+        perturbs = {
+            "lookback+20%": pert(lbp, sel_sk),
+            "lookback-20%": pert(lbm, sel_sk),
+            "skip+20%": pert(sel_lb, skp),
+            "skip-20%": pert(sel_lb, skm),
+        }
         min_pert = min(perturbs.values()) if min(perturbs.values()) != 0 else 0.0
         # benchmark test
         bench = bh_result.returns.reindex(oos_returns.index).ffill()
         oos_arr = oos_returns.values
         b_arr = bench.values
-        m = ~(np.isnan(oos_arr) | np.isnan(b_arr)); oos_arr = oos_arr[m]; b_arr = b_arr[m]
+        m = ~(np.isnan(oos_arr) | np.isnan(b_arr))
+        oos_arr = oos_arr[m]
+        b_arr = b_arr[m]
         cmp = compare_to_benchmark(oos_arr, b_arr)
         excess = oos_arr - b_arr
         _, alpha_p = stats.ttest_1samp(excess, 0.0) if excess.std() > 0 else (0.0, 1.0)
+
         def ir_func(x):
-            b = b_arr[:len(x)]; e = x - b
+            b = b_arr[: len(x)]
+            e = x - b
             return float(e.mean() / e.std() * np.sqrt(252)) if e.std() > 0 else 0.0
-        ir_ci = bootstrap_confidence_interval(oos_arr - b_arr, ir_func, n_bootstrap=1000, random_state=SEED)
+
+        ir_ci = bootstrap_confidence_interval(
+            oos_arr - b_arr, ir_func, n_bootstrap=1000, random_state=SEED
+        )
         ir_ci = (float(ir_ci[0]), float(ir_ci[1]))
 
         gates = {
-            "net_oos_sharpe": {"value": round(oos_sharpe, 4), "threshold": GATES["min_sharpe"], "pass": bool(oos_sharpe >= GATES["min_sharpe"])},
-            "oos_trades": {"value": len(oos_trades), "threshold": GATES["min_trades"], "pass": bool(len(oos_trades) >= GATES["min_trades"])},
-            "profit_factor": {"value": round(oos_pf, 4), "threshold": GATES["min_profit_factor"], "pass": bool(oos_pf >= GATES["min_profit_factor"])},
-            "max_drawdown": {"value": round(oos_dd, 4), "threshold": GATES["max_drawdown"], "pass": bool(oos_dd >= -GATES["max_drawdown"])},
-            "walkforward_stability": {"value": round(wf_stab, 4), "threshold": GATES["min_walkforward_stability"], "pass": bool(wf_stab >= GATES["min_walkforward_stability"])},
-            "param_perturbation": {"value": round(min_pert, 4), "threshold": round(oos_sharpe * GATES["min_perturbed_sharpe_ratio"], 4), "pass": bool(min_pert >= oos_sharpe * GATES["min_perturbed_sharpe_ratio"]), "details": {k: round(float(v), 4) for k, v in perturbs.items()}},
-            "regime_stability": {"value": round(worst, 4), "threshold": GATES["min_worst_regime_sharpe"], "pass": bool(worst >= GATES["min_worst_regime_sharpe"]), "regimes": regime_metrics},
-            "benchmark_significance": {"value": round(float(alpha_p), 4), "threshold": GATES["max_p_value"], "pass": bool(alpha_p < GATES["max_p_value"]), "information_ratio": round(float(cmp["information_ratio"]), 4)},
+            "net_oos_sharpe": {
+                "value": round(oos_sharpe, 4),
+                "threshold": GATES["min_sharpe"],
+                "pass": bool(oos_sharpe >= GATES["min_sharpe"]),
+            },
+            "oos_trades": {
+                "value": len(oos_trades),
+                "threshold": GATES["min_trades"],
+                "pass": bool(len(oos_trades) >= GATES["min_trades"]),
+            },
+            "profit_factor": {
+                "value": round(oos_pf, 4),
+                "threshold": GATES["min_profit_factor"],
+                "pass": bool(oos_pf >= GATES["min_profit_factor"]),
+            },
+            "max_drawdown": {
+                "value": round(oos_dd, 4),
+                "threshold": GATES["max_drawdown"],
+                "pass": bool(oos_dd >= -GATES["max_drawdown"]),
+            },
+            "walkforward_stability": {
+                "value": round(wf_stab, 4),
+                "threshold": GATES["min_walkforward_stability"],
+                "pass": bool(wf_stab >= GATES["min_walkforward_stability"]),
+            },
+            "param_perturbation": {
+                "value": round(min_pert, 4),
+                "threshold": round(oos_sharpe * GATES["min_perturbed_sharpe_ratio"], 4),
+                "pass": bool(
+                    min_pert >= oos_sharpe * GATES["min_perturbed_sharpe_ratio"]
+                ),
+                "details": {k: round(float(v), 4) for k, v in perturbs.items()},
+            },
+            "regime_stability": {
+                "value": round(worst, 4),
+                "threshold": GATES["min_worst_regime_sharpe"],
+                "pass": bool(worst >= GATES["min_worst_regime_sharpe"]),
+                "regimes": regime_metrics,
+            },
+            "benchmark_significance": {
+                "value": round(float(alpha_p), 4),
+                "threshold": GATES["max_p_value"],
+                "pass": bool(alpha_p < GATES["max_p_value"]),
+                "information_ratio": round(float(cmp["information_ratio"]), 4),
+            },
         }
         all_pass = all(g["pass"] for g in gates.values())
         tracker.log_metrics({"all_gates_pass": all_pass}, step=0)
@@ -340,28 +459,59 @@ def main():
         print("CROSS-SECTIONAL MOMENTUM -- EVIDENCE GATES (OOS: Val+Test)")
         print("=" * 72)
         print(f"Selected: long_only={sel_lo} lb={sel_lb} sk={sel_sk}")
-        print(f"OOS Sharpe={oos_sharpe:.3f} (CI [{sharpe_ci[0]:.3f}, {sharpe_ci[1]:.3f}])")
-        print(f"Train={train_sharpe:.3f} Val={sharpe_ratio(va.values):.3f} Test={sharpe_ratio(te.values):.3f}")
-        print(f"OOS trades={len(oos_trades)} PF={oos_pf:.3f} DD={oos_dd:.2%} WF={wf_stab:.3f} worst_regime={worst:.3f} IR={cmp['information_ratio']:.3f} p={alpha_p:.4f}")
+        print(
+            f"OOS Sharpe={oos_sharpe:.3f} (CI [{sharpe_ci[0]:.3f}, {sharpe_ci[1]:.3f}])"
+        )
+        print(
+            f"Train={train_sharpe:.3f} Val={sharpe_ratio(va.values):.3f} Test={sharpe_ratio(te.values):.3f}"
+        )
+        print(
+            f"OOS trades={len(oos_trades)} PF={oos_pf:.3f} DD={oos_dd:.2%} WF={wf_stab:.3f} worst_regime={worst:.3f} IR={cmp['information_ratio']:.3f} p={alpha_p:.4f}"
+        )
         for n, g in gates.items():
-            print(f"  [{'PASS' if g['pass'] else 'FAIL'}] {n}: {g['value']} (threshold {g['threshold']})")
+            print(
+                f"  [{'PASS' if g['pass'] else 'FAIL'}] {n}: {g['value']} (threshold {g['threshold']})"
+            )
         print(f"  ALL GATES PASSED: {'YES' if all_pass else 'NO'}")
         print("=" * 72)
 
         summary = {
             "experiment_id": exp_id,
-            "selected_params": {"long_only": sel_lo, "lookback": sel_lb, "skip": sel_sk, "target_vol": TARGET_VOL},
-            "gates": gates, "all_gates_pass": all_pass,
-            "oos_metrics": {"sharpe": round(oos_sharpe, 4), "sharpe_ci": [round(sharpe_ci[0], 4), round(sharpe_ci[1], 4)],
-                            "n_trades": len(oos_trades), "profit_factor": round(oos_pf, 4), "max_drawdown": round(oos_dd, 4)},
-            "split_metrics": {"train_sharpe": round(train_sharpe, 4), "val_sharpe": round(sharpe_ratio(va.values), 4),
-                              "test_sharpe": round(sharpe_ratio(te.values), 4), "oos_sharpe": round(oos_sharpe, 4)},
-            "benchmark_comparison": {"information_ratio": round(float(cmp["information_ratio"]), 4), "information_ratio_ci": [round(ir_ci[0], 4), round(ir_ci[1], 4)],
-                                     "alpha_p_value": round(float(alpha_p), 6)},
+            "selected_params": {
+                "long_only": sel_lo,
+                "lookback": sel_lb,
+                "skip": sel_sk,
+                "target_vol": TARGET_VOL,
+            },
+            "gates": gates,
+            "all_gates_pass": all_pass,
+            "oos_metrics": {
+                "sharpe": round(oos_sharpe, 4),
+                "sharpe_ci": [round(sharpe_ci[0], 4), round(sharpe_ci[1], 4)],
+                "n_trades": len(oos_trades),
+                "profit_factor": round(oos_pf, 4),
+                "max_drawdown": round(oos_dd, 4),
+            },
+            "split_metrics": {
+                "train_sharpe": round(train_sharpe, 4),
+                "val_sharpe": round(sharpe_ratio(va.values), 4),
+                "test_sharpe": round(sharpe_ratio(te.values), 4),
+                "oos_sharpe": round(oos_sharpe, 4),
+            },
+            "benchmark_comparison": {
+                "information_ratio": round(float(cmp["information_ratio"]), 4),
+                "information_ratio_ci": [round(ir_ci[0], 4), round(ir_ci[1], 4)],
+                "alpha_p_value": round(float(alpha_p), 6),
+            },
             "regime_metrics": regime_metrics,
             "perturbations": {k: round(float(v), 4) for k, v in perturbs.items()},
-            "param_grid_summary": {"n_combos": len(records), "selection_metric": "mean walk-forward OOS Sharpe on TRAIN",
-                                    "benjamini_hochberg_significant": int(sum(1 for r in records if r.get("wf_oos_significant")))},
+            "param_grid_summary": {
+                "n_combos": len(records),
+                "selection_metric": "mean walk-forward OOS Sharpe on TRAIN",
+                "benjamini_hochberg_significant": int(
+                    sum(1 for r in records if r.get("wf_oos_significant"))
+                ),
+            },
         }
         exp_dir = Path(tracker.log_dir) / "artifacts" / exp_id
         with open(exp_dir / "summary.json", "w") as f:
@@ -373,6 +523,7 @@ def main():
         return all_pass
     except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
+
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))
         return False

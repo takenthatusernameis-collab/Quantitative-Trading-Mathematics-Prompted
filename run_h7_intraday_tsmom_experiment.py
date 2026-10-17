@@ -23,6 +23,7 @@ Pre-registered design (H7):
 - Gates: unchanged PROMPT_V2 (Sharpe ≥ 1.0, DD ≤ 15%, etc.) on protected OOS.
 - Null: Intraday/multi-horizon TSMOM with path-dependent exits OOS Sharpe ≤ 1.0 OR max DD > 15%.
 """
+
 import os
 import sys
 
@@ -81,11 +82,46 @@ COST_MODEL_DEFAULTS = {
 }
 
 FUTURES_SPECS = {
-    "ES=F": {"multiplier": 50.0, "tick_value": 12.50, "tick_size": 0.25, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "NQ=F": {"multiplier": 20.0, "tick_value": 5.0, "tick_size": 0.25, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "CL=F": {"multiplier": 1000.0, "tick_value": 10.0, "tick_size": 0.01, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "GC=F": {"multiplier": 100.0, "tick_value": 10.0, "tick_size": 0.10, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "ZB=F": {"multiplier": 1000.0, "tick_value": 31.25, "tick_size": 0.03125, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
+    "ES=F": {
+        "multiplier": 50.0,
+        "tick_value": 12.50,
+        "tick_size": 0.25,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "NQ=F": {
+        "multiplier": 20.0,
+        "tick_value": 5.0,
+        "tick_size": 0.25,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "CL=F": {
+        "multiplier": 1000.0,
+        "tick_value": 10.0,
+        "tick_size": 0.01,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "GC=F": {
+        "multiplier": 100.0,
+        "tick_value": 10.0,
+        "tick_size": 0.10,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "ZB=F": {
+        "multiplier": 1000.0,
+        "tick_value": 31.25,
+        "tick_size": 0.03125,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
 }
 
 EXPERIMENT_NAME = "h7_intraday_tsmom_v1"
@@ -99,7 +135,9 @@ EXPERIMENT_DESC = (
 
 def make_futures_config(allow_short: bool = False) -> BacktestConfig:
     cm = CostModel(
-        future_commission_per_contract=COST_MODEL_DEFAULTS["future_commission_per_contract"],
+        future_commission_per_contract=COST_MODEL_DEFAULTS[
+            "future_commission_per_contract"
+        ],
         future_spread_ticks=COST_MODEL_DEFAULTS["future_spread_ticks"],
         future_slippage_ticks=COST_MODEL_DEFAULTS["future_slippage_ticks"],
         futures_specs=FUTURES_SPECS,
@@ -180,7 +218,9 @@ def multi_horizon_blend_signals(
     w_fast = dir_fast * inv_vol_short
 
     # Regime blend weight: blend toward fast in high vol
-    realized_vol_port = (w_slow.shift(1) * pct).sum(axis=1).rolling(vol_window_long).std() * np.sqrt(252)
+    realized_vol_port = (w_slow.shift(1) * pct).sum(axis=1).rolling(
+        vol_window_long
+    ).std() * np.sqrt(252)
     realized_vol_port = realized_vol_port.replace(0, np.nan).ffill()
     b = 1.0 / (1.0 + realized_vol_port / target_vol)
     b = b.clip(0.0, 1.0)
@@ -200,13 +240,16 @@ def multi_horizon_blend_signals(
     return weights.ffill().fillna(0.0)
 
 
-def apply_path_dependent_exits_daily(signals: pd.DataFrame, prices: pd.DataFrame,
-                                    atr: pd.DataFrame,
-                                    trailing_mult: float = 2.0,
-                                    max_hold_days: int = 5,
-                                    vol_limit_mult: float = 2.0,
-                                    vol_window: int = 21,
-                                    target_vol: float = TARGET_VOL) -> pd.DataFrame:
+def apply_path_dependent_exits_daily(
+    signals: pd.DataFrame,
+    prices: pd.DataFrame,
+    atr: pd.DataFrame,
+    trailing_mult: float = 2.0,
+    max_hold_days: int = 5,
+    vol_limit_mult: float = 2.0,
+    vol_window: int = 21,
+    target_vol: float = TARGET_VOL,
+) -> pd.DataFrame:
     """Approximate path-dependent exits on daily bars.
 
     - Trailing stop: if price drops below entry*max - trailing_mult*ATR (conceptually);
@@ -248,7 +291,11 @@ def main():
         description=EXPERIMENT_DESC.strip(),
         config={
             "universe": FUTURES_UNIVERSE,
-            "splits": {"train": f"2015-01-01..{TRAIN_END}", "val": f"{TRAIN_END}..{VAL_END}", "test": f"{VAL_END}..{END_DATE}"},
+            "splits": {
+                "train": f"2015-01-01..{TRAIN_END}",
+                "val": f"{TRAIN_END}..{VAL_END}",
+                "test": f"{VAL_END}..{END_DATE}",
+            },
             "signal": "multi_horizon_blend_regime_weighted",
             "blend": {"slow": LOOKBACK_SLOW, "fast": LOOKBACK_FAST, "skip": SKIP},
             "stops": {"trailing_mult": 2.0, "max_hold_days": 5, "vol_limit_mult": 2.0},
@@ -272,7 +319,9 @@ def main():
 
     try:
         fetcher = get_data_fetcher()
-        raw = fetcher.fetch_futures(FUTURES_UNIVERSE, START_DATE, END_DATE, interval="1d", use_cache=True)
+        raw = fetcher.fetch_futures(
+            FUTURES_UNIVERSE, START_DATE, END_DATE, interval="1d", use_cache=True
+        )
         prices = pd.DataFrame()
         for sym, df in raw.items():
             if not df.empty and "close" in df.columns:
@@ -294,9 +343,15 @@ def main():
         result = run_backtest(
             prices=prices, signals=signals, volumes=None, adv=adv, config=bt_config
         )
-        tracker.log_dataframe("equity_curve", pd.DataFrame({"equity": result.equity_curve}))
+        tracker.log_dataframe(
+            "equity_curve", pd.DataFrame({"equity": result.equity_curve})
+        )
         tracker.log_dataframe("returns", pd.DataFrame({"returns": result.returns}))
-        tracker.log_dataframe("trades", result.trades) if result.trades is not None else tracker.log_dataframe("trades", pd.DataFrame())
+        tracker.log_dataframe(
+            "trades", result.trades
+        ) if result.trades is not None else tracker.log_dataframe(
+            "trades", pd.DataFrame()
+        )
 
         # Compute splits
         ret_train, ret_val, ret_test, ret_oos = split_returns_by_date(result.returns)
@@ -317,15 +372,37 @@ def main():
 
         # Walk-forward stability
         wf_stab = 0.0
-        if ev_train.get("sharpe") and not np.isnan(ev_train["sharpe"]) and ev_test.get("sharpe") and not np.isnan(ev_test["sharpe"]):
-            wf_stab = min(1.0, abs(ev_test["sharpe"]) / abs(ev_train["sharpe"]) if abs(ev_train["sharpe"]) > 1e-18 else 0.0)
-        elif ev_train.get("sharpe") and not np.isnan(ev_train["sharpe"]) and ev_oos.get("sharpe") and not np.isnan(ev_oos["sharpe"]):
-            wf_stab = min(1.0, abs(ev_oos["sharpe"]) / abs(ev_train["sharpe"]) if abs(ev_train["sharpe"]) > 1e-18 else 0.0)
+        if (
+            ev_train.get("sharpe")
+            and not np.isnan(ev_train["sharpe"])
+            and ev_test.get("sharpe")
+            and not np.isnan(ev_test["sharpe"])
+        ):
+            wf_stab = min(
+                1.0,
+                abs(ev_test["sharpe"]) / abs(ev_train["sharpe"])
+                if abs(ev_train["sharpe"]) > 1e-18
+                else 0.0,
+            )
+        elif (
+            ev_train.get("sharpe")
+            and not np.isnan(ev_train["sharpe"])
+            and ev_oos.get("sharpe")
+            and not np.isnan(ev_oos["sharpe"])
+        ):
+            wf_stab = min(
+                1.0,
+                abs(ev_oos["sharpe"]) / abs(ev_train["sharpe"])
+                if abs(ev_train["sharpe"]) > 1e-18
+                else 0.0,
+            )
 
         # Benchmark comparison
         bench = None
         try:
-            bench_res = compare_to_benchmark(result.returns, prices[FUTURES_UNIVERSE], risk_free=0.0)
+            bench_res = compare_to_benchmark(
+                result.returns, prices[FUTURES_UNIVERSE], risk_free=0.0
+            )
             bench = {
                 "alpha": bench_res.get("alpha", np.nan),
                 "ir": bench_res.get("information_ratio", np.nan),
@@ -338,15 +415,26 @@ def main():
         pf = result.metrics.get("profit_factor", np.nan)
 
         gate_results = {
-            "min_sharpe": sharpe >= GATES["min_sharpe"] if not np.isnan(sharpe) else False,
+            "min_sharpe": sharpe >= GATES["min_sharpe"]
+            if not np.isnan(sharpe)
+            else False,
             "min_trades": n_trades >= GATES["min_trades"],
-            "min_profit_factor": pf >= GATES["min_profit_factor"] if not np.isnan(pf) else False,
-            "max_drawdown": abs(max_dd) <= GATES["max_drawdown"] if not np.isnan(max_dd) else False,
+            "min_profit_factor": pf >= GATES["min_profit_factor"]
+            if not np.isnan(pf)
+            else False,
+            "max_drawdown": abs(max_dd) <= GATES["max_drawdown"]
+            if not np.isnan(max_dd)
+            else False,
             "min_walkforward_stability": wf_stab >= GATES["min_walkforward_stability"],
             "min_perturbed_sharpe_ratio": True,
             "min_worst_regime_sharpe": True,
-            "max_p_value": bench.get("p_value", np.inf) < GATES["max_p_value"] if bench else False,
-            "min_information_ratio": bench.get("ir", -np.inf) > GATES["min_information_ratio"] if bench else False,
+            "max_p_value": bench.get("p_value", np.inf) < GATES["max_p_value"]
+            if bench
+            else False,
+            "min_information_ratio": bench.get("ir", -np.inf)
+            > GATES["min_information_ratio"]
+            if bench
+            else False,
         }
         all_pass = all(gate_results.values())
 
@@ -385,6 +473,7 @@ def main():
     except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         print(f"Experiment failed: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc(file=sys.stderr)
         tracker.log_metric("error", 1.0)
         return 2

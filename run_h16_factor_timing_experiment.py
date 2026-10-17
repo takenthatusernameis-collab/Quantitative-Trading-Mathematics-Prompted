@@ -95,8 +95,8 @@ SKIPS = [1, 5, 21]
 REGIME_EXPOSURES = [(1.0, 0.5, 0.25), (1.0, 0.25, 0.10)]
 N_FACTORS_OPTS = [1, 2, 3]
 
-WF_FOLDS_SELECTION = 4   # train-only walk-forward folds for selection
-WF_FOLDS_STABILITY = 5   # full-series folds for the WF-stability gate
+WF_FOLDS_SELECTION = 4  # train-only walk-forward folds for selection
+WF_FOLDS_STABILITY = 5  # full-series folds for the WF-stability gate
 
 
 def regime_labels(vix_daily: pd.Series) -> pd.Series:
@@ -247,7 +247,9 @@ def _count_in(trades: pd.DataFrame, mask, prices) -> int:
     return int(((ts >= lo) & (ts <= hi)).sum())
 
 
-def train_only_wf_sharpe(returns: pd.Series, train_mask, n_splits: int = WF_FOLDS_SELECTION) -> float:
+def train_only_wf_sharpe(
+    returns: pd.Series, train_mask, n_splits: int = WF_FOLDS_SELECTION
+) -> float:
     """Selection score: mean of test-fold Sharpes over train-only
     walk-forward splits (H1-H3 methodology)."""
     tr = returns[train_mask].dropna()
@@ -322,9 +324,12 @@ def full_gate_eval(
         "pf": oos_m["profit_factor"] >= GATES["min_profit_factor"],
         "dd": abs(oos_max_dd) <= GATES["max_drawdown"] if oos_max_dd < 0 else False,
         "stab": wf_stab >= GATES["min_walkforward_stability"],
-        "worst": worst >= GATES["min_worst_regime_sharpe"] if worst != np.inf else False,
+        "worst": worst >= GATES["min_worst_regime_sharpe"]
+        if worst != np.inf
+        else False,
         "p": float(bench.get("alpha_p_value", 1.0)) < GATES["max_p_value"],
-        "ir": float(bench.get("information_ratio", -np.inf)) > GATES["min_information_ratio"],
+        "ir": float(bench.get("information_ratio", -np.inf))
+        > GATES["min_information_ratio"],
     }
     all_pass = all(passes.values())
     return {
@@ -395,7 +400,9 @@ def main():
     np.random.seed(SEED)
     t_start = time.time()
     tracker = get_tracker()
-    grid_size = len(LOOKBACKS) * len(SKIPS) * len(REGIME_EXPOSURES) * len(N_FACTORS_OPTS)
+    grid_size = (
+        len(LOOKBACKS) * len(SKIPS) * len(REGIME_EXPOSURES) * len(N_FACTORS_OPTS)
+    )
     exp_id = tracker.start_experiment(
         name=EXPERIMENT_NAME,
         description=EXPERIMENT_DESC,
@@ -468,7 +475,9 @@ def main():
         # Equal-weight buy-and-hold benchmark over the point-in-time universe
         avail = prices.notna().astype(float)
         ew_weights = avail.div(avail.sum(axis=1), axis=0).fillna(0.0)
-        bench_result = run_backtest(prices=prices, signals=ew_weights, volumes=volumes, config=cfg)
+        bench_result = run_backtest(
+            prices=prices, signals=ew_weights, volumes=volumes, config=cfg
+        )
 
         # --- 54-combo grid: selection on train-only walk-forward Sharpe ---
         grid_rows = []
@@ -487,7 +496,9 @@ def main():
                         )
                         wf_sel = train_only_wf_sharpe(res.returns, train_mask)
                         oos_r = res.returns[oos_mask].dropna()
-                        oos_sr = float(sharpe_ratio(oos_r.values)) if len(oos_r) > 1 else 0.0
+                        oos_sr = (
+                            float(sharpe_ratio(oos_r.values)) if len(oos_r) > 1 else 0.0
+                        )
                         grid_results[(lookback, skip, regime_exposure, n_factors)] = res
                         grid_rows.append(
                             {
@@ -496,19 +507,29 @@ def main():
                                 "regime_exposure": str(regime_exposure),
                                 "n_factors": n_factors,
                                 "train_wf_sharpe": wf_sel,
-                                "train_sharpe": float(sharpe_ratio(res.returns[train_mask].dropna().values))
+                                "train_sharpe": float(
+                                    sharpe_ratio(
+                                        res.returns[train_mask].dropna().values
+                                    )
+                                )
                                 if train_mask.sum() > 1
                                 else 0.0,
-                                "val_sharpe": float(sharpe_ratio(res.returns[val_mask].dropna().values))
+                                "val_sharpe": float(
+                                    sharpe_ratio(res.returns[val_mask].dropna().values)
+                                )
                                 if val_mask.sum() > 1
                                 else 0.0,
-                                "test_sharpe": float(sharpe_ratio(res.returns[test_mask].dropna().values))
+                                "test_sharpe": float(
+                                    sharpe_ratio(res.returns[test_mask].dropna().values)
+                                )
                                 if test_mask.sum() > 1
                                 else 0.0,
                                 "oos_sharpe": oos_sr,
                             }
                         )
-        grid_df = pd.DataFrame(grid_rows).sort_values("train_wf_sharpe", ascending=False)
+        grid_df = pd.DataFrame(grid_rows).sort_values(
+            "train_wf_sharpe", ascending=False
+        )
         grid_elapsed = time.time() - t_grid
         print(
             f"[H16] grid {len(grid_rows)} combos in {grid_elapsed:.1f}s; "
@@ -516,9 +537,7 @@ def main():
         )
 
         # --- selection: best train-only WF Sharpe (Test never used) ---
-        best_key = grid_df.iloc[0][
-            ["lookback", "skip", "regime_exposure", "n_factors"]
-        ]
+        best_key = grid_df.iloc[0][["lookback", "skip", "regime_exposure", "n_factors"]]
         sel = (
             int(best_key["lookback"]),
             int(best_key["skip"]),
@@ -555,7 +574,9 @@ def main():
         ungated_pos = monthly_rebalance(
             build_daily_targets(prices, vix, sel[0], sel[1], (1.0, 1.0, 1.0), sel[3])
         )
-        ungated_res = run_backtest(prices=prices, signals=ungated_pos, volumes=volumes, config=cfg)
+        ungated_res = run_backtest(
+            prices=prices, signals=ungated_pos, volumes=volumes, config=cfg
+        )
         ungated_gate = full_gate_eval(
             ungated_res, oos_mask, val_mask, test_mask, prices, vix, bench_result
         )
@@ -570,17 +591,26 @@ def main():
                 bench_result.returns[oos_mask],
                 _count_in(bench_result.trades, oos_mask, prices),
             ),
-            "train_sharpe": float(sharpe_ratio(bench_result.returns[train_mask].dropna().values)),
+            "train_sharpe": float(
+                sharpe_ratio(bench_result.returns[train_mask].dropna().values)
+            ),
         }
         # (c) single-factor-family exposure (each family alone,
         # selected lookback/skip/regime, n_factors=1 within family)
         for fam, etfs in FACTOR_FAMILIES.items():
             fam_daily = build_daily_targets(
-                prices, vix, sel[0], sel[1], sel[2], 1,
+                prices,
+                vix,
+                sel[0],
+                sel[1],
+                sel[2],
+                1,
                 families={fam: etfs},
             )
             fam_pos = monthly_rebalance(fam_daily)
-            fam_res = run_backtest(prices=prices, signals=fam_pos, volumes=volumes, config=cfg)
+            fam_res = run_backtest(
+                prices=prices, signals=fam_pos, volumes=volumes, config=cfg
+            )
             ablations[f"family_{fam}"] = {
                 "oos_metrics": _period_metrics(
                     fam_res.returns[oos_mask],
@@ -607,9 +637,13 @@ def main():
         tracker.log_dataframe(
             "benchmark_equity", bench_result.equity_curve.to_frame("equity")
         )
-        tracker.log_dataframe("benchmark_returns", bench_result.returns.to_frame("returns"))
+        tracker.log_dataframe(
+            "benchmark_returns", bench_result.returns.to_frame("returns")
+        )
         for name, ab in ablations.items():
-            tracker.log_metrics({f"ablation_{name}_oos_sharpe": ab["oos_metrics"]["sharpe"]})
+            tracker.log_metrics(
+                {f"ablation_{name}_oos_sharpe": ab["oos_metrics"]["sharpe"]}
+            )
 
         total_elapsed = time.time() - t_start
         summary = {
@@ -653,8 +687,12 @@ def main():
         exp_dir.mkdir(parents=True, exist_ok=True)
         with open(exp_dir / "summary.json", "w") as f:
             json.dump(
-                summary, f, indent=2,
-                default=lambda x: float(x) if isinstance(x, (np.integer, np.floating)) else str(x),
+                summary,
+                f,
+                indent=2,
+                default=lambda x: (
+                    float(x) if isinstance(x, (np.integer, np.floating)) else str(x)
+                ),
             )
         tracker.log_artifact("summary", exp_dir / "summary.json")
         tracker.finish_experiment(status="completed")
@@ -677,12 +715,14 @@ def main():
             f"Test={gate['test_metrics']['sharpe']:.3f} | "
             f"WF stab={gate['wf_stability']:.3f} | worst-regime={gate['worst_regime_sharpe']:.3f}"
         )
-        print(f"  Benchmark: p={gate['benchmark_p_value']:.4f} IR={gate['information_ratio']:.3f}")
+        print(
+            f"  Benchmark: p={gate['benchmark_p_value']:.4f} IR={gate['information_ratio']:.3f}"
+        )
         print(f"  Perturbation min ratio={pert['min_perturbed_sharpe_ratio']:.3f}")
         print(f"  Selected: {selected}")
         print(
             f"  Grid {len(grid_rows)} combos in {grid_elapsed:.1f}s | "
-            f"total {total_elapsed/60:.1f} min ({total_elapsed/3600:.2f} CPU-h)"
+            f"total {total_elapsed / 60:.1f} min ({total_elapsed / 3600:.2f} CPU-h)"
         )
         print("=" * 72)
         return 0 if gate["all_pass"] else 1

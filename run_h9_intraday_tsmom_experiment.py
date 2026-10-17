@@ -63,15 +63,51 @@ COST_MODEL_DEFAULTS = {
 }
 
 FUTURES_SPECS = {
-    "ES=F": {"multiplier": 50.0, "tick_value": 12.50, "tick_size": 0.25, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "NQ=F": {"multiplier": 20.0, "tick_value": 5.0, "tick_size": 0.25, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "CL=F": {"multiplier": 1000.0, "tick_value": 10.0, "tick_size": 0.01, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "GC=F": {"multiplier": 100.0, "tick_value": 10.0, "tick_size": 0.10, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "ZB=F": {"multiplier": 1000.0, "tick_value": 31.25, "tick_size": 0.03125, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
+    "ES=F": {
+        "multiplier": 50.0,
+        "tick_value": 12.50,
+        "tick_size": 0.25,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "NQ=F": {
+        "multiplier": 20.0,
+        "tick_value": 5.0,
+        "tick_size": 0.25,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "CL=F": {
+        "multiplier": 1000.0,
+        "tick_value": 10.0,
+        "tick_size": 0.01,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "GC=F": {
+        "multiplier": 100.0,
+        "tick_value": 10.0,
+        "tick_size": 0.10,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "ZB=F": {
+        "multiplier": 1000.0,
+        "tick_value": 31.25,
+        "tick_size": 0.03125,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
 }
 
 EXPERIMENT_NAME = "h9_intraday_tsmom_ctexits_v2"
 EXPERIMENT_DESC = "H9 v2: Intraday TSMOM with genuine CT-style path-dependent exits (trailing/time/vol stops) on hourly futures data"
+
 
 def regime_labels(vix_daily: pd.Series) -> pd.Series:
     regimes = pd.Series(index=vix_daily.index, dtype=object)
@@ -84,7 +120,9 @@ def regime_labels(vix_daily: pd.Series) -> pd.Series:
 
 def make_futures_config() -> BacktestConfig:
     cm = CostModel(
-        future_commission_per_contract=COST_MODEL_DEFAULTS["future_commission_per_contract"],
+        future_commission_per_contract=COST_MODEL_DEFAULTS[
+            "future_commission_per_contract"
+        ],
         future_spread_ticks=COST_MODEL_DEFAULTS["future_spread_ticks"],
         future_slippage_ticks=COST_MODEL_DEFAULTS["future_slippage_ticks"],
         futures_specs=FUTURES_SPECS,
@@ -113,8 +151,12 @@ def vol_scaled_tsmom_hourly(
     mom_slow = prices.pct_change(lookback).fillna(0)
     mom_fast = prices.pct_change(fast_lookback).fillna(0)
 
-    sigma_long = pct.rolling(vol_window_long, min_periods=vol_window_long // 2).std() * np.sqrt(252 * 6.5)
-    sigma_short = pct.rolling(vol_window_short, min_periods=vol_window_short // 2).std() * np.sqrt(252 * 6.5)
+    sigma_long = pct.rolling(
+        vol_window_long, min_periods=vol_window_long // 2
+    ).std() * np.sqrt(252 * 6.5)
+    sigma_short = pct.rolling(
+        vol_window_short, min_periods=vol_window_short // 2
+    ).std() * np.sqrt(252 * 6.5)
     sigma_long = sigma_long.replace(0, np.nan).ffill()
     sigma_short = sigma_short.replace(0, np.nan).ffill()
 
@@ -139,7 +181,9 @@ def vol_scaled_tsmom_hourly(
     w_blend = w_slow.multiply(1.0 - b, axis=0) + w_fast.multiply(b, axis=0)
 
     port_ret = (w_blend.shift(1) * pct).sum(axis=1).ffill()
-    port_vol = port_ret.rolling(vol_window_long, min_periods=vol_window_long // 2).std() * np.sqrt(252 * 6.5)
+    port_vol = port_ret.rolling(
+        vol_window_long, min_periods=vol_window_long // 2
+    ).std() * np.sqrt(252 * 6.5)
     port_vol = port_vol.replace(0, np.nan)
     scale = (target_vol / port_vol).clip(0.0, 3.0)
     scale = scale.ffill().fillna(0.0)
@@ -183,7 +227,9 @@ def apply_path_dependent_exits_hourly(
     positions = pd.DataFrame(0.0, index=index, columns=cols, dtype=float)
 
     pct = prices.pct_change()
-    vol = pct.rolling(vol_window, min_periods=vol_window // 2).std() * np.sqrt(252 * 6.5)
+    vol = pct.rolling(vol_window, min_periods=vol_window // 2).std() * np.sqrt(
+        252 * 6.5
+    )
     vol = vol.replace(0, np.nan).ffill()
 
     target_h = daily_target.reindex(index, method="ffill").fillna(0.0)
@@ -209,7 +255,11 @@ def apply_path_dependent_exits_hourly(
 
             if in_pos and cur_pos > 0:
                 high_water = max(high_water, cur_px)
-                if cur_px < high_water - trailing_mult * cur_atr or bars_held >= max_hold_bars and cur_px <= entry_price:
+                if (
+                    cur_px < high_water - trailing_mult * cur_atr
+                    or bars_held >= max_hold_bars
+                    and cur_px <= entry_price
+                ):
                     cur_pos = 0.0
                     in_pos = False
                 elif cur_vol > vol_limit_mult * target_vol:
@@ -238,16 +288,23 @@ def apply_path_dependent_exits_hourly(
     return positions.ffill().fillna(0.0)
 
 
-
-
 def main():
     np.random.seed(SEED)
     tracker = get_tracker()
     exp_id = tracker.start_experiment(
         name=EXPERIMENT_NAME,
         description=EXPERIMENT_DESC,
-        config={"universe": FUTURES_UNIVERSE, "interval": "1h", "gates": GATES, "seed": SEED},
-        data_sources={"source": "yahoo_futures", "symbols": FUTURES_UNIVERSE, "interval": "1h"},
+        config={
+            "universe": FUTURES_UNIVERSE,
+            "interval": "1h",
+            "gates": GATES,
+            "seed": SEED,
+        },
+        data_sources={
+            "source": "yahoo_futures",
+            "symbols": FUTURES_UNIVERSE,
+            "interval": "1h",
+        },
         compute_budget={"max_cpu_hours": 4.0},
         random_seeds={"numpy": SEED, "python": SEED},
     )
@@ -299,12 +356,17 @@ def main():
         tracker.log_dataframe("positions", positions)
 
         cfg = make_futures_config()
-        result = run_backtest(prices=prices, signals=positions, volumes=volumes, config=cfg)
+        result = run_backtest(
+            prices=prices, signals=positions, volumes=volumes, config=cfg
+        )
         bh_weights = pd.DataFrame(
             1.0 / len(prices.columns) if prices.shape[1] > 0 else 0.0,
-            index=prices.index, columns=prices.columns,
+            index=prices.index,
+            columns=prices.columns,
         )
-        bh_result = run_backtest(prices=prices, signals=bh_weights, volumes=volumes, config=cfg)
+        bh_result = run_backtest(
+            prices=prices, signals=bh_weights, volumes=volumes, config=cfg
+        )
 
         # Exit events: bars where a position was flattened or reduced (CT-style exits)
         prev_pos = positions.shift(1).fillna(0.0)
@@ -315,43 +377,92 @@ def main():
             flat_idx = positions.index[flat[sym]]
             red_idx = positions.index[reduced[sym]]
             for idx in flat_idx:
-                exit_rows.append({"timestamp": idx, "symbol": sym, "type": "flatten", "prev_position": float(prev_pos.loc[idx, sym]), "new_position": 0.0, "price": float(prices.loc[idx, sym])})
+                exit_rows.append(
+                    {
+                        "timestamp": idx,
+                        "symbol": sym,
+                        "type": "flatten",
+                        "prev_position": float(prev_pos.loc[idx, sym]),
+                        "new_position": 0.0,
+                        "price": float(prices.loc[idx, sym]),
+                    }
+                )
             for idx in red_idx:
-                exit_rows.append({"timestamp": idx, "symbol": sym, "type": "reduce", "prev_position": float(prev_pos.loc[idx, sym]), "new_position": float(positions.loc[idx, sym]), "price": float(prices.loc[idx, sym])})
-        exit_events = pd.DataFrame(exit_rows, columns=["timestamp", "symbol", "type", "prev_position", "new_position", "price"]).sort_values("timestamp")
+                exit_rows.append(
+                    {
+                        "timestamp": idx,
+                        "symbol": sym,
+                        "type": "reduce",
+                        "prev_position": float(prev_pos.loc[idx, sym]),
+                        "new_position": float(positions.loc[idx, sym]),
+                        "price": float(prices.loc[idx, sym]),
+                    }
+                )
+        exit_events = pd.DataFrame(
+            exit_rows,
+            columns=[
+                "timestamp",
+                "symbol",
+                "type",
+                "prev_position",
+                "new_position",
+                "price",
+            ],
+        ).sort_values("timestamp")
 
         tracker.log_dataframe("equity", result.equity_curve.to_frame("equity"))
         tracker.log_dataframe("trades", result.trades)
         tracker.log_dataframe("returns", result.returns.to_frame("returns"))
         tracker.log_dataframe("exit_events", exit_events)
-        tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
+        tracker.log_dataframe(
+            "benchmark_equity", bh_result.equity_curve.to_frame("equity")
+        )
 
         # Ablations (OOS Sharpe / DD / PF on the same splits, Test protected)
         ablations = {}
         # A1: daily target, no CT exits (hold to end of day / target flips only)
-        pos_no_exits = daily_target.reindex(prices.index, method="ffill").fillna(0.0).clip(0.0)
-        res_no = run_backtest(prices=prices, signals=pos_no_exits, volumes=volumes, config=cfg)
+        pos_no_exits = (
+            daily_target.reindex(prices.index, method="ffill").fillna(0.0).clip(0.0)
+        )
+        res_no = run_backtest(
+            prices=prices, signals=pos_no_exits, volumes=volumes, config=cfg
+        )
         oos_no = res_no.returns[val_mask | test_mask]
         cum_no = (1 + oos_no).cumprod()
         ablations["daily_target_no_exits"] = {
-            "oos_sharpe": float(sharpe_ratio(oos_no.values)) if len(oos_no) > 1 else 0.0,
-            "max_drawdown": float((cum_no / cum_no.cummax() - 1).min()) if len(cum_no) > 0 else 0.0,
+            "oos_sharpe": float(sharpe_ratio(oos_no.values))
+            if len(oos_no) > 1
+            else 0.0,
+            "max_drawdown": float((cum_no / cum_no.cummax() - 1).min())
+            if len(cum_no) > 0
+            else 0.0,
             "profit_factor": float(res_no.metrics.get("profit_factor", 0.0)),
             "trades": len(res_no.trades),
         }
         # A2: raw hourly signal (no daily collapse, no CT exits) - the H9 v1 failure mode
         pos_raw = hourly_signal.clip(0.0)
-        res_raw = run_backtest(prices=prices, signals=pos_raw, volumes=volumes, config=cfg)
+        res_raw = run_backtest(
+            prices=prices, signals=pos_raw, volumes=volumes, config=cfg
+        )
         oos_raw = res_raw.returns[val_mask | test_mask]
         cum_raw = (1 + oos_raw).cumprod()
         ablations["raw_hourly_no_exits"] = {
-            "oos_sharpe": float(sharpe_ratio(oos_raw.values)) if len(oos_raw) > 1 else 0.0,
-            "max_drawdown": float((cum_raw / cum_raw.cummax() - 1).min()) if len(cum_raw) > 0 else 0.0,
+            "oos_sharpe": float(sharpe_ratio(oos_raw.values))
+            if len(oos_raw) > 1
+            else 0.0,
+            "max_drawdown": float((cum_raw / cum_raw.cummax() - 1).min())
+            if len(cum_raw) > 0
+            else 0.0,
             "profit_factor": float(res_raw.metrics.get("profit_factor", 0.0)),
             "trades": len(res_raw.trades),
         }
-        tracker.log_dataframe("ablations_daily_target_no_exits_equity", res_no.equity_curve.to_frame("equity"))
-        tracker.log_dataframe("ablations_raw_hourly_equity", res_raw.equity_curve.to_frame("equity"))
+        tracker.log_dataframe(
+            "ablations_daily_target_no_exits_equity",
+            res_no.equity_curve.to_frame("equity"),
+        )
+        tracker.log_dataframe(
+            "ablations_raw_hourly_equity", res_raw.equity_curve.to_frame("equity")
+        )
 
         train_ret = result.returns[train_mask]
         val_ret = result.returns[val_mask]
@@ -371,7 +482,11 @@ def main():
                 oos_sharpes.append(sharpe_ratio(result.returns.iloc[te].values))
             if len(tr) > 0:
                 train_sharpes.append(sharpe_ratio(result.returns.iloc[tr].values))
-        wf_stab = float(np.mean(oos_sharpes) / np.mean(train_sharpes)) if np.mean(train_sharpes) != 0 else 0.0
+        wf_stab = (
+            float(np.mean(oos_sharpes) / np.mean(train_sharpes))
+            if np.mean(train_sharpes) != 0
+            else 0.0
+        )
 
         vix_df = fetcher.fetch_yahoo(
             [VIX_SYMBOL],
@@ -413,9 +528,12 @@ def main():
             "pf": pf >= GATES["min_profit_factor"],
             "dd": abs(oos_max_dd) <= GATES["max_drawdown"] if oos_max_dd < 0 else False,
             "stab": wf_stab >= GATES["min_walkforward_stability"],
-            "worst": worst >= GATES["min_worst_regime_sharpe"] if worst != np.inf else False,
+            "worst": worst >= GATES["min_worst_regime_sharpe"]
+            if worst != np.inf
+            else False,
             "p": bench_cmp.get("alpha_p_value", 1.0) < GATES["max_p_value"],
-            "ir": bench_cmp.get("information_ratio", -np.inf) > GATES["min_information_ratio"],
+            "ir": bench_cmp.get("information_ratio", -np.inf)
+            > GATES["min_information_ratio"],
         }
         all_pass = all(passes.values())
 
@@ -444,17 +562,29 @@ def main():
         exp_dir = Path(tracker.log_dir) / "artifacts" / exp_id
         exp_dir.mkdir(parents=True, exist_ok=True)
         with open(exp_dir / "summary.json", "w") as f:
-            json.dump(summary, f, indent=2, default=lambda x: float(x) if isinstance(x, (np.integer, np.floating)) else str(x))
+            json.dump(
+                summary,
+                f,
+                indent=2,
+                default=lambda x: (
+                    float(x) if isinstance(x, (np.integer, np.floating)) else str(x)
+                ),
+            )
         tracker.log_artifact("summary", exp_dir / "summary.json")
         tracker.finish_experiment(status="completed")
         print("\n" + "=" * 70)
         print(f"H9 Verdict: {summary['verdict']}")
-        print(f"OOS Sharpe: {oos_sharpe:.3f} | DD: {oos_max_dd:.3f} | PF: {pf:.3f} | Trades: {oos_trades_count}")
-        print(f"Val SR: {val_sharpe:.3f} | Test SR: {test_sharpe:.3f} | WF stab: {wf_stab:.3f}")
+        print(
+            f"OOS Sharpe: {oos_sharpe:.3f} | DD: {oos_max_dd:.3f} | PF: {pf:.3f} | Trades: {oos_trades_count}"
+        )
+        print(
+            f"Val SR: {val_sharpe:.3f} | Test SR: {test_sharpe:.3f} | WF stab: {wf_stab:.3f}"
+        )
         print("=" * 70)
         return 0 if all_pass else 1
     except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
+
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))
         return 2

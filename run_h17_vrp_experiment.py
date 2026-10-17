@@ -49,9 +49,7 @@ from qtr.validation.statistics import (
 )
 
 EXPERIMENT_NAME = "h17_vrp"
-EXPERIMENT_DESC = (
-    "H17: Term-structure-gated, vol-targeted long SVXY (VRP harvesting)"
-)
+EXPERIMENT_DESC = "H17: Term-structure-gated, vol-targeted long SVXY (VRP harvesting)"
 
 # Symbols
 SVXY_SYMBOL = "SVXY"
@@ -194,8 +192,11 @@ def full_gate_eval(
     n_oos_trades = _count_in(result.trades, oos_mask, prices)
 
     oos_m = _period_metrics(oos_ret, n_oos_trades, oos_eq)
-    test_m = _period_metrics(test_ret, _count_in(result.trades, test_mask, prices),
-                            result.equity_curve[test_mask])
+    test_m = _period_metrics(
+        test_ret,
+        _count_in(result.trades, test_mask, prices),
+        result.equity_curve[test_mask],
+    )
 
     # Walk-forward stability (full series)
     wf_splits = walk_forward_splits(len(result.returns), n_splits=WF_FOLDS_STABILITY)
@@ -209,7 +210,8 @@ def full_gate_eval(
             train_sharpes.append(sharpe_ratio(tr_r.values))
     wf_stab = (
         float(np.mean(oos_sharpes) / np.mean(train_sharpes))
-        if np.mean(train_sharpes) != 0 else 0.0
+        if np.mean(train_sharpes) != 0
+        else 0.0
     )
 
     # Regime sharpes on the OOS window
@@ -235,20 +237,27 @@ def full_gate_eval(
         "sharpe": oos_m["sharpe"] >= GATES["min_sharpe"],
         "trades": oos_m["trades"] >= GATES["min_trades"],
         "pf": oos_m["profit_factor"] >= GATES["min_profit_factor"],
-        "dd": abs(oos_m["max_drawdown"]) <= GATES["max_drawdown"] if oos_m["max_drawdown"] < 0 else False,
+        "dd": abs(oos_m["max_drawdown"]) <= GATES["max_drawdown"]
+        if oos_m["max_drawdown"] < 0
+        else False,
         "stab": wf_stab >= GATES["min_walkforward_stability"],
-        "worst": worst >= GATES["min_worst_regime_sharpe"] if worst != np.inf else False,
+        "worst": worst >= GATES["min_worst_regime_sharpe"]
+        if worst != np.inf
+        else False,
         "p": float(bench.get("alpha_p_value", 1.0)) < GATES["max_p_value"],
-        "ir": float(bench.get("information_ratio", -np.inf)) > GATES["min_information_ratio"],
+        "ir": float(bench.get("information_ratio", -np.inf))
+        > GATES["min_information_ratio"],
     }
     all_pass = all(passes.values())
     return {
         "oos_metrics": oos_m,
         "test_metrics": test_m,
         "train_sharpe": float(sharpe_ratio(result.returns[train_mask].dropna().values))
-            if train_mask.sum() > 1 else 0.0,
+        if train_mask.sum() > 1
+        else 0.0,
         "val_sharpe": float(sharpe_ratio(result.returns[val_mask].dropna().values))
-            if val_mask.sum() > 1 else 0.0,
+        if val_mask.sum() > 1
+        else 0.0,
         "wf_stability": float(wf_stab),
         "worst_regime_sharpe": float(worst) if worst != np.inf else 0.0,
         "regime_sharpes": regime_sharpes,
@@ -291,8 +300,13 @@ def perturbation_eval(
             kw = dict(selected)
             kw[param] = v
             targets = build_targets(
-                prices["SVXY"], vix, vix3m,
-                kw["gate_thresh"], kw["vol_window"], kw["target_vol"], kw["max_pos"],
+                prices["SVXY"],
+                vix,
+                vix3m,
+                kw["gate_thresh"],
+                kw["vol_window"],
+                kw["target_vol"],
+                kw["max_pos"],
             )
             res = run_backtest(prices=prices, signals=targets, config=cfg)
             r = res.returns[oos_mask].dropna()
@@ -362,7 +376,9 @@ def main():
         fetcher = get_data_fetcher()
         data = fetcher.fetch_yahoo(
             [SVXY_SYMBOL, VIX_SYMBOL, VIX3M_SYMBOL, SPY_SYMBOL],
-            start=DATA_START, end=DATA_END, interval="1d",
+            start=DATA_START,
+            end=DATA_END,
+            interval="1d",
         )
         svxy_df = data.get(SVXY_SYMBOL, pd.DataFrame())
         if svxy_df.empty:
@@ -402,28 +418,50 @@ def main():
                 for target_vol in TARGET_VOLS:
                     for max_pos in MAX_POSS:
                         targets = build_targets(
-                            svxy_close, vix, vix3m, gate_thresh, vol_window, target_vol, max_pos
+                            svxy_close,
+                            vix,
+                            vix3m,
+                            gate_thresh,
+                            vol_window,
+                            target_vol,
+                            max_pos,
                         )
                         res = run_backtest(prices=prices, signals=targets, config=cfg)
                         train_r = res.returns[train_mask].dropna()
-                        train_sr = float(sharpe_ratio(train_r.values)) if len(train_r) > 1 else 0.0
+                        train_sr = (
+                            float(sharpe_ratio(train_r.values))
+                            if len(train_r) > 1
+                            else 0.0
+                        )
                         test_r = res.returns[test_mask].dropna()
-                        test_sr = float(sharpe_ratio(test_r.values)) if len(test_r) > 1 else 0.0
+                        test_sr = (
+                            float(sharpe_ratio(test_r.values))
+                            if len(test_r) > 1
+                            else 0.0
+                        )
                         val_r = res.returns[val_mask].dropna()
-                        val_sr = float(sharpe_ratio(val_r.values)) if len(val_r) > 1 else 0.0
+                        val_sr = (
+                            float(sharpe_ratio(val_r.values)) if len(val_r) > 1 else 0.0
+                        )
                         oos_r = res.returns[oos_mask].dropna()
-                        oos_sr = float(sharpe_ratio(oos_r.values)) if len(oos_r) > 1 else 0.0
-                        grid_results[(gate_thresh, vol_window, target_vol, max_pos)] = res
-                        grid_rows.append({
-                            "gate_thresh": gate_thresh,
-                            "vol_window": vol_window,
-                            "target_vol": target_vol,
-                            "max_pos": max_pos,
-                            "train_sharpe": train_sr,
-                            "val_sharpe": val_sr,
-                            "test_sharpe": test_sr,
-                            "oos_sharpe": oos_sr,
-                        })
+                        oos_sr = (
+                            float(sharpe_ratio(oos_r.values)) if len(oos_r) > 1 else 0.0
+                        )
+                        grid_results[(gate_thresh, vol_window, target_vol, max_pos)] = (
+                            res
+                        )
+                        grid_rows.append(
+                            {
+                                "gate_thresh": gate_thresh,
+                                "vol_window": vol_window,
+                                "target_vol": target_vol,
+                                "max_pos": max_pos,
+                                "train_sharpe": train_sr,
+                                "val_sharpe": val_sr,
+                                "test_sharpe": test_sr,
+                                "oos_sharpe": oos_sr,
+                            }
+                        )
         grid_df = pd.DataFrame(grid_rows).sort_values("val_sharpe", ascending=False)
         grid_elapsed = time.time() - t_grid
         print(
@@ -454,7 +492,12 @@ def main():
 
         # --- perturbation gate (OAT +/-20% on selected params) ---
         pert = perturbation_eval(
-            selected, prices, vix, vix3m, oos_mask, cfg,
+            selected,
+            prices,
+            vix,
+            vix3m,
+            oos_mask,
+            cfg,
             gate["oos_metrics"]["sharpe"],
         )
         gate["passes"]["perturbation"] = (
@@ -476,19 +519,35 @@ def main():
             ),
         }
         # (b) ungated vol-target (gate_thresh = -inf -> gate always 1)
-        ug = dict(selected); ug["gate_thresh"] = -1.0
-        ug_t = build_targets(svxy_close, vix, vix3m, -1.0, ug["vol_window"], ug["target_vol"], ug["max_pos"])
+        ug = dict(selected)
+        ug["gate_thresh"] = -1.0
+        ug_t = build_targets(
+            svxy_close,
+            vix,
+            vix3m,
+            -1.0,
+            ug["vol_window"],
+            ug["target_vol"],
+            ug["max_pos"],
+        )
         ug_res = run_backtest(prices=prices, signals=ug_t, config=cfg)
-        ug_gate = full_gate_eval(ug_res, oos_mask, val_mask, test_mask, prices, vix, bench_result)
+        ug_gate = full_gate_eval(
+            ug_res, oos_mask, val_mask, test_mask, prices, vix, bench_result
+        )
         ablations["ungated_vol_target"] = {"oos_metrics": ug_gate["oos_metrics"]}
         # (c) gate-only (no vol target: target_vol=1.0 effectively full position, max_pos=1.0)
         go_t = build_targets(svxy_close, vix, vix3m, sel_key[0], 21, 1.0, 1.0)
         go_res = run_backtest(prices=prices, signals=go_t, config=cfg)
-        go_gate = full_gate_eval(go_res, oos_mask, val_mask, test_mask, prices, vix, bench_result)
+        go_gate = full_gate_eval(
+            go_res, oos_mask, val_mask, test_mask, prices, vix, bench_result
+        )
         ablations["gate_only_no_vol_target"] = {"oos_metrics": go_gate["oos_metrics"]}
         # (d) BH SPY reference
         if not spy.isna().all():
-            spy_eq = pd.Series(((1 + spy.pct_change().fillna(0)).cumprod() * INITIAL_CAPITAL), index=common)
+            spy_eq = pd.Series(
+                ((1 + spy.pct_change().fillna(0)).cumprod() * INITIAL_CAPITAL),
+                index=common,
+            )
             ablations["bh_spy"] = {
                 "oos_metrics": _period_metrics(
                     spy.pct_change()[oos_mask].dropna(), 0, spy_eq[oos_mask]
@@ -508,9 +567,13 @@ def main():
         tracker.log_dataframe(
             "benchmark_equity", bench_result.equity_curve.to_frame("equity")
         )
-        tracker.log_dataframe("benchmark_returns", bench_result.returns.to_frame("returns"))
+        tracker.log_dataframe(
+            "benchmark_returns", bench_result.returns.to_frame("returns")
+        )
         for name, ab in ablations.items():
-            tracker.log_metrics({f"ablation_{name}_oos_sharpe": ab["oos_metrics"]["sharpe"]})
+            tracker.log_metrics(
+                {f"ablation_{name}_oos_sharpe": ab["oos_metrics"]["sharpe"]}
+            )
 
         total_elapsed = time.time() - t_start
         summary = {
@@ -526,7 +589,9 @@ def main():
             "grid_elapsed_sec": float(round(grid_elapsed, 1)),
             "total_elapsed_sec": float(round(total_elapsed, 1)),
             "compute_cpu_hours": float(round(total_elapsed / 3600, 3)),
-            "svxy_inception": str(svxy_inception.date()) if svxy_inception is not None else None,
+            "svxy_inception": str(svxy_inception.date())
+            if svxy_inception is not None
+            else None,
             "metrics": {
                 "train_sharpe": gate["train_sharpe"],
                 "val_sharpe": gate["val_sharpe"],
@@ -553,8 +618,12 @@ def main():
         exp_dir.mkdir(parents=True, exist_ok=True)
         with open(exp_dir / "summary.json", "w") as f:
             json.dump(
-                summary, f, indent=2,
-                default=lambda x: float(x) if isinstance(x, (np.integer, np.floating)) else str(x),
+                summary,
+                f,
+                indent=2,
+                default=lambda x: (
+                    float(x) if isinstance(x, (np.integer, np.floating)) else str(x)
+                ),
             )
         tracker.log_artifact("summary", exp_dir / "summary.json")
         tracker.finish_experiment(status="completed")
@@ -577,17 +646,20 @@ def main():
             f"Test={gate['test_metrics']['sharpe']:.3f} | "
             f"WF stab={gate['wf_stability']:.3f} | worst-regime={gate['worst_regime_sharpe']:.3f}"
         )
-        print(f"  Benchmark: p={gate['benchmark_p_value']:.4f} IR={gate['information_ratio']:.3f}")
+        print(
+            f"  Benchmark: p={gate['benchmark_p_value']:.4f} IR={gate['information_ratio']:.3f}"
+        )
         print(f"  Perturbation min ratio={pert['min_perturbed_sharpe_ratio']:.3f}")
         print(f"  Selected: {selected}")
         print(
             f"  Grid {len(grid_rows)} combos in {grid_elapsed:.1f}s | "
-            f"total {total_elapsed/60:.1f} min ({total_elapsed/3600:.2f} CPU-h)"
+            f"total {total_elapsed / 60:.1f} min ({total_elapsed / 3600:.2f} CPU-h)"
         )
         print("=" * 72)
         return 0 if gate["all_pass"] else 1
     except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
+
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))
         return 2

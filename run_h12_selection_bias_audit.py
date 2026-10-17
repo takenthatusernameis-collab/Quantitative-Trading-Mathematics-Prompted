@@ -104,8 +104,15 @@ H10_GRID_PARQUET = Path(
 
 # Family-wide trial counts (H1-H11 grid sizes, from NEXT_TASK / pre-registration).
 FAMILY_TRIAL_COUNTS = {
-    "H1": 18, "H2": 54, "H3": 108, "H4": 18, "H5": 6,
-    "H6": 6, "H8": 5, "H10": 13824, "H11": 350,
+    "H1": 18,
+    "H2": 54,
+    "H3": 108,
+    "H4": 18,
+    "H5": 6,
+    "H6": 6,
+    "H8": 5,
+    "H10": 13824,
+    "H11": 350,
 }
 FAMILY_TOTAL = sum(FAMILY_TRIAL_COUNTS.values())
 
@@ -130,16 +137,13 @@ def _expected_max_sharpe(n_trials, var_trials):
     where g is the Euler-Mascheroni constant and V is the variance of the
     per-trial Sharpe estimates (here the preserved Val-Sharpe distribution).
     """
-    max_z = (
-        (1.0 - EMC) * stats.norm.ppf(1.0 - 1.0 / n_trials)
-        + EMC * stats.norm.ppf(1.0 - 1.0 / (n_trials * np.e))
+    max_z = (1.0 - EMC) * stats.norm.ppf(1.0 - 1.0 / n_trials) + EMC * stats.norm.ppf(
+        1.0 - 1.0 / (n_trials * np.e)
     )
     return float(np.sqrt(var_trials) * max_z), float(max_z)
 
 
-def deflated_sharpe_ratio(
-    observed_sr, n_trials, n_obs, var_trials, skewness, kurtosis
-):
+def deflated_sharpe_ratio(observed_sr, n_trials, n_obs, var_trials, skewness, kurtosis):
     """Deflated Sharpe Ratio and one-sided p-value.
 
     All Sharpe inputs are ANNUALIZED. The test statistic is evaluated at bar
@@ -152,7 +156,7 @@ def deflated_sharpe_ratio(
     sr0_per_bar, _ = _expected_max_sharpe(n_trials, var_trials / PERIODS_PER_YEAR)
     numerator = (sr_per_bar - sr0_per_bar) * np.sqrt(n_obs - 1.0)
     skew_term = 1.0 - skewness * sr_per_bar
-    kurt_term = (kurtosis - 1.0) / 4.0 * sr_per_bar ** 2
+    kurt_term = (kurtosis - 1.0) / 4.0 * sr_per_bar**2
     denom = float(np.sqrt(max(1e-12, skew_term + kurt_term)))
     dsr_adj = numerator / denom
     p = float(stats.norm.cdf(dsr_adj))
@@ -187,12 +191,10 @@ def _cscv_pbo_multi(performance_matrix, n_blocks):
     """
     T, N = performance_matrix.shape
     if T % n_blocks != 0:
-        raise ValueError(
-            f"CSCV requires T divisible by S; got T={T}, S={n_blocks}"
-        )
+        raise ValueError(f"CSCV requires T divisible by S; got T={T}, S={n_blocks}")
     block_size = T // n_blocks
     blocks = [
-        performance_matrix[i * block_size:(i + 1) * block_size, :]
+        performance_matrix[i * block_size : (i + 1) * block_size, :]
         for i in range(n_blocks)
     ]
     half = n_blocks // 2
@@ -225,7 +227,9 @@ def _cscv_pbo_multi(performance_matrix, n_blocks):
         "n_strategies": int(N),
         "mean_is_opt_oos_rank": float(ranks.mean()),
         "median_is_opt_oos_rank": float(np.median(ranks)),
-        "rank_distribution": {int(k): int(v) for k, v in zip(*np.unique(ranks, return_counts=True))},
+        "rank_distribution": {
+            int(k): int(v) for k, v in zip(*np.unique(ranks, return_counts=True))
+        },
         "is_opt_oos_means": is_opt_oos_means,
     }
 
@@ -268,34 +272,60 @@ def _rebuild_grid_oos(prices, volumes, vix_hourly, cfg, masks):
                 )
 
     meta_cols = [
-        "vol_window_long", "smooth_span", "regime_scaling", "min_trade_interval",
-        "trailing_mult", "max_hold_bars", "vol_limit_mult", "vol_floor_fraction",
-        "oos_sharpe", "oos_profit_factor", "oos_max_drawdown", "oos_trades",
+        "vol_window_long",
+        "smooth_span",
+        "regime_scaling",
+        "min_trade_interval",
+        "trailing_mult",
+        "max_hold_bars",
+        "vol_limit_mult",
+        "vol_floor_fraction",
+        "oos_sharpe",
+        "oos_profit_factor",
+        "oos_max_drawdown",
+        "oos_trades",
     ]
-    meta = {c: np.empty(N, dtype=object if c == "smooth_span" else float) for c in meta_cols}
+    meta = {
+        c: np.empty(N, dtype=object if c == "smooth_span" else float) for c in meta_cols
+    }
     oos_matrix = np.empty((N, T_oos), dtype=np.float32)
 
-    combos = list(itertools.product(
-        [252, 504, 1008], [None, 4, 8, 16], [False, True],
-        [0, 4, 8, 24],
-        [1.5, 2.0, 2.5, 3.0], [60, 120, 240, 480], [1.5, 2.0, 2.5], [0.25, 0.5, 0.75],
-    ))
+    combos = list(
+        itertools.product(
+            [252, 504, 1008],
+            [None, 4, 8, 16],
+            [False, True],
+            [0, 4, 8, 24],
+            [1.5, 2.0, 2.5, 3.0],
+            [60, 120, 240, 480],
+            [1.5, 2.0, 2.5],
+            [0.25, 0.5, 0.75],
+        )
+    )
     assert len(combos) == N, len(combos)
 
     t0 = time.time()
     for i, (vw, smooth_span, regime, min_int, tm, mhb, vlm, vff) in enumerate(combos):
         hourly_target = targets[(vw, smooth_span, regime)]
         positions = apply_exits_hourly(
-            hourly_target, prices, atr, vol_exit,
-            trailing_mult=tm, max_hold_bars=mhb,
-            vol_limit_mult=vlm, vol_floor_fraction=vff,
-            target_vol=0.15, min_trade_interval=min_int,
+            hourly_target,
+            prices,
+            atr,
+            vol_exit,
+            trailing_mult=tm,
+            max_hold_bars=mhb,
+            vol_limit_mult=vlm,
+            vol_floor_fraction=vff,
+            target_vol=0.15,
+            min_trade_interval=min_int,
         )
-        res = run_backtest(prices=prices, signals=positions, volumes=volumes, config=cfg)
+        res = run_backtest(
+            prices=prices, signals=positions, volumes=volumes, config=cfg
+        )
         oos_ret = res.returns[oos_mask].reindex(oos_index).fillna(0.0)
         om = _period_metrics(oos_ret, _count_in(res.trades, oos_mask, prices))
         meta["vol_window_long"][i] = vw
-        meta["smooth_span"][i] = (str(smooth_span) if smooth_span is not None else "none")
+        meta["smooth_span"][i] = str(smooth_span) if smooth_span is not None else "none"
         meta["regime_scaling"][i] = regime
         meta["min_trade_interval"][i] = min_int
         meta["trailing_mult"][i] = tm
@@ -308,7 +338,10 @@ def _rebuild_grid_oos(prices, volumes, vix_hourly, cfg, masks):
         meta["oos_trades"][i] = om["trades"]
         oos_matrix[i, :] = oos_ret.to_numpy(dtype=np.float32)
         if (i + 1) % 2000 == 0:
-            print(f"    grid re-run {i+1}/{N} ({(time.time()-t0)/60:.1f} min)", flush=True)
+            print(
+                f"    grid re-run {i + 1}/{N} ({(time.time() - t0) / 60:.1f} min)",
+                flush=True,
+            )
     grid_meta = pd.DataFrame(meta)
     return grid_meta, oos_matrix, oos_index
 
@@ -392,7 +425,9 @@ def main():
         prices, volumes, vix_hourly, h10_returns = _load_cached_data()
         train_mask, val_mask, test_mask = _splits(prices)
         masks = {
-            "train": train_mask, "val": val_mask, "test": test_mask,
+            "train": train_mask,
+            "val": val_mask,
+            "test": test_mask,
             "oos": val_mask | test_mask,
         }
         cfg = make_futures_config()
@@ -405,11 +440,14 @@ def main():
         val_sharpe_check = float(sharpe_ratio(val_ret.values))
         observed_sr = float(sel_row["val_sharpe"])
         assert abs(val_sharpe_check - observed_sr) < 1e-9, (
-            val_sharpe_check, observed_sr
+            val_sharpe_check,
+            observed_sr,
         )
-        print(f"[H12] data: prices={prices.shape} val_bars={len(val_ret)} "
-              f"val_sharpe(selected)={observed_sr:.6f} (grid max "
-              f"{grid['val_sharpe'].max():.6f})")
+        print(
+            f"[H12] data: prices={prices.shape} val_bars={len(val_ret)} "
+            f"val_sharpe(selected)={observed_sr:.6f} (grid max "
+            f"{grid['val_sharpe'].max():.6f})"
+        )
 
         # Return moments of the SELECTED config on the Val window
         # (the selection metric's distributional inputs).
@@ -417,8 +455,10 @@ def main():
         kurt = float(stats.kurtosis(val_ret.values, fisher=False))
         n_obs = len(val_ret)
         var_trials = float(grid["val_sharpe"].var(ddof=1))
-        print(f"[H12] val return moments: skew={skew:.4f} kurt={kurt:.4f} "
-              f"trial SR var={var_trials:.6f}")
+        print(
+            f"[H12] val return moments: skew={skew:.4f} kurt={kurt:.4f} "
+            f"trial SR var={var_trials:.6f}"
+        )
 
         # ============================================================
         # 1. Deflated Sharpe Ratio (Bailey & Lopez de Prado 2014)
@@ -448,12 +488,16 @@ def main():
             oos_matrix = oos_matrix[:, :T_cscv]
             oos_index = oos_index[:T_cscv]
         pbo_result = _cscv_pbo_multi(oos_matrix.T, CSCV_S)
-        print(f"  CSCV: S={CSCV_S} blocks, T={T_cscv} bars, "
-              f"{pbo_result['n_combinations']} combinations, "
-              f"N={pbo_result['n_strategies']} configs")
-        print(f"  PBO = {pbo_result['pbo']:.4f}  "
-              f"(mean rank of IS-optimal = {pbo_result['mean_is_opt_oos_rank']:.2f}, "
-              f"median = {pbo_result['median_is_opt_oos_rank']:.2f})")
+        print(
+            f"  CSCV: S={CSCV_S} blocks, T={T_cscv} bars, "
+            f"{pbo_result['n_combinations']} combinations, "
+            f"N={pbo_result['n_strategies']} configs"
+        )
+        print(
+            f"  PBO = {pbo_result['pbo']:.4f}  "
+            f"(mean rank of IS-optimal = {pbo_result['mean_is_opt_oos_rank']:.2f}, "
+            f"median = {pbo_result['median_is_opt_oos_rank']:.2f})"
+        )
         print(f"  rank distribution: {pbo_result['rank_distribution']}")
 
         # OOS metrics of the re-run grid (diagnostics + gate inputs).
@@ -475,17 +519,18 @@ def main():
         sel_oos_pf = float(oos_pf[sel_idx])
         # Bit-consistency: the re-run OOS metrics of the selected config
         # must reproduce the H10 artifact's OOS metrics.
-        h10_summary = json.loads(
-            (H10_GRID_PARQUET.parent / "summary.json").read_text()
-        )
+        h10_summary = json.loads((H10_GRID_PARQUET.parent / "summary.json").read_text())
         h10_oos_sharpe = float(h10_summary["metrics"]["oos_sharpe"])
         h10_oos_pf = float(h10_summary["metrics"]["profit_factor"])
         assert abs(sel_oos_sharpe - h10_oos_sharpe) < 1e-9, (
-            sel_oos_sharpe, h10_oos_sharpe
+            sel_oos_sharpe,
+            h10_oos_sharpe,
         )
         assert abs(sel_oos_pf - h10_oos_pf) < 1e-9, (sel_oos_pf, h10_oos_pf)
-        print(f"  re-run OOS metrics of selected config reproduce H10 "
-              f"(SR={sel_oos_sharpe:.6f}, PF={sel_oos_pf:.6f})")
+        print(
+            f"  re-run OOS metrics of selected config reproduce H10 "
+            f"(SR={sel_oos_sharpe:.6f}, PF={sel_oos_pf:.6f})"
+        )
 
         # ============================================================
         # 3. Family-wide multiple-testing audit
@@ -507,9 +552,11 @@ def main():
         print(f"  pooled N = {FAMILY_TOTAL} trials")
         print(f"  E[max SR | N={FAMILY_TOTAL}] = {sr0_family_annual:.4f}")
         print(f"  DSR (family) = {dsr_family:.4f}  p-value = {p_family:.6f}")
-        print(f"  benchmark p = {BENCHMARK_P_VALUE:.3e} -> "
-              f"Bonferroni {bonferroni_p:.3e}, BH-FDR {bh_p:.3e} "
-              f"(gate < {GATES['max_p_value']})")
+        print(
+            f"  benchmark p = {BENCHMARK_P_VALUE:.3e} -> "
+            f"Bonferroni {bonferroni_p:.3e}, BH-FDR {bh_p:.3e} "
+            f"(gate < {GATES['max_p_value']})"
+        )
 
         # ============================================================
         # 4. PF-margin sensitivity (diagnostic)
@@ -522,19 +569,24 @@ def main():
         sel_val_pf = float(sel_row["val_profit_factor"])
         sel_val_pf_rank = int((val_pf > sel_val_pf).sum()) + 1
         pf_quantiles = {
-            str(q): float(val_pf.quantile(q))
-            for q in (0.05, 0.25, 0.50, 0.75, 0.95)
+            str(q): float(val_pf.quantile(q)) for q in (0.05, 0.25, 0.50, 0.75, 0.95)
         }
         sr_quantiles = {
             str(q): float(grid["val_sharpe"].quantile(q))
             for q in (0.05, 0.25, 0.50, 0.75, 0.95)
         }
-        print(f"  val PF: selected={sel_val_pf:.4f} (rank {sel_val_pf_rank}"
-              f"/{N_GRID}), quantiles={pf_quantiles}")
-        print(f"  fraction of combos with PF >= {GATES['min_profit_factor']}: "
-              f"Val {pf_pass_frac_val:.4%}, OOS {pf_pass_frac_oos:.4%}")
-        print(f"  fraction of combos with OOS Sharpe >= "
-              f"{GATES['min_sharpe']}: {sharpe_pass_frac_oos:.4%}")
+        print(
+            f"  val PF: selected={sel_val_pf:.4f} (rank {sel_val_pf_rank}"
+            f"/{N_GRID}), quantiles={pf_quantiles}"
+        )
+        print(
+            f"  fraction of combos with PF >= {GATES['min_profit_factor']}: "
+            f"Val {pf_pass_frac_val:.4%}, OOS {pf_pass_frac_oos:.4%}"
+        )
+        print(
+            f"  fraction of combos with OOS Sharpe >= "
+            f"{GATES['min_sharpe']}: {sharpe_pass_frac_oos:.4%}"
+        )
 
         # ============================================================
         # Verdict (pre-registered)
@@ -570,8 +622,7 @@ def main():
                 "p_value_family": float(p_family),
             },
             "pbo": {
-                **{k: v for k, v in pbo_result.items()
-                   if k != "is_opt_oos_means"},
+                **{k: v for k, v in pbo_result.items() if k != "is_opt_oos_means"},
                 "t_oos_bars": T_cscv,
                 "t_oos_bars_trimmed": T_oos - T_cscv,
             },
@@ -614,35 +665,54 @@ def main():
         }
 
         tracker.log_dataframe("grid_oos_metrics", grid_meta)
-        tracker.log_dataframe("cscv_rank_distribution", pd.DataFrame(
-            {"rank": pbo_result["rank_distribution"].keys(),
-             "count": pbo_result["rank_distribution"].values()}
-        ))
+        tracker.log_dataframe(
+            "cscv_rank_distribution",
+            pd.DataFrame(
+                {
+                    "rank": pbo_result["rank_distribution"].keys(),
+                    "count": pbo_result["rank_distribution"].values(),
+                }
+            ),
+        )
         tracker.log_dataframe("val_sharpe_distribution", grid[["val_sharpe"]])
 
         exp_dir = Path(tracker.log_dir) / "artifacts" / exp_id
         exp_dir.mkdir(parents=True, exist_ok=True)
         with open(exp_dir / "summary.json", "w") as f:
-            json.dump(summary, f, indent=2,
-                      default=lambda x: float(x) if isinstance(x, (np.integer, np.floating))
-                      else str(x))
+            json.dump(
+                summary,
+                f,
+                indent=2,
+                default=lambda x: (
+                    float(x) if isinstance(x, (np.integer, np.floating)) else str(x)
+                ),
+            )
         tracker.log_artifact("summary", exp_dir / "summary.json")
         tracker.finish_experiment(status="completed")
 
         print("\n" + "=" * 72)
         print("  H12 selection-bias audit:")
-        print(f"    DSR-adjusted Sharpe (family N={FAMILY_TOTAL}): "
-              f"{dsr_family:.4f} (>= 1.0) -> {'PASS' if dsr_gate else 'FAIL'}")
-        print(f"    PBO (CSCV, S={CSCV_S}): {pbo_result['pbo']:.4f} "
-              f"(< 0.5) -> {'PASS' if pbo_gate else 'FAIL'}")
-        print(f"    Family-corrected benchmark p: {bonferroni_p:.3e} "
-              f"(< 0.05) -> {'PASS' if family_gate else 'FAIL'}")
-        print(f"  OVERALL: {verdict}  "
-              f"({total_elapsed/60:.1f} min, {total_elapsed/3600:.3f} CPU-h)")
+        print(
+            f"    DSR-adjusted Sharpe (family N={FAMILY_TOTAL}): "
+            f"{dsr_family:.4f} (>= 1.0) -> {'PASS' if dsr_gate else 'FAIL'}"
+        )
+        print(
+            f"    PBO (CSCV, S={CSCV_S}): {pbo_result['pbo']:.4f} "
+            f"(< 0.5) -> {'PASS' if pbo_gate else 'FAIL'}"
+        )
+        print(
+            f"    Family-corrected benchmark p: {bonferroni_p:.3e} "
+            f"(< 0.05) -> {'PASS' if family_gate else 'FAIL'}"
+        )
+        print(
+            f"  OVERALL: {verdict}  "
+            f"({total_elapsed / 60:.1f} min, {total_elapsed / 3600:.3f} CPU-h)"
+        )
         print("=" * 72)
         return 0 if all_pass else 1
     except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
+
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))
         return 2

@@ -77,7 +77,9 @@ def _overnight_intraday_signal(
     # Determine which leg is favored based on predictor
     if predictor == "lagged_1d_overnight_sign":
         # Lagged overnight return sign
-        fav_overnight = overnight_ret.shift(1) > 0  # yesterday's overnight return positive
+        fav_overnight = (
+            overnight_ret.shift(1) > 0
+        )  # yesterday's overnight return positive
     elif predictor == "vix_regime":
         if vix_close is None:
             raise ValueError("VIX data required for vix_regime predictor")
@@ -86,17 +88,23 @@ def _overnight_intraday_signal(
         fav_overnight = vix_close > 30  # Only bear regime favors overnight
     elif predictor == "prior_5d_return_sign":
         # Prior 5-day cumulative return sign
-        fav_overnight = (close / close.shift(5) - 1).shift(1) > 0  # yesterday's 5-day return positive
+        fav_overnight = (close / close.shift(5) - 1).shift(
+            1
+        ) > 0  # yesterday's 5-day return positive
     else:
         raise ValueError(f"Unknown predictor: {predictor}")
 
     # Apply hold convention: signal determines position for next period
     if hold_convention == "next_overnight":
         # If favoring overnight, go long overnight leg tomorrow
-        signal = np.where(fav_overnight, 1, -1)  # 1 = long overnight, -1 = long intraday
+        signal = np.where(
+            fav_overnight, 1, -1
+        )  # 1 = long overnight, -1 = long intraday
     elif hold_convention == "next_intraday":
         # If favoring intraday, go long intraday leg tomorrow
-        signal = np.where(fav_overnight, -1, 1)  # -1 = long overnight, 1 = long intraday
+        signal = np.where(
+            fav_overnight, -1, 1
+        )  # -1 = long overnight, 1 = long intraday
     else:
         raise ValueError(f"Unknown hold convention: {hold_convention}")
 
@@ -116,9 +124,9 @@ def _run_ablation(
     # Create price series for buy-and-hold overnight leg
     price_series_oh = (1 + overnight_ret).cumprod()
     price_series_oh.iloc[0] = 1.0  # Start at 1.0
-    price_df_oh = pd.DataFrame({ "SPY": price_series_oh }, index=close.index)
+    price_df_oh = pd.DataFrame({"SPY": price_series_oh}, index=close.index)
     # Signals: always fully invested (1.0)
-    signals_df_oh = pd.DataFrame({ "SPY": 1.0 }, index=close.index)
+    signals_df_oh = pd.DataFrame({"SPY": 1.0}, index=close.index)
     config_oh = BacktestConfig(
         initial_capital=config.initial_capital,
         cost_model=config.cost_model,
@@ -127,7 +135,9 @@ def _run_ablation(
         max_leverage=config.max_leverage,
         allow_short=config.allow_short,
     )
-    equity_oh, stats_oh = run_backtest(prices=price_df_oh, signals=signals_df_oh, config=config_oh)
+    equity_oh, stats_oh = run_backtest(
+        prices=price_df_oh, signals=signals_df_oh, config=config_oh
+    )
 
     # Save ablation artifacts
     oh_dir = exp_dir / "ablation_overnight"
@@ -135,7 +145,7 @@ def _run_ablation(
     equity_oh_path = oh_dir / "equity.parquet"
     stats_oh_path = oh_dir / "stats.json"
     equity_oh.to_parquet(equity_oh_path)
-    with open(stats_oh_path, 'w') as f:
+    with open(stats_oh_path, "w") as f:
         json.dump(stats_oh, f, indent=2, default=str)
 
     # Buy-and-hold intraday leg
@@ -143,9 +153,9 @@ def _run_ablation(
     # Create price series for buy-and-hold intraday leg
     price_series_ih = (1 + intraday_ret).cumprod()
     price_series_ih.iloc[0] = 1.0  # Start at 1.0
-    price_df_ih = pd.DataFrame({ "SPY": price_series_ih }, index=close.index)
+    price_df_ih = pd.DataFrame({"SPY": price_series_ih}, index=close.index)
     # Signals: always fully invested (1.0)
-    signals_df_ih = pd.DataFrame({ "SPY": 1.0 }, index=close.index)
+    signals_df_ih = pd.DataFrame({"SPY": 1.0}, index=close.index)
     config_ih = BacktestConfig(
         initial_capital=config.initial_capital,
         cost_model=config.cost_model,
@@ -154,7 +164,9 @@ def _run_ablation(
         max_leverage=config.max_leverage,
         allow_short=config.allow_short,
     )
-    equity_ih, stats_ih = run_backtest(prices=price_df_ih, signals=signals_df_ih, config=config_ih)
+    equity_ih, stats_ih = run_backtest(
+        prices=price_df_ih, signals=signals_df_ih, config=config_ih
+    )
 
     # Save ablation artifacts
     ih_dir = exp_dir / "ablation_intraday"
@@ -162,7 +174,7 @@ def _run_ablation(
     equity_ih_path = ih_dir / "equity.parquet"
     stats_ih_path = ih_dir / "stats.json"
     equity_ih.to_parquet(equity_ih_path)
-    with open(stats_ih_path, 'w') as f:
+    with open(stats_ih_path, "w") as f:
         json.dump(stats_ih, f, indent=2, default=str)
 
     # Buy-and-hold SPY
@@ -170,9 +182,9 @@ def _run_ablation(
     # Create price series for buy-and-hold SPY
     price_series_bh = (1 + spy_ret).cumprod()
     price_series_bh.iloc[0] = 1.0  # Start at 1.0
-    price_df_bh = pd.DataFrame({ "SPY": price_series_bh }, index=close.index)
+    price_df_bh = pd.DataFrame({"SPY": price_series_bh}, index=close.index)
     # Signals: always fully invested (1.0)
-    signals_df_bh = pd.DataFrame({ "SPY": 1.0 }, index=close.index)
+    signals_df_bh = pd.DataFrame({"SPY": 1.0}, index=close.index)
     config_bh = BacktestConfig(
         initial_capital=config.initial_capital,
         cost_model=config.cost_model,
@@ -181,7 +193,9 @@ def _run_ablation(
         max_leverage=config.max_leverage,
         allow_short=config.allow_short,
     )
-    equity_bh, stats_bh = run_backtest(prices=price_df_bh, signals=signals_df_bh, config=config_bh)
+    equity_bh, stats_bh = run_backtest(
+        prices=price_df_bh, signals=signals_df_bh, config=config_bh
+    )
 
     # Save ablation artifacts
     bh_dir = exp_dir / "ablation_SPY"
@@ -189,7 +203,7 @@ def _run_ablation(
     equity_bh_path = bh_dir / "equity.parquet"
     stats_bh_path = bh_dir / "stats.json"
     equity_bh.to_parquet(equity_bh_path)
-    with open(stats_bh_path, 'w') as f:
+    with open(stats_bh_path, "w") as f:
         json.dump(stats_bh, f, indent=2, default=str)
 
     # Equal-weight of both legs (50/50)
@@ -197,9 +211,9 @@ def _run_ablation(
     # Create price series for equal-weight legs
     price_series_ew = (1 + equal_weight_ret).cumprod()
     price_series_ew.iloc[0] = 1.0  # Start at 1.0
-    price_df_ew = pd.DataFrame({ "SPY": price_series_ew }, index=close.index)
+    price_df_ew = pd.DataFrame({"SPY": price_series_ew}, index=close.index)
     # Signals: always fully invested (1.0)
-    signals_df_ew = pd.DataFrame({ "SPY": 1.0 }, index=close.index)
+    signals_df_ew = pd.DataFrame({"SPY": 1.0}, index=close.index)
     config_ew = BacktestConfig(
         initial_capital=config.initial_capital,
         cost_model=config.cost_model,
@@ -208,7 +222,9 @@ def _run_ablation(
         max_leverage=config.max_leverage,
         allow_short=config.allow_short,
     )
-    equity_ew, stats_ew = run_backtest(prices=price_df_ew, signals=signals_df_ew, config=config_ew)
+    equity_ew, stats_ew = run_backtest(
+        prices=price_df_ew, signals=signals_df_ew, config=config_ew
+    )
 
     # Save ablation artifacts
     ew_dir = exp_dir / "ablation_equalweight"
@@ -216,7 +232,7 @@ def _run_ablation(
     equity_ew_path = ew_dir / "equity.parquet"
     stats_ew_path = ew_dir / "stats.json"
     equity_ew.to_parquet(equity_ew_path)
-    with open(stats_ew_path, 'w') as f:
+    with open(stats_ew_path, "w") as f:
         json.dump(stats_ew, f, indent=2, default=str)
 
 
@@ -230,12 +246,16 @@ def main() -> None:
         description="Decomposing daily returns into overnight/intraday legs and selectively capturing the higher-performing leg based on causal predictors",
         config={
             "universe": ["SPY", "QQQ", "IWM"],
-            "predictors": ["lagged_1d_overnight_sign", "vix_regime", "prior_5d_return_sign"],
+            "predictors": [
+                "lagged_1d_overnight_sign",
+                "vix_regime",
+                "prior_5d_return_sign",
+            ],
             "hold_conventions": ["next_overnight", "next_intraday"],
             "splits": {
                 "train": "2009-01-01 → 2014-12-31",
                 "val": "2015-01-01 → 2019-12-31",
-                "test": "2020-01-01 → 2026-10-08 (protected)"
+                "test": "2020-01-01 → 2026-10-08 (protected)",
             },
             "grid_size": 6,
         },
@@ -257,7 +277,9 @@ def main() -> None:
     fetcher = get_data_fetcher()
     data = fetcher.fetch_yahoo(
         ["SPY", "QQQ", "IWM", "^VIX"],
-        start="2009-01-01", end="2026-10-08", interval="1d",
+        start="2009-01-01",
+        end="2026-10-08",
+        interval="1d",
     )
 
     # Extract data
@@ -281,7 +303,9 @@ def main() -> None:
     open_ = spy_df["open"]
     vix_close = vix_df["close"].reindex(common)
 
-    print(f"Data loaded: {len(close)} trading days from {close.index[0]} to {close.index[-1]}")
+    print(
+        f"Data loaded: {len(close)} trading days from {close.index[0]} to {close.index[-1]}"
+    )
 
     # Define splits
     # Train: 2009-01-01 → 2014-12-31
@@ -440,15 +464,17 @@ def main() -> None:
 
             position_overnight = (signal == 1).astype(float)
             position_intraday = (signal == -1).astype(float)
-            strategy_ret = position_overnight * overnight_ret + position_intraday * intraday_ret
+            strategy_ret = (
+                position_overnight * overnight_ret + position_intraday * intraday_ret
+            )
 
             # Create a price series that, when percent-changed, gives our strategy returns
             price_series = (1 + strategy_ret).cumprod()
             price_series.iloc[0] = 1.0  # Start at 1.0
-            price_df = pd.DataFrame({ "SPY": price_series }, index=close.index)
+            price_df = pd.DataFrame({"SPY": price_series}, index=close.index)
 
             # Signals: always fully invested (1.0)
-            signals_df = pd.DataFrame({ "SPY": 1.0 }, index=close.index)
+            signals_df = pd.DataFrame({"SPY": 1.0}, index=close.index)
 
             # Configure backtest
             config = BacktestConfig(
@@ -475,7 +501,7 @@ def main() -> None:
             equity_path = combo_dir / "equity.parquet"
             stats_path = combo_dir / "stats.json"
             equity.to_frame().to_parquet(equity_path)
-            with open(stats_path, 'w') as f:
+            with open(stats_path, "w") as f:
                 json.dump(stats, f, indent=2, default=str)
 
             # Log artifacts with tracker
@@ -483,7 +509,7 @@ def main() -> None:
             tracker.log_artifact(f"stats_{combo_name}", stats_path)
 
             # Calculate train/val/test metrics for result tracking
-            train_mask = (equity.index <= train_end)
+            train_mask = equity.index <= train_end
             val_mask = (equity.index > train_end) & (equity.index <= val_end)
             test_mask = (equity.index > val_end) & (equity.index <= test_end)
 
@@ -492,19 +518,41 @@ def main() -> None:
             test_equity = equity[test_mask]
 
             # Calculate Sharpe ratios
-            train_sharpe = sharpe_ratio(train_equity.pct_change().dropna()) if len(train_equity) > 1 else 0.0
-            val_sharpe = sharpe_ratio(val_equity.pct_change().dropna()) if len(val_equity) > 1 else 0.0
-            test_sharpe = sharpe_ratio(test_equity.pct_change().dropna()) if len(test_equity) > 1 else 0.0
+            train_sharpe = (
+                sharpe_ratio(train_equity.pct_change().dropna())
+                if len(train_equity) > 1
+                else 0.0
+            )
+            val_sharpe = (
+                sharpe_ratio(val_equity.pct_change().dropna())
+                if len(val_equity) > 1
+                else 0.0
+            )
+            test_sharpe = (
+                sharpe_ratio(test_equity.pct_change().dropna())
+                if len(test_equity) > 1
+                else 0.0
+            )
             oos_equity = pd.concat([val_equity, test_equity])
-            oos_sharpe = sharpe_ratio(oos_equity.pct_change().dropna()) if len(oos_equity) > 1 else 0.0
+            oos_sharpe = (
+                sharpe_ratio(oos_equity.pct_change().dropna())
+                if len(oos_equity) > 1
+                else 0.0
+            )
 
             # Calculate other metrics from full period
-            total_return = (equity.iloc[-1] / equity.iloc[0] - 1) if len(equity) > 0 else 0.0
-            max_dd = ((equity / equity.expanding().max()) - 1).min() if len(equity) > 0 else 0.0
+            total_return = (
+                (equity.iloc[-1] / equity.iloc[0] - 1) if len(equity) > 0 else 0.0
+            )
+            max_dd = (
+                ((equity / equity.expanding().max()) - 1).min()
+                if len(equity) > 0
+                else 0.0
+            )
 
             # Count trades (signal changes) - approximate from equity curve turnover
             # For simplicity, we'll use the number of trades from the stats
-            trades = len(stats["trades"]) if hasattr(stats["trades"], '__len__') else 0
+            trades = len(stats["trades"]) if hasattr(stats["trades"], "__len__") else 0
 
             # Profit factor: gross profits / gross losses
             returns = stats["returns"].dropna()
@@ -532,15 +580,17 @@ def main() -> None:
     # Select best combo based on Val Sharpe
     best_result = max(results, key=lambda x: x["val_sharpe"])
     best_combo = best_result["combo_name"]
-    print(f"\nBest combination: {best_combo} (Val Sharpe: {best_result['val_sharpe']:.4f})")
+    print(
+        f"\nBest combination: {best_combo} (Val Sharpe: {best_result['val_sharpe']:.4f})"
+    )
 
     # Run backtest for best combo on full period for OOS gate evaluation
     # Parse the best_combo to get predictor and hold convention
     if best_combo.endswith("_next_overnight"):
-        predictor_best = best_combo[:-len("_next_overnight")]
+        predictor_best = best_combo[: -len("_next_overnight")]
         hold_conv_best = "next_overnight"
     elif best_combo.endswith("_next_intraday"):
-        predictor_best = best_combo[:-len("_next_intraday")]
+        predictor_best = best_combo[: -len("_next_intraday")]
         hold_conv_best = "next_intraday"
     else:
         # Fallback: split on last underscore (should not happen with valid data)
@@ -560,7 +610,9 @@ def main() -> None:
 
     position_overnight = (signal_best == 1).astype(float)
     position_intraday = (signal_best == -1).astype(float)
-    strategy_ret_best = position_overnight * overnight_ret + position_intraday * intraday_ret
+    strategy_ret_best = (
+        position_overnight * overnight_ret + position_intraday * intraday_ret
+    )
 
     # Configure backtest for best combo
     config_best = BacktestConfig(
@@ -575,13 +627,15 @@ def main() -> None:
     # Create price series that will generate our desired returns when percent-changed
     price_series_best = (1 + strategy_ret_best).cumprod()
     price_series_best.iloc[0] = 1.0  # Start at 1.0
-    price_df_best = pd.DataFrame({ "SPY": price_series_best }, index=close.index)
+    price_df_best = pd.DataFrame({"SPY": price_series_best}, index=close.index)
 
     # Signals: always fully invested (1.0)
-    signals_df_best = pd.DataFrame({ "SPY": 1.0 }, index=close.index)
+    signals_df_best = pd.DataFrame({"SPY": 1.0}, index=close.index)
 
     # Run backtest with our constructed prices and signals
-    result_best = run_backtest(prices=price_df_best, signals=signals_df_best, config=config_best)
+    result_best = run_backtest(
+        prices=price_df_best, signals=signals_df_best, config=config_best
+    )
     equity_best = result_best.equity_curve
     stats_best = {
         "returns": result_best.returns,
@@ -594,7 +648,7 @@ def main() -> None:
     equity_best_path = best_dir / "equity.parquet"
     stats_best_path = best_dir / "stats.json"
     equity_best.to_frame().to_parquet(equity_best_path)
-    with open(stats_best_path, 'w') as f:
+    with open(stats_best_path, "w") as f:
         json.dump(stats_best, f, indent=2, default=str)
 
     # Log artifacts with tracker
@@ -610,8 +664,14 @@ def main() -> None:
     oos_returns = oos_equity.pct_change().dropna()
 
     oos_sharpe = sharpe_ratio(oos_returns) if len(oos_returns) > 0 else 0.0
-    oos_total_return = (oos_equity.iloc[-1] / oos_equity.iloc[0] - 1) if len(oos_equity) > 0 else 0.0
-    oos_max_dd = ((oos_equity / oos_equity.expanding().max()) - 1).min() if len(oos_equity) > 0 else 0.0
+    oos_total_return = (
+        (oos_equity.iloc[-1] / oos_equity.iloc[0] - 1) if len(oos_equity) > 0 else 0.0
+    )
+    oos_max_dd = (
+        ((oos_equity / oos_equity.expanding().max()) - 1).min()
+        if len(oos_equity) > 0
+        else 0.0
+    )
 
     oos_returns_series = oos_equity.pct_change().dropna()
     oos_profits = oos_returns_series[oos_returns_series > 0].sum()
@@ -656,7 +716,9 @@ def main() -> None:
         bear_returns = strategy_ret_best[bear_mask].dropna()
 
         bull_sharpe = sharpe_ratio(bull_returns) if len(bull_returns) > 0 else 0.0
-        sideways_sharpe = sharpe_ratio(sideways_returns) if len(sideways_returns) > 0 else 0.0
+        sideways_sharpe = (
+            sharpe_ratio(sideways_returns) if len(sideways_returns) > 0 else 0.0
+        )
         bear_sharpe = sharpe_ratio(bear_returns) if len(bear_returns) > 0 else 0.0
 
         worst_regime_sharpe = min(bull_sharpe, sideways_sharpe, bear_sharpe)
@@ -688,13 +750,41 @@ def main() -> None:
     gates = {
         "sharpe": {"value": oos_sharpe, "threshold": 1.0, "passes": oos_sharpe >= 1.0},
         "trades": {"value": oos_trades, "threshold": 200, "passes": oos_trades >= 200},
-        "profit_factor": {"value": oos_profit_factor, "threshold": 1.3, "passes": oos_profit_factor >= 1.3},
-        "max_drawdown": {"value": oos_max_dd, "threshold": -0.15, "passes": oos_max_dd >= -0.15},
-        "walk_forward_stability": {"value": wf_stability, "threshold": 0.7, "passes": wf_stability >= 0.7},
-        "worst_regime_sharpe": {"value": worst_regime_sharpe, "threshold": 0.3, "passes": worst_regime_sharpe >= 0.3},
-        "benchmark_p": {"value": benchmark_p, "threshold": 0.05, "passes": benchmark_p < 0.05},
-        "information_ratio": {"value": information_ratio, "threshold": 0, "passes": information_ratio > 0},
-        "perturbation_ratio": {"value": perturbation_ratio, "threshold": 0.5, "passes": perturbation_ratio >= 0.5},
+        "profit_factor": {
+            "value": oos_profit_factor,
+            "threshold": 1.3,
+            "passes": oos_profit_factor >= 1.3,
+        },
+        "max_drawdown": {
+            "value": oos_max_dd,
+            "threshold": -0.15,
+            "passes": oos_max_dd >= -0.15,
+        },
+        "walk_forward_stability": {
+            "value": wf_stability,
+            "threshold": 0.7,
+            "passes": wf_stability >= 0.7,
+        },
+        "worst_regime_sharpe": {
+            "value": worst_regime_sharpe,
+            "threshold": 0.3,
+            "passes": worst_regime_sharpe >= 0.3,
+        },
+        "benchmark_p": {
+            "value": benchmark_p,
+            "threshold": 0.05,
+            "passes": benchmark_p < 0.05,
+        },
+        "information_ratio": {
+            "value": information_ratio,
+            "threshold": 0,
+            "passes": information_ratio > 0,
+        },
+        "perturbation_ratio": {
+            "value": perturbation_ratio,
+            "threshold": 0.5,
+            "passes": perturbation_ratio >= 0.5,
+        },
     }
 
     # Convert values to positive for display where needed
@@ -718,25 +808,65 @@ def main() -> None:
             "trades": int(oos_trades),
         },
         "gate_metrics": {
-            "sharpe": {"value": float(oos_sharpe), "threshold": 1.0, "passes": gates["sharpe"]["passes"]},
-            "trades": {"value": int(oos_trades), "threshold": 200, "passes": gates["trades"]["passes"]},
-            "profit_factor": {"value": float(oos_profit_factor), "threshold": 1.3, "passes": gates["profit_factor"]["passes"]},
-            "max_drawdown": {"value": float(abs(oos_max_dd)), "threshold": 0.15, "passes": gates["max_drawdown"]["passes"]},
-            "walk_forward_stability": {"value": float(wf_stability), "threshold": 0.7, "passes": gates["walk_forward_stability"]["passes"]},
-            "worst_regime_sharpe": {"value": float(worst_regime_sharpe), "threshold": 0.3, "passes": gates["worst_regime_sharpe"]["passes"]},
-            "benchmark_p": {"value": float(benchmark_p), "threshold": 0.05, "passes": gates["benchmark_p"]["passes"]},
-            "information_ratio": {"value": float(information_ratio), "threshold": 0, "passes": gates["information_ratio"]["passes"]},
-            "perturbation_ratio": {"value": float(perturbation_ratio), "threshold": 0.5, "passes": gates["perturbation_ratio"]["passes"]},
+            "sharpe": {
+                "value": float(oos_sharpe),
+                "threshold": 1.0,
+                "passes": gates["sharpe"]["passes"],
+            },
+            "trades": {
+                "value": int(oos_trades),
+                "threshold": 200,
+                "passes": gates["trades"]["passes"],
+            },
+            "profit_factor": {
+                "value": float(oos_profit_factor),
+                "threshold": 1.3,
+                "passes": gates["profit_factor"]["passes"],
+            },
+            "max_drawdown": {
+                "value": float(abs(oos_max_dd)),
+                "threshold": 0.15,
+                "passes": gates["max_drawdown"]["passes"],
+            },
+            "walk_forward_stability": {
+                "value": float(wf_stability),
+                "threshold": 0.7,
+                "passes": gates["walk_forward_stability"]["passes"],
+            },
+            "worst_regime_sharpe": {
+                "value": float(worst_regime_sharpe),
+                "threshold": 0.3,
+                "passes": gates["worst_regime_sharpe"]["passes"],
+            },
+            "benchmark_p": {
+                "value": float(benchmark_p),
+                "threshold": 0.05,
+                "passes": gates["benchmark_p"]["passes"],
+            },
+            "information_ratio": {
+                "value": float(information_ratio),
+                "threshold": 0,
+                "passes": gates["information_ratio"]["passes"],
+            },
+            "perturbation_ratio": {
+                "value": float(perturbation_ratio),
+                "threshold": 0.5,
+                "passes": gates["perturbation_ratio"]["passes"],
+            },
         },
         "all_combo_results": results,
     }
 
     # Save summary.json
     summary_path = exp_dir / "summary.json"
-    with open(summary_path, 'w') as f:
+    with open(summary_path, "w") as f:
         json.dump(
-            final_results, f, indent=2,
-            default=lambda x: float(x) if isinstance(x, (np.integer, np.floating)) else str(x),
+            final_results,
+            f,
+            indent=2,
+            default=lambda x: (
+                float(x) if isinstance(x, (np.integer, np.floating)) else str(x)
+            ),
         )
     tracker.log_artifact("summary", summary_path)
 
@@ -754,16 +884,16 @@ def main() -> None:
     }
 
     metadata_path = exp_dir / "metadata.json"
-    with open(metadata_path, 'w') as f:
+    with open(metadata_path, "w") as f:
         json.dump(metadata, f, indent=2, default=str)
     tracker.log_artifact("metadata", metadata_path)
 
     tracker.finish_experiment(status="completed" if all_pass else "failed")
 
     # Print summary
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("H18 EXPERIMENT COMPLETED")
-    print("="*60)
+    print("=" * 60)
     print(f"Selected config: {best_combo}")
     print(f"OOS Sharpe: {oos_sharpe:.4f}")
     print(f"OOS Max DD: {oos_max_dd:.2%}")
@@ -781,19 +911,23 @@ def main() -> None:
             value_display = abs(oos_max_dd)
         else:
             value_display = gate_info["value"]
-        print(f"  {gate_name:20s}: {value_display:>8.4f} (threshold: {gate_info['threshold']:>6.4f}) -> {'PASS' if gate_info['passes'] else 'FAIL'}")
+        print(
+            f"  {gate_name:20s}: {value_display:>8.4f} (threshold: {gate_info['threshold']:>6.4f}) -> {'PASS' if gate_info['passes'] else 'FAIL'}"
+        )
     print()
-    print(f"OVERALL: {'PASS' if all_pass else 'FAIL'} ({sum(g['passes'] for g in gates.values())}/{len(gates)} gates passed)")
+    print(
+        f"OVERALL: {'PASS' if all_pass else 'FAIL'} ({sum(g['passes'] for g in gates.values())}/{len(gates)} gates passed)"
+    )
     print(f"Duration: {end_time - start_time:.1f} seconds")
     print(f"Artifacts saved to: {exp_dir}")
-    print("="*60)
+    print("=" * 60)
 
     return 0 if all_pass else 1
 
     # Print summary
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("H18 EXPERIMENT COMPLETED")
-    print("="*60)
+    print("=" * 60)
     print(f"Selected config: {best_combo}")
     print(f"OOS Sharpe: {oos_sharpe:.4f}")
     print(f"OOS Max DD: {oos_max_dd:.2%}")
@@ -811,12 +945,16 @@ def main() -> None:
             value_display = abs(oos_max_dd)
         else:
             value_display = gate_info["value"]
-        print(f"  {gate_name:20s}: {value_display:>8.4f} (threshold: {gate_info['threshold']:>6.4f}) -> {'PASS' if gate_info['passes'] else 'FAIL'}")
+        print(
+            f"  {gate_name:20s}: {value_display:>8.4f} (threshold: {gate_info['threshold']:>6.4f}) -> {'PASS' if gate_info['passes'] else 'FAIL'}"
+        )
     print()
-    print(f"OVERALL: {'PASS' if all_pass else 'FAIL'} ({sum(g['passes'] for g in gates.values())}/{len(gates)} gates passed)")
+    print(
+        f"OVERALL: {'PASS' if all_pass else 'FAIL'} ({sum(g['passes'] for g in gates.values())}/{len(gates)} gates passed)"
+    )
     print(f"Duration: {end_time - start_time:.1f} seconds")
     print(f"Artifacts saved to: {exp_dir}")
-    print("="*60)
+    print("=" * 60)
 
     return 0 if all_pass else 1
 

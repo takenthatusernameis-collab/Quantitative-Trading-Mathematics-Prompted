@@ -73,12 +73,24 @@ H10_ARTIFACT_DIR = H10_GRID_PARQUET.parent
 DATA_START = "2024-10-12"
 DATA_END = "2026-10-11"
 
+
 def _select_top_by_val_pf_margin(grid_df: pd.DataFrame, k: int = K_TOP) -> pd.DataFrame:
     """Select top k configs by val_profit_factor margin over 1.3,
     excluding the frozen H10 config (exactly)."""
     frozen_mask = (
         (grid_df["vol_window_long"] == SEL["vol_window_long"])
-        & ((grid_df["smooth_span"] == "none") | (pd.isna(grid_df["smooth_span"]) if False else (grid_df["smooth_span"].astype(str) == str(SEL["smooth_span"]) if SEL["smooth_span"] is not None else False)))  # handle carefully
+        & (
+            (grid_df["smooth_span"] == "none")
+            | (
+                pd.isna(grid_df["smooth_span"])
+                if False
+                else (
+                    grid_df["smooth_span"].astype(str) == str(SEL["smooth_span"])
+                    if SEL["smooth_span"] is not None
+                    else False
+                )
+            )
+        )  # handle carefully
     )
     # easier exact match by values
     frozen_mask = (
@@ -118,6 +130,7 @@ def _rebuild_grid_oos_for_subset(prices, volumes, vix_hourly, cfg, masks, subset
         build_hourly_target,
         vol_scaled_tsmom_hourly,
     )
+
     base_signals = {}
     for vw in [252, 504, 1008]:
         base_signals[vw] = vol_scaled_tsmom_hourly(
@@ -127,20 +140,38 @@ def _rebuild_grid_oos_for_subset(prices, volumes, vix_hourly, cfg, masks, subset
     from run_h10_intraday_tsmom_pfopt_experiment import (
         vol_scaled_tsmom_hourly,
     )
+
     # build targets on-the-fly for needed combos (small N)
     targets_cache = {}
     meta_cols = [
-        "vol_window_long", "smooth_span", "regime_scaling", "min_trade_interval",
-        "trailing_mult", "max_hold_bars", "vol_limit_mult", "vol_floor_fraction",
-        "val_sharpe", "val_profit_factor", "val_pf_margin", "oos_sharpe", "oos_profit_factor", "oos_trades",
+        "vol_window_long",
+        "smooth_span",
+        "regime_scaling",
+        "min_trade_interval",
+        "trailing_mult",
+        "max_hold_bars",
+        "vol_limit_mult",
+        "vol_floor_fraction",
+        "val_sharpe",
+        "val_profit_factor",
+        "val_pf_margin",
+        "oos_sharpe",
+        "oos_profit_factor",
+        "oos_trades",
     ]
-    meta = {c: np.empty(N, dtype=object if c == "smooth_span" else float) for c in meta_cols}
+    meta = {
+        c: np.empty(N, dtype=object if c == "smooth_span" else float) for c in meta_cols
+    }
     oos_matrix = np.empty((N, T_oos), dtype=np.float32)
 
     t0 = time.time()
     for i, row in subset_df.reset_index(drop=True).iterrows():
         vw = int(row["vol_window_long"])
-        smooth_span = None if (str(row["smooth_span"]) == "none" or pd.isna(row["smooth_span"])) else int(row["smooth_span"])
+        smooth_span = (
+            None
+            if (str(row["smooth_span"]) == "none" or pd.isna(row["smooth_span"]))
+            else int(row["smooth_span"])
+        )
         regime = bool(row["regime_scaling"])
         min_int = int(row["min_trade_interval"])
         tm = float(row["trailing_mult"])
@@ -154,12 +185,20 @@ def _rebuild_grid_oos_for_subset(prices, volumes, vix_hourly, cfg, masks, subset
             )
         hourly_target = targets_cache[key]
         positions = apply_exits_hourly(
-            hourly_target, prices, atr, vol_exit,
-            trailing_mult=tm, max_hold_bars=mhb,
-            vol_limit_mult=vlm, vol_floor_fraction=vff,
-            target_vol=0.15, min_trade_interval=min_int,
+            hourly_target,
+            prices,
+            atr,
+            vol_exit,
+            trailing_mult=tm,
+            max_hold_bars=mhb,
+            vol_limit_mult=vlm,
+            vol_floor_fraction=vff,
+            target_vol=0.15,
+            min_trade_interval=min_int,
         )
-        res = run_backtest(prices=prices, signals=positions, volumes=volumes, config=cfg)
+        res = run_backtest(
+            prices=prices, signals=positions, volumes=volumes, config=cfg
+        )
         oos_ret = res.returns[oos_mask].reindex(oos_index).fillna(0.0)
         om = _period_metrics(oos_ret, _count_in(res.trades, oos_mask, prices))
         meta["vol_window_long"][i] = vw
@@ -178,9 +217,13 @@ def _rebuild_grid_oos_for_subset(prices, volumes, vix_hourly, cfg, masks, subset
         meta["oos_trades"][i] = om["trades"]
         oos_matrix[i, :] = oos_ret.to_numpy(dtype=np.float32)
         if (i + 1) % 10 == 0 or (i + 1) == N:
-            print(f"    subset {i+1}/{N} ({(time.time()-t0)/60:.2f} min)", flush=True)
+            print(
+                f"    subset {i + 1}/{N} ({(time.time() - t0) / 60:.2f} min)",
+                flush=True,
+            )
     grid_meta = pd.DataFrame(meta)
     return grid_meta, oos_matrix, oos_index
+
 
 def main():
     t_start = time.time()
@@ -192,7 +235,12 @@ def main():
         prices, volumes, vix_hourly = _load_cached_data()
         _, val_mask, test_mask = _splits(prices)
         oos_mask = val_mask | test_mask
-        masks = {"train": ~val_mask & ~test_mask, "val": val_mask, "oos": oos_mask, "test": test_mask}
+        masks = {
+            "train": ~val_mask & ~test_mask,
+            "val": val_mask,
+            "oos": oos_mask,
+            "test": test_mask,
+        }
 
         cfg = make_futures_config()
 
@@ -200,8 +248,12 @@ def main():
         grid_df = pd.read_parquet(H10_GRID_PARQUET)
         topk_df = _select_top_by_val_pf_margin(grid_df, K_TOP)
 
-        print(f"H14: selected top {len(topk_df)} configs by Val PF margin (excluding frozen H10)")
-        print(f"  top1 val_pf_margin={topk_df['val_pf_margin'].iloc[0]:.4f}, val_pf={topk_df['val_profit_factor'].iloc[0]:.4f}")
+        print(
+            f"H14: selected top {len(topk_df)} configs by Val PF margin (excluding frozen H10)"
+        )
+        print(
+            f"  top1 val_pf_margin={topk_df['val_pf_margin'].iloc[0]:.4f}, val_pf={topk_df['val_profit_factor'].iloc[0]:.4f}"
+        )
 
         # Rebuild OOS for subset
         print("Re-running subset to get per-combo OOS returns...")
@@ -224,7 +276,9 @@ def main():
             cfg_row = grid_meta.iloc[i]
             oos_ret = pd.Series(oos_matrix[i, :], index=oos_index)
             # bootstrap PF CI
-            pf_boot = bootstrap_profit_factor_distribution(oos_ret.values, seed=SEED + i, n_bootstrap=N_BOOTSTRAP)
+            pf_boot = bootstrap_profit_factor_distribution(
+                oos_ret.values, seed=SEED + i, n_bootstrap=N_BOOTSTRAP
+            )
             pf_ci_lb = float(np.percentile(pf_boot, 2.5))
             pf_ci_ub = float(np.percentile(pf_boot, 97.5))
             pf_med = float(np.median(pf_boot))
@@ -239,12 +293,23 @@ def main():
             kurt = float(stats.kurtosis(oos_ret.values, fisher=False))
             # DSR at N=K_TOP (worst-case N trials = K), deflated against
             # the expected-max Sharpe for K independent trials.
-            dsr_adj_k, p_k = deflated_sharpe_ratio(sr_oos, K_TOP, n_obs, float(np.var(grid_meta["oos_sharpe"].values, ddof=1)), skew, kurt)
+            dsr_adj_k, p_k = deflated_sharpe_ratio(
+                sr_oos,
+                K_TOP,
+                n_obs,
+                float(np.var(grid_meta["oos_sharpe"].values, ddof=1)),
+                skew,
+                kurt,
+            )
 
             # LOO dispensability on frozen contribs? Or better compute contribs for this config?
             # Easier: rebuild positions for this config and compute contribs
             vw = int(cfg_row["vol_window_long"])
-            smooth_span = None if str(cfg_row["smooth_span"]) == "none" else int(cfg_row["smooth_span"])
+            smooth_span = (
+                None
+                if str(cfg_row["smooth_span"]) == "none"
+                else int(cfg_row["smooth_span"])
+            )
             regime = bool(cfg_row["regime_scaling"])
             min_int = int(cfg_row["min_trade_interval"])
             tm = float(cfg_row["trailing_mult"])
@@ -257,23 +322,41 @@ def main():
                 build_hourly_target,
                 vol_scaled_tsmom_hourly,
             )
+
             # build if needed
-            if not hasattr(_rebuild_grid_oos_for_subset, '_targets'):
+            if not hasattr(_rebuild_grid_oos_for_subset, "_targets"):
                 _rebuild_grid_oos_for_subset._targets = {}
             if key_t not in _rebuild_grid_oos_for_subset._targets:
-                base_s = vol_scaled_tsmom_hourly(prices, vol_window_long=vw, vol_window_short=vw // 4)
-                _rebuild_grid_oos_for_subset._targets[key_t] = build_hourly_target(base_s, smooth_span, vw, regime, vix_hourly, prices.index)
+                base_s = vol_scaled_tsmom_hourly(
+                    prices, vol_window_long=vw, vol_window_short=vw // 4
+                )
+                _rebuild_grid_oos_for_subset._targets[key_t] = build_hourly_target(
+                    base_s, smooth_span, vw, regime, vix_hourly, prices.index
+                )
             pos_c = apply_exits_hourly(
-                _rebuild_grid_oos_for_subset._targets[key_t], prices, atr_e, vol_exit_e,
-                trailing_mult=tm, max_hold_bars=mhb, vol_limit_mult=vlm, vol_floor_fraction=vff,
-                target_vol=0.15, min_trade_interval=min_int,
+                _rebuild_grid_oos_for_subset._targets[key_t],
+                prices,
+                atr_e,
+                vol_exit_e,
+                trailing_mult=tm,
+                max_hold_bars=mhb,
+                vol_limit_mult=vlm,
+                vol_floor_fraction=vff,
+                target_vol=0.15,
+                min_trade_interval=min_int,
             )
-            contrib_c = per_symbol_contributions(run_backtest(prices=prices, signals=pos_c, volumes=volumes, config=cfg), prices, cfg)
+            contrib_c = per_symbol_contributions(
+                run_backtest(prices=prices, signals=pos_c, volumes=volumes, config=cfg),
+                prices,
+                cfg,
+            )
             loo_pf = _leave_one_out_pf(contrib_c, oos_mask)
             all_disp = all(v >= min_pf_gate for v in loo_pf.values())
 
             res = {
-                "combo_index": int(cfg_row["combo_index"]) if "combo_index" in cfg_row else i,
+                "combo_index": int(cfg_row["combo_index"])
+                if "combo_index" in cfg_row
+                else i,
                 "val_pf_margin": float(cfg_row["val_pf_margin"]),
                 "val_profit_factor": float(cfg_row["val_profit_factor"]),
                 "val_sharpe": float(cfg_row["val_sharpe"]),
@@ -300,7 +383,9 @@ def main():
         all_pass_flag = len(passes) >= 1
 
         summary = {
-            "experiment_id": tracker.current_experiment.experiment_id if tracker.current_experiment else "unknown",
+            "experiment_id": tracker.current_experiment.experiment_id
+            if tracker.current_experiment
+            else "unknown",
             "hypothesis": "H14",
             "k_top": K_TOP,
             "n_trials_family_k": K_TOP,
@@ -315,7 +400,15 @@ def main():
             "passes": passes.to_dict(orient="records") if len(passes) > 0 else [],
         }
 
-        exp_dir = Path(tracker.log_dir) / "artifacts" / (tracker.current_experiment.experiment_id if tracker.current_experiment else "unknown")
+        exp_dir = (
+            Path(tracker.log_dir)
+            / "artifacts"
+            / (
+                tracker.current_experiment.experiment_id
+                if tracker.current_experiment
+                else "unknown"
+            )
+        )
         exp_dir.mkdir(parents=True, exist_ok=True)
         results_df.to_parquet(exp_dir / "h14_results.parquet", index=False)
         topk_df.to_parquet(exp_dir / "topk_selected.parquet", index=False)
@@ -331,12 +424,15 @@ def main():
         print("  H14 PF-margin-targeted selection audit:")
         print(f"    Top K={K_TOP} by Val PF margin tested")
         print(f"    Passing configs: {len(passes)}")
-        print(f"    Verdict: {summary['verdict']} (H0 {'' if all_pass_flag else 'NOT '}rejected)")
-        print(f"    Time: {total_elapsed/60:.1f} min")
+        print(
+            f"    Verdict: {summary['verdict']} (H0 {'' if all_pass_flag else 'NOT '}rejected)"
+        )
+        print(f"    Time: {total_elapsed / 60:.1f} min")
         print("=" * 72)
         return 0 if all_pass_flag else 1
     except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
+
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))
         return 2

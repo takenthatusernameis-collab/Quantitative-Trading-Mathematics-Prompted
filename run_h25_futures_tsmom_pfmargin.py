@@ -67,7 +67,12 @@ DATA_START = "2024-10-12"
 DATA_END = "2026-10-11"
 
 # Grid (per H25 pre-registration).
-TARGET_VOLS = [1.25, 1.5, 1.75, 2.0]  # multiplier on base 15% -> 18.75%, 22.5%, 26.25%, 30% annualized
+TARGET_VOLS = [
+    1.25,
+    1.5,
+    1.75,
+    2.0,
+]  # multiplier on base 15% -> 18.75%, 22.5%, 26.25%, 30% annualized
 MAX_POSITIONS = [0.5]  # fixed
 SCALE_RULES = ["equal"]  # fixed
 N_ASSETS_CHOICES = [4, 5]  # 4 = full minus CL=F
@@ -82,9 +87,7 @@ EXIT_VOL_LIMIT_DEFAULT = 2.0
 
 def _build_data(fetcher, start, end):
     """Load cached hourly futures + VIX, tz-normalized exactly like H10."""
-    data = fetcher.fetch_futures(
-        FUTURES_UNIVERSE, start=start, end=end, interval="1h"
-    )
+    data = fetcher.fetch_futures(FUTURES_UNIVERSE, start=start, end=end, interval="1h")
     prices_list, volumes_list = [], []
     for sym in FUTURES_UNIVERSE:
         df = data.get(sym, pd.DataFrame())
@@ -97,13 +100,14 @@ def _build_data(fetcher, start, end):
         prices_list.append(df["close"].rename(sym))
         volumes_list.append(df["volume"].rename(sym))
     prices = pd.concat(prices_list, axis=1, sort=True).sort_index().ffill().bfill()
-    volumes = pd.concat(volumes_list, axis=1, sort=True).sort_index().reindex(
-        prices.index
-    ).fillna(0)
-
-    vix_df = fetcher.fetch_yahoo(
-        [VIX_SYMBOL], start=start, end=end, interval="1h"
+    volumes = (
+        pd.concat(volumes_list, axis=1, sort=True)
+        .sort_index()
+        .reindex(prices.index)
+        .fillna(0)
     )
+
+    vix_df = fetcher.fetch_yahoo([VIX_SYMBOL], start=start, end=end, interval="1h")
     vix = vix_df.get(VIX_SYMBOL, pd.DataFrame())
     if len(vix) > 0:
         if hasattr(vix.index, "tz_convert") and vix.index.tzinfo is not None:
@@ -120,7 +124,9 @@ def _build_exit_inputs(prices):
     pct = prices.pct_change().fillna(0)
     atr = prices * pct.rolling(14, min_periods=7).std()
     atr = atr.replace(0, np.nan).ffill().fillna(prices * 0.001)
-    vol_exit = pct.rolling(EXIT_VOL_WINDOW, min_periods=EXIT_VOL_WINDOW // 2).std() * np.sqrt(252 * 6.5)
+    vol_exit = pct.rolling(
+        EXIT_VOL_WINDOW, min_periods=EXIT_VOL_WINDOW // 2
+    ).std() * np.sqrt(252 * 6.5)
     vol_exit = vol_exit.replace(0, np.nan).ffill()
     return atr, vol_exit
 
@@ -194,7 +200,9 @@ def _apply_exits_and_aggregate(
         )
         per_contract_positions[sym] = pos[sym]
 
-    per_contract_df = pd.DataFrame(per_contract_positions, index=prices.index).fillna(0.0)
+    per_contract_df = pd.DataFrame(per_contract_positions, index=prices.index).fillna(
+        0.0
+    )
 
     # Cross-sectional aggregation for reporting (BASKET)
     if scale_rule == "equal":
@@ -226,7 +234,6 @@ def _apply_exits_and_aggregate(
     return full_per_contract, agg_positions, per_contract_df[assets]
 
 
-
 def perturbation_eval(
     selected_config: dict,
     prices: pd.DataFrame,
@@ -253,7 +260,12 @@ def perturbation_eval(
             pert_cfg[param] = float(v)
             # evaluate this perturbed config
             per_contract_positions, _, _ = _apply_exits_and_aggregate(
-                prices, volumes, vix_hourly, atr, vol_exit, base_signals,
+                prices,
+                volumes,
+                vix_hourly,
+                atr,
+                vol_exit,
+                base_signals,
                 pert_cfg["target_vol_mult"],
                 pert_cfg["max_pos"],
                 pert_cfg["scale_rule"],
@@ -261,7 +273,10 @@ def perturbation_eval(
                 min_trade_interval=0,
             )
             res = run_backtest(
-                prices=prices, signals=per_contract_positions, volumes=volumes, config=cfg
+                prices=prices,
+                signals=per_contract_positions,
+                volumes=volumes,
+                config=cfg,
             )
             oos_r = res.returns[oos_mask].dropna()
             sr = float(sharpe_ratio(oos_r.values)) if len(oos_r) > 1 else 0.0
@@ -272,15 +287,13 @@ def perturbation_eval(
         min_ratio = 0.0
     return {"variants": variants, "min_perturbed_sharpe_ratio": min_ratio}
 
+
 def main():
     np.random.seed(SEED)
     t_start = time.time()
     tracker = get_tracker()
     grid_size = (
-        len(TARGET_VOLS)
-        * len(MAX_POSITIONS)
-        * len(SCALE_RULES)
-        * len(N_ASSETS_CHOICES)
+        len(TARGET_VOLS) * len(MAX_POSITIONS) * len(SCALE_RULES) * len(N_ASSETS_CHOICES)
     )
     exp_id = tracker.start_experiment(
         name=EXPERIMENT_NAME,
@@ -336,7 +349,9 @@ def main():
         realized_vol = realized_vol.replace(0, np.nan).ffill().fillna(0.15)
         inv_vol = 1.0 / realized_vol
         bench_weights = inv_vol.div(inv_vol.sum(axis=1), axis=0).fillna(0.0)
-        bh_result = run_backtest(prices=prices, signals=bench_weights, volumes=volumes, config=cfg)
+        bh_result = run_backtest(
+            prices=prices, signals=bench_weights, volumes=volumes, config=cfg
+        )
 
         # --- grid search ---
         grid_rows = []
@@ -349,13 +364,24 @@ def main():
             TARGET_VOLS, MAX_POSITIONS, SCALE_RULES, N_ASSETS_CHOICES
         ):
             per_contract_positions, _, _ = _apply_exits_and_aggregate(
-                prices, volumes, vix_hourly, atr, vol_exit, base_signals,
-                target_vol_mult, max_pos, scale_rule, n_assets,
+                prices,
+                volumes,
+                vix_hourly,
+                atr,
+                vol_exit,
+                base_signals,
+                target_vol_mult,
+                max_pos,
+                scale_rule,
+                n_assets,
                 min_trade_interval=0,  # fixed per H10
             )
 
             res = run_backtest(
-                prices=prices, signals=per_contract_positions, volumes=volumes, config=cfg
+                prices=prices,
+                signals=per_contract_positions,
+                volumes=volumes,
+                config=cfg,
             )
             val_ret = res.returns[val_mask]
             val_tr = _count_in(res.trades, val_mask, prices)
@@ -379,7 +405,7 @@ def main():
                 elapsed = time.time() - t_grid
                 print(
                     f"[H25] grid progress {n_eval}/{grid_size} "
-                    f"({n_eval/grid_size*100:.0f}%) {elapsed:.0f}s elapsed "
+                    f"({n_eval / grid_size * 100:.0f}%) {elapsed:.0f}s elapsed "
                     f"best_val_pf_margin={best_val_pf_margin:.4f}",
                     flush=True,
                 )
@@ -390,17 +416,29 @@ def main():
                 best_config = (target_vol_mult, max_pos, scale_rule, n_assets)
 
         grid_elapsed = time.time() - t_grid
-        print(f"[H25] grid eval {n_eval} combos in {grid_elapsed:.1f}s ({grid_elapsed/60:.1f} min)")
+        print(
+            f"[H25] grid eval {n_eval} combos in {grid_elapsed:.1f}s ({grid_elapsed / 60:.1f} min)"
+        )
 
         grid_df = pd.DataFrame(grid_rows)
         tracker.log_dataframe("grid_results", grid_df)
 
         # --- evaluate the SELECTED (best Val Sharpe) config fully ---
         target_vol_mult, max_pos, scale_rule, n_assets = best_config
-        sel_per_contract, sel_agg, sel_per_contract_selected = _apply_exits_and_aggregate(
-            prices, volumes, vix_hourly, atr, vol_exit, base_signals,
-            target_vol_mult, max_pos, scale_rule, n_assets,
-            min_trade_interval=0,
+        sel_per_contract, sel_agg, sel_per_contract_selected = (
+            _apply_exits_and_aggregate(
+                prices,
+                volumes,
+                vix_hourly,
+                atr,
+                vol_exit,
+                base_signals,
+                target_vol_mult,
+                max_pos,
+                scale_rule,
+                n_assets,
+                min_trade_interval=0,
+            )
         )
         sel_result = run_backtest(
             prices=prices, signals=sel_per_contract, volumes=volumes, config=cfg
@@ -442,7 +480,9 @@ def main():
         ablation_equity = {}
 
         def _ablation(name, positions):
-            r = run_backtest(prices=prices, signals=positions, volumes=volumes, config=cfg)
+            r = run_backtest(
+                prices=prices, signals=positions, volumes=volumes, config=cfg
+            )
             oos_ret = r.returns[oos_mask]
             test_ret = r.returns[test_mask]
             om = _period_metrics(oos_ret, _count_in(r.trades, oos_mask, prices))
@@ -458,14 +498,24 @@ def main():
 
         # A1: single-contract ES only (H10 config on ES)
         es_target = build_hourly_target(
-            base_signals["ES=F"], SEL["smooth_span"], SEL["vol_window_long"],
-            SEL["regime_scaling"], vix_hourly, prices.index
+            base_signals["ES=F"],
+            SEL["smooth_span"],
+            SEL["vol_window_long"],
+            SEL["regime_scaling"],
+            vix_hourly,
+            prices.index,
         )
         a1_pos = apply_exits_hourly(
-            es_target, prices[["ES=F"]], atr[["ES=F"]], vol_exit[["ES=F"]],
-            trailing_mult=SEL["trailing_mult"], max_hold_bars=SEL["max_hold_bars"],
-            vol_limit_mult=SEL["vol_limit_mult"], vol_floor_fraction=SEL["vol_floor_fraction"],
-            target_vol=TARGET_VOL_BASE * target_vol_mult, min_trade_interval=0,
+            es_target,
+            prices[["ES=F"]],
+            atr[["ES=F"]],
+            vol_exit[["ES=F"]],
+            trailing_mult=SEL["trailing_mult"],
+            max_hold_bars=SEL["max_hold_bars"],
+            vol_limit_mult=SEL["vol_limit_mult"],
+            vol_floor_fraction=SEL["vol_floor_fraction"],
+            target_vol=TARGET_VOL_BASE * target_vol_mult,
+            min_trade_interval=0,
         )
         # Create full per-contract DataFrame for backtest
         a1_full = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
@@ -480,12 +530,16 @@ def main():
         _ablation("random_sign_shuffled", shuffled_positions)
 
         # A3: constant position (long-only on all contracts equally)
-        const_pos = pd.DataFrame(0.5 / len(prices.columns), index=prices.index, columns=prices.columns)
+        const_pos = pd.DataFrame(
+            0.5 / len(prices.columns), index=prices.index, columns=prices.columns
+        )
         _ablation("constant_0.5", const_pos)
 
-# A4: daily-frequency TSMOM per contract (H8 best: vol_scaled_tsmom on daily)
+        # A4: daily-frequency TSMOM per contract (H8 best: vol_scaled_tsmom on daily)
         # Fetch daily data for the same universe
-        daily_data = fetcher.fetch_futures(FUTURES_UNIVERSE, start=DATA_START, end=DATA_END, interval="1d")
+        daily_data = fetcher.fetch_futures(
+            FUTURES_UNIVERSE, start=DATA_START, end=DATA_END, interval="1d"
+        )
         daily_prices_list = []
         for sym in FUTURES_UNIVERSE:
             df = daily_data.get(sym, pd.DataFrame())
@@ -496,16 +550,25 @@ def main():
             else:
                 df.index = pd.to_datetime(df.index)
             daily_prices_list.append(df["close"].rename(sym))
-        daily_prices = pd.concat(daily_prices_list, axis=1, sort=True).sort_index().ffill().bfill()
-        daily_prices = daily_prices.reindex(prices.index.date).ffill()  # align to hourly dates
+        daily_prices = (
+            pd.concat(daily_prices_list, axis=1, sort=True).sort_index().ffill().bfill()
+        )
+        daily_prices = daily_prices.reindex(
+            prices.index.date
+        ).ffill()  # align to hourly dates
         daily_prices.index = prices.index
 
         # Use vol_scaled_tsmom_signals from baselines (daily TSMOM)
         from qtr.strategies.baselines import vol_scaled_tsmom_signals
+
         daily_signal = vol_scaled_tsmom_signals(
             daily_prices,
-            lookback=252, skip=1, long_only=True, target_vol=0.15,
-            vol_window=63, max_position_size=2.0
+            lookback=252,
+            skip=1,
+            long_only=True,
+            target_vol=0.15,
+            vol_window=63,
+            max_position_size=2.0,
         )
         daily_signal.index = prices.index  # align
         daily_positions = daily_signal
@@ -518,8 +581,16 @@ def main():
         _ablation("daily_tsmom", daily_full)
         # A5: under-vol-targeted H21 config baseline (tv_mult=0.5)
         h21_per_contract, _, _ = _apply_exits_and_aggregate(
-            prices, volumes, vix_hourly, atr, vol_exit, base_signals,
-            0.5, max_pos, scale_rule, n_assets,
+            prices,
+            volumes,
+            vix_hourly,
+            atr,
+            vol_exit,
+            base_signals,
+            0.5,
+            max_pos,
+            scale_rule,
+            n_assets,
             min_trade_interval=0,
         )
         _ablation("h21_baseline_tv05", h21_per_contract)
@@ -533,20 +604,35 @@ def main():
         tracker.log_dataframe("volumes", volumes)
         tracker.log_dataframe("vix_hourly", vix_hourly.to_frame("vix"))
         tracker.log_dataframe("hourly_signal_h10", base_signals["ES=F"])
-        tracker.log_dataframe("daily_target_h10", _daily_target_from_hourly(base_signals["ES=F"]))
-        tracker.log_dataframe("hourly_target_selected", build_hourly_target(
-            base_signals["ES=F"], SEL["smooth_span"], SEL["vol_window_long"],
-            SEL["regime_scaling"], vix_hourly, prices.index
-        ))
+        tracker.log_dataframe(
+            "daily_target_h10", _daily_target_from_hourly(base_signals["ES=F"])
+        )
+        tracker.log_dataframe(
+            "hourly_target_selected",
+            build_hourly_target(
+                base_signals["ES=F"],
+                SEL["smooth_span"],
+                SEL["vol_window_long"],
+                SEL["regime_scaling"],
+                vix_hourly,
+                prices.index,
+            ),
+        )
         tracker.log_dataframe("positions", sel_per_contract)
         tracker.log_dataframe("basket_positions", sel_agg)
         tracker.log_dataframe("per_contract_positions", sel_per_contract_selected)
         tracker.log_dataframe("equity", sel_result.equity_curve.to_frame("equity"))
         tracker.log_dataframe("returns", sel_result.returns.to_frame("returns"))
         tracker.log_dataframe("trades", sel_result.trades)
-        tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
-        tracker.log_dataframe("benchmark_returns", bh_result.returns.to_frame("returns"))
-        tracker.log_dataframe("regime_factors", regime_factor_hourly(vix_hourly).to_frame("factor"))
+        tracker.log_dataframe(
+            "benchmark_equity", bh_result.equity_curve.to_frame("equity")
+        )
+        tracker.log_dataframe(
+            "benchmark_returns", bh_result.returns.to_frame("returns")
+        )
+        tracker.log_dataframe(
+            "regime_factors", regime_factor_hourly(vix_hourly).to_frame("factor")
+        )
 
         total_elapsed = time.time() - t_start
         summary = {
@@ -566,7 +652,11 @@ def main():
             "compute_cpu_hours": float(round(total_elapsed / 3600, 3)),
             "metrics": {
                 "train_sharpe": gate["train_sharpe"],
-                "val_sharpe": gate["val_metrics"]["sharpe"] if "val_metrics" in gate else gate["val_sharpe"] if "val_sharpe" in gate else (gate["oos_metrics"]["sharpe"]),
+                "val_sharpe": gate["val_metrics"]["sharpe"]
+                if "val_metrics" in gate
+                else gate["val_sharpe"]
+                if "val_sharpe" in gate
+                else (gate["oos_metrics"]["sharpe"]),
                 "test_sharpe": gate["test_metrics"]["sharpe"],
                 "oos_sharpe": gate["oos_metrics"]["sharpe"],
                 "profit_factor": gate["oos_metrics"]["profit_factor"],
@@ -589,29 +679,43 @@ def main():
         exp_dir = Path(tracker.log_dir) / "artifacts" / exp_id
         exp_dir.mkdir(parents=True, exist_ok=True)
         with open(exp_dir / "summary.json", "w") as f:
-            json.dump(summary, f, indent=2,
-                      default=lambda x: float(x) if isinstance(x, (np.integer, np.floating))
-                      else str(x))
+            json.dump(
+                summary,
+                f,
+                indent=2,
+                default=lambda x: (
+                    float(x) if isinstance(x, (np.integer, np.floating)) else str(x)
+                ),
+            )
         tracker.log_artifact("summary", exp_dir / "summary.json")
         tracker.finish_experiment(status="completed")
 
         print("\n" + "=" * 72)
         p = gate["passes"]
         print(f"  gates passed: {int(sum(p.values()))}/8  ->  {summary['verdict']}")
-        print(f"  sharpe={p['sharpe']} trades={p['trades']} pf={p['pf']} dd={p['dd']} "
-              f"stab={p['stab']} worst={p['worst']} p={p['p']} ir={p['ir']}")
+        print(
+            f"  sharpe={p['sharpe']} trades={p['trades']} pf={p['pf']} dd={p['dd']} "
+            f"stab={p['stab']} worst={p['worst']} p={p['p']} ir={p['ir']}"
+        )
         om = gate["oos_metrics"]
-        print(f"  OOS Sharpe={om['sharpe']:.3f} PF={om['profit_factor']:.3f} "
-              f"DD={om['max_drawdown']:.3f} Trades={om['trades']}")
-        print(f"  Test Sharpe={gate['test_metrics']['sharpe']:.3f} | "
-              f"WF stab={gate['wf_stability']:.3f} | worst-regime={gate['worst_regime_sharpe']:.3f}")
+        print(
+            f"  OOS Sharpe={om['sharpe']:.3f} PF={om['profit_factor']:.3f} "
+            f"DD={om['max_drawdown']:.3f} Trades={om['trades']}"
+        )
+        print(
+            f"  Test Sharpe={gate['test_metrics']['sharpe']:.3f} | "
+            f"WF stab={gate['wf_stability']:.3f} | worst-regime={gate['worst_regime_sharpe']:.3f}"
+        )
         print(f"  Selected: {summary['selected_config']}")
-        print(f"  Grid {n_eval} combos in {grid_elapsed/60:.1f} min | total {total_elapsed/60:.1f} min "
-              f"({total_elapsed/3600:.2f} CPU-h)")
+        print(
+            f"  Grid {n_eval} combos in {grid_elapsed / 60:.1f} min | total {total_elapsed / 60:.1f} min "
+            f"({total_elapsed / 3600:.2f} CPU-h)"
+        )
         print("=" * 72)
         return 0 if gate["all_pass"] else 1
     except Exception as e:  # noqa: BLE001
         import traceback
+
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))
         return 2

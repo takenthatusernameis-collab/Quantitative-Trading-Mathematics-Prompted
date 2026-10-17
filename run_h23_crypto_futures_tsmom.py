@@ -173,7 +173,7 @@ def apply_exits_hourly(
         high_water = 0.0
         bars_held = 0
         cur_pos = 0.0
-        last_trade_bar = -10 ** 9  # far in the past
+        last_trade_bar = -(10**9)  # far in the past
 
         for i in range(len(index)):
             cur_px = px[i]
@@ -187,7 +187,13 @@ def apply_exits_hourly(
             # --- in-position exit checks (H9 semantics, gated by min interval) ---
             if in_pos and cur_pos > 0:
                 high_water = max(high_water, cur_px)
-                if can_trade and cur_px < high_water - trailing_mult * atr_i or can_trade and bars_held >= max_hold_bars and cur_px <= entry_price:
+                if (
+                    can_trade
+                    and cur_px < high_water - trailing_mult * atr_i
+                    or can_trade
+                    and bars_held >= max_hold_bars
+                    and cur_px <= entry_price
+                ):
                     cur_pos = 0.0
                     in_pos = False
                     last_trade_bar = i
@@ -318,16 +324,21 @@ def _full_gate_eval(
         "pf": oos_m["profit_factor"] >= GATES["min_profit_factor"],
         "dd": abs(oos_max_dd) <= GATES["max_drawdown"],
         "stab": wf_stab >= GATES["min_walkforward_stability"],
-        "worst": worst >= GATES["min_worst_regime_sharpe"] if worst != np.inf else False,
+        "worst": worst >= GATES["min_worst_regime_sharpe"]
+        if worst != np.inf
+        else False,
         "p": float(bench.get("alpha_p_value", 1.0)) < GATES["max_p_value"],
-        "ir": float(bench.get("information_ratio", -np.inf)) > GATES["min_information_ratio"],
+        "ir": float(bench.get("information_ratio", -np.inf))
+        > GATES["min_information_ratio"],
     }
     all_pass = all(passes.values())
     return {
         "oos_metrics": {**oos_m, "sharpe": oos_m["sharpe"]},
         "test_metrics": test_m,
         "val_metrics": val_m,
-        "train_sharpe": float(sharpe_ratio(result.returns[train_mask].values)) if train_mask.sum() > 1 else 0.0,
+        "train_sharpe": float(sharpe_ratio(result.returns[train_mask].values))
+        if train_mask.sum() > 1
+        else 0.0,
         "val_sharpe": val_m["sharpe"],
         "wf_stability": float(wf_stab),
         "worst_regime_sharpe": float(worst) if worst != np.inf else 0.0,
@@ -374,7 +385,9 @@ def perturbation_eval(
                 if vw not in base_signals:
                     # Compute signal for this vol window
                     pert_signal = vol_scaled_tsmom_hourly(
-                        prices, vol_window_long=vw, vol_window_short=vw // VOL_WINDOW_SHORT_RATIO
+                        prices,
+                        vol_window_long=vw,
+                        vol_window_short=vw // VOL_WINDOW_SHORT_RATIO,
                     )
                 else:
                     pert_signal = base_signals[vw]
@@ -388,7 +401,10 @@ def perturbation_eval(
                     prices.index,
                 )
                 pert_positions = apply_exits_hourly(
-                    pert_target, prices, atr, vol_exit,
+                    pert_target,
+                    prices,
+                    atr,
+                    vol_exit,
                     trailing_mult=selected_config["trailing_mult"],
                     max_hold_bars=selected_config["max_hold_bars"],
                     vol_limit_mult=selected_config["vol_limit_mult"],
@@ -503,20 +519,26 @@ def main():
         pct = prices.pct_change().fillna(0)
         atr = prices * pct.rolling(14, min_periods=7).std()
         atr = atr.replace(0, np.nan).ffill().fillna(prices * 0.001)
-        vol_exit = pct.rolling(EXIT_VOL_WINDOW, min_periods=EXIT_VOL_WINDOW // 2).std() * np.sqrt(252 * 6.5)
+        vol_exit = pct.rolling(
+            EXIT_VOL_WINDOW, min_periods=EXIT_VOL_WINDOW // 2
+        ).std() * np.sqrt(252 * 6.5)
         vol_exit = vol_exit.replace(0, np.nan).ffill()
 
         cfg = make_futures_config()
         bh_weights = pd.DataFrame(
             1.0 / len(prices.columns), index=prices.index, columns=prices.columns
         )
-        bh_result = run_backtest(prices=prices, signals=bh_weights, volumes=volumes, config=cfg)
+        bh_result = run_backtest(
+            prices=prices, signals=bh_weights, volumes=volumes, config=cfg
+        )
 
         # --- build the 3 base signals (one per vol window) once ---
         base_signals = {}
         for vw in VOL_WINDOWS_LONG:
             base_signals[vw] = vol_scaled_tsmom_hourly(
-                prices, vol_window_long=vw, vol_window_short=vw // VOL_WINDOW_SHORT_RATIO
+                prices,
+                vol_window_long=vw,
+                vol_window_short=vw // VOL_WINDOW_SHORT_RATIO,
             )
 
         # --- build the signal-variant hourly targets (cached) ---
@@ -525,7 +547,12 @@ def main():
             for smooth_span in SMOOTH_SPANS:
                 for regime in REGIME_SCALING_FLAGS:
                     targets[(vw, smooth_span, regime)] = build_hourly_target(
-                        base_signals[vw], smooth_span, vw, regime, vix_hourly, prices.index
+                        base_signals[vw],
+                        smooth_span,
+                        vw,
+                        regime,
+                        vix_hourly,
+                        prices.index,
                     )
         print(f"[H23] built {len(targets)} signal variants")
 
@@ -543,10 +570,16 @@ def main():
                     TRAILING_MULTS, MAX_HOLD_BARS, VOL_LIMIT_MULTS, VOL_FLOOR_FRACTIONS
                 ):
                     positions = apply_exits_hourly(
-                        hourly_target, prices, atr, vol_exit,
-                        trailing_mult=tm, max_hold_bars=mhb,
-                        vol_limit_mult=vlm, vol_floor_fraction=vff,
-                        target_vol=TARGET_VOL, min_trade_interval=min_int,
+                        hourly_target,
+                        prices,
+                        atr,
+                        vol_exit,
+                        trailing_mult=tm,
+                        max_hold_bars=mhb,
+                        vol_limit_mult=vlm,
+                        vol_floor_fraction=vff,
+                        target_vol=TARGET_VOL,
+                        min_trade_interval=min_int,
                     )
                     res = run_backtest(
                         prices=prices, signals=positions, volumes=volumes, config=cfg
@@ -556,7 +589,9 @@ def main():
                     vm = _period_metrics(val_ret, val_tr)
                     row = {
                         "vol_window_long": vw,
-                        "smooth_span": (str(smooth_span) if smooth_span is not None else "none"),
+                        "smooth_span": (
+                            str(smooth_span) if smooth_span is not None else "none"
+                        ),
                         "regime_scaling": regime,
                         "min_trade_interval": min_int,
                         "trailing_mult": tm,
@@ -575,8 +610,8 @@ def main():
                         rate = elapsed / n_eval
                         print(
                             f"[H23] grid progress {n_eval}/{grid_size} "
-                            f"({n_eval/grid_size*100:.0f}%) {elapsed:.0f}s elapsed "
-                            f"~{rate*n_eval/60:.1f}min so far, "
+                            f"({n_eval / grid_size * 100:.0f}%) {elapsed:.0f}s elapsed "
+                            f"~{rate * n_eval / 60:.1f}min so far, "
                             f"best_val_sr={best_val_sharpe:.3f} best_val_pf={best_val_pf:.3f}",
                             flush=True,
                         )
@@ -585,12 +620,34 @@ def main():
                         and vm["sharpe"] > best_val_sharpe
                     ):
                         best_val_sharpe = vm["sharpe"]
-                        best_by_sharpe = ((vw, smooth_span, regime), min_int, {"trailing_mult": tm, "max_hold_bars": mhb, "vol_limit_mult": vlm, "vol_floor_fraction": vff})
-                    if vm["profit_factor"] > best_val_pf and vm["profit_factor"] != float("inf"):
+                        best_by_sharpe = (
+                            (vw, smooth_span, regime),
+                            min_int,
+                            {
+                                "trailing_mult": tm,
+                                "max_hold_bars": mhb,
+                                "vol_limit_mult": vlm,
+                                "vol_floor_fraction": vff,
+                            },
+                        )
+                    if vm["profit_factor"] > best_val_pf and vm[
+                        "profit_factor"
+                    ] != float("inf"):
                         best_val_pf = vm["profit_factor"]
-                        best_by_pf = ((vw, smooth_span, regime), min_int, {"trailing_mult": tm, "max_hold_bars": mhb, "vol_limit_mult": vlm, "vol_floor_fraction": vff})
+                        best_by_pf = (
+                            (vw, smooth_span, regime),
+                            min_int,
+                            {
+                                "trailing_mult": tm,
+                                "max_hold_bars": mhb,
+                                "vol_limit_mult": vlm,
+                                "vol_floor_fraction": vff,
+                            },
+                        )
         grid_elapsed = time.time() - t_grid
-        print(f"[H23] grid eval {n_eval} combos in {grid_elapsed:.1f}s ({grid_elapsed/60:.1f} min)")
+        print(
+            f"[H23] grid eval {n_eval} combos in {grid_elapsed:.1f}s ({grid_elapsed / 60:.1f} min)"
+        )
 
         grid_df = pd.DataFrame(grid_rows)
         tracker.log_dataframe("grid_results", grid_df)
@@ -599,12 +656,16 @@ def main():
         tk, min_int, exit_params = best_by_sharpe
         hourly_target = targets[tk]
         sel_positions = apply_exits_hourly(
-            hourly_target, prices, atr, vol_exit,
+            hourly_target,
+            prices,
+            atr,
+            vol_exit,
             trailing_mult=exit_params["trailing_mult"],
             max_hold_bars=exit_params["max_hold_bars"],
             vol_limit_mult=exit_params["vol_limit_mult"],
             vol_floor_fraction=exit_params["vol_floor_fraction"],
-            target_vol=TARGET_VOL, min_trade_interval=min_int,
+            target_vol=TARGET_VOL,
+            min_trade_interval=min_int,
         )
         sel_result = run_backtest(
             prices=prices, signals=sel_positions, volumes=volumes, config=cfg
@@ -623,9 +684,17 @@ def main():
             **exit_params,
         }
         pert = perturbation_eval(
-            sel_config_for_pert, prices, vix_hourly, base_signals, volumes,
-            atr, vol_exit, oos_mask, cfg, gate["oos_metrics"]["sharpe"],
-            sel_positions
+            sel_config_for_pert,
+            prices,
+            vix_hourly,
+            base_signals,
+            volumes,
+            atr,
+            vol_exit,
+            oos_mask,
+            cfg,
+            gate["oos_metrics"]["sharpe"],
+            sel_positions,
         )
         gate["perturbation"] = pert
         gate["passes"]["perturbation"] = (
@@ -639,7 +708,9 @@ def main():
         ablation_equity = {}
 
         def _ablation(name, positions):
-            r = run_backtest(prices=prices, signals=positions, volumes=volumes, config=cfg)
+            r = run_backtest(
+                prices=prices, signals=positions, volumes=volumes, config=cfg
+            )
             oos_ret = r.returns[oos_mask]
             test_ret = r.returns[test_mask]
             om = _period_metrics(oos_ret, _count_in(r.trades, oos_mask, prices))
@@ -656,10 +727,16 @@ def main():
         # A1: H9 baseline (vol 252, smooth none, no regime, min_int 0, H9 exits)
         h9_target = targets[(252, None, False)]
         a1_pos = apply_exits_hourly(
-            h9_target, prices, atr, vol_exit,
-            trailing_mult=EXIT_TRAILING_DEFAULT, max_hold_bars=EXIT_MAX_HOLD_DEFAULT,
-            vol_limit_mult=EXIT_VOL_LIMIT_DEFAULT, vol_floor_fraction=EXIT_VOL_FLOOR_DEFAULT,
-            target_vol=TARGET_VOL, min_trade_interval=0,
+            h9_target,
+            prices,
+            atr,
+            vol_exit,
+            trailing_mult=EXIT_TRAILING_DEFAULT,
+            max_hold_bars=EXIT_MAX_HOLD_DEFAULT,
+            vol_limit_mult=EXIT_VOL_LIMIT_DEFAULT,
+            vol_floor_fraction=EXIT_VOL_FLOOR_DEFAULT,
+            target_vol=TARGET_VOL,
+            min_trade_interval=0,
         )
         _ablation("h9_baseline", a1_pos)
 
@@ -668,36 +745,82 @@ def main():
         smooth_pfs = []
         for sp in SMOOTH_SPANS:
             ht = targets[(252, sp, False)]
-            pos = apply_exits_hourly(ht, prices, atr, vol_exit,
-                trailing_mult=EXIT_TRAILING_DEFAULT, max_hold_bars=EXIT_MAX_HOLD_DEFAULT,
-                vol_limit_mult=EXIT_VOL_LIMIT_DEFAULT, vol_floor_fraction=EXIT_VOL_FLOOR_DEFAULT,
-                target_vol=TARGET_VOL, min_trade_interval=0)
+            pos = apply_exits_hourly(
+                ht,
+                prices,
+                atr,
+                vol_exit,
+                trailing_mult=EXIT_TRAILING_DEFAULT,
+                max_hold_bars=EXIT_MAX_HOLD_DEFAULT,
+                vol_limit_mult=EXIT_VOL_LIMIT_DEFAULT,
+                vol_floor_fraction=EXIT_VOL_FLOOR_DEFAULT,
+                target_vol=TARGET_VOL,
+                min_trade_interval=0,
+            )
             r = run_backtest(prices=prices, signals=pos, volumes=volumes, config=cfg)
-            smooth_pfs.append((sp, _count_in(r.trades, oos_mask, prices),
-                               _period_metrics(r.returns[oos_mask], _count_in(r.trades, oos_mask, prices))))
+            smooth_pfs.append(
+                (
+                    sp,
+                    _count_in(r.trades, oos_mask, prices),
+                    _period_metrics(
+                        r.returns[oos_mask], _count_in(r.trades, oos_mask, prices)
+                    ),
+                )
+            )
         best_sp = max(smooth_pfs, key=lambda x: x[2]["profit_factor"])[0]
         a2_pos = targets[(252, best_sp, False)]
-        a2_pos = apply_exits_hourly(a2_pos, prices, atr, vol_exit,
-            trailing_mult=EXIT_TRAILING_DEFAULT, max_hold_bars=EXIT_MAX_HOLD_DEFAULT,
-            vol_limit_mult=EXIT_VOL_LIMIT_DEFAULT, vol_floor_fraction=EXIT_VOL_FLOOR_DEFAULT,
-            target_vol=TARGET_VOL, min_trade_interval=0)
+        a2_pos = apply_exits_hourly(
+            a2_pos,
+            prices,
+            atr,
+            vol_exit,
+            trailing_mult=EXIT_TRAILING_DEFAULT,
+            max_hold_bars=EXIT_MAX_HOLD_DEFAULT,
+            vol_limit_mult=EXIT_VOL_LIMIT_DEFAULT,
+            vol_floor_fraction=EXIT_VOL_FLOOR_DEFAULT,
+            target_vol=TARGET_VOL,
+            min_trade_interval=0,
+        )
         _ablation(f"signal_smoothing_only(span={best_sp})", a2_pos)
 
         # A4: longer vol window only (best vw, smooth none, no regime, default exits)
         vw_pfs = []
         for vw in VOL_WINDOWS_LONG:
             ht = targets[(vw, None, False)]
-            pos = apply_exits_hourly(ht, prices, atr, vol_exit,
-                trailing_mult=EXIT_TRAILING_DEFAULT, max_hold_bars=EXIT_MAX_HOLD_DEFAULT,
-                vol_limit_mult=EXIT_VOL_LIMIT_DEFAULT, vol_floor_fraction=EXIT_VOL_FLOOR_DEFAULT,
-                target_vol=TARGET_VOL, min_trade_interval=0)
+            pos = apply_exits_hourly(
+                ht,
+                prices,
+                atr,
+                vol_exit,
+                trailing_mult=EXIT_TRAILING_DEFAULT,
+                max_hold_bars=EXIT_MAX_HOLD_DEFAULT,
+                vol_limit_mult=EXIT_VOL_LIMIT_DEFAULT,
+                vol_floor_fraction=EXIT_VOL_FLOOR_DEFAULT,
+                target_vol=TARGET_VOL,
+                min_trade_interval=0,
+            )
             r = run_backtest(prices=prices, signals=pos, volumes=volumes, config=cfg)
-            vw_pfs.append((vw, _period_metrics(r.returns[oos_mask], _count_in(r.trades, oos_mask, prices))))
+            vw_pfs.append(
+                (
+                    vw,
+                    _period_metrics(
+                        r.returns[oos_mask], _count_in(r.trades, oos_mask, prices)
+                    ),
+                )
+            )
         best_vw = max(vw_pfs, key=lambda x: x[1]["profit_factor"])[0]
-        a3_pos = apply_exits_hourly(targets[(best_vw, None, False)], prices, atr, vol_exit,
-            trailing_mult=EXIT_TRAILING_DEFAULT, max_hold_bars=EXIT_MAX_HOLD_DEFAULT,
-            vol_limit_mult=EXIT_VOL_LIMIT_DEFAULT, vol_floor_fraction=EXIT_VOL_FLOOR_DEFAULT,
-            target_vol=TARGET_VOL, min_trade_interval=0)
+        a3_pos = apply_exits_hourly(
+            targets[(best_vw, None, False)],
+            prices,
+            atr,
+            vol_exit,
+            trailing_mult=EXIT_TRAILING_DEFAULT,
+            max_hold_bars=EXIT_MAX_HOLD_DEFAULT,
+            vol_limit_mult=EXIT_VOL_LIMIT_DEFAULT,
+            vol_floor_fraction=EXIT_VOL_FLOOR_DEFAULT,
+            target_vol=TARGET_VOL,
+            min_trade_interval=0,
+        )
         _ablation(f"longer_vol_window_only(vw={best_vw})", a3_pos)
 
         # A4: signal smoothing only (best smooth_span across vol=252, no regime,
@@ -705,41 +828,89 @@ def main():
         smooth_pfs = []
         for sp in SMOOTH_SPANS:
             ht = targets[(252, sp, False)]
-            pos = apply_exits_hourly(ht, prices, atr, vol_exit,
-                trailing_mult=EXIT_TRAILING_DEFAULT, max_hold_bars=EXIT_MAX_HOLD_DEFAULT,
-                vol_limit_mult=EXIT_VOL_LIMIT_DEFAULT, vol_floor_fraction=EXIT_VOL_FLOOR_DEFAULT,
-                target_vol=TARGET_VOL, min_trade_interval=0)
+            pos = apply_exits_hourly(
+                ht,
+                prices,
+                atr,
+                vol_exit,
+                trailing_mult=EXIT_TRAILING_DEFAULT,
+                max_hold_bars=EXIT_MAX_HOLD_DEFAULT,
+                vol_limit_mult=EXIT_VOL_LIMIT_DEFAULT,
+                vol_floor_fraction=EXIT_VOL_FLOOR_DEFAULT,
+                target_vol=TARGET_VOL,
+                min_trade_interval=0,
+            )
             r = run_backtest(prices=prices, signals=pos, volumes=volumes, config=cfg)
-            smooth_pfs.append((sp, _count_in(r.trades, oos_mask, prices),
-                               _period_metrics(r.returns[oos_mask], _count_in(r.trades, oos_mask, prices))))
+            smooth_pfs.append(
+                (
+                    sp,
+                    _count_in(r.trades, oos_mask, prices),
+                    _period_metrics(
+                        r.returns[oos_mask], _count_in(r.trades, oos_mask, prices)
+                    ),
+                )
+            )
         best_sp = max(smooth_pfs, key=lambda x: x[2]["profit_factor"])[0]
         a4_pos = targets[(252, best_sp, False)]
-        a4_pos = apply_exits_hourly(a4_pos, prices, atr, vol_exit,
-            trailing_mult=EXIT_TRAILING_DEFAULT, max_hold_bars=EXIT_MAX_HOLD_DEFAULT,
-            vol_limit_mult=EXIT_VOL_LIMIT_DEFAULT, vol_floor_fraction=EXIT_VOL_FLOOR_DEFAULT,
-            target_vol=TARGET_VOL, min_trade_interval=0)
+        a4_pos = apply_exits_hourly(
+            a4_pos,
+            prices,
+            atr,
+            vol_exit,
+            trailing_mult=EXIT_TRAILING_DEFAULT,
+            max_hold_bars=EXIT_MAX_HOLD_DEFAULT,
+            vol_limit_mult=EXIT_VOL_LIMIT_DEFAULT,
+            vol_floor_fraction=EXIT_VOL_FLOOR_DEFAULT,
+            target_vol=TARGET_VOL,
+            min_trade_interval=0,
+        )
         _ablation(f"signal_smoothing_only(span={best_sp})", a4_pos)
 
         # A3: min trade interval only (vol 252, smooth none, no regime, default exits)
         mi_pfs = []
         for mi in MIN_TRADE_INTERVALS:
-            pos = apply_exits_hourly(targets[(252, None, False)], prices, atr, vol_exit,
-                trailing_mult=EXIT_TRAILING_DEFAULT, max_hold_bars=EXIT_MAX_HOLD_DEFAULT,
-                vol_limit_mult=EXIT_VOL_LIMIT_DEFAULT, vol_floor_fraction=EXIT_VOL_FLOOR_DEFAULT,
-                target_vol=TARGET_VOL, min_trade_interval=mi)
+            pos = apply_exits_hourly(
+                targets[(252, None, False)],
+                prices,
+                atr,
+                vol_exit,
+                trailing_mult=EXIT_TRAILING_DEFAULT,
+                max_hold_bars=EXIT_MAX_HOLD_DEFAULT,
+                vol_limit_mult=EXIT_VOL_LIMIT_DEFAULT,
+                vol_floor_fraction=EXIT_VOL_FLOOR_DEFAULT,
+                target_vol=TARGET_VOL,
+                min_trade_interval=mi,
+            )
             r = run_backtest(prices=prices, signals=pos, volumes=volumes, config=cfg)
-            mi_pfs.append((mi, _period_metrics(r.returns[oos_mask], _count_in(r.trades, oos_mask, prices))))
+            mi_pfs.append(
+                (
+                    mi,
+                    _period_metrics(
+                        r.returns[oos_mask], _count_in(r.trades, oos_mask, prices)
+                    ),
+                )
+            )
         best_mi = max(mi_pfs, key=lambda x: x[1]["profit_factor"])[0]
-        a3_pos = apply_exits_hourly(targets[(252, None, False)], prices, atr, vol_exit,
-            trailing_mult=EXIT_TRAILING_DEFAULT, max_hold_bars=EXIT_MAX_HOLD_DEFAULT,
-            vol_limit_mult=EXIT_VOL_LIMIT_DEFAULT, vol_floor_fraction=EXIT_VOL_FLOOR_DEFAULT,
-            target_vol=TARGET_VOL, min_trade_interval=best_mi)
+        a3_pos = apply_exits_hourly(
+            targets[(252, None, False)],
+            prices,
+            atr,
+            vol_exit,
+            trailing_mult=EXIT_TRAILING_DEFAULT,
+            max_hold_bars=EXIT_MAX_HOLD_DEFAULT,
+            vol_limit_mult=EXIT_VOL_LIMIT_DEFAULT,
+            vol_floor_fraction=EXIT_VOL_FLOOR_DEFAULT,
+            target_vol=TARGET_VOL,
+            min_trade_interval=best_mi,
+        )
         _ablation(f"min_trade_interval_only(mi={best_mi})", a3_pos)
 
         # A5: sideways-regime filter ablation (HANDOFF.md) — zero positions when regime == "sideways"
         # Reuse regime_labels/regime_factor_hourly but set sideways factor to 0.0
         regimes = regime_labels(vix_hourly)
-        sideways_mask = (regimes == "sideways").reindex(sel_positions.index).fillna(False)
+        sideways_mask = (
+            (regimes == "sideways").reindex(sel_positions.index).fillna(False)
+        )
         filtered_positions = sel_positions.copy()
         filtered_positions[sideways_mask] = 0.0
         _ablation("sideways_regime_filter", filtered_positions)
@@ -756,14 +927,20 @@ def main():
         tracker.log_dataframe("vix_hourly", vix_hourly.to_frame("vix"))
         if (252, None, False) in targets:
             tracker.log_dataframe("hourly_signal_h9", base_signals[252])
-            tracker.log_dataframe("daily_target_h9", _daily_target_from_hourly(base_signals[252]))
+            tracker.log_dataframe(
+                "daily_target_h9", _daily_target_from_hourly(base_signals[252])
+            )
         tracker.log_dataframe("hourly_target_selected", hourly_target)
         tracker.log_dataframe("positions", sel_positions)
         tracker.log_dataframe("equity", sel_result.equity_curve.to_frame("equity"))
         tracker.log_dataframe("returns", sel_result.returns.to_frame("returns"))
         tracker.log_dataframe("trades", sel_result.trades)
-        tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
-        tracker.log_dataframe("benchmark_returns", bh_result.returns.to_frame("returns"))
+        tracker.log_dataframe(
+            "benchmark_equity", bh_result.equity_curve.to_frame("equity")
+        )
+        tracker.log_dataframe(
+            "benchmark_returns", bh_result.returns.to_frame("returns")
+        )
 
         # exit events (CT-style) for selected config
         prev_pos = sel_positions.shift(1).fillna(0.0)
@@ -772,32 +949,73 @@ def main():
         exit_rows = []
         for sym in prices.columns:
             for idx in sel_positions.index[flat[sym]]:
-                exit_rows.append({"timestamp": idx, "symbol": sym, "type": "flatten",
-                                  "prev_position": float(prev_pos.loc[idx, sym]),
-                                  "new_position": 0.0, "price": float(prices.loc[idx, sym])})
+                exit_rows.append(
+                    {
+                        "timestamp": idx,
+                        "symbol": sym,
+                        "type": "flatten",
+                        "prev_position": float(prev_pos.loc[idx, sym]),
+                        "new_position": 0.0,
+                        "price": float(prices.loc[idx, sym]),
+                    }
+                )
             for idx in sel_positions.index[reduced[sym]]:
-                exit_rows.append({"timestamp": idx, "symbol": sym, "type": "reduce",
-                                  "prev_position": float(prev_pos.loc[idx, sym]),
-                                  "new_position": float(sel_positions.loc[idx, sym]),
-                                  "price": float(prices.loc[idx, sym])})
-        exit_events = pd.DataFrame(exit_rows, columns=["timestamp", "symbol", "type",
-                                                       "prev_position", "new_position", "price"]).sort_values("timestamp")
+                exit_rows.append(
+                    {
+                        "timestamp": idx,
+                        "symbol": sym,
+                        "type": "reduce",
+                        "prev_position": float(prev_pos.loc[idx, sym]),
+                        "new_position": float(sel_positions.loc[idx, sym]),
+                        "price": float(prices.loc[idx, sym]),
+                    }
+                )
+        exit_events = pd.DataFrame(
+            exit_rows,
+            columns=[
+                "timestamp",
+                "symbol",
+                "type",
+                "prev_position",
+                "new_position",
+                "price",
+            ],
+        ).sort_values("timestamp")
         tracker.log_dataframe("exit_events", exit_events)
-        tracker.log_dataframe("regime_factors", regime_factor_hourly(vix_hourly).to_frame("factor"))
+        tracker.log_dataframe(
+            "regime_factors", regime_factor_hourly(vix_hourly).to_frame("factor")
+        )
 
         # param grid: also log best by Val PF for transparency
         best_pf_info = {}
         if best_by_pf is not None:
             tk2, mi2, ep2 = best_by_pf
-            bp_pos = apply_exits_hourly(targets[tk2], prices, atr, vol_exit,
-                trailing_mult=ep2["trailing_mult"], max_hold_bars=ep2["max_hold_bars"],
-                vol_limit_mult=ep2["vol_limit_mult"], vol_floor_fraction=ep2["vol_floor_fraction"],
-                target_vol=TARGET_VOL, min_trade_interval=mi2)
-            bp_res = run_backtest(prices=prices, signals=bp_pos, volumes=volumes, config=cfg)
-            bp_gate = _full_gate_eval(bp_res, oos_mask, val_mask, test_mask, prices, vix_hourly, bh_result)
+            bp_pos = apply_exits_hourly(
+                targets[tk2],
+                prices,
+                atr,
+                vol_exit,
+                trailing_mult=ep2["trailing_mult"],
+                max_hold_bars=ep2["max_hold_bars"],
+                vol_limit_mult=ep2["vol_limit_mult"],
+                vol_floor_fraction=ep2["vol_floor_fraction"],
+                target_vol=TARGET_VOL,
+                min_trade_interval=mi2,
+            )
+            bp_res = run_backtest(
+                prices=prices, signals=bp_pos, volumes=volumes, config=cfg
+            )
+            bp_gate = _full_gate_eval(
+                bp_res, oos_mask, val_mask, test_mask, prices, vix_hourly, bh_result
+            )
             best_pf_info = {
-                "config": {"vol_window_long": tk2[0], "smooth_span": str(tk2[1]), "regime_scaling": tk2[2],
-                           "min_trade_interval": mi2, **ep2},
+                "config": {
+                    "vol_window_long": tk2[0],
+                    "smooth_span": str(tk2[1]),
+                    "regime_scaling": tk2[2],
+                    "min_trade_interval": mi2,
+                    **ep2,
+                },
                 "val_pf": best_val_pf,
                 "oos_metrics": bp_gate["oos_metrics"],
                 "test_metrics": bp_gate["test_metrics"],
@@ -834,7 +1052,9 @@ def main():
                 "regime_sharpes": gate["regime_sharpes"],
                 "benchmark_p_value": gate["benchmark_p_value"],
                 "information_ratio": gate["information_ratio"],
-                "perturbation_min_ratio": gate.get("perturbation", {}).get("min_perturbed_sharpe_ratio", 0.0),
+                "perturbation_min_ratio": gate.get("perturbation", {}).get(
+                    "min_perturbed_sharpe_ratio", 0.0
+                ),
                 "ablations": ablations,
             },
             "best_val_pf_config": best_pf_info,
@@ -851,9 +1071,14 @@ def main():
         exp_dir = Path(tracker.log_dir) / "artifacts" / exp_id
         exp_dir.mkdir(parents=True, exist_ok=True)
         with open(exp_dir / "summary.json", "w") as f:
-            json.dump(summary, f, indent=2,
-                      default=lambda x: float(x) if isinstance(x, (np.integer, np.floating))
-                      else str(x))
+            json.dump(
+                summary,
+                f,
+                indent=2,
+                default=lambda x: (
+                    float(x) if isinstance(x, (np.integer, np.floating)) else str(x)
+                ),
+            )
         tracker.log_artifact("summary", exp_dir / "summary.json")
         tracker.finish_experiment(status="completed")
 
@@ -861,23 +1086,34 @@ def main():
         p = gate["passes"]
         print(f"  gates passed: {int(sum(p.values()))}/9  ->  {summary['verdict']}")
         p = gate["passes"]
-        print(f"  sharpe={p['sharpe']} trades={p['trades']} pf={p['pf']} dd={p['dd']} "
-              f"stab={p['stab']} worst={p['worst']} p={p['p']} ir={p['ir']} pert={p.get('perturbation', False)}")
+        print(
+            f"  sharpe={p['sharpe']} trades={p['trades']} pf={p['pf']} dd={p['dd']} "
+            f"stab={p['stab']} worst={p['worst']} p={p['p']} ir={p['ir']} pert={p.get('perturbation', False)}"
+        )
         om = gate["oos_metrics"]
-        print(f"  OOS Sharpe={om['sharpe']:.3f} PF={om['profit_factor']:.3f} "
-              f"DD={om['max_drawdown']:.3f} Trades={om['trades']}")
-        print(f"  Test Sharpe={gate['test_metrics']['sharpe']:.3f} | "
-              f"WF stab={gate['wf_stability']:.3f} | worst-regime={gate['worst_regime_sharpe']:.3f}")
+        print(
+            f"  OOS Sharpe={om['sharpe']:.3f} PF={om['profit_factor']:.3f} "
+            f"DD={om['max_drawdown']:.3f} Trades={om['trades']}"
+        )
+        print(
+            f"  Test Sharpe={gate['test_metrics']['sharpe']:.3f} | "
+            f"WF stab={gate['wf_stability']:.3f} | worst-regime={gate['worst_regime_sharpe']:.3f}"
+        )
         if "perturbation" in gate:
-            print(f"  Perturbation min ratio={gate['perturbation']['min_perturbed_sharpe_ratio']:.3f}")
+            print(
+                f"  Perturbation min ratio={gate['perturbation']['min_perturbed_sharpe_ratio']:.3f}"
+            )
         print(f"  Selected: {summary['selected_config']}")
         print(f"  Best Val-PF config OOS: PF={best_val_pf:.3f}")
-        print(f"  Grid {n_eval} combos in {grid_elapsed/60:.1f} min | total {total_elapsed/60:.1f} min "
-              f"({total_elapsed/3600:.2f} CPU-h)")
+        print(
+            f"  Grid {n_eval} combos in {grid_elapsed / 60:.1f} min | total {total_elapsed / 60:.1f} min "
+            f"({total_elapsed / 3600:.2f} CPU-h)"
+        )
         print("=" * 72)
         return 0 if gate["all_pass"] else 1
     except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
+
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))
         return 2

@@ -301,14 +301,10 @@ def full_gate_eval(
     return {
         "oos_metrics": oos_m,
         "test_metrics": test_m,
-        "train_sharpe": float(
-            sharpe_ratio(result.returns[train_mask].dropna().values)
-        )
+        "train_sharpe": float(sharpe_ratio(result.returns[train_mask].dropna().values))
         if train_mask.sum() > 1
         else 0.0,
-        "val_sharpe": float(
-            sharpe_ratio(result.returns[val_mask].dropna().values)
-        )
+        "val_sharpe": float(sharpe_ratio(result.returns[val_mask].dropna().values))
         if val_mask.sum() > 1
         else 0.0,
         "wf_stability": float(wf_stab),
@@ -349,7 +345,11 @@ def perturbation_eval(
                 kw["max_pos"],
                 kw["imbalance_lag"],
             )
-            res = run_backtest(prices=pd.DataFrame({"SPY": ohlc["close"]}, index=ohlc.index), signals=targets, config=cfg)
+            res = run_backtest(
+                prices=pd.DataFrame({"SPY": ohlc["close"]}, index=ohlc.index),
+                signals=targets,
+                config=cfg,
+            )
             r = res.returns[oos_mask].dropna()
             variants[f"{param}={kw[param]}"] = (
                 float(sharpe_ratio(r.values)) if len(r) > 1 else 0.0
@@ -378,7 +378,9 @@ def main():
     np.random.seed(SEED)
     t_start = time.time()
     tracker = get_tracker()
-    grid_size = len(SIGN_RULES) * len(TARGET_VOLS) * len(MAX_POSITIONS) * len(IMBALANCE_LAGS)
+    grid_size = (
+        len(SIGN_RULES) * len(TARGET_VOLS) * len(MAX_POSITIONS) * len(IMBALANCE_LAGS)
+    )
     exp_id = tracker.start_experiment(
         name=EXPERIMENT_NAME,
         description=EXPERIMENT_DESC,
@@ -465,7 +467,9 @@ def main():
 
         # Benchmark: buy-and-hold SPY
         bench_signals = pd.DataFrame({"SPY": 1.0}, index=prices.index)
-        bench_result = run_backtest(prices=prices, signals=bench_signals, config=cfg_base)
+        bench_result = run_backtest(
+            prices=prices, signals=bench_signals, config=cfg_base
+        )
 
         # --- 36-combo grid: selection on Val Sharpe ---
         grid_rows = []
@@ -482,20 +486,28 @@ def main():
                             spy_ohlc, sign_rule, target_vol, max_pos, lag
                         )
                         cfg = make_config(max_pos=max_pos)
-                        res = run_backtest(
-                            prices=prices, signals=targets, config=cfg
-                        )
+                        res = run_backtest(prices=prices, signals=targets, config=cfg)
 
                         train_r = res.returns[train_mask].dropna()
                         train_sr = (
-                            float(sharpe_ratio(train_r.values)) if len(train_r) > 1 else 0.0
+                            float(sharpe_ratio(train_r.values))
+                            if len(train_r) > 1
+                            else 0.0
                         )
                         val_r = res.returns[val_mask].dropna()
-                        val_sr = float(sharpe_ratio(val_r.values)) if len(val_r) > 1 else 0.0
+                        val_sr = (
+                            float(sharpe_ratio(val_r.values)) if len(val_r) > 1 else 0.0
+                        )
                         test_r = res.returns[test_mask].dropna()
-                        test_sr = float(sharpe_ratio(test_r.values)) if len(test_r) > 1 else 0.0
+                        test_sr = (
+                            float(sharpe_ratio(test_r.values))
+                            if len(test_r) > 1
+                            else 0.0
+                        )
                         oos_r = res.returns[oos_mask].dropna()
-                        oos_sr = float(sharpe_ratio(oos_r.values)) if len(oos_r) > 1 else 0.0
+                        oos_sr = (
+                            float(sharpe_ratio(oos_r.values)) if len(oos_r) > 1 else 0.0
+                        )
 
                         grid_results[(sign_rule, target_vol, max_pos, lag)] = res
                         grid_rows.append(
@@ -568,18 +580,21 @@ def main():
         # (b) random-signed-volume: shuffle per-day direction signs
         rng = np.random.RandomState(SEED)
         n = len(spy_ohlc)
-        shuffled_dir = pd.Series(
-            rng.choice([-1.0, 1.0], size=n), index=spy_ohlc.index
-        )
+        shuffled_dir = pd.Series(rng.choice([-1.0, 1.0], size=n), index=spy_ohlc.index)
         # Inject randomized direction by building signed-volume targets with a
         # shuffled direction series (imbalance/vol-scale retained) - tests
         # whether the sign assignment itself carries information.
         random_targets = _signed_volume_targets(
-            spy_ohlc, shuffled_dir, selected["target_vol"],
-            selected["max_pos"], selected["imbalance_lag"],
+            spy_ohlc,
+            shuffled_dir,
+            selected["target_vol"],
+            selected["max_pos"],
+            selected["imbalance_lag"],
         )
         random_res = run_backtest(
-            prices=prices, signals=random_targets, config=make_config(max_pos=selected["max_pos"])
+            prices=prices,
+            signals=random_targets,
+            config=make_config(max_pos=selected["max_pos"]),
         )
         ablations["random_signed_volume"] = {
             "oos_metrics": _period_metrics(

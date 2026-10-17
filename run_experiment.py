@@ -42,7 +42,7 @@ def main():
     Long-only, equal weight, no leverage.
     Train: 2015-2020, Val: 2021-2022, Test: 2023-2024 (protected holdout).
     """
-    
+
     CONFIG = {
         "symbols": ["SPY", "QQQ", "IWM", "EFA", "EEM"],
         "start_date": "2015-01-01",
@@ -106,9 +106,9 @@ def main():
         compute_budget=CONFIG["compute_budget"],
         random_seeds=CONFIG["random_seeds"],
     )
-    
+
     print(f"Started experiment: {exp_id}")
-    
+
     try:
         # ============================================================
         # FETCH DATA
@@ -122,7 +122,7 @@ def main():
             interval=CONFIG["interval"],
             use_cache=True,
         )
-        
+
         # Combine into price DataFrame
         prices = pd.DataFrame()
         volumes = pd.DataFrame()
@@ -131,17 +131,17 @@ def main():
                 prices[sym] = df["close"]
                 if "volume" in df.columns:
                     volumes[sym] = df["volume"]
-        
+
         prices = prices.ffill().dropna(how="all").dropna(axis=1, how="all")
         volumes = volumes.reindex(prices.index).ffill().fillna(0)
-        
+
         print(f"Loaded {len(prices.columns)} symbols, {len(prices)} days")
         print(f"Date range: {prices.index[0]} to {prices.index[-1]}")
-        
+
         # Log data artifacts
         tracker.log_dataframe("prices", prices)
         tracker.log_dataframe("volumes", volumes)
-        
+
         # ============================================================
         # GENERATE SIGNALS
         # ============================================================
@@ -151,22 +151,22 @@ def main():
             CONFIG["strategy"],
             **CONFIG["strategy_params"],
         )
-        
+
         # Buy-and-hold benchmark
         benchmark_signals = run_strategy(
             prices,
             "buy_and_hold",
             weight=1.0 / len(prices.columns),
         )
-        
+
         tracker.log_dataframe("signals_ma_crossover", signals)
         tracker.log_dataframe("signals_buy_and_hold", benchmark_signals)
-        
+
         # ============================================================
         # RUN BACKTESTS
         # ============================================================
         print("Running backtests...")
-        
+
         bt_config = BacktestConfig(
             initial_capital=CONFIG["backtest"]["initial_capital"],
             asset_class=AssetClass.EQUITY,
@@ -174,13 +174,19 @@ def main():
             max_leverage=CONFIG["backtest"]["max_leverage"],
             allow_short=CONFIG["backtest"]["allow_short"],
         )
-        bt_config.cost_model.equity_commission_bps = CONFIG["backtest"]["cost_model"]["equity_commission_bps"]
-        bt_config.cost_model.equity_spread_bps = CONFIG["backtest"]["cost_model"]["equity_spread_bps"]
-        bt_config.cost_model.equity_impact_bps_per_pct_adv = CONFIG["backtest"]["cost_model"]["equity_impact_bps_per_pct_adv"]
-        
+        bt_config.cost_model.equity_commission_bps = CONFIG["backtest"]["cost_model"][
+            "equity_commission_bps"
+        ]
+        bt_config.cost_model.equity_spread_bps = CONFIG["backtest"]["cost_model"][
+            "equity_spread_bps"
+        ]
+        bt_config.cost_model.equity_impact_bps_per_pct_adv = CONFIG["backtest"][
+            "cost_model"
+        ]["equity_impact_bps_per_pct_adv"]
+
         # Estimate ADV for impact model (rough: 20-day average volume)
         adv = volumes.rolling(20).mean().iloc[-1]
-        
+
         # Strategy backtest
         result = run_backtest(
             prices=prices,
@@ -189,7 +195,7 @@ def main():
             adv=adv,
             config=bt_config,
         )
-        
+
         # Benchmark backtest
         benchmark_result = run_backtest(
             prices=prices,
@@ -198,12 +204,12 @@ def main():
             adv=adv,
             config=bt_config,
         )
-        
+
         print(f"Strategy Sharpe: {result.metrics['sharpe']:.3f}")
         print(f"Benchmark Sharpe: {benchmark_result.metrics['sharpe']:.3f}")
         print(f"Strategy Trades: {result.metrics['num_trades']}")
         print(f"Max Drawdown: {result.metrics['max_drawdown']:.3f}")
-        
+
         # ============================================================
         # VALIDATION
         # ============================================================
@@ -213,12 +219,14 @@ def main():
             trades=result.trades,
             config=CONFIG["validation"],
         )
-        
+
         # Bootstrap CI for Sharpe
-        sharpe_ci = sharpe_ratio_ci(result.returns.values, n_bootstrap=1000, random_state=42)
+        sharpe_ci = sharpe_ratio_ci(
+            result.returns.values, n_bootstrap=1000, random_state=42
+        )
         validation["sharpe_ci_lower"] = sharpe_ci[0]
         validation["sharpe_ci_upper"] = sharpe_ci[1]
-        
+
         # Walk-forward analysis
         wf_splits = walk_forward_splits(len(result.returns), n_splits=5)
         wf_sharpes = []
@@ -226,33 +234,39 @@ def main():
             train_sharpe = sharpe_ratio(result.returns.iloc[train_idx].values)
             test_sharpe = sharpe_ratio(result.returns.iloc[test_idx].values)
             wf_sharpes.append({"train": train_sharpe, "test": test_sharpe})
-        
+
         validation["walkforward_folds"] = wf_sharpes
-        
+
         # Train/Val/Test split metrics
         train_end = CONFIG["data_splits"]["train_end"]
         val_end = CONFIG["data_splits"]["val_end"]
-        
+
         train_returns = result.returns[result.returns.index <= train_end]
-        val_returns = result.returns[(result.returns.index > train_end) & (result.returns.index <= val_end)]
+        val_returns = result.returns[
+            (result.returns.index > train_end) & (result.returns.index <= val_end)
+        ]
         test_returns = result.returns[result.returns.index > val_end]
-        
+
         validation["train_sharpe"] = sharpe_ratio(train_returns.values)
         validation["val_sharpe"] = sharpe_ratio(val_returns.values)
         validation["test_sharpe"] = sharpe_ratio(test_returns.values)
-        
+
         # ============================================================
         # LOG METRICS
         # ============================================================
         tracker.log_metrics(result.metrics, step=0)
-        tracker.log_metrics({f"benchmark_{k}": v for k, v in benchmark_result.metrics.items()}, step=0)
+        tracker.log_metrics(
+            {f"benchmark_{k}": v for k, v in benchmark_result.metrics.items()}, step=0
+        )
         tracker.log_metrics(validation, step=1)
-        
+
         # Log equity curves
         tracker.log_dataframe("equity_curve", result.equity_curve.to_frame("equity"))
-        tracker.log_dataframe("benchmark_equity", benchmark_result.equity_curve.to_frame("equity"))
+        tracker.log_dataframe(
+            "benchmark_equity", benchmark_result.equity_curve.to_frame("equity")
+        )
         tracker.log_dataframe("trades", result.trades)
-        
+
         # ============================================================
         # SAVE SUMMARY
         # ============================================================
@@ -263,27 +277,29 @@ def main():
             "validation": validation,
             "config": CONFIG,
         }
-        
+
         # Save to experiment directory
         exp_dir = Path(tracker.log_dir) / "artifacts" / exp_id
         with open(exp_dir / "summary.json", "w") as f:
             json.dump(summary, f, indent=2, default=str)
-        
+
         tracker.log_artifact("summary", exp_dir / "summary.json")
-        
+
         # ============================================================
         # PRINT RESULTS
         # ============================================================
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("EXPERIMENT RESULTS SUMMARY")
-        print("="*60)
+        print("=" * 60)
         print(f"Experiment ID: {exp_id}")
         print(f"Strategy: {CONFIG['strategy']} ({CONFIG['strategy_params']})")
         print(f"Period: {CONFIG['start_date']} to {CONFIG['end_date']}")
         print(f"Symbols: {CONFIG['symbols']}")
         print()
         print("PERFORMANCE METRICS:")
-        print(f"  Net Sharpe:           {result.metrics['sharpe']:.3f} (CI: [{sharpe_ci[0]:.3f}, {sharpe_ci[1]:.3f}])")
+        print(
+            f"  Net Sharpe:           {result.metrics['sharpe']:.3f} (CI: [{sharpe_ci[0]:.3f}, {sharpe_ci[1]:.3f}])"
+        )
         print(f"  Benchmark Sharpe:     {benchmark_result.metrics['sharpe']:.3f}")
         print(f"  Annualized Return:    {result.metrics['annualized_return']:.2%}")
         print(f"  Annualized Vol:       {result.metrics['annualized_volatility']:.2%}")
@@ -293,26 +309,37 @@ def main():
         print(f"  Avg Trade Cost:       {result.metrics['avg_trade_cost']:.4f}")
         print()
         print("VALIDATION (PROMPT_V2.md criteria):")
-        print(f"  Sharpe >= 1.0:        {'PASS' if validation['sharpe_pass'] else 'FAIL'} ({validation['sharpe']:.3f})")
-        print(f"  Trades >= 200:        {'PASS' if validation['trades_pass'] else 'FAIL'} ({validation['n_trades']})")
-        print(f"  Profit Factor >= 1.3: {'PASS' if validation['profit_factor_pass'] else 'FAIL'} ({validation['profit_factor']:.3f})")
-        print(f"  Max DD <= 15%:        {'PASS' if validation['drawdown_pass'] else 'FAIL'} ({validation['max_drawdown']:.2%})")
-        print(f"  WF Stability >= 0.7:  {'PASS' if validation['walkforward_pass'] else 'FAIL'} ({validation['walkforward_stability']:.3f})")
+        print(
+            f"  Sharpe >= 1.0:        {'PASS' if validation['sharpe_pass'] else 'FAIL'} ({validation['sharpe']:.3f})"
+        )
+        print(
+            f"  Trades >= 200:        {'PASS' if validation['trades_pass'] else 'FAIL'} ({validation['n_trades']})"
+        )
+        print(
+            f"  Profit Factor >= 1.3: {'PASS' if validation['profit_factor_pass'] else 'FAIL'} ({validation['profit_factor']:.3f})"
+        )
+        print(
+            f"  Max DD <= 15%:        {'PASS' if validation['drawdown_pass'] else 'FAIL'} ({validation['max_drawdown']:.2%})"
+        )
+        print(
+            f"  WF Stability >= 0.7:  {'PASS' if validation['walkforward_pass'] else 'FAIL'} ({validation['walkforward_stability']:.3f})"
+        )
         print(f"  Train Sharpe:         {validation['train_sharpe']:.3f}")
         print(f"  Val Sharpe:           {validation['val_sharpe']:.3f}")
         print(f"  Test Sharpe:          {validation['test_sharpe']:.3f}")
         print()
         print(f"  ALL CRITERIA MET:     {'YES' if validation['all_pass'] else 'NO'}")
-        print("="*60)
-        
+        print("=" * 60)
+
         # Finish experiment
         tracker.finish_experiment(status="completed")
-        
+
         return validation["all_pass"]
-        
+
     except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         print(f"Experiment failed: {e}")
         import traceback
+
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))
         return False

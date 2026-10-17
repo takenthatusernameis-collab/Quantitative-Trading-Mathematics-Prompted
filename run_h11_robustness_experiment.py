@@ -163,6 +163,7 @@ def perturbation_table():
     rows.extend(STRUCTURAL_PERTURBATIONS)
     return rows
 
+
 # Cost stress multipliers (applied to commission, spread, slippage equally).
 COST_MULTIPLIERS = [0.5, 1.0, 1.5, 2.0]
 
@@ -174,9 +175,7 @@ DATA_END = "2026-10-11"
 
 def _build_data(fetcher, start, end):
     """Load cached hourly futures + VIX, tz-normalized exactly like H10."""
-    data = fetcher.fetch_futures(
-        FUTURES_UNIVERSE, start=start, end=end, interval="1h"
-    )
+    data = fetcher.fetch_futures(FUTURES_UNIVERSE, start=start, end=end, interval="1h")
     prices_list, volumes_list = [], []
     for sym in FUTURES_UNIVERSE:
         df = data.get(sym, pd.DataFrame())
@@ -189,13 +188,14 @@ def _build_data(fetcher, start, end):
         prices_list.append(df["close"].rename(sym))
         volumes_list.append(df["volume"].rename(sym))
     prices = pd.concat(prices_list, axis=1, sort=True).sort_index().ffill().bfill()
-    volumes = pd.concat(volumes_list, axis=1, sort=True).sort_index().reindex(
-        prices.index
-    ).fillna(0)
-
-    vix_df = fetcher.fetch_yahoo(
-        [VIX_SYMBOL], start=start, end=end, interval="1h"
+    volumes = (
+        pd.concat(volumes_list, axis=1, sort=True)
+        .sort_index()
+        .reindex(prices.index)
+        .fillna(0)
     )
+
+    vix_df = fetcher.fetch_yahoo([VIX_SYMBOL], start=start, end=end, interval="1h")
     vix = vix_df.get(VIX_SYMBOL, pd.DataFrame())
     if len(vix) > 0:
         if hasattr(vix.index, "tz_convert") and vix.index.tzinfo is not None:
@@ -225,7 +225,10 @@ def _config_with_cost_mult(base_cfg, mult):
         sp["spread_ticks"] = COST_MODEL_DEFAULTS["future_spread_ticks"] * mult
         sp["slippage_ticks"] = COST_MODEL_DEFAULTS["future_slippage_ticks"] * mult
     cm = CostModel(
-        future_commission_per_contract=COST_MODEL_DEFAULTS["future_commission_per_contract"] * mult,
+        future_commission_per_contract=COST_MODEL_DEFAULTS[
+            "future_commission_per_contract"
+        ]
+        * mult,
         future_spread_ticks=COST_MODEL_DEFAULTS["future_spread_ticks"] * mult,
         future_slippage_ticks=COST_MODEL_DEFAULTS["future_slippage_ticks"] * mult,
         futures_specs=specs,
@@ -256,10 +259,11 @@ def _per_symbol_metrics(result, prices, mask):
         # as a proxy for where the edge lives; net attribution is pooled.
         pos = result.positions[mask][sym]
         pr = prices[mask][sym].pct_change().fillna(0)
-        gross = (pos.shift(1).fillna(0) * pr)
+        gross = pos.shift(1).fillna(0) * pr
         sg = gross.dropna()
         sr = float(sharpe_ratio(sg.values)) if len(sg) > 1 and sg.std() > 0 else 0.0
-        gp = float(sg[sg > 0].sum()); gl = float(abs(sg[sg < 0].sum()))
+        gp = float(sg[sg > 0].sum())
+        gl = float(abs(sg[sg < 0].sum()))
         pf = gp / gl if gl > 0 else float("inf")
         sym_metrics[sym] = {
             "gross_sharpe": sr,
@@ -286,9 +290,18 @@ def make_cost_stressed_config(mult):
 
 
 def build_positions(
-    prices, atr, vol_exit, vix,
-    vol_window_long, smooth_span, regime_scaling, min_trade_interval,
-    trailing_mult, max_hold_bars, vol_limit_mult, vol_floor_fraction,
+    prices,
+    atr,
+    vol_exit,
+    vix,
+    vol_window_long,
+    smooth_span,
+    regime_scaling,
+    min_trade_interval,
+    trailing_mult,
+    max_hold_bars,
+    vol_limit_mult,
+    vol_floor_fraction,
     target_vol=TARGET_VOL,
 ):
     """Compose the frozen H10 pipeline into hourly positions.
@@ -303,15 +316,24 @@ def build_positions(
         vol_window_short=vol_window_long // VOL_WINDOW_SHORT_RATIO,
     )
     hourly_target = build_hourly_target(
-        base_signal, smooth_span, vol_window_long,
-        regime_scaling, vix, prices.index,
+        base_signal,
+        smooth_span,
+        vol_window_long,
+        regime_scaling,
+        vix,
+        prices.index,
     )
     return apply_exits_hourly(
-        hourly_target, prices, atr, vol_exit,
-        trailing_mult=trailing_mult, max_hold_bars=max_hold_bars,
+        hourly_target,
+        prices,
+        atr,
+        vol_exit,
+        trailing_mult=trailing_mult,
+        max_hold_bars=max_hold_bars,
         vol_limit_mult=vol_limit_mult,
         vol_floor_fraction=vol_floor_fraction,
-        target_vol=target_vol, min_trade_interval=min_trade_interval,
+        target_vol=target_vol,
+        min_trade_interval=min_trade_interval,
     )
 
 
@@ -339,9 +361,7 @@ def per_symbol_contributions(result, prices, cfg):
             contracts_traded = (
                 changes * cfg.initial_capital / (prices[sym] * multiplier)
             )
-            cost_s = (
-                contracts_traded.abs() * contract_cost / cfg.initial_capital
-            )
+            cost_s = contracts_traded.abs() * contract_cost / cfg.initial_capital
         elif cfg.asset_class == AssetClass.EQUITY:
             cost_bps = cfg.cost_model.equity_cost_bps(
                 cfg.cost_model.equity_spread_bps, 0.0
@@ -372,9 +392,7 @@ def bootstrap_sharpe_distribution(rets, seed=SEED, n_bootstrap=2000):
 
 
 # H10 artifact directory (cached hourly futures + VIX, tz-normalized).
-H10_ARTIFACT_DIR = Path(
-    ".experiments/artifacts/exp_2026-10-11T17-41-18-169363Z"
-)
+H10_ARTIFACT_DIR = Path(".experiments/artifacts/exp_2026-10-11T17-41-18-169363Z")
 
 
 def _cached_data_end():
@@ -439,9 +457,7 @@ def main():
             "h10_selected_config": SEL,
             "frozen_config": FROZEN_CONFIG,
             "perturbations": [label for label, _ in pert_rows_table],
-            "joint_perturbations": [
-                label for label, _ in JOINT_PERTURBATIONS
-            ],
+            "joint_perturbations": [label for label, _ in JOINT_PERTURBATIONS],
             "cost_multipliers": COST_MULTIPLIERS,
             "grid_size": grid_size,
         },
@@ -454,7 +470,9 @@ def main():
         compute_budget={"max_cpu_hours": 4.0, "grid_size": grid_size},
         random_seeds={"numpy": SEED, "python": SEED},
     )
-    print(f"[H11] started {exp_id}  perturbations={len(PERTURBATIONS)} cost_mults={len(COST_MULTIPLIERS)}")
+    print(
+        f"[H11] started {exp_id}  perturbations={len(PERTURBATIONS)} cost_mults={len(COST_MULTIPLIERS)}"
+    )
 
     try:
         fetcher = get_data_fetcher()
@@ -462,8 +480,12 @@ def main():
         atr, vol_exit = _build_exit_inputs(prices)
 
         train_mask, val_mask, test_mask = _splits(prices)
-        masks = {"train": train_mask, "val": val_mask, "test": test_mask,
-                 "oos": val_mask | test_mask}
+        masks = {
+            "train": train_mask,
+            "val": val_mask,
+            "test": test_mask,
+            "oos": val_mask | test_mask,
+        }
         h10_test_end = prices.index[test_mask].max()
         print(
             f"[H11] prices={prices.shape} train/val/test="
@@ -486,29 +508,34 @@ def main():
         baseline_oos_sharpe = None
         for label, overrides in pert_rows_table:
             params = dict(FROZEN_CONFIG, **overrides)
-            pos = build_positions(
-                prices, atr, vol_exit, vix_hourly, **params
-            )
+            pos = build_positions(prices, atr, vol_exit, vix_hourly, **params)
             res, gate = _eval_positions(
                 pos, prices, volumes, cfg, masks, vix_hourly, bh_result
             )
             om = gate["oos_metrics"]
-            row = {"label": label, **{f"p_{k}": v for k, v in overrides.items()},
-                   "oos_sharpe": om["sharpe"], "oos_pf": om["profit_factor"],
-                   "oos_dd": om["max_drawdown"], "oos_trades": om["trades"],
-                   "test_sharpe": gate["test_metrics"]["sharpe"],
-                   "wf_stab": gate["wf_stability"],
-                   "worst_regime": gate["worst_regime_sharpe"],
-                   "p_value": gate["benchmark_p_value"],
-                   "ir": gate["information_ratio"],
-                   "gates_pass": int(sum(gate["passes"].values())),
-                   "verdict": gate["verdict"]}
+            row = {
+                "label": label,
+                **{f"p_{k}": v for k, v in overrides.items()},
+                "oos_sharpe": om["sharpe"],
+                "oos_pf": om["profit_factor"],
+                "oos_dd": om["max_drawdown"],
+                "oos_trades": om["trades"],
+                "test_sharpe": gate["test_metrics"]["sharpe"],
+                "wf_stab": gate["wf_stability"],
+                "worst_regime": gate["worst_regime_sharpe"],
+                "p_value": gate["benchmark_p_value"],
+                "ir": gate["information_ratio"],
+                "gates_pass": int(sum(gate["passes"].values())),
+                "verdict": gate["verdict"],
+            }
             pert_rows.append(row)
             if label == "baseline":
                 baseline_oos_sharpe = om["sharpe"]
-            print(f"  {label:28s} OOS SR={om['sharpe']:.3f} PF={om['profit_factor']:.3f} "
-                  f"DD={om['max_drawdown']:.3f} trades={om['trades']:5d} "
-                  f"gates={sum(gate['passes'].values())}/8 {gate['verdict']}")
+            print(
+                f"  {label:28s} OOS SR={om['sharpe']:.3f} PF={om['profit_factor']:.3f} "
+                f"DD={om['max_drawdown']:.3f} trades={om['trades']:5d} "
+                f"gates={sum(gate['passes'].values())}/8 {gate['verdict']}"
+            )
         pert_df = pd.DataFrame(pert_rows)
         tracker.log_dataframe("perturbation_results", pert_df)
 
@@ -517,34 +544,42 @@ def main():
         pert_sharpe_floor = 0.5 * float(baseline_oos_sharpe)
         pert_pass = bool(pert_df["oos_sharpe"].min() >= pert_sharpe_floor)
         worst_pert = pert_df.loc[pert_df["oos_sharpe"].idxmin()]
-        print(f"[H11] perturbation gate: min perturbed SR={pert_df['oos_sharpe'].min():.3f} "
-              f">= floor {pert_sharpe_floor:.3f} -> {'PASS' if pert_pass else 'FAIL'}")
+        print(
+            f"[H11] perturbation gate: min perturbed SR={pert_df['oos_sharpe'].min():.3f} "
+            f">= floor {pert_sharpe_floor:.3f} -> {'PASS' if pert_pass else 'FAIL'}"
+        )
 
         # ============================================================
         # 2. Cost-model sensitivity (stress +/-50% / +/-100%)
         # ============================================================
         print("[H11] --- 2. Cost-model sensitivity ---")
         cost_rows = []
-        base_pos = build_positions(
-            prices, atr, vol_exit, vix_hourly, **FROZEN_CONFIG
-        )
+        base_pos = build_positions(prices, atr, vol_exit, vix_hourly, **FROZEN_CONFIG)
         for mult in COST_MULTIPLIERS:
             cm_cfg = _config_with_cost_mult(cfg, mult)
-            res = run_backtest(prices=prices, signals=base_pos, volumes=volumes, config=cm_cfg)
+            res = run_backtest(
+                prices=prices, signals=base_pos, volumes=volumes, config=cm_cfg
+            )
             oos_ret = res.returns[masks["oos"]]
             test_ret = res.returns[masks["test"]]
             om = _period_metrics(oos_ret, _count_in(res.trades, masks["oos"], prices))
             tm = _period_metrics(test_ret, _count_in(res.trades, masks["test"], prices))
             cum = (1 + oos_ret).cumprod()
             dd = float((cum / cum.cummax() - 1).min())
-            cost_rows.append({
-                "cost_multiplier": mult,
-                "oos_sharpe": om["sharpe"], "oos_pf": om["profit_factor"],
-                "oos_dd": dd, "oos_trades": om["trades"],
-                "test_sharpe": tm["sharpe"],
-            })
-            print(f"  cost x{mult:.1f}: OOS SR={om['sharpe']:.3f} PF={om['profit_factor']:.3f} "
-                  f"DD={dd:.3f} trades={om['trades']}")
+            cost_rows.append(
+                {
+                    "cost_multiplier": mult,
+                    "oos_sharpe": om["sharpe"],
+                    "oos_pf": om["profit_factor"],
+                    "oos_dd": dd,
+                    "oos_trades": om["trades"],
+                    "test_sharpe": tm["sharpe"],
+                }
+            )
+            print(
+                f"  cost x{mult:.1f}: OOS SR={om['sharpe']:.3f} PF={om['profit_factor']:.3f} "
+                f"DD={dd:.3f} trades={om['trades']}"
+            )
         cost_df = pd.DataFrame(cost_rows)
         tracker.log_dataframe("cost_sensitivity", cost_df)
 
@@ -552,8 +587,10 @@ def main():
         pf_at_15 = float(cost_df.loc[cost_df.cost_multiplier == 1.5, "oos_pf"].iloc[0])
         pf_at_20 = float(cost_df.loc[cost_df.cost_multiplier == 2.0, "oos_pf"].iloc[0])
         cost_pass = pf_at_15 >= GATES["min_profit_factor"]
-        print(f"[H11] cost gate: PF@x1.5={pf_at_15:.3f} PF@x2.0={pf_at_20:.3f} "
-              f"(>= {GATES['min_profit_factor']}) -> {'PASS' if cost_pass else 'FAIL'}")
+        print(
+            f"[H11] cost gate: PF@x1.5={pf_at_15:.3f} PF@x2.0={pf_at_20:.3f} "
+            f"(>= {GATES['min_profit_factor']}) -> {'PASS' if cost_pass else 'FAIL'}"
+        )
 
         # ============================================================
         # 3. Per-symbol concentration
@@ -561,7 +598,8 @@ def main():
         print("[H11] --- 3. Per-symbol concentration ---")
         sym_metrics = _per_symbol_metrics(
             run_backtest(prices=prices, signals=base_pos, volumes=volumes, config=cfg),
-            prices, masks["oos"],
+            prices,
+            masks["oos"],
         )
         sym_df = pd.DataFrame(sym_metrics).T
         tracker.log_dataframe("per_symbol_concentration", sym_df)
@@ -570,10 +608,11 @@ def main():
         # pooled net edge; i.e. at least 3 of 5 symbols must have positive gross SR.
         n_pos = int((sym_df["gross_sharpe"] > 0).sum())
         conc_pass = n_pos >= 3
-        print(f"[H11] concentration gate: symbols with positive gross SR = {n_pos}/5 "
-              f"(>=3) -> {'PASS' if conc_pass else 'FAIL'}")
+        print(
+            f"[H11] concentration gate: symbols with positive gross SR = {n_pos}/5 "
+            f"(>=3) -> {'PASS' if conc_pass else 'FAIL'}"
+        )
         print(sym_df.to_string())
-
 
         # ============================================================
         # 4. Fresh out-of-sample time extension
@@ -593,44 +632,70 @@ def main():
             if n_fresh > 0:
                 fresh_atr, fresh_vol = _build_exit_inputs(fresh_prices)
                 fresh_base = vol_scaled_tsmom_hourly(
-                    fresh_prices, vol_window_long=SEL["vol_window_long"],
+                    fresh_prices,
+                    vol_window_long=SEL["vol_window_long"],
                     vol_window_short=SEL["vol_window_long"] // VOL_WINDOW_SHORT_RATIO,
                 )
                 fresh_tgt = build_hourly_target(
-                    fresh_base, SEL["smooth_span"], SEL["vol_window_long"],
-                    SEL["regime_scaling"], fresh_vix, fresh_prices.index,
+                    fresh_base,
+                    SEL["smooth_span"],
+                    SEL["vol_window_long"],
+                    SEL["regime_scaling"],
+                    fresh_vix,
+                    fresh_prices.index,
                 )
                 fresh_pos = apply_exits_hourly(
-                    fresh_tgt, fresh_prices, fresh_atr, fresh_vol,
-                    trailing_mult=SEL["trailing_mult"], max_hold_bars=SEL["max_hold_bars"],
+                    fresh_tgt,
+                    fresh_prices,
+                    fresh_atr,
+                    fresh_vol,
+                    trailing_mult=SEL["trailing_mult"],
+                    max_hold_bars=SEL["max_hold_bars"],
                     vol_limit_mult=SEL["vol_limit_mult"],
                     vol_floor_fraction=SEL["vol_floor_fraction"],
-                    target_vol=TARGET_VOL, min_trade_interval=SEL["min_trade_interval"],
+                    target_vol=TARGET_VOL,
+                    min_trade_interval=SEL["min_trade_interval"],
                 )
                 fresh_cfg = make_futures_config()
                 # Evaluate the FROZEN config on the fresh OOS slice only.
                 fresh_res = run_backtest(
-                    prices=fresh_prices, signals=fresh_pos, volumes=fresh_volumes,
+                    prices=fresh_prices,
+                    signals=fresh_pos,
+                    volumes=fresh_volumes,
                     config=fresh_cfg,
                 )
                 fr = fresh_res.returns[fresh_oos]
-                fsr = float(sharpe_ratio(fr.values)) if len(fr) > 1 and fr.std() > 0 else 0.0
+                fsr = (
+                    float(sharpe_ratio(fr.values))
+                    if len(fr) > 1 and fr.std() > 0
+                    else 0.0
+                )
                 fcum = (1 + fr).cumprod()
                 fdd = float((fcum / fcum.cummax() - 1).min()) if len(fcum) > 0 else 0.0
-                fpf = float(fr[fr > 0].sum()) / float(abs(fr[fr < 0].sum())) \
-                    if float(abs(fr[fr < 0].sum())) > 0 else float("inf")
+                fpf = (
+                    float(fr[fr > 0].sum()) / float(abs(fr[fr < 0].sum()))
+                    if float(abs(fr[fr < 0].sum())) > 0
+                    else float("inf")
+                )
                 ftr = int(_count_in(fresh_res.trades, fresh_oos, fresh_prices))
-                fresh_rows.append({
-                    "fresh_start": str(fresh_prices.index[fresh_oos].min()),
-                    "fresh_end": str(fresh_prices.index[fresh_oos].max()),
-                    "n_bars": n_fresh, "fresh_oos_sharpe": fsr,
-                    "fresh_oos_pf": fpf, "fresh_oos_dd": fdd, "fresh_oos_trades": ftr,
-                })
+                fresh_rows.append(
+                    {
+                        "fresh_start": str(fresh_prices.index[fresh_oos].min()),
+                        "fresh_end": str(fresh_prices.index[fresh_oos].max()),
+                        "n_bars": n_fresh,
+                        "fresh_oos_sharpe": fsr,
+                        "fresh_oos_pf": fpf,
+                        "fresh_oos_dd": fdd,
+                        "fresh_oos_trades": ftr,
+                    }
+                )
                 fresh_verdict = "PASS" if (fsr >= 0.0 and fdd >= -0.15) else "REJECT"
-                print(f"  fresh OOS ({fresh_rows[-1]['fresh_start']} -> "
-                      f"{fresh_rows[-1]['fresh_end']}, {n_fresh} bars): "
-                      f"SR={fsr:.3f} PF={fpf:.3f} DD={fdd:.3f} trades={ftr} "
-                      f"-> {fresh_verdict}")
+                print(
+                    f"  fresh OOS ({fresh_rows[-1]['fresh_start']} -> "
+                    f"{fresh_rows[-1]['fresh_end']}, {n_fresh} bars): "
+                    f"SR={fsr:.3f} PF={fpf:.3f} DD={fdd:.3f} trades={ftr} "
+                    f"-> {fresh_verdict}"
+                )
             else:
                 fresh_rows.append({"n_bars": 0, "note": "no fresh bars available"})
                 print("  no fresh bars beyond H10 Test window")
@@ -653,7 +718,10 @@ def main():
         # ============================================================
         total_elapsed = time.time() - t_start
         all_pass = bool(
-            base_gate["all_pass"] and pert_pass and cost_pass and conc_pass
+            base_gate["all_pass"]
+            and pert_pass
+            and cost_pass
+            and conc_pass
             and fresh_verdict == "PASS"
         )
         summary = {
@@ -675,8 +743,10 @@ def main():
             "baseline_gates": base_gate["passes"],
             "baseline_metrics": {
                 "train_sharpe": base_gate["train_sharpe"],
-                "oos_sharpe": om["sharpe"], "oos_pf": om["profit_factor"],
-                "oos_dd": om["max_drawdown"], "oos_trades": om["trades"],
+                "oos_sharpe": om["sharpe"],
+                "oos_pf": om["profit_factor"],
+                "oos_dd": om["max_drawdown"],
+                "oos_trades": om["trades"],
                 "test_sharpe": base_gate["test_metrics"]["sharpe"],
                 "wf_stability": base_gate["wf_stability"],
                 "worst_regime_sharpe": base_gate["worst_regime_sharpe"],
@@ -702,35 +772,55 @@ def main():
         tracker.log_dataframe("volumes", volumes)
         tracker.log_dataframe("vix_hourly", vix_hourly.to_frame("vix"))
         tracker.log_dataframe("baseline_positions", base_pos)
-        tracker.log_dataframe("baseline_equity", base_res.equity_curve.to_frame("equity"))
+        tracker.log_dataframe(
+            "baseline_equity", base_res.equity_curve.to_frame("equity")
+        )
         tracker.log_dataframe("baseline_returns", base_res.returns.to_frame("returns"))
         tracker.log_dataframe("baseline_trades", base_res.trades)
-        tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
+        tracker.log_dataframe(
+            "benchmark_equity", bh_result.equity_curve.to_frame("equity")
+        )
 
         exp_dir = Path(tracker.log_dir) / "artifacts" / exp_id
         exp_dir.mkdir(parents=True, exist_ok=True)
         with open(exp_dir / "summary.json", "w") as f:
-            json.dump(summary, f, indent=2,
-                      default=lambda x: float(x) if isinstance(x, (np.integer, np.floating))
-                      else str(x))
+            json.dump(
+                summary,
+                f,
+                indent=2,
+                default=lambda x: (
+                    float(x) if isinstance(x, (np.integer, np.floating)) else str(x)
+                ),
+            )
         tracker.log_artifact("summary", exp_dir / "summary.json")
         tracker.finish_experiment(status="completed")
 
         print("\n" + "=" * 72)
         print("  H11 certification gates:")
-        print(f"    baseline (H10 config, unperturbed): "
-              f"{int(sum(base_gate['passes'].values()))}/8 -> {base_gate['verdict']}")
-        print(f"    perturbation robustness: {'PASS' if pert_pass else 'FAIL'} "
-              f"(min perturbed SR {pert_df['oos_sharpe'].min():.3f} vs floor {pert_sharpe_floor:.3f})")
-        print(f"    cost sensitivity (PF@x1.5 >= 1.3): {'PASS' if cost_pass else 'FAIL'}")
-        print(f"    per-symbol concentration (>=3 symbols +SR): {'PASS' if conc_pass else 'FAIL'}")
+        print(
+            f"    baseline (H10 config, unperturbed): "
+            f"{int(sum(base_gate['passes'].values()))}/8 -> {base_gate['verdict']}"
+        )
+        print(
+            f"    perturbation robustness: {'PASS' if pert_pass else 'FAIL'} "
+            f"(min perturbed SR {pert_df['oos_sharpe'].min():.3f} vs floor {pert_sharpe_floor:.3f})"
+        )
+        print(
+            f"    cost sensitivity (PF@x1.5 >= 1.3): {'PASS' if cost_pass else 'FAIL'}"
+        )
+        print(
+            f"    per-symbol concentration (>=3 symbols +SR): {'PASS' if conc_pass else 'FAIL'}"
+        )
         print(f"    fresh OOS extension: {fresh_verdict}")
-        print(f"  OVERALL: {summary['verdict']}  "
-              f"({total_elapsed/60:.1f} min, {total_elapsed/3600:.3f} CPU-h)")
+        print(
+            f"  OVERALL: {summary['verdict']}  "
+            f"({total_elapsed / 60:.1f} min, {total_elapsed / 3600:.3f} CPU-h)"
+        )
         print("=" * 72)
         return 0 if all_pass else 1
     except Exception as e:  # noqa: BLE001 -- top-level experiment harness: any failure must finish the tracker and return a verdict
         import traceback
+
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))
         return 2
