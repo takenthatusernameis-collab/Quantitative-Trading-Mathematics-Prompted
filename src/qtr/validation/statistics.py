@@ -378,7 +378,10 @@ def compare_to_benchmark(
         alpha_annual = 0
 
     # T-test for alpha
-    t_stat, p_value = stats.ttest_1samp(excess, 0)
+    if excess.std() > 1e-12:
+        t_stat, p_value = stats.ttest_1samp(excess, 0)
+    else:
+        t_stat, p_value = 0.0, 1.0
 
     # Win rate
     win_rate = (excess > 0).mean()
