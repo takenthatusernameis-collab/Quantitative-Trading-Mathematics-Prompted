@@ -283,7 +283,7 @@ def perturbation_eval(
         for factor in (0.8, 1.2):
             v = base * factor
             if param == "vol_window":
-                v = max(1, int(round(v)))
+                v = max(1, round(v))
             elif param == "gate_thresh" or param == "target_vol" or param == "max_pos":
                 v = round(v, 4)
             if v == base:

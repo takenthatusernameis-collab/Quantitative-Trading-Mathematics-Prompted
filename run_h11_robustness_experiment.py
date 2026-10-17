@@ -109,7 +109,7 @@ def _perturbed_value(param, factor):
     """Frozen value scaled by factor (integer-rounded where required)."""
     value = FROZEN_CONFIG[param] * factor
     if param in ("vol_window_long", "max_hold_bars"):
-        return int(round(value))
+        return round(value)
     return value
 
 

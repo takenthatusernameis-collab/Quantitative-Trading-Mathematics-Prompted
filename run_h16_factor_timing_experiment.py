@@ -363,7 +363,7 @@ def perturbation_eval(
     variants = {}
     for param, base in (("lookback", selected["lookback"]), ("skip", selected["skip"])):
         for factor in (0.8, 1.2):
-            v = int(round(base * factor))
+            v = round(base * factor)
             if v == base:
                 v = base + (1 if factor > 1 else -1)
             v = max(1, v)

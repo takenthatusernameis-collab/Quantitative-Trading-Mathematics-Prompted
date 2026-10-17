@@ -371,7 +371,7 @@ def perturbation_eval(
                 continue
             if param == "vol_window_long":
                 # Rebuild signal with perturbed vol_window_long
-                vw = int(round(v))
+                vw = round(v)
                 if vw not in base_signals:
                     # Compute signal for this vol window
                     pert_signal = vol_scaled_tsmom_hourly(
