@@ -3,6 +3,7 @@
 
 import sys
 import os
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 import json
@@ -17,7 +18,9 @@ from qtr.data.fetcher import get_data_fetcher
 from qtr.backtest.engine import run_backtest, BacktestConfig, AssetClass, CostModel
 from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
-    sharpe_ratio, sharpe_ratio_ci, walk_forward_splits,
+    sharpe_ratio,
+    sharpe_ratio_ci,
+    walk_forward_splits,
     compare_to_benchmark,
 )
 
@@ -56,15 +59,53 @@ COST_MODEL_DEFAULTS = {
 }
 
 FUTURES_SPECS = {
-    "ES=F": {"multiplier": 50.0, "tick_value": 12.50, "tick_size": 0.25, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "NQ=F": {"multiplier": 20.0, "tick_value": 5.0, "tick_size": 0.25, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "CL=F": {"multiplier": 1000.0, "tick_value": 10.0, "tick_size": 0.01, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "GC=F": {"multiplier": 100.0, "tick_value": 10.0, "tick_size": 0.10, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
-    "ZB=F": {"multiplier": 1000.0, "tick_value": 31.25, "tick_size": 0.03125, "commission": 0.50, "spread_ticks": 0.25, "slippage_ticks": 0.5},
+    "ES=F": {
+        "multiplier": 50.0,
+        "tick_value": 12.50,
+        "tick_size": 0.25,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "NQ=F": {
+        "multiplier": 20.0,
+        "tick_value": 5.0,
+        "tick_size": 0.25,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "CL=F": {
+        "multiplier": 1000.0,
+        "tick_value": 10.0,
+        "tick_size": 0.01,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "GC=F": {
+        "multiplier": 100.0,
+        "tick_value": 10.0,
+        "tick_size": 0.10,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
+    "ZB=F": {
+        "multiplier": 1000.0,
+        "tick_value": 31.25,
+        "tick_size": 0.03125,
+        "commission": 0.50,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+    },
 }
 
 EXPERIMENT_NAME = "h9_intraday_tsmom_ctexits_v1"
-EXPERIMENT_DESC = "H9: Intraday TSMOM with CT-style path-dependent exits on hourly futures data"
+EXPERIMENT_DESC = (
+    "H9: Intraday TSMOM with CT-style path-dependent exits on hourly futures data"
+)
+
 
 def regime_labels(vix_daily: pd.Series) -> pd.Series:
     regimes = pd.Series(index=vix_daily.index, dtype=object)
@@ -74,9 +115,12 @@ def regime_labels(vix_daily: pd.Series) -> pd.Series:
     regimes[vix_ff > 30] = "bear"
     return regimes
 
+
 def make_futures_config() -> BacktestConfig:
     cm = CostModel(
-        future_commission_per_contract=COST_MODEL_DEFAULTS["future_commission_per_contract"],
+        future_commission_per_contract=COST_MODEL_DEFAULTS[
+            "future_commission_per_contract"
+        ],
         future_spread_ticks=COST_MODEL_DEFAULTS["future_spread_ticks"],
         future_slippage_ticks=COST_MODEL_DEFAULTS["future_slippage_ticks"],
         futures_specs=FUTURES_SPECS,
@@ -90,11 +134,13 @@ def make_futures_config() -> BacktestConfig:
         cost_model=cm,
     )
 
+
 def compute_atr_hourly(prices: pd.DataFrame, window: int = 14) -> pd.DataFrame:
     pct = prices.pct_change()
-    atr = prices * pct.rolling(window, min_periods=window//2).std()
+    atr = prices * pct.rolling(window, min_periods=window // 2).std()
     atr = atr.replace(0, np.nan).ffill().fillna(prices * 0.001)
     return atr
+
 
 def vol_scaled_tsmom_hourly(
     prices: pd.DataFrame,
@@ -110,8 +156,12 @@ def vol_scaled_tsmom_hourly(
     mom_slow = prices.pct_change(lookback).fillna(0)
     mom_fast = prices.pct_change(fast_lookback).fillna(0)
 
-    sigma_long = pct.rolling(vol_window_long, min_periods=vol_window_long//2).std() * np.sqrt(252*6.5)
-    sigma_short = pct.rolling(vol_window_short, min_periods=vol_window_short//2).std() * np.sqrt(252*6.5)
+    sigma_long = pct.rolling(
+        vol_window_long, min_periods=vol_window_long // 2
+    ).std() * np.sqrt(252 * 6.5)
+    sigma_short = pct.rolling(
+        vol_window_short, min_periods=vol_window_short // 2
+    ).std() * np.sqrt(252 * 6.5)
     sigma_long = sigma_long.replace(0, np.nan).ffill()
     sigma_short = sigma_short.replace(0, np.nan).ffill()
 
@@ -126,7 +176,9 @@ def vol_scaled_tsmom_hourly(
     w_slow = dir_slow * inv_vol_long
     w_fast = dir_fast * inv_vol_short
 
-    realized_vol_port = (w_slow.shift(1) * pct).sum(axis=1).rolling(vol_window_long, min_periods=vol_window_long//2).std() * np.sqrt(252*6.5)
+    realized_vol_port = (w_slow.shift(1) * pct).sum(axis=1).rolling(
+        vol_window_long, min_periods=vol_window_long // 2
+    ).std() * np.sqrt(252 * 6.5)
     realized_vol_port = realized_vol_port.replace(0, np.nan).ffill()
     b = 1.0 / (1.0 + realized_vol_port / target_vol)
     b = b.clip(0.0, 1.0).fillna(0.0)
@@ -134,13 +186,16 @@ def vol_scaled_tsmom_hourly(
     w_blend = w_slow.multiply(1.0 - b, axis=0) + w_fast.multiply(b, axis=0)
 
     port_ret = (w_blend.shift(1) * pct).sum(axis=1).ffill()
-    port_vol = port_ret.rolling(vol_window_long, min_periods=vol_window_long//2).std() * np.sqrt(252*6.5)
+    port_vol = port_ret.rolling(
+        vol_window_long, min_periods=vol_window_long // 2
+    ).std() * np.sqrt(252 * 6.5)
     port_vol = port_vol.replace(0, np.nan)
     scale = (target_vol / port_vol).clip(0.0, 3.0)
     scale = scale.ffill().fillna(0.0)
     weights = w_blend.multiply(scale, axis=0)
     weights = weights.clip(-max_position_size, max_position_size)
     return weights.ffill().fillna(0.0)
+
 
 def apply_path_dependent_exits_hourly(
     signals: pd.DataFrame,
@@ -156,10 +211,15 @@ def apply_path_dependent_exits_hourly(
     if len(modified) == 0:
         return modified
     pct = prices.pct_change()
-    vol = pct.rolling(vol_window, min_periods=vol_window//2).std() * np.sqrt(252*6.5)
+    vol = pct.rolling(vol_window, min_periods=vol_window // 2).std() * np.sqrt(
+        252 * 6.5
+    )
     vol = vol.replace(0, np.nan).ffill()
-    modified[vol > vol_limit_mult * target_vol] = modified[vol > vol_limit_mult * target_vol] * 0.7
+    modified[vol > vol_limit_mult * target_vol] = (
+        modified[vol > vol_limit_mult * target_vol] * 0.7
+    )
     return modified.ffill().fillna(0.0)
+
 
 def main():
     np.random.seed(SEED)
@@ -167,8 +227,17 @@ def main():
     exp_id = tracker.start_experiment(
         name=EXPERIMENT_NAME,
         description=EXPERIMENT_DESC,
-        config={"universe": FUTURES_UNIVERSE, "interval": "1h", "gates": GATES, "seed": SEED},
-        data_sources={"source": "yahoo_futures", "symbols": FUTURES_UNIVERSE, "interval": "1h"},
+        config={
+            "universe": FUTURES_UNIVERSE,
+            "interval": "1h",
+            "gates": GATES,
+            "seed": SEED,
+        },
+        data_sources={
+            "source": "yahoo_futures",
+            "symbols": FUTURES_UNIVERSE,
+            "interval": "1h",
+        },
         compute_budget={"max_cpu_hours": 4.0},
         random_seeds={"numpy": SEED, "python": SEED},
     )
@@ -177,7 +246,12 @@ def main():
         fetcher = get_data_fetcher()
         end = datetime.now()
         start = end - timedelta(days=729)
-        data = fetcher.fetch_futures(FUTURES_UNIVERSE, start=start.strftime("%Y-%m-%d"), end=end.strftime("%Y-%m-%d"), interval="1h")
+        data = fetcher.fetch_futures(
+            FUTURES_UNIVERSE,
+            start=start.strftime("%Y-%m-%d"),
+            end=end.strftime("%Y-%m-%d"),
+            interval="1h",
+        )
 
         prices_list = []
         volumes_list = []
@@ -185,7 +259,7 @@ def main():
             df = data.get(sym, pd.DataFrame())
             if len(df) == 0:
                 continue
-            if hasattr(df.index, 'tz_convert') and df.index.tzinfo:
+            if hasattr(df.index, "tz_convert") and df.index.tzinfo:
                 df.index = df.index.tz_convert(None)
             else:
                 df.index = pd.to_datetime(df.index)
@@ -196,8 +270,8 @@ def main():
         volumes = pd.concat(volumes_list, axis=1).sort_index().fillna(0)
 
         n = len(prices)
-        train_end = prices.index[int(n*0.55)]
-        val_end = prices.index[int(n*0.8)]
+        train_end = prices.index[int(n * 0.55)]
+        val_end = prices.index[int(n * 0.8)]
         train_mask = prices.index <= train_end
         val_mask = (prices.index > train_end) & (prices.index <= val_end)
         test_mask = prices.index > val_end
@@ -211,14 +285,24 @@ def main():
         tracker.log_dataframe("signals", signals_exits)
 
         cfg = make_futures_config()
-        result = run_backtest(prices=prices, signals=signals_exits, volumes=volumes, config=cfg)
-        bh_weights = pd.DataFrame(1.0/len(prices.columns) if prices.shape[1] > 0 else 0.0, index=prices.index, columns=prices.columns)
-        bh_result = run_backtest(prices=prices, signals=bh_weights, volumes=volumes, config=cfg)
+        result = run_backtest(
+            prices=prices, signals=signals_exits, volumes=volumes, config=cfg
+        )
+        bh_weights = pd.DataFrame(
+            1.0 / len(prices.columns) if prices.shape[1] > 0 else 0.0,
+            index=prices.index,
+            columns=prices.columns,
+        )
+        bh_result = run_backtest(
+            prices=prices, signals=bh_weights, volumes=volumes, config=cfg
+        )
 
         tracker.log_dataframe("equity", result.equity_curve.to_frame("equity"))
         tracker.log_dataframe("trades", result.trades)
         tracker.log_dataframe("returns", result.returns.to_frame("returns"))
-        tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
+        tracker.log_dataframe(
+            "benchmark_equity", bh_result.equity_curve.to_frame("equity")
+        )
 
         train_ret = result.returns[train_mask]
         val_ret = result.returns[val_mask]
@@ -234,22 +318,39 @@ def main():
         oos_sharpes = []
         for tr, te in wf_splits:
             if len(te) > 0:
-                oos_sharpes.append(sharpe_ratio(result.returns.iloc[te].values) if hasattr(result.returns.iloc[te], "values") else sharpe_ratio(result.returns.values[te]))
+                oos_sharpes.append(
+                    sharpe_ratio(result.returns.iloc[te].values)
+                    if hasattr(result.returns.iloc[te], "values")
+                    else sharpe_ratio(result.returns.values[te])
+                )
         train_sharpes = []
         for tr, te in wf_splits:
             if len(tr) > 0:
-                train_sharpes.append(sharpe_ratio(result.returns.iloc[tr].values) if hasattr(result.returns.iloc[tr], "values") else sharpe_ratio(result.returns.values[tr]))
-        wf_stab = np.mean(oos_sharpes) / np.mean(train_sharpes) if np.mean(train_sharpes) != 0 else 0.0
+                train_sharpes.append(
+                    sharpe_ratio(result.returns.iloc[tr].values)
+                    if hasattr(result.returns.iloc[tr], "values")
+                    else sharpe_ratio(result.returns.values[tr])
+                )
+        wf_stab = (
+            np.mean(oos_sharpes) / np.mean(train_sharpes)
+            if np.mean(train_sharpes) != 0
+            else 0.0
+        )
 
         # Regimes
-        vix_df = fetcher.fetch_yahoo([VIX_SYMBOL], start=start.strftime("%Y-%m-%d"), end=end.strftime("%Y-%m-%d"), interval="1d")
+        vix_df = fetcher.fetch_yahoo(
+            [VIX_SYMBOL],
+            start=start.strftime("%Y-%m-%d"),
+            end=end.strftime("%Y-%m-%d"),
+            interval="1d",
+        )
         vix = vix_df.get(VIX_SYMBOL, pd.DataFrame())
         if len(vix) > 0:
-            if hasattr(vix.index, 'tz_convert') and vix.index.tzinfo:
+            if hasattr(vix.index, "tz_convert") and vix.index.tzinfo:
                 vix.index = vix.index.tz_convert(None)
             else:
                 vix.index = pd.to_datetime(vix.index)
-            vix_hourly = vix["close"].reindex(prices.index, method='ffill').fillna(20.0)
+            vix_hourly = vix["close"].reindex(prices.index, method="ffill").fillna(20.0)
         else:
             vix_hourly = pd.Series(20.0, index=prices.index)
         regimes = regime_labels(vix_hourly)
@@ -263,7 +364,8 @@ def main():
             else:
                 s = 0.0
             regime_sharpes[reg] = s
-            if s < worst: worst = s
+            if s < worst:
+                worst = s
 
         bench_cmp = compare_to_benchmark(result.returns, bh_result.returns)
         cum = (1 + oos_ret).cumprod()
@@ -277,9 +379,12 @@ def main():
             "pf": pf >= GATES["min_profit_factor"],
             "dd": abs(oos_max_dd) <= GATES["max_drawdown"] if oos_max_dd < 0 else False,
             "stab": wf_stab >= GATES["min_walkforward_stability"],
-            "worst": worst >= GATES["min_worst_regime_sharpe"] if worst != np.inf else False,
+            "worst": worst >= GATES["min_worst_regime_sharpe"]
+            if worst != np.inf
+            else False,
             "p": bench_cmp.get("alpha_p_value", 1.0) < GATES["max_p_value"],
-            "ir": bench_cmp.get("information_ratio", -np.inf) > GATES["min_information_ratio"],
+            "ir": bench_cmp.get("information_ratio", -np.inf)
+            > GATES["min_information_ratio"],
         }
         all_pass = all(passes.values())
 
@@ -306,7 +411,14 @@ def main():
         exp_dir = Path(tracker.log_dir) / "artifacts" / exp_id
         exp_dir.mkdir(parents=True, exist_ok=True)
         with open(exp_dir / "summary.json", "w") as f:
-            json.dump(summary, f, indent=2, default=lambda x: float(x) if isinstance(x, (np.integer, np.floating)) else str(x))
+            json.dump(
+                summary,
+                f,
+                indent=2,
+                default=lambda x: (
+                    float(x) if isinstance(x, (np.integer, np.floating)) else str(x)
+                ),
+            )
         tracker.log_artifact("summary", exp_dir / "summary.json")
         tracker.finish_experiment(status="completed")
         print("\n" + "=" * 70)
@@ -316,6 +428,7 @@ def main():
         return 0 if all_pass else 1
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         tracker.finish_experiment(status="failed", error=str(e))
         return 2

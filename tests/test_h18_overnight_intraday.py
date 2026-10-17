@@ -181,7 +181,11 @@ def test_weight_bounds():
     if equity_path.exists():
         # This is a simplified check - in practice we'd reconstruct the positions
         # For now, we'll just verify the file exists and has reasonable values
-        equity = pd.read_parquet(equity_path)
+        try:
+            equity = pd.read_parquet(equity_path, engine="pyarrow")
+        except (ImportError, OSError, ValueError):
+            equity = pd.read_parquet(equity_path)
+
         assert len(equity) > 0, "equity curve should not be empty"
         assert (equity.values > 0).all(), "equity should remain positive"
 
