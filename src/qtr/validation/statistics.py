@@ -232,7 +232,7 @@ def regime_analysis(
 def stressed_cost_test(
     base_returns: np.ndarray,
     base_costs: np.ndarray,
-    stress_multipliers: dict[str, float] = None,
+    stress_multipliers: dict[str, float] | None = None,
 ) -> dict[str, float]:
     """
     Test strategy robustness under stressed cost assumptions.

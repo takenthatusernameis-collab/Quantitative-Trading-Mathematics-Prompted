@@ -63,10 +63,10 @@ class TestSinglePeekDSR:
         # single-peek DSR must dominate the worst-case
         # N=13,824 DSR for identical inputs.
         import run_h12_selection_bias_audit as h12
-        kwargs = dict(
-            n_obs=5148, var_trials=0.024,
-            skewness=1.0, kurtosis=22.0,
-        )
+        kwargs = {
+            "n_obs": 5148, "var_trials": 0.024,
+            "skewness": 1.0, "kurtosis": 22.0,
+        }
         for sr in (0.5, 1.0, 1.275759, 2.0):
             dsr_1, _ = h13.deflated_sharpe_ratio_single_peek(
                 observed_sr=sr, **kwargs)
@@ -261,19 +261,19 @@ def frozen_pipeline():
 class TestFrozenPipelineReproduction:
     def test_engine_returns_reproduce_h10_artifact(
             self, frozen_pipeline):
-        prices, _, _, h10_returns, res, _ = frozen_pipeline
+        _prices, _, _, h10_returns, res, _ = frozen_pipeline
         assert (res.returns - h10_returns).abs().max() < 1e-9
 
     def test_per_symbol_decomposition_reconstructs_returns(
             self, frozen_pipeline):
-        prices, _, _, h10_returns, res, contrib = \
+        _prices, _, _, _h10_returns, res, contrib = \
             frozen_pipeline
         pooled = contrib.sum(axis=1)
         assert (pooled - res.returns).abs().max() < 1e-9
 
     def test_pooled_pf_matches_selected_config(self,
             frozen_pipeline):
-        prices, _, _, _, res, contrib = frozen_pipeline
+        prices, _, _, _, _res, contrib = frozen_pipeline
         _, val_mask, test_mask = h13._splits(prices)
         oos = val_mask | test_mask
         pooled = contrib.sum(axis=1)
@@ -282,7 +282,7 @@ class TestFrozenPipelineReproduction:
 
     def test_shifted_splits_reproduce_h11_e4a(
             self, frozen_pipeline):
-        prices, _, _, _, res, contrib = frozen_pipeline
+        prices, _, _, _, _res, contrib = frozen_pipeline
         pooled = contrib.sum(axis=1)
         expected = {"50/25/25": 1.28064754854388,
                     "60/20/20": 1.3297783905647602,

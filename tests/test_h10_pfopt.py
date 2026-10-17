@@ -138,7 +138,7 @@ class TestApplyExitsHourly:
         """Regression guard: H10 exits with min_trade_interval=0 must equal H9's
         apply_path_dependent_exits_hourly bit-for-bit."""
         prices = _hourly_frame(n=1500)
-        pct, atr, vol = _make_inputs(prices)
+        _pct, atr, vol = _make_inputs(prices)
         daily_target = h9._daily_target_from_hourly(
             h9.vol_scaled_tsmom_hourly(prices)
         )
@@ -153,7 +153,7 @@ class TestApplyExitsHourly:
         """A positive min-trade-interval must produce no MORE position changes
         than the baseline (turnover-reducing by construction)."""
         prices = _hourly_frame(n=1500)
-        pct, atr, vol = _make_inputs(prices)
+        _pct, atr, vol = _make_inputs(prices)
         daily_target = h9._daily_target_from_hourly(
             h9.vol_scaled_tsmom_hourly(prices)
         )
@@ -174,7 +174,7 @@ class TestApplyExitsHourly:
         """A very large min-trade-interval should freeze the position path at its
         first (or no) trade, producing strictly fewer changes than a small one."""
         prices = _hourly_frame(n=1500)
-        pct, atr, vol = _make_inputs(prices)
+        _pct, atr, vol = _make_inputs(prices)
         daily_target = h9._daily_target_from_hourly(h9.vol_scaled_tsmom_hourly(prices))
         small = h10.apply_exits_hourly(daily_target, prices, atr, vol, min_trade_interval=4)
         huge = h10.apply_exits_hourly(daily_target, prices, atr, vol, min_trade_interval=99999)

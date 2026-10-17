@@ -156,15 +156,15 @@ class TestGateRecomputation:
         exp_dir = _latest_h17_dir()
         s = _load_summary(exp_dir)
         bench = pd.read_parquet(exp_dir / "benchmark_returns.parquet")
-        sig = pd.read_parquet(exp_dir / "selected_signals.parquet")
+        pd.read_parquet(exp_dir / "selected_signals.parquet")
         prices = pd.read_parquet(exp_dir / "prices.parquet")
-        vix = pd.read_parquet(exp_dir / "vix_close.parquet")["close"]
+        pd.read_parquet(exp_dir / "vix_close.parquet")["close"]
 
         train_end = pd.Timestamp(h17.TRAIN_END)
         oos_mask = prices.index > train_end
         oos_r = bench["returns"][oos_mask].dropna()
         # bh benchmark OOS for sanity
-        rec = _period_metrics(oos_r, 0, pd.Series(1.0, index=oos_r.index))
+        _period_metrics(oos_r, 0, pd.Series(1.0, index=oos_r.index))
         # The selected strategy OOS Sharpe should match summary within tolerance
         reported = s["metrics"]["oos_sharpe"]
         # recompute via re-run is expensive; check range consistency instead
@@ -174,7 +174,7 @@ class TestGateRecomputation:
         """Test (after VAL_END) is never used for selection."""
         exp_dir = _latest_h17_dir()
         s = _load_summary(exp_dir)
-        val_end = pd.Timestamp(h17.VAL_END)
+        pd.Timestamp(h17.VAL_END)
         grid = pd.read_parquet(exp_dir / "param_grid_results.parquet")
         # selection is based solely on val_sharpe - test_sharpe must be present but not used
         assert "test_sharpe" in grid.columns

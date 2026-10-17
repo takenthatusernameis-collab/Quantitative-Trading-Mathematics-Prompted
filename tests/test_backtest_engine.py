@@ -37,15 +37,15 @@ def _make_prices(n: int = 100, seed: int = 42, symbols=("A", "B")) -> pd.DataFra
 
 
 def _make_config(**overrides) -> BacktestConfig:
-    defaults = dict(
-        initial_capital=1_000_000.0,
-        cost_model=CostModel(equity_commission_bps=0.0, equity_spread_bps=0.0,
+    defaults = {
+        "initial_capital": 1_000_000.0,
+        "cost_model": CostModel(equity_commission_bps=0.0, equity_spread_bps=0.0,
                              equity_impact_bps_per_pct_adv=0.0),
-        asset_class=AssetClass.EQUITY,
-        max_position_size=1.0,
-        max_leverage=1.0,
-        allow_short=False,
-    )
+        "asset_class": AssetClass.EQUITY,
+        "max_position_size": 1.0,
+        "max_leverage": 1.0,
+        "allow_short": False,
+    }
     defaults.update(overrides)
     return BacktestConfig(**defaults)
 

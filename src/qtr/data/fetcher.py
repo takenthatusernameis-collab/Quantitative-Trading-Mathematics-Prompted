@@ -55,7 +55,7 @@ class DataFetcher:
 
     def __init__(self, cache: DataCache | None = None):
         self.cache = cache or DataCache()
-        self._ccxt_exchanges: dict[str, ccxt.Exchange] = {}
+        self._ccxt_exchanges: dict[str, object] = {}
 
     def fetch_yahoo(
         self,

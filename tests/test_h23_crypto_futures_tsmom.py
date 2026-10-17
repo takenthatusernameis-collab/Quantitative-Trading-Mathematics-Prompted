@@ -61,7 +61,7 @@ def _latest_h23_dir() -> Path:
         except (OSError, json.JSONDecodeError):
             continue
     assert h23_dirs, "no H23 artifacts; run run_h23_crypto_futures_tsmom.py"
-    return sorted(h23_dirs, key=lambda p: p.stat().st_mtime)[-1]
+    return max(h23_dirs, key=lambda p: p.stat().st_mtime)
 
 
 def _load_summary(exp_dir: Path) -> dict:

@@ -211,7 +211,7 @@ class VectorizedBacktester:
                 continue
 
             price = prices[symbol]
-            volume = volumes[symbol] if symbol in volumes.columns else pd.Series(0, index=prices.index)
+            volumes[symbol] if symbol in volumes.columns else pd.Series(0, index=prices.index)
 
             if self.config.asset_class == AssetClass.EQUITY:
                 # Estimate ADV participation using initial capital (approximate).

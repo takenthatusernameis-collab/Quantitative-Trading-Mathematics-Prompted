@@ -152,8 +152,8 @@ class TestCostUnitsRegression:
     def test_higher_costs_reduce_equity(self):
         prices = self._single_asset_prices(100.0)
         signals = self._step_signals(prices.index)
-        base = dict(initial_capital=1_000_000.0, asset_class=AssetClass.EQUITY,
-                    max_position_size=1.0, max_leverage=1.0, allow_short=False)
+        base = {"initial_capital": 1_000_000.0, "asset_class": AssetClass.EQUITY,
+                    "max_position_size": 1.0, "max_leverage": 1.0, "allow_short": False}
         cheap = run_backtest(prices=prices, signals=signals, config=BacktestConfig(
             cost_model=CostModel(equity_commission_bps=1.0, equity_spread_bps=1.0), **base))
         expensive = run_backtest(prices=prices, signals=signals, config=BacktestConfig(

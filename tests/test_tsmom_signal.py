@@ -98,7 +98,7 @@ class TestTsmomSignInvariant:
     def test_zero_momentum_produces_zero_direction(self):
         """When momentum is exactly zero, direction must be zero, so the
         weight must be zero regardless of inverse-vol scaling."""
-        rng = np.random.default_rng(11)
+        np.random.default_rng(11)
         index = pd.bdate_range("2020-01-01", periods=400)
         # Perfectly flat price: momentum is identically zero.
         prices = pd.DataFrame(
