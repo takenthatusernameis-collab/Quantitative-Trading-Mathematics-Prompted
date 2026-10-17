@@ -20,7 +20,7 @@
   at collection time. Not a code change — environment setup only.
 
 ## Verified
-- pytest -q: 521 passed, 1 warning (unrelated scipy numerical warning in test_statistics)
+- This session re-confirmed the baseline: `python -m pytest -q` → 521 passed (209s); `python -m ruff check src tests run_*.py` → clean; `python -m ruff format --check` → 83 files formatted; `import qtr` resolves.
 - pytest tests/test_experiment_tracker.py -W error::DeprecationWarning: 19 passed
 - ruff check src tests run_*.py: clean
 - ruff format --check: 69 files already formatted

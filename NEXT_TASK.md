@@ -10,7 +10,7 @@ previous agent. Verified this session:
    ImportError/OSError/ValueError/AttributeError per strategy.
 2. All 15 test files that read parquet artifacts import and use the helper.
 3. No direct `pd.read_parquet` calls remain on artifact paths in tests.
-4. Full suite: 521 passed. Lint/format clean.
+4. Full suite: 521 passed (re-confirmed this session). Lint/format clean.
 
 ## Additional work done this session
 
@@ -30,3 +30,12 @@ hits the same error, run that command first.
 - Helper exists and is used in the H18 test (and 14 others).  [done]
 - Lint/format clean.  [done]
 - Full suite: 521 passed, no regressions.  [done]
+
+## Next task (beyond free-data scope)
+
+No bounded task remains within the free-data constraint. Per FINAL_REPORT.md §Next
+Task, the precise next task requires **paid hourly futures data** to widen the OOS
+window enough for the PF and Sharpe bootstrap CIs to clear their gates with margin
+(H10/H22/H25 are PASS but PF-margin is CI-fragile: H13 CI [1.190, 1.425], H25 Robustness
+CI [1.2049, 1.4425], P(PF≥1.3)≈0.5–0.62). Do not run further hypotheses on free data
+— that repeats the H1–H9/H19–H23 pattern (OOS Sharpe 0.2–0.8, PF-CI-fragile).
