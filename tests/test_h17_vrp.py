@@ -99,28 +99,53 @@ class TestArtifacts:
     def test_artifacts_exist(self):
         exp_dir = _latest_h17_dir()
         for name in (
-            "summary.json", "prices.parquet", "volumes.parquet",
-            "vix_close.parquet", "vix3m_close.parquet", "spy_close.parquet",
-            "param_grid_results.parquet", "selected_signals.parquet",
-            "best_equity.parquet", "best_trades.parquet",
-            "benchmark_equity.parquet", "benchmark_returns.parquet",
+            "summary.json",
+            "prices.parquet",
+            "volumes.parquet",
+            "vix_close.parquet",
+            "vix3m_close.parquet",
+            "spy_close.parquet",
+            "param_grid_results.parquet",
+            "selected_signals.parquet",
+            "best_equity.parquet",
+            "best_trades.parquet",
+            "benchmark_equity.parquet",
+            "benchmark_returns.parquet",
         ):
             assert (exp_dir / name).exists(), name
 
     def test_summary_schema(self):
         s = _load_summary(_latest_h17_dir())
         for k in (
-            "experiment_id", "hypothesis", "selected_config",
-            "selection_rule", "grid_size", "n_evaluated",
-            "compute_cpu_hours", "metrics", "passes", "all_pass",
-            "verdict", "svxy_inception",
+            "experiment_id",
+            "hypothesis",
+            "selected_config",
+            "selection_rule",
+            "grid_size",
+            "n_evaluated",
+            "compute_cpu_hours",
+            "metrics",
+            "passes",
+            "all_pass",
+            "verdict",
+            "svxy_inception",
         ):
             assert k in s, k
         for k in (
-            "train_sharpe", "val_sharpe", "test_sharpe", "oos_sharpe",
-            "profit_factor", "max_drawdown", "trades", "wf_stability",
-            "worst_regime_sharpe", "regime_sharpes", "benchmark_p_value",
-            "information_ratio", "benchmark_alpha_annual", "perturbation",
+            "train_sharpe",
+            "val_sharpe",
+            "test_sharpe",
+            "oos_sharpe",
+            "profit_factor",
+            "max_drawdown",
+            "trades",
+            "wf_stability",
+            "worst_regime_sharpe",
+            "regime_sharpes",
+            "benchmark_p_value",
+            "information_ratio",
+            "benchmark_alpha_annual",
+            "perturbation",
             "ablations",
         ):
             assert k in s["metrics"], k
@@ -129,9 +154,14 @@ class TestArtifacts:
         exp_dir = _latest_h17_dir()
         grid = pd.read_parquet(exp_dir / "param_grid_results.parquet")
         assert len(grid) == 60
-        keys = set(zip(
-            grid["gate_thresh"], grid["vol_window"], grid["target_vol"], grid["max_pos"]
-        ))
+        keys = set(
+            zip(
+                grid["gate_thresh"],
+                grid["vol_window"],
+                grid["target_vol"],
+                grid["max_pos"],
+            )
+        )
         assert len(keys) == 60
 
     def test_selection_is_argmax_val_sharpe(self):
@@ -186,7 +216,10 @@ class TestGateRecomputation:
         assert grid.loc[val_max_idx, "gate_thresh"] == sel["gate_thresh"]
         # The selected config may not be the test-sharps maximizing one
         if val_max_idx != test_max_idx:
-            assert grid.loc[test_max_idx, "val_sharpe"] < grid.loc[val_max_idx, "val_sharpe"]
+            assert (
+                grid.loc[test_max_idx, "val_sharpe"]
+                < grid.loc[val_max_idx, "val_sharpe"]
+            )
 
     def test_passes_reflect_gates(self):
         exp_dir = _latest_h17_dir()
@@ -194,10 +227,18 @@ class TestGateRecomputation:
         p = s["passes"]
         assert p["sharpe"] == (s["metrics"]["oos_sharpe"] >= h17.GATES["min_sharpe"])
         assert p["trades"] == (s["metrics"]["trades"] >= h17.GATES["min_trades"])
-        assert p["pf"] == (s["metrics"]["profit_factor"] >= h17.GATES["min_profit_factor"])
-        assert p["dd"] == (abs(s["metrics"]["max_drawdown"]) <= h17.GATES["max_drawdown"])
-        assert p["stab"] == (s["metrics"]["wf_stability"] >= h17.GATES["min_walkforward_stability"])
-        assert p["worst"] == (s["metrics"]["worst_regime_sharpe"] >= h17.GATES["min_worst_regime_sharpe"])
+        assert p["pf"] == (
+            s["metrics"]["profit_factor"] >= h17.GATES["min_profit_factor"]
+        )
+        assert p["dd"] == (
+            abs(s["metrics"]["max_drawdown"]) <= h17.GATES["max_drawdown"]
+        )
+        assert p["stab"] == (
+            s["metrics"]["wf_stability"] >= h17.GATES["min_walkforward_stability"]
+        )
+        assert p["worst"] == (
+            s["metrics"]["worst_regime_sharpe"] >= h17.GATES["min_worst_regime_sharpe"]
+        )
         assert p["perturbation"] == (
             s["metrics"]["perturbation"]["min_perturbed_sharpe_ratio"]
             >= h17.GATES["min_perturbed_sharpe_ratio"]
@@ -212,11 +253,13 @@ class TestGateRecomputation:
         assert s["all_pass"] == all(passes.values())
 
     def test_regime_labels_use_vix_convention(self):
-        vix = pd.concat([
-            pd.Series([10.0], index=pd.to_datetime(["2020-01-01"])),     # bull
-            pd.Series([25.0], index=pd.to_datetime(["2020-02-01"])),     # sideways
-            pd.Series([35.0], index=pd.to_datetime(["2020-03-01"])),     # bear
-        ])
+        vix = pd.concat(
+            [
+                pd.Series([10.0], index=pd.to_datetime(["2020-01-01"])),  # bull
+                pd.Series([25.0], index=pd.to_datetime(["2020-02-01"])),  # sideways
+                pd.Series([35.0], index=pd.to_datetime(["2020-03-01"])),  # bear
+            ]
+        )
         labels = h17.regime_labels(vix)
         assert labels.iloc[0] == "bull"
         assert labels.iloc[1] == "sideways"
@@ -286,7 +329,9 @@ class TestExecutedOutcome:
     def test_h17_worst_regime_sharpe_undefined_in_bear(self):
         s = _load_summary(_latest_h17_dir())
         assert s["metrics"]["worst_regime_sharpe"] < 0
-        assert s["metrics"]["worst_regime_sharpe"] < h17.GATES["min_worst_regime_sharpe"]
+        assert (
+            s["metrics"]["worst_regime_sharpe"] < h17.GATES["min_worst_regime_sharpe"]
+        )
 
 
 def _period_metrics(ret, n_trades, equity):

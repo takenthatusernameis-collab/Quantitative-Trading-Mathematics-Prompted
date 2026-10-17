@@ -126,8 +126,9 @@ class TestTsmomVolScaling:
 
     def test_position_cap_respected(self):
         prices = _trending_prices()
-        sig = vol_scaled_tsmom_signals(prices, lookback=63, skip=1,
-                                       max_position_size=1.5)
+        sig = vol_scaled_tsmom_signals(
+            prices, lookback=63, skip=1, max_position_size=1.5
+        )
         assert (sig.abs() <= 1.5 + 1e-12).all().all(), (
             "weights must respect max_position_size cap"
         )

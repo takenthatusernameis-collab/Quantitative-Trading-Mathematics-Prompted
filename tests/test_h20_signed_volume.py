@@ -170,7 +170,12 @@ class TestArtifacts:
         grid = pd.read_parquet(exp_dir / "param_grid_results.parquet")
         assert len(grid) == 36
         keys = set(
-            zip(grid["sign_rule"], grid["target_vol"], grid["max_pos"], grid["imbalance_lag"])
+            zip(
+                grid["sign_rule"],
+                grid["target_vol"],
+                grid["max_pos"],
+                grid["imbalance_lag"],
+            )
         )
         assert len(keys) == 36
 
@@ -257,15 +262,17 @@ class TestCausality:
             for lag in h20.IMBALANCE_LAGS:
                 for tv in h20.TARGET_VOLS:
                     for mp in h20.MAX_POSITIONS:
-                        t0 = h20.build_targets(
-                            ohlc, rule, tv, mp, lag, vol_window=10
-                        )
+                        t0 = h20.build_targets(ohlc, rule, tv, mp, lag, vol_window=10)
                         # perturb a future volume and a future close price
                         ohlc_pert = ohlc.copy()
                         vol_idx = ohlc_pert.index[55]
                         close_idx = ohlc_pert.index[58]
-                        ohlc_pert.loc[vol_idx, "volume"] = ohlc.loc[vol_idx, "volume"] * 3.0
-                        ohlc_pert.loc[close_idx, "close"] = ohlc.loc[close_idx, "close"] * 1.5
+                        ohlc_pert.loc[vol_idx, "volume"] = (
+                            ohlc.loc[vol_idx, "volume"] * 3.0
+                        )
+                        ohlc_pert.loc[close_idx, "close"] = (
+                            ohlc.loc[close_idx, "close"] * 1.5
+                        )
                         ohlc_pert.loc[close_idx, "high"] = max(
                             ohlc_pert.loc[close_idx, "high"],
                             ohlc_pert.loc[close_idx, "close"],

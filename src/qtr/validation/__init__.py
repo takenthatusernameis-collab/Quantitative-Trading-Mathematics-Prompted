@@ -1,4 +1,5 @@
 """Statistical validation utilities for quantitative trading research."""
+
 from qtr.validation.statistics import (
     bootstrap_confidence_interval,
     capacity_estimate,

@@ -50,8 +50,12 @@ class TestDeflatedSharpeRatio:
         # A Sharpe far above the deflation benchmark survives
         # essentially undeflated with a ~0 p-value.
         dsr, p = h12.deflated_sharpe_ratio(
-            observed_sr=100.0, n_trials=13_824, n_obs=2860,
-            var_trials=0.025, skewness=0.0, kurtosis=3.0,
+            observed_sr=100.0,
+            n_trials=13_824,
+            n_obs=2860,
+            var_trials=0.025,
+            skewness=0.0,
+            kurtosis=3.0,
         )
         assert dsr == pytest.approx(100.0, rel=1e-6)
         assert p == pytest.approx(0.0, abs=1e-6)
@@ -62,16 +66,24 @@ class TestDeflatedSharpeRatio:
         sr0, _ = h12._expected_max_sharpe(13_824, 0.025 / 252)
         observed = sr0 * np.sqrt(252)
         dsr, p = h12.deflated_sharpe_ratio(
-            observed_sr=observed, n_trials=13_824, n_obs=2860,
-            var_trials=0.025, skewness=0.0, kurtosis=3.0,
+            observed_sr=observed,
+            n_trials=13_824,
+            n_obs=2860,
+            var_trials=0.025,
+            skewness=0.0,
+            kurtosis=3.0,
         )
         assert dsr == pytest.approx(observed / 2.0, rel=1e-6)
         assert p == pytest.approx(0.5, abs=1e-6)
 
     def test_below_benchmark_gives_low_dsr(self):
         dsr, p = h12.deflated_sharpe_ratio(
-            observed_sr=0.1, n_trials=13_824, n_obs=2860,
-            var_trials=0.025, skewness=0.0, kurtosis=3.0,
+            observed_sr=0.1,
+            n_trials=13_824,
+            n_obs=2860,
+            var_trials=0.025,
+            skewness=0.0,
+            kurtosis=3.0,
         )
         assert dsr < 0.05
         assert p > 0.9
@@ -79,8 +91,12 @@ class TestDeflatedSharpeRatio:
     def test_bounded_by_observed_sr(self):
         for sr in (0.5, 1.0, 1.4134, 3.0):
             dsr, p = h12.deflated_sharpe_ratio(
-                observed_sr=sr, n_trials=13_824, n_obs=2860,
-                var_trials=0.025, skewness=1.4, kurtosis=29.0,
+                observed_sr=sr,
+                n_trials=13_824,
+                n_obs=2860,
+                var_trials=0.025,
+                skewness=1.4,
+                kurtosis=29.0,
             )
             assert 0.0 <= dsr <= sr
             assert 0.0 <= p <= 1.0

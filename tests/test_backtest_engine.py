@@ -39,8 +39,11 @@ def _make_prices(n: int = 100, seed: int = 42, symbols=("A", "B")) -> pd.DataFra
 def _make_config(**overrides) -> BacktestConfig:
     defaults = {
         "initial_capital": 1_000_000.0,
-        "cost_model": CostModel(equity_commission_bps=0.0, equity_spread_bps=0.0,
-                             equity_impact_bps_per_pct_adv=0.0),
+        "cost_model": CostModel(
+            equity_commission_bps=0.0,
+            equity_spread_bps=0.0,
+            equity_impact_bps_per_pct_adv=0.0,
+        ),
         "asset_class": AssetClass.EQUITY,
         "max_position_size": 1.0,
         "max_leverage": 1.0,
@@ -57,7 +60,9 @@ class TestConstraints:
     def test_leverage_normalization(self):
         """Gross leverage must be normalized down to max_leverage."""
         prices = _make_prices(symbols=("A", "B"))
-        signals = pd.DataFrame(2.0, index=prices.index, columns=prices.columns)  # gross = 4
+        signals = pd.DataFrame(
+            2.0, index=prices.index, columns=prices.columns
+        )  # gross = 4
         cfg = _make_config(max_leverage=1.0)
         res = run_backtest(prices=prices, signals=signals, config=cfg)
         gross = res.positions.abs().sum(axis=1)
@@ -65,7 +70,9 @@ class TestConstraints:
 
     def test_leverage_not_normalized_when_within_limit(self):
         prices = _make_prices(symbols=("A", "B"))
-        signals = pd.DataFrame(0.25, index=prices.index, columns=prices.columns)  # gross = 0.5
+        signals = pd.DataFrame(
+            0.25, index=prices.index, columns=prices.columns
+        )  # gross = 0.5
         cfg = _make_config(max_leverage=1.0)
         res = run_backtest(prices=prices, signals=signals, config=cfg)
         gross = res.positions.abs().sum(axis=1)
@@ -107,7 +114,7 @@ class TestLookAheadSafety:
         cfg = _make_config()  # zero costs
         res = run_backtest(prices=prices, signals=signals, config=cfg)
         asset_ret = prices["A"].pct_change().fillna(0)
-        assert res.returns.iloc[0] == pytest.approx(0.0)          # day 0: no exposure yet
+        assert res.returns.iloc[0] == pytest.approx(0.0)  # day 0: no exposure yet
         assert res.returns.iloc[1] == pytest.approx(asset_ret.iloc[1])
 
     def test_flat_signals_give_zero_returns(self):
@@ -135,8 +142,8 @@ class TestReturnsAndTrades:
         # so the position holds until the next explicit target weight.
         signals = pd.DataFrame({"A": np.nan}, index=prices.index)
         signals.iloc[0] = 1.0
-        signals.iloc[50] = 0.0   # exit
-        signals.iloc[70] = 0.5   # re-enter half
+        signals.iloc[50] = 0.0  # exit
+        signals.iloc[70] = 0.5  # re-enter half
         res = run_backtest(prices=prices, signals=signals, config=_make_config())
         # nonzero position changes: day 0 (1.0), day 50 (-1.0), day 70 (+0.5)
         assert len(res.trades) == 3
@@ -177,7 +184,9 @@ class TestMetrics:
     def test_positive_sharpe_for_trending_asset(self):
         rng = np.random.default_rng(3)
         index = pd.bdate_range("2020-01-01", periods=252)
-        prices = pd.DataFrame({"A": np.cumsum(rng.normal(0.001, 0.005, 252)) + 100.0}, index=index)
+        prices = pd.DataFrame(
+            {"A": np.cumsum(rng.normal(0.001, 0.005, 252)) + 100.0}, index=index
+        )
         signals = pd.DataFrame(1.0, index=index, columns=["A"])
         res = run_backtest(prices=prices, signals=signals, config=_make_config())
         assert res.metrics["sharpe"] > 0
@@ -194,7 +203,9 @@ class TestMetrics:
     def test_profit_factor_all_gains_is_inf(self):
         rng = np.random.default_rng(5)
         index = pd.bdate_range("2020-01-01", periods=100)
-        prices = pd.DataFrame({"A": np.cumsum(rng.normal(0.002, 0.001, 100)) + 100.0}, index=index)
+        prices = pd.DataFrame(
+            {"A": np.cumsum(rng.normal(0.002, 0.001, 100)) + 100.0}, index=index
+        )
         signals = pd.DataFrame(1.0, index=index, columns=["A"])
         res = run_backtest(prices=prices, signals=signals, config=_make_config())
         assert res.metrics["profit_factor"] == np.inf
@@ -216,8 +227,9 @@ class TestOtherAssetClasses:
         prices = _make_prices(symbols=("ES",))
         signals = pd.DataFrame({"ES": 0.0}, index=prices.index)
         signals.iloc[0] = 1.0
-        cfg = _make_config(asset_class=AssetClass.FUTURE, max_leverage=5.0,
-                           max_position_size=5.0)
+        cfg = _make_config(
+            asset_class=AssetClass.FUTURE, max_leverage=5.0, max_position_size=5.0
+        )
         cfg.cost_model.future_commission_per_contract = 0.50
         cfg.cost_model.future_contract_multiplier = 50.0  # ES multiplier
         res = run_backtest(prices=prices, signals=signals, config=cfg)
@@ -234,20 +246,26 @@ class TestOtherAssetClasses:
         signals = pd.DataFrame({"ES": 0.0}, index=prices.index)
         signals.iloc[0] = 1.0
 
-        cfg1 = _make_config(asset_class=AssetClass.FUTURE, max_leverage=5.0,
-                            max_position_size=5.0)
+        cfg1 = _make_config(
+            asset_class=AssetClass.FUTURE, max_leverage=5.0, max_position_size=5.0
+        )
         cfg1.cost_model.future_commission_per_contract = 0.50
         cfg1.cost_model.future_contract_multiplier = 50.0
         res1 = run_backtest(prices=prices, signals=signals, config=cfg1)
 
-        cfg2 = _make_config(asset_class=AssetClass.FUTURE, max_leverage=5.0,
-                            max_position_size=5.0)
+        cfg2 = _make_config(
+            asset_class=AssetClass.FUTURE, max_leverage=5.0, max_position_size=5.0
+        )
         cfg2.cost_model.future_commission_per_contract = 0.50
-        cfg2.cost_model.future_contract_multiplier = 100.0  # 2x multiplier -> 1/2 contracts
+        cfg2.cost_model.future_contract_multiplier = (
+            100.0  # 2x multiplier -> 1/2 contracts
+        )
         res2 = run_backtest(prices=prices, signals=signals, config=cfg2)
 
         # Double multiplier should halve the cost (and thus halve the negative return)
-        assert res2.returns.iloc[0] == pytest.approx(res1.returns.iloc[0] / 2, abs=1e-12)
+        assert res2.returns.iloc[0] == pytest.approx(
+            res1.returns.iloc[0] / 2, abs=1e-12
+        )
 
     def test_future_cost_path_scales_with_weight(self):
         """Cost should scale linearly with position weight change."""
@@ -255,8 +273,9 @@ class TestOtherAssetClasses:
         signals = pd.DataFrame({"ES": 0.0}, index=prices.index)
         signals.iloc[0] = 2.0  # 2x weight
 
-        cfg = _make_config(asset_class=AssetClass.FUTURE, max_leverage=5.0,
-                           max_position_size=5.0)
+        cfg = _make_config(
+            asset_class=AssetClass.FUTURE, max_leverage=5.0, max_position_size=5.0
+        )
         cfg.cost_model.future_commission_per_contract = 0.50
         cfg.cost_model.future_contract_multiplier = 50.0
         res = run_backtest(prices=prices, signals=signals, config=cfg)
@@ -273,8 +292,9 @@ class TestOtherAssetClasses:
         prices = _make_prices(symbols=("BTC",))
         signals = pd.DataFrame({"BTC": 0.0}, index=prices.index)
         signals.iloc[0] = 1.0
-        cfg = _make_config(asset_class=AssetClass.CRYPTO, max_leverage=5.0,
-                           max_position_size=5.0)
+        cfg = _make_config(
+            asset_class=AssetClass.CRYPTO, max_leverage=5.0, max_position_size=5.0
+        )
         res = run_backtest(prices=prices, signals=signals, config=cfg)
         # default crypto cost: 5 + 2 + 0 = 7 bps
         assert res.returns.iloc[0] == pytest.approx(-7.0 / 10_000, abs=1e-12)
@@ -284,8 +304,9 @@ class TestOtherAssetClasses:
         prices = _make_prices(symbols=("ES",))
         signals = pd.DataFrame({"ES": 0.0}, index=prices.index)
         signals.iloc[0] = 1.0
-        cfg = _make_config(asset_class=AssetClass.FUTURE, max_leverage=5.0,
-                           max_position_size=5.0)
+        cfg = _make_config(
+            asset_class=AssetClass.FUTURE, max_leverage=5.0, max_position_size=5.0
+        )
         cfg.cost_model.futures_specs = {
             "ES": {
                 "multiplier": 100.0,

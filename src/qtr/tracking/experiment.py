@@ -22,6 +22,7 @@ from qtr.utils.config import get_config
 @dataclass
 class ExperimentMetadata:
     """Metadata for experiment reproducibility."""
+
     experiment_id: str
     name: str
     description: str
@@ -39,6 +40,7 @@ class ExperimentMetadata:
 @dataclass
 class ExperimentResult:
     """Container for experiment results."""
+
     metadata: ExperimentMetadata
     metrics: dict[str, float]
     artifacts: dict[str, str]  # artifact_name -> file_path
@@ -57,7 +59,9 @@ class ExperimentTracker:
     """
 
     def __init__(self, log_dir: Path | None = None):
-        self.log_dir = log_dir or Path(get_config().get("tracking.log_dir", ".experiments"))
+        self.log_dir = log_dir or Path(
+            get_config().get("tracking.log_dir", ".experiments")
+        )
         self.log_dir.mkdir(parents=True, exist_ok=True)
         self.current_experiment: ExperimentMetadata | None = None
         self.current_results: dict[str, Any] = {}
@@ -125,7 +129,9 @@ class ExperimentTracker:
         for name, value in metrics.items():
             self.log_metric(name, value, step)
 
-    def log_artifact(self, name: str, file_path: Path, metadata: dict[str, Any] | None = None) -> str:
+    def log_artifact(
+        self, name: str, file_path: Path, metadata: dict[str, Any] | None = None
+    ) -> str:
         """Log an artifact file, return its hash."""
         if self.current_experiment is None:
             raise RuntimeError("No active experiment. Call start_experiment() first.")
@@ -151,25 +157,33 @@ class ExperimentTracker:
         logger.debug(f"Logged artifact: {artifact_name}")
         return file_hash
 
-    def log_dataframe(self, name: str, df: pd.DataFrame, metadata: dict[str, Any] | None = None) -> str:
+    def log_dataframe(
+        self, name: str, df: pd.DataFrame, metadata: dict[str, Any] | None = None
+    ) -> str:
         """Log a DataFrame as parquet artifact."""
-        artifact_dir = self.log_dir / "artifacts" / self.current_experiment.experiment_id
+        artifact_dir = (
+            self.log_dir / "artifacts" / self.current_experiment.experiment_id
+        )
         artifact_dir.mkdir(parents=True, exist_ok=True)
 
         file_path = artifact_dir / f"{name}.parquet"
         df.to_parquet(file_path)
 
         meta = metadata or {}
-        meta.update({
-            "shape": df.shape,
-            "columns": df.columns.tolist(),
-            "dtypes": {str(k): str(v) for k, v in df.dtypes.to_dict().items()},
-            "index_type": str(df.index.dtype),
-        })
+        meta.update(
+            {
+                "shape": df.shape,
+                "columns": df.columns.tolist(),
+                "dtypes": {str(k): str(v) for k, v in df.dtypes.to_dict().items()},
+                "index_type": str(df.index.dtype),
+            }
+        )
 
         return self.log_artifact(name, file_path, meta)
 
-    def finish_experiment(self, status: str = "completed", error: str | None = None) -> ExperimentResult:
+    def finish_experiment(
+        self, status: str = "completed", error: str | None = None
+    ) -> ExperimentResult:
         """Finish the current experiment and persist results."""
         if self.current_experiment is None:
             raise RuntimeError("No active experiment.")
@@ -185,7 +199,9 @@ class ExperimentTracker:
         # Save experiment record
         self._save_experiment(result)
 
-        logger.info(f"Finished experiment: {self.current_experiment.experiment_id} ({status})")
+        logger.info(
+            f"Finished experiment: {self.current_experiment.experiment_id} ({status})"
+        )
         self.current_experiment = None
         return result
 
@@ -207,12 +223,17 @@ class ExperimentTracker:
     def _get_git_info(self) -> tuple[str, bool]:
         """Get current git commit and dirty status."""
         try:
-            commit = subprocess.check_output(
-                ["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL
-            ).decode().strip()
-            dirty = subprocess.call(
-                ["git", "diff", "--quiet"], stderr=subprocess.DEVNULL
-            ) != 0
+            commit = (
+                subprocess.check_output(
+                    ["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL
+                )
+                .decode()
+                .strip()
+            )
+            dirty = (
+                subprocess.call(["git", "diff", "--quiet"], stderr=subprocess.DEVNULL)
+                != 0
+            )
             return commit, dirty
         except Exception:  # noqa: BLE001 -- git unavailable outside a repo; degrade gracefully
             return "unknown", False
@@ -221,6 +242,7 @@ class ExperimentTracker:
         """Get installed package versions."""
         try:
             import pkg_resources
+
             return {d.key: d.version for d in pkg_resources.working_set}
         except Exception:  # noqa: BLE001 -- pkg_resources unavailable; degrade gracefully
             return {}
@@ -255,13 +277,15 @@ class ExperimentTracker:
             for line in f:
                 record = json.loads(line)
                 meta = record["metadata"]
-                experiments.append({
-                    "experiment_id": meta["experiment_id"],
-                    "name": meta["name"],
-                    "timestamp": meta["timestamp"],
-                    "status": record["status"],
-                    "metrics": record["metrics"],
-                })
+                experiments.append(
+                    {
+                        "experiment_id": meta["experiment_id"],
+                        "name": meta["name"],
+                        "timestamp": meta["timestamp"],
+                        "status": record["status"],
+                        "metrics": record["metrics"],
+                    }
+                )
 
         return sorted(experiments, key=lambda x: x["timestamp"], reverse=True)[:limit]
 

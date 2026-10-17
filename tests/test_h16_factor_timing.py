@@ -71,7 +71,13 @@ class TestPreRegistration:
         }
 
     def test_grid_is_the_pre_registered_54_combos(self):
-        assert len(h16.LOOKBACKS) * len(h16.SKIPS) * len(h16.REGIME_EXPOSURES) * len(h16.N_FACTORS_OPTS) == 54
+        assert (
+            len(h16.LOOKBACKS)
+            * len(h16.SKIPS)
+            * len(h16.REGIME_EXPOSURES)
+            * len(h16.N_FACTORS_OPTS)
+            == 54
+        )
         assert h16.LOOKBACKS == [63, 126, 252]
         assert h16.SKIPS == [1, 5, 21]
         assert h16.REGIME_EXPOSURES == [(1.0, 0.5, 0.25), (1.0, 0.25, 0.10)]
@@ -79,7 +85,15 @@ class TestPreRegistration:
 
     def test_universe_is_the_pre_registered_9_etfs(self):
         assert set(h16.UNIVERSE) == {
-            "VLUE", "IJS", "VTV", "MTUM", "QQQ", "SPYG", "QUAL", "SPHQ", "USMF",
+            "VLUE",
+            "IJS",
+            "VTV",
+            "MTUM",
+            "QQQ",
+            "SPYG",
+            "QUAL",
+            "SPHQ",
+            "USMF",
         }
         assert h16.FACTOR_FAMILIES == {
             "value": ["VLUE", "IJS", "VTV"],
@@ -98,28 +112,52 @@ class TestArtifacts:
     def test_artifacts_exist(self):
         exp_dir = _latest_h16_dir()
         for name in (
-            "summary.json", "prices.parquet", "volumes.parquet",
-            "vix_close.parquet", "param_grid_results.parquet",
-            "selected_signals.parquet", "best_equity.parquet",
-            "best_trades.parquet", "benchmark_equity.parquet",
-            "benchmark_returns.parquet", "family_exposure.parquet",
+            "summary.json",
+            "prices.parquet",
+            "volumes.parquet",
+            "vix_close.parquet",
+            "param_grid_results.parquet",
+            "selected_signals.parquet",
+            "best_equity.parquet",
+            "best_trades.parquet",
+            "benchmark_equity.parquet",
+            "benchmark_returns.parquet",
+            "family_exposure.parquet",
         ):
             assert (exp_dir / name).exists(), name
 
     def test_summary_schema(self):
         s = _load_summary(_latest_h16_dir())
         for k in (
-            "experiment_id", "hypothesis", "selected_config",
-            "selection_rule", "grid_size", "n_evaluated",
-            "compute_cpu_hours", "metrics", "passes", "all_pass",
-            "verdict", "inception_dates",
+            "experiment_id",
+            "hypothesis",
+            "selected_config",
+            "selection_rule",
+            "grid_size",
+            "n_evaluated",
+            "compute_cpu_hours",
+            "metrics",
+            "passes",
+            "all_pass",
+            "verdict",
+            "inception_dates",
         ):
             assert k in s, k
         for k in (
-            "train_sharpe", "val_sharpe", "test_sharpe", "oos_sharpe",
-            "profit_factor", "max_drawdown", "trades", "wf_stability",
-            "worst_regime_sharpe", "regime_sharpes", "benchmark_p_value",
-            "information_ratio", "perturbation", "ablations",
+            "train_sharpe",
+            "val_sharpe",
+            "test_sharpe",
+            "oos_sharpe",
+            "profit_factor",
+            "max_drawdown",
+            "trades",
+            "wf_stability",
+            "worst_regime_sharpe",
+            "regime_sharpes",
+            "benchmark_p_value",
+            "information_ratio",
+            "perturbation",
+            "ablations",
         ):
             assert k in s["metrics"], k
         assert s["hypothesis"] == "H16"
@@ -132,8 +170,15 @@ class TestArtifacts:
         assert s["all_pass"] == all(s["passes"].values())
         assert s["verdict"] == ("PASS" if s["all_pass"] else "REJECT")
         assert set(s["passes"]) == {
-            "sharpe", "trades", "pf", "dd", "stab",
-            "worst", "p", "ir", "perturbation",
+            "sharpe",
+            "trades",
+            "pf",
+            "dd",
+            "stab",
+            "worst",
+            "p",
+            "ir",
+            "perturbation",
         }
 
 
@@ -183,9 +228,10 @@ class TestGridAndSelection:
         assert set(grid["skip"]) == {1, 5, 21}
         assert set(grid["n_factors"]) == {1, 2, 3}
         assert len(set(grid["regime_exposure"])) == 2
-        assert grid.duplicated(
-            ["lookback", "skip", "regime_exposure", "n_factors"]
-        ).sum() == 0
+        assert (
+            grid.duplicated(["lookback", "skip", "regime_exposure", "n_factors"]).sum()
+            == 0
+        )
 
     def test_selection_is_argmax_train_wf_sharpe(self):
         exp_dir = _latest_h16_dir()
@@ -226,14 +272,10 @@ class TestSignalInvariants:
 
     def test_targets_do_not_look_into_the_future(self):
         prices, vix = self._prices_vix()
-        t1 = h16.build_daily_targets(
-            prices, vix, 63, 5, (1.0, 0.5, 0.25), 2
-        )
+        t1 = h16.build_daily_targets(prices, vix, 63, 5, (1.0, 0.5, 0.25), 2)
         p2 = prices.copy()
         p2.iloc[-100:] = p2.iloc[-100:] * 1.07  # perturb the future
-        t2 = h16.build_daily_targets(
-            p2, vix, 63, 5, (1.0, 0.5, 0.25), 2
-        )
+        t2 = h16.build_daily_targets(p2, vix, 63, 5, (1.0, 0.5, 0.25), 2)
         # targets at t use prices only through t - skip - lookback;
         # with the last 100 days perturbed, everything before
         # index[-100] is provably unaffected (conservative cut).
@@ -280,7 +322,9 @@ class TestSignalInvariants:
         assert (t1.values == t2.values).all()
 
     def test_regime_factor_thresholds(self):
-        vix = pd.Series([15.0, 25.0, 35.0], index=pd.bdate_range("2020-01-01", periods=3))
+        vix = pd.Series(
+            [15.0, 25.0, 35.0], index=pd.bdate_range("2020-01-01", periods=3)
+        )
         f = h16.regime_factor_series(vix, (1.0, 0.5, 0.25))
         assert f.iloc[0] == 1.0
         assert f.iloc[1] == 0.5
@@ -298,8 +342,7 @@ class TestExecutedOutcome:
         # gate as well as the Sharpe/PF/DD/stability/regime/
         # benchmark gates.
         assert s["passes"]["perturbation"] is True
-        for g in ("sharpe", "trades", "pf", "dd", "stab",
-                  "worst", "p", "ir"):
+        for g in ("sharpe", "trades", "pf", "dd", "stab", "worst", "p", "ir"):
             assert s["passes"][g] is False, g
 
     def test_oos_sharpe_below_gate(self):
@@ -320,7 +363,14 @@ class TestExecutedOutcome:
     def test_perturbation_gate_evaluated(self):
         s = _load_summary(_latest_h16_dir())
         pert = s["metrics"]["perturbation"]
-        assert set(pert["variants"]) == {
-            "lookback=50", "lookback=76", "skip=4", "skip=6",
-        } or len(pert["variants"]) == 4
+        assert (
+            set(pert["variants"])
+            == {
+                "lookback=50",
+                "lookback=76",
+                "skip=4",
+                "skip=6",
+            }
+            or len(pert["variants"]) == 4
+        )
         assert 0.0 <= pert["min_perturbed_sharpe_ratio"] <= 1.0

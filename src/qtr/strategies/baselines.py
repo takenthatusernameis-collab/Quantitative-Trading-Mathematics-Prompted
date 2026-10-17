@@ -262,7 +262,11 @@ def time_series_momentum_signals(
                 weight = 0.0
 
             # Volatility scaling
-            if volatility_scale and realized_vol is not None and symbol in realized_vol.columns:
+            if (
+                volatility_scale
+                and realized_vol is not None
+                and symbol in realized_vol.columns
+            ):
                 vol = realized_vol.loc[date, symbol]
                 if vol > 0:
                     # Scale to target volatility
@@ -394,7 +398,9 @@ STRATEGY_REGISTRY = {
 def get_strategy(name: str):
     """Get strategy function by name."""
     if name not in STRATEGY_REGISTRY:
-        raise ValueError(f"Unknown strategy: {name}. Available: {list(STRATEGY_REGISTRY.keys())}")
+        raise ValueError(
+            f"Unknown strategy: {name}. Available: {list(STRATEGY_REGISTRY.keys())}"
+        )
     return STRATEGY_REGISTRY[name]
 
 

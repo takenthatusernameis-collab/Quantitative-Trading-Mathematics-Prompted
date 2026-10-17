@@ -166,9 +166,7 @@ class TestProbeLiveExtension:
             def fetch_futures(self, symbols, *a, **k):
                 idx = pd.date_range("2026-10-01", periods=250, freq="h")
                 return {
-                    s: pd.DataFrame(
-                        {"close": 100.0 + np.arange(250)}, index=idx
-                    )
+                    s: pd.DataFrame({"close": 100.0 + np.arange(250)}, index=idx)
                     for s in symbols
                 }
 
@@ -186,7 +184,13 @@ class TestPerturbationList:
             )
 
     def test_joint_perturbations_cover_all_numeric_params(self):
-        numeric = {"vol_window_long", "trailing_mult", "max_hold_bars",
-                   "vol_limit_mult", "vol_floor_fraction", "target_vol"}
+        numeric = {
+            "vol_window_long",
+            "trailing_mult",
+            "max_hold_bars",
+            "vol_limit_mult",
+            "vol_floor_fraction",
+            "target_vol",
+        }
         for _, overrides in h11.JOINT_PERTURBATIONS:
             assert set(overrides) == numeric

@@ -66,9 +66,13 @@ def sharpe_ratio_ci(
     random_state: int | None = None,
 ) -> tuple[float, float]:
     """Bootstrap confidence interval for Sharpe ratio."""
+
     def sharpe_func(x):
         return sharpe_ratio(x, risk_free, periods_per_year)
-    return bootstrap_confidence_interval(returns, sharpe_func, confidence, n_bootstrap, random_state)
+
+    return bootstrap_confidence_interval(
+        returns, sharpe_func, confidence, n_bootstrap, random_state
+    )
 
 
 def walk_forward_splits(
@@ -140,7 +144,9 @@ def multiple_testing_correction(
             adjusted[idx] = min(sorted_p[i] * n / (i + 1), 1.0)
         # Ensure monotonicity
         for i in range(n - 2, -1, -1):
-            adjusted[sorted_idx[i]] = min(adjusted[sorted_idx[i]], adjusted[sorted_idx[i + 1]])
+            adjusted[sorted_idx[i]] = min(
+                adjusted[sorted_idx[i]], adjusted[sorted_idx[i + 1]]
+            )
         rejected = adjusted < alpha
     else:
         raise ValueError(f"Unknown method: {method}")
@@ -315,7 +321,9 @@ def capacity_estimate(
 
     results["max_participation_rate"] = max_participation_rate
     results["estimated_max_aum"] = max_aum
-    results["sharpe_at_max_aum"] = sharpe_ratio(returns - impact_model(max_participation_rate) / 10000)
+    results["sharpe_at_max_aum"] = sharpe_ratio(
+        returns - impact_model(max_participation_rate) / 10000
+    )
 
     return results
 
@@ -347,12 +355,20 @@ def compare_to_benchmark(
     excess = strat - bench
 
     # Information ratio
-    ir = excess.mean() / excess.std() * np.sqrt(periods_per_year) if excess.std() > 0 else 0
+    ir = (
+        excess.mean() / excess.std() * np.sqrt(periods_per_year)
+        if excess.std() > 0
+        else 0
+    )
 
     # Alpha / Beta (CAPM)
     if bench.std() > 0:
         beta = np.cov(strat, bench)[0, 1] / np.var(bench)
-        alpha = strat.mean() - risk_free / periods_per_year - beta * (bench.mean() - risk_free / periods_per_year)
+        alpha = (
+            strat.mean()
+            - risk_free / periods_per_year
+            - beta * (bench.mean() - risk_free / periods_per_year)
+        )
         alpha_annual = alpha * periods_per_year
     else:
         beta = 0
@@ -395,6 +411,7 @@ def statistical_power_analysis(
         Required sample size per group
     """
     from scipy.stats import norm
+
     z_alpha = norm.ppf(1 - alpha / 2)
     z_beta = norm.ppf(power)
     n = 2 * ((z_alpha + z_beta) * std / effect_size) ** 2
@@ -470,12 +487,14 @@ def validate_strategy(
         "total_return": total_return,
     }
 
-    results["all_pass"] = all([
-        results["sharpe_pass"],
-        results["trades_pass"],
-        results["profit_factor_pass"],
-        results["drawdown_pass"],
-        results["walkforward_pass"],
-    ])
+    results["all_pass"] = all(
+        [
+            results["sharpe_pass"],
+            results["trades_pass"],
+            results["profit_factor_pass"],
+            results["drawdown_pass"],
+            results["walkforward_pass"],
+        ]
+    )
 
     return results

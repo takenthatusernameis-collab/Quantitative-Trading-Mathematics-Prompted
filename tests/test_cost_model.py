@@ -122,27 +122,45 @@ class TestCostUnitsRegression:
             )
 
     def test_cost_scales_linearly_with_weight_delta(self):
-        cm = CostModel(equity_commission_bps=1.0, equity_spread_bps=1.0,
-                       equity_impact_bps_per_pct_adv=0.0)
+        cm = CostModel(
+            equity_commission_bps=1.0,
+            equity_spread_bps=1.0,
+            equity_impact_bps_per_pct_adv=0.0,
+        )
         prices = self._single_asset_prices(100.0)
         cfg = BacktestConfig(
-            initial_capital=1_000_000.0, cost_model=cm,
-            asset_class=AssetClass.EQUITY, max_position_size=1.0,
-            max_leverage=1.0, allow_short=False,
+            initial_capital=1_000_000.0,
+            cost_model=cm,
+            asset_class=AssetClass.EQUITY,
+            max_position_size=1.0,
+            max_leverage=1.0,
+            allow_short=False,
         )
-        half = run_backtest(prices=prices, signals=self._step_signals(prices.index, 0.5), config=cfg)
-        full = run_backtest(prices=prices, signals=self._step_signals(prices.index, 1.0), config=cfg)
-        assert half.returns.iloc[0] == pytest.approx(full.returns.iloc[0] / 2.0, abs=1e-12)
+        half = run_backtest(
+            prices=prices, signals=self._step_signals(prices.index, 0.5), config=cfg
+        )
+        full = run_backtest(
+            prices=prices, signals=self._step_signals(prices.index, 1.0), config=cfg
+        )
+        assert half.returns.iloc[0] == pytest.approx(
+            full.returns.iloc[0] / 2.0, abs=1e-12
+        )
 
     def test_zero_cost_model_gives_zero_cost(self):
-        cm = CostModel(equity_commission_bps=0.0, equity_spread_bps=0.0,
-                       equity_impact_bps_per_pct_adv=0.0)
+        cm = CostModel(
+            equity_commission_bps=0.0,
+            equity_spread_bps=0.0,
+            equity_impact_bps_per_pct_adv=0.0,
+        )
         prices = self._single_asset_prices(100.0)
         signals = self._step_signals(prices.index)
         cfg = BacktestConfig(
-            initial_capital=1_000_000.0, cost_model=cm,
-            asset_class=AssetClass.EQUITY, max_position_size=1.0,
-            max_leverage=1.0, allow_short=False,
+            initial_capital=1_000_000.0,
+            cost_model=cm,
+            asset_class=AssetClass.EQUITY,
+            max_position_size=1.0,
+            max_leverage=1.0,
+            allow_short=False,
         )
         res = run_backtest(prices=prices, signals=signals, config=cfg)
         gross = prices.pct_change().fillna(0)
@@ -152,12 +170,31 @@ class TestCostUnitsRegression:
     def test_higher_costs_reduce_equity(self):
         prices = self._single_asset_prices(100.0)
         signals = self._step_signals(prices.index)
-        base = {"initial_capital": 1_000_000.0, "asset_class": AssetClass.EQUITY,
-                    "max_position_size": 1.0, "max_leverage": 1.0, "allow_short": False}
-        cheap = run_backtest(prices=prices, signals=signals, config=BacktestConfig(
-            cost_model=CostModel(equity_commission_bps=1.0, equity_spread_bps=1.0), **base))
-        expensive = run_backtest(prices=prices, signals=signals, config=BacktestConfig(
-            cost_model=CostModel(equity_commission_bps=10.0, equity_spread_bps=10.0), **base))
+        base = {
+            "initial_capital": 1_000_000.0,
+            "asset_class": AssetClass.EQUITY,
+            "max_position_size": 1.0,
+            "max_leverage": 1.0,
+            "allow_short": False,
+        }
+        cheap = run_backtest(
+            prices=prices,
+            signals=signals,
+            config=BacktestConfig(
+                cost_model=CostModel(equity_commission_bps=1.0, equity_spread_bps=1.0),
+                **base,
+            ),
+        )
+        expensive = run_backtest(
+            prices=prices,
+            signals=signals,
+            config=BacktestConfig(
+                cost_model=CostModel(
+                    equity_commission_bps=10.0, equity_spread_bps=10.0
+                ),
+                **base,
+            ),
+        )
         assert expensive.equity_curve.iloc[-1] < cheap.equity_curve.iloc[-1]
 
 
@@ -168,8 +205,11 @@ class TestEquityImpactModel:
     def test_participation_impact_increases_cost(self):
         """With ADV provided, a large weight delta on a thin symbol
         incurs market-impact cost on top of commission + spread."""
-        cm = CostModel(equity_commission_bps=1.0, equity_spread_bps=1.0,
-                       equity_impact_bps_per_pct_adv=0.1)
+        cm = CostModel(
+            equity_commission_bps=1.0,
+            equity_spread_bps=1.0,
+            equity_impact_bps_per_pct_adv=0.1,
+        )
         n = 60
         rng = np.random.default_rng(1)
         index = pd.bdate_range("2020-01-01", periods=n)
@@ -180,16 +220,24 @@ class TestEquityImpactModel:
         signals.iloc[0] = 1.0
         # ADV of 10k shares: 1.0 weight * $1M / $100 = 10k shares = 100% ADV
         adv = pd.Series({"THIN": 10_000.0})
-        cfg = BacktestConfig(initial_capital=1_000_000.0, cost_model=cm,
-                             asset_class=AssetClass.EQUITY, max_position_size=1.0,
-                             max_leverage=1.0, allow_short=False)
+        cfg = BacktestConfig(
+            initial_capital=1_000_000.0,
+            cost_model=cm,
+            asset_class=AssetClass.EQUITY,
+            max_position_size=1.0,
+            max_leverage=1.0,
+            allow_short=False,
+        )
         res = run_backtest(prices=prices, signals=signals, adv=adv, config=cfg)
         # commission+spread = 2 bps; impact = 0.1 bps per 1% * 100% = 10 bps => 12 bps
         assert res.returns.iloc[0] == pytest.approx(-12.0 / 10_000, abs=1e-9)
 
     def test_missing_adv_defaults_to_zero_impact(self):
-        cm = CostModel(equity_commission_bps=1.0, equity_spread_bps=1.0,
-                       equity_impact_bps_per_pct_adv=0.1)
+        cm = CostModel(
+            equity_commission_bps=1.0,
+            equity_spread_bps=1.0,
+            equity_impact_bps_per_pct_adv=0.1,
+        )
         n = 60
         rng = np.random.default_rng(1)
         index = pd.bdate_range("2020-01-01", periods=n)
@@ -197,8 +245,13 @@ class TestEquityImpactModel:
         prices = pd.DataFrame({"SYM": 100.0 * np.exp(path)}, index=index)
         signals = pd.DataFrame({"SYM": np.nan}, index=index)
         signals.iloc[0] = 1.0
-        cfg = BacktestConfig(initial_capital=1_000_000.0, cost_model=cm,
-                             asset_class=AssetClass.EQUITY, max_position_size=1.0,
-                             max_leverage=1.0, allow_short=False)
+        cfg = BacktestConfig(
+            initial_capital=1_000_000.0,
+            cost_model=cm,
+            asset_class=AssetClass.EQUITY,
+            max_position_size=1.0,
+            max_leverage=1.0,
+            allow_short=False,
+        )
         res = run_backtest(prices=prices, signals=signals, config=cfg)
         assert res.returns.iloc[0] == pytest.approx(-2.0 / 10_000, abs=1e-12)

@@ -3,7 +3,12 @@
 import re
 from pathlib import Path
 
-PROBE_PATH = Path(__file__).parent.parent / ".experiments" / "probes" / "extended_data_feasibility_probe.md"
+PROBE_PATH = (
+    Path(__file__).parent.parent
+    / ".experiments"
+    / "probes"
+    / "extended_data_feasibility_probe.md"
+)
 
 
 REQUIRED_FIELDS = [
@@ -28,7 +33,7 @@ def test_probe_report_required_fields():
     # Check for required field sections (markdown headers or table rows)
     for field in REQUIRED_FIELDS:
         # Match as markdown header (### or ####) or table row
-        pattern = rf"(?:^#{1,4}\s+.*{field}.*$|^\|.*{field}.*\|$)"
+        pattern = rf"(?:^#{1, 4}\s+.*{field}.*$|^\|.*{field}.*\|$)"
         assert re.search(pattern, content, re.IGNORECASE | re.MULTILINE), (
             f"Required field '{field}' not found in probe report"
         )
@@ -42,7 +47,11 @@ def test_probe_report_structure():
     assert "Executive Summary" in content or "executive summary" in content.lower()
 
     # Must have verdict/conclusion
-    assert "Verdict" in content or "verdict" in content.lower() or "Recommendation" in content
+    assert (
+        "Verdict" in content
+        or "verdict" in content.lower()
+        or "Recommendation" in content
+    )
 
     # Must reference H13/H14 results
     assert "H13" in content
@@ -58,16 +67,25 @@ def test_probe_report_structure():
 def test_probe_report_no_network_fetches():
     """Probe report explicitly states no network fetches were performed."""
     content = PROBE_PATH.read_text()
-    assert "no external network fetches" in content.lower() or "no network" in content.lower()
+    assert (
+        "no external network fetches" in content.lower()
+        or "no network" in content.lower()
+    )
 
 
 def test_probe_report_readonly():
     """Probe report states read-only / no artifact modifications."""
     content = PROBE_PATH.read_text()
-    assert "read-only" in content.lower() or "no.*modif" in content.lower() or "not overwrit" in content.lower()
+    assert (
+        "read-only" in content.lower()
+        or "no.*modif" in content.lower()
+        or "not overwrit" in content.lower()
+    )
 
 
 def test_probe_report_runtime_bound():
     """Probe report mentions runtime constraint."""
     content = PROBE_PATH.read_text()
-    assert "0.01" in content or "cpu-h" in content.lower() or "runtime" in content.lower()
+    assert (
+        "0.01" in content or "cpu-h" in content.lower() or "runtime" in content.lower()
+    )

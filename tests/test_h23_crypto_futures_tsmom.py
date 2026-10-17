@@ -16,7 +16,6 @@ Pins:
   * The executed outcome (PASS or REJECT)
 """
 
-
 import json
 import sys
 from pathlib import Path
@@ -104,7 +103,13 @@ class TestPreRegistration:
         assert h23.VOL_FLOOR_FRACTIONS == [0.25, 0.5, 0.75]
 
     def test_universe_symbols_are_pre_registered(self):
-        assert h23.CRYPTO_UNIVERSE == ["BTC/USD", "ETH/USD", "ADA/USD", "XRP/USD", "DOGE/USD"]
+        assert h23.CRYPTO_UNIVERSE == [
+            "BTC/USD",
+            "ETH/USD",
+            "ADA/USD",
+            "XRP/USD",
+            "DOGE/USD",
+        ]
         assert h23.VIX_SYMBOL == "^VIX"
 
     def test_splits_are_the_pre_registered_proportions(self):
@@ -210,7 +215,11 @@ class TestArtifacts:
         best_val = eligible.loc[eligible["val_sharpe"].idxmax()]
         sel = s["selected_config"]
         assert sel["vol_window_long"] == best_val["vol_window_long"]
-        assert sel["smooth_span"] == (str(best_val["smooth_span"]) if best_val["smooth_span"] != "none" else "none")
+        assert sel["smooth_span"] == (
+            str(best_val["smooth_span"])
+            if best_val["smooth_span"] != "none"
+            else "none"
+        )
         assert sel["regime_scaling"] == best_val["regime_scaling"]
         assert sel["min_trade_interval"] == best_val["min_trade_interval"]
         assert abs(best_val["val_sharpe"] - s["metrics"]["val_sharpe"]) < 1e-6
@@ -238,9 +247,9 @@ class TestArtifacts:
         # And the pure (unfiltered) argmax must NOT have been selected.
         pure_best = grid.loc[grid["val_sharpe"].idxmax()]
         if pure_best["val_trades"] < h23.MIN_VAL_TRADES_FOR_SELECTION:
-            assert (
-                int(rows["val_trades"].iloc[0]) > 0
-            ), "selected a zero-trade config despite eligibility threshold"
+            assert int(rows["val_trades"].iloc[0]) > 0, (
+                "selected a zero-trade config despite eligibility threshold"
+            )
 
 
 class TestGateRecomputation:
@@ -286,9 +295,12 @@ class TestCausality:
         rng = pd.date_range("2024-10-12", periods=2000, freq="h")
         prices = pd.DataFrame(
             {
-                "ES=F": 5000.0 + np.cumsum(np.random.default_rng(42).normal(0, 5, 2000)),
-                "NQ=F": 18000.0 + np.cumsum(np.random.default_rng(43).normal(0, 20, 2000)),
-                "CL=F": 75.0 + np.cumsum(np.random.default_rng(44).normal(0, 0.5, 2000)),
+                "ES=F": 5000.0
+                + np.cumsum(np.random.default_rng(42).normal(0, 5, 2000)),
+                "NQ=F": 18000.0
+                + np.cumsum(np.random.default_rng(43).normal(0, 20, 2000)),
+                "CL=F": 75.0
+                + np.cumsum(np.random.default_rng(44).normal(0, 0.5, 2000)),
             },
             index=rng,
         )
@@ -358,7 +370,9 @@ class TestWeightBounds:
         exp_dir = _latest_h23_dir()
         positions = pd.read_parquet(exp_dir / "positions.parquet")
         for col in positions.columns:
-            assert (positions[col].dropna() >= -1e-9).all(), f"{col} has negative weights"
+            assert (positions[col].dropna() >= -1e-9).all(), (
+                f"{col} has negative weights"
+            )
 
 
 class TestDeterminism:
@@ -367,7 +381,8 @@ class TestDeterminism:
         prices = pd.DataFrame(
             {
                 "ES=F": 5000.0 + np.cumsum(np.random.default_rng(42).normal(0, 5, 100)),
-                "NQ=F": 18000.0 + np.cumsum(np.random.default_rng(43).normal(0, 20, 100)),
+                "NQ=F": 18000.0
+                + np.cumsum(np.random.default_rng(43).normal(0, 20, 100)),
                 "CL=F": 75.0 + np.cumsum(np.random.default_rng(44).normal(0, 0.5, 100)),
             },
             index=rng,
@@ -379,7 +394,9 @@ class TestDeterminism:
             s2 = h23.vol_scaled_tsmom_hourly(
                 prices[[sym]], vol_window_long=1008, vol_window_short=252
             )
-            assert (s1.values == s2.values).all(), f"base signal not deterministic for {sym}"
+            assert (s1.values == s2.values).all(), (
+                f"base signal not deterministic for {sym}"
+            )
 
     def test_apply_exits_is_deterministic(self):
         rng = pd.date_range("2024-10-12", periods=100, freq="h")
@@ -389,21 +406,31 @@ class TestDeterminism:
         )
         atr = prices * 0.001
         vol_exit = pd.DataFrame(0.15, index=prices.index, columns=prices.columns)
-        daily_target = pd.DataFrame(
-            {"ES=F": np.ones(len(rng))}, index=rng
-        )
+        daily_target = pd.DataFrame({"ES=F": np.ones(len(rng))}, index=rng)
 
         pos1 = h23.apply_exits_hourly(
-            daily_target, prices, atr, vol_exit,
-            trailing_mult=2.0, max_hold_bars=60,
-            vol_limit_mult=1.5, vol_floor_fraction=0.25,
-            target_vol=0.15, min_trade_interval=0,
+            daily_target,
+            prices,
+            atr,
+            vol_exit,
+            trailing_mult=2.0,
+            max_hold_bars=60,
+            vol_limit_mult=1.5,
+            vol_floor_fraction=0.25,
+            target_vol=0.15,
+            min_trade_interval=0,
         )
         pos2 = h23.apply_exits_hourly(
-            daily_target, prices, atr, vol_exit,
-            trailing_mult=2.0, max_hold_bars=60,
-            vol_limit_mult=1.5, vol_floor_fraction=0.25,
-            target_vol=0.15, min_trade_interval=0,
+            daily_target,
+            prices,
+            atr,
+            vol_exit,
+            trailing_mult=2.0,
+            max_hold_bars=60,
+            vol_limit_mult=1.5,
+            vol_floor_fraction=0.25,
+            target_vol=0.15,
+            min_trade_interval=0,
         )
         assert (pos1.values == pos2.values).all()
 
@@ -451,7 +478,9 @@ class TestExecutedOutcome:
         s = _load_summary(_latest_h23_dir())
         sel = s["selected_config"]
         assert sel["vol_window_long"] in h23.VOL_WINDOWS_LONG
-        assert sel["smooth_span"] in [str(x) if x is not None else "none" for x in h23.SMOOTH_SPANS]
+        assert sel["smooth_span"] in [
+            str(x) if x is not None else "none" for x in h23.SMOOTH_SPANS
+        ]
         assert sel["regime_scaling"] in h23.REGIME_SCALING_FLAGS
         assert sel["min_trade_interval"] in h23.MIN_TRADE_INTERVALS
         assert sel["trailing_mult"] in h23.TRAILING_MULTS

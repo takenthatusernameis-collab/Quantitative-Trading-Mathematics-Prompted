@@ -56,7 +56,9 @@ def test_artifact_schema():
         "metadata.json",
     ]
     # At least one combo should exist (look in subdirectories)
-    combo_dirs = [d for d in exp_dir.iterdir() if d.is_dir() and not d.name.startswith('.')]
+    combo_dirs = [
+        d for d in exp_dir.iterdir() if d.is_dir() and not d.name.startswith(".")
+    ]
     assert len(combo_dirs) > 0, "no combo artifact directories found"
     # Check that at least one combo directory has equity.parquet
     equity_artifacts = []
@@ -75,7 +77,9 @@ def test_summary_json_hypothesis():
     exp_dir = _latest_h18_dir()
     with open(exp_dir / "summary.json") as f:
         summary = json.load(f)
-    assert summary.get("hypothesis") == "H18", f"expected H18, got {summary.get('hypothesis')}"
+    assert summary.get("hypothesis") == "H18", (
+        f"expected H18, got {summary.get('hypothesis')}"
+    )
 
 
 def test_grid_integrity():
@@ -94,20 +98,30 @@ def test_grid_integrity():
         predictors.add(r.get("predictor"))
         hold_conventions.add(r.get("hold_convention"))
 
-    expected_predictors = {"lagged_1d_overnight_sign", "vix_regime", "prior_5d_return_sign"}
+    expected_predictors = {
+        "lagged_1d_overnight_sign",
+        "vix_regime",
+        "prior_5d_return_sign",
+    }
     expected_hold_conventions = {"next_overnight", "next_intraday"}
 
-    assert predictors == expected_predictors, f"predictors mismatch: {predictors} vs {expected_predictors}"
-    assert hold_conventions == expected_hold_conventions, f"hold conventions mismatch: {hold_conventions} vs {expected_hold_conventions}"
+    assert predictors == expected_predictors, (
+        f"predictors mismatch: {predictors} vs {expected_predictors}"
+    )
+    assert hold_conventions == expected_hold_conventions, (
+        f"hold conventions mismatch: {hold_conventions} vs {expected_hold_conventions}"
+    )
 
     # Check selection logic: best Val Sharpe should match selected config
     selected = summary.get("selected_config", {})
     best_by_val = max(results, key=lambda x: x.get("val_sharpe", -np.inf))
 
-    assert selected.get("predictor") == best_by_val.get("predictor"), \
+    assert selected.get("predictor") == best_by_val.get("predictor"), (
         "selected predictor does not have highest Val Sharpe"
-    assert selected.get("hold_convention") == best_by_val.get("hold_convention"), \
+    )
+    assert selected.get("hold_convention") == best_by_val.get("hold_convention"), (
         "selected hold convention does not have highest Val Sharpe"
+    )
 
 
 def test_signal_causality():
@@ -118,6 +132,7 @@ def test_signal_causality():
 
     # Load SPY data to test signal function
     from qtr.data.fetcher import get_data_fetcher
+
     fetcher = get_data_fetcher()
     spy_data = fetcher.fetch_yahoo(
         ["SPY"], start="2009-01-01", end="2022-12-31", interval="1d"
@@ -144,8 +159,9 @@ def test_signal_causality():
             non_nan_count = signal.notna().sum()
             total_count = len(signal)
             # Allow up to 5% NaNs due to lagging effects
-            assert non_nan_count >= total_count * 0.95, \
+            assert non_nan_count >= total_count * 0.95, (
                 f"Too many NaNs in signal for {predictor}_{hold_conv}: {non_nan_count}/{total_count}"
+            )
 
 
 def test_weight_bounds():
@@ -156,7 +172,9 @@ def test_weight_bounds():
 
     # Load the best combo equity curve to infer weights
     selected = summary.get("selected_config", {})
-    combo_name = f"{selected.get('predictor', '')}_{selected.get('hold_convention', '')}"
+    combo_name = (
+        f"{selected.get('predictor', '')}_{selected.get('hold_convention', '')}"
+    )
     best_dir_name = f"best_{combo_name}"
     equity_path = exp_dir / best_dir_name / "equity.parquet"
 
@@ -171,6 +189,7 @@ def test_weight_bounds():
 def test_determinism():
     """Signal builder is deterministic."""
     from qtr.data.fetcher import get_data_fetcher
+
     fetcher = get_data_fetcher()
     spy_data = fetcher.fetch_yahoo(
         ["SPY"], start="2009-01-01", end="2022-12-31", interval="1d"
@@ -224,9 +243,15 @@ def test_executed_outcome():
     # Check that gate metrics are present
     gate_metrics = summary.get("gate_metrics", {})
     required_gates = [
-        "sharpe", "trades", "profit_factor", "max_drawdown",
-        "walk_forward_stability", "worst_regime_sharpe",
-        "benchmark_p", "information_ratio", "perturbation_ratio"
+        "sharpe",
+        "trades",
+        "profit_factor",
+        "max_drawdown",
+        "walk_forward_stability",
+        "worst_regime_sharpe",
+        "benchmark_p",
+        "information_ratio",
+        "perturbation_ratio",
     ]
     for metric in required_gates:
         assert metric in gate_metrics, f"missing gate metric: {metric}"

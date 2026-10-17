@@ -21,14 +21,20 @@ class DataCache:
     """File-based cache for downloaded data with content hashing."""
 
     def __init__(self, cache_dir: Path | None = None):
-        self.cache_dir = cache_dir or Path(get_config().get("data.cache_dir", ".cache/data"))
+        self.cache_dir = cache_dir or Path(
+            get_config().get("data.cache_dir", ".cache/data")
+        )
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
-    def _cache_key(self, source: str, symbol: str, start: str, end: str, interval: str) -> str:
+    def _cache_key(
+        self, source: str, symbol: str, start: str, end: str, interval: str
+    ) -> str:
         key = f"{source}:{symbol}:{start}:{end}:{interval}"
         return hashlib.sha256(key.encode()).hexdigest()[:16]
 
-    def get(self, source: str, symbol: str, start: str, end: str, interval: str) -> pd.DataFrame | None:
+    def get(
+        self, source: str, symbol: str, start: str, end: str, interval: str
+    ) -> pd.DataFrame | None:
         key = self._cache_key(source, symbol, start, end, interval)
         path = self.cache_dir / f"{key}.parquet"
         if path.exists():
@@ -40,7 +46,15 @@ class DataCache:
                 logger.warning(f"Cache read failed: {e}")
         return None
 
-    def set(self, source: str, symbol: str, start: str, end: str, interval: str, df: pd.DataFrame) -> None:
+    def set(
+        self,
+        source: str,
+        symbol: str,
+        start: str,
+        end: str,
+        interval: str,
+        df: pd.DataFrame,
+    ) -> None:
         key = self._cache_key(source, symbol, start, end, interval)
         path = self.cache_dir / f"{key}.parquet"
         try:
@@ -91,6 +105,7 @@ class DataFetcher:
 
             try:
                 import yfinance as yf  # lazy import; data extras not required for core
+
                 ticker = yf.Ticker(symbol)
                 df = ticker.history(
                     start=start,
@@ -161,7 +176,9 @@ class DataFetcher:
 
         for symbol in symbols:
             if not symbol.endswith("=F"):
-                logger.warning(f"Futures symbol {symbol} should end with =F; proceeding anyway")
+                logger.warning(
+                    f"Futures symbol {symbol} should end with =F; proceeding anyway"
+                )
 
             if use_cache:
                 cached = self.cache.get("yahoo_futures", symbol, start, end, interval)
@@ -171,6 +188,7 @@ class DataFetcher:
 
             try:
                 import yfinance as yf
+
                 ticker = yf.Ticker(symbol)
                 df = ticker.history(
                     start=start,
@@ -244,10 +262,12 @@ class DataFetcher:
                 logger.error(f"ccxt not installed: {e}")
                 return results
             exchange_class = getattr(ccxt, exchange_id)
-            self._ccxt_exchanges[exchange_id] = exchange_class({
-                "enableRateLimit": True,
-                "rateLimit": 1000,  # ms between requests
-            })
+            self._ccxt_exchanges[exchange_id] = exchange_class(
+                {
+                    "enableRateLimit": True,
+                    "rateLimit": 1000,  # ms between requests
+                }
+            )
 
         exchange = self._ccxt_exchanges[exchange_id]
         since = int(pd.Timestamp(start).timestamp() * 1000)
@@ -256,7 +276,9 @@ class DataFetcher:
         for symbol in symbols:
             cache_symbol = symbol.replace("/", "_")
             if use_cache:
-                cached = self.cache.get("ccxt", f"{exchange_id}:{cache_symbol}", start, end, timeframe)
+                cached = self.cache.get(
+                    "ccxt", f"{exchange_id}:{cache_symbol}", start, end, timeframe
+                )
                 if cached is not None:
                     results[symbol] = cached
                     continue
@@ -266,7 +288,9 @@ class DataFetcher:
                 current_since = since
 
                 while current_since < end_ms:
-                    ohlcv = exchange.fetch_ohlcv(symbol, timeframe, since=current_since, limit=1000)
+                    ohlcv = exchange.fetch_ohlcv(
+                        symbol, timeframe, since=current_since, limit=1000
+                    )
                     if not ohlcv:
                         break
                     all_ohlcv.extend(ohlcv)
@@ -279,7 +303,10 @@ class DataFetcher:
                     results[symbol] = pd.DataFrame()
                     continue
 
-                df = pd.DataFrame(all_ohlcv, columns=["timestamp", "open", "high", "low", "close", "volume"])
+                df = pd.DataFrame(
+                    all_ohlcv,
+                    columns=["timestamp", "open", "high", "low", "close", "volume"],
+                )
                 df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
                 df = df.set_index("timestamp")
                 df = df[(df.index >= start) & (df.index <= end)]
@@ -288,7 +315,14 @@ class DataFetcher:
                 results[symbol] = df
 
                 if use_cache:
-                    self.cache.set("ccxt", f"{exchange_id}:{cache_symbol}", start, end, timeframe, df)
+                    self.cache.set(
+                        "ccxt",
+                        f"{exchange_id}:{cache_symbol}",
+                        start,
+                        end,
+                        timeframe,
+                        df,
+                    )
 
             except Exception as e:  # noqa: BLE001 -- per-symbol fetch failure is non-fatal; log and continue
                 logger.error(f"Failed to fetch {symbol} from {exchange_id}: {e}")

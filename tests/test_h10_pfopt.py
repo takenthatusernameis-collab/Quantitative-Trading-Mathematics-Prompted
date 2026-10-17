@@ -92,15 +92,15 @@ class TestRegimeFactor:
         idx = pd.date_range("2024-11-01", periods=10, freq="h")
         vix = pd.Series([10, 19.9, 20, 25, 30, 30.1, 40, np.nan, 15, 50], index=idx)
         f = h10.regime_factor_hourly(vix)
-        assert f.iloc[0] == 1.0          # VIX 10 -> bull
-        assert f.iloc[1] == 1.0          # 19.9 -> bull
-        assert f.iloc[2] == 0.5          # 20 -> sideways
-        assert f.iloc[3] == 0.5          # 25 -> sideways
-        assert f.iloc[4] == 0.5          # 30 -> sideways (boundary)
-        assert f.iloc[5] == 0.25         # 30.1 -> bear
-        assert f.iloc[6] == 0.25         # 40 -> bear
-        assert f.iloc[7] == 0.25         # NaN -> ffill -> 40 -> bear
-        assert f.iloc[8] == 1.0          # 15 -> bull
+        assert f.iloc[0] == 1.0  # VIX 10 -> bull
+        assert f.iloc[1] == 1.0  # 19.9 -> bull
+        assert f.iloc[2] == 0.5  # 20 -> sideways
+        assert f.iloc[3] == 0.5  # 25 -> sideways
+        assert f.iloc[4] == 0.5  # 30 -> sideways (boundary)
+        assert f.iloc[5] == 0.25  # 30.1 -> bear
+        assert f.iloc[6] == 0.25  # 40 -> bear
+        assert f.iloc[7] == 0.25  # NaN -> ffill -> 40 -> bear
+        assert f.iloc[8] == 1.0  # 15 -> bull
 
     def test_all_below_20_is_full(self):
         idx = pd.date_range("2024-11-01", periods=20, freq="h")
@@ -114,7 +114,8 @@ class TestBuildHourlyTarget:
         prices = _hourly_frame()
         sig = pd.DataFrame(
             np.sign(np.random.default_rng(1).normal(0, 0.2, (len(prices), 3))),
-            index=prices.index, columns=prices.columns,
+            index=prices.index,
+            columns=prices.columns,
         )
         vix = pd.Series(20.0, index=prices.index)
         tgt = h10.build_hourly_target(sig, None, 252, False, vix, prices.index)
@@ -124,8 +125,11 @@ class TestBuildHourlyTarget:
 
     def test_regime_scaling_multiplies_factor(self):
         prices = _hourly_frame()
-        sig = pd.DataFrame(np.sign(np.random.default_rng(2).normal(0, 0.2, (len(prices), 3))),
-                           index=prices.index, columns=prices.columns)
+        sig = pd.DataFrame(
+            np.sign(np.random.default_rng(2).normal(0, 0.2, (len(prices), 3))),
+            index=prices.index,
+            columns=prices.columns,
+        )
         # VIX all >30 -> factor 0.25 everywhere
         vix = pd.Series(35.0, index=prices.index)
         tgt = h10.build_hourly_target(sig, None, 252, True, vix, prices.index)
@@ -134,14 +138,14 @@ class TestBuildHourlyTarget:
 
 
 class TestApplyExitsHourly:
-    def test_min_interval_zero_matches_h9(self,):
+    def test_min_interval_zero_matches_h9(
+        self,
+    ):
         """Regression guard: H10 exits with min_trade_interval=0 must equal H9's
         apply_path_dependent_exits_hourly bit-for-bit."""
         prices = _hourly_frame(n=1500)
         _pct, atr, vol = _make_inputs(prices)
-        daily_target = h9._daily_target_from_hourly(
-            h9.vol_scaled_tsmom_hourly(prices)
-        )
+        daily_target = h9._daily_target_from_hourly(h9.vol_scaled_tsmom_hourly(prices))
         h9_pos = h9.apply_path_dependent_exits_hourly(daily_target, prices, atr)
         h10_pos = h10.apply_exits_hourly(
             daily_target, prices, atr, vol, min_trade_interval=0
@@ -154,19 +158,20 @@ class TestApplyExitsHourly:
         than the baseline (turnover-reducing by construction)."""
         prices = _hourly_frame(n=1500)
         _pct, atr, vol = _make_inputs(prices)
-        daily_target = h9._daily_target_from_hourly(
-            h9.vol_scaled_tsmom_hourly(prices)
+        daily_target = h9._daily_target_from_hourly(h9.vol_scaled_tsmom_hourly(prices))
+        base = h10.apply_exits_hourly(
+            daily_target, prices, atr, vol, min_trade_interval=0
         )
-        base = h10.apply_exits_hourly(daily_target, prices, atr, vol,
-                                      min_trade_interval=0)
-        gated = h10.apply_exits_hourly(daily_target, prices, atr, vol,
-                                       min_trade_interval=24)
+        gated = h10.apply_exits_hourly(
+            daily_target, prices, atr, vol, min_trade_interval=24
+        )
         base_changes = int((base.diff().fillna(0) != 0).sum().sum())
         gated_changes = int((gated.diff().fillna(0) != 0).sum().sum())
         assert gated_changes <= base_changes
         # And a larger gate further reduces (non-trivially) on this noisy signal
-        big = h10.apply_exits_hourly(daily_target, prices, atr, vol,
-                                     min_trade_interval=120)
+        big = h10.apply_exits_hourly(
+            daily_target, prices, atr, vol, min_trade_interval=120
+        )
         big_changes = int((big.diff().fillna(0) != 0).sum().sum())
         assert big_changes <= gated_changes
 
@@ -176,8 +181,12 @@ class TestApplyExitsHourly:
         prices = _hourly_frame(n=1500)
         _pct, atr, vol = _make_inputs(prices)
         daily_target = h9._daily_target_from_hourly(h9.vol_scaled_tsmom_hourly(prices))
-        small = h10.apply_exits_hourly(daily_target, prices, atr, vol, min_trade_interval=4)
-        huge = h10.apply_exits_hourly(daily_target, prices, atr, vol, min_trade_interval=99999)
+        small = h10.apply_exits_hourly(
+            daily_target, prices, atr, vol, min_trade_interval=4
+        )
+        huge = h10.apply_exits_hourly(
+            daily_target, prices, atr, vol, min_trade_interval=99999
+        )
         assert int((huge.diff().fillna(0) != 0).sum().sum()) <= int(
             (small.diff().fillna(0) != 0).sum().sum()
         )
@@ -195,14 +204,20 @@ class TestApplyExitsHourly:
             df = data.get(sym, pd.DataFrame())
             if len(df) == 0:
                 continue
-            df.index = pd.to_datetime(df.index).tz_localize(None) if df.index.tz is not None \
+            df.index = (
+                pd.to_datetime(df.index).tz_localize(None)
+                if df.index.tz is not None
                 else pd.to_datetime(df.index)
+            )
             prices_list.append(df["close"].rename(sym))
             volumes_list.append(df["volume"].rename(sym))
         prices = pd.concat(prices_list, axis=1, sort=True).sort_index().ffill().bfill()
-        volumes = pd.concat(volumes_list, axis=1, sort=True).sort_index().reindex(
-            prices.index
-        ).fillna(0)
+        volumes = (
+            pd.concat(volumes_list, axis=1, sort=True)
+            .sort_index()
+            .reindex(prices.index)
+            .fillna(0)
+        )
         n = len(prices)
         train_end = prices.index[int(n * 0.55)]
         val_end = prices.index[int(n * 0.8)]
@@ -217,7 +232,9 @@ class TestApplyExitsHourly:
         vol = vol.replace(0, np.nan).ffill()
         daily_target = h9._daily_target_from_hourly(h9.vol_scaled_tsmom_hourly(prices))
 
-        pos = h10.apply_exits_hourly(daily_target, prices, atr, vol, min_trade_interval=0)
+        pos = h10.apply_exits_hourly(
+            daily_target, prices, atr, vol, min_trade_interval=0
+        )
         cfg = h10.make_futures_config()
         res = run_backtest(prices=prices, signals=pos, volumes=volumes, config=cfg)
 

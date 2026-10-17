@@ -94,25 +94,33 @@ class TestCommittedArtifact:
         with open(h25_dir / "summary.json") as f:
             h25_summary = json.load(f)
         assert summary["pf_point_estimate"] == pytest.approx(
-            h25_summary["metrics"]["profit_factor"], abs=1e-9)
+            h25_summary["metrics"]["profit_factor"], abs=1e-9
+        )
         assert summary["sharpe_point_estimate"] == pytest.approx(
-            h25_summary["metrics"]["oos_sharpe"], abs=1e-9)
+            h25_summary["metrics"]["oos_sharpe"], abs=1e-9
+        )
 
     def test_recompute_matches_summary(self, oos_returns, summary):
         r = aud.compute_h25_robustness(oos_returns)
         assert r["n_oos_bars"] == summary["n_oos_bars"]
         assert r["pf_point_estimate"] == pytest.approx(
-            summary["pf_point_estimate"], abs=1e-9)
+            summary["pf_point_estimate"], abs=1e-9
+        )
         assert r["sharpe_point_estimate"] == pytest.approx(
-            summary["sharpe_point_estimate"], abs=1e-9)
+            summary["sharpe_point_estimate"], abs=1e-9
+        )
         assert r["pf_bootstrap_ci_95"] == pytest.approx(
-            summary["pf_bootstrap_ci_95"], abs=1e-9)
+            summary["pf_bootstrap_ci_95"], abs=1e-9
+        )
         assert r["sharpe_bootstrap_ci_95"] == pytest.approx(
-            summary["sharpe_bootstrap_ci_95"], abs=1e-9)
+            summary["sharpe_bootstrap_ci_95"], abs=1e-9
+        )
         assert r["pf_frac_ge_gate"] == pytest.approx(
-            summary["pf_frac_ge_gate"], abs=1e-9)
+            summary["pf_frac_ge_gate"], abs=1e-9
+        )
         assert r["sharpe_frac_ge_gate"] == pytest.approx(
-            summary["sharpe_frac_ge_gate"], abs=1e-9)
+            summary["sharpe_frac_ge_gate"], abs=1e-9
+        )
 
     def test_parquet_matches_recompute(self, oos_returns):
         res = aud.bootstrap_arrays(oos_returns)
