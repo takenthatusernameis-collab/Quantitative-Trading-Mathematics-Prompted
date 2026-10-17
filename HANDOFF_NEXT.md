@@ -1,74 +1,74 @@
 # Agent Handoff — For the next agent
 
 ## State you are inheriting
-The repo is at **HEAD `893e276`** (preceded by `8902971`, `c148694` "Remove
-repo-root scratch artifacts", `9fe88a1` "Remove tracked bytecode artifacts",
-`65ea3eb` "Fix post-merge Kilo audit workflow guard"). Everything through H25 is
-committed and verifiable. The baseline is **359/359 tests**.
+
+The repo is at **HEAD `15cf94f`** (this session's EXE001 fix), preceded by
+`21b0d25` (handoff housekeeping), `68fdf8d` (F-rule ruff sweep), and earlier
+the CI telemetry fix `893e276`. The baseline is **359/359 tests** and
+`ruff check src tests` is clean.
 
 ## What this session did
-The prior handoffs declared the free-data hypothesis space exhausted and the
-only remaining items as hygiene that prior sessions had already completed. I
-inspected for a genuine, bounded, unaddressed defect instead of re-doing
-completed work, and found and fixed one in the CI infrastructure:
 
-**Fixed the dead Kilo progress telemetry signal (commit `893e276`).** The shared
-helper `.github/scripts/kilo-progress.sh` advertises `sessions_completed`,
-`persisted_checkpoints`, and `last_verified_checkpoint_sha`, but the controller
-never populated them — the progress state file was permanently stale at
-`completed=0/checkpoints=0/verified_sha=none` on every run. That is precisely the
-"control-marker-only / no verified progress" failure mode the controller's exit
-guard exists to detect, and the signal it reports to distinguish real progress
-from marker commits was broken.
+Executed the assigned task from `NEXT_TASK.md`: cleared the 18 `EXE001` ruff
+errors by making the shebang-carrying `run_*.py` scripts executable.
 
-- `.github/scripts/kilo-controller.sh`: initialize the three counters at
-  startup; bump `persisted_checkpoints` and set `last_verified_checkpoint_sha`
-  on each verified remote push (fast-push and rebase-push paths); increment
-  `sessions_completed` and emit a `session-complete` record at the end of each
-  session loop.
-- `.github/scripts/test_kilo_progress.sh`: added a controller-telemetry-
-  population regression check.
-- `.github/workflows/kilo-workflow-audit.yml`: added a CI guard asserting the
-  controller drives the counters, so a regression cannot silently reintroduce
-  the stale signal.
+- `chmod +x` on 18 scripts (run_h23 was already executable). Mode-only
+  change: 100644 -> 100755, 0 insertions, 0 deletions. Shebangs unchanged.
+- Verified: `ruff check run_*.py` 26 -> 8 errors; `ruff check src tests` clean;
+  `py_compile` clean; `run_baseline.py --help` smoke test passes;
+  `pytest -q` 359 passed in 203 s.
+- Committed as `15cf94f` with a body documenting the verification.
 
-Verified: **359/359 tests pass**; `bash -n` on all scripts OK; workflow YAML
-parses OK; `bash .github/scripts/test_kilo_progress.sh` OK; working tree clean;
-0 tracked bytecode.
+Two runtime-artifact cleanups were needed: the pre-commit hook ran
+`run_alternatives.py` (writing `.experiments/artifacts/exp_.../` and three
+`.meta.json` files), and my own `run_baseline.py --help` smoke test wrote
+`.experiments/experiments.jsonl` + an artifact dir. Both were reverted so the
+commit contains only the mode changes.
 
 ## Precise next task (your call)
-The free-data hypothesis space is **exhausted** (H1–H25, H15 probe). The sole
-passing edge family (intraday futures TSMOM: H10/H11/H22/H25) is real but
-**qualified/CI-fragile** on the ~730-hour free `=F` window (H25 Robustness audit:
-PF CI [1.2049, 1.4425], P(PF≥1.3)=0.6215; Sharpe CI LB dips below 1.0).
 
-**No bounded, verifiable free-data task remains.** The only non-redundant next
-step requires paid data (out of free-data scope):
+**Clean the 4 RUF046 sites — the only remaining zero-risk ruff class in
+`run_*.py`.**
 
-**Acquire paid hourly futures data (NEEDS BUDGET/APPROVAL — out of free-data
-scope).** The audit pins the target: the PF CI half-width (±0.120) must shrink
-~3-4x for P(PF≥1.3) ≥ 0.90, which needs ~3-4x more bars (≈2-3 years of hourly
-`=F`, e.g. Databento/Polygon/CMC). Re-run H25's pipeline verbatim
-(`run_h25_futures_tsmom_pfmargin.py`) on the [truncated]
+`int(round(value))` is redundant because `round()` returns `int` in
+Python 3 (the project targets >=3.10). Removing the `int()` wrapper is a
+one-token, semantics-preserving edit. Sites:
+
+- `run_h11_robustness_experiment.py:112` — `return int(round(value))`
+- `run_h16_factor_timing_experiment.py:366` — `v = int(round(base * factor))`
+- `run_h17_vrp_experiment.py:286` — `v = max(1, int(round(v)))`
+- `run_h23_crypto_futures_tsmom.py:374` — `vw = int(round(v))`
+
+After the edit: `ruff check run_*.py` should report 4 errors (2 SIM102,
+2 PERF102), `pytest -q` 359/359, `ruff check src tests` clean. Commit with
+a one-line summary + verification body matching repo style.
 
 ## Constraints handed down
-- No paid data available in this session (free only); respect the ≤2 CPU-h budget.
-- Do NOT weaken gates (PROMPT_V2 §H15): the honest outcome is "qualified pass,
-  CI-fragile," not a forced pass.
-- Do NOT re-run/repurpose committed H25 artifacts or tests — they're pinned at
-  1e-9 (the audit's point estimates reproduce H25 `summary.json` exactly).
-- Commit-per-experiment convention; bytecode is gitignored (now enforced).
-- The CI progress telemetry is now driven by the controller; do not edit the
-  helper's advertised field names without updating the controller and the audit
-  guard together.
 
-## Files changed this session (committed as `893e276`)
-- `.github/scripts/kilo-controller.sh` — telemetry counter init + population.
-- `.github/scripts/test_kilo_progress.sh` — controller-telemetry regression test.
-- `.github/workflows/kilo-workflow-audit.yml` — CI guard for counter population.
-- `HANDOFF.md`, `HANDOFF_NEXT.md` — this session's record.
+- Do NOT touch `src/` or `tests/` — clean and must stay clean.
+- Do NOT auto-fix the remaining SIM102 or PERF102:
+  - SIM102 (run_h10:208, run_h23:211) are intentional trade guards:
+    `elif in_pos and cur_tgt <= 0:` / `if can_trade:` — collapsing them
+    would drop the `can_trade` gate.
+  - PERF102 (run_h11:223, run_h11:403): line 223 uses `sp` inside the
+    body, so `values()` is unsafe; line 403 iterates `data.items()` and
+    uses `sym`, so the fix is also unsafe. Left as-is deliberately.
+- The free-data hypothesis space (H1–H25) is exhausted; no bounded
+  free-data experiment remains. The only non-redundant next step requires
+  paid hourly futures data (out of free-data scope).
+- Commit-per-experiment convention; bytecode is gitignored.
+- The CI progress telemetry is driven by the controller
+  (`.github/scripts/kilo-controller.sh`); do not edit the helper's
+  advertised field names without updating the controller and the audit
+  guard together.
+- Reconcile remote changes instead of blindly overwriting; verify
+  persistence before declaring done.
+
+## Files changed this session (committed as `15cf94f`)
+- 18 `run_*.py` scripts — mode 100644 -> 100755 (chmod +x).
+- `HANDOFF.md`, `HANDOFF_NEXT.md`, `NEXT_TASK.md` — this session's record.
 
 Run `python -m pytest -q` to confirm the green baseline (359 passed) before
-starting. `git status` should be clean (no `.pyc` churn).
+starting. `git status` should be clean.
 
 (End of file)
