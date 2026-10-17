@@ -377,3 +377,20 @@ def test_crypto_also_uses_weight_changes():
     cfg = _make_config(asset_class=AssetClass.CRYPTO)
     res = run_backtest(prices=prices, signals=signals, config=cfg)
     assert res.returns.iloc[3] < 0
+
+
+def test_unknown_asset_class_zero_costs():
+    """The cost-model fallback for an unrecognised asset class must be a
+    no-op (zero costs), so a misconfigured asset class degrades to a
+    frictionless backtest rather than crashing."""
+    prices = _make_prices(symbols=("A",))
+    signals = pd.DataFrame({"A": 0.0}, index=prices.index)
+    signals.iloc[0] = 1.0
+    cfg = _make_config()
+    # Bypass the Enum by setting an unrecognised string directly.
+    cfg.asset_class = "unknown"  # type: ignore[assignment]
+    res = run_backtest(prices=prices, signals=signals, config=cfg)
+    # Zero-cost fallback must match the zero-cost equity path exactly.
+    cfg_ref = _make_config()  # equity with zero commission/spread/impact
+    res_ref = run_backtest(prices=prices, signals=signals, config=cfg_ref)
+    assert np.allclose(res.returns.values, res_ref.returns.values, atol=1e-12)

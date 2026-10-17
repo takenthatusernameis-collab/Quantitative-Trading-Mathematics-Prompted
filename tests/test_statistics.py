@@ -506,6 +506,35 @@ class TestValidateStrategy:
         }
         res = st.validate_strategy(returns, trades, cfg)
         assert res["all_pass"] is True
+        # min_param_stability defaults to 0.8 and is part of the all_pass
+        # conjunction; the trending series must pass it too.
+        assert "param_stability" in res
+        assert "param_stability_pass" in res
+        assert res["param_stability_pass"] is True
+
+    def test_param_stability_gate_is_enforced(self, rng):
+        """min_param_stability must actually gate all_pass: a volatile series
+        whose walk-forward folds flip sign must fail the gate even when every
+        other criterion is configured to pass."""
+        idx = pd.bdate_range("2020-01-01", periods=600)
+        # Alternating trending / crashing halves => some folds profitable,
+        # some not => param_stability < 1.0.
+        trend = np.cumsum(rng.normal(0.002, 0.005, 300)) + 100.0
+        crash = 100.0 * np.exp(np.cumsum(rng.normal(-0.002, 0.005, 300)))
+        prices = pd.Series(np.concatenate([trend, crash]), index=idx)
+        returns = prices.pct_change().fillna(0).values
+        trades = self._trades(500)
+        cfg = {
+            "min_sharpe": -10.0,
+            "min_trades": 100,
+            "min_profit_factor": 0.0,
+            "max_drawdown": 1.0,
+            "min_walkforward_stability": -10.0,
+            "min_param_stability": 0.8,
+        }
+        res = st.validate_strategy(returns, trades, cfg)
+        assert res["param_stability_pass"] is False
+        assert res["all_pass"] is False
 
     def test_profit_factor_infinite_when_no_losses(self, rng):
         # All-positive returns => no gross loss => profit_factor is inf.
@@ -522,6 +551,12 @@ class TestValidateStrategy:
         returns[n // 2 :] = 0.001
         res = st.validate_strategy(returns, self._trades(50), {})
         assert res["walkforward_stability"] == 0.0
+
+    def test_param_stability_zero_when_no_folds(self):
+        # A too-short series yields no walk-forward folds => param_stability 0.
+        res = st.validate_strategy(np.array([0.01]), self._trades(5), {})
+        assert res["param_stability"] == 0.0
+        assert res["param_stability_pass"] is False
 
     def test_max_drawdown_is_negative_or_zero(self, rng):
         returns = rng.normal(0.0, 0.01, 400)

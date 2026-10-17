@@ -51,6 +51,9 @@ def sharpe_ratio(
     periods_per_year: int = 252,
 ) -> float:
     """Compute annualized Sharpe ratio."""
+    returns = np.asarray(returns, dtype=float)
+    if returns.size == 0:
+        return 0.0
     excess = returns - risk_free / periods_per_year
     # Tolerance guard: a constant return series has std ~1e-19 from float
     # noise, not exactly 0.0, so an exact `== 0` check misses it and
@@ -477,6 +480,23 @@ def validate_strategy(
     sharpe_second = sharpe_ratio(returns.iloc[mid:].values)
     wf_stability = sharpe_second / sharpe_first if sharpe_first != 0 else 0
 
+    # Parameter stability: the PROMPT_V2.md evidence gates require a
+    # "performance stable within +/-1 standard deviation of optimal
+    # parameters" check. Without a parameter grid here we proxy it with the
+    # walk-forward fold Sharpes: the fraction of folds that remain
+    # out-of-sample profitable (Sharpe > 0) measures how sensitive the
+    # strategy is to which sub-sample is held out. A perfectly stable
+    # strategy scores 1.0 (every fold profitable); a wildly unstable one
+    # scores 0.0. Threshold 0.8 = >=80% of folds profitable.
+    _wf_splits = walk_forward_splits(len(returns), n_splits=5)
+    _fold_sharpes = [
+        sharpe_ratio(returns.iloc[te].values) for _, te in _wf_splits if len(te) > 1
+    ]
+    if len(_fold_sharpes) > 0:
+        param_stability = float(np.mean(np.array(_fold_sharpes) > 0))
+    else:
+        param_stability = 0.0
+
     results = {
         "sharpe": sharpe,
         "sharpe_pass": sharpe >= thresholds["min_sharpe"],
@@ -488,6 +508,8 @@ def validate_strategy(
         "drawdown_pass": max_dd >= -thresholds["max_drawdown"],
         "walkforward_stability": wf_stability,
         "walkforward_pass": wf_stability >= thresholds["min_walkforward_stability"],
+        "param_stability": param_stability,
+        "param_stability_pass": param_stability >= thresholds["min_param_stability"],
         "annualized_return": ann_return,
         "annualized_volatility": ann_vol,
         "total_return": total_return,
@@ -500,6 +522,7 @@ def validate_strategy(
             results["profit_factor_pass"],
             results["drawdown_pass"],
             results["walkforward_pass"],
+            results["param_stability_pass"],
         ]
     )
 
