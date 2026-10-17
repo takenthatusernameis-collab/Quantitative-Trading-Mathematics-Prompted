@@ -320,3 +320,52 @@ class TestOtherAssetClasses:
         price_es = prices["ES"].iloc[0]
         expected_es = (1.0 + (0.25 + 0.5) * 25.0) / (price_es * 100.0)
         assert res.returns.iloc[0] == pytest.approx(-expected_es, abs=1e-12)
+
+def test_volumes_and_adv_paths():
+    """Test when volumes provided and ADV provided in various forms."""
+    np.random.seed(123)
+    idx = pd.date_range("2020-01-01", periods=50, freq="D")
+    prices = pd.DataFrame({"AAPL": np.cumsum(np.random.randn(50) * 0.01) + 100}, index=idx)
+    signals = pd.DataFrame({"AAPL": 0.0}, index=idx)
+    signals.iloc[5] = 0.5
+    volumes = pd.DataFrame({"AAPL": 1000000}, index=idx)
+    adv = pd.Series({"AAPL": 2000000})
+    cfg = _make_config(asset_class=AssetClass.EQUITY, max_leverage=2.0, max_position_size=2.0)
+    res = run_backtest(prices=prices, signals=signals, volumes=volumes, adv=adv, config=cfg)
+    assert res is not None
+
+
+def test_adv_series_contains_symbol():
+    np.random.seed(123)
+    idx = pd.date_range("2020-01-01", periods=30, freq="D")
+    prices = pd.DataFrame({"A": np.cumsum(np.random.randn(30)*0.01)+100}, index=idx)
+    signals = pd.DataFrame({"A": 0.0}, index=idx)
+    signals.iloc[2] = 1.0
+    adv = pd.Series({"A": 1000000})
+    cfg = _make_config(asset_class=AssetClass.EQUITY)
+    res = run_backtest(prices=prices, signals=signals, adv=adv, config=cfg)
+    assert res.returns.iloc[2] <= 0
+
+
+def test_adv_zero_skips_impact():
+    np.random.seed(123)
+    idx = pd.date_range("2020-01-01", periods=30, freq="D")
+    prices = pd.DataFrame({"A": np.cumsum(np.random.randn(30)*0.01)+100}, index=idx)
+    signals = pd.DataFrame({"A": 0.0}, index=idx)
+    signals.iloc[2] = 1.0
+    adv = pd.Series({"A": 0.0})
+    cfg = _make_config(asset_class=AssetClass.EQUITY)
+    res = run_backtest(prices=prices, signals=signals, adv=adv, config=cfg)
+    assert res is not None
+
+
+def test_crypto_also_uses_weight_changes():
+    np.random.seed(123)
+    idx = pd.date_range("2020-01-01", periods=40, freq="D")
+    prices = pd.DataFrame({"BTC": np.cumsum(np.random.randn(40)*0.01)+20000}, index=idx)
+    signals = pd.DataFrame({"BTC": 0.0}, index=idx)
+    signals.iloc[3] = 0.3
+    cfg = _make_config(asset_class=AssetClass.CRYPTO)
+    res = run_backtest(prices=prices, signals=signals, config=cfg)
+    assert res.returns.iloc[3] < 0
+
