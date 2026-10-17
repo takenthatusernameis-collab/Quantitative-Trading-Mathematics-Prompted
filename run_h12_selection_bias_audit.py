@@ -37,12 +37,11 @@ selection, <= 4 CPU-h per experiment, reuse existing engine / tracking /
 validation infrastructure, all regression tests passing.
 """
 
-import sys
-import os
-import json
-import time
-import copy
 import itertools
+import json
+import os
+import sys
+import time
 from pathlib import Path
 
 import numpy as np
@@ -51,36 +50,26 @@ from scipy import stats
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
-from qtr.data.fetcher import get_data_fetcher
-from qtr.backtest.engine import run_backtest, BacktestConfig, CostModel
+from qtr.backtest.engine import run_backtest
 from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
     sharpe_ratio,
-    walk_forward_splits,
-    compare_to_benchmark,
 )
 
 # Reuse H10 constants / primitives (single source of truth for universe, costs,
 # gates, signal + exit machinery).
 from run_h10_intraday_tsmom_pfopt_experiment import (
     FUTURES_UNIVERSE,
-    VIX_SYMBOL,
-    SEED,
-    INITIAL_CAPITAL,
     GATES,
-    COST_MODEL_DEFAULTS,
-    FUTURES_SPECS,
-    make_futures_config,
-    regime_labels,
-    vol_scaled_tsmom_hourly,
-    _daily_target_from_hourly,
-    build_hourly_target,
-    apply_exits_hourly,
-    _splits,
-    _period_metrics,
+    SEED,
+    VIX_SYMBOL,
     _count_in,
-    smooth_signal,
-    regime_factor_hourly,
+    _period_metrics,
+    _splits,
+    apply_exits_hourly,
+    build_hourly_target,
+    make_futures_config,
+    vol_scaled_tsmom_hourly,
 )
 
 EXPERIMENT_NAME = "h12_selection_bias_audit"
@@ -231,7 +220,7 @@ def _cscv_pbo_multi(performance_matrix, n_blocks):
     pbo = float(np.mean(ranks > median_rank))
     return {
         "pbo": pbo,
-        "n_combinations": int(len(ranks)),
+        "n_combinations": len(ranks),
         "n_blocks": int(n_blocks),
         "n_strategies": int(N),
         "mean_is_opt_oos_rank": float(ranks.mean()),
@@ -427,7 +416,7 @@ def main():
         # (the selection metric's distributional inputs).
         skew = float(stats.skew(val_ret.values))
         kurt = float(stats.kurtosis(val_ret.values, fisher=False))
-        n_obs = int(len(val_ret))
+        n_obs = len(val_ret)
         var_trials = float(grid["val_sharpe"].var(ddof=1))
         print(f"[H12] val return moments: skew={skew:.4f} kurt={kurt:.4f} "
               f"trial SR var={var_trials:.6f}")

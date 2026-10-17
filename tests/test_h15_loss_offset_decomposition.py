@@ -1,6 +1,6 @@
-from pathlib import Path
 import json
-import numpy as np
+from pathlib import Path
+
 import pandas as pd
 
 PROBE_DIR = Path('.experiments/probes')

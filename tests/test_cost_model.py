@@ -16,7 +16,6 @@ profit factor, drawdown) are only meaningful with correctly scaled costs.
 """
 
 import sys
-import os
 from pathlib import Path
 
 import numpy as np
@@ -29,7 +28,6 @@ from qtr.backtest.engine import (
     AssetClass,
     BacktestConfig,
     CostModel,
-    VectorizedBacktester,
     run_backtest,
 )
 

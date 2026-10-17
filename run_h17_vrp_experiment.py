@@ -30,18 +30,17 @@ import json
 import sys
 import time
 from pathlib import Path
-from typing import Dict, Optional
 
 import numpy as np
 import pandas as pd
 
-from qtr.data.fetcher import get_data_fetcher
 from qtr.backtest.engine import (
     AssetClass,
     BacktestConfig,
     CostModel,
     run_backtest,
 )
+from qtr.data.fetcher import get_data_fetcher
 from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
     compare_to_benchmark,
@@ -172,7 +171,7 @@ def _period_metrics(ret: pd.Series, n_trades: int, equity: pd.Series) -> dict:
         "trades": int(n_trades),
         "gross_profit": gp,
         "gross_loss": gl,
-        "n_periods": int(len(r)),
+        "n_periods": len(r),
     }
 
 
@@ -226,8 +225,7 @@ def full_gate_eval(
         else:
             s = 0.0
         regime_sharpes[reg] = s
-        if s < worst:
-            worst = s
+        worst = min(worst, s)
 
     bench = compare_to_benchmark(
         oos_ret.dropna().values,
@@ -286,11 +284,7 @@ def perturbation_eval(
             v = base * factor
             if param == "vol_window":
                 v = max(1, int(round(v)))
-            elif param == "gate_thresh":
-                v = round(v, 4)
-            elif param == "target_vol":
-                v = round(v, 4)
-            elif param == "max_pos":
+            elif param == "gate_thresh" or param == "target_vol" or param == "max_pos":
                 v = round(v, 4)
             if v == base:
                 continue

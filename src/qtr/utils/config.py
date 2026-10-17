@@ -4,15 +4,15 @@ Configuration management for QTR.
 
 import os
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
+
 import yaml
 
+_CONFIG: dict[str, Any] | None = None
+_CONFIG_PATH: Path | None = None
 
-_CONFIG: Optional[Dict[str, Any]] = None
-_CONFIG_PATH: Optional[Path] = None
 
-
-def load_config(config_path: Optional[Path] = None) -> Dict[str, Any]:
+def load_config(config_path: Path | None = None) -> dict[str, Any]:
     """Load configuration from YAML file."""
     global _CONFIG, _CONFIG_PATH
 
@@ -45,14 +45,14 @@ def load_config(config_path: Optional[Path] = None) -> Dict[str, Any]:
     return _CONFIG
 
 
-def get_config() -> Dict[str, Any]:
+def get_config() -> dict[str, Any]:
     """Get current configuration (loads if not already loaded)."""
     if _CONFIG is None:
         return load_config()
     return _CONFIG
 
 
-def _apply_env_overrides(config: Dict[str, Any]) -> None:
+def _apply_env_overrides(config: dict[str, Any]) -> None:
     """Apply environment variable overrides to config."""
     env_mappings = {
         "QTR_CACHE_DIR": "data.cache_dir",
@@ -66,7 +66,7 @@ def _apply_env_overrides(config: Dict[str, Any]) -> None:
             _set_nested(config, config_key.split("."), value)
 
 
-def _set_nested(d: Dict[str, Any], keys: list, value: str) -> None:
+def _set_nested(d: dict[str, Any], keys: list, value: str) -> None:
     """Set nested dictionary value, creating intermediate dicts as needed."""
     for key in keys[:-1]:
         d = d.setdefault(key, {})
@@ -82,7 +82,7 @@ def _set_nested(d: Dict[str, Any], keys: list, value: str) -> None:
     d[keys[-1]] = value
 
 
-def save_config(config: Dict[str, Any], path: Optional[Path] = None) -> None:
+def save_config(config: dict[str, Any], path: Path | None = None) -> None:
     """Save configuration to YAML file."""
     global _CONFIG, _CONFIG_PATH
     path = path or _CONFIG_PATH or Path.cwd() / "config.yaml"

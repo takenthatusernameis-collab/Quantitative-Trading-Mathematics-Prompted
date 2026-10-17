@@ -22,7 +22,6 @@ from qtr.backtest.engine import (
     BacktestConfig,
     BacktestResult,
     CostModel,
-    VectorizedBacktester,
     run_backtest,
 )
 

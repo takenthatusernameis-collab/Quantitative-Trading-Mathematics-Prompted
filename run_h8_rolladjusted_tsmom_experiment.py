@@ -29,25 +29,24 @@ Pre-registered design (per NEXT_TASK.md):
 - Compute budget: <= 2 CPU-h. Seed 42.
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 import json
 from pathlib import Path
-from itertools import product
 
 import numpy as np
 import pandas as pd
-from scipy import stats
 
+from qtr.backtest.engine import AssetClass, BacktestConfig, CostModel, run_backtest
 from qtr.data.fetcher import get_data_fetcher
-from qtr.backtest.engine import run_backtest, BacktestConfig, AssetClass, CostModel
-from qtr.tracking.experiment import get_tracker
 from qtr.strategies.baselines import vol_scaled_tsmom_signals
+from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
-    sharpe_ratio, sharpe_ratio_ci, walk_forward_splits,
     compare_to_benchmark,
+    sharpe_ratio,
 )
 
 FUTURES_UNIVERSE = ["ES=F", "NQ=F", "CL=F", "GC=F", "ZB=F"]
@@ -385,7 +384,7 @@ def compute_gate_metrics(result, prices, vix, label=""):
         "oos_sharpe": float(oos_sharpe),
         "oos_pf": float(oos_pf),
         "oos_max_dd": float(oos_dd),
-        "oos_trades": int(len(oos_trades)),
+        "oos_trades": len(oos_trades),
         "wf_stability": float(wf_stab),
         "worst_regime_sharpe": float(worst),
         "benchmark_p_value": float(p_val),
@@ -552,7 +551,7 @@ def main():
                 "oos_sharpe": float(oos_s),
                 "oos_pf": float(oos_pf),
                 "oos_dd": float(oos_dd),
-                "oos_trades": int(len(oos_trades)),
+                "oos_trades": len(oos_trades),
             }
             grid_records.append(rec)
             print(f"  w={weight:.2f}: train_SR={train_s:.3f}, val_SR={val_s:.3f}, "
@@ -634,7 +633,7 @@ def main():
         tracker.log_dataframe(f"best_equity_w{best_weight}", best_result.equity_curve.to_frame("equity"))
         tracker.log_dataframe(f"best_trades_w{best_weight}", best_result.trades)
         tracker.log_dataframe(f"best_returns_w{best_weight}", best_result.returns.to_frame("returns"))
-        tracker.log_dataframe(f"base_equity", base_result.equity_curve.to_frame("equity"))
+        tracker.log_dataframe("base_equity", base_result.equity_curve.to_frame("equity"))
 
         # ---- Summary ----
         summary = {

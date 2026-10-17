@@ -29,7 +29,6 @@ import json
 import sys
 import time
 from pathlib import Path
-from typing import Dict, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -37,13 +36,13 @@ import pandas as pd
 # Ensure we can import qtr modules
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from qtr.data.fetcher import get_data_fetcher
 from qtr.backtest.engine import (
     AssetClass,
     BacktestConfig,
     CostModel,
     run_backtest,
 )
+from qtr.data.fetcher import get_data_fetcher
 from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
     compare_to_benchmark,
@@ -57,7 +56,7 @@ def _overnight_intraday_signal(
     hold_convention: str,
     close: pd.Series,
     open_: pd.Series,
-    vix_close: Optional[pd.Series] = None,
+    vix_close: pd.Series | None = None,
 ) -> pd.Series:
     """
     Generate overnight/intraday allocation signal.

@@ -35,18 +35,17 @@ import json
 import sys
 import time
 from pathlib import Path
-from typing import Dict, Optional
 
 import numpy as np
 import pandas as pd
 
-from qtr.data.fetcher import get_data_fetcher
 from qtr.backtest.engine import (
     AssetClass,
     BacktestConfig,
     CostModel,
     run_backtest,
 )
+from qtr.data.fetcher import get_data_fetcher
 from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
     compare_to_benchmark,
@@ -139,7 +138,7 @@ def build_daily_targets(
     skip: int,
     regime_exposure: tuple,
     n_factors: int,
-    families: Optional[Dict[str, list]] = None,
+    families: dict[str, list] | None = None,
 ) -> pd.DataFrame:
     """Daily (pre-rebalance) target weights, causal, point-in-time.
 
@@ -235,7 +234,7 @@ def _period_metrics(ret: pd.Series, n_trades: int) -> dict:
         "trades": int(n_trades),
         "gross_profit": gp,
         "gross_loss": gl,
-        "n_periods": int(len(r)),
+        "n_periods": len(r),
     }
 
 
@@ -309,8 +308,7 @@ def full_gate_eval(
         else:
             s = 0.0
         regime_sharpes[reg] = s
-        if s < worst:
-            worst = s
+        worst = min(worst, s)
 
     bench = compare_to_benchmark(
         oos_ret.dropna().values,

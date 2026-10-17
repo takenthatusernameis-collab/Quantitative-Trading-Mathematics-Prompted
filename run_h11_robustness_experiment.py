@@ -22,55 +22,50 @@ Constraints: no live trading, no secrets, no paid data, Test never enters select
 <= 4 CPU-h per experiment, reuse existing engine / tracking / validation infra.
 """
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
+import copy
 import json
 import time
-import copy
-from itertools import product
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-from qtr.data.fetcher import get_data_fetcher
 from qtr.backtest.engine import (
-    run_backtest, BacktestConfig, CostModel, AssetClass,
+    AssetClass,
+    BacktestConfig,
+    CostModel,
+    run_backtest,
 )
+from qtr.data.fetcher import get_data_fetcher
 from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
     sharpe_ratio,
-    walk_forward_splits,
-    compare_to_benchmark,
 )
 
+# Position-size ceiling (single source of truth: H9).
+from run_h9_intraday_tsmom_experiment import MAX_POSITION_SIZE  # noqa: F401  (re-exported for test access)
 # Reuse H10 constants / primitives (single source of truth for universe, costs, gates).
 from run_h10_intraday_tsmom_pfopt_experiment import (
-    FUTURES_UNIVERSE,
-    VIX_SYMBOL,
-    SEED,
-    INITIAL_CAPITAL,
-    GATES,
     COST_MODEL_DEFAULTS,
     FUTURES_SPECS,
-    make_futures_config,
-    regime_labels,
-    vol_scaled_tsmom_hourly,
-    _daily_target_from_hourly,
-    build_hourly_target,
-    apply_exits_hourly,
-    _splits,
-    _period_metrics,
+    FUTURES_UNIVERSE,
+    GATES,
+    SEED,
+    VIX_SYMBOL,
     _count_in,
     _full_gate_eval,
-    smooth_signal,
-    regime_factor_hourly,
+    _period_metrics,
+    _splits,
+    apply_exits_hourly,
+    build_hourly_target,
+    make_futures_config,
+    vol_scaled_tsmom_hourly,
 )
-# Position-size ceiling (single source of truth: H9).
-from run_h9_intraday_tsmom_experiment import MAX_POSITION_SIZE
 
 EXPERIMENT_NAME = "h11_robustness_certification"
 EXPERIMENT_DESC = (
@@ -735,7 +730,7 @@ def main():
         tracker.finish_experiment(status="completed")
 
         print("\n" + "=" * 72)
-        print(f"  H11 certification gates:")
+        print("  H11 certification gates:")
         print(f"    baseline (H10 config, unperturbed): "
               f"{int(sum(base_gate['passes'].values()))}/8 -> {base_gate['verdict']}")
         print(f"    perturbation robustness: {'PASS' if pert_pass else 'FAIL'} "

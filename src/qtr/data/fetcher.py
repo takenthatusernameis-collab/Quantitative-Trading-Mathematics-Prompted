@@ -7,14 +7,10 @@ Supports:
 - Futures continuous contracts via yfinance =F tickers
 """
 
-import os
 import hashlib
-import pickle
+from datetime import datetime
 from pathlib import Path
-from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta
 
-import numpy as np
 import pandas as pd
 from loguru import logger
 
@@ -24,7 +20,7 @@ from qtr.utils.config import get_config
 class DataCache:
     """File-based cache for downloaded data with content hashing."""
 
-    def __init__(self, cache_dir: Optional[Path] = None):
+    def __init__(self, cache_dir: Path | None = None):
         self.cache_dir = cache_dir or Path(get_config().get("data.cache_dir", ".cache/data"))
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
@@ -32,7 +28,7 @@ class DataCache:
         key = f"{source}:{symbol}:{start}:{end}:{interval}"
         return hashlib.sha256(key.encode()).hexdigest()[:16]
 
-    def get(self, source: str, symbol: str, start: str, end: str, interval: str) -> Optional[pd.DataFrame]:
+    def get(self, source: str, symbol: str, start: str, end: str, interval: str) -> pd.DataFrame | None:
         key = self._cache_key(source, symbol, start, end, interval)
         path = self.cache_dir / f"{key}.parquet"
         if path.exists():
@@ -57,18 +53,18 @@ class DataCache:
 class DataFetcher:
     """Unified data fetcher with caching and standardization."""
 
-    def __init__(self, cache: Optional[DataCache] = None):
+    def __init__(self, cache: DataCache | None = None):
         self.cache = cache or DataCache()
-        self._ccxt_exchanges: Dict[str, ccxt.Exchange] = {}
+        self._ccxt_exchanges: dict[str, ccxt.Exchange] = {}
 
     def fetch_yahoo(
         self,
-        symbols: List[str],
+        symbols: list[str],
         start: str,
-        end: Optional[str] = None,
+        end: str | None = None,
         interval: str = "1d",
         use_cache: bool = True,
-    ) -> Dict[str, pd.DataFrame]:
+    ) -> dict[str, pd.DataFrame]:
         """
         Fetch data from Yahoo Finance.
 
@@ -135,12 +131,12 @@ class DataFetcher:
 
     def fetch_futures(
         self,
-        symbols: List[str],
+        symbols: list[str],
         start: str,
-        end: Optional[str] = None,
+        end: str | None = None,
         interval: str = "1d",
         use_cache: bool = True,
-    ) -> Dict[str, pd.DataFrame]:
+    ) -> dict[str, pd.DataFrame]:
         """
         Fetch continuous futures data from Yahoo Finance using =F tickers.
 
@@ -216,12 +212,12 @@ class DataFetcher:
     def fetch_ccxt(
         self,
         exchange_id: str,
-        symbols: List[str],
+        symbols: list[str],
         start: str,
-        end: Optional[str] = None,
+        end: str | None = None,
         timeframe: str = "1h",
         use_cache: bool = True,
-    ) -> Dict[str, pd.DataFrame]:
+    ) -> dict[str, pd.DataFrame]:
         """
         Fetch OHLCV data from a CCXT-supported exchange.
 
@@ -300,7 +296,7 @@ class DataFetcher:
 
         return results
 
-    def fetch_sp500_constituents(self, date: Optional[str] = None) -> List[str]:
+    def fetch_sp500_constituents(self, date: str | None = None) -> list[str]:
         """Fetch S&P 500 constituents as of a given date (approximate via current list)."""
         # For MVP, return current S&P 500 from Wikipedia
         # In production, use point-in-time constituents from a vendor

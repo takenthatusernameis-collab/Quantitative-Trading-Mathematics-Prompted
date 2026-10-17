@@ -1,29 +1,29 @@
 """Strategies package for QTR."""
 
 from qtr.strategies.baselines import (
-    moving_average_crossover_signals,
+    STRATEGY_REGISTRY,
     buy_and_hold_signals,
+    carry_signals,
     ewma_crossover_signals,
-    momentum_signals,
+    get_strategy,
     mean_reversion_signals,
+    momentum_signals,
+    moving_average_crossover_signals,
+    run_strategy,
     time_series_momentum_signals,
     vol_scaled_tsmom_signals,
-    carry_signals,
-    STRATEGY_REGISTRY,
-    get_strategy,
-    run_strategy,
 )
 
 __all__ = [
-    "moving_average_crossover_signals",
+    "STRATEGY_REGISTRY",
     "buy_and_hold_signals",
+    "carry_signals",
     "ewma_crossover_signals",
-    "momentum_signals",
+    "get_strategy",
     "mean_reversion_signals",
+    "momentum_signals",
+    "moving_average_crossover_signals",
+    "run_strategy",
     "time_series_momentum_signals",
     "vol_scaled_tsmom_signals",
-    "carry_signals",
-    "STRATEGY_REGISTRY",
-    "get_strategy",
-    "run_strategy",
 ]

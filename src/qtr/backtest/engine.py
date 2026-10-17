@@ -9,10 +9,9 @@ Cost Model (from PROMPT_V2.md):
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Tuple, Any
+
 import numpy as np
 import pandas as pd
-from loguru import logger
 
 
 class AssetClass(Enum):
@@ -38,20 +37,20 @@ class CostModel:
 
     # Per-symbol futures contract specifications (overrides defaults)
     # Dict[symbol] -> dict with keys: multiplier, tick_value, tick_size, commission, spread_ticks, slippage_ticks
-    futures_specs: Dict[str, Dict[str, float]] = field(default_factory=dict)
+    futures_specs: dict[str, dict[str, float]] = field(default_factory=dict)
 
     # Crypto costs (basis points)
     crypto_fee_bps: float = 5.0
     crypto_spread_bps: float = 2.0
     crypto_slippage_bps_per_pct_daily_vol: float = 1.0
 
-    def equity_cost_bps(self, spread_bps: Optional[float] = None, adv_pct: float = 0.0) -> float:
+    def equity_cost_bps(self, spread_bps: float | None = None, adv_pct: float = 0.0) -> float:
         """Total equity cost in basis points."""
         spread = spread_bps if spread_bps is not None else self.equity_spread_bps
         impact = self.equity_impact_bps_per_pct_adv * adv_pct
         return self.equity_commission_bps + spread + impact
 
-    def future_cost_per_contract(self, symbol: Optional[str] = None) -> float:
+    def future_cost_per_contract(self, symbol: str | None = None) -> float:
         """Total futures cost per contract in dollars for a given symbol."""
         if symbol and symbol in self.futures_specs:
             spec = self.futures_specs[symbol]
@@ -67,7 +66,7 @@ class CostModel:
         tick_cost = (spread_ticks + slippage_ticks) * tick_value
         return commission + tick_cost
 
-    def get_future_contract_multiplier(self, symbol: Optional[str] = None) -> float:
+    def get_future_contract_multiplier(self, symbol: str | None = None) -> float:
         """Contract multiplier for a given symbol."""
         if symbol and symbol in self.futures_specs:
             return self.futures_specs[symbol].get("multiplier", self.future_contract_multiplier)
@@ -88,7 +87,7 @@ class BacktestConfig:
     max_position_size: float = 1.0  # fraction of capital
     max_leverage: float = 1.0
     allow_short: bool = False
-    benchmark_symbol: Optional[str] = None
+    benchmark_symbol: str | None = None
 
 
 @dataclass
@@ -98,7 +97,7 @@ class BacktestResult:
     returns: pd.Series
     positions: pd.DataFrame
     trades: pd.DataFrame
-    metrics: Dict[str, float]
+    metrics: dict[str, float]
     config: BacktestConfig
 
 
@@ -118,8 +117,8 @@ class VectorizedBacktester:
         self,
         prices: pd.DataFrame,
         signals: pd.DataFrame,
-        volumes: Optional[pd.DataFrame] = None,
-        adv: Optional[pd.Series] = None,
+        volumes: pd.DataFrame | None = None,
+        adv: pd.Series | None = None,
     ) -> BacktestResult:
         """
         Run backtest.
@@ -201,7 +200,7 @@ class VectorizedBacktester:
         position_changes: pd.DataFrame,
         prices: pd.DataFrame,
         volumes: pd.DataFrame,
-        adv: Optional[pd.Series],
+        adv: pd.Series | None,
     ) -> pd.Series:
         """Calculate transaction costs for each time step."""
         costs = pd.Series(0.0, index=position_changes.index)
@@ -293,7 +292,7 @@ class VectorizedBacktester:
         returns: pd.Series,
         equity: pd.Series,
         trades: pd.DataFrame,
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Calculate performance metrics."""
         metrics = {}
 
@@ -367,7 +366,7 @@ class VectorizedBacktester:
 def run_backtest(
     prices: pd.DataFrame,
     signals: pd.DataFrame,
-    config: Optional[BacktestConfig] = None,
+    config: BacktestConfig | None = None,
     **kwargs,
 ) -> BacktestResult:
     """Convenience function to run a backtest."""

@@ -6,22 +6,21 @@ Experiment: H-20261010-004
 Test EMA crossover and momentum strategies.
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 import json
-from datetime import datetime
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
+from qtr.backtest.engine import AssetClass, BacktestConfig, run_backtest
 from qtr.data.fetcher import get_data_fetcher
-from qtr.backtest.engine import run_backtest, BacktestConfig, AssetClass
-from qtr.tracking.experiment import get_tracker
 from qtr.strategies import run_strategy
-from qtr.validation.statistics import sharpe_ratio
+from qtr.tracking.experiment import get_tracker
 
 
 def main():

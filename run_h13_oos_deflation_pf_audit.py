@@ -55,8 +55,8 @@ never enters selection, <= 4 CPU-h per experiment, reuse
 existing engine / tracking / validation infrastructure.
 """
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
@@ -70,43 +70,40 @@ from scipy import stats
 
 from qtr.backtest.engine import run_backtest
 from qtr.tracking.experiment import get_tracker
-from qtr.validation.statistics import sharpe_ratio
 
-# Reuse H12 machinery (DSR, expected-max-Sharpe, cached data,
-# splits, period metrics, trade counting -- single source of
-# truth for the deflation math and the H10 window).
-from run_h12_selection_bias_audit import (
-    deflated_sharpe_ratio,
-    _expected_max_sharpe,
-    _load_cached_data,
-    _splits,
-    _period_metrics,
-    _count_in,
-    SEL,
-    N_GRID,
-    PERIODS_PER_YEAR,
+# Reuse H10 constants (universe, gates, seeds, cost defaults).
+from run_h10_intraday_tsmom_pfopt_experiment import (
+    FUTURES_UNIVERSE,
+    GATES,
+    SEED,
+    VIX_SYMBOL,
+    make_futures_config,
+    regime_labels,
 )
 
 # Reuse the H11 public API (frozen-config position builder,
 # net per-symbol decomposition, cost-stressed configs).
 from run_h11_robustness_experiment import (
     FROZEN_CONFIG,
-    build_positions,
-    per_symbol_contributions,
-    make_cost_stressed_config,
     _build_exit_inputs,
-    TARGET_VOL,
+    build_positions,
+    make_cost_stressed_config,
+    per_symbol_contributions,
 )
 
-# Reuse H10 constants (universe, gates, seeds, cost defaults).
-from run_h10_intraday_tsmom_pfopt_experiment import (
-    FUTURES_UNIVERSE,
-    VIX_SYMBOL,
-    SEED,
-    INITIAL_CAPITAL,
-    GATES,
-    make_futures_config,
-    regime_labels,
+# Reuse H12 machinery (DSR, expected-max-Sharpe, cached data,
+# splits, period metrics, trade counting -- single source of
+# truth for the deflation math and the H10 window).
+from run_h12_selection_bias_audit import (
+    N_GRID,
+    PERIODS_PER_YEAR,
+    SEL,
+    _count_in,
+    _expected_max_sharpe,
+    _load_cached_data,
+    _period_metrics,
+    _splits,
+    deflated_sharpe_ratio,
 )
 
 EXPERIMENT_NAME = "h13_oos_deflation_pf_audit"
@@ -351,7 +348,7 @@ def main():
         sel_grid_row = _selected_row(grid_oos)
 
         oos_ret = h10_returns[oos_mask]
-        n_obs = int(len(oos_ret))
+        n_obs = len(oos_ret)
         skew = float(stats.skew(oos_ret.values))
         kurt = float(stats.kurtosis(oos_ret.values, fisher=False))
 

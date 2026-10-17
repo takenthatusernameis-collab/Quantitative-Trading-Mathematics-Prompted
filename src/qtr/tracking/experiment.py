@@ -4,20 +4,19 @@ Experiment tracking and reproducibility framework.
 Logs experiments to JSONL files with full reproducibility metadata.
 """
 
-import json
 import hashlib
+import json
 import subprocess
 import sys
-import os
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import asdict, dataclass
 from datetime import datetime
-from dataclasses import dataclass, asdict, field
+from pathlib import Path
+from typing import Any
+
 import pandas as pd
-import numpy as np
+from loguru import logger
 
 from qtr.utils.config import get_config
-from loguru import logger
 
 
 @dataclass
@@ -30,21 +29,21 @@ class ExperimentMetadata:
     git_commit: str
     git_dirty: bool
     python_version: str
-    dependencies: Dict[str, str]
-    random_seeds: Dict[str, int]
-    config: Dict[str, Any]
-    data_sources: Dict[str, Any]
-    compute_budget: Dict[str, Any]
+    dependencies: dict[str, str]
+    random_seeds: dict[str, int]
+    config: dict[str, Any]
+    data_sources: dict[str, Any]
+    compute_budget: dict[str, Any]
 
 
 @dataclass
 class ExperimentResult:
     """Container for experiment results."""
     metadata: ExperimentMetadata
-    metrics: Dict[str, float]
-    artifacts: Dict[str, str]  # artifact_name -> file_path
+    metrics: dict[str, float]
+    artifacts: dict[str, str]  # artifact_name -> file_path
     status: str  # "completed", "failed", "running"
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class ExperimentTracker:
@@ -57,21 +56,21 @@ class ExperimentTracker:
     - Artifact references (file paths with hashes)
     """
 
-    def __init__(self, log_dir: Optional[Path] = None):
+    def __init__(self, log_dir: Path | None = None):
         self.log_dir = log_dir or Path(get_config().get("tracking.log_dir", ".experiments"))
         self.log_dir.mkdir(parents=True, exist_ok=True)
-        self.current_experiment: Optional[ExperimentMetadata] = None
-        self.current_results: Dict[str, Any] = {}
-        self.current_artifacts: Dict[str, str] = {}
+        self.current_experiment: ExperimentMetadata | None = None
+        self.current_results: dict[str, Any] = {}
+        self.current_artifacts: dict[str, str] = {}
 
     def start_experiment(
         self,
         name: str,
         description: str = "",
-        config: Optional[Dict[str, Any]] = None,
-        data_sources: Optional[Dict[str, Any]] = None,
-        compute_budget: Optional[Dict[str, Any]] = None,
-        random_seeds: Optional[Dict[str, int]] = None,
+        config: dict[str, Any] | None = None,
+        data_sources: dict[str, Any] | None = None,
+        compute_budget: dict[str, Any] | None = None,
+        random_seeds: dict[str, int] | None = None,
     ) -> str:
         """Start a new experiment and return experiment ID."""
         # Generate experiment ID
@@ -113,7 +112,7 @@ class ExperimentTracker:
         logger.info(f"Started experiment: {exp_id} ({name})")
         return exp_id
 
-    def log_metric(self, name: str, value: float, step: Optional[int] = None) -> None:
+    def log_metric(self, name: str, value: float, step: int | None = None) -> None:
         """Log a single metric."""
         if self.current_experiment is None:
             raise RuntimeError("No active experiment. Call start_experiment() first.")
@@ -121,12 +120,12 @@ class ExperimentTracker:
         key = f"{name}" + (f"_step{step}" if step is not None else "")
         self.current_results[key] = value
 
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: dict[str, float], step: int | None = None) -> None:
         """Log multiple metrics at once."""
         for name, value in metrics.items():
             self.log_metric(name, value, step)
 
-    def log_artifact(self, name: str, file_path: Path, metadata: Optional[Dict[str, Any]] = None) -> str:
+    def log_artifact(self, name: str, file_path: Path, metadata: dict[str, Any] | None = None) -> str:
         """Log an artifact file, return its hash."""
         if self.current_experiment is None:
             raise RuntimeError("No active experiment. Call start_experiment() first.")
@@ -152,7 +151,7 @@ class ExperimentTracker:
         logger.debug(f"Logged artifact: {artifact_name}")
         return file_hash
 
-    def log_dataframe(self, name: str, df: pd.DataFrame, metadata: Optional[Dict[str, Any]] = None) -> str:
+    def log_dataframe(self, name: str, df: pd.DataFrame, metadata: dict[str, Any] | None = None) -> str:
         """Log a DataFrame as parquet artifact."""
         artifact_dir = self.log_dir / "artifacts" / self.current_experiment.experiment_id
         artifact_dir.mkdir(parents=True, exist_ok=True)
@@ -170,7 +169,7 @@ class ExperimentTracker:
 
         return self.log_artifact(name, file_path, meta)
 
-    def finish_experiment(self, status: str = "completed", error: Optional[str] = None) -> ExperimentResult:
+    def finish_experiment(self, status: str = "completed", error: str | None = None) -> ExperimentResult:
         """Finish the current experiment and persist results."""
         if self.current_experiment is None:
             raise RuntimeError("No active experiment.")
@@ -205,7 +204,7 @@ class ExperimentTracker:
         with open(log_file, "a") as f:
             f.write(json.dumps(record, default=str) + "\n")
 
-    def _get_git_info(self) -> Tuple[str, bool]:
+    def _get_git_info(self) -> tuple[str, bool]:
         """Get current git commit and dirty status."""
         try:
             commit = subprocess.check_output(
@@ -218,7 +217,7 @@ class ExperimentTracker:
         except Exception:
             return "unknown", False
 
-    def _get_dependencies(self) -> Dict[str, str]:
+    def _get_dependencies(self) -> dict[str, str]:
         """Get installed package versions."""
         try:
             import pkg_resources
@@ -226,7 +225,7 @@ class ExperimentTracker:
         except Exception:
             return {}
 
-    def load_experiment(self, experiment_id: str) -> Optional[ExperimentResult]:
+    def load_experiment(self, experiment_id: str) -> ExperimentResult | None:
         """Load a previous experiment by ID."""
         log_file = self.log_dir / "experiments.jsonl"
         if not log_file.exists():
@@ -245,7 +244,7 @@ class ExperimentTracker:
                     )
         return None
 
-    def list_experiments(self, limit: int = 100) -> List[Dict[str, Any]]:
+    def list_experiments(self, limit: int = 100) -> list[dict[str, Any]]:
         """List recent experiments."""
         log_file = self.log_dir / "experiments.jsonl"
         if not log_file.exists():

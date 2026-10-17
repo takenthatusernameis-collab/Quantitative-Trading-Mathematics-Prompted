@@ -28,25 +28,24 @@ Pre-registered design:
 - Compute budget: <= 2 CPU-h. Seed 42.
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 import json
 from pathlib import Path
-from itertools import product
 
 import numpy as np
 import pandas as pd
-from scipy import stats
 
+from qtr.backtest.engine import AssetClass, BacktestConfig, CostModel, run_backtest
 from qtr.data.fetcher import get_data_fetcher
-from qtr.backtest.engine import run_backtest, BacktestConfig, AssetClass, CostModel
-from qtr.tracking.experiment import get_tracker
 from qtr.strategies.baselines import vol_scaled_tsmom_signals
+from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
-    sharpe_ratio, sharpe_ratio_ci, walk_forward_splits,
     compare_to_benchmark,
+    sharpe_ratio,
 )
 
 FUTURES_UNIVERSE = ["ES=F", "NQ=F", "CL=F", "GC=F", "ZB=F"]
@@ -371,7 +370,7 @@ def main():
                     "val_dd": window_max_drawdown(result.equity_curve, TRAIN_END, VAL_END),
                     "oos_dd": window_max_drawdown(result.equity_curve, TRAIN_END, END_DATE),
                     "val_pf": float(result.metrics["profit_factor"]),
-                    "val_trades": int(len(result.trades[result.trades["timestamp"] > pd.Timestamp(TRAIN_END)]))
+                    "val_trades": len(result.trades[result.trades["timestamp"] > pd.Timestamp(TRAIN_END)])
                         if len(result.trades) else 0,
                 }
                 combo_records.append(rec)
@@ -404,7 +403,7 @@ def main():
                 r = oos_ret[mask]
                 if len(r) > 1 and r.std() > 0:
                     s = sharpe_ratio(r.values)
-                    if s < worst: worst = s
+                    worst = min(worst, s)
         if worst == np.inf: worst = oos_sharpe
         if len(oos_ret) > 0:
             bh_oos = bh_result.returns[bh_result.returns.index > pd.Timestamp(TRAIN_END)]
@@ -449,7 +448,7 @@ def main():
                 "oos_sharpe": float(sharpe_ratio(oos_ar.values)) if len(oos_ar) else 0.0,
                 "oos_max_dd": dd_val,
                 "oos_pf": float(res.metrics["profit_factor"]),
-                "oos_trades": int(len(res.trades[res.trades["timestamp"] > pd.Timestamp(TRAIN_END)])) if len(res.trades) else 0,
+                "oos_trades": len(res.trades[res.trades["timestamp"] > pd.Timestamp(TRAIN_END)]) if len(res.trades) else 0,
             })
         ablation_df = pd.DataFrame(ablation_records)
 
@@ -460,7 +459,7 @@ def main():
             "oos_sharpe": float(oos_sharpe),
             "oos_pf": float(oos_pf),
             "oos_max_dd": float(oos_dd),
-            "oos_trades": int(len(oos_trades)),
+            "oos_trades": len(oos_trades),
             "train_sharpe": float(train_sharpe),
             "wf_stability": float(wf_stab),
             "worst_regime_sharpe": float(worst),

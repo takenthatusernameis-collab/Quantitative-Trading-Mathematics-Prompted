@@ -29,29 +29,30 @@ Realistic equity cost model: 1 bp commission + 1 bp spread + 0.1 bp per 1% ADV.
 No live trading. No API keys. Data: Yahoo Finance (cached).
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
-import json
 import itertools
+import json
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from scipy import stats
 
+from qtr.backtest.engine import AssetClass, BacktestConfig, run_backtest
 from qtr.data.fetcher import get_data_fetcher
-from qtr.backtest.engine import run_backtest, BacktestConfig, AssetClass
-from qtr.tracking.experiment import get_tracker
 from qtr.strategies import run_strategy
+from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
+    bootstrap_confidence_interval,
+    compare_to_benchmark,
+    multiple_testing_correction,
     sharpe_ratio,
     sharpe_ratio_ci,
     walk_forward_splits,
-    multiple_testing_correction,
-    compare_to_benchmark,
-    bootstrap_confidence_interval,
 )
 
 # ============================================================
@@ -488,10 +489,10 @@ def main():
             r = oos_returns[mask]
             if len(r) > 1 and r.std() > 0:
                 s = sharpe_ratio(r.values)
-                regime_metrics[reg] = {"sharpe": float(s), "n": int(len(r))}
+                regime_metrics[reg] = {"sharpe": float(s), "n": len(r)}
                 worst_regime_sharpe = min(worst_regime_sharpe, s)
             else:
-                regime_metrics[reg] = {"sharpe": 0.0, "n": int(len(r))}
+                regime_metrics[reg] = {"sharpe": 0.0, "n": len(r)}
 
         # Parameter perturbation (+/-20%) on OOS
         def perturbed_sharpe(lb, sk):
@@ -548,7 +549,7 @@ def main():
                 "pass": bool(oos_sharpe >= GATES["min_sharpe"]),
             },
             "oos_trades": {
-                "value": int(len(oos_trades)),
+                "value": len(oos_trades),
                 "threshold": GATES["min_trades"],
                 "pass": bool(len(oos_trades) >= GATES["min_trades"]),
             },
@@ -630,7 +631,7 @@ def main():
             "oos_metrics": {
                 "sharpe": round(oos_sharpe, 4),
                 "sharpe_ci": [round(sharpe_ci[0], 4), round(sharpe_ci[1], 4)],
-                "n_trades": int(len(oos_trades)),
+                "n_trades": len(oos_trades),
                 "profit_factor": round(oos_pf, 4),
                 "max_drawdown": round(oos_dd, 4),
             },

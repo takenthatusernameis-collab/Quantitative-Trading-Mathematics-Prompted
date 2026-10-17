@@ -1,9 +1,7 @@
 """Baseline strategies for quantitative trading research."""
 
-from typing import Optional, Dict, Any
 import numpy as np
 import pandas as pd
-from loguru import logger
 
 
 def moving_average_crossover_signals(
@@ -110,7 +108,7 @@ def momentum_signals(
     lookback: int = 252,
     skip: int = 21,
     long_only: bool = True,
-    n_top: Optional[int] = None,
+    n_top: int | None = None,
 ) -> pd.DataFrame:
     """
     Generate cross-sectional momentum signals.

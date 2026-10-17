@@ -23,25 +23,23 @@ Pre-registered design (H7):
 - Gates: unchanged PROMPT_V2 (Sharpe ≥ 1.0, DD ≤ 15%, etc.) on protected OOS.
 - Null: Intraday/multi-horizon TSMOM with path-dependent exits OOS Sharpe ≤ 1.0 OR max DD > 15%.
 """
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 import json
 from pathlib import Path
-from itertools import product
 
 import numpy as np
 import pandas as pd
-from scipy import stats
 
+from qtr.backtest.engine import AssetClass, BacktestConfig, CostModel, run_backtest
 from qtr.data.fetcher import get_data_fetcher
-from qtr.backtest.engine import run_backtest, BacktestConfig, AssetClass, CostModel
 from qtr.tracking.experiment import get_tracker
-from qtr.strategies.baselines import vol_scaled_tsmom_signals
 from qtr.validation.statistics import (
-    sharpe_ratio, sharpe_ratio_ci, walk_forward_splits,
     compare_to_benchmark,
+    sharpe_ratio,
 )
 
 FUTURES_UNIVERSE = ["ES=F", "NQ=F", "CL=F", "GC=F", "ZB=F"]

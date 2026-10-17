@@ -1,12 +1,9 @@
 """Regression tests for H14 (PF-margin fragility family property) artifacts."""
 
-from pathlib import Path
 import json
+from pathlib import Path
 
-import numpy as np
 import pandas as pd
-import pytest
-
 
 H14_EXP_ID = "exp_2026-10-13T19-01-59-371405Z"
 ARTIFACTS_DIR = Path(__file__).parent.parent / ".experiments" / "artifacts" / H14_EXP_ID

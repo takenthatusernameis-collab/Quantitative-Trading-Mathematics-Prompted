@@ -16,14 +16,14 @@ Pre-registration (from NEXT_TASK):
   H13 fragility gates.
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 import json
 import time
 from pathlib import Path
-import itertools
 
 import numpy as np
 import pandas as pd
@@ -32,40 +32,31 @@ from scipy import stats
 from qtr.backtest.engine import run_backtest
 from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import sharpe_ratio
-
-from run_h12_selection_bias_audit import (
-    _load_cached_data,
-    _splits,
-    _period_metrics,
-    _count_in,
-    SEL,
-    N_GRID,
-    PERIODS_PER_YEAR,
-    deflated_sharpe_ratio,
-    _expected_max_sharpe,
-)
 from run_h10_intraday_tsmom_pfopt_experiment import (
-    FUTURES_UNIVERSE,
-    VIX_SYMBOL,
-    SEED,
-    INITIAL_CAPITAL,
     GATES,
+    INITIAL_CAPITAL,
+    SEED,
     make_futures_config,
-    regime_labels,
 )
 from run_h11_robustness_experiment import (
-    FROZEN_CONFIG,
-    build_positions,
-    per_symbol_contributions,
     _build_exit_inputs,
+    per_symbol_contributions,
+)
+from run_h12_selection_bias_audit import (
+    PERIODS_PER_YEAR,
+    SEL,
+    _count_in,
+    _expected_max_sharpe,
+    _load_cached_data,
+    _period_metrics,
+    _splits,
+    deflated_sharpe_ratio,
 )
 from run_h13_oos_deflation_pf_audit import (
+    N_BOOTSTRAP,
+    _leave_one_out_pf,
     _profit_factor,
     bootstrap_profit_factor_distribution,
-    _per_symbol_pf,
-    _leave_one_out_pf,
-    SHIFTED_SPLITS,
-    N_BOOTSTRAP,
 )
 
 EXPERIMENT_NAME = "h14_pf_margin_selection_audit"
@@ -95,7 +86,7 @@ def _select_top_by_val_pf_margin(grid_df: pd.DataFrame, k: int = K_TOP) -> pd.Da
     # easier exact match by values
     frozen_mask = (
         (grid_df["vol_window_long"] == 1008)
-        & ((grid_df["smooth_span"].astype(str) == "none"))
+        & (grid_df["smooth_span"].astype(str) == "none")
         & (grid_df["regime_scaling"] == False)
         & (grid_df["min_trade_interval"] == 0)
         & (grid_df["trailing_mult"] == 2.0)
@@ -125,7 +116,11 @@ def _rebuild_grid_oos_for_subset(prices, volumes, vix_hourly, cfg, masks, subset
     T_oos = int(oos_mask.sum())
     N = len(subset_df)
 
-    from run_h10_intraday_tsmom_pfopt_experiment import vol_scaled_tsmom_hourly, build_hourly_target, apply_exits_hourly
+    from run_h10_intraday_tsmom_pfopt_experiment import (
+        apply_exits_hourly,
+        build_hourly_target,
+        vol_scaled_tsmom_hourly,
+    )
     base_signals = {}
     for vw in [252, 504, 1008]:
         base_signals[vw] = vol_scaled_tsmom_hourly(
@@ -133,7 +128,7 @@ def _rebuild_grid_oos_for_subset(prices, volumes, vix_hourly, cfg, masks, subset
         )
 
     from run_h10_intraday_tsmom_pfopt_experiment import (
-        vol_scaled_tsmom_hourly, build_hourly_target, apply_exits_hourly,
+        vol_scaled_tsmom_hourly,
     )
     # build targets on-the-fly for needed combos (small N)
     targets_cache = {}
@@ -222,7 +217,9 @@ def main():
         exits = _build_exit_inputs(prices)
         atr_e, vol_exit_e = exits
         from run_h10_intraday_tsmom_pfopt_experiment import (
-            vol_scaled_tsmom_hourly, build_hourly_target, apply_exits_hourly, regime_labels
+            apply_exits_hourly,
+            build_hourly_target,
+            vol_scaled_tsmom_hourly,
         )
         base = vol_scaled_tsmom_hourly(prices, vol_window_long=1008, vol_window_short=252)
         hourly_target = build_hourly_target(base, None, 1008, False, vix_hourly, prices.index)
@@ -231,7 +228,6 @@ def main():
             trailing_mult=2.0, max_hold_bars=60, vol_limit_mult=1.5, vol_floor_fraction=0.25,
             target_vol=0.15, min_trade_interval=0,
         )
-        from run_h10_intraday_tsmom_pfopt_experiment import regime_labels as rl_h10
         contrib_frozen = per_symbol_contributions(run_backtest(prices=prices, signals=positions, volumes=volumes, config=cfg), prices, cfg)
 
         results = []
@@ -284,7 +280,11 @@ def main():
             vlm = float(cfg_row["vol_limit_mult"])
             vff = float(cfg_row["vol_floor_fraction"])
             key_t = (vw, smooth_span, regime)
-            from run_h10_intraday_tsmom_pfopt_experiment import vol_scaled_tsmom_hourly, build_hourly_target, apply_exits_hourly, regime_labels
+            from run_h10_intraday_tsmom_pfopt_experiment import (
+                apply_exits_hourly,
+                build_hourly_target,
+                vol_scaled_tsmom_hourly,
+            )
             # build if needed
             if not hasattr(_rebuild_grid_oos_for_subset, '_targets'):
                 _rebuild_grid_oos_for_subset._targets = {}
@@ -336,7 +336,7 @@ def main():
             "configs_evaluated": len(results_df),
             "min_pf_gate": min_pf_gate,
             "min_sr_gate": min_sr_gate,
-            "n_passing": int(len(passes)),
+            "n_passing": len(passes),
             "all_pass": bool(all_pass_flag),
             "verdict": "PASS" if all_pass_flag else "REJECT",
             "null_h0": "no config in top-K-by-Val-PF-margin passes all three gates",

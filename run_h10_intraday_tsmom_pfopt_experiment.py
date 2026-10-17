@@ -23,42 +23,41 @@ Cost model, universe, splits and gates are unchanged from H9. Data is cached
 used so the run is fully reproducible offline.
 """
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 import json
 import time
-import traceback
 from itertools import product
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-from qtr.data.fetcher import get_data_fetcher
 from qtr.backtest.engine import run_backtest
+from qtr.data.fetcher import get_data_fetcher
 from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
+    compare_to_benchmark,
     sharpe_ratio,
     walk_forward_splits,
-    compare_to_benchmark,
 )
 
 # Reuse H9 constants / primitives (single source of truth for universe, costs, gates).
 from run_h9_intraday_tsmom_experiment import (
+    COST_MODEL_DEFAULTS,  # noqa: F401  (re-exported for run_h11/run_h13/run_h25)
+    FUTURES_SPECS,  # noqa: F401  (re-exported for downstream modules)
     FUTURES_UNIVERSE,
-    VIX_SYMBOL,
-    SEED,
-    INITIAL_CAPITAL,
     GATES,
-    COST_MODEL_DEFAULTS,
-    FUTURES_SPECS,
+    INITIAL_CAPITAL,
+    SEED,
+    VIX_SYMBOL,
+    _daily_target_from_hourly,
     make_futures_config,
     regime_labels,
     vol_scaled_tsmom_hourly,
-    _daily_target_from_hourly,
 )
 
 EXPERIMENT_NAME = "h10_intraday_tsmom_pfopt"
@@ -185,13 +184,8 @@ def apply_exits_hourly(
 
             # --- in-position exit checks (H9 semantics, gated by min interval) ---
             if in_pos and cur_pos > 0:
-                if cur_px > high_water:
-                    high_water = cur_px
-                if can_trade and cur_px < high_water - trailing_mult * atr_i:
-                    cur_pos = 0.0
-                    in_pos = False
-                    last_trade_bar = i
-                elif can_trade and bars_held >= max_hold_bars and cur_px <= entry_price:
+                high_water = max(high_water, cur_px)
+                if can_trade and cur_px < high_water - trailing_mult * atr_i or can_trade and bars_held >= max_hold_bars and cur_px <= entry_price:
                     cur_pos = 0.0
                     in_pos = False
                     last_trade_bar = i
@@ -257,7 +251,7 @@ def _period_metrics(ret: pd.Series, n_trades: int) -> dict:
         "trades": int(n_trades),
         "gross_profit": gp,
         "gross_loss": gl,
-        "n_periods": int(len(r)),
+        "n_periods": len(r),
     }
 
 
@@ -312,8 +306,7 @@ def _full_gate_eval(
         else:
             s = 0.0
         regime_sharpes[reg] = s
-        if s < worst:
-            worst = s
+        worst = min(worst, s)
 
     bench = compare_to_benchmark(result.returns, bh_result.returns)
     cum = (1 + oos_ret).cumprod()

@@ -1,8 +1,7 @@
 """Schema validation test for extended data feasibility probe report."""
 
-from pathlib import Path
 import re
-
+from pathlib import Path
 
 PROBE_PATH = Path(__file__).parent.parent / ".experiments" / "probes" / "extended_data_feasibility_probe.md"
 

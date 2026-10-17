@@ -14,8 +14,9 @@ Pre-registered design:
   * Selection: ensemble - average weights of top-K (K=5) configs by train WF Sharpe
   * Gates: same PROMPT_V2 gates including p<0.05 and IR>0 requirement via alpha test
 """
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 import json
@@ -23,19 +24,15 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from scipy import stats
 
+from qtr.backtest.engine import AssetClass, BacktestConfig, CostModel, run_backtest
 from qtr.data.fetcher import get_data_fetcher
-from qtr.backtest.engine import run_backtest, BacktestConfig, AssetClass, CostModel
-from qtr.tracking.experiment import get_tracker
 from qtr.strategies import run_strategy
+from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
-    sharpe_ratio,
-    sharpe_ratio_ci,
-    walk_forward_splits,
-    multiple_testing_correction,
-    bootstrap_confidence_interval,
     compare_to_benchmark,
+    sharpe_ratio,
+    walk_forward_splits,
 )
 
 # Pre-registered config
@@ -354,7 +351,7 @@ def main():
                 r = oos_ret[mask]
                 if len(r) > 1 and r.std() > 0:
                     s = sharpe_ratio(r.values)
-                    if s < worst: worst = s
+                    worst = min(worst, s)
         if worst == np.inf: worst = oos_sharpe
         if bh_result is not None and len(oos_ret) > 0:
             bh_oos = bh_result.returns[bh_result.returns.index > pd.Timestamp(TRAIN_END)]
@@ -382,7 +379,7 @@ def main():
             "oos_sharpe": float(oos_sharpe),
             "oos_pf": float(oos_pf),
             "oos_max_dd": float(oos_dd),
-            "oos_trades": int(len(oos_trades)),
+            "oos_trades": len(oos_trades),
             "train_sharpe": float(train_sharpe),
             "wf_stability": float(wf_stab),
             "worst_regime_sharpe": float(worst),

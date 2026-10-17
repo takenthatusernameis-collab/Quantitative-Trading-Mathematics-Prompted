@@ -20,29 +20,30 @@ Pre-registered:
   * Evidence gates: identical strict PROMPT_V2 gates as the TSMOM experiment.
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
-import json
 import itertools
+import json
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from scipy import stats
 
+from qtr.backtest.engine import AssetClass, BacktestConfig, run_backtest
 from qtr.data.fetcher import get_data_fetcher
-from qtr.backtest.engine import run_backtest, BacktestConfig, AssetClass
-from qtr.tracking.experiment import get_tracker
 from qtr.strategies import run_strategy
+from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
+    bootstrap_confidence_interval,
+    compare_to_benchmark,
+    multiple_testing_correction,
     sharpe_ratio,
     sharpe_ratio_ci,
     walk_forward_splits,
-    multiple_testing_correction,
-    compare_to_benchmark,
-    bootstrap_confidence_interval,
 )
 
 # ============================================================
@@ -290,10 +291,10 @@ def main():
         for r in ["bull", "sideways", "bear"]:
             rr = oos_returns[reg == r]
             if len(rr) > 1 and rr.std() > 0:
-                s = sharpe_ratio(rr.values); regime_metrics[r] = {"sharpe": float(s), "n": int(len(rr))}
+                s = sharpe_ratio(rr.values); regime_metrics[r] = {"sharpe": float(s), "n": len(rr)}
                 worst = min(worst, s)
             else:
-                regime_metrics[r] = {"sharpe": 0.0, "n": int(len(rr))}
+                regime_metrics[r] = {"sharpe": 0.0, "n": len(rr)}
         worst = worst if np.isfinite(worst) else 0.0
         # perturbation
         def pert(lb, sk):
@@ -323,7 +324,7 @@ def main():
 
         gates = {
             "net_oos_sharpe": {"value": round(oos_sharpe, 4), "threshold": GATES["min_sharpe"], "pass": bool(oos_sharpe >= GATES["min_sharpe"])},
-            "oos_trades": {"value": int(len(oos_trades)), "threshold": GATES["min_trades"], "pass": bool(len(oos_trades) >= GATES["min_trades"])},
+            "oos_trades": {"value": len(oos_trades), "threshold": GATES["min_trades"], "pass": bool(len(oos_trades) >= GATES["min_trades"])},
             "profit_factor": {"value": round(oos_pf, 4), "threshold": GATES["min_profit_factor"], "pass": bool(oos_pf >= GATES["min_profit_factor"])},
             "max_drawdown": {"value": round(oos_dd, 4), "threshold": GATES["max_drawdown"], "pass": bool(oos_dd >= -GATES["max_drawdown"])},
             "walkforward_stability": {"value": round(wf_stab, 4), "threshold": GATES["min_walkforward_stability"], "pass": bool(wf_stab >= GATES["min_walkforward_stability"])},
@@ -352,7 +353,7 @@ def main():
             "selected_params": {"long_only": sel_lo, "lookback": sel_lb, "skip": sel_sk, "target_vol": TARGET_VOL},
             "gates": gates, "all_gates_pass": all_pass,
             "oos_metrics": {"sharpe": round(oos_sharpe, 4), "sharpe_ci": [round(sharpe_ci[0], 4), round(sharpe_ci[1], 4)],
-                            "n_trades": int(len(oos_trades)), "profit_factor": round(oos_pf, 4), "max_drawdown": round(oos_dd, 4)},
+                            "n_trades": len(oos_trades), "profit_factor": round(oos_pf, 4), "max_drawdown": round(oos_dd, 4)},
             "split_metrics": {"train_sharpe": round(train_sharpe, 4), "val_sharpe": round(sharpe_ratio(va.values), 4),
                               "test_sharpe": round(sharpe_ratio(te.values), 4), "oos_sharpe": round(oos_sharpe, 4)},
             "benchmark_comparison": {"information_ratio": round(float(cmp["information_ratio"]), 4), "information_ratio_ci": [round(ir_ci[0], 4), round(ir_ci[1], 4)],

@@ -1,24 +1,25 @@
 #!/usr/bin/env python3
 """H9: Intraday Futures TSMOM with CT-Style Path-Dependent Exits."""
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 import json
-from pathlib import Path
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from scipy import stats
 
+from qtr.backtest.engine import AssetClass, BacktestConfig, CostModel, run_backtest
 from qtr.data.fetcher import get_data_fetcher
-from qtr.backtest.engine import run_backtest, BacktestConfig, AssetClass, CostModel
 from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
-    sharpe_ratio, sharpe_ratio_ci, walk_forward_splits,
     compare_to_benchmark,
+    sharpe_ratio,
+    walk_forward_splits,
 )
 
 FUTURES_UNIVERSE = ["ES=F", "NQ=F", "CL=F", "GC=F", "ZB=F"]
@@ -207,12 +208,8 @@ def apply_path_dependent_exits_hourly(
             cur_vol = v[i] if not np.isnan(v[i]) else target_vol
 
             if in_pos and cur_pos > 0:
-                if cur_px > high_water:
-                    high_water = cur_px
-                if cur_px < high_water - trailing_mult * cur_atr:
-                    cur_pos = 0.0
-                    in_pos = False
-                elif bars_held >= max_hold_bars and cur_px <= entry_price:
+                high_water = max(high_water, cur_px)
+                if cur_px < high_water - trailing_mult * cur_atr or bars_held >= max_hold_bars and cur_px <= entry_price:
                     cur_pos = 0.0
                     in_pos = False
                 elif cur_vol > vol_limit_mult * target_vol:
@@ -340,7 +337,7 @@ def main():
             "oos_sharpe": float(sharpe_ratio(oos_no.values)) if len(oos_no) > 1 else 0.0,
             "max_drawdown": float((cum_no / cum_no.cummax() - 1).min()) if len(cum_no) > 0 else 0.0,
             "profit_factor": float(res_no.metrics.get("profit_factor", 0.0)),
-            "trades": int(len(res_no.trades)),
+            "trades": len(res_no.trades),
         }
         # A2: raw hourly signal (no daily collapse, no CT exits) - the H9 v1 failure mode
         pos_raw = hourly_signal.clip(0.0)
@@ -351,7 +348,7 @@ def main():
             "oos_sharpe": float(sharpe_ratio(oos_raw.values)) if len(oos_raw) > 1 else 0.0,
             "max_drawdown": float((cum_raw / cum_raw.cummax() - 1).min()) if len(cum_raw) > 0 else 0.0,
             "profit_factor": float(res_raw.metrics.get("profit_factor", 0.0)),
-            "trades": int(len(res_raw.trades)),
+            "trades": len(res_raw.trades),
         }
         tracker.log_dataframe("ablations_daily_target_no_exits_equity", res_no.equity_curve.to_frame("equity"))
         tracker.log_dataframe("ablations_raw_hourly_equity", res_raw.equity_curve.to_frame("equity"))
@@ -402,13 +399,12 @@ def main():
             else:
                 s = 0.0
             regime_sharpes[reg] = s
-            if s < worst:
-                worst = s
+            worst = min(worst, s)
 
         bench_cmp = compare_to_benchmark(result.returns, bh_result.returns)
         cum = (1 + oos_ret).cumprod()
         oos_max_dd = float((cum / cum.cummax() - 1.0).min()) if len(cum) > 0 else 0.0
-        oos_trades_count = int(len(result.trades))
+        oos_trades_count = len(result.trades)
         pf = float(result.metrics.get("profit_factor", 0.0))
 
         passes = {

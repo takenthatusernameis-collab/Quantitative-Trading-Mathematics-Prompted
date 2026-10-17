@@ -1,12 +1,10 @@
 """Statistical validation utilities for quantitative trading research."""
 
-from typing import List, Optional, Tuple, Union, Dict, Any
-import warnings
+from typing import Any
 
 import numpy as np
 import pandas as pd
 from scipy import stats
-from loguru import logger
 
 
 def bootstrap_confidence_interval(
@@ -14,8 +12,8 @@ def bootstrap_confidence_interval(
     statistic: callable = np.mean,
     confidence: float = 0.95,
     n_bootstrap: int = 1000,
-    random_state: Optional[int] = None,
-) -> Tuple[float, float]:
+    random_state: int | None = None,
+) -> tuple[float, float]:
     """
     Compute bootstrap confidence interval for a statistic.
 
@@ -65,8 +63,8 @@ def sharpe_ratio_ci(
     periods_per_year: int = 252,
     confidence: float = 0.95,
     n_bootstrap: int = 1000,
-    random_state: Optional[int] = None,
-) -> Tuple[float, float]:
+    random_state: int | None = None,
+) -> tuple[float, float]:
     """Bootstrap confidence interval for Sharpe ratio."""
     def sharpe_func(x):
         return sharpe_ratio(x, risk_free, periods_per_year)
@@ -78,7 +76,7 @@ def walk_forward_splits(
     n_splits: int = 5,
     train_ratio: float = 0.7,
     gap: int = 0,
-) -> List[Tuple[np.ndarray, np.ndarray]]:
+) -> list[tuple[np.ndarray, np.ndarray]]:
     """
     Generate walk-forward train/test splits.
 
@@ -116,7 +114,7 @@ def multiple_testing_correction(
     p_values: np.ndarray,
     method: str = "bonferroni",
     alpha: float = 0.05,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Apply multiple testing correction.
 
@@ -155,7 +153,7 @@ def parameter_sensitivity(
     param_values: np.ndarray,
     metric_func: callable = sharpe_ratio,
     n_bootstrap: int = 500,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Analyze parameter sensitivity using bootstrap.
 
@@ -204,7 +202,7 @@ def regime_analysis(
     returns: np.ndarray,
     regime_labels: np.ndarray,
     metric_func: callable = sharpe_ratio,
-) -> Dict[str, float]:
+) -> dict[str, float]:
     """
     Compute metrics per regime.
 
@@ -234,8 +232,8 @@ def regime_analysis(
 def stressed_cost_test(
     base_returns: np.ndarray,
     base_costs: np.ndarray,
-    stress_multipliers: Dict[str, float] = None,
-) -> Dict[str, float]:
+    stress_multipliers: dict[str, float] = None,
+) -> dict[str, float]:
     """
     Test strategy robustness under stressed cost assumptions.
 
@@ -276,7 +274,7 @@ def capacity_estimate(
     adv: float,
     max_participation: float = 0.1,
     impact_model: callable = None,
-) -> Dict[str, float]:
+) -> dict[str, float]:
     """
     Estimate strategy capacity based on market impact.
 
@@ -327,7 +325,7 @@ def compare_to_benchmark(
     benchmark_returns: np.ndarray,
     risk_free: float = 0.0,
     periods_per_year: int = 252,
-) -> Dict[str, float]:
+) -> dict[str, float]:
     """
     Compare strategy to benchmark with statistical tests.
 
@@ -404,10 +402,10 @@ def statistical_power_analysis(
 
 
 def validate_strategy(
-    returns: Union[np.ndarray, pd.Series],
+    returns: np.ndarray | pd.Series,
     trades: pd.DataFrame,
-    config: Dict[str, Any],
-) -> Dict[str, Any]:
+    config: dict[str, Any],
+) -> dict[str, Any]:
     """
     Comprehensive strategy validation against PROMPT_V2.md criteria.
 
