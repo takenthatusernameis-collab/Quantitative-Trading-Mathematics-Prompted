@@ -295,3 +295,78 @@ def get_tracker() -> ExperimentTracker:
     if not hasattr(get_tracker, "_instance"):
         get_tracker._instance = ExperimentTracker()
     return get_tracker._instance
+
+
+class Experiment:
+    """Simple experiment interface for artifact and metadata logging."""
+
+    def __init__(self, name: str, base_dir: Path | None = None):
+        self.name = name
+        self.base_dir = Path(base_dir) if base_dir else Path.cwd() / "experiments"
+        self.artifact_dir = self.base_dir / name / "artifacts"
+        self.metadata_dir = self.base_dir / name / "metadata"
+        self.artifact_dir.mkdir(parents=True, exist_ok=True)
+        self.metadata_dir.mkdir(parents=True, exist_ok=True)
+        self.metadata_path = self.metadata_dir / "metadata.json"
+        if not self.metadata_path.exists():
+            with open(self.metadata_path, "w") as f:
+                json.dump({}, f)
+
+    def record_artifact(self, filename: str, data: Any) -> Path:
+        path = self.artifact_dir / filename
+        if isinstance(data, pd.DataFrame):
+            if filename.endswith(".csv"):
+                data.to_csv(path, index=False)
+            else:
+                data.to_parquet(path, index=False)
+            return path
+        if isinstance(data, (dict, list)):
+            with open(path, "w") as f:
+                json.dump(data, f)
+            return path
+        if isinstance(data, str):
+            with open(path, "w") as f:
+                f.write(data)
+            return path
+        if isinstance(data, bytes):
+            with open(path, "wb") as f:
+                f.write(data)
+            return path
+        with open(path, "w") as f:
+            json.dump(data, f)
+        return path
+
+    def log_metadata(self, **kwargs) -> None:
+        meta = self.load_metadata()
+        meta.update(kwargs)
+        with open(self.metadata_path, "w") as f:
+            json.dump(meta, f)
+
+    def log_params(self, params: dict[str, Any]) -> None:
+        meta = self.load_metadata()
+        meta["params"] = params
+        with open(self.metadata_path, "w") as f:
+            json.dump(meta, f)
+
+    def log_results(self, results: dict[str, Any]) -> None:
+        meta = self.load_metadata()
+        meta["results"] = results
+        with open(self.metadata_path, "w") as f:
+            json.dump(meta, f)
+
+    def load_metadata(self) -> dict[str, Any]:
+        try:
+            with open(self.metadata_path) as f:
+                return json.load(f)
+        except Exception:  # noqa: BLE001
+            return {}
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        return None
+
+
+def create_experiment(name: str, base_dir: Path | None = None) -> Experiment:
+    return Experiment(name, base_dir=base_dir)
