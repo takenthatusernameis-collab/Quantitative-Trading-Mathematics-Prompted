@@ -135,6 +135,35 @@ def test_log_artifact_no_experiment(tmp_path):
         t.log_artifact("a", p)
 
 
+def test_load_experiment_no_match(tmp_path):
+    # line 267: load_experiment returns None when the log exists but has no matching ID
+    from qtr.tracking.experiment import ExperimentTracker
+
+    t = ExperimentTracker(log_dir=tmp_path / "logs")
+    eid = t.start_experiment("exp")
+    t.finish_experiment()
+    assert t.load_experiment(eid) is not None
+    assert t.load_experiment("does_not_exist") is None
+
+
+def test_list_experiments_no_logfile(tmp_path):
+    # line 273: list_experiments returns [] when the JSONL log does not exist
+    from qtr.tracking.experiment import ExperimentTracker
+
+    t = ExperimentTracker(log_dir=tmp_path / "logs")
+    assert t.list_experiments() == []
+
+
+def test_record_artifact_fallback_unknown_type(tmp_path):
+    # lines 335-337: record_artifact falls back to JSON-serializing unknown types
+    from qtr.tracking.experiment import Experiment
+
+    exp = Experiment("fallback", base_dir=tmp_path)
+    p = exp.record_artifact("num", 42)
+    assert p.exists()
+    assert p.read_text() == "42"
+
+
 def test_tracker_git_and_deps_exception(tmp_path, monkeypatch):
     # Simulate git failure
     import subprocess
