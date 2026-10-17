@@ -52,7 +52,10 @@ def sharpe_ratio(
 ) -> float:
     """Compute annualized Sharpe ratio."""
     excess = returns - risk_free / periods_per_year
-    if returns.std() == 0:
+    # Tolerance guard: a constant return series has std ~1e-19 from float
+    # noise, not exactly 0.0, so an exact `== 0` check misses it and
+    # divides by a near-zero value, producing a garbage huge Sharpe.
+    if returns.std() <= 1e-15:
         return 0.0
     return excess.mean() / returns.std() * np.sqrt(periods_per_year)
 
