@@ -9,7 +9,7 @@ import json
 import subprocess
 import sys
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -74,7 +74,7 @@ class ExperimentTracker:
     ) -> str:
         """Start a new experiment and return experiment ID."""
         # Generate experiment ID
-        timestamp = datetime.utcnow().isoformat() + "Z"
+        timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         exp_id = f"exp_{timestamp.replace(':', '-').replace('.', '-')}"
 
         # Get git info
@@ -214,7 +214,7 @@ class ExperimentTracker:
                 ["git", "diff", "--quiet"], stderr=subprocess.DEVNULL
             ) != 0
             return commit, dirty
-        except Exception:
+        except Exception:  # noqa: BLE001 -- git unavailable outside a repo; degrade gracefully
             return "unknown", False
 
     def _get_dependencies(self) -> dict[str, str]:
@@ -222,7 +222,7 @@ class ExperimentTracker:
         try:
             import pkg_resources
             return {d.key: d.version for d in pkg_resources.working_set}
-        except Exception:
+        except Exception:  # noqa: BLE001 -- pkg_resources unavailable; degrade gracefully
             return {}
 
     def load_experiment(self, experiment_id: str) -> ExperimentResult | None:

@@ -42,7 +42,7 @@ def _latest_h18_dir() -> Path:
                 s = json.load(f)
             if s.get("hypothesis") == "H18":
                 h18_dirs.append(d)
-        except Exception:
+        except Exception:  # noqa: BLE001, S112 -- skip non-conforming artifact dirs during discovery
             continue
     assert h18_dirs, "no H18 artifacts; run run_h18_overnight_intraday_experiment.py"
     return max(h18_dirs, key=lambda p: p.stat().st_mtime)

@@ -45,7 +45,7 @@ def _latest_h16_dir() -> Path:
                 s = json.load(f)
             if s.get("hypothesis") == "H16":
                 h16_dirs.append(d)
-        except Exception:
+        except Exception:  # noqa: BLE001, S112 -- skip non-conforming artifact dirs during discovery
             continue
     assert h16_dirs, "no H16 artifacts; run run_h16_factor_timing_experiment.py"
     return max(h16_dirs, key=lambda d: d.name)

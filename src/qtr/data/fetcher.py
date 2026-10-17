@@ -36,7 +36,7 @@ class DataCache:
                 df = pd.read_parquet(path)
                 logger.debug(f"Cache hit: {source} {symbol} {interval}")
                 return df
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 -- cache corruption is non-fatal; skip and re-read
                 logger.warning(f"Cache read failed: {e}")
         return None
 
@@ -46,7 +46,7 @@ class DataCache:
         try:
             df.to_parquet(path)
             logger.debug(f"Cache write: {source} {symbol} {interval}")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 -- cache write failure is non-fatal; continue in memory
             logger.warning(f"Cache write failed: {e}")
 
 
@@ -123,7 +123,7 @@ class DataFetcher:
                 if use_cache:
                     self.cache.set("yahoo", symbol, start, end, interval, df)
 
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 -- per-symbol fetch failure is non-fatal; log and continue
                 logger.error(f"Failed to fetch {symbol}: {e}")
                 results[symbol] = pd.DataFrame()
 
@@ -203,7 +203,7 @@ class DataFetcher:
                 if use_cache:
                     self.cache.set("yahoo_futures", symbol, start, end, interval, df)
 
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 -- per-symbol fetch failure is non-fatal; log and continue
                 logger.error(f"Failed to fetch {symbol}: {e}")
                 results[symbol] = pd.DataFrame()
 
@@ -290,7 +290,7 @@ class DataFetcher:
                 if use_cache:
                     self.cache.set("ccxt", f"{exchange_id}:{cache_symbol}", start, end, timeframe, df)
 
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 -- per-symbol fetch failure is non-fatal; log and continue
                 logger.error(f"Failed to fetch {symbol} from {exchange_id}: {e}")
                 results[symbol] = pd.DataFrame()
 
@@ -305,7 +305,7 @@ class DataFetcher:
             tables = pd.read_html(url)
             df = tables[0]
             return df["Symbol"].str.replace(".", "-").tolist()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 -- constituent list fetch failure is non-fatal; fallback proxy list
             logger.error(f"Failed to fetch S&P 500 list: {e}")
             # Fallback to major ETFs as proxy
             return ["SPY", "IVV", "VOO", "SPLG"]

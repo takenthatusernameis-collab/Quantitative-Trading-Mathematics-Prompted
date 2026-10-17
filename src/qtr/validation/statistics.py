@@ -1,6 +1,6 @@
 """Statistical validation utilities for quantitative trading research."""
 
-from typing import Any
+from typing import Any, Optional
 
 import numpy as np
 import pandas as pd
@@ -273,7 +273,7 @@ def capacity_estimate(
     returns: np.ndarray,
     adv: float,
     max_participation: float = 0.1,
-    impact_model: callable = None,
+    impact_model: Optional[callable] = None,  # noqa: UP045 -- `callable \| None` raises TypeError at annotation-evaluation time
 ) -> dict[str, float]:
     """
     Estimate strategy capacity based on market impact.

@@ -44,7 +44,7 @@ def _latest_h17_dir() -> Path:
                 s = json.load(f)
             if s.get("hypothesis") == "H17":
                 h17_dirs.append(d)
-        except Exception:
+        except Exception:  # noqa: BLE001, S112 -- skip non-conforming artifact dirs during discovery
             continue
     assert h17_dirs, "no H17 artifacts; run run_h17_vrp_experiment.py"
     return max(h17_dirs, key=lambda d: d.name)
