@@ -220,7 +220,7 @@ def _build_exit_inputs(prices):
 def _config_with_cost_mult(base_cfg, mult):
     """Return a fresh BacktestConfig with all cost components scaled by mult."""
     specs = copy.deepcopy(FUTURES_SPECS)
-    for sym, sp in specs.items():
+    for sp in specs.values():
         sp["commission"] = COST_MODEL_DEFAULTS["future_commission_per_contract"] * mult
         sp["spread_ticks"] = COST_MODEL_DEFAULTS["future_spread_ticks"] * mult
         sp["slippage_ticks"] = COST_MODEL_DEFAULTS["future_slippage_ticks"] * mult
@@ -400,7 +400,7 @@ def probe_live_extension(fetcher, start=DATA_START, end=DATA_END):
         )
         max_ts = None
         n_fresh = 0
-        for sym, df in data.items():
+        for df in data.values():
             if df is None or len(df) == 0:
                 continue
             idx = df.index

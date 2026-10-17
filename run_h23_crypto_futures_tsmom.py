@@ -208,11 +208,10 @@ def apply_exits_hourly(
                     in_pos = True
                     last_trade_bar = i
                 # else: gated by min interval -> stay flat
-            elif in_pos and cur_tgt <= 0:
-                if can_trade:
-                    cur_pos = 0.0
-                    in_pos = False
-                    last_trade_bar = i
+            elif in_pos and cur_tgt <= 0 and can_trade:
+                cur_pos = 0.0
+                in_pos = False
+                last_trade_bar = i
 
             if in_pos:
                 bars_held += 1
