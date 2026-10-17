@@ -29,6 +29,9 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "tests"))
+
+from _utils_parquet import read_parquet_safe
 
 import run_h20_signed_volume_experiment as h20
 from qtr.validation.statistics import sharpe_ratio
@@ -167,7 +170,7 @@ class TestArtifacts:
 
     def test_grid_has_36_unique_combos(self):
         exp_dir = _latest_h20_dir()
-        grid = pd.read_parquet(exp_dir / "param_grid_results.parquet")
+        grid = read_parquet_safe(exp_dir / "param_grid_results.parquet")
         assert len(grid) == 36
         keys = set(
             zip(
@@ -182,7 +185,7 @@ class TestArtifacts:
     def test_select_on_val_only(self):
         exp_dir = _latest_h20_dir()
         s = _load_summary(exp_dir)
-        grid = pd.read_parquet(exp_dir / "param_grid_results.parquet")
+        grid = read_parquet_safe(exp_dir / "param_grid_results.parquet")
         best_val = grid.loc[grid["val_sharpe"].idxmax()]
         sel = s["selected_config"]
         assert sel["sign_rule"] == best_val["sign_rule"]
@@ -198,8 +201,8 @@ class TestGateRecomputation:
         exact match to summary.json (1e-9)."""
         exp_dir = _latest_h20_dir()
         s = _load_summary(exp_dir)
-        equity = pd.read_parquet(exp_dir / "best_equity.parquet")["equity"]
-        trades = pd.read_parquet(exp_dir / "best_trades.parquet")
+        equity = read_parquet_safe(exp_dir / "best_equity.parquet")["equity"]
+        trades = read_parquet_safe(exp_dir / "best_trades.parquet")
 
         rets = equity.pct_change()
         rets.iloc[0] = 0.0
@@ -224,7 +227,7 @@ class TestGateRecomputation:
         """Test (after VAL_END) is never used for selection."""
         exp_dir = _latest_h20_dir()
         s = _load_summary(exp_dir)
-        grid = pd.read_parquet(exp_dir / "param_grid_results.parquet")
+        grid = read_parquet_safe(exp_dir / "param_grid_results.parquet")
         assert "test_sharpe" in grid.columns
         assert "val_sharpe" in grid.columns
         val_max_idx = grid["val_sharpe"].idxmax()
@@ -309,7 +312,7 @@ class TestWeightBounds:
     def test_weights_within_bounds(self):
         """Long/short strategy: weights in [-1, +1]."""
         exp_dir = _latest_h20_dir()
-        sel = pd.read_parquet(exp_dir / "selected_signals.parquet")
+        sel = read_parquet_safe(exp_dir / "selected_signals.parquet")
         w = sel["SPY"] if "SPY" in sel.columns else sel.iloc[:, 0]
         assert (w.dropna() >= -1.0 - 1e-9).all()
         assert (w.dropna() <= 1.0 + 1e-9).all()

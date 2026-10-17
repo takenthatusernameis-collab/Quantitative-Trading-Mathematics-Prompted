@@ -27,6 +27,9 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "tests"))
+
+from _utils_parquet import read_parquet_safe
 
 import run_h23_crypto_futures_tsmom as h23
 from qtr.validation.statistics import sharpe_ratio
@@ -41,7 +44,7 @@ ART_DIR = ROOT / ".experiments" / "artifacts"
 
 
 def _get_oos_start(exp_dir: Path) -> pd.Timestamp:
-    prices = pd.read_parquet(exp_dir / "prices.parquet")
+    prices = read_parquet_safe(exp_dir / "prices.parquet")
     n = len(prices)
     # OOS starts right after the 55% train cutoff
     return prices.index[int(n * 0.55) + 1]
@@ -187,7 +190,7 @@ class TestArtifacts:
 
     def test_grid_has_correct_unique_combos(self):
         exp_dir = _latest_h23_dir()
-        grid = pd.read_parquet(exp_dir / "grid_results.parquet")
+        grid = read_parquet_safe(exp_dir / "grid_results.parquet")
         # Should have 6912 unique combos (4*3*1*4*4*4*3*3)
         assert len(grid) == 6912
         keys = set(
@@ -210,7 +213,7 @@ class TestArtifacts:
         # degenerate zero-trade configs that win a pure argmax (HANDOFF.md).
         exp_dir = _latest_h23_dir()
         s = _load_summary(exp_dir)
-        grid = pd.read_parquet(exp_dir / "grid_results.parquet")
+        grid = read_parquet_safe(exp_dir / "grid_results.parquet")
         eligible = grid[grid["val_trades"] >= h23.MIN_VAL_TRADES_FOR_SELECTION]
         best_val = eligible.loc[eligible["val_sharpe"].idxmax()]
         sel = s["selected_config"]
@@ -229,7 +232,7 @@ class TestArtifacts:
         config, never the degenerate zero-trade argmax (HANDOFF.md post-mortem)."""
         exp_dir = _latest_h23_dir()
         s = _load_summary(exp_dir)
-        grid = pd.read_parquet(exp_dir / "grid_results.parquet")
+        grid = read_parquet_safe(exp_dir / "grid_results.parquet")
         sel = s["selected_config"]
         # Locate the selected row in the grid by full key match.
         rows = grid[
@@ -258,8 +261,8 @@ class TestGateRecomputation:
         exact match to summary.json (1e-9)."""
         exp_dir = _latest_h23_dir()
         s = _load_summary(exp_dir)
-        equity = pd.read_parquet(exp_dir / "equity.parquet")["equity"]
-        trades = pd.read_parquet(exp_dir / "trades.parquet")
+        equity = read_parquet_safe(exp_dir / "equity.parquet")["equity"]
+        trades = read_parquet_safe(exp_dir / "trades.parquet")
         oos_start = _get_oos_start(exp_dir)
 
         rets = equity.pct_change()
@@ -284,7 +287,7 @@ class TestGateRecomputation:
     def test_oos_window_is_protected(self):
         """Test (after VAL_END) is never used for selection."""
         exp_dir = _latest_h23_dir()
-        grid = pd.read_parquet(exp_dir / "grid_results.parquet")
+        grid = read_parquet_safe(exp_dir / "grid_results.parquet")
         assert "test_sharpe" not in grid.columns  # grid only has val_* metrics
         # Selection is explicitly on val_sharpe (tested in test_select_on_val_only)
 
@@ -359,7 +362,7 @@ class TestWeightBounds:
         exp_dir = _latest_h23_dir()
         s = _load_summary(exp_dir)
         max_pos = s["selected_config"].get("max_position_size", 2.0)
-        positions = pd.read_parquet(exp_dir / "positions.parquet")
+        positions = read_parquet_safe(exp_dir / "positions.parquet")
         for col in positions.columns:
             w = positions[col]
             assert (w.dropna() >= -max_pos - 1e-9).all()
@@ -368,7 +371,7 @@ class TestWeightBounds:
     def test_per_contract_weights_nonnegative_long_only(self):
         """Per-contract positions are long-only (allow_short=False in H10)."""
         exp_dir = _latest_h23_dir()
-        positions = pd.read_parquet(exp_dir / "positions.parquet")
+        positions = read_parquet_safe(exp_dir / "positions.parquet")
         for col in positions.columns:
             assert (positions[col].dropna() >= -1e-9).all(), (
                 f"{col} has negative weights"

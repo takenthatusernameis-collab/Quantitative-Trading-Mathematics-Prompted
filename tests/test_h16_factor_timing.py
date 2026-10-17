@@ -27,6 +27,9 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "tests"))
+
+from _utils_parquet import read_parquet_safe
 
 import run_h16_factor_timing_experiment as h16
 from qtr.validation.statistics import sharpe_ratio
@@ -186,8 +189,8 @@ class TestGateRecomputation:
     def test_oos_metrics_recomputed_from_artifacts(self):
         exp_dir = _latest_h16_dir()
         s = _load_summary(exp_dir)
-        equity = pd.read_parquet(exp_dir / "best_equity.parquet")["equity"]
-        trades = pd.read_parquet(exp_dir / "best_trades.parquet")
+        equity = read_parquet_safe(exp_dir / "best_equity.parquet")["equity"]
+        trades = read_parquet_safe(exp_dir / "best_trades.parquet")
 
         # engine equity = (1 + net_returns).cumprod() * capital
         rets = equity.pct_change()
@@ -211,7 +214,7 @@ class TestGateRecomputation:
 
     def test_oos_window_is_protected_val_plus_test(self):
         exp_dir = _latest_h16_dir()
-        equity = pd.read_parquet(exp_dir / "best_equity.parquet")["equity"]
+        equity = read_parquet_safe(exp_dir / "best_equity.parquet")["equity"]
         oos = equity[equity.index >= VAL_START]
         # Val 2018-01-01 .. Test end 2024-12-30
         assert oos.index[0] >= VAL_START
@@ -222,7 +225,7 @@ class TestGateRecomputation:
 class TestGridAndSelection:
     def test_grid_has_54_unique_combos(self):
         exp_dir = _latest_h16_dir()
-        grid = pd.read_parquet(exp_dir / "param_grid_results.parquet")
+        grid = read_parquet_safe(exp_dir / "param_grid_results.parquet")
         assert len(grid) == 54
         assert set(grid["lookback"]) == {63, 126, 252}
         assert set(grid["skip"]) == {1, 5, 21}
@@ -236,7 +239,7 @@ class TestGridAndSelection:
     def test_selection_is_argmax_train_wf_sharpe(self):
         exp_dir = _latest_h16_dir()
         s = _load_summary(exp_dir)
-        grid = pd.read_parquet(exp_dir / "param_grid_results.parquet")
+        grid = read_parquet_safe(exp_dir / "param_grid_results.parquet")
         best = grid.loc[grid["train_wf_sharpe"].idxmax()]
         sel = s["selected_config"]
         assert int(best["lookback"]) == sel["lookback"]
@@ -253,8 +256,8 @@ class TestGridAndSelection:
 class TestSignalInvariants:
     def _prices_vix(self):
         exp_dir = _latest_h16_dir()
-        prices = pd.read_parquet(exp_dir / "prices.parquet")
-        vix = pd.read_parquet(exp_dir / "vix_close.parquet")["close"]
+        prices = read_parquet_safe(exp_dir / "prices.parquet")
+        vix = read_parquet_safe(exp_dir / "vix_close.parquet")["close"]
         return prices, vix
 
     def test_factor_momentum_is_exactly_causal(self):
@@ -284,15 +287,15 @@ class TestSignalInvariants:
 
     def test_point_in_time_universe_zero_before_inception(self):
         exp_dir = _latest_h16_dir()
-        pos = pd.read_parquet(exp_dir / "selected_signals.parquet")
-        prices = pd.read_parquet(exp_dir / "prices.parquet")
+        pos = read_parquet_safe(exp_dir / "selected_signals.parquet")
+        prices = read_parquet_safe(exp_dir / "prices.parquet")
         for etf in h16.UNIVERSE:
             inc = prices[etf].first_valid_index()
             assert (pos[etf].loc[:inc] == 0).all(), etf
 
     def test_monthly_rebalance_positions_constant_within_month(self):
         exp_dir = _latest_h16_dir()
-        pos = pd.read_parquet(exp_dir / "selected_signals.parquet")
+        pos = read_parquet_safe(exp_dir / "selected_signals.parquet")
         changes = pos.diff().abs().sum(axis=1)
         change_dates = changes[changes > 1e-12].index
         for d in change_dates:
@@ -303,14 +306,14 @@ class TestSignalInvariants:
 
     def test_weight_bounds_and_exposure_cap(self):
         exp_dir = _latest_h16_dir()
-        pos = pd.read_parquet(exp_dir / "selected_signals.parquet")
+        pos = read_parquet_safe(exp_dir / "selected_signals.parquet")
         assert (pos.values >= -1e-12).all()
         assert (pos.values <= 1.0 + 1e-9).all()
         assert (pos.sum(axis=1).values <= 1.0 + 1e-9).all()
 
     def test_at_most_one_etf_per_family(self):
         exp_dir = _latest_h16_dir()
-        pos = pd.read_parquet(exp_dir / "selected_signals.parquet")
+        pos = read_parquet_safe(exp_dir / "selected_signals.parquet")
         for fam, etfs in h16.FACTOR_FAMILIES.items():
             nonzero = (pos[etfs].abs() > 0).sum(axis=1)
             assert (nonzero <= 1).all(), fam

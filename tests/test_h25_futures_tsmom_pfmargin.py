@@ -27,6 +27,9 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "tests"))
+
+from _utils_parquet import read_parquet_safe
 
 import run_h25_futures_tsmom_pfmargin as h25
 from qtr.validation.statistics import sharpe_ratio
@@ -37,7 +40,7 @@ ART_DIR = ROOT / ".experiments" / "artifacts"
 
 
 def _get_oos_start(exp_dir: Path) -> pd.Timestamp:
-    prices = pd.read_parquet(exp_dir / "prices.parquet")
+    prices = read_parquet_safe(exp_dir / "prices.parquet")
     n = len(prices)
     return prices.index[int(n * 0.55) + 1]
 
@@ -172,7 +175,7 @@ class TestArtifacts:
 
     def test_grid_has_8_unique_combos(self):
         exp_dir = _latest_h25_dir()
-        grid = pd.read_parquet(exp_dir / "grid_results.parquet")
+        grid = read_parquet_safe(exp_dir / "grid_results.parquet")
         assert len(grid) == 8
         keys = set(
             zip(
@@ -187,7 +190,7 @@ class TestArtifacts:
     def test_select_on_val_only_pfmargin(self):
         exp_dir = _latest_h25_dir()
         s = _load_summary(exp_dir)
-        grid = pd.read_parquet(exp_dir / "grid_results.parquet")
+        grid = read_parquet_safe(exp_dir / "grid_results.parquet")
         grid["val_pf_margin"] = grid["val_profit_factor"] - 1.3
         best_val = grid.loc[grid["val_pf_margin"].idxmax()]
         sel = s["selected_config"]
@@ -205,8 +208,8 @@ class TestGateRecomputation:
         exact match to summary.json (1e-9)."""
         exp_dir = _latest_h25_dir()
         s = _load_summary(exp_dir)
-        equity = pd.read_parquet(exp_dir / "equity.parquet")["equity"]
-        trades = pd.read_parquet(exp_dir / "trades.parquet")
+        equity = read_parquet_safe(exp_dir / "equity.parquet")["equity"]
+        trades = read_parquet_safe(exp_dir / "trades.parquet")
         oos_start = _get_oos_start(exp_dir)
 
         rets = equity.pct_change()
@@ -231,7 +234,7 @@ class TestGateRecomputation:
     def test_oos_window_is_protected(self):
         """Test (after VAL_END) is never used for selection."""
         exp_dir = _latest_h25_dir()
-        grid = pd.read_parquet(exp_dir / "grid_results.parquet")
+        grid = read_parquet_safe(exp_dir / "grid_results.parquet")
         assert "test_sharpe" not in grid.columns  # grid only has val_* metrics
         # Selection is explicitly on val_sharpe (tested in test_select_on_val_only)
 
@@ -306,7 +309,7 @@ class TestWeightBounds:
         exp_dir = _latest_h25_dir()
         s = _load_summary(exp_dir)
         max_pos = s["selected_config"]["max_pos"]
-        positions = pd.read_parquet(exp_dir / "basket_positions.parquet")
+        positions = read_parquet_safe(exp_dir / "basket_positions.parquet")
         w = positions["BASKET"]
         assert (w.dropna() >= -max_pos - 1e-9).all()
         assert (w.dropna() <= max_pos + 1e-9).all()
@@ -314,7 +317,7 @@ class TestWeightBounds:
     def test_per_contract_weights_nonnegative_long_only(self):
         """Per-contract positions are long-only (allow_short=False in H10)."""
         exp_dir = _latest_h25_dir()
-        per_contract = pd.read_parquet(exp_dir / "per_contract_positions.parquet")
+        per_contract = read_parquet_safe(exp_dir / "per_contract_positions.parquet")
         for col in per_contract.columns:
             assert (per_contract[col].dropna() >= -1e-9).all(), (
                 f"{col} has negative weights"

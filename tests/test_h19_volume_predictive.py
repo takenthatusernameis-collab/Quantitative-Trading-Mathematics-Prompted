@@ -27,6 +27,9 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "tests"))
+
+from _utils_parquet import read_parquet_safe
 
 import run_h19_volume_predictive_experiment as h19
 from qtr.validation.statistics import sharpe_ratio
@@ -156,7 +159,7 @@ class TestArtifacts:
 
     def test_grid_has_9_unique_combos(self):
         exp_dir = _latest_h19_dir()
-        grid = pd.read_parquet(exp_dir / "param_grid_results.parquet")
+        grid = read_parquet_safe(exp_dir / "param_grid_results.parquet")
         assert len(grid) == 9
         keys = set(zip(grid["volume_decomp_method"], grid["threshold_type"]))
         assert len(keys) == 9
@@ -164,7 +167,7 @@ class TestArtifacts:
     def test_selection_is_argmax_val_sharpe(self):
         exp_dir = _latest_h19_dir()
         s = _load_summary(exp_dir)
-        grid = pd.read_parquet(exp_dir / "param_grid_results.parquet")
+        grid = read_parquet_safe(exp_dir / "param_grid_results.parquet")
         best_val = grid.loc[grid["val_sharpe"].idxmax()]
         sel = s["selected_config"]
         assert sel["volume_decomp_method"] == best_val["volume_decomp_method"]
@@ -178,8 +181,8 @@ class TestGateRecomputation:
         exact match to summary.json (1e-9)."""
         exp_dir = _latest_h19_dir()
         s = _load_summary(exp_dir)
-        equity = pd.read_parquet(exp_dir / "best_equity.parquet")["equity"]
-        trades = pd.read_parquet(exp_dir / "best_trades.parquet")
+        equity = read_parquet_safe(exp_dir / "best_equity.parquet")["equity"]
+        trades = read_parquet_safe(exp_dir / "best_trades.parquet")
 
         # engine equity = (1 + net_returns).cumprod() * capital
         rets = equity.pct_change()
@@ -205,7 +208,7 @@ class TestGateRecomputation:
         """Test (after VAL_END) is never used for selection."""
         exp_dir = _latest_h19_dir()
         s = _load_summary(exp_dir)
-        grid = pd.read_parquet(exp_dir / "param_grid_results.parquet")
+        grid = read_parquet_safe(exp_dir / "param_grid_results.parquet")
         assert "test_sharpe" in grid.columns
         assert "val_sharpe" in grid.columns
         val_max_idx = grid["val_sharpe"].idxmax()
@@ -317,7 +320,7 @@ class TestCausality:
 class TestWeightBounds:
     def test_weights_within_bounds(self):
         exp_dir = _latest_h19_dir()
-        sel = pd.read_parquet(exp_dir / "selected_signals.parquet")
+        sel = read_parquet_safe(exp_dir / "selected_signals.parquet")
         if "SPY" in sel.columns:
             w = sel["SPY"]
         else:

@@ -18,12 +18,14 @@ import sys
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "tests"))
+
+from _utils_parquet import read_parquet_safe
 
 import run_h12_selection_bias_audit as h12
 
@@ -160,7 +162,7 @@ class TestFamilyAudit:
 
 class TestH10ArtifactConsistency:
     def test_selected_row_is_grid_argmax(self):
-        grid = pd.read_parquet(h12.H10_GRID_PARQUET)
+        grid = read_parquet_safe(h12.H10_GRID_PARQUET)
         row = h12._selected_row(grid)
         assert row["val_sharpe"] == pytest.approx(grid["val_sharpe"].max())
         for key, value in h12.SEL.items():

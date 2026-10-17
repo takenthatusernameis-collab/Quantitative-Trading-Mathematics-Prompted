@@ -26,6 +26,9 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "tests"))
+
+from _utils_parquet import read_parquet_safe
 
 import run_h17_vrp_experiment as h17
 from qtr.validation.statistics import sharpe_ratio
@@ -152,7 +155,7 @@ class TestArtifacts:
 
     def test_grid_has_60_unique_combos(self):
         exp_dir = _latest_h17_dir()
-        grid = pd.read_parquet(exp_dir / "param_grid_results.parquet")
+        grid = read_parquet_safe(exp_dir / "param_grid_results.parquet")
         assert len(grid) == 60
         keys = set(
             zip(
@@ -167,7 +170,7 @@ class TestArtifacts:
     def test_selection_is_argmax_val_sharpe(self):
         exp_dir = _latest_h17_dir()
         s = _load_summary(exp_dir)
-        grid = pd.read_parquet(exp_dir / "param_grid_results.parquet")
+        grid = read_parquet_safe(exp_dir / "param_grid_results.parquet")
         best_val = grid.loc[grid["val_sharpe"].idxmax()]
         sel = s["selected_config"]
         assert sel["gate_thresh"] == best_val["gate_thresh"]
@@ -185,10 +188,10 @@ class TestGateRecomputation:
         exact match to summary.json (1e-9)."""
         exp_dir = _latest_h17_dir()
         s = _load_summary(exp_dir)
-        bench = pd.read_parquet(exp_dir / "benchmark_returns.parquet")
-        pd.read_parquet(exp_dir / "selected_signals.parquet")
-        prices = pd.read_parquet(exp_dir / "prices.parquet")
-        pd.read_parquet(exp_dir / "vix_close.parquet")["close"]
+        bench = read_parquet_safe(exp_dir / "benchmark_returns.parquet")
+        read_parquet_safe(exp_dir / "selected_signals.parquet")
+        prices = read_parquet_safe(exp_dir / "prices.parquet")
+        read_parquet_safe(exp_dir / "vix_close.parquet")["close"]
 
         train_end = pd.Timestamp(h17.TRAIN_END)
         oos_mask = prices.index > train_end
@@ -205,7 +208,7 @@ class TestGateRecomputation:
         exp_dir = _latest_h17_dir()
         s = _load_summary(exp_dir)
         pd.Timestamp(h17.VAL_END)
-        grid = pd.read_parquet(exp_dir / "param_grid_results.parquet")
+        grid = read_parquet_safe(exp_dir / "param_grid_results.parquet")
         # selection is based solely on val_sharpe - test_sharpe must be present but not used
         assert "test_sharpe" in grid.columns
         assert "val_sharpe" in grid.columns
@@ -295,7 +298,7 @@ def build_small_targets(svxy, vix, vix3m, gt, vw, tv, mp):
 class TestWeightBounds:
     def test_weights_within_bounds(self):
         exp_dir = _latest_h17_dir()
-        sel = pd.read_parquet(exp_dir / "selected_signals.parquet")
+        sel = read_parquet_safe(exp_dir / "selected_signals.parquet")
         if "SVXY" in sel.columns:
             w = sel["SVXY"]
         else:

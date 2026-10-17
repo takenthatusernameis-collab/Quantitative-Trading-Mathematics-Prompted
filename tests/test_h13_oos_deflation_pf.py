@@ -36,6 +36,9 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "tests"))
+
+from _utils_parquet import read_parquet_safe
 
 import run_h13_oos_deflation_pf_audit as h13
 
@@ -307,7 +310,7 @@ class TestFrozenPipelineReproduction:
 
 class TestH13ArtifactConsistency:
     def test_grid_oos_metrics_has_full_grid(self):
-        grid = pd.read_parquet(h13.H12_GRID_PARQUET)
+        grid = read_parquet_safe(h13.H12_GRID_PARQUET)
         assert len(grid) == h13.N_GRID
         row = h13._selected_row(grid)
         assert row["oos_sharpe"] == pytest.approx(1.2757590680990518, rel=1e-12)

@@ -14,12 +14,13 @@ re-execution, no network) and run in <1s. They are a drift guard for the
 """
 
 import json
+import sys
 from pathlib import Path
 
-import pandas as pd
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "tests"))
 ARTIFACTS = ROOT / ".experiments" / "artifacts"
 
 H10_DIR = ARTIFACTS / "exp_2026-10-11T17-41-18-169363Z"
@@ -27,6 +28,8 @@ H11_DIR = ARTIFACTS / "exp_2026-10-11T18-40-37-427062Z"
 H12_DIR = ARTIFACTS / "exp_2026-10-13T12-51-06-515939Z"
 H13_DIR = ARTIFACTS / "exp_2026-10-13T14-35-58-316759Z"
 H14_DIR = ARTIFACTS / "exp_2026-10-13T19-01-59-371405Z"
+
+from _utils_parquet import read_parquet_safe
 
 
 def _summary(d: Path) -> dict:
@@ -340,7 +343,7 @@ class TestH14Certification:
         assert s["min_sr_gate"] == 1.0
 
     def test_results_gate_landscape(self):
-        df = pd.read_parquet(H14_DIR / "h14_results.parquet")
+        df = read_parquet_safe(H14_DIR / "h14_results.parquet")
         assert len(df) == 50
         # No config clears all three gates
         passes = df[
@@ -358,15 +361,15 @@ class TestH14Certification:
         assert (~df["all_symbols_dispensable"]).all()
 
     def test_topk_subset_consistency(self):
-        res = pd.read_parquet(H14_DIR / "h14_results.parquet")
-        topk = pd.read_parquet(H14_DIR / "topk_selected.parquet")
+        res = read_parquet_safe(H14_DIR / "h14_results.parquet")
+        topk = read_parquet_safe(H14_DIR / "topk_selected.parquet")
         assert len(topk) == len(res) == 50
         assert set(res["combo_index"].astype(int)) == set(
             topk["combo_index"].astype(int)
         )
 
     def test_subset_oos_metrics(self):
-        df = pd.read_parquet(H14_DIR / "subset_oos_metrics.parquet")
+        df = read_parquet_safe(H14_DIR / "subset_oos_metrics.parquet")
         assert len(df) == 50
 
 

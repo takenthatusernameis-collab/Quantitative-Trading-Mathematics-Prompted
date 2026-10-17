@@ -26,12 +26,14 @@ import sys
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "tests"))
+
+from _utils_parquet import read_parquet_safe
 
 import run_h25_pf_robustness as aud
 
@@ -125,15 +127,15 @@ class TestCommittedArtifact:
     def test_parquet_matches_recompute(self, oos_returns):
         res = aud.bootstrap_arrays(oos_returns)
         pf_boot, sr_boot = res[0], res[1]
-        pf_pq = pd.read_parquet(aud.ART_DIR / "pf_bootstrap.parquet")
-        sr_pq = pd.read_parquet(aud.ART_DIR / "sharpe_bootstrap.parquet")
+        pf_pq = read_parquet_safe(aud.ART_DIR / "pf_bootstrap.parquet")
+        sr_pq = read_parquet_safe(aud.ART_DIR / "sharpe_bootstrap.parquet")
         assert len(pf_pq) == aud.N_BOOTSTRAP
         assert len(sr_pq) == aud.N_BOOTSTRAP
         assert np.allclose(pf_pq["profit_factor"].values, pf_boot, atol=1e-9)
         assert np.allclose(sr_pq["sharpe"].values, sr_boot, atol=1e-9)
         # block bootstrap parquet fidelity
-        pf_b_pq = pd.read_parquet(aud.ART_DIR / "pf_bootstrap_block.parquet")
-        sr_b_pq = pd.read_parquet(aud.ART_DIR / "sharpe_bootstrap_block.parquet")
+        pf_b_pq = read_parquet_safe(aud.ART_DIR / "pf_bootstrap_block.parquet")
+        sr_b_pq = read_parquet_safe(aud.ART_DIR / "sharpe_bootstrap_block.parquet")
         assert len(pf_b_pq) == aud.N_BOOTSTRAP
         assert len(sr_b_pq) == aud.N_BOOTSTRAP
         assert np.allclose(pf_b_pq["profit_factor"].values, res[2], atol=1e-9)
@@ -213,8 +215,8 @@ class TestBlockBootstrapSensitivity:
     def test_block_parquet_fidelity(self, oos_returns):
         # The committed block-bootstrap parquets equal the recomputed arrays.
         res = aud.bootstrap_arrays(oos_returns)
-        pf_b_pq = pd.read_parquet(aud.ART_DIR / "pf_bootstrap_block.parquet")
-        sr_b_pq = pd.read_parquet(aud.ART_DIR / "sharpe_bootstrap_block.parquet")
+        pf_b_pq = read_parquet_safe(aud.ART_DIR / "pf_bootstrap_block.parquet")
+        sr_b_pq = read_parquet_safe(aud.ART_DIR / "sharpe_bootstrap_block.parquet")
         assert len(pf_b_pq) == aud.N_BOOTSTRAP
         assert len(sr_b_pq) == aud.N_BOOTSTRAP
         assert np.allclose(pf_b_pq["profit_factor"].values, res[2], atol=1e-9)

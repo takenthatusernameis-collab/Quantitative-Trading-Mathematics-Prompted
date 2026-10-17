@@ -1,12 +1,16 @@
 import json
+import sys
 from pathlib import Path
 
 import pandas as pd
+from _utils_parquet import read_parquet_safe
 
 PROBE_DIR = Path(".experiments/probes")
 REPORT_MD = PROBE_DIR / "h15_loss_offset_decomposition.md"
 REPORT_JSON = PROBE_DIR / "h15_loss_offset_decomposition_report.json"
 PARQ = PROBE_DIR / "h15_loss_offset_decomposition.parquet"
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tests"))
 
 
 def test_report_exists():
@@ -57,9 +61,9 @@ def test_decomposition_invariant_pf_reconstructed():
 
 def test_per_symbol_contribution_sums_to_portfolio():
     art_dir = Path(".experiments/artifacts/exp_2026-10-11T17-41-18-169363Z")
-    pos = pd.read_parquet(art_dir / "positions.parquet")
-    prices = pd.read_parquet(art_dir / "prices.parquet")
-    returns_port = pd.read_parquet(art_dir / "returns.parquet")
+    pos = read_parquet_safe(art_dir / "positions.parquet")
+    prices = read_parquet_safe(art_dir / "prices.parquet")
+    returns_port = read_parquet_safe(art_dir / "returns.parquet")
 
     symbols = ["ES=F", "NQ=F", "CL=F", "GC=F", "ZB=F"]
     price_ret = prices.pct_change()

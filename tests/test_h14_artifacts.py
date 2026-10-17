@@ -1,12 +1,15 @@
 """Regression tests for H14 (PF-margin fragility family property) artifacts."""
 
 import json
+import sys
 from pathlib import Path
 
-import pandas as pd
+from _utils_parquet import read_parquet_safe
 
 H14_EXP_ID = "exp_2026-10-13T19-01-59-371405Z"
 ARTIFACTS_DIR = Path(__file__).parent.parent / ".experiments" / "artifacts" / H14_EXP_ID
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tests"))
 
 
 class TestH14ArtifactConsistency:
@@ -26,7 +29,7 @@ class TestH14ArtifactConsistency:
     def test_h14_results_schema_and_values(self):
         res_path = ARTIFACTS_DIR / "h14_results.parquet"
         assert res_path.exists(), f"Missing {res_path}"
-        df = pd.read_parquet(res_path)
+        df = read_parquet_safe(res_path)
         assert len(df) == 50
         required = {
             "combo_index",
@@ -61,8 +64,8 @@ class TestH14ArtifactConsistency:
         assert (~df["all_symbols_dispensable"]).all()
 
     def test_h14_topk_subset_matches_results(self):
-        res = pd.read_parquet(ARTIFACTS_DIR / "h14_results.parquet")
-        topk = pd.read_parquet(ARTIFACTS_DIR / "topk_selected.parquet")
+        res = read_parquet_safe(ARTIFACTS_DIR / "h14_results.parquet")
+        topk = read_parquet_safe(ARTIFACTS_DIR / "topk_selected.parquet")
         assert len(topk) == len(res) == 50
         # Should have same combo indices
         set_r = set(res["combo_index"].dropna().astype(int))
@@ -72,5 +75,5 @@ class TestH14ArtifactConsistency:
     def test_h14_subset_oos_metrics_present(self):
         p = ARTIFACTS_DIR / "subset_oos_metrics.parquet"
         assert p.exists()
-        df = pd.read_parquet(p)
+        df = read_parquet_safe(p)
         assert len(df) == 50

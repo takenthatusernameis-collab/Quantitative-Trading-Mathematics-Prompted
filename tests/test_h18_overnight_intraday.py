@@ -25,6 +25,9 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "tests"))
+
+from _utils_parquet import read_parquet_safe
 
 import run_h18_overnight_intraday_experiment as h18
 
@@ -179,12 +182,7 @@ def test_weight_bounds():
     equity_path = exp_dir / best_dir_name / "equity.parquet"
 
     if equity_path.exists():
-        # This is a simplified check - in practice we'd reconstruct the positions
-        # For now, we'll just verify the file exists and has reasonable values
-        try:
-            equity = pd.read_parquet(equity_path, engine="pyarrow")
-        except (ImportError, OSError, ValueError):
-            equity = pd.read_parquet(equity_path)
+        equity = read_parquet_safe(equity_path)
 
         assert len(equity) > 0, "equity curve should not be empty"
         assert (equity.values > 0).all(), "equity should remain positive"
