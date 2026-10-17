@@ -91,3 +91,117 @@ def test_get_tracker_singleton():
     a = get_tracker()
     b = get_tracker()
     assert a is b
+
+
+def test_experiment_context_and_artifacts(tmp_path):
+    from qtr.tracking.experiment import Experiment, create_experiment
+
+    exp = Experiment("testexp", base_dir=tmp_path)
+    exp.record_artifact("data.csv", pd.DataFrame({"a": [1, 2]}))
+    exp.record_artifact("data.parquet", pd.DataFrame({"a": [1, 2]}))
+    exp.record_artifact("meta.json", {"k": "v"})
+    exp.record_artifact("text.txt", "hello")
+    exp.record_artifact("bin.bin", b"bytes")
+    exp.record_artifact("other.obj", {"nested": 1})  # dict again
+    exp.log_metadata(key="value")
+    exp.log_params({"p": 1})
+    exp.log_results({"r": 0.5})
+    meta = exp.load_metadata()
+    assert meta["key"] == "value"
+    assert meta["params"]["p"] == 1
+    assert meta["results"]["r"] == 0.5
+
+    with create_experiment("ctx", base_dir=tmp_path) as ex:
+        assert ex is not None
+
+
+def test_experiment_load_metadata_corrupt(tmp_path):
+    from qtr.tracking.experiment import Experiment
+
+    exp = Experiment("bad", base_dir=tmp_path)
+    exp.metadata_path.write_text("not valid json")
+    assert exp.load_metadata() == {}
+
+
+def test_log_artifact_no_experiment(tmp_path):
+    import pytest
+
+    from qtr.tracking.experiment import ExperimentTracker
+
+    t = ExperimentTracker(log_dir=tmp_path / "logs")
+    p = tmp_path / "x.txt"
+    p.write_text("hi")
+    with pytest.raises(RuntimeError):
+        t.log_artifact("a", p)
+
+
+def test_tracker_git_and_deps_exception(tmp_path, monkeypatch):
+    # Simulate git failure
+    import subprocess
+
+    from qtr.tracking.experiment import ExperimentTracker
+
+    orig = subprocess.call
+
+    def bad_call(*args, **kwargs):
+        raise RuntimeError("git fail")
+
+    monkeypatch.setattr(subprocess, "call", bad_call)
+    t = ExperimentTracker(log_dir=tmp_path / "logs")
+    commit, dirty = t._get_git_info()
+    assert commit == "unknown"
+    assert dirty is False
+    monkeypatch.setattr(subprocess, "call", orig)
+
+    # Simulate pkg_resources failure
+    import sys
+
+    # remove if exists
+    if "pkg_resources" in sys.modules:
+        del sys.modules["pkg_resources"]
+
+    # monkeypatch import
+    import builtins
+
+    real_import = builtins.__import__
+
+    def bad_import(name, *args, **kwargs):
+        if name == "pkg_resources":
+            raise ImportError("nope")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", bad_import)
+    t2 = ExperimentTracker(log_dir=tmp_path / "logs2")
+    deps = t2._get_dependencies()
+    assert deps == {}
+    monkeypatch.setattr(builtins, "__import__", real_import)
+
+
+def test_load_experiment_missing_error(tmp_path):
+    import json
+
+    from qtr.tracking.experiment import ExperimentTracker
+
+    t = ExperimentTracker(log_dir=tmp_path / "logs")
+    eid = t.start_experiment("exp")
+    t.finish_experiment()
+    # Re-read the log file and add a record without error
+    log = t.log_dir / "experiments.jsonl"
+    # replace last line by one without error
+    with open(log) as f:
+        lines = f.readlines()
+    if lines:
+        rec = json.loads(lines[-1])
+        rec["error"] = None
+        rec["metadata"]["experiment_id"] = eid + "_2"
+        lines[-1] = json.dumps(rec) + "\n"
+    # also add one where error missing
+    rec2 = rec.copy()
+    rec2["metadata"]["experiment_id"] = eid + "_3"
+    rec2.pop("error", None)
+    lines.append(json.dumps(rec2) + "\n")
+    with open(log, "w") as f:
+        f.writelines(lines)
+    loaded = t.load_experiment(eid + "_3")
+    assert loaded is not None
+    assert loaded.error is None
