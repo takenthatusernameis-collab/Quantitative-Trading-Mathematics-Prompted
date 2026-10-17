@@ -255,20 +255,19 @@ def time_series_momentum_signals(
         for symbol in mom_vals.index:
             mom_val = mom_vals[symbol]
             if mom_val > 0:
-                weight = 1.0 if long_only else 1.0
+                weight = 1.0
             elif mom_val < 0 and not long_only:
                 weight = -1.0
             else:
                 weight = 0.0
 
             # Volatility scaling
-            if volatility_scale and realized_vol is not None:
-                if symbol in realized_vol.columns:
-                    vol = realized_vol.loc[date, symbol]
-                    if vol > 0:
-                        # Scale to target volatility
-                        scale = min(target_vol / vol, 2.0)  # cap leverage
-                        weight = weight * scale
+            if volatility_scale and realized_vol is not None and symbol in realized_vol.columns:
+                vol = realized_vol.loc[date, symbol]
+                if vol > 0:
+                    # Scale to target volatility
+                    scale = min(target_vol / vol, 2.0)  # cap leverage
+                    weight = weight * scale
 
             signals.loc[date, symbol] = weight
 
@@ -373,7 +372,7 @@ def carry_signals(
 
         for symbol in carry_vals.index:
             if carry_vals[symbol] > 0:
-                signals.loc[date, symbol] = 1.0 if long_only else 1.0
+                signals.loc[date, symbol] = 1.0
             elif carry_vals[symbol] < 0 and not long_only:
                 signals.loc[date, symbol] = -1.0
 
