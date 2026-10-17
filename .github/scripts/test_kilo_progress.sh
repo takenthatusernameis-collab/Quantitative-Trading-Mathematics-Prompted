@@ -43,4 +43,21 @@ write_progress "nonfatal-state-failure" "logging still works" 2>/dev/null
 grep -Fq 'phase=nonfatal-state-failure' "$KILO_PROGRESS_LOG"
 grep -Fq 'state_written=0' "$KILO_PROGRESS_LOG"
 
-echo "Kilo progress helper smoke test and non-fatal state-write test: OK"
+# Restore a writable state file before verifying controller-driven counters.
+KILO_PROGRESS_STATE_FILE="$test_root/kilo-progress-state-progress-helper-test-1.txt"
+
+# The controller must populate the progress counters it advertises. The
+# telemetry helper emits sessions_completed/persisted_checkpoints/
+# last_verified_checkpoint_sha, but the controller must drive them; otherwise
+# the CI progress signal is permanently stale (completed=0/checkpoints=0/
+# verified_sha=none). Simulate a successful checkpoint-persistence handshake.
+persisted_checkpoints=1
+last_verified_checkpoint_sha="abc123def456"
+sessions_completed=1
+write_progress "checkpoint-verified" "remote head verified at abc123def456 after 1 attempt(s)"
+grep -Fq 'checkpoints=1' "$KILO_PROGRESS_STATE_FILE"
+grep -Fq 'completed=1' "$KILO_PROGRESS_STATE_FILE"
+grep -Fq 'verified_checkpoint_sha=abc123def456' "$KILO_PROGRESS_STATE_FILE"
+grep -Fq 'verified_sha=abc123def456' "$KILO_PROGRESS_LOG"
+
+echo "Kilo progress helper smoke test, non-fatal state-write test, and controller telemetry population test: OK"

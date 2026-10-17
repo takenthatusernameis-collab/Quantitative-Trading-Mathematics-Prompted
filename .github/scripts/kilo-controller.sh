@@ -211,6 +211,9 @@ idle_timeout_retry_count=0
 project_progress=0
 provider_pressure_streak=0
 cutoff=0
+sessions_completed=0
+persisted_checkpoints=0
+last_verified_checkpoint_sha="none"
 
 agent_index=0
 while true; do
@@ -432,6 +435,8 @@ PY
             local_sha="$(git rev-parse HEAD)"
             if [ -n "$remote_sha" ] && [ "$remote_sha" = "$local_sha" ]; then
               persisted=1
+              persisted_checkpoints=$((persisted_checkpoints + 1))
+              last_verified_checkpoint_sha="$remote_sha"
               echo "Repository persistence verified at $remote_sha after $push_attempt attempt(s)."
               write_progress "checkpoint-verified" "remote head verified at ${remote_sha} after ${push_attempt} attempt(s)"
               break
@@ -451,6 +456,8 @@ PY
               local_sha="$(git rev-parse HEAD)"
               if [ -n "$remote_sha" ] && [ "$remote_sha" = "$local_sha" ]; then
                 persisted=1
+                persisted_checkpoints=$((persisted_checkpoints + 1))
+                last_verified_checkpoint_sha="$remote_sha"
                 echo "Repository persistence verified at $remote_sha after $push_attempt attempt(s)."
                 write_progress "checkpoint-verified" "remote head verified at ${remote_sha} after ${push_attempt} attempt(s)"
                 break
@@ -563,6 +570,8 @@ PY
     project_progress=1
     echo "Meaningful repository progress checkpoint verified at $(git rev-parse HEAD)."
   fi
+  sessions_completed=$((sessions_completed + 1))
+  write_progress "session-complete" "session=${agent_index}/${SESSION_LIMIT_POLICY:-${KILO_INPUT_AGENTS:-unknown}} completed=${sessions_completed} failed=${failed_sessions} checkpoints=${persisted_checkpoints} verified_sha=${last_verified_checkpoint_sha}"
   if [ "$cutoff" -eq 1 ]; then
     break
   fi

@@ -106,3 +106,20 @@ jobs:
             exit 1
           fi
           echo "Customizable sequential sessions, unbounded retries/correctives, and cutoff guardrails: OK"
+
+      - name: Guard progress counters are driven by the controller
+        shell: bash
+        run: |
+          set -euo pipefail
+          controller=.github/scripts/kilo-controller.sh
+          # The telemetry helper advertises sessions_completed,
+          # persisted_checkpoints, and last_verified_checkpoint_sha. The
+          # controller must drive them from real persistence events; otherwise
+          # the CI progress signal is permanently stale at 0/none.
+          grep -Fq 'sessions_completed=0' "$controller"
+          grep -Fq 'persisted_checkpoints=0' "$controller"
+          grep -Fq 'last_verified_checkpoint_sha="none"' "$controller"
+          grep -Fq 'sessions_completed=$((sessions_completed + 1))' "$controller"
+          grep -Fq 'persisted_checkpoints=$((persisted_checkpoints + 1))' "$controller"
+          grep -Fq 'last_verified_checkpoint_sha="$remote_sha"' "$controller"
+          echo "Progress counter initialization and controller-driven population: OK"
