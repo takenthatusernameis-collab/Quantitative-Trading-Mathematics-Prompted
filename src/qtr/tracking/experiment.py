@@ -239,12 +239,21 @@ class ExperimentTracker:
             return "unknown", False
 
     def _get_dependencies(self) -> dict[str, str]:
-        """Get installed package versions."""
-        try:
-            import pkg_resources
+        """Get installed package versions.
 
-            return {d.key: d.version for d in pkg_resources.working_set}
-        except Exception:  # noqa: BLE001 -- pkg_resources unavailable; degrade gracefully
+        Uses the stdlib ``importlib.metadata`` API (no third-party
+        dependency). Falls back to an empty dict if metadata is unavailable
+        so experiment tracking degrades gracefully.
+        """
+        try:
+            from importlib.metadata import distributions
+
+            return {
+                (dist.metadata.get("Name") or "").lower(): dist.version
+                for dist in distributions()
+                if dist.metadata.get("Name")
+            }
+        except Exception:  # noqa: BLE001 -- metadata unavailable; degrade gracefully
             return {}
 
     def load_experiment(self, experiment_id: str) -> ExperimentResult | None:

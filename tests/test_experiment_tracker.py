@@ -182,12 +182,12 @@ def test_tracker_git_and_deps_exception(tmp_path, monkeypatch):
     assert dirty is False
     monkeypatch.setattr(subprocess, "call", orig)
 
-    # Simulate pkg_resources failure
+    # Simulate importlib.metadata failure
     import sys
 
     # remove if exists
-    if "pkg_resources" in sys.modules:
-        del sys.modules["pkg_resources"]
+    if "importlib.metadata" in sys.modules:
+        del sys.modules["importlib.metadata"]
 
     # monkeypatch import
     import builtins
@@ -195,7 +195,7 @@ def test_tracker_git_and_deps_exception(tmp_path, monkeypatch):
     real_import = builtins.__import__
 
     def bad_import(name, *args, **kwargs):
-        if name == "pkg_resources":
+        if name == "importlib.metadata":
             raise ImportError("nope")
         return real_import(name, *args, **kwargs)
 
