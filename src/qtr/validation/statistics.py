@@ -474,11 +474,20 @@ def validate_strategy(
     gross_loss = abs(returns[returns < 0].sum())
     profit_factor = gross_profit / gross_loss if gross_loss > 0 else np.inf
 
-    # Walk-forward stability (simplified: compare first half vs second half)
+    # Walk-forward stability (simplified: compare first half vs second half).
+    # The ratio only measures persistence when BOTH halves are profitable:
+    # a negative in-sample Sharpe means the strategy is already broken, and a
+    # negative out-of-sample Sharpe means the edge did not persist. Without
+    # this guard the ratio is sign-sensitive and can exceed the gate threshold
+    # when both halves are losing (e.g. Sharpe -18 / -14 => 0.76 => PASS), which
+    # is the opposite of "stable". See test_walkforward_passes_with_both_halves_losing.
     mid = len(returns) // 2
     sharpe_first = sharpe_ratio(returns.iloc[:mid].values)
     sharpe_second = sharpe_ratio(returns.iloc[mid:].values)
-    wf_stability = sharpe_second / sharpe_first if sharpe_first != 0 else 0
+    if sharpe_first <= 0 or sharpe_second <= 0:
+        wf_stability = 0.0
+    else:
+        wf_stability = sharpe_second / sharpe_first
 
     # Parameter stability: the PROMPT_V2.md evidence gates require a
     # "performance stable within +/-1 standard deviation of optimal

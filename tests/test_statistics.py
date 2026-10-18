@@ -552,6 +552,44 @@ class TestValidateStrategy:
         res = st.validate_strategy(returns, self._trades(50), {})
         assert res["walkforward_stability"] == 0.0
 
+    def test_walkforward_passes_with_both_halves_losing(self, rng):
+        """Regression: a strategy losing in BOTH halves must NOT pass the
+        walk-forward stability gate. The ratio alone is sign-sensitive and can
+        exceed the threshold when both halves are negative (e.g. Sharpe -18 /
+        -14 => 0.76 => PASS), which is the opposite of "stable".
+
+        Both halves are pinned to Sharpe ~ -1.0, so the raw ratio is ~1.0 and
+        would have passed the old 0.7 gate; the guard must force 0.0.
+        """
+        n = 200
+        z1 = rng.normal(size=n)
+        z1 = (z1 - z1.mean()) / z1.std()
+        z2 = rng.normal(size=n)
+        z2 = (z2 - z2.mean()) / z2.std()
+        # mean/std = -1/sqrt(252) => annualized Sharpe = -1.0, std = 0.01.
+        r1 = -1.0 / np.sqrt(252) * 0.01 + z1 * 0.01
+        r2 = -1.0 / np.sqrt(252) * 0.01 + z2 * 0.01
+        sr1, sr2 = st.sharpe_ratio(r1), st.sharpe_ratio(r2)
+        assert sr1 == pytest.approx(-1.0, abs=0.2)
+        assert sr2 == pytest.approx(-1.0, abs=0.2)
+        assert sr2 / sr1 > 0.7  # raw ratio would have passed the old gate
+        returns = np.concatenate([r1, r2])
+        res = st.validate_strategy(
+            returns,
+            self._trades(50),
+            {
+                "min_sharpe": -100.0,
+                "min_trades": 0,
+                "min_profit_factor": 0.0,
+                "max_drawdown": 1.0,
+                "min_walkforward_stability": 0.7,
+                "min_param_stability": 0.0,
+            },
+        )
+        assert res["walkforward_stability"] == 0.0
+        assert res["walkforward_pass"] is False
+        assert res["all_pass"] is False
+
     def test_param_stability_zero_when_no_folds(self):
         # A too-short series yields no walk-forward folds => param_stability 0.
         res = st.validate_strategy(np.array([0.01]), self._trades(5), {})

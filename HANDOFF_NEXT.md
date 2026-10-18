@@ -1,33 +1,30 @@
 # Handoff Summary
 
 ## Current state
-- All tests pass: 524 passed, 0 warnings (was 521 + 1 scipy RuntimeWarning) — re-confirmed this session (264s).
+- All tests pass: 525 passed, 0 warnings (was 524) — re-confirmed this session (265s).
+- src/ coverage: 100% (914/914 stmts). Lint/format clean. Workflow scripts pass `bash -n` and the progress-helper regression test.
 - Changes this session:
   - `src/qtr/validation/statistics.py`:
-    - Implemented the `min_param_stability` evidence gate that PROMPT_V2.md mandates
-      but `validate_strategy` silently ignored. Now computed as the fraction of 5
-      walk-forward test folds with Sharpe > 0 (1.0 = perfectly stable, 0.8 gate = >=80%
-      of folds profitable) and included in the `all_pass` conjunction.
-    - Added an empty-input guard to `sharpe_ratio` (was emitting
-      `RuntimeWarning: Mean of empty slice` on the new no-folds code path).
-  - `tests/test_statistics.py`: added `test_param_stability_gate_is_enforced`,
-    `test_param_stability_zero_when_no_folds`, and extended
-    `test_all_pass_when_gates_cleared` to assert the new gate.
-  - `tests/test_backtest_engine.py`: added `test_unknown_asset_class_zero_costs`
-    (covers engine.py:268 `else` fallback).
-- Lint clean (`ruff check src tests run_*.py`), format clean (`ruff format --check`),
-  **coverage on src/ = 100% (912/912 stmts)** — statistics.py and backtest/engine.py
-  were the last two modules below 100%.
-- Prior parquet-helper task (`tests/_utils_parquet.py`) confirmed complete: used by all
-  15 test files reading parquet artifacts; no direct `pd.read_parquet` calls remain.
+    - **Fixed a false-pass in the walk-forward stability gate.** The ratio
+      `sharpe_second / sharpe_first` is sign-sensitive: when BOTH halves are
+      losing (e.g. Sharpe −18.4 / −14.0) the raw ratio is 0.76 and **passed**
+      the 0.7 gate — the opposite of "stable". Now `wf_stability = 0.0`
+      unless both halves are profitable (`sharpe_first > 0 and
+      sharpe_second > 0`).
+  - `tests/test_statistics.py`: added `test_walkforward_passes_with_both_halves_losing` —
+    a both-halves-negative series (Sharpe −1.0 / −1.0, raw ratio ~1.0) must
+    yield `walkforward_stability == 0.0` and `walkforward_pass is False`.
+- Prior tasks (min_param_stability gate, empty-input guard, coverage gaps) remain
+  complete and verified.
 
 ## Next agent actions
-No pending task within the free-data constraint. If assigned a new task, verify with:
-`python -m pytest -q`, `python -m ruff check src tests run_*.py`,
-`python -m ruff format --check`, plus `bash -n .github/scripts/*.sh` and
-`bash .github/scripts/test_kilo_progress.sh`. Note: `qtr` must be importable — run
-`pip install -e .` from the repo root if `ModuleNotFoundError: No module named 'qtr'`
-appears at collection time.
+If assigned a new task, verify with:
+`python -m pytest -q`, `python -m pytest -W error -q`,
+`python -m pytest --cov=qtr --cov-report=term-missing`,
+`python -m ruff check src tests run_*.py`, `python -m ruff format --check`,
+plus `bash -n .github/scripts/*.sh` and `bash .github/scripts/test_kilo_progress.sh`.
+Note: `qtr` must be importable — run `pip install -e .` from the repo root if
+`ModuleNotFoundError: No module named 'qtr'` appears at collection time.
 
 ## Documented next task (requires paid data — outside this session)
 
@@ -37,11 +34,16 @@ but PF-margin is CI-fragile (H13 CI [1.190, 1.425]; H25 Robustness CI [1.2049, 1
 P(PF≥1.3)≈0.5–0.62). Do not run further hypotheses on free data — the free-data
 hypothesis space is exhausted (yfinance hourly `=F` capped ~730 days; Coinbase ~12 days).
 
-## Implementation note for future gate work
+## Proxy caveat
 `validate_strategy`'s `param_stability` is a *proxy* (fold-profitability fraction), not the
 literal "±1 std of optimal parameters" from PROMPT_V2.md, because the function only
 receives returns + trades, not a parameter grid. The real ±1-std perturbation gate lives in
 the H10/H11 runners (`run_h10_intraday_tsmom_pfopt_experiment.py`,
 `run_h11_robustness_experiment.py`) as `e2_perturbation`. Do not conflate the two.
 
-(End of file - total 31 lines)
+`validate_strategy`'s `walkforward_stability` is likewise a *simplified* proxy (first-half
+vs second-half ratio), not the literal 5-fold walk-forward metric computed independently
+in the H9–H25 runners (`run_h10_intraday_tsmom_pfopt_experiment.py:286`). The runner gate
+is unaffected by this fix.
+
+(End of file - total 43 lines)
