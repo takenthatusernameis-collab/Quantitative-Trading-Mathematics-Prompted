@@ -2,8 +2,8 @@
 
 ## Status: COMPLETE (this session)
 
-No prior agent assignment remained (HANDOFF.md reported no bounded task identified). I inspected the repository independently and confirmed the baseline is fully verified with no bounded free-data task remaining:
-- `python -m pytest -q` → 526 passed, ~211s
+No prior agent assignment remained (the two bounded tasks from the previous session were already committed and verified). I inspected the repository independently and confirmed the baseline is fully verified, then selected and completed one additional bounded, high-value task:
+- `python -m pytest -q` → 527 passed, ~214s
 - `python -m ruff check src tests run_*.py` → clean
 - `python -m ruff format --check` → 83 files formatted
 - `bash -n .github/scripts/*.sh` → OK
@@ -40,6 +40,26 @@ a local `rng = np.random.default_rng(random_state)` + `rng.integers(0, n, n)`.
 The function no longer touches global RNG state. Tests are property-based (not
 value-dependent on the RNG sequence), so no numeric expectations changed.
 
+## Task 3: guard `validate_strategy` against empty returns input
+
+**Demonstrated problem:** `validate_strategy` raised `ZeroDivisionError` when
+called with an empty returns series, at
+`ann_return = (1 + total_return) ** (252 / len(returns)) - 1` (`len(returns) == 0`).
+`ann_vol` would also be NaN. Since `validate_strategy` is an evidence gate
+relied on by `run_baseline.py:72` / `run_experiment.py:75`, a degenerate input
+must fail every gate rather than crash. Reproduced `ZeroDivisionError` with a
+2-line script before the fix.
+
+**Fix:** added an early guard returning a safe all-fail result
+(`sharpe=0.0`, `walkforward_stability=0.0`, `param_stability=0.0`,
+`all_pass=False`, `drawdown_pass=True` since no exposure means no drawdown).
+Cheap, deterministic correctness fix; does not touch orchestration, permissions,
+or experiment runners.
+
+**Regression test:** `test_empty_input_returns_safe_all_fail` in
+`tests/test_statistics.py` — empty returns must yield `all_pass is False`,
+`walkforward_stability == 0.0`, `param_stability == 0.0`, and not crash.
+
 ## Additional work done this session
 - Added regression test `test_walkforward_passes_with_both_halves_losing` in
   `tests/test_statistics.py`: a both-halves-negative series (Sharpe −1.0 / −1.0,
@@ -50,10 +70,14 @@ value-dependent on the RNG sequence), so no numeric expectations changed.
   `bootstrap_confidence_interval`, then asserting the global RNG position/state
   vector are unchanged. Fails under the old `np.random.seed(random_state)`
   implementation; passes with the local-`Generator` fix.
-- Full suite: 526 passed (was 525), 0 warnings — verified with
+- Added regression test `test_empty_input_returns_safe_all_fail` in
+  `tests/test_statistics.py`: empty returns must yield `all_pass is False`,
+  `walkforward_stability == 0.0`, `param_stability == 0.0`, and not crash
+  (reproduced `ZeroDivisionError` before the fix).
+- Full suite: 527 passed (was 526), 0 warnings — verified with
   `python -m pytest -W error -q`.
 - src/ coverage: 100% (913/913 stmts). Lint/format clean.
-- All 63 statistics tests pass (property-based, not value-dependent on the RNG sequence).
+- All 64 statistics tests pass (property-based, not value-dependent on the RNG sequence).
 
 ## Success criteria — all met
 - A losing strategy can no longer pass the walk-forward stability gate.  [done]
@@ -62,8 +86,12 @@ value-dependent on the RNG sequence), so no numeric expectations changed.
 - `bootstrap_confidence_interval` no longer mutates global numpy RNG state.  [done]
 - A regression test fails under the old `np.random.seed` implementation and
   passes with the fix, pinning the RNG non-mutation.  [done]
+- Empty returns input no longer raises `ZeroDivisionError`; returns safe
+  all-fail result instead.  [done]
+- A regression test fails without the empty-input guard (crash) and passes
+  with it.  [done]
 - Lint/format clean.  [done]
-- Full suite: 526 passed, 0 warnings, no regressions.  [done]
+- Full suite: 527 passed, 0 warnings, no regressions.  [done]
 - src/ coverage: 100%.  [done]
 
 ## Next task (beyond free-data scope)

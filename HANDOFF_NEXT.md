@@ -1,31 +1,13 @@
 # Handoff Summary
 
 ## Current state
-- All tests pass: 525 passed, 0 warnings (was 524) — re-confirmed this session (265s).
+- All tests pass: 527 passed, 0 warnings (was 526) — re-confirmed this session (214s).
 - src/ coverage: 100% (913/913 stmts). Lint/format clean. Workflow scripts pass `bash -n` and the progress-helper regression test.
-- Changes this session:
+- Changes this session (uncommitted):
   - `src/qtr/validation/statistics.py`:
-    - **Fixed a false-pass in the walk-forward stability gate.** The ratio
-      `sharpe_second / sharpe_first` is sign-sensitive: when BOTH halves are
-      losing (e.g. Sharpe −18.4 / −14.0) the raw ratio is 0.76 and **passed**
-      the 0.7 gate — the opposite of "stable". Now `wf_stability = 0.0`
-      unless both halves are profitable (`sharpe_first > 0 and
-      sharpe_second > 0`).
-    - **Fixed global RNG state mutation in `bootstrap_confidence_interval`.**
-      `np.random.seed(random_state)` mutated the global numpy RNG, which can
-      contaminate unrelated random operations in the same process. Replaced
-      with a local `np.random.default_rng(random_state)` instance
-      (`rng.integers(...)` instead of `np.random.randint(...)`).
-  - `tests/test_statistics.py`: added `test_walkforward_passes_with_both_halves_losing` —
-    a both-halves-negative series (Sharpe −1.0 / −1.0, raw ratio ~1.0) must
-    yield `walkforward_stability == 0.0` and `walkforward_pass is False`.
-  - `tests/test_statistics.py`: added `test_does_not_mutate_global_rng` —
-    advancing the global RNG, calling `bootstrap_confidence_interval`, then
-    asserting the global RNG position/state vector are unchanged. Fails under
-    the old `np.random.seed(random_state)` implementation; passes with the
-    local-`Generator` fix.
-- Prior tasks (min_param_stability gate, empty-input guard, coverage gaps) remain
-  complete and verified.
+    - **Guarded `validate_strategy` against empty returns input.** `ann_return = (1 + total_return) ** (252 / len(returns)) - 1` raised `ZeroDivisionError` on an empty series, and `ann_vol` would be NaN. Since `validate_strategy` is an evidence gate used by `run_baseline.py:72` / `run_experiment.py:75`, a degenerate input now returns a safe all-fail result (`sharpe=0.0`, `walkforward_stability=0.0`, `param_stability=0.0`, `all_pass=False`) instead of crashing.
+  - `tests/test_statistics.py`: added `test_empty_input_returns_safe_all_fail` — empty returns must yield `all_pass is False`, `walkforward_stability == 0.0`, `param_stability == 0.0`, and not crash. Reproduced `ZeroDivisionError` before the fix.
+- Prior tasks (walk-forward stability gate false-pass, global RNG mutation fix, min_param_stability gate, empty-input guard, coverage gaps) remain complete and verified.
 
 ## Next agent actions
 If assigned a new task, verify with:

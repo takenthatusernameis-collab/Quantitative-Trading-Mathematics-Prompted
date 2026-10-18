@@ -456,6 +456,29 @@ def validate_strategy(
     if isinstance(returns, np.ndarray):
         returns = pd.Series(returns)
 
+    # Degenerate input guard: an empty return series cannot be annualized
+    # (252 / len(returns) divides by zero) and yields no walk-forward folds,
+    # so it must fail every evidence gate rather than crash.
+    if len(returns) == 0:
+        return {
+            "sharpe": 0.0,
+            "sharpe_pass": False,
+            "n_trades": len(trades),
+            "trades_pass": False,
+            "profit_factor": 1.0,
+            "profit_factor_pass": False,
+            "max_drawdown": 0.0,
+            "drawdown_pass": True,
+            "walkforward_stability": 0.0,
+            "walkforward_pass": False,
+            "param_stability": 0.0,
+            "param_stability_pass": False,
+            "annualized_return": 0.0,
+            "annualized_volatility": 0.0,
+            "total_return": 0.0,
+            "all_pass": False,
+        }
+
     n_trades = len(trades)
     total_return = (1 + returns).prod() - 1
     ann_return = (1 + total_return) ** (252 / len(returns)) - 1

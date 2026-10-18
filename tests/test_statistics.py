@@ -609,6 +609,22 @@ class TestValidateStrategy:
         assert res["param_stability"] == 0.0
         assert res["param_stability_pass"] is False
 
+    def test_empty_input_returns_safe_all_fail(self):
+        """Empty returns must not crash (252 / len(returns) divides by zero)
+        and must fail every evidence gate rather than certify an empty
+        strategy as passing."""
+        res = st.validate_strategy(np.array([]), self._trades(0), {})
+        assert res["all_pass"] is False
+        assert res["sharpe_pass"] is False
+        assert res["walkforward_pass"] is False
+        assert res["param_stability_pass"] is False
+        assert res["walkforward_stability"] == 0.0
+        assert res["param_stability"] == 0.0
+        assert res["annualized_return"] == 0.0
+        assert res["total_return"] == 0.0
+        assert res["max_drawdown"] == 0.0
+        assert res["drawdown_pass"] is True  # no exposure => no drawdown
+
     def test_max_drawdown_is_negative_or_zero(self, rng):
         returns = rng.normal(0.0, 0.01, 400)
         res = st.validate_strategy(returns, self._trades(50), {})
