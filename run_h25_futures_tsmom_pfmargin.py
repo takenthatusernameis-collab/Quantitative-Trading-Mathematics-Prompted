@@ -1,9 +1,21 @@
-"""H22: Multi-Contract Intraday Futures TSMOM Vol-Targeting Gap Test.
+"""H25: Multi-Contract Intraday Futures TSMOM — PF-Margin Repair by Vol-Targeting Expansion.
 
-Generalizes the H10/H11 certified intraday TSMOM edge (vol-scaled, path-dependent
-exits) across a diversified basket of 5 liquid futures contracts (ES=F, NQ=F,
-CL=F, GC=F, ZB=F) with risk-parity aggregation. 16-combo grid, Val-selected,
-Test-protected, same gates as H9-H11.
+Extends the H22 certified vol-targeting edge (OOS Sharpe 1.372, PF 1.334 on the
+5-contract ES=F/NQ=F/CL=F/GC=F/ZB=F basket at 15% ann vol) with a PF-margin
+repair: raise the target-vol ceiling above the H22 ceiling and prune the basket,
+selected on Val PF margin (val_profit_factor - 1.3), gate-evaluated on the
+protected OOS (Val+Test) window using the same evidence gates as H9-H22 plus the
+perturbation gate.
+
+Grid (all Val-only selection; Test never enters selection):
+  - target_vol_mult   in {1.25, 1.5, 1.75, 2.0}  (multiplier on base 15% ann vol)
+  - max_pos           in {0.5}                      (fixed)
+  - scale_rule        in {"equal"}                  (fixed)
+  - n_assets          in {4, 5}                     (4 = basket minus CL=F)
+
+The H10 selected signal/exit config (vol_window_long=1008, trailing_mult=2.0,
+max_hold_bars=60, vol_limit_mult=1.5, vol_floor_fraction=0.25) is frozen; only
+the vol-targeting envelope and basket cardinality vary. 8-combo grid.
 """
 
 import os

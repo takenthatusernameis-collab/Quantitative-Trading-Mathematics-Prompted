@@ -1,9 +1,20 @@
-"""H22: Multi-Contract Intraday Futures TSMOM Vol-Targeting Gap Test.
+"""H22: Multi-Contract Intraday Futures TSMOM — Vol-Targeting Gap Test.
 
 Generalizes the H10/H11 certified intraday TSMOM edge (vol-scaled, path-dependent
 exits) across a diversified basket of 5 liquid futures contracts (ES=F, NQ=F,
-CL=F, GC=F, ZB=F) with risk-parity aggregation. 16-combo grid, Val-selected,
-Test-protected, same gates as H9-H11.
+CL=F, GC=F, ZB=F) with risk-parity aggregation. 8-combo grid (target_vol x
+max_pos; scale_rule and n_assets are fixed inert dimensions), Val-selected,
+Test-protected, same gates as H9-H11 plus the perturbation gate.
+
+Grid (all Val-only selection; Test never enters selection):
+  - target_vol_mult   in {1.25, 1.5, 1.75, 2.0}  (multiplier on base 15% ann vol)
+  - max_pos           in {0.5, 1.0}
+  - scale_rule        in {"equal"}                 (fixed)
+  - n_assets          in {5}                      (fixed)
+
+The H10 selected signal/exit config (vol_window_long=1008, trailing_mult=2.0,
+max_hold_bars=60, vol_limit_mult=1.5, vol_floor_fraction=0.25) is frozen; only
+the vol-targeting envelope varies. 8-combo grid.
 """
 
 import os

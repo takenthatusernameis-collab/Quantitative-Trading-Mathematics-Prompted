@@ -4,11 +4,11 @@ Regression tests for the H22 multi-contract intraday futures TSMOM experiment
 
 Pins:
   * Pre-registered gate thresholds (PROMPT_V2 set + perturbation gate)
-  * Pre-registered grid (16 combos), universe, splits, symbols, seed
+  * Pre-registered grid (8 combos), universe, splits, symbols, seed
   * Artifact schema and summary.json consistency
   * Gate recomputation from the logged equity/trades artifacts
     (exact match to summary.json at 1e-9)
-  * Grid/selection integrity (16 unique combos; selection = argmax Val Sharpe)
+  * Grid/selection integrity (8 unique combos; selection = argmax Val Sharpe)
   * Signal causality (future-price perturbation leaves past targets bit-identical)
   * Point-in-time / weight bounds (weights in [0, max_pos] per contract)
   * Regime labels consistent with VIX convention
