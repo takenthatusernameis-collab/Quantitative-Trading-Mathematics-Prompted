@@ -1,38 +1,37 @@
 # Agent Handoff
 
 ## State
-- Full suite: 527 passed, 0 warnings, ~214s. All lint/format clean. Coverage on src/ = 100% (913/913 stmts).
+- Full suite: 528 passed, 0 warnings, ~213s. All lint/format clean. Coverage on src/ = 100% (915/915 stmts).
 - Working tree has uncommitted changes (not committed per session policy):
-  - src/qtr/validation/statistics.py — guarded `validate_strategy` against empty returns input (ZeroDivisionError on `252 / len(returns)`).
-  - tests/test_statistics.py — added `test_empty_input_returns_safe_all_fail` regression test.
+  - src/qtr/validation/statistics.py — `compare_to_benchmark` beta now uses consistent ddof=1 on both `np.cov` and `np.var`, matching the OLS slope.
+  - tests/test_statistics.py — `test_beta_is_ols_slope` (renamed from `test_beta_is_covariance_ratio`) and new `test_beta_matches_ols_not_mixed_ddof` pin the OLS slope and fail under the old mixed-ddof formula.
   - HANDOFF.md / HANDOFF_NEXT.md / NEXT_TASK.md — updated to reflect this session.
 
 ## What this session did
-- No prior agent assignment remained (the two bounded tasks from the previous session were already committed and verified). Inspected the repo independently and selected one bounded, high-value task:
-  3. **empty-input crash in `validate_strategy`** (statistics.py:461): calling `validate_strategy` with an empty returns series raised `ZeroDivisionError` at `ann_return = (1 + total_return) ** (252 / len(returns)) - 1`. Since `validate_strategy` is an evidence gate relied on by `run_baseline.py:72` / `run_experiment.py:75`, a degenerate input must fail every gate rather than crash. Added an early guard returning a safe all-fail result (`sharpe=0.0`, `walkforward_stability=0.0`, `param_stability=0.0`, `all_pass=False`, `drawdown_pass=True` since no exposure means no drawdown).
-- Root cause: `len(returns) == 0` made `252 / len(returns)` divide by zero; `ann_vol` would also be NaN.
+- No prior agent assignment remained (the three bounded tasks from prior sessions were already committed and verified). Inspected the repo independently and selected one bounded, high-value task:
+  **beta estimator inconsistency in `compare_to_benchmark`** (statistics.py:371). The function computed `beta = np.cov(strat, bench)[0,1] / np.var(bench)`, but `np.cov` defaults to `ddof=1` (sample) while `np.var` defaults to `ddof=0` (population). The ratio is therefore inflated by exactly `n/(n-1)` relative to the true OLS regression slope (`np.polyfit` / `scipy.stats.linregress`). For n=400 that is +0.25% on every beta.
+- `compare_to_benchmark` feeds the certified H10 pipeline (`run_h10_intraday_tsmom_pfopt_experiment.py:315`), whose `information_ratio` and `benchmark_p_value` gates depend on `beta` (via `alpha`). The existing test `test_beta_is_covariance_ratio` actually encoded the buggy formula, so the defect was pinned rather than caught.
+- Fix: `beta = np.cov(strat, bench, ddof=1)[0, 1] / np.var(bench, ddof=1)`. With consistent ddof=1, beta is the OLS slope and alpha reduces to the OLS intercept net of the risk-free term (standard CAPM alpha).
 - Cheap, deterministic correctness fix. Does not touch orchestration, permissions, or experiment runners.
 
 ## Verified
-- `python -m pytest -q` → 527 passed (was 526), ~214s.
-- `python -m pytest -W error -q` → 527 passed, 0 warnings.
-- `python -m pytest --cov=qtr --cov-report=term-missing` → 100% on every src module (913/913 stmts).
+- `python -m pytest -q` → 528 passed (was 527), ~213s.
+- `python -m pytest -W error -q` → 528 passed, 0 warnings.
+- `python -m pytest --cov=qtr --cov-report=term-missing` → 100% on every src module (915/915 stmts).
 - `python -m ruff check src tests run_*.py` → clean.
 - `python -m ruff format --check` → 83 files formatted.
 - `bash -n` on all three `.github/scripts/*.sh` + `test_kilo_progress.sh` → OK; progress-helper regression passes.
-- New regression test `test_empty_input_returns_safe_all_fail` passes with the fix and would crash without it (reproduced `ZeroDivisionError` before the fix).
-- Empty input now returns `all_pass=False` with safe values instead of crashing.
+- New regression tests fail without the fix (reproduced the inflated beta) and pass with it.
 
 ## Unresolved
 - None blocking. The `walkforward_stability` metric remains a *simplified* proxy (first-half vs second-half ratio), not the literal "5 walk-forward folds" measure used by the H9/H10/H11 runners (`run_h10_intraday_tsmom_pfopt_experiment.py:286` uses `walk_forward_splits(n_splits=5)`). `validate_strategy` receives returns + trades only, not the full price/vix context the runners have, so it cannot compute the fold-based metric. The H9–H25 gate is unaffected — it computes `wf_stability` independently in the runner, not via `validate_strategy`.
+- `walk_forward_splits` drops trailing samples when `n_samples % n_splits != 0` (e.g. n=252, splits=5 covers 250/252; n=77, splits=3 covers 75/77). The runners that use it for fold Sharpes therefore silently ignore the tail of the series. This is a latent correctness issue for any runner relying on full-series coverage, but it does not change any certified number today (H10's 5148 hourly bars are divisible by 5). Not fixed this session: it would require deciding a split policy (drop-tail vs distribute-remainder) and re-running the affected experiments, which is out of scope for a free-data session.
 
 ## Failed approaches
-- First attempt at the regression test pinned the two halves to Sharpe −5.0 / −13.0 (raw ratio 2.6). The test failed on the assertion `sr2 / sr1 > 0.7` because the RNG noise made the realized ratio 0.70 — too close to the threshold to be robust.
-- Second attempt pinned both halves to Sharpe −1.0 (mean = −1/√252, std = 0.01), giving a raw ratio ~1.0 — comfortably above 0.7 regardless of seed. This passes deterministically.
+- None this session. The fix was a one-line ddof change with two pinning tests.
 
 ## This session (independent re-verification)
-No new code changes were required: the prior session's fixes are committed and the working tree is clean. I independently re-verified the baseline:
-- `python -m pytest -q` → 526 passed, ~211s
+- `python -m pytest -q` → 528 passed, ~213s
 - `python -m ruff check src tests run_*.py` → clean
 - `python -m ruff format --check` → 83 files formatted
 - `bash -n .github/scripts/*.sh` → OK

@@ -366,9 +366,16 @@ def compare_to_benchmark(
         else 0
     )
 
-    # Alpha / Beta (CAPM)
+    # Alpha / Beta (CAPM). beta is the OLS regression slope of strategy
+    # returns on benchmark returns, cov(S, B) / var(B) with a CONSISTENT
+    # ddof on both terms. np.cov defaults to ddof=1 (sample) while np.var
+    # defaults to ddof=0 (population); mixing them inflates beta by
+    # n/(n-1) relative to the OLS slope (np.polyfit / scipy.stats.linregress).
+    # With a consistent ddof=1, beta is the OLS slope and alpha reduces to
+    # the OLS intercept (mean(S) - beta * mean(B)), net of the risk-free
+    # term, which is the standard CAPM alpha.
     if bench.std() > 0:
-        beta = np.cov(strat, bench)[0, 1] / np.var(bench)
+        beta = np.cov(strat, bench, ddof=1)[0, 1] / np.var(bench, ddof=1)
         alpha = (
             strat.mean()
             - risk_free / periods_per_year

@@ -12,6 +12,7 @@ certified H10-H14 numbers.
 import numpy as np
 import pandas as pd
 import pytest
+from scipy import stats
 
 from qtr.validation import statistics as st
 
@@ -413,12 +414,36 @@ class TestCompareToBenchmark:
         res = st.compare_to_benchmark(strat, bench)
         assert res["alpha_annualized"] > 0
 
-    def test_beta_is_covariance_ratio(self, rng):
+    def test_beta_is_ols_slope(self, rng):
         strat = rng.normal(0.001, 0.01, 400)
         bench = rng.normal(0.001, 0.01, 400)
         res = st.compare_to_benchmark(strat, bench)
-        expected_beta = np.cov(strat, bench)[0, 1] / np.var(bench)
+        # beta is the OLS regression slope of strat on bench, i.e.
+        # cov(S,B,ddof=1) / var(B,ddof=1). The prior implementation mixed
+        # np.cov (ddof=1) with np.var (ddof=0), which inflated beta by
+        # n/(n-1) relative to the true OLS slope.
+        expected_beta = np.cov(strat, bench, ddof=1)[0, 1] / np.var(bench, ddof=1)
         assert res["beta"] == pytest.approx(expected_beta)
+        assert res["beta"] == pytest.approx(np.polyfit(bench, strat, 1)[0], rel=1e-9)
+        assert res["beta"] == pytest.approx(
+            stats.linregress(bench, strat).slope, rel=1e-9
+        )
+
+    def test_beta_matches_ols_not_mixed_ddof(self, rng):
+        """Regression: beta must equal the OLS slope, not the inflated
+        cov(ddof=1)/var(ddof=0) value. The mixed-ddof formula overstates
+        beta by exactly n/(n-1)."""
+        n = 400
+        strat = rng.normal(0.001, 0.01, n)
+        bench = rng.normal(0.001, 0.01, n)
+        res = st.compare_to_benchmark(strat, bench)
+        ols_slope = stats.linregress(bench, strat).slope
+        mixed = np.cov(strat, bench, ddof=1)[0, 1] / np.var(bench, ddof=0)
+        assert res["beta"] == pytest.approx(ols_slope, rel=1e-9)
+        assert res["beta"] != pytest.approx(mixed, rel=1e-9)
+        # The mixed formula overstates |beta| by n/(n-1) when beta != 0.
+        if abs(ols_slope) > 1e-9:
+            assert abs(res["beta"]) < abs(mixed)
 
     def test_zero_variance_benchmark_no_division(self):
         res = st.compare_to_benchmark(np.full(400, 0.001), np.zeros(400))

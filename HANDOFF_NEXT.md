@@ -1,13 +1,12 @@
 # Handoff Summary
 
 ## Current state
-- All tests pass: 527 passed, 0 warnings (was 526) — re-confirmed this session (214s).
-- src/ coverage: 100% (913/913 stmts). Lint/format clean. Workflow scripts pass `bash -n` and the progress-helper regression test.
+- All tests pass: 528 passed, 0 warnings (was 527) — re-confirmed this session (213s).
+- src/ coverage: 100% (915/915 stmts). Lint/format clean. Workflow scripts pass `bash -n` and the progress-helper regression test.
 - Changes this session (uncommitted):
-  - `src/qtr/validation/statistics.py`:
-    - **Guarded `validate_strategy` against empty returns input.** `ann_return = (1 + total_return) ** (252 / len(returns)) - 1` raised `ZeroDivisionError` on an empty series, and `ann_vol` would be NaN. Since `validate_strategy` is an evidence gate used by `run_baseline.py:72` / `run_experiment.py:75`, a degenerate input now returns a safe all-fail result (`sharpe=0.0`, `walkforward_stability=0.0`, `param_stability=0.0`, `all_pass=False`) instead of crashing.
-  - `tests/test_statistics.py`: added `test_empty_input_returns_safe_all_fail` — empty returns must yield `all_pass is False`, `walkforward_stability == 0.0`, `param_stability == 0.0`, and not crash. Reproduced `ZeroDivisionError` before the fix.
-- Prior tasks (walk-forward stability gate false-pass, global RNG mutation fix, min_param_stability gate, empty-input guard, coverage gaps) remain complete and verified.
+  - `src/qtr/validation/statistics.py`: **`compare_to_benchmark` beta now uses consistent ddof=1** on both `np.cov` and `np.var`, so beta equals the OLS regression slope instead of the inflated `cov(ddof=1)/var(ddof=0)` value (overstated by exactly `n/(n-1)`). This feeds the certified H10 pipeline's `information_ratio` and `benchmark_p_value` gates.
+  - `tests/test_statistics.py`: `test_beta_is_ols_slope` (renamed from `test_beta_is_covariance_ratio`, now asserting against `np.polyfit` and `scipy.stats.linregress` slopes) plus new `test_beta_matches_ols_not_mixed_ddof` — both fail under the old mixed-ddof formula and pass with the fix.
+- Prior tasks (walk-forward stability gate false-pass, global RNG mutation fix, min_param_stability gate, empty-input guard, coverage gaps, beta ddof fix) remain complete and verified.
 
 ## Next agent actions
 If assigned a new task, verify with:
@@ -37,5 +36,12 @@ the H10/H11 runners (`run_h10_intraday_tsmom_pfopt_experiment.py`,
 vs second-half ratio), not the literal 5-fold walk-forward metric computed independently
 in the H9–H25 runners (`run_h10_intraday_tsmom_pfopt_experiment.py:286`). The runner gate
 is unaffected by this fix.
+
+## Latent issue (not fixed this session)
+`walk_forward_splits` drops trailing samples when `n_samples % n_splits != 0` (n=252/5
+covers 250/252; n=77/3 covers 75/77). Runners using it for fold Sharpes silently ignore the
+tail. No certified number changes today (H10's 5148 bars are divisible by 5). Fixing it
+requires choosing a split policy (drop-tail vs distribute-remainder) and re-running the
+affected experiments — out of scope for a free-data session.
 
 (End of file - total 43 lines)
