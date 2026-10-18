@@ -99,11 +99,15 @@ def walk_forward_splits(
         List of (train_indices, test_indices) tuples
     """
     window_size = n_samples // n_splits
+    if window_size == 0:
+        return []
     splits = []
 
     for i in range(n_splits):
         start = i * window_size
-        end = min((i + 1) * window_size, n_samples)
+        # Last window absorbs any trailing samples dropped by integer division,
+        # so the full series is covered instead of silently ignoring the tail.
+        end = n_samples if i == n_splits - 1 else (i + 1) * window_size
         window_indices = np.arange(start, end)
 
         if len(window_indices) == 0:
