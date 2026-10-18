@@ -346,11 +346,19 @@ class VectorizedBacktester:
         else:
             metrics["sharpe"] = 0.0
 
-        # TEMP REGRESSION CHECK: buggy denominator
-        downside_returns = returns[returns < 0]
-        if len(downside_returns) > 0 and downside_returns.std() > 0:
+        # Sortino ratio uses the *downside deviation* — the square root of the
+        # mean squared shortfall below the target — NOT the standard deviation
+        # of the negative-returns subset. The two differ whenever the series
+        # contains zero or positive months: the loss-subset std ignores those
+        # observations entirely, while the downside deviation counts a 0
+        # shortfall for each one (raising the denominator and lowering the
+        # ratio). The loss-subset std understates downside risk and inflates
+        # the Sortino ratio.
+        shortfall = np.minimum(0, returns - risk_free / ann_factor)
+        downside_dev = np.sqrt(np.mean(shortfall**2))
+        if downside_dev > 0:
             metrics["sortino"] = (
-                excess_returns.mean() / downside_returns.std() * np.sqrt(ann_factor)
+                excess_returns.mean() / downside_dev * np.sqrt(ann_factor)
             )
         else:
             metrics["sortino"] = 0.0

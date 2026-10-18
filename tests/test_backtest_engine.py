@@ -227,9 +227,7 @@ class TestMetrics:
         base = rng.normal(0.0004, 0.01, n)
         base[::5] = 0.0  # every 5th month is flat -> 0 shortfall
         index = pd.bdate_range("2020-01-01", periods=n)
-        prices = pd.DataFrame(
-            {"A": 100.0 * np.exp(np.cumsum(base))}, index=index
-        )
+        prices = pd.DataFrame({"A": 100.0 * np.exp(np.cumsum(base))}, index=index)
         signals = pd.DataFrame(1.0, index=index, columns=["A"])
         res = run_backtest(prices=prices, signals=signals, config=_make_config())
 
