@@ -379,6 +379,70 @@ def test_crypto_also_uses_weight_changes():
     assert res.returns.iloc[3] < 0
 
 
+def test_crypto_uses_volumes_argument():
+    """Regression guard: the crypto path must NOT ignore the `volumes`
+    argument.
+
+    The H23 crypto runner passes real 24h volume per symbol, but the engine
+    hardcoded ``daily_vol_pct = 0.0`` in the crypto branch, so every crypto
+    book was charged a flat 7 bps regardless of how much volume it actually
+    traded through. With no volumes supplied the cost is the flat 7 bps; with
+    volumes it must differ whenever participation is non-zero.
+    """
+    n = 60
+    rng = np.random.default_rng(7)
+    idx = pd.bdate_range("2020-01-01", periods=n)
+    price = 20000.0 * np.exp(np.cumsum(rng.normal(0, 0.01, n)))
+    prices = pd.DataFrame({"BTC": price}, index=idx)
+    signals = pd.DataFrame({"BTC": 0.0}, index=idx)
+    signals.iloc[0] = 1.0  # full-weight entry on day 0
+
+    cfg = _make_config(
+        asset_class=AssetClass.CRYPTO, max_leverage=5.0, max_position_size=5.0
+    )
+    cfg.cost_model = CostModel(
+        crypto_fee_bps=5.0,
+        crypto_spread_bps=2.0,
+        crypto_slippage_bps_per_pct_daily_vol=1.0,
+    )
+
+    # No volumes -> flat 7 bps (5 fee + 2 spread, 0 slippage).
+    no_vol = run_backtest(prices=prices, signals=signals, config=cfg)
+    assert no_vol.returns.iloc[0] == pytest.approx(-7.0 / 10_000, abs=1e-12)
+
+    # 1 BTC daily volume: 1.0 weight * $1M / $20k = 50 shares = 5000% of
+    # daily volume -> clipped to 100% participation -> 100 bps slippage.
+    # Total cost = 5 + 2 + 100 = 107 bps.
+    thin = run_backtest(
+        prices=prices,
+        signals=signals,
+        volumes=pd.DataFrame({"BTC": 1.0}, index=idx),
+        config=cfg,
+    )
+    assert thin.returns.iloc[0] == pytest.approx(-107.0 / 10_000, abs=1e-9)
+
+    # 100k BTC daily volume: 50 shares / 100k = 0.05% participation ->
+    # 0.05 bps slippage -> total 7.05 bps. Distinct from the no-volume flat
+    # 7 bps, proving the volume path is wired through.
+    thick = run_backtest(
+        prices=prices,
+        signals=signals,
+        volumes=pd.DataFrame({"BTC": 100_000.0}, index=idx),
+        config=cfg,
+    )
+    assert thick.returns.iloc[0] == pytest.approx(-7.05 / 10_000, abs=1e-9)
+    assert thick.returns.iloc[0] != no_vol.returns.iloc[0]
+
+    # Missing symbol in volumes degrades to zero slippage (flat 7 bps).
+    other_sym = run_backtest(
+        prices=prices,
+        signals=signals,
+        volumes=pd.DataFrame({"ETH": 1.0}, index=idx),
+        config=cfg,
+    )
+    assert other_sym.returns.iloc[0] == pytest.approx(no_vol.returns.iloc[0], abs=1e-12)
+
+
 def test_unknown_asset_class_zero_costs():
     """The cost-model fallback for an unrecognised asset class must be a
     no-op (zero costs), so a misconfigured asset class degrades to a

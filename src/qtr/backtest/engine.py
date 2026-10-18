@@ -259,7 +259,26 @@ class VectorizedBacktester:
                 )
 
             elif self.config.asset_class == AssetClass.CRYPTO:
-                daily_vol_pct = 0.0  # Would need 24h volume data
+                # Slippage scales with participation of daily volume. The
+                # volume DataFrame (passed by callers such as the H23 crypto
+                # runner) carries per-symbol 24h volume; without it the
+                # participation is unknown and slippage degrades to 0 (the
+                # prior behaviour). Previously the volume argument was ignored
+                # entirely, so a 5-symbol crypto book on real Coinbase volume
+                # was charged the same 7 bps as a paper-thin mock book.
+                if (
+                    volumes is not None
+                    and symbol in volumes.columns
+                    and volumes[symbol].iloc[-1] > 0
+                ):
+                    daily_vol = volumes[symbol].iloc[-1]
+                    shares_traded = changes * self.config.initial_capital / price
+                    daily_vol_pct = (shares_traded / daily_vol).clip(
+                        0, 1
+                    ) * 100  # as percentage
+                else:
+                    daily_vol_pct = 0.0
+
                 cost_bps = self.cost_model.crypto_cost_bps(daily_vol_pct)
                 # Cost as a fraction of portfolio value (weight_delta * cost_bps).
                 symbol_costs = changes * (cost_bps / 10000)
