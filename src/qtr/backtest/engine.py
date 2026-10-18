@@ -346,6 +346,7 @@ class VectorizedBacktester:
         else:
             metrics["sharpe"] = 0.0
 
+        # TEMP REGRESSION CHECK: buggy denominator
         downside_returns = returns[returns < 0]
         if len(downside_returns) > 0 and downside_returns.std() > 0:
             metrics["sortino"] = (

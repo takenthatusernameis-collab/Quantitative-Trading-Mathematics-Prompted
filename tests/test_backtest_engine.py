@@ -210,6 +210,55 @@ class TestMetrics:
         res = run_backtest(prices=prices, signals=signals, config=_make_config())
         assert res.metrics["profit_factor"] == np.inf
 
+    def test_sortino_uses_downside_deviation_not_loss_std(self):
+        """Regression: the Sortino denominator must be the *downside
+        deviation* sqrt(mean(min(0, r - target)^2)), not the standard
+        deviation of the negative-returns subset. The two differ whenever
+        the series contains zero or positive months, because the loss-subset
+        std ignores those observations entirely while the downside
+        deviation counts a 0 shortfall for each one (raising the
+        denominator and lowering the ratio). The prior implementation used
+        `returns[returns < 0].std()`, which understated downside risk and
+        inflated the Sortino ratio.
+        """
+        rng = np.random.default_rng(11)
+        n = 252
+        # Mix of gains, losses, and zeros so the two denominators differ.
+        base = rng.normal(0.0004, 0.01, n)
+        base[::5] = 0.0  # every 5th month is flat -> 0 shortfall
+        index = pd.bdate_range("2020-01-01", periods=n)
+        prices = pd.DataFrame(
+            {"A": 100.0 * np.exp(np.cumsum(base))}, index=index
+        )
+        signals = pd.DataFrame(1.0, index=index, columns=["A"])
+        res = run_backtest(prices=prices, signals=signals, config=_make_config())
+
+        # The engine reports *net* returns (after zero-cost subtraction here),
+        # so compute the expected Sortino from the actual returned series.
+        returns = res.returns.values
+        ann_factor = 252
+        target = 0.0  # risk_free = 0.0 in _make_config
+        shortfall = np.minimum(0, returns - target)
+        downside_dev = np.sqrt(np.mean(shortfall**2))
+        loss_std = returns[returns < 0].std()
+        expected = returns.mean() / downside_dev * np.sqrt(ann_factor)
+
+        assert downside_dev > 0
+        assert downside_dev != pytest.approx(loss_std, rel=1e-6)
+        assert res.metrics["sortino"] == pytest.approx(expected, rel=1e-9)
+
+    def test_sortino_zero_when_no_downside(self):
+        """All-positive returns => downside deviation 0 => Sortino 0."""
+        rng = np.random.default_rng(7)
+        index = pd.bdate_range("2020-01-01", periods=100)
+        prices = pd.DataFrame(
+            {"A": np.cumsum(np.abs(rng.normal(0.002, 0.001, 100))) + 100.0},
+            index=index,
+        )
+        signals = pd.DataFrame(1.0, index=index, columns=["A"])
+        res = run_backtest(prices=prices, signals=signals, config=_make_config())
+        assert res.metrics["sortino"] == 0.0
+
     def test_num_trades_metric(self):
         prices = _make_prices(symbols=("A",))
         signals = pd.DataFrame({"A": np.nan}, index=prices.index)
