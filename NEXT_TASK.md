@@ -39,29 +39,26 @@ value-dependent on the RNG sequence), so no numeric expectations changed.
 - Added regression test `test_walkforward_passes_with_both_halves_losing` in
   `tests/test_statistics.py`: a both-halves-negative series (Sharpe −1.0 / −1.0,
   raw ratio ~1.0) must yield `walkforward_stability == 0.0` and
-  `walkforward_pass is False`. The test pins both halves to Sharpe −1.0
-  (mean = −1/√252, std = 0.01) so the assertion is seed-independent.
-- Full suite: 525 passed (was 524), 0 warnings — verified with
+  `walkforward_pass is False`.
+- Added regression test `test_does_not_mutate_global_rng` in
+  `tests/test_statistics.py`: advancing the global RNG, calling
+  `bootstrap_confidence_interval`, then asserting the global RNG position/state
+  vector are unchanged. Fails under the old `np.random.seed(random_state)`
+  implementation; passes with the local-`Generator` fix.
+- Full suite: 526 passed (was 525), 0 warnings — verified with
   `python -m pytest -W error -q`.
-- src/ coverage: 100% (913/913 stmts). Lint/format clean. Workflow scripts pass
-  `bash -n` and the progress-helper regression test.
-- Re-ran the reproduction script for task 1: before fix `walkforward_stability = 0.76, pass = True`;
-  after fix `walkforward_stability = 0.0, pass = False`.
-- For task 2: confirmed `bootstrap_confidence_interval` no longer mutates global RNG
-  state. All 62 statistics tests pass.
-
-## Environment note
-`qtr` was already installed (`pip install -e .` from a prior session). If a future
-session hits `ModuleNotFoundError: No module named 'qtr'` at collection time, run
-that command first.
+- src/ coverage: 100% (913/913 stmts). Lint/format clean.
+- All 63 statistics tests pass (property-based, not value-dependent on the RNG sequence).
 
 ## Success criteria — all met
 - A losing strategy can no longer pass the walk-forward stability gate.  [done]
 - A regression test fails without the fix, proving the gate is pinned.  [done]
 - `all_pass` now correctly excludes both-halves-negative strategies.  [done]
 - `bootstrap_confidence_interval` no longer mutates global numpy RNG state.  [done]
+- A regression test fails under the old `np.random.seed` implementation and
+  passes with the fix, pinning the RNG non-mutation.  [done]
 - Lint/format clean.  [done]
-- Full suite: 525 passed, 0 warnings, no regressions.  [done]
+- Full suite: 526 passed, 0 warnings, no regressions.  [done]
 - src/ coverage: 100%.  [done]
 
 ## Next task (beyond free-data scope)

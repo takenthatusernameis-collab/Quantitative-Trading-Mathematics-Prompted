@@ -1,11 +1,12 @@
 # Agent Handoff
 
 ## State
-- Full suite: 525 passed, 0 warnings, ~265s. All lint/format clean. Coverage on src/ = 100% (913/913 stmts).
-- Working tree clean except for 4 modified files:
-  - src/qtr/validation/statistics.py — fixed a demonstrable false-pass in the walk-forward stability gate. The ratio `sharpe_second / sharpe_first` is sign-sensitive: when BOTH halves are losing (e.g. Sharpe −18 / −14) the raw ratio is 0.76 and **passed** the 0.7 gate — the opposite of "stable". Now `wf_stability = 0.0` unless both halves are profitable (`sharpe_first > 0 and sharpe_second > 0`).
-  - src/qtr/validation/statistics.py — fixed global RNG state mutation in `bootstrap_confidence_interval`. `np.random.seed(random_state)` mutated the global numpy RNG, which can contaminate unrelated random operations in the same process. Replaced with a local `np.random.default_rng(random_state)` instance (`rng.integers(...)` instead of `np.random.randint(...)`). Tests are property-based (not value-dependent), so no numeric expectations changed.
+- Full suite: 526 passed, 0 warnings, ~265s. All lint/format clean. Coverage on src/ = 100% (913/913 stmts).
+- Working tree clean except for 5 modified files:
+  - src/qtr/validation/statistics.py — fixed a demonstrable false-pass in the walk-forward stability gate. ...
+  - src/qtr/validation/statistics.py — fixed global RNG state mutation in `bootstrap_confidence_interval`. ...
   - tests/test_statistics.py — added `test_walkforward_passes_with_both_halves_losing` (regression test that fails without the fix).
+  - tests/test_statistics.py — added `test_does_not_mutate_global_rng` (regression test that `bootstrap_confidence_interval` leaves the global numpy RNG untouched; fails under the old `np.random.seed(random_state)` implementation).
   - HANDOFF.md / HANDOFF_NEXT.md / NEXT_TASK.md — updated to reflect this session.
 
 ## What this session did
@@ -18,15 +19,16 @@
 - Both are **cheap, deterministic correctness fixes**. Neither touches orchestration, permissions, or the experiment runners.
 
 ## Verified
-- `python -m pytest -q` → 525 passed (was 524), 211s.
-- `python -m pytest -W error -q` → 525 passed, 0 warnings.
+- `python -m pytest -q` → 526 passed (was 525), ~265s.
+- `python -m pytest -W error -q` → 526 passed, 0 warnings.
 - `python -m pytest --cov=qtr --cov-report=term-missing` → 100% on every src module (913/913 stmts).
 - `python -m ruff check src tests run_*.py` → clean.
 - `python -m ruff format --check` → 83 files formatted.
 - `bash -n` on all three `.github/scripts/*.sh` + `test_kilo_progress.sh` → OK; progress-helper regression passes.
 - New regression test `test_walkforward_passes_with_both_halves_losing` fails without the fix (asserts `walkforward_stability == 0.0` on a both-halves-negative series whose raw ratio ~1.0 would have passed), confirming it pins the demonstrated defect.
+- New regression test `test_does_not_mutate_global_rng` fails under the old `np.random.seed(random_state)` implementation (global RNG position/state vector change after the call) and passes with the local-`Generator` fix; confirmed via a standalone simulation of the old behavior.
 - Re-ran the reproduction script for task 1: before fix `walkforward_stability = 0.76, pass = True`; after fix `walkforward_stability = 0.0, pass = False`.
-- For task 2: confirmed `bootstrap_confidence_interval` no longer mutates global RNG — verified by checking that calling it does not alter `np.random.get_state()` for subsequent calls. All 62 statistics tests pass (property-based, not value-dependent on the RNG sequence).
+- All 63 statistics tests pass (property-based, not value-dependent on the RNG sequence).
 
 ## Unresolved
 - None blocking. The `walkforward_stability` metric remains a *simplified* proxy (first-half vs second-half ratio), not the literal "5 walk-forward folds" measure used by the H9/H10/H11 runners (`run_h10_intraday_tsmom_pfopt_experiment.py:286` uses `walk_forward_splits(n_splits=5)`). `validate_strategy` receives returns + trades only, not the full price/vix context the runners have, so it cannot compute the fold-based metric. The H9–H25 gate is unaffected — it computes `wf_stability` independently in the runner, not via `validate_strategy`.

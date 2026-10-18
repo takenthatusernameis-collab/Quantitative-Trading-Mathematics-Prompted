@@ -94,6 +94,19 @@ class TestBootstrapConfidenceInterval:
         )
         assert lo == pytest.approx(0.05) and hi == pytest.approx(0.05)
 
+    def test_does_not_mutate_global_rng(self, returns):
+        """Regression: bootstrap_confidence_interval must use a local
+        Generator and leave the global numpy RNG untouched. The prior
+        implementation called np.random.seed(random_state), which reset the
+        global RNG and contaminated unrelated random operations in the same
+        process."""
+        np.random.rand(100)  # advance global RNG to a non-zero position
+        state_before = np.random.get_state()
+        st.bootstrap_confidence_interval(returns, n_bootstrap=500, random_state=42)
+        state_after = np.random.get_state()
+        assert state_after[2] == state_before[2]  # position index
+        assert np.array_equal(state_after[1], state_before[1])  # state vector
+
 
 # ===========================================================================
 # sharpe_ratio / sharpe_ratio_ci

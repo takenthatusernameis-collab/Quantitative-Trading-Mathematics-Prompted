@@ -19,6 +19,11 @@
   - `tests/test_statistics.py`: added `test_walkforward_passes_with_both_halves_losing` —
     a both-halves-negative series (Sharpe −1.0 / −1.0, raw ratio ~1.0) must
     yield `walkforward_stability == 0.0` and `walkforward_pass is False`.
+  - `tests/test_statistics.py`: added `test_does_not_mutate_global_rng` —
+    advancing the global RNG, calling `bootstrap_confidence_interval`, then
+    asserting the global RNG position/state vector are unchanged. Fails under
+    the old `np.random.seed(random_state)` implementation; passes with the
+    local-`Generator` fix.
 - Prior tasks (min_param_stability gate, empty-input guard, coverage gaps) remain
   complete and verified.
 
