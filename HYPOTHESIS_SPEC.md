@@ -2623,7 +2623,7 @@ diversified basket.
 
 **Expected outcome.** UNCERTAIN — the edge may or may not generalize to crypto markets. If it passes, we have a robust edge across asset classes. If it fails, we can investigate further (e.g., due to higher volatility, different market microstructure, or lack of true trend persistence).
 
-**Tests.** `tests/test_h23_crypto_futures_tsmom.py` mirroring test_h22, including perturbation gate presence/computation, val_sharpe correctness, 2304-combo grid with the above parameters, selection on Val, gate recomputation at 1e-9, causality, weight bounds, determinism, executed outcome.
+**Tests.** `tests/test_h23_crypto_futures_tsmom.py` mirroring test_h22, including perturbation gate presence/computation, val_sharpe correctness, 6912-combo grid with the above parameters, selection on Val, gate recomputation at 1e-9, causality, weight bounds, determinism, executed outcome.
 
 ### Measured (experiment `exp_2026-10-14T10-04-52-936640Z`):
 

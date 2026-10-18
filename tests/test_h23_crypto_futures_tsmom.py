@@ -4,11 +4,11 @@ Regression tests for the H23 crypto perpetual futures intraday TSMOM experiment
 
 Pins:
   * Pre-registered gate thresholds (PROMPT_V2 set + perturbation gate)
-  * Pre-registered grid (2304 combos), universe, splits, symbols, seed
+  * Pre-registered grid (6912 combos), universe, splits, symbols, seed
   * Artifact schema and summary.json consistency
   * Gate recomputation from the logged equity/trades artifacts
     (exact match to summary.json at 1e-9)
-  * Grid/selection integrity (2304 unique combos; selection = argmax Val Sharpe)
+  * Grid/selection integrity (6912 unique combos; selection = argmax Val Sharpe)
   * Signal causality (future-price perturbation leaves past targets bit-identical)
   * Point-in-time / weight bounds (weights in [0, max_pos] per contract)
   * Regime labels (constant for crypto, no VIX)
@@ -85,7 +85,7 @@ class TestPreRegistration:
             "min_perturbed_sharpe_ratio": 0.5,
         }
 
-    def test_grid_is_the_pre_registered_2304_combos(self):
+    def test_grid_is_the_pre_registered_6912_combos(self):
         assert (
             len(h23.SMOOTH_SPANS)
             * len(h23.VOL_WINDOWS_LONG)
@@ -104,6 +104,40 @@ class TestPreRegistration:
         assert h23.MAX_HOLD_BARS == [60, 120, 240, 480]
         assert h23.VOL_LIMIT_MULTS == [1.5, 2.0, 2.5]
         assert h23.VOL_FLOOR_FRACTIONS == [0.25, 0.5, 0.75]
+
+    def test_experiment_description_matches_pre_registered_grid(self):
+        # The human-readable EXPERIMENT_DESC must not drift from the actual
+        # grid dimensions it documents. The pre-registration text said "2304
+        # combos" while the listed parameters yield 6912 (4*3*1*4*4*4*3*3);
+        # nothing pinned the prose to the computed grid size, so the stale
+        # "2304" string survived into the logged experiment records (verified:
+        # 9 H23 records in .experiments/experiments.jsonl carry it) and is the
+        # first prose an auditor or next operator reads.
+        n_combos = (
+            len(h23.SMOOTH_SPANS)
+            * len(h23.VOL_WINDOWS_LONG)
+            * len(h23.REGIME_SCALING_FLAGS)
+            * len(h23.MIN_TRADE_INTERVALS)
+            * len(h23.TRAILING_MULTS)
+            * len(h23.MAX_HOLD_BARS)
+            * len(h23.VOL_LIMIT_MULTS)
+            * len(h23.VOL_FLOOR_FRACTIONS)
+        )
+        assert f"{n_combos}-combo" in h23.EXPERIMENT_DESC
+        # The eight grid dimensions must be enumerated in the prose.
+        for dim in (
+            "smooth_span",
+            "vol_window_long",
+            "regime_scaling",
+            "min_trade_interval",
+            "trailing_mult",
+            "max_hold_bars",
+            "vol_limit_mult",
+            "vol_floor_fraction",
+        ):
+            assert dim in h23.EXPERIMENT_DESC, (
+                f"EXPERIMENT_DESC missing dimension {dim!r}"
+            )
 
     def test_universe_symbols_are_pre_registered(self):
         assert h23.CRYPTO_UNIVERSE == [

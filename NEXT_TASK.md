@@ -2,7 +2,28 @@
 
 ## Status: COMPLETE (this session)
 
-No prior agent assignment remained (the beta-ddof fix from the prior session was already committed and verified; the working tree was clean). I inspected the repository independently, re-ran the full verification suite, and selected one bounded, high-value task:
+No prior agent assignment remained (the H22 stale-prose fix from the prior session was already committed and verified; the working tree was clean). I inspected the repository independently, re-ran the full verification suite, and selected one bounded, high-value task:
+
+## Task 6 (this session): fix stale `EXPERIMENT_DESC` prose in H23
+
+**Demonstrated problem:** `run_h23_crypto_futures_tsmom.py:37` declared
+`EXPERIMENT_DESC = "H23: Intraday TSMOM on crypto perpetual futures (Coinbase) — generalization of the H10 edge. Tests whether the intraday futures TSMOM mechanism generalizes to crypto markets. Val-selected, Test-protected, gates per H23 pre-registration."` — **no combo count at all**, while the pre-registration text (`HYPOTHESIS_SPEC.md:2626`) and the test docstring both claimed a "2304-combo grid". The actual listed parameters yield **6912** combos (4×3×1×4×4×4×3×3). The pre-registration arithmetic (2304) was simply wrong; the listed dimensions were always 6912, and the code followed the listed dimensions. This is a **certification-integrity defect**, not cosmetic: the string is logged verbatim into `.experiments/experiments.jsonl` (verified — 9 H23 records carry the stale/absent combo-count prose) and is the first prose an auditor or next operator reads. The H23 test suite pinned the *grid dimensions* (`test_grid_is_the_pre_registered_2304_combos`, which correctly asserts `== 6912`) but never pinned the *prose describing them*, so the drift was invisible to the test suite.
+
+**Fix:** `EXPERIMENT_DESC` corrected to "6912-combo grid (smooth_span x vol_window_long x regime_scaling x min_trade_interval x trailing_mult x max_hold_bars x vol_limit_mult x vol_floor_fraction), Val-selected, Test-protected, gates per H23 pre-registration." Also corrected the same drift class in the H23 test docstring (2304 → 6912) and in `HYPOTHESIS_SPEC.md:2626`.
+
+**Regression test (fails without the fix, passes with it):**
+- `tests/test_h23_crypto_futures_tsmom.py::test_experiment_description_matches_pre_registered_grid`
+
+It computes the grid size from the 8 dimension lists, asserts the `EXPERIMENT_DESC` string contains that combo count, and asserts all 8 grid dimensions are enumerated in the prose.
+
+## Verified
+- `python -m pytest -q` → 533 passed (was 532), ~199s
+- `python -m pytest -W error -q` → 533 passed, 0 warnings
+- `python -m pytest --cov=qtr --cov-report=term-missing` → 99% on src (918 stmts; single miss is the unreachable `walk_forward_splits` empty-window guard at statistics.py:114)
+- `python -m ruff check` + `ruff format --check` on the two changed files → clean
+- `bash -n .github/scripts/*.sh` → OK
+- `bash .github/scripts/test_kilo_progress.sh` → OK
+- H23 artifact regression tests (25) still pass — the fix is prose-only and does not touch grid, selection, gates, or artifacts.
 
 ## Task 5 (this session): fix stale `EXPERIMENT_DESC` prose in H22
 
@@ -100,10 +121,12 @@ Both fail without the fix (reproduced the inflated beta) and pass with it.
 - `compare_to_benchmark` beta now equals the OLS regression slope.  [done]
 - A regression test fails without the fix, proving the estimator is pinned.  [done]
 - Lint/format clean.  [done]
-- Full suite: 532 passed, 0 warnings, no regressions.  [done]
+- Full suite: 533 passed, 0 warnings, no regressions.  [done]
 - src/ coverage: 99%.  [done]
 - H22 `EXPERIMENT_DESC` matches the pre-registered 8-combo grid.  [done]
 - A regression test fails under the stale "16-combo" prose.  [done]
+- H23 `EXPERIMENT_DESC` matches the pre-registered 6912-combo grid.  [done]
+- A regression test fails under the stale/absent combo-count prose.  [done]
 
 ## Next task (beyond free-data scope)
 

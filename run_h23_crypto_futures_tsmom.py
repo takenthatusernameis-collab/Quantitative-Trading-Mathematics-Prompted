@@ -37,7 +37,9 @@ EXPERIMENT_NAME = "h23_crypto_futures_tsmom"
 EXPERIMENT_DESC = (
     "H23: Intraday TSMOM on crypto perpetual futures (Coinbase) — generalization of the H10 edge. "
     "Tests whether the intraday futures TSMOM mechanism generalizes to crypto markets. "
-    "Val-selected, Test-protected, gates per H23 pre-registration."
+    "6912-combo grid (smooth_span x vol_window_long x regime_scaling x "
+    "min_trade_interval x trailing_mult x max_hold_bars x vol_limit_mult x "
+    "vol_floor_fraction), Val-selected, Test-protected, gates per H23 pre-registration."
 )
 
 INITIAL_CAPITAL = 1_000_000.0
