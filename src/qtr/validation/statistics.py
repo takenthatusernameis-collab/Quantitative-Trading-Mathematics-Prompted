@@ -27,8 +27,7 @@ def bootstrap_confidence_interval(
     Returns:
         Tuple of (lower_bound, upper_bound)
     """
-    if random_state is not None:
-        np.random.seed(random_state)
+    rng = np.random.default_rng(random_state)
 
     n = len(data)
     if n == 0:
@@ -36,7 +35,7 @@ def bootstrap_confidence_interval(
 
     bootstrap_stats = []
     for _ in range(n_bootstrap):
-        sample = data[np.random.randint(0, n, n)]
+        sample = data[rng.integers(0, n, n)]
         bootstrap_stats.append(statistic(sample))
 
     alpha = (1 - confidence) / 2

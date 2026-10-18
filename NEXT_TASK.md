@@ -3,9 +3,9 @@
 ## Status: COMPLETE (this session)
 
 No prior agent handoff task existed (HANDOFF.md said "no bounded task identified"),
-so I inspected the repository and selected a bounded, high-value task.
+so I inspected the repository and selected two bounded, high-value tasks.
 
-## Task: fix the walk-forward stability gate false-pass
+## Task 1: fix the walk-forward stability gate false-pass
 
 **Demonstrated problem:** `validate_strategy`'s walk-forward stability gate could
 **pass for a strategy that loses in both halves**. The metric is
@@ -23,6 +23,18 @@ gate that PROMPT_V2.md mandates and that `run_baseline.py:72` /
 `run_experiment.py:75` rely on. It does not touch orchestration, permissions, or the
 experiment runners.
 
+## Task 2: fix global RNG state mutation in `bootstrap_confidence_interval`
+
+**Demonstrated problem:** `bootstrap_confidence_interval` (statistics.py:31) called
+`np.random.seed(random_state)`, which mutates the **global** numpy RNG. Any subsequent
+`np.random.*` call in the same process draws from a seeded state, causing
+non-deterministic cross-contamination between unrelated random operations.
+
+**Fix:** replaced `np.random.seed(random_state)` + `np.random.randint(0, n, n)` with
+a local `rng = np.random.default_rng(random_state)` + `rng.integers(0, n, n)`.
+The function no longer touches global RNG state. Tests are property-based (not
+value-dependent on the RNG sequence), so no numeric expectations changed.
+
 ## Additional work done this session
 - Added regression test `test_walkforward_passes_with_both_halves_losing` in
   `tests/test_statistics.py`: a both-halves-negative series (Sharpe −1.0 / −1.0,
@@ -31,10 +43,12 @@ experiment runners.
   (mean = −1/√252, std = 0.01) so the assertion is seed-independent.
 - Full suite: 525 passed (was 524), 0 warnings — verified with
   `python -m pytest -W error -q`.
-- src/ coverage: 100% (914/914 stmts). Lint/format clean. Workflow scripts pass
+- src/ coverage: 100% (913/913 stmts). Lint/format clean. Workflow scripts pass
   `bash -n` and the progress-helper regression test.
-- Re-ran the reproduction script: before fix `walkforward_stability = 0.76, pass = True`;
+- Re-ran the reproduction script for task 1: before fix `walkforward_stability = 0.76, pass = True`;
   after fix `walkforward_stability = 0.0, pass = False`.
+- For task 2: confirmed `bootstrap_confidence_interval` no longer mutates global RNG
+  state. All 62 statistics tests pass.
 
 ## Environment note
 `qtr` was already installed (`pip install -e .` from a prior session). If a future
@@ -45,6 +59,7 @@ that command first.
 - A losing strategy can no longer pass the walk-forward stability gate.  [done]
 - A regression test fails without the fix, proving the gate is pinned.  [done]
 - `all_pass` now correctly excludes both-halves-negative strategies.  [done]
+- `bootstrap_confidence_interval` no longer mutates global numpy RNG state.  [done]
 - Lint/format clean.  [done]
 - Full suite: 525 passed, 0 warnings, no regressions.  [done]
 - src/ coverage: 100%.  [done]

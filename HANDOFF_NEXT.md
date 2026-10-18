@@ -2,7 +2,7 @@
 
 ## Current state
 - All tests pass: 525 passed, 0 warnings (was 524) — re-confirmed this session (265s).
-- src/ coverage: 100% (914/914 stmts). Lint/format clean. Workflow scripts pass `bash -n` and the progress-helper regression test.
+- src/ coverage: 100% (913/913 stmts). Lint/format clean. Workflow scripts pass `bash -n` and the progress-helper regression test.
 - Changes this session:
   - `src/qtr/validation/statistics.py`:
     - **Fixed a false-pass in the walk-forward stability gate.** The ratio
@@ -11,6 +11,11 @@
       the 0.7 gate — the opposite of "stable". Now `wf_stability = 0.0`
       unless both halves are profitable (`sharpe_first > 0 and
       sharpe_second > 0`).
+    - **Fixed global RNG state mutation in `bootstrap_confidence_interval`.**
+      `np.random.seed(random_state)` mutated the global numpy RNG, which can
+      contaminate unrelated random operations in the same process. Replaced
+      with a local `np.random.default_rng(random_state)` instance
+      (`rng.integers(...)` instead of `np.random.randint(...)`).
   - `tests/test_statistics.py`: added `test_walkforward_passes_with_both_halves_losing` —
     a both-halves-negative series (Sharpe −1.0 / −1.0, raw ratio ~1.0) must
     yield `walkforward_stability == 0.0` and `walkforward_pass is False`.
