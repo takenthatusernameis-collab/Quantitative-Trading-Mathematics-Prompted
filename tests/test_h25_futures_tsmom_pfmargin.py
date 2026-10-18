@@ -95,6 +95,18 @@ class TestPreRegistration:
         assert h25.SCALE_RULES == ["equal"]
         assert h25.N_ASSETS_CHOICES == [4, 5]
 
+    def test_experiment_description_matches_pre_registered_grid(self):
+        # The human-readable EXPERIMENT_DESC must not drift from the actual
+        # grid dimensions it documents (same defect class as H22: prose
+        # "16-combo" survived a grid shrink to 8 combos).
+        n_combos = (
+            len(h25.TARGET_VOLS)
+            * len(h25.MAX_POSITIONS)
+            * len(h25.SCALE_RULES)
+            * len(h25.N_ASSETS_CHOICES)
+        )
+        assert f"{n_combos}-combo" in h25.EXPERIMENT_DESC
+
     def test_universe_symbols_are_pre_registered(self):
         assert h25.FUTURES_UNIVERSE == ["ES=F", "NQ=F", "CL=F", "GC=F", "ZB=F"]
         assert h25.VIX_SYMBOL == "^VIX"

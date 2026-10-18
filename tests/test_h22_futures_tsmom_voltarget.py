@@ -97,6 +97,24 @@ class TestPreRegistration:
         assert h22.SCALE_RULES == ["equal"]
         assert h22.N_ASSETS_CHOICES == [5]
 
+    def test_experiment_description_matches_pre_registered_grid(self):
+        # The human-readable EXPERIMENT_DESC must not drift from the actual
+        # grid dimensions it documents. A stale "16-combo" string survived a
+        # grid shrink to 8 combos because nothing pinned the prose to the
+        # computed grid size (see run_h22_futures_tsmom_voltarget.py:60).
+        n_combos = (
+            len(h22.TARGET_VOLS)
+            * len(h22.MAX_POSITIONS)
+            * len(h22.SCALE_RULES)
+            * len(h22.N_ASSETS_CHOICES)
+        )
+        assert f"{n_combos}-combo" in h22.EXPERIMENT_DESC
+        # Inert dimensions are fixed, so the prose must say so.
+        assert (
+            "scale_rule" in h22.EXPERIMENT_DESC
+            or "fixed inert" in h22.EXPERIMENT_DESC.lower()
+        )
+
     def test_universe_symbols_are_pre_registered(self):
         assert h22.FUTURES_UNIVERSE == ["ES=F", "NQ=F", "CL=F", "GC=F", "ZB=F"]
         assert h22.VIX_SYMBOL == "^VIX"

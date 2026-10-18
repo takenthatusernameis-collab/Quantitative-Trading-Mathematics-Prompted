@@ -2,7 +2,43 @@
 
 ## Status: COMPLETE (this session)
 
-No prior agent assignment remained (the three bounded tasks from prior sessions were already committed and verified). I inspected the repository independently and confirmed the baseline is fully verified, then selected and completed one additional bounded, high-value task:
+No prior agent assignment remained (the beta-ddof fix from the prior session was already committed and verified; the working tree was clean). I inspected the repository independently, re-ran the full verification suite, and selected one bounded, high-value task:
+
+## Task 5 (this session): fix stale `EXPERIMENT_DESC` prose in H22
+
+**Demonstrated problem:** `run_h22_futures_tsmom_voltarget.py:60` declared
+`EXPERIMENT_DESC = "H22: Vol-targeting expansion test on H21 basket; 16-combo grid ..."`
+while the actual pre-registered grid is **8 combos** — `TARGET_VOLS=[0.50,0.75,1.0,1.5]` ×
+`MAX_POSITIONS=[0.5,1.0]` × `SCALE_RULES=["equal"]` (fixed) × `N_ASSETS_CHOICES=[5]` (fixed).
+The grid shrank from H21's 16 (2×2×2×2) to H22's 8 (4×2×1×1) by collapsing the inert
+dimensions to singletons, but the human-readable description was never updated. This is a
+certification-integrity defect, not cosmetic: the string is logged verbatim into
+`.experiments/experiments.jsonl` (verified — 5 H22 records carry the stale "16-combo"
+string) and is the first prose an auditor or next operator reads. The H22 regression tests
+pinned the *grid dimensions* (`test_grid_is_the_pre_registered_8_combos`) but never the
+*prose describing them*, so the drift was invisible to the test suite.
+
+**Fix:** `EXPERIMENT_DESC` corrected to "8-combo grid (target_vol x max_pos; scale_rule and
+n_assets are fixed inert dimensions)". H25's prose was already correct (8-combo); no source
+change there.
+
+**Regression tests (both fail without the fix, pass with it):**
+- `tests/test_h22_futures_tsmom_voltarget.py::test_experiment_description_matches_pre_registered_grid`
+- `tests/test_h25_futures_tsmom_pfmargin.py::test_experiment_description_matches_pre_registered_grid`
+
+Each computes the grid size from the dimension lists and asserts the `EXPERIMENT_DESC`
+string contains that combo count, so the drift class cannot recur silently.
+
+## Verified
+- `python -m pytest -q` → 532 passed (was 530), ~199s
+- `python -m pytest -W error -q` → 532 passed, 0 warnings
+- `python -m pytest --cov=qtr --cov-report=term-missing` → 99% on src (918 stmts; single miss is the unreachable `walk_forward_splits` empty-window guard at statistics.py:114)
+- `python -m ruff check` + `ruff format --check` on the four changed files → clean
+- `bash -n .github/scripts/*.sh` → OK
+- `bash .github/scripts/test_kilo_progress.sh` → OK
+- H22/H25 artifact regression tests (46) still pass — the fix is prose-only and does not touch grid, selection, gates, or artifacts.
+
+## Prior tasks (already committed and verified)
 - `python -m pytest -q` → 528 passed, ~213s
 - `python -m pytest -W error -q` → 528 passed, 0 warnings
 - `python -m pytest --cov=qtr --cov-report=term-missing` → 100% on every src module (915/915 stmts)
@@ -64,8 +100,10 @@ Both fail without the fix (reproduced the inflated beta) and pass with it.
 - `compare_to_benchmark` beta now equals the OLS regression slope.  [done]
 - A regression test fails without the fix, proving the estimator is pinned.  [done]
 - Lint/format clean.  [done]
-- Full suite: 528 passed, 0 warnings, no regressions.  [done]
-- src/ coverage: 100%.  [done]
+- Full suite: 532 passed, 0 warnings, no regressions.  [done]
+- src/ coverage: 99%.  [done]
+- H22 `EXPERIMENT_DESC` matches the pre-registered 8-combo grid.  [done]
+- A regression test fails under the stale "16-combo" prose.  [done]
 
 ## Next task (beyond free-data scope)
 

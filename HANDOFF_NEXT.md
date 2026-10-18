@@ -1,11 +1,12 @@
 # Handoff Summary
 
 ## Current state
-- All tests pass: 528 passed, 0 warnings (was 527) — re-confirmed this session (213s).
-- src/ coverage: 100% (915/915 stmts). Lint/format clean. Workflow scripts pass `bash -n` and the progress-helper regression test.
+- All tests pass: 532 passed, 0 warnings (was 530) — re-confirmed this session (~199s).
+- src/ coverage: 99% (918/918 stmts; single uncovered branch is the unreachable `walk_forward_splits` empty-window guard at statistics.py:114). Lint/format clean on changed files. Workflow scripts pass `bash -n` and the progress-helper regression test.
 - Changes this session (uncommitted):
-  - `src/qtr/validation/statistics.py`: **`compare_to_benchmark` beta now uses consistent ddof=1** on both `np.cov` and `np.var`, so beta equals the OLS regression slope instead of the inflated `cov(ddof=1)/var(ddof=0)` value (overstated by exactly `n/(n-1)`). This feeds the certified H10 pipeline's `information_ratio` and `benchmark_p_value` gates.
-  - `tests/test_statistics.py`: `test_beta_is_ols_slope` (renamed from `test_beta_is_covariance_ratio`, now asserting against `np.polyfit` and `scipy.stats.linregress` slopes) plus new `test_beta_matches_ols_not_mixed_ddof` — both fail under the old mixed-ddof formula and pass with the fix.
+  - `run_h22_futures_tsmom_voltarget.py`: **`EXPERIMENT_DESC` corrected from "16-combo grid" to "8-combo grid (target_vol x max_pos; scale_rule and n_assets are fixed inert dimensions)"** — the prose had survived a grid shrink from H21's 16 to H22's 8 and was being logged verbatim into `.experiments/experiments.jsonl` (5 stale records verified).
+  - `tests/test_h22_futures_tsmom_voltarget.py`: new `test_experiment_description_matches_pre_registered_grid` asserts the combo count in the prose equals the computed grid size.
+  - `tests/test_h25_futures_tsmom_pfmargin.py`: new `test_experiment_description_matches_pre_registered_grid` (same defect class; H25 prose was already correct).
 - Prior tasks (walk-forward stability gate false-pass, global RNG mutation fix, min_param_stability gate, empty-input guard, coverage gaps, beta ddof fix) remain complete and verified.
 
 ## Next agent actions
@@ -38,6 +39,17 @@ in the H9–H25 runners (`run_h10_intraday_tsmom_pfopt_experiment.py:286`). The 
 is unaffected by this fix.
 
 ## Latent issue (already fixed in HEAD)
-`walk_forward_splits` previously dropped trailing samples when `n_samples % n_splits != 0`, but HEAD already absorbs the tail into the last window (`statistics.py:108-110`): `walk_forward_splits(77, 3)` covers all 77 samples, `walk_forward_splits(252, 5)` covers all 252. Verified empirically. Nothing to fix; no certified number changes (H10's 5148 bars are divisible by 5).
+`walk_forward_splits` previously dropped trailing samples when `n_samples % n_splits != 0`
+(n=252/5 covers 250/252; n=77/3 covers 75/77). HEAD already absorbs the tail into the last
+window (`statistics.py:108-110`): `walk_forward_splits(77, 3)` covers all 77 samples,
+`walk_forward_splits(252, 5)` covers all 252. Verified empirically. Nothing to fix; no
+certified number changes today (H10's 5148 bars are divisible by 5).
 
-(End of file - total 43 lines)
+## Stale-prose regression guard (added this session)
+`test_experiment_description_matches_pre_registered_grid` in both
+`tests/test_h22_futures_tsmom_voltarget.py` and `tests/test_h25_futures_tsmom_pfmargin.py`
+computes the grid size from the dimension lists and asserts the `EXPERIMENT_DESC` string
+contains that combo count. It fails under the old "16-combo" prose and passes after the
+correction, so the drift class cannot recur silently.
+
+(End of file - total 44 lines)

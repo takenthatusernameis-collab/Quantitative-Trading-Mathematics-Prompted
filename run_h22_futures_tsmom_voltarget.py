@@ -57,7 +57,7 @@ from run_h10_intraday_tsmom_pfopt_experiment import (
 )
 
 EXPERIMENT_NAME = "h22_futures_tsmom_voltarget"
-EXPERIMENT_DESC = "H22: Vol-targeting expansion test on H21 basket; 16-combo grid (target_vol x max_pos x scale_rule x n_assets), Val-selected, Test-protected, same gates as H10/H11"
+EXPERIMENT_DESC = "H22: Vol-targeting expansion test on H21 basket; 8-combo grid (target_vol x max_pos; scale_rule and n_assets are fixed inert dimensions), Val-selected, Test-protected, same gates as H10/H11"
 
 # H10 selected config (frozen for H21 signal generation per contract).
 SEL = {
