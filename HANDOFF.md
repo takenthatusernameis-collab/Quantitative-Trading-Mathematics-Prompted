@@ -37,7 +37,16 @@
 - First attempt at the regression test pinned the two halves to Sharpe −5.0 / −13.0 (raw ratio 2.6). The test failed on the assertion `sr2 / sr1 > 0.7` because the RNG noise made the realized ratio 0.70 — too close to the threshold to be robust.
 - Second attempt pinned both halves to Sharpe −1.0 (mean = −1/√252, std = 0.01), giving a raw ratio ~1.0 — comfortably above 0.7 regardless of seed. This passes deterministically.
 
+## This session (independent re-verification)
+No new code changes were required: the prior session's fixes are committed and the working tree is clean. I independently re-verified the baseline:
+- `python -m pytest -q` → 526 passed, ~211s
+- `python -m ruff check src tests run_*.py` → clean
+- `python -m ruff format --check` → 83 files formatted
+- `bash -n .github/scripts/*.sh` → OK
+- `bash .github/scripts/test_kilo_progress.sh` → OK (smoke + nonfatal state-write + controller telemetry)
+- No TODOs/FIXMEs in `src/` or `tests/`
+
 ## Next task (precise)
-No further bounded task identified within the free-data constraint. The free-data hypothesis space is exhausted (see FINAL_REPORT.md). The only actionable improvements found this session (the walk-forward false-pass and the global RNG mutation) are complete and verified. If a new task is assigned, scope it to something verifiable in one session: `python -m pytest -q`, `python -m pytest -W error -q`, `python -m pytest --cov=qtr --cov-report=term-missing`, `python -m ruff check src tests run_*.py`, `python -m ruff format --check`, plus the workflow-script syntax checks above.
+No bounded task remains within the free-data constraint; the free-data hypothesis space is exhausted (see FINAL_REPORT.md §Next Task). The precise next task requires **paid hourly futures data** to widen the OOS window enough for the PF and Sharpe bootstrap CIs to clear their gates with margin. Do not run further hypotheses on free data. If assigned, verify with the commands above plus `pip install -e .` if `qtr` is not importable.
 
 (End of file - total 62 lines)
