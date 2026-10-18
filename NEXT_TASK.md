@@ -87,11 +87,11 @@ vs second-half ratio), not the literal 5-fold walk-forward metric computed indep
 in the H9–H25 runners (`run_h10_intraday_tsmom_pfopt_experiment.py:286`). The runner gate
 is unaffected by this fix.
 
-## Latent issue (not fixed this session)
-`walk_forward_splits` drops trailing samples when `n_samples % n_splits != 0` (n=252/5
-covers 250/252; n=77/3 covers 75/77). Runners using it for fold Sharpes silently ignore the
-tail. No certified number changes today (H10's 5148 bars are divisible by 5). Fixing it
-requires choosing a split policy (drop-tail vs distribute-remainder) and re-running the
-affected experiments — out of scope for a free-data session.
+## Latent issue (already fixed in HEAD)
+`walk_forward_splits` previously dropped trailing samples when `n_samples % n_splits != 0`
+(n=252/5 covers 250/252; n=77/3 covers 75/77). HEAD already absorbs the tail into the last
+window (`statistics.py:108-110`): `walk_forward_splits(77, 3)` covers all 77 samples,
+`walk_forward_splits(252, 5)` covers all 252. Verified empirically. Nothing to fix; no
+certified number changes today (H10's 5148 bars are divisible by 5).
 
 (End of file - total 117 lines)

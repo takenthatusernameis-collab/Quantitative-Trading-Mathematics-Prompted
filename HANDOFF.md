@@ -25,7 +25,7 @@
 
 ## Unresolved
 - None blocking. The `walkforward_stability` metric remains a *simplified* proxy (first-half vs second-half ratio), not the literal "5 walk-forward folds" measure used by the H9/H10/H11 runners (`run_h10_intraday_tsmom_pfopt_experiment.py:286` uses `walk_forward_splits(n_splits=5)`). `validate_strategy` receives returns + trades only, not the full price/vix context the runners have, so it cannot compute the fold-based metric. The H9–H25 gate is unaffected — it computes `wf_stability` independently in the runner, not via `validate_strategy`.
-- `walk_forward_splits` drops trailing samples when `n_samples % n_splits != 0` (e.g. n=252, splits=5 covers 250/252; n=77, splits=3 covers 75/77). The runners that use it for fold Sharpes therefore silently ignore the tail of the series. This is a latent correctness issue for any runner relying on full-series coverage, but it does not change any certified number today (H10's 5148 hourly bars are divisible by 5). Not fixed this session: it would require deciding a split policy (drop-tail vs distribute-remainder) and re-running the affected experiments, which is out of scope for a free-data session.
+- `walk_forward_splits` — the documented "drops trailing samples" latent issue is **already fixed in HEAD**: the last window absorbs the trailing tail (`statistics.py:108-110`), so `walk_forward_splits(77, 3)` covers all 77 samples and `walk_forward_splits(252, 5)` covers all 252. Verified empirically. No certified number changes; H10's 5148 bars are divisible by 5 anyway. Nothing to fix here.
 
 ## Failed approaches
 - None this session. The fix was a one-line ddof change with two pinning tests.
