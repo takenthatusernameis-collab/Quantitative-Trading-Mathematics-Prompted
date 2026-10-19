@@ -466,12 +466,12 @@ control), the verdict rule and the pre-registration itself.
 - **Scale-corrected reading of the intraday family (H26):** the published Sharpe of the intraday rows is a **√252-per-bar** metric, not an annualized Sharpe; the correct annualized values are 2.55×–4.76× higher (H10 3.25, H22 3.50, H25 3.37 under the repo's own vol-target convention; 6.07/6.53/6.30 under the empirical calendar convention, confirmed by an independent daily-aggregation estimate of 5.04/5.20/5.09). The daily rows were already correctly annualized and are unaffected. The mis-scaling therefore *understates* the intraday family; it creates no pass and invalidates no verdict. It does mean the single "OOS Sharpe" column of the results table mixed two scales, and that the "the edge is marginal" framing of this record is partly a scale artifact.
 - **Rejected:** H1–H9 (momentum/TSMOM on free data), H16 (factor timing), H17 (VRP), H18 (overnight/intraday), H19 (volume-predictive), H20 (signed volume), H21 (multicontract futures TSMOM), H23 (crypto perpetual futures intraday TSMOM — negative edge on the cached 300-hour Coinbase sample, loss concentrated in the sideways regime; full attribution in `HYPOTHESIS_SPEC.md` §H23).
 
-## Summary statistics (H1–H29)
+## Summary statistics (H1–H30)
 
 - **29 hypothesis instances** evaluated across 7 families: equity momentum (H1–H3), futures TSMOM (H4–H14), equity factor timing (H16), volatility risk premium (H17), overnight/intraday decomposition (H18), volume-based (H19–H20), multi-contract intraday futures TSMOM (H21–H22), crypto perpetuals (H23), PF-margin repair (H25), plus the H25 Robustness bootstrap-CI audit, the **H26 Sharpe annualization-scale audit**, the **H27 P&L level audit + look-ahead attribution**, the **H28 causal re-certification** and the **H29 systematic look-ahead sweep of the remaining families** (the first three are post-hoc characterizations of the H25/H10 edge, not new selections; H28 is a re-certification of the published pipelines under a corrected construction and H29 is an audit of every family's collapse construction, with no new gate, threshold or selection rule). H15 was a probe (LOO PF 1.273 < 1.3; CL=F indispensable), folded into H13. H24 was report consolidation (not an experiment).
-- **5 certified edges** (H10/H11/H12/H22/H25) — all variants of the same intraday futures TSMOM mechanism (**H27: the edge is a one-day look-ahead; H28: re-certified under a causal collapse and `CAUSAL_REJECTED` — 3/8 to 4/9 gates, OOS Sharpe 0.13–0.39; H29: the daily/monthly families are `CAUSAL` on the committed artifacts, while H11/H12 inherit H10's look-ahead positions and H23 uses the same collapse — so **no certified edge in this record survives a causal construction**; H7 remains a coverage gap with no committed artifact**); of these H22 has the strongest Sharpe (9/9 gates, OOS Sharpe 1.372, PF 1.334, DD −11.9%) and H25 the strongest PF margin (9/9 gates, OOS Sharpe 1.324, PF 1.320, DD −11.9% at 26.25% ann vol); both are *qualified* by an i.i.d. bootstrap CI whose lower bound sits below the PF gate, and the pre-registered block-bootstrap sensitivity confirms the PF fragility is not an i.i.d. artifact. (H26: the published Sharpe is a √252-per-bar metric — the annualized values are 2.55×–4.76× higher; the *PF* qualification is unaffected because PF is scale-invariant.)
+- **5 certified edges** (H10/H11/H12/H22/H25) — all variants of the same intraday futures TSMOM mechanism (**H27: the edge is a one-day look-ahead; H28: re-certified under a causal collapse and `CAUSAL_REJECTED` — 3/8 to 4/9 gates, OOS Sharpe 0.13–0.39; H29/H30: the daily/monthly families are `CAUSAL` on the committed artifacts, including H7 once its artifact was committed, while H11/H12 inherit H10's look-ahead positions and H23 uses the same collapse — so **no certified edge in this record survives a causal construction**); of these H22 has the strongest Sharpe (9/9 gates, OOS Sharpe 1.372, PF 1.334, DD −11.9%) and H25 the strongest PF margin (9/9 gates, OOS Sharpe 1.324, PF 1.320, DD −11.9% at 26.25% ann vol); both are *qualified* by an i.i.d. bootstrap CI whose lower bound sits below the PF gate, and the pre-registered block-bootstrap sensitivity confirms the PF fragility is not an i.i.d. artifact. (H26: the published Sharpe is a √252-per-bar metric — the annualized values are 2.55×–4.76× higher; the *PF* qualification is unaffected because PF is scale-invariant.)
 - **19 rejected** hypotheses, each with a documented root-cause attribution in `HYPOTHESIS_SPEC.md` and `INEFFICIENCY_RANKING.md`.
-- **Total compute:** ~2.5 CPU-h across all hypotheses (well within the ≤ 2 CPU-h per-hypothesis budget; the largest single run was H12 at 0.652 CPU-h). The H25 Robustness audit added 0.0002 CPU-h; the H26 scale audit added 0.0005 CPU-h; the H27 level/look-ahead audit added 0.0014 CPU-h (5 bit-exact rebuilds, no grid re-run); the **H28 causal re-certification added 1.885 CPU-h** (8 runs: 4 controls + 4 causal, the 13,824-combo H10 grid run twice); the **H29 look-ahead sweep added 0.0002 CPU-h** (7 bit-exact rebuilds of the *selected* configurations, one counterfactual, no grid re-run).
+- **Total compute:** ~2.5 CPU-h across all hypotheses (well within the ≤ 2 CPU-h per-hypothesis budget; the largest single run was H12 at 0.652 CPU-h). The H25 Robustness audit added 0.0002 CPU-h; the H26 scale audit added 0.0005 CPU-h; the H27 level/look-ahead audit added 0.0014 CPU-h (5 bit-exact rebuilds, no grid re-run); the **H28 causal re-certification added 1.885 CPU-h** (8 runs: 4 controls + 4 causal, the 13,824-combo H10 grid run twice); the **H29/H30 look-ahead sweep added 0.0002 CPU-h** (8 bit-exact rebuilds of the *selected* configurations, one counterfactual, no grid re-run).
 - **Test suite:** 705/705 passing (including the 17-test H25 Robustness audit — 12 i.i.d. bootstrap + 5 block-bootstrap sensitivity — the 23-test H25 regression set, the 44-test H26 scale-audit set, the 36-test H27 level-audit set, the 47-test H28 re-certification set and the 36-test H29 sweep set).
 - **Structural walls on free data:** (a) yfinance hourly `=F` hard-capped at ~730 days (no bars beyond 2026-10-11); (b) Coinbase/CCXT hourly OHLCV capped at ~12 days; (c) the joint Sharpe ≥ 1.0 ∧ DD ≤ 15% gate met by no long-only free-data equity family; (d) PF ≥ 1.3 is fragile across the entire intraday-futures-carry family (H13/H14 for H10; H21 for the basket; H22 margin +0.034; H25 margin +0.020 — all CI-fragile, P(PF≥1.3)≈0.5–0.62 on the free window). **Corrected by H26:** the *Sharpe* side of (c)/(d) is not a further blocker — the published intraday Sharpe is a √252-per-bar metric, and on the repo's own annualization convention the certified family's Sharpe CI lower bound is 2.25 ≫ 1.0. The binding constraint is the **PF bootstrap margin plus the 730-day sample**, both of which are scale-invariant.
 
@@ -532,18 +532,30 @@ published — H28 changed no gate, threshold, verdict or certified number — bu
 **H29 (2026-10-19) has now been executed, and the labelling rule was confirmed on the committed
 artifacts.** The verdict is `LOOKAHEAD_FOUND`, but only for families that *inherit or use* the
 intraday daily collapse: H11, H12, H13 (inherited from H10, bit-identical positions) and H23
-(uses the collapse directly, and is REJECTED anyway). The daily/monthly families H1–H6 and H8
-are **`CAUSAL`** — each rebuilt **bit-exactly** from the committed prices, minimum hold lag
-**+1 bar**, **0** look-ahead bars — and H7 is the single **coverage gap** (no committed
-artifact).
+(uses the collapse directly, and is REJECTED anyway). The daily/monthly families H1–H8 are all
+**`CAUSAL`** — each rebuilt **bit-exactly** from the committed prices (H7 via H30 below),
+minimum hold lag **+1 bar**, **0** look-ahead bars.
 
-**The next task is H30: close the H7 coverage gap.** H7 is the only family whose published row
-(OOS Sharpe 0.789, 1,005 trades, PF 1.166, DD −14.5%, 3/8 gates) has **no committed artifact**,
-so it cannot be re-derived from committed evidence and H29 had to report it `INCONCLUSIVE`.
-H7 is a single fixed configuration (no grid) and the futures cache is complete, so the re-run
-is offline and fast: re-run it to commit the artifact, reconcile the re-run against the
-published row field by field, then add H7 to the H29 detector and close the sweep's last gap.
-Full scope: `NEXT_TASK.md`.
+**H30 (2026-10-19) has now been executed.** H7's artifact was committed as
+`exp_2026-10-19T18-56-08-872500Z` (offline on the completed futures cache; recorded in
+`.experiments/experiments.jsonl` through the tracker), the re-run reproduces the published H7
+row to reporting precision (OOS Sharpe 0.789 vs 0.7893, 1,005 vs 1,005 trades, PF 1.166 vs
+1.1661, max DD −14.5% vs −14.54% OOS, verdict REJECT vs REJECT), with two disclosures logged
+explicitly (`compare_to_benchmark` raised advisory in this session; gate tally 3/8 published vs
+4/9 recomputed) and the published row left as the historical record. Determinism was confirmed
+by a second bit-identical run. The H29 detector re-run with H7 added to `FAMILIES` reports H7
+**`CAUSAL`** (min hold lag +1 bar, 0 look-ahead bars, bit-exact equity rebuild, 0 extra change
+points, same/prev 0.130/0.970), all four self-checks pass, and the sweep verdict stays
+`LOOKAHEAD_FOUND`. The H29 sweep's only coverage gap is **closed**; see §H30 and
+`NEXT_TASK.md`.
+
+**There is no further next task in this record.** The pre-registered free-data hypothesis space
+(H1–H30) is exhausted: every family has a committed artifact or a documented reason for the
+gap, every daily/monthly family is `CAUSAL` and REJECTED, every intraday family is
+`CAUSAL_REJECTED` under H28, and the paid-data task (wider OOS window for the PF bootstrap
+margin) is unjustified for every family in the repo — H28 closed it for the intraday family and
+H29/H30 show the daily families are causal but all REJECT. Buying more free-data-equivalent
+data changes no verdict.
 
 
 ---
@@ -563,7 +575,7 @@ committed artifacts.
 | H4 | `ME` monthly | **+1** | 0.0% | 0.420 / 0.972 | **CAUSAL** | REJECT |
 | H5 | `ME` monthly | **+1** | 0.0% | 0.424 / 0.980 | **CAUSAL** | REJECT |
 | H6 | `ME` monthly | **+1** | 0.0% | 0.454 / 0.980 | **CAUSAL** | REJECT |
-| H7 | `ME` monthly | — | — | — | **INCONCLUSIVE** (no artifact) | REJECT |
+| H7 | `ME` monthly | **+1** | 0.0% | 0.130 / 0.970 | **CAUSAL** | REJECT |
 | H8 | `ME` monthly | **+1** | 0.0% | 0.391 / 0.980 | **CAUSAL** | REJECT |
 | H11 | `1D` daily (inherited) | **−22** | 94.7% | 1.000 / 0.016 | **LOOKAHEAD** | PASS |
 | H12 | `1D` daily (inherited) | **−22** | 94.7% | 1.000 / 0.016 | **LOOKAHEAD** | PASS |
@@ -608,11 +620,22 @@ no causal re-certification of H23 is warranted. (The intraday/overnight P&L spli
 applicable to a continuous 24/7 market; the equivalent magnitude is the 96.0% look-ahead bar
 fraction.)
 
-**H7 is a coverage gap.** The runner exists, but H7 has **no committed artifact** (no `h7`
-experiment in `.experiments/experiments.jsonl`, no `exp_*` directory), so its published numbers
-cannot be re-derived from committed evidence. Its mechanism is classified from the source (a
-`"ME"` collapse on a **daily** grid → hold lag +1), but it is reported `INCONCLUSIVE`, not
-`CAUSAL`.
+**H7 is no longer a coverage gap.** H30 (2026-10-19) re-ran
+`run_h7_intraday_tsmom_experiment.py` offline on the completed futures cache (all five symbols
+served from `.cache/data`; no network), committed the artifact as
+`exp_2026-10-19T18-56-08-872500Z` under `.experiments/artifacts/` and recorded the experiment
+in `.experiments/experiments.jsonl`. The re-run reproduces the published H7 row to reporting
+precision — OOS Sharpe 0.789 vs 0.7893, 1,005 trades vs 1,005, PF 1.166 vs 1.1661, max DD
+−14.5% vs −14.54% (OOS window; −21.4% full-sample, which is what the gate measures), verdict
+REJECT vs REJECT — with two disclosures logged explicitly (`compare_to_benchmark` raised
+advisory in this session, so the re-run's benchmark is null; the gate tally differs by one,
+3/8 published vs 4/9 recomputed) and the published row left as the historical record. A
+second run confirmed determinism (all four parquets bit-identical). The H29 detector was then
+re-run with H7 added to `FAMILIES` (`rebuild_pipeline`, `"ME"` on the daily grid, target
+`equity_curve`) and reports H7 **`CAUSAL`**: min hold lag **+1 bar**, **0** look-ahead bars,
+committed equity curve reproduced **bit-exactly** (max abs diff `0.0`), **0 extra** change
+points, same/prev 0.130 / 0.970 — the same as H1–H6 and H8. The sweep verdict stays
+`LOOKAHEAD_FOUND` and all four detector self-checks pass. See §H30.
 
 **Two premises of the next-task brief were corrected.** (i) The brief called the daily families
 "the only other PASS family in the repo" — **no daily family passes**: H1 0.093, H2 0.116,
@@ -626,3 +649,60 @@ number was modified, and no grid was re-run: H29 rebuilds only the *selected* co
 the families it measures. Evidence: `HYPOTHESIS_SPEC.md` §H29 (pre-registration, the
 pre-execution amendment and the measure log), `run_h29_lookahead_sweep.py`,
 `.experiments/artifacts/h29_lookahead_sweep/`, `tests/test_h29_lookahead_sweep.py` (36 tests).
+
+## H30 — Close the H7 coverage gap (2026-10-19)
+
+**Verdict: `REPRODUCED` + `CAUSAL` — the H29 sweep's only coverage gap is closed.**
+
+H7 was the one family H29 could not decide: its published row (OOS Sharpe 0.789, 1,005 trades,
+profit factor 1.166, max DD −14.5%, 3/8 gates, verdict REJECTED) had no committed artifact —
+no `h7` entry in `.experiments/experiments.jsonl` and no `exp_*` directory. H30 re-ran
+`run_h7_intraday_tsmom_experiment.py` (unchanged) offline on the completed futures cache — all
+five symbols (`ES=F, NQ=F, CL=F, GC=F, ZB=F`, `2015-01-01..2024-12-31`, `1d`) served from
+`.cache/data`, no network — and committed the artifact as
+`exp_2026-10-19T18-56-08-872500Z` under `.experiments/artifacts/`, recorded in
+`.experiments/experiments.jsonl` through the tracker's normal record format. A second run
+confirmed determinism: prices, equity curve, returns and trades are bit-identical across runs
+(identical sha256 on all four parquets); `summary.json` differs only in the experiment id.
+
+**Reconciliation with the published H7 row** (field by field; the published row is left
+unchanged as the historical record, with discrepancies noted explicitly rather than changed):
+
+| Field | Published | Re-run | Match? |
+|---|---|---|---|
+| OOS Sharpe | 0.789 | 0.7893 | ✓ (0.789 at 3 dp) |
+| Trades (OOS) | 1,005 | 1,005 | ✓ exact |
+| Profit factor | 1.166 | 1.1661 | ✓ (1.166 at 3 dp) |
+| Max drawdown | −14.5% | −14.54% (OOS window) | ✓ (full-sample −21.4%) |
+| Gates | 3/8 pass | 4 of 9 pass | ≈ (one gate off — see below) |
+| Verdict | REJECTED | REJECT | ✓ |
+
+Every comparable field reproduces the published row to reporting precision, so H30's verdict is
+`REPRODUCED`: H7's published numbers now have committed provenance. Two disclosures:
+(i) `compare_to_benchmark` raised in this session ("The truth value of a Series is ambiguous";
+advisory and non-fatal — the run continues), so the re-run's benchmark is null and
+`max_p_value`/`min_information_ratio` are False; the verdict is unaffected (REJECT either way).
+(ii) The gate tally differs by one (published 3/8 vs 4/9 recomputed); the published gate
+booleans are not re-derivable from any committed artifact, so the published row stands as the
+historical record.
+
+**Timing audit (H29 detector re-run):** H7 was added to `FAMILIES` in
+`run_h29_lookahead_sweep.py` (route `rebuild_pipeline`, `rebuild` = `h7`,
+`collapse_freq` = `"ME"`, `grid` = `daily`, `target_artifact` = `"equity_curve"`), with a
+`rebuild_h7` that rebuilds the collapse from the committed prices with the runner's own code
+and the published configuration. The re-run sweep reports H7 **`CAUSAL`**: min hold lag **+1
+bar**, **0** look-ahead bars, committed equity curve reproduced **bit-exactly** (max abs diff
+`0.0`), **0 extra** change points, same/prev expansion 0.130 / 0.970 — the same result as the
+other six monthly families (H1–H6, H8). All four detector self-checks pass and the sweep
+verdict stays `LOOKAHEAD_FOUND`.
+
+**Nothing published was touched.** No published artifact, runner, gate, threshold, verdict or
+certified number was modified; no grid was re-run; the published H7 row is unchanged and H7 is
+not re-labeled. The paid-data task stays downstream and is unjustified for every family in the
+repo: H28 closed it for the intraday family, and H29/H30 show the daily families are causal
+but all REJECT. Evidence: `HYPOTHESIS_SPEC.md` §H30 (pre-registration and measure log),
+`run_h29_lookahead_sweep.py`,
+`.experiments/artifacts/h29_lookahead_sweep/`,
+`.experiments/artifacts/exp_2026-10-19T18-56-08-872500Z/`,
+`tests/test_h29_lookahead_sweep.py` (36 tests, H7's coverage-gap test replaced by the
+committed-artifact/causal test).

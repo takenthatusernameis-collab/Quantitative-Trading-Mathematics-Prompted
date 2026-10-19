@@ -304,20 +304,27 @@
     },
     {
       "family": "H7",
-      "artifact": null,
+      "artifact": "exp_2026-10-19T18-56-08-872500Z",
       "published_verdict": "REJECT",
-      "route": "source_only",
+      "route": "rebuild_pipeline",
       "collapse_freq": "ME",
-      "available": false,
-      "reason": "no committed artifact for this family (coverage gap)",
-      "mechanism": {
-        "label_position": "bin_end",
-        "min_hold_lag_bars": 1.0,
-        "n_lookahead_bars": 0,
-        "lookahead_bar_fraction": 0.0,
-        "note": "the collapse runs on a daily grid; the mechanism is classified, the artifact is missing"
-      },
-      "verdict": "INCONCLUSIVE"
+      "available": true,
+      "n_grid_bars": 2514,
+      "label_position": "bin_end",
+      "min_hold_lag_bars": 1.0,
+      "max_hold_lag_bars": 23.0,
+      "n_lookahead_bars": 0,
+      "lookahead_bar_fraction": 0.0,
+      "committed_artifact": "equity_curve",
+      "rebuild_max_abs_diff": 0.0,
+      "rebuild_bit_exact": true,
+      "n_change_points": 107,
+      "n_predicted_change_points": 119,
+      "n_extra_change_points": 0,
+      "n_missing_change_points": 12,
+      "same_period_match_fraction": 0.13007159904534607,
+      "prev_period_match_fraction": 0.9701670644391408,
+      "verdict": "CAUSAL"
     },
     {
       "family": "H8",
@@ -578,5 +585,5 @@
       "overnight_split": "not applicable: the crypto sample is a continuous 24/7 market with no session boundary"
     }
   },
-  "elapsed_sec": 0.8497405052185059
+  "elapsed_sec": 0.9108011722564697
 }

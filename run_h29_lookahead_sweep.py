@@ -54,6 +54,7 @@ import run_cs_momentum_experiment as h2
 import run_ddcv_experiment as h5
 import run_futures_tsmom_experiment as h4
 import run_h6_vix_ddcv_experiment as h6
+import run_h7_intraday_tsmom_experiment as h7
 import run_h8_rolladjusted_tsmom_experiment as h8
 import run_h9_intraday_tsmom_experiment as h9
 import run_h23_crypto_futures_tsmom as h23
@@ -159,14 +160,14 @@ FAMILIES = [
     },
     {
         "family": "H7",
-        "artifact": None,
+        "artifact": "exp_2026-10-19T18-56-08-872500Z",
         "published_verdict": "REJECT",
-        "route": "source_only",
-        "rebuild": None,
+        "route": "rebuild_pipeline",
+        "rebuild": "h7",
         "collapse_freq": "ME",
         "grid": "daily",
-        "target_artifact": None,
-        "prices_artifact": None,
+        "target_artifact": "equity_curve",
+        "prices_artifact": "prices",
     },
     {
         "family": "H8",
@@ -717,6 +718,27 @@ def rebuild_h6(art_dir: Path):
     return base, target, result.equity_curve.to_frame("equity")
 
 
+def rebuild_h7(art_dir: Path):
+    """H7: multi-horizon regime-weighted TSMOM on futures, monthly rebalance."""
+    prices = pd.read_parquet(art_dir / "prices.parquet")
+    blend = {"slow": h7.LOOKBACK_SLOW, "fast": h7.LOOKBACK_FAST, "skip": h7.SKIP}
+    base = h7.multi_horizon_blend_signals(
+        prices,
+        lookback_slow=int(blend["slow"]),
+        lookback_fast=int(blend["fast"]),
+        skip=int(blend["skip"]),
+    )
+    target = h7.resample_monthly_signals(base)
+    atr = h7.compute_atr(prices)
+    signals = h7.apply_path_dependent_exits_daily(target, prices, atr)
+    cfg = h7.make_futures_config(allow_short=False)
+    adv = pd.Series(100_000, index=prices.columns)  # placeholder, matches the runner
+    result = run_backtest(
+        prices=prices, signals=signals, volumes=None, adv=adv, config=cfg
+    )
+    return base, target, result.equity_curve.to_frame("equity")
+
+
 def rebuild_h8(art_dir: Path):
     """H8: TSMOM on the roll-adjusted futures prices, monthly rebalance."""
     prices_adj = pd.read_parquet(art_dir / "roll_adjusted_prices_w0.5.parquet")
@@ -740,6 +762,7 @@ REBUILDS = {
     "h4": rebuild_h4,
     "h5": rebuild_h5,
     "h6": rebuild_h6,
+    "h7": rebuild_h7,
     "h8": rebuild_h8,
 }
 

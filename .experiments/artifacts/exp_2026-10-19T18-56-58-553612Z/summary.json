@@ -1,0 +1,47 @@
+{
+  "experiment_id": "exp_2026-10-19T18-56-58-553612Z",
+  "splits": {
+    "train": {
+      "sharpe": 0.7381450850006125,
+      "n": 1509,
+      "max_dd": -0.21395970768546146
+    },
+    "val": {
+      "sharpe": 0.18818493741833084,
+      "n": 503,
+      "max_dd": -0.09084153883550994
+    },
+    "test": {
+      "sharpe": 1.2704233152340894,
+      "n": 502,
+      "max_dd": -0.14543494542807156
+    },
+    "oos": {
+      "sharpe": 0.7893261992589912,
+      "n": 1005,
+      "max_dd": -0.14543494542807134
+    }
+  },
+  "overall": {
+    "sharpe": 0.7560496472706018,
+    "annualized_return": 0.0995463808323005,
+    "max_drawdown": -0.21395970768546146,
+    "n_trades": 441,
+    "profit_factor": 1.16605221165269,
+    "walkforward_stability": 1.0
+  },
+  "benchmark": null,
+  "gates": {
+    "min_sharpe": "False",
+    "min_trades": true,
+    "min_profit_factor": "False",
+    "max_drawdown": "False",
+    "min_walkforward_stability": true,
+    "min_perturbed_sharpe_ratio": true,
+    "min_worst_regime_sharpe": true,
+    "max_p_value": false,
+    "min_information_ratio": false
+  },
+  "all_pass": false,
+  "verdict": "REJECT"
+}

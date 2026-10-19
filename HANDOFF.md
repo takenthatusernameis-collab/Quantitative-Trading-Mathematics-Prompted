@@ -18,19 +18,30 @@ grid was re-run.**
   (fire on H10; do not fire on a monthly family; report a deliberately causal construction as
   `CAUSAL`; classify both source constructions differently). Runtime 0.8 s, offline.
 - `.experiments/artifacts/h29_lookahead_sweep/` — `summary.json`, `sweep_table.parquet`,
-  `source_inventory.parquet`.
+  `source_inventory.parquet` (re-written by H30 with H7 decided).
 - `tests/test_h29_lookahead_sweep.py` — 36 tests (the collapse probe, the frozen verdict rule,
   the negative control, the source inventory, the bit-exact rebuilds, the committed report and
-  the pre-registration).
+  the pre-registration). H30 replaced the "H7 is a coverage gap" test with a
+  committed-artifact/causal test and added H7 to the bit-exact rebuild check.
+- `.experiments/artifacts/exp_2026-10-19T18-56-08-872500Z/` — **H7's committed artifact**
+  (`prices.parquet`, `equity_curve.parquet`, `returns.parquet`, `trades.parquet`, `summary.json`),
+  plus the determinism control run `exp_2026-10-19T18-56-58-553612Z` (bit-identical parquets;
+  `summary.json` differs only in the experiment id).
+- Two `h7_intraday_tsmom_v1` records appended to `.experiments/experiments.jsonl` (status
+  `completed`, through the tracker's normal record format).
 
 ### Changed
-- `HYPOTHESIS_SPEC.md` — new §H29 with the **pre-registration frozen before the run**, one
-  **pre-execution amendment** (the same/prev match fractions are diluted on the period-end bar,
-  so the hold lag became the thresholded statistic and the fractions became a corroborating
-  ordering), and the **measure log**.
-- `FINAL_REPORT.md` — a new §H29 detail section.
-- `NEXT_TASK.md` — rewritten for **H30** (close the H7 coverage gap).
-- `HANDOFF_NEXT.md` — updated.
+- `HYPOTHESIS_SPEC.md` — new §H30 with the **pre-registration frozen before the run** (scope,
+  reconciliation rule, detector leg, verdict rule, frozen expectation `REPRODUCED` + `CAUSAL`,
+  determinism negative control) and the **measure log**; §H29's scope table is unchanged
+  (H29's report stands as the H29 session's record).
+- `FINAL_REPORT.md` — the H7 row of the §H29 table is now `CAUSAL` (+1 bar hold lag, 0.0%
+  look-ahead, same/prev 0.130/0.970, bit-exact rebuild); the H7 coverage-gap paragraph is
+  replaced by the H30 outcome; a new §H30 section; summary statistics and the Next Task section
+  updated (no further next task).
+- `NEXT_TASK.md` — rewritten to record **H30 complete** and that there is no further next task
+  (the paid-data task is unjustified for every family in the repo).
+- `HANDOFF.md`, `HANDOFF_NEXT.md` — updated (this session).
 
 ## What was actually verified
 
@@ -54,6 +65,21 @@ grid was re-run.**
   1.000/0.382 — H27's statistic); no `"ME"` family fires; H27's `causal_daily_target_from_hourly`
   → `CAUSAL` (hold lag **+2**, previous-period expansion on 100% of the bars) while the published
   collapse → `LOOKAHEAD` by the same rule.
+- **H30 (this session, after H29)**: H7's artifact committed as
+  `exp_2026-10-19T18-56-08-872500Z` (offline, all five futures symbols served from the cache,
+  no network) and recorded in `.experiments/experiments.jsonl`; determinism confirmed by a
+  second bit-identical run (`exp_2026-10-19T18-56-58-553612Z` — identical sha256 on
+  `prices`/`equity_curve`/`returns`/`trades`); the re-run reconciles with the published H7 row
+  (OOS Sharpe 0.789 vs 0.7893, 1,005 vs 1,005 trades, PF 1.166 vs 1.1661, max DD −14.5% vs
+  −14.54% OOS / −21.4% full-sample, verdict REJECT vs REJECT), with two disclosures logged
+  (`compare_to_benchmark` raised advisory — benchmark null — and the gate tally 3/8 published
+  vs 4/9 recomputed; the published row is left as the historical record); the H29 detector
+  re-run with H7 added to `FAMILIES` reports H7 **`CAUSAL`** (min hold lag **+1 bar**, **0**
+  look-ahead bars, committed equity curve rebuilt **bit-exactly** max abs diff `0.0`, **0 extra**
+  change points, same/prev 0.130 / 0.970); all four detector self-checks pass and the sweep
+  verdict stays `LOOKAHEAD_FOUND`.
+- `python -m pytest -q` → **705 passed** (after the H30 test change), 0 warnings; coverage and
+  lint/format checks unchanged and clean; workflow scripts OK.
 
 ## The finding (headline)
 
@@ -69,7 +95,7 @@ but the sweep found that it reaches **four families that had never been audited 
 | H4 | `ME` | **+1** | 0.0% | 0.420 / 0.972 | 0.0 | **CAUSAL** | REJECT |
 | H5 | `ME` | **+1** | 0.0% | 0.424 / 0.980 | 0.0 | **CAUSAL** | REJECT |
 | H6 | `ME` | **+1** | 0.0% | 0.454 / 0.980 | 0.0 | **CAUSAL** | REJECT |
-| H7 | `ME` | — | — | — | no artifact | **INCONCLUSIVE** | REJECT |
+| H7 | `ME` | **+1** | 0.0% | 0.130 / 0.970 | 0.0 | **CAUSAL** | REJECT |
 | H8 | `ME` | **+1** | 0.0% | 0.391 / 0.980 | 0.0 | **CAUSAL** | REJECT |
 | H11 | `1D` (inherited) | **−22** | 94.7% | 1.000 / 0.016 | identity 0.0 | **LOOKAHEAD** | PASS |
 | H12 | `1D` (inherited) | **−22** | 94.7% | 1.000 / 0.016 | identity 0.0 | **LOOKAHEAD** | PASS |
@@ -113,27 +139,19 @@ described as free of a daily collapse — it is not.
 
 ## What remains unresolved
 
-- **H7 is a coverage gap.** The runner exists (`run_h7_intraday_tsmom_experiment.py`, a single
-  fixed configuration — no grid) and the H7 row of the results table is published
-  (OOS Sharpe 0.789, 1,005 trades, PF 1.166, DD −14.5%, 3/8 gates), but **there is no committed
-  artifact**: no `h7` entry in `.experiments/experiments.jsonl` and no `exp_*` directory. Its
-  published numbers therefore **cannot be re-derived from committed evidence**, and H29 had to
-  report it `INCONCLUSIVE` rather than `CAUSAL`. Its *mechanism* is classified from the source
-  (`resample("ME")` on a **daily** grid → hold lag +1), but a family with no artifact is a
-  coverage gap, never a pass.
-- **The look-ahead is now fully mapped but not fully *closed***: the published PASS verdicts
-  (H10, H11, H12, H22, H25) still stand as published. H28 re-certified H10/H21/H22/H25 under a
-  causal collapse (`CAUSAL_REJECTED`); **H11 and H12 have no independent causal
-  re-certification** — they do not need one, because their positions are bit-identical to
-  H10's, but the record does not say so explicitly outside this handoff.
-- **The paid-data task is unjustified for every family in the repo.** It was closed for the
-  intraday family by H28; H29 shows the daily families are *causal* but all REJECT, so more of
-  the same free data does not rescue them either.
+- None from the audit record: H30 closed the H29 sweep's only coverage gap (H7). Every family
+  in the repo now has a committed artifact or a documented reason for the gap, every
+  daily/monthly family is `CAUSAL` and REJECTED (H1 0.093, H2 0.116, H3 −0.868, H4 0.376,
+  H5 0.509, H6 0.708, H7 0.789, H8 0.814), and every intraday family is `CAUSAL_REJECTED`
+  under H28 — the repo contains **no PASS family that survives a causal construction**.
 - `src/qtr/validation/statistics.py:169` remains the single uncovered branch (unreachable
   `walk_forward_splits` empty-window guard, pre-existing).
 - The documented **library drift** in `walk_forward_splits` (changed 2026-10-19 09:28) still
-  moves `metrics.wf_stability` by ~1.3e-3 on a re-run of a published experiment. H29's rebuilds
-  are unaffected (they do not use that helper's output).
+  moves `metrics.wf_stability` by ~1.3e-3 on a re-run of a published experiment. H29's/H30's
+  rebuilds are unaffected (they do not use that helper's output).
+- The **paid-data task is unjustified for every family in the repo**: it was closed for the
+  intraday family by H28; H29/H30 show the daily families are *causal* but all REJECT, so more
+  of the same free data does not rescue them either. It stays downstream.
 
 ## Which approaches have already failed and why
 
@@ -167,25 +185,18 @@ described as free of a daily collapse — it is not.
 
 ## One precise next task
 
-**H30 — close the H7 coverage gap** (free data, bounded, minutes of compute, verifiable). The
-only family the sweep could not decide is H7, because **its published numbers have no committed
-artifact**. Full scope, constraints and the pre-registration skeleton are in `NEXT_TASK.md`; the
-short version:
+**None.** H30 is complete and the pre-registered free-data hypothesis space (H1–H30) is
+exhausted: every family has a committed artifact or a documented reason for the gap, every
+daily/monthly family is `CAUSAL` and REJECTED, every intraday family is `CAUSAL_REJECTED`
+under H28, and the paid-data task (a wider OOS window for the PF bootstrap margin) is
+unjustified for every family in the repo — H28 closed it for the intraday family and
+H29/H30 show the daily families are causal but all REJECT. Buying more free-data-equivalent
+data changes no verdict.
 
-1. **Re-run `run_h7_intraday_tsmom_experiment.py` offline** (the futures cache is complete — the
-   same `ES=F/NQ=F/CL=F/GC=F/ZB=F` daily bars H4/H5/H6 used) so that H7's numbers have a
-   committed artifact, and commit it under `.experiments/artifacts/<exp_id>/`.
-2. **Reconcile the re-run against the published row** (OOS Sharpe 0.789, 1,005 trades, PF 1.166,
-   DD −14.5%, 3/8 gates) and record any difference explicitly — a published number that cannot
-   be re-derived is the defect class H30 is closing.
-3. **Run the H29 detector on the new artifact** (`run_h29_lookahead_sweep.py`, one extra family
-   entry) and confirm the source-classified mechanism (`"ME"` on a daily grid → hold lag +1 →
-   `CAUSAL`); if the committed artifact says otherwise, that is a finding and must be reported
-   as such.
-4. **Do not** change any published verdict, gate, threshold or certified number, and do not
-   re-run any grid.
-
-**Expect:** the re-run reproduces the published H7 numbers (or documents the exact drift) and the
-detector returns `CAUSAL` for H7, closing the sweep's only coverage gap. If the re-run *cannot*
-reproduce the published row, that is the more valuable finding: it would mean a published
-result in the results table has no reproducible provenance.
+If the next agent is given a *new* assignment, verify with:
+`python -m pytest -q`, `python -m pytest -W error -q`,
+`python -m pytest --cov=qtr --cov-report=term-missing`,
+`python -m ruff check src tests run_*.py`, `python -m ruff format --check src tests run_*.py`,
+plus `bash -n .github/scripts/*.sh` and `bash .github/scripts/test_kilo_progress.sh`.
+Note: `qtr` must be importable — run `pip install -e .` from the repo root if
+`ModuleNotFoundError: No module named 'qtr'` appears at collection time.

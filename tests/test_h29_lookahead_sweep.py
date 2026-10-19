@@ -208,16 +208,22 @@ class TestCommittedReport:
         for family in ("H11", "H12", "H13", "H23"):
             assert verdicts[family] == "LOOKAHEAD", family
 
-    def test_h7_is_reported_as_a_coverage_gap_not_a_pass(self):
+    def test_h7_has_a_committed_artifact_and_audits_causal(self):
         summary = h29_summary()
         h7 = next(f for f in summary["families"] if f["family"] == "H7")
-        assert h7["verdict"] == "INCONCLUSIVE"
-        assert h7["artifact"] is None
-        assert "coverage gap" in h7["reason"]
+        assert h7["verdict"] == "CAUSAL", h7
+        assert h7["artifact"] == "exp_2026-10-19T18-56-08-872500Z", h7
+        assert h7["route"] == "rebuild_pipeline", h7
+        assert h7["collapse_freq"] == "ME", h7
+        assert h7["rebuild_bit_exact"] is True, h7
+        assert h7["rebuild_max_abs_diff"] == 0.0, h7
+        assert h7["n_extra_change_points"] == 0, h7
+        assert h7["min_hold_lag_bars"] == 1.0, h7
+        assert h7["lookahead_bar_fraction"] == 0.0, h7
 
     def test_the_causal_families_rebuild_bit_exactly(self):
         summary = h29_summary()
-        for family in ("H1", "H2", "H3", "H4", "H5", "H6", "H8"):
+        for family in ("H1", "H2", "H3", "H4", "H5", "H6", "H7", "H8"):
             row = next(f for f in summary["families"] if f["family"] == family)
             assert row["rebuild_bit_exact"] is True, family
             assert row["rebuild_max_abs_diff"] == 0.0, family

@@ -13,25 +13,29 @@
   at run time on the installed pandas: `"1D"` labels each bin at its **start** with that day's
   **close** (a look-ahead: min hold lag **−22** bars, 94.7%–96.0% of the bars are positioned
   with the close of the day they belong to), `"ME"` labels each bin at its **end** with the
-  month's close (hold lag **+1** bar, **0** look-ahead bars). Results: **H1, H2, H3, H4, H5, H6
-  and H8 are `CAUSAL`** — each verdict rests on a **bit-exact** rebuild of the committed
-  artifact from the committed prices (max abs diff **0.0**) and on **0 extra** change points;
-  **H11, H12 and H13 are `LOOKAHEAD`** because they *inherit* H10's construction (H11's
-  `baseline_positions` are bit-identical to H10's `positions`, H12's `selected_oos_sharpe`
-  equals `h10_artifact_oos_sharpe` to the digit, H13's `returns_max_abs_diff_vs_h10` is 0.0) —
-  so **H11's and H12's PASS verdicts rest on the same look-ahead positions as H10's** and are
-  not independent evidence; **H23 is `LOOKAHEAD`** — it *does* use the daily collapse (it
-  imports `_daily_target_from_hourly` from H9), contradicting the inherited premise, and its
-  published build rebuilds **bit-exactly** (OOS Sharpe −7.187089456116173) while the minimal
-  causal fix gives −5.8929 (a look-ahead is a *favourable* bias, so the REJECT stands
-  a fortiori and **no** causal re-certification of H23 is warranted). **H7 has no committed
-  artifact** and is reported `INCONCLUSIVE` (a coverage gap, never a pass). Two inherited
-  premises were corrected: **no daily family passes** (H1 0.093 … H8 0.814, all REJECTED), so
-  **the repo now contains no PASS family that survives a causal construction**; and H23 is not
-  free of the daily collapse. **H29 changed no gate, threshold, verdict or certified number
-  and re-ran no grid** (only the *selected* configuration of the families it measures). See
-  `FINAL_REPORT.md` §H29, `HYPOTHESIS_SPEC.md` §H29 (pre-registration + the pre-execution
-  amendment + the measure log), `NEXT_TASK.md`.
+  month's close (hold lag **+1** bar, **0** look-ahead bars). Results: **H1–H8 are all `CAUSAL`**
+  — each verdict rests on a **bit-exact** rebuild of the committed artifact from the committed
+  prices (max abs diff **0.0**) and on **0 extra** change points; H7 included after H30 committed
+  its artifact (`exp_2026-10-19T18-56-08-872500Z`, offline on the complete futures cache, the
+  re-run reproduces the published H7 row to reporting precision — OOS Sharpe 0.789 vs 0.7893,
+  1,005 vs 1,005 trades, PF 1.166 vs 1.1661, max DD −14.5% vs −14.54% OOS, verdict REJECT vs
+  REJECT — with two disclosures logged explicitly and the published row left as the historical
+  record) and the H29 detector re-run with H7 added to `FAMILIES` reports H7 **`CAUSAL`**
+  (min hold lag +1 bar, 0 look-ahead bars, bit-exact equity rebuild, 0 extra change points,
+  same/prev 0.130/0.970); **H11, H12 and H13 are `LOOKAHEAD`** because they *inherit* H10's
+  construction (H11's `baseline_positions` are bit-identical to H10's `positions`, H12's
+  `selected_oos_sharpe` equals `h10_artifact_oos_sharpe` to the digit, H13's
+  `returns_max_abs_diff_vs_h10` is 0.0) — so **H11's and H12's PASS verdicts rest on the same
+  look-ahead positions as H10's** and are not independent evidence; **H23 is `LOOKAHEAD`** — it
+  *does* use the daily collapse (it imports `_daily_target_from_hourly` from H9), contradicting
+  the inherited premise, and its published build rebuilds **bit-exactly** (OOS Sharpe
+  −7.187089456116173) while the minimal causal fix gives −5.8929 (a look-ahead is a *favourable*
+  bias, so the REJECT stands a fortiori and **no** causal re-certification of H23 is warranted).
+  **The sweep's only coverage gap (H7) is now closed: every family in the repo has a committed
+  artifact or a documented reason for the gap.** H29/H30 changed no gate, threshold, verdict or
+  certified number and re-ran no grid (only the *selected* configuration of the families they
+  measure). See `FINAL_REPORT.md` §H29/§H30, `HYPOTHESIS_SPEC.md` §H29/§H30 (pre-registration
+  + the pre-execution amendment + the measure log), `NEXT_TASK.md`.
 - **H28 (prior session): causal re-certification of the intraday family — COMPLETE.
   `CAUSAL_REJECTED` for every family.** The published H10/H21/H22/H25 pipelines were re-run
   with **one** change — the daily collapse lagged by one calendar day — and the **unchanged**
@@ -80,28 +84,22 @@
 - `qtr` must be importable — run `pip install -e .` from the repo root if `ModuleNotFoundError: No module named 'qtr'` appears at collection time.
 
 ## Next agent actions
-If assigned a new task, verify with:
+
+There is **no assigned next task**: H30 (close the H7 coverage gap) is complete and the
+pre-registered free-data hypothesis space (H1–H30) is exhausted — every family has a committed
+artifact or a documented reason for the gap, every daily/monthly family is `CAUSAL` and
+REJECTED, every intraday family is `CAUSAL_REJECTED` under H28, and the paid-data task (a
+wider OOS window for the PF bootstrap margin) is unjustified for every family in the repo
+(H28 closed it for the intraday family; H29/H30 show the daily families are causal but all
+REJECT).
+
+If the next agent is given a *new* assignment, verify with:
 `python -m pytest -q`, `python -m pytest -W error -q`,
 `python -m pytest --cov=qtr --cov-report=term-missing`,
 `python -m ruff check src tests run_*.py`, `python -m ruff format --check`,
 plus `bash -n .github/scripts/*.sh` and `bash .github/scripts/test_kilo_progress.sh`.
 Note: `qtr` must be importable — run `pip install -e .` from the repo root if
 `ModuleNotFoundError: No module named 'qtr'` appears at collection time.
-
-## Highest-value next task (free data, bounded, verifiable)
-**H30 — close the H7 coverage gap: commit H7's artifact, then audit it.**
-H29 swept every remaining family for the look-ahead and closed every case except one: **H7 has
-no committed artifact** (no `h7` entry in `.experiments/experiments.jsonl`, no `exp_*`
-directory), so the published H7 row (OOS Sharpe 0.789, 1,005 trades, PF 1.166, DD −14.5%, 3/8
-gates) **cannot be re-derived from committed evidence** and H29 had to report it `INCONCLUSIVE`.
-H7 is a **single fixed configuration** (no grid) and the futures cache is complete, so the
-re-run is offline and fast. The task: re-run `run_h7_intraday_tsmom_experiment.py` offline to
-commit its artifact, **reconcile the re-run against the published row field by field** (a
-published number that cannot be re-derived is the defect class this closes), add H7 to the H29
-detector's family list and re-run the sweep (the source says `CAUSAL`; the detector decides),
-and report. Do **not** change any published verdict, gate, threshold or certified number, and
-do **not** re-run any grid. Full scope, constraints and the pre-registration skeleton:
-`NEXT_TASK.md`.
 
 ## Documented next task (requires paid data — outside a free-data session, and no longer
 ## justified for any family in the repo)
