@@ -3365,3 +3365,280 @@ family is **not established** pending an explicitly re-registered re-certificati
 5. The families use different buy-and-hold benchmarks (equal-weight for H9/H10,
    vol-weighted for H21/H22/H25); H27 therefore computes a **uniform** equal-weight
    benchmark for the calibration and reports the logged one alongside.
+
+## H28: Causal re-certification of the intraday futures TSMOM family (pre-registered 2026-10-19)
+
+**Trigger.** H27 (`HYPOTHESIS_SPEC.md` §H27) returned `LEVEL_CONFIRMED` / `LOOKAHEAD_CONFIRMED`:
+the published construction positions every session at its own **open** with the signal computed at
+its own **close** (`_daily_target_from_hourly` = `resample("1D").last()`, expanded back with
+`reindex(..., method="ffill")`). H27 changed no gate, threshold, verdict or certified number, so
+the published PASS verdicts of H10/H22/H25 stand as published — but they are **not evidence of a
+tradable edge**. H28 asks whether the family survives a **causal** daily collapse.
+
+**Question.** With the daily collapse lagged by exactly one calendar day and *nothing else
+changed*, does each family still pass the **unchanged** evidence gates on the protected OOS
+window?
+
+### Frozen elements (unchanged from H9–H25 — H28 changes none of them)
+
+| Element | Value | Source |
+|---|---|---|
+| Gates | `min_sharpe 1.0`, `min_trades 200`, `min_profit_factor 1.3`, `max_drawdown 0.15`, `min_walkforward_stability 0.7`, `min_perturbed_sharpe_ratio 0.5`, `min_worst_regime_sharpe 0.3`, `max_p_value 0.05`, `min_information_ratio 0.0` | `GATES` in `run_h9_intraday_tsmom_experiment.py` |
+| Perturbation gate | H22 only: ±20% on `target_vol_mult` and `max_pos`, `min_perturbed_sharpe_ratio 0.5` | `run_h22_futures_tsmom_voltarget.py` |
+| Splits | 55 / 25 / 20 by **index** (`_splits`), Test protected | `run_h10_intraday_tsmom_pfopt_experiment.py` |
+| Selection | H10 / H21 / H22: best **Val Sharpe**; H25: best **Val PF margin** (`val_pf - 1.3`) | each runner's `main()` |
+| Cost model | commission 0.50/contract, 0.25 spread ticks, 0.5 slippage ticks | `COST_MODEL_DEFAULTS` |
+| Capital / leverage / caps | $1e6, engine defaults, per-name position caps | `make_futures_config()` |
+| Universe / window / seed | ES=F, NQ=F, CL=F, GC=F, ZB=F; 2024-10-12 → 2026-10-11; seed 42 | each runner's constants |
+| Published runners | **not edited** (they are the historical record H26/H27 reproduce bit-exactly) | — |
+| Published artifacts | **not rewritten**; their published verdicts stand | — |
+
+### The one change
+
+`causal_daily_target_from_hourly(hourly_signal)` = the published daily collapse **shifted by one
+calendar day** (day D takes the signal at the last bar of day D−1), with the calendar-completeness
+guard: the daily index must span every calendar day (727 labels vs 727 calendar days on the real
+data), a **non-trading** day is carried forward (the position is held over the weekend, which is
+the intended semantics), and a malformed index is a hard error. It is installed by patching the
+module-global
+`_daily_target_from_hourly` in `run_h9_intraday_tsmom_experiment` and
+`run_h10_intraday_tsmom_pfopt_experiment` — H10's `build_hourly_target` resolves that global at
+call time, so H21/H22/H25 inherit the causal collapse through H10. **No other stage changes**: same
+signal, same smoothing, same exits, same aggregation, same engine, same costs, same splits, same
+gates, same selection rule.
+
+### Negative control (mandatory, per family)
+
+The same pipeline with the **published** (same-day) expansion must reproduce the published
+artifact **bit-exactly** — selected config, `positions.parquet`, `returns.parquet`,
+`equity.parquet` and the OOS metrics. If the control does not reproduce, that family's causal run
+is **void** and is not reported. (The cached data path was already verified to reproduce the
+committed H22 `prices.parquet` with max abs diff **0.0** over all 11,441 bars.)
+
+**One frozen, documented exemption.** The published artifacts were produced *before* the
+2026-10-19 09:28 library change to `walk_forward_splits` (the last walk-forward window now
+absorbs the trailing samples — 1 bar in 11,441 before). Consequently a control run cannot
+reproduce exactly one summary field, `metrics.wf_stability`. The exemption is frozen as
+follows and is granted **only** if all of it holds:
+
+1. every artifact frame (`grid_results`, `positions`, `basket_positions`,
+   `per_contract_positions`, `returns`, `equity`, `trades`, `hourly_target_selected`,
+   `daily_target_h9`/`daily_target_h10`, `benchmark_equity`, `benchmark_returns`,
+   `regime_factors`) is bit-exact (max abs diff `0.0`);
+2. every other field of `summary.json` except the identity / wall-clock fields
+   (`experiment_id`, `grid_elapsed_sec`, `total_elapsed_sec`, `compute_cpu_hours`) is
+   identical — in particular every **gate boolean** in `passes` and the **verdict**;
+3. the only difference is `metrics.wf_stability`, and the drift is explained by the library
+   change rather than by the pipeline.
+
+The evidence for (3) was established on H25 **before** the formal run: the published
+`wf_stability` (0.8726919975457872) is reproduced **bit-exactly** by the pre-change
+`walk_forward_splits` implementation, and every other field — including every gate boolean and
+the verdict — reproduces under both implementations. The gate that consumes the field
+(`passes.stab`) is **not** exempt: a control whose gate outcome or verdict differs is not a
+valid control and voids the family's causal run.
+
+### Verdict rule (frozen before execution)
+
+- Per family: `CAUSAL_CERTIFIED` iff (a) the control reproduced bit-exactly **and** (b) the
+  causal run's `gate["all_pass"]` is `True` (every unchanged gate passes on the OOS Val+Test
+  window). Otherwise `CAUSAL_REJECTED`.
+- Family-level (the certified family `("H10", "H22", "H25")`): `CAUSAL_CERTIFIED` iff **all
+  three** members are `CAUSAL_CERTIFIED`; otherwise `CAUSAL_REJECTED`.
+- **Prior expectation: REJECT.** H27's causal counterfactual on the *already-selected* configs
+  gave OOS Sharpe 0.29–0.36 (gate ≥ 1.0), PF 1.06–1.08 (gate ≥ 1.3) and max DD −12% … −26%
+  (gate ≤ 15%). A causal re-selection may land on a different configuration; whatever the
+  selection produces is what gets reported. H28 certifies the truth; it is not looking for a
+  passing configuration.
+
+### Frozen artifact ids
+
+Published artifacts that must remain bit-reproducible (the negative control's target):
+
+| Family | Published artifact id | Published verdict |
+|---|---|---|
+| H10 | `exp_2026-10-11T17-41-18-169363Z` | PASS |
+| H21 | `exp_2026-10-13T23-27-52-101656Z` | REJECT |
+| H22 | `exp_2026-10-14T18-52-08-943792Z` | PASS |
+| H25 | `exp_2026-10-14T20-08-34-613690Z` | PASS |
+
+The H28 control and causal runs write **new** artifact directories; their ids are recorded in the
+measure log below.
+
+### Scope
+
+H10 (13,824 combos), H21 (16), H22 (8), H25 (8). **H9 is out of scope**: single fixed config,
+already REJECT, and its artifact carries NaN prices in 292 bars from the original live fetch, so it
+is not bit-reproducible from the cache.
+
+### Budget
+
+≈ 0.98 CPU-h: the H10 grid is 13,824 combos ≈ 29 min, run twice (control + causal); H21/H22/H25
+are seconds. Fully offline and deterministic (cached hourly `=F` + `^VIX`).
+
+### Disclosures
+
+1. The causal run re-selects on the **same** Val window, so a causal PASS would carry the same
+   multiple-comparison caveat as the original selection. H28 does not claim a causal PASS would be
+   *new* evidence of a tradable edge; it reports what the unchanged protocol yields.
+2. The H27 look-ahead regression test must keep passing — the published construction keeps its
+   documented look-ahead property, so the historical record stays auditable.
+3. H28 is a re-certification of an existing family under a corrected construction, **not** a new
+   hypothesis about a new edge.
+4. The paid-data task (wider OOS window) stays **downstream** of H28: buying more data for a
+   construction with a look-ahead would be wasted.
+
+### H28 — implementation notes (frozen before execution)
+
+* The causal collapse is imported from the H27 audit
+  (`run_h27_pnl_level_audit.causal_daily_target_from_hourly`) so the H27 look-ahead
+  regression test and the H28 counterfactual are literally the same function object and
+  cannot drift apart.
+* The collapse's guard asserts that the daily index spans the calendar. `resample("1D")` always
+  yields one label per calendar day, so the guard is a *defensive* assertion for a
+  `DatetimeIndex`; the 116 all-NaN labels in the real data are non-trading days, which are
+  carried forward on purpose (the position is held over the weekend).
+* The collapse is installed by patching the module-global `_daily_target_from_hourly` in
+  **all five** runner modules (`h9`, `h10`, `h21`, `h22`, `h25`). H10's `build_hourly_target`
+  resolves that global at *call* time, so H21/H22/H25 inherit the causal collapse through
+  H10; their own module-level binding is patched as well so that the logged
+  `daily_target_h10` artifact is consistent with the computation. The originals are restored
+  on exit, including on exception.
+* Each family is run **twice** by `run_h28_causal_recertification.py`: a *control* (published
+  same-day expansion) and a *causal* (lagged expansion) run. The runner calls the published
+  runner's own `main()` verbatim; the only substitutions are the experiment
+  name/description (so the artifacts land under an H28 id) and the collapse patch. The
+  published grids, selection rules, gates, splits and cost model are therefore reused
+  unchanged by construction, not by copy.
+* The negative control compares, between the published artifact and the control artifact:
+  `grid_results`, `positions`, `basket_positions`, `per_contract_positions`, `returns`,
+  `equity`, `trades`, `hourly_target_selected`, `daily_target_h9`/`daily_target_h10`,
+  `benchmark_equity`, `benchmark_returns`, `regime_factors` (bit-exact, per artifact) and
+  every field of `summary.json` except the identity / wall-clock fields
+  (`experiment_id`, `grid_elapsed_sec`, `total_elapsed_sec`, `compute_cpu_hours`) and the
+  single documented library-drift field `metrics.wf_stability`. The comparison is
+  **field-level** (dotted paths), so a difference is either *expected* (identity / wall-clock),
+  *documented drift* (the one exempt field) or *unexpected* — and only the last voids the
+  family. The gate booleans (`passes`) and the verdict must match exactly.
+  `grid_results` is included on purpose: it pins *every* combo's Val metrics, so a control
+  that reproduces it has reproduced the whole grid, not just the selected configuration.
+* **Artifact layout (recorded after execution, no effect on any result).** The eight H28 runs
+  are grouped under `.experiments/artifacts/h28_causal_recertification/runs/<exp_id>/` rather
+  than left at depth 1. The reason is a *latent* fragility in the repo that H28 exposed: the
+  artifact-discovery helpers (`run_h25_pf_robustness.py::_find_latest_h25_dir` and the
+  `_latest_hXX_dir` helpers in the family test files) select the **lexicographically last**
+  depth-1 directory whose `summary.json` carries the family's `hypothesis` label, so an H28 run
+  directory at depth 1 silently took the published H25 run's place and made four
+  `tests/test_h25_pf_robustness.py` tests compare the *causal* run against the *published*
+  artifact. The H28 runs are therefore relocated under the audit directory — the same layout
+  H26/H27 use — which restores the published record's unambiguity. The relocation changed no
+  number, no verdict and no gate; it is pinned by
+  `TestPublishedArtifactDiscovery`, which fails if any H28 run is ever left at depth 1 or if
+  the published run is not the maximum candidate for its family.
+* The pre-flight check that the cached data still reproduces the committed artifacts was run
+  before the formal execution: the cached hourly `=F` + `^VIX` fetch reproduces the committed
+  H22 `prices.parquet` with max abs diff **0.0** over all **11,441** bars. Two **pre-flight**
+  H25 runs (one control, one causal) were executed to establish the drift exemption above
+  before the formal run; they are byte-identical in content to the formal H25 runs and were
+  therefore removed afterwards, so that the committed artifact set contains only the eight
+  formal runs.
+
+### H28 — Measure Log (executed 2026-10-19)
+
+**Verdict: every family `CAUSAL_REJECTED`; the certified family (`H10`, `H22`, `H25`) is
+`CAUSAL_REJECTED`.** The published PASS verdicts are unchanged.
+
+Artifacts: `.experiments/artifacts/h28_causal_recertification/summary.json` +
+`recertification_table.parquet`; runner `run_h28_causal_recertification.py`; tests
+`tests/test_h28_causal_recertification.py` (47 tests). Runtime **6786.5 s ≈ 1.89 CPU-h**,
+offline, no new data, no new grid beyond the published ones.
+
+#### F1 — the negative control passed for every family
+
+Each family's *control* run (the published same-day expansion, run through the identical H28
+harness) reproduced the published artifact **bit-exactly**:
+
+| Family | Artifacts compared | max abs diff | Selected config | Gate booleans | Verdict | Control verdict |
+|---|---|---|---|---|---|---|
+| H10 | 9/9 (incl. `grid_results`, all 13,824 combos) | **0.0** | identical | identical | PASS | identical |
+| H21 | 12/12 | **0.0** | identical | identical | REJECT | identical |
+| H22 | 12/12 | **0.0** | identical | identical | PASS | identical |
+| H25 | 12/12 | **0.0** | identical | identical | PASS | identical |
+
+The single documented library-drift field (`metrics.wf_stability`, the 2026-10-19 09:28
+`walk_forward_splits` change) was the *only* difference, in every family, and the gate that
+consumes it (`passes.stab`) was unchanged. **The published record is therefore fully
+reproducible from the current code and the cached data, and the only thing that changes the
+result is the causal collapse.** The causal runs are comparable.
+
+#### F2 — the results
+
+| Family | Published verdict | Causal verdict | OOS Sharpe | OOS PF | Max DD | OOS trades | Gates passed |
+|---|---|---|---|---|---|---|---|
+| H10 | PASS | **CAUSAL_REJECTED** | **0.3909** | **1.087** | −10.1% | 2524 | 3/8 |
+| H21 | REJECT | **CAUSAL_REJECTED** | **0.1317** | **1.030** | −26.1% | 5927 | 3/8 |
+| H22 | PASS | **CAUSAL_REJECTED** | **0.3605** | **1.077** | −22.8% | 3288 | 4/9 |
+| H25 | PASS | **CAUSAL_REJECTED** | **0.3231** | **1.069** | −26.2% | 1786 | 4/9 |
+
+Gates (unchanged from H9–H25): OOS Sharpe ≥ 1.0, PF ≥ 1.3, |max DD| ≤ 15%, ≥ 200 trades,
+WF stability ≥ 0.7, worst-regime Sharpe ≥ 0.3, benchmark p < 0.05, IR > 0, and (H22/H25) the
+perturbation ratio ≥ 0.5.
+
+**The same four gates fail everywhere:** `sharpe`, `pf`, `worst` (worst-regime Sharpe) and `p`
+(benchmark p-value); H10 also fails `ir`. `trades`, `stab` and (H22/H25) `perturbation` pass;
+`dd` passes for H10 but fails for H21/H22/H25 (−22% to −26% against a −15% limit).
+
+#### F3 — the causal re-selection, and the headroom H27 flagged
+
+H27's counterfactual re-ran only the *already-selected* configuration, so it was a lower bound
+on the defect. H28 re-ran the **full grids** and re-selected on Val, exactly as published:
+
+* **H10** re-selected a *different* configuration: `smooth_span` None → **4** and
+  `regime_scaling` False → **True** (everything else unchanged). That lifts the causal OOS
+  Sharpe from 0.2923 (the published config under the causal build, H27) to **0.3909** — the
+  re-selection headroom is real but **small**: 0.39 is still 2.6× below the 1.0 gate, the PF
+  is 0.21 below its 1.3 gate, and the information ratio turns negative.
+* **H21 / H22 / H25** re-selected the **published** configuration itself
+  (`target_vol_mult` 0.5 / 1.0 / 1.75, `max_pos` 0.5, `equal`, 5 / 5 / 4 assets), so their
+  causal numbers coincide with H27's lower-bound counterfactual to the digit
+  (H21 0.1317, H22 0.3605, H25 0.3231).
+
+So the full causal re-selection buys the family at most +0.10 of Sharpe (H10) and does not
+change a single gate outcome. **The verdict is not an artefact of holding the configuration
+fixed.**
+
+#### F4 — what H28 does *not* change
+
+No gate, threshold, verdict or certified number was changed. H10/H11/H12/H22/H25 remain PASS
+(8/8, 8/8, 8/8, 9/9, 9/9) **as published**; H9/H21 remain REJECT. The published artifacts
+were not rewritten and the published runners were not edited. H28's verdict is a **separate,
+additional** statement: *under a causal daily collapse, the family does not pass the unchanged
+gates.* The published PASS verdicts are therefore confirmed to be **not evidence of a tradable
+edge**, and the certified family is **not established**.
+
+#### F5 — disclosures
+
+1. The causal re-selection runs on the **same** Val window as the original, so a causal PASS
+   would have carried the same multiple-comparison caveat as the original selection. It did
+   not pass, so the caveat is moot here; it is recorded because it constrains any future
+   re-certification of a family that *does* pass.
+2. The H10 grid took **56.2 min** here against 29 min in the published run — this machine is
+   ~1.9× slower. The control reproduced the published artifact bit-exactly, so the wall-clock
+   difference is irrelevant to the result.
+3. The walk-forward stability ratios reported by the causal runs (H21 58.2, H22 2.35, H25 3.44)
+   are ratios of the mean test-fold Sharpe to the mean train-fold Sharpe and blow up when the
+   train mean is near zero. They are reported, not applied; the gate itself passed in all three.
+4. H9 remains out of scope (single fixed configuration, already REJECT, and its artifact
+   carries NaN prices in 292 bars from the original live fetch, so it is not bit-reproducible
+   from the cache).
+5. **A latent repo fragility was exposed and closed, not hidden.** H28's runs initially sat at
+   depth 1 in `.experiments/artifacts/`, where the repo's "lexicographically last matching
+   hypothesis" discovery helpers picked them up as if they were the published family runs; four
+   H25-Robustness regression tests failed as a result (they compared the causal run's numbers
+   against the published artifact). The runs were relocated under the H28 audit directory, the
+   published record's unambiguity was restored, and a regression guard
+   (`TestPublishedArtifactDiscovery`) now fails if it ever recurs. No published artifact, gate,
+   verdict or certified number was touched.
+6. The paid-data task (a wider OOS window for the PF bootstrap margin) remains **downstream**
+   and is not justified for this family: a causal construction that fails the gates on the
+   free window will not be rescued by more of the same data.

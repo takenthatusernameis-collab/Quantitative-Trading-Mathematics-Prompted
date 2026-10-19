@@ -1,0 +1,27 @@
+{
+  "shape": [
+    16,
+    8
+  ],
+  "columns": [
+    "target_vol_mult",
+    "max_pos",
+    "scale_rule",
+    "n_assets",
+    "val_sharpe",
+    "val_profit_factor",
+    "val_max_drawdown",
+    "val_trades"
+  ],
+  "dtypes": {
+    "target_vol_mult": "float64",
+    "max_pos": "float64",
+    "scale_rule": "str",
+    "n_assets": "int64",
+    "val_sharpe": "float64",
+    "val_profit_factor": "float64",
+    "val_max_drawdown": "float64",
+    "val_trades": "int64"
+  },
+  "index_type": "int64"
+}

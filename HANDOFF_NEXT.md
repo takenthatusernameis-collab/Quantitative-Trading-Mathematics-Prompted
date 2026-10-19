@@ -1,9 +1,29 @@
 # Handoff Summary
 
 ## Current state
-- All tests pass: **622 passed, 0 warnings** (~3:35). Full suite re-confirmed this session.
+- All tests pass: **669 passed, 0 warnings** (~3:40). Full suite re-confirmed this session.
 - src/ coverage: 99% (single uncovered branch is the unreachable `walk_forward_splits` empty-window guard at statistics.py:114, pre-existing). Lint/format clean on `src tests run_*.py`. Workflow scripts pass `bash -n` and the progress-helper regression test.
-- **H27 (this session): P&L level audit + look-ahead attribution — COMPLETE.** The *level* of the
+- **H28 (this session): causal re-certification of the intraday family — COMPLETE.
+  `CAUSAL_REJECTED` for every family.** The published H10/H21/H22/H25 pipelines were re-run
+  with **one** change — the daily collapse lagged by one calendar day — and the **unchanged**
+  gates, splits, Val-only selection, Test protection and cost model. Every family's
+  **negative control** (the published same-day expansion through the identical harness)
+  reproduced the published artifact **bit-exactly**: H10 9/9 artifacts, H21/H22/H25 12/12 each,
+  max abs diff **0.0** everywhere, including `grid_results` (all 13,824 H10 combos' Val
+  metrics), with the selected config, every gate boolean and the verdict identical. The only
+  difference is the frozen, documented `metrics.wf_stability` library drift (the 2026-10-19
+  09:28 `walk_forward_splits` change; the published value is reproduced bit-exactly by the
+  pre-change implementation and the gate consuming it is unchanged). Results: H10 OOS Sharpe
+  **0.3909** / PF 1.087 / DD −10.1% (3/8 gates), H21 **0.1317** / 1.030 / −26.1% (3/8), H22
+  **0.3605** / 1.077 / −22.8% (4/9), H25 **0.3231** / 1.069 / −26.2% (4/9). The same four gates
+  fail everywhere (`sharpe` ≥1.0, `pf` ≥1.3, `worst` ≥0.3, `p` <0.05; plus `ir` for H10). The
+  full causal **re-selection** buys at most +0.10 Sharpe (H10 re-selects `smooth_span=4,
+  regime_scaling=True`, 0.2923 → 0.3909) and changes no gate outcome, so the REJECT is not an
+  artefact of a frozen configuration. **H28 changed no gate, threshold, verdict or certified
+  number** — the published PASS verdicts stand as published, but the family is now
+  *demonstrated* not to be a tradable edge. See `FINAL_REPORT.md` §H28 detail,
+  `HYPOTHESIS_SPEC.md` §H28 (pre-registration + measure log), `NEXT_TASK.md`.
+- **H27 (prior session): P&L level audit + look-ahead attribution — COMPLETE.** The *level* of the
   certified intraday P&L is **clean**: the dollar P&L recomputed from the committed
   prices/positions with the engine's contract maths reproduces the logged returns to
   **≤4.9e-16**, the contract specs are exactly consistent (`tick_value == tick_size x
@@ -40,27 +60,31 @@ Note: `qtr` must be importable — run `pip install -e .` from the repo root if
 `ModuleNotFoundError: No module named 'qtr'` appears at collection time.
 
 ## Highest-value next task (free data, bounded, verifiable)
-**H28 — re-certify the intraday futures TSMOM family under a causal daily collapse.**
-H27 showed the certified family's edge is a one-day look-ahead in the daily-target collapse
-(`run_h9_intraday_tsmom_experiment.py::_daily_target_from_hourly` +
-`run_h10_intraday_tsmom_pfopt_experiment.py::build_hourly_target`). The fix is a one-day lag
-of the collapsed daily series; the family must then be re-run under the **same** gates,
-splits, Val-only selection and Test protection to record an honest verdict. Expect
-**REJECT** (the causal counterfactual on the already-selected configs gives OOS Sharpe
-0.29–0.36, PF 1.06–1.08, max DD −12% to −26%). Do **not** edit the published runners —
-their artifacts are the historical record and H26/H27 reproduce them bit-exactly; add a
-causal target builder + a new H28 runner instead. Full scope, constraints and the
-pre-registration skeleton: `NEXT_TASK.md`.
+**H29 — a systematic look-ahead sweep of the *remaining* certified families.**
+H27/H28 closed the question for the **intraday** futures family: the edge was a one-day
+look-ahead and the family is `CAUSAL_REJECTED`. The *mechanism* is mechanical and therefore
+searchable — `resample("1D")` labels each day at the **bin start** with the value of that day's
+**close**, so the forward-fill expansion hands every bar of day D the close of day D, whereas
+`resample("ME")` labels each month at the **bin end** and is therefore *not* affected. That
+distinction is a hypothesis, not a result: the **daily / monthly** families (H1–H8 — the only
+other PASS family in the repo), the intraday diagnostics (H11 robustness, H12 selection bias,
+H13 OOS deflation / PF audit) and H23 have never been swept. H29 must decide from the committed
+artifacts alone whether each family's position at the start of a period is aligned with *that*
+period's close, and must self-check the detector (it must fire on H10 and not fire on a
+monthly family). Do **not** re-run grids and do **not** change any published verdict. Full
+scope, constraints and the pre-registration skeleton: `NEXT_TASK.md`.
 
-## Documented next task (requires paid data — outside a free-data session, and now
-## downstream of H28)
+## Documented next task (requires paid data — outside a free-data session, and no longer
+## justified for the intraday family)
 Per FINAL_REPORT.md §Next Task: widen the OOS window with **paid hourly futures data**
 so the **PF** bootstrap CI clears its gate with margin. H10/H22/H25 are PASS *as published*
 but the PF-margin is CI-fragile (H13 CI [1.190, 1.425]; H25 Robustness CI [1.2049, 1.4425],
 P(PF≥1.3)=0.6215) — that fragility is scale-invariant and is the binding constraint
-(the *Sharpe* CI fragility was withdrawn by H26 as a scale artifact). **H27 has moved this
-task downstream: buying more data for a construction with a look-ahead would be wasted,
-so H28 (causal re-certification) must come first.**
+(the *Sharpe* CI fragility was withdrawn by H26 as a scale artifact). **H27 moved this task
+downstream (buying more data for a construction with a look-ahead would be wasted) and H28
+has now closed it for the intraday family: a causal construction that fails the gates on the
+free window will not be rescued by more of the same data.** The task may still be justified for
+the *daily* families, which H29 would certify as clean.
 
 
 ## Proxy caveat
@@ -173,6 +197,38 @@ recur silently:
   reported as a look-ahead.
 
 The look-ahead lives in the *runners* (`run_h9_intraday_tsmom_experiment.py:195` and
-`run_h10_intraday_tsmom_pfopt_experiment.py:114-133`), not in `src/qtr/`, so H28 must add a
+`run_h10_intraday_tsmom_pfopt_experiment.py:114-133`), not in `src/qtr/`, so H28 added a
 causal path **without** editing those two functions (the published artifacts are the
-historical record and H26/H27 reproduce them bit-exactly).
+historical record and H26/H27/H28 reproduce them bit-exactly).
+
+## H28 drift guards (added this session)
+`tests/test_h28_causal_recertification.py` (47 tests) pins the H28 construction and its
+verdict rule so the re-certification cannot be quietly weakened:
+
+- `TestCausalCollapseSemantics` — the collapse lags the daily series by exactly one day, the
+  first day is unknown (not the same day's close), a non-trading day is carried forward (the
+  position is held over the weekend), the daily index spans the calendar, a malformed index is
+  a hard error, and `causal_collapse()` patches **all five** runner modules and restores them
+  — including on failure.
+- `TestExperimentIdentity` — the H28 runner swaps the experiment name/description and restores
+  it, and the tracker capture is unwound.
+- `TestNegativeControl` — the control is bit-exact when it should be, and **not** bit-exact
+  when a single artifact value is perturbed, a control artifact is missing, a **gate boolean**
+  changes, the **verdict** changes, or an **unexpected metric** changes. The single frozen
+  library-drift field (`metrics.wf_stability`) is tolerated *only* as such — the gate that
+  consumes it is not exempt.
+- `TestVerdictRule` — a family is `CAUSAL_CERTIFIED` only if the control reproduced **and**
+  every unchanged gate passed; a broken control **voids** the run; a missing summary is a
+  reject; the family verdict requires **all three** certified members.
+- `TestFrozenElements` — the gates are the published `GATES` object, the splits are the
+  published `_splits`, the selection rules are the published ones and the H28 runner does not
+  redefine them, the frozen artifact ids are the published ones, the grid sizes match the
+  published runs, and H9 is out of scope.
+- `TestPreRegistration` — `HYPOTHESIS_SPEC.md` §H28 must exist and must freeze the verdict
+  rule, the artifact ids, the unchanged gates, the negative control (including the word
+  "void") and the prior expectation of REJECT.
+
+The published runners were **not** edited: H28 patches the module-global
+`_daily_target_from_hourly` at run time and restores it, and it calls each published runner's
+own `main()` so the grid, the selection rule and the gates are reused unchanged **by
+construction**.

@@ -1,0 +1,743 @@
+{
+  "hypothesis": "H28",
+  "pre_registered": "2026-10-19",
+  "certified_family": [
+    "H10",
+    "H22",
+    "H25"
+  ],
+  "causal_certified_members": [],
+  "family_verdict": "CAUSAL_REJECTED",
+  "verdict_rule": "per family: CAUSAL_CERTIFIED iff the negative control reproduced the published artifact bit-exactly AND the causal run passes every unchanged gate on the protected OOS window; family: CAUSAL_CERTIFIED iff all three certified members are CAUSAL_CERTIFIED",
+  "gates_unchanged": true,
+  "splits_unchanged": true,
+  "selection_rule_unchanged": true,
+  "cost_model_unchanged": true,
+  "published_artifacts_rewritten": false,
+  "published_runners_edited": false,
+  "runs": [
+    {
+      "family": "H10",
+      "mode": "control",
+      "experiment_name": "h28_h10_control",
+      "experiment_id": "exp_2026-10-19T15-46-16-261803Z",
+      "return_code": 0,
+      "elapsed_sec": 3328.4,
+      "artifact_path": ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T15-46-16-261803Z"
+    },
+    {
+      "family": "H10",
+      "mode": "causal",
+      "experiment_name": "h28_h10_causal",
+      "experiment_id": "exp_2026-10-19T16-41-44-683912Z",
+      "return_code": 1,
+      "elapsed_sec": 3378.9,
+      "artifact_path": ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T16-41-44-683912Z"
+    },
+    {
+      "family": "H21",
+      "mode": "control",
+      "experiment_name": "h28_h21_control",
+      "experiment_id": "exp_2026-10-19T17-38-03-570526Z",
+      "return_code": 1,
+      "elapsed_sec": 17.8,
+      "artifact_path": ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-38-03-570526Z"
+    },
+    {
+      "family": "H21",
+      "mode": "causal",
+      "experiment_name": "h28_h21_causal",
+      "experiment_id": "exp_2026-10-19T17-38-21-389139Z",
+      "return_code": 1,
+      "elapsed_sec": 17.8,
+      "artifact_path": ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-38-21-389139Z"
+    },
+    {
+      "family": "H22",
+      "mode": "control",
+      "experiment_name": "h28_h22_control",
+      "experiment_id": "exp_2026-10-19T17-38-39-157337Z",
+      "return_code": 0,
+      "elapsed_sec": 11.7,
+      "artifact_path": ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-38-39-157337Z"
+    },
+    {
+      "family": "H22",
+      "mode": "causal",
+      "experiment_name": "h28_h22_causal",
+      "experiment_id": "exp_2026-10-19T17-38-50-887609Z",
+      "return_code": 1,
+      "elapsed_sec": 11.8,
+      "artifact_path": ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-38-50-887609Z"
+    },
+    {
+      "family": "H25",
+      "mode": "control",
+      "experiment_name": "h28_h25_control",
+      "experiment_id": "exp_2026-10-19T17-39-02-719690Z",
+      "return_code": 0,
+      "elapsed_sec": 10.0,
+      "artifact_path": ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-39-02-719690Z"
+    },
+    {
+      "family": "H25",
+      "mode": "causal",
+      "experiment_name": "h28_h25_causal",
+      "experiment_id": "exp_2026-10-19T17-39-12-729639Z",
+      "return_code": 1,
+      "elapsed_sec": 10.0,
+      "artifact_path": ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-39-12-729639Z"
+    }
+  ],
+  "controls": {
+    "H10": {
+      "published_artifact": "exp_2026-10-11T17-41-18-169363Z",
+      "control_artifact": "exp_2026-10-19T15-46-16-261803Z",
+      "artifacts": {
+        "grid_results": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "positions": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "returns": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "equity": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "trades": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "hourly_target_selected": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "daily_target_h9": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "benchmark_equity": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "regime_factors": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        }
+      },
+      "bit_exact": true,
+      "summary_differences": {
+        "metrics.wf_stability": {
+          "published": 0.7805709265313979,
+          "control": 0.7794080364149097
+        }
+      },
+      "documented_library_drift": {
+        "metrics.wf_stability": {
+          "published": 0.7805709265313979,
+          "control": 0.7794080364149097
+        }
+      },
+      "unexpected_differences": {},
+      "summary_bit_exact": false,
+      "gate_outcomes_match": true,
+      "verdict_match": true
+    },
+    "H21": {
+      "published_artifact": "exp_2026-10-13T23-27-52-101656Z",
+      "control_artifact": "exp_2026-10-19T17-38-03-570526Z",
+      "artifacts": {
+        "grid_results": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "positions": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "basket_positions": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "per_contract_positions": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "returns": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "equity": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "trades": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "hourly_target_selected": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "daily_target_h10": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "benchmark_equity": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "benchmark_returns": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "regime_factors": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        }
+      },
+      "bit_exact": true,
+      "summary_differences": {
+        "metrics.wf_stability": {
+          "published": 0.9883111122625694,
+          "control": 0.987413906438289
+        }
+      },
+      "documented_library_drift": {
+        "metrics.wf_stability": {
+          "published": 0.9883111122625694,
+          "control": 0.987413906438289
+        }
+      },
+      "unexpected_differences": {},
+      "summary_bit_exact": false,
+      "gate_outcomes_match": true,
+      "verdict_match": true
+    },
+    "H22": {
+      "published_artifact": "exp_2026-10-14T18-52-08-943792Z",
+      "control_artifact": "exp_2026-10-19T17-38-39-157337Z",
+      "artifacts": {
+        "grid_results": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "positions": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "basket_positions": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "per_contract_positions": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "returns": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "equity": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "trades": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "hourly_target_selected": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "daily_target_h10": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "benchmark_equity": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "benchmark_returns": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "regime_factors": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        }
+      },
+      "bit_exact": true,
+      "summary_differences": {
+        "metrics.wf_stability": {
+          "published": 0.7591247935618846,
+          "control": 0.7580126970856018
+        }
+      },
+      "documented_library_drift": {
+        "metrics.wf_stability": {
+          "published": 0.7591247935618846,
+          "control": 0.7580126970856018
+        }
+      },
+      "unexpected_differences": {},
+      "summary_bit_exact": false,
+      "gate_outcomes_match": true,
+      "verdict_match": true
+    },
+    "H25": {
+      "published_artifact": "exp_2026-10-14T20-08-34-613690Z",
+      "control_artifact": "exp_2026-10-19T17-39-02-719690Z",
+      "artifacts": {
+        "grid_results": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "positions": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "basket_positions": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "per_contract_positions": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "returns": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "equity": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "trades": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "hourly_target_selected": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "daily_target_h10": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "benchmark_equity": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "benchmark_returns": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        },
+        "regime_factors": {
+          "shape_match": true,
+          "columns_match": true,
+          "index_match": true,
+          "max_abs_diff": 0.0,
+          "present_in_control": true,
+          "bit_exact": true
+        }
+      },
+      "bit_exact": true,
+      "summary_differences": {
+        "metrics.wf_stability": {
+          "published": 0.8726919975457872,
+          "control": 0.871595642610397
+        }
+      },
+      "documented_library_drift": {
+        "metrics.wf_stability": {
+          "published": 0.8726919975457872,
+          "control": 0.871595642610397
+        }
+      },
+      "unexpected_differences": {},
+      "summary_bit_exact": false,
+      "gate_outcomes_match": true,
+      "verdict_match": true
+    }
+  },
+  "verdicts": {
+    "H10": {
+      "family": "H10",
+      "causal_artifact": "exp_2026-10-19T16-41-44-683912Z",
+      "control_reproduced": true,
+      "published_verdict": "PASS",
+      "selected_config": {
+        "vol_window_long": 1008,
+        "smooth_span": "4",
+        "regime_scaling": true,
+        "min_trade_interval": 0,
+        "trailing_mult": 2.0,
+        "max_hold_bars": 60,
+        "vol_limit_mult": 1.5,
+        "vol_floor_fraction": 0.25
+      },
+      "selection_rule": "best Val Sharpe; Test protected (not used for selection); gates on OOS Val+Test",
+      "passes": {
+        "sharpe": false,
+        "trades": true,
+        "pf": false,
+        "dd": true,
+        "stab": true,
+        "worst": false,
+        "p": false,
+        "ir": false
+      },
+      "all_pass": false,
+      "published_gate_verdict": "REJECT",
+      "oos_sharpe": 0.39091137211091564,
+      "val_sharpe": null,
+      "test_sharpe": 0.06845910455177129,
+      "profit_factor": 1.0865498375426346,
+      "max_drawdown": -0.10139630025096769,
+      "trades": 2524,
+      "wf_stability": 1.3615043882827582,
+      "worst_regime_sharpe": -0.3692153563561557,
+      "benchmark_p_value": 0.9854984791626219,
+      "information_ratio": -0.002697585217388605,
+      "verdict": "CAUSAL_REJECTED",
+      "reason": "at least one unchanged gate fails on the protected OOS window"
+    },
+    "H21": {
+      "family": "H21",
+      "causal_artifact": "exp_2026-10-19T17-38-21-389139Z",
+      "control_reproduced": true,
+      "published_verdict": "REJECT",
+      "selected_config": {
+        "target_vol_mult": 0.5,
+        "max_pos": 0.5,
+        "scale_rule": "equal",
+        "n_assets": 5,
+        "h10_base_config": {
+          "vol_window_long": 1008,
+          "smooth_span": null,
+          "regime_scaling": false,
+          "min_trade_interval": 0,
+          "trailing_mult": 2.0,
+          "max_hold_bars": 60,
+          "vol_limit_mult": 1.5,
+          "vol_floor_fraction": 0.25
+        }
+      },
+      "selection_rule": "best Val Sharpe; Test protected (not used for selection); gates on OOS Val+Test",
+      "passes": {
+        "sharpe": false,
+        "trades": true,
+        "pf": false,
+        "dd": false,
+        "stab": true,
+        "worst": false,
+        "p": false,
+        "ir": true
+      },
+      "all_pass": false,
+      "published_gate_verdict": "REJECT",
+      "oos_sharpe": 0.13170966460927166,
+      "val_sharpe": 0.13170966460927166,
+      "test_sharpe": -0.05544215242608287,
+      "profit_factor": 1.0296424358919745,
+      "max_drawdown": -0.26124008938124976,
+      "trades": 5927,
+      "wf_stability": 58.212225721943,
+      "worst_regime_sharpe": -0.6106445786277773,
+      "benchmark_p_value": 0.7332123877488771,
+      "information_ratio": 0.05058819003504479,
+      "verdict": "CAUSAL_REJECTED",
+      "reason": "at least one unchanged gate fails on the protected OOS window"
+    },
+    "H22": {
+      "family": "H22",
+      "causal_artifact": "exp_2026-10-19T17-38-50-887609Z",
+      "control_reproduced": true,
+      "published_verdict": "PASS",
+      "selected_config": {
+        "target_vol_mult": 1.0,
+        "max_pos": 0.5,
+        "scale_rule": "equal",
+        "n_assets": 5,
+        "h10_base_config": {
+          "vol_window_long": 1008,
+          "smooth_span": null,
+          "regime_scaling": false,
+          "min_trade_interval": 0,
+          "trailing_mult": 2.0,
+          "max_hold_bars": 60,
+          "vol_limit_mult": 1.5,
+          "vol_floor_fraction": 0.25
+        }
+      },
+      "selection_rule": "best Val Sharpe; Test protected (not used for selection); gates on OOS Val+Test",
+      "passes": {
+        "sharpe": false,
+        "trades": true,
+        "pf": false,
+        "dd": false,
+        "stab": true,
+        "worst": false,
+        "p": false,
+        "ir": true,
+        "perturbation": true
+      },
+      "all_pass": false,
+      "published_gate_verdict": "REJECT",
+      "oos_sharpe": 0.36047322955118866,
+      "val_sharpe": 0.5174526002184967,
+      "test_sharpe": 0.14385594626826714,
+      "profit_factor": 1.0773354284019054,
+      "max_drawdown": -0.22760444683234615,
+      "trades": 3288,
+      "wf_stability": 2.349927068416164,
+      "worst_regime_sharpe": -0.4975286935021936,
+      "benchmark_p_value": 0.22830548906478132,
+      "information_ratio": 0.17880645517771454,
+      "verdict": "CAUSAL_REJECTED",
+      "reason": "at least one unchanged gate fails on the protected OOS window"
+    },
+    "H25": {
+      "family": "H25",
+      "causal_artifact": "exp_2026-10-19T17-39-12-729639Z",
+      "control_reproduced": true,
+      "published_verdict": "PASS",
+      "selected_config": {
+        "target_vol_mult": 1.75,
+        "max_pos": 0.5,
+        "scale_rule": "equal",
+        "n_assets": 4,
+        "h10_base_config": {
+          "vol_window_long": 1008,
+          "smooth_span": null,
+          "regime_scaling": false,
+          "min_trade_interval": 0,
+          "trailing_mult": 2.0,
+          "max_hold_bars": 60,
+          "vol_limit_mult": 1.5,
+          "vol_floor_fraction": 0.25
+        }
+      },
+      "selection_rule": "best Val PF margin (val_pf_margin = val_profit_factor - 1.3); Test protected (not used for selection); gates on OOS Val+Test",
+      "passes": {
+        "sharpe": false,
+        "trades": true,
+        "pf": false,
+        "dd": false,
+        "stab": true,
+        "worst": false,
+        "p": false,
+        "ir": true,
+        "perturbation": true
+      },
+      "all_pass": false,
+      "published_gate_verdict": "REJECT",
+      "oos_sharpe": 0.3231439026849481,
+      "val_sharpe": 0.4666984281461015,
+      "test_sharpe": 0.12263348321170466,
+      "profit_factor": 1.0692804083717933,
+      "max_drawdown": -0.26191129643718036,
+      "trades": 1786,
+      "wf_stability": 3.4420295739023103,
+      "worst_regime_sharpe": -0.3564723526707003,
+      "benchmark_p_value": 0.1888504009712614,
+      "information_ratio": 0.19502280511377817,
+      "verdict": "CAUSAL_REJECTED",
+      "reason": "at least one unchanged gate fails on the protected OOS window"
+    }
+  },
+  "elapsed_sec": 6786.51,
+  "run_artifact_paths": {
+    "exp_2026-10-19T15-46-16-261803Z": ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T15-46-16-261803Z",
+    "exp_2026-10-19T16-41-44-683912Z": ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T16-41-44-683912Z",
+    "exp_2026-10-19T17-38-03-570526Z": ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-38-03-570526Z",
+    "exp_2026-10-19T17-38-21-389139Z": ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-38-21-389139Z",
+    "exp_2026-10-19T17-38-39-157337Z": ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-38-39-157337Z",
+    "exp_2026-10-19T17-38-50-887609Z": ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-38-50-887609Z",
+    "exp_2026-10-19T17-39-02-719690Z": ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-39-02-719690Z",
+    "exp_2026-10-19T17-39-12-729639Z": ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-39-12-729639Z"
+  }
+}

@@ -1,110 +1,99 @@
-# NEXT TASK — H28: causal re-certification of the intraday futures TSMOM family
+# NEXT TASK — H29: systematic look-ahead sweep of the remaining certified families
 
 **Status: assigned to the next agent. Free data, bounded, verifiable.**
-**Written 2026-10-19, immediately after H27 (P&L level audit + look-ahead attribution).**
+**Written 2026-10-19, immediately after H28 (causal re-certification of the intraday family).**
 
 ## Why this task exists (the evidence)
 
-H27 (pre-registered in `HYPOTHESIS_SPEC.md` §H27, artifacts in
-`.experiments/artifacts/h27_pnl_level/`) settled the open question H26 left open about the
-*level* of the certified intraday P&L. Two verdicts:
+Two sessions of work have established, and then closed out, the look-ahead question for the
+**intraday** futures TSMOM family:
 
-- **`LEVEL_CONFIRMED`** — the P&L level carries **no unit or scale error**. The dollar P&L
-  recomputed from the committed prices/positions with the engine's contract maths
-  (`contracts = weight x 1e6 / (price x multiplier)`, `P&L = contracts x dPrice x multiplier`)
-  reproduces the logged returns to **≤4.9e-16**; the contract specs are exactly consistent
-  (`tick_value == tick_size x multiplier`); the cost drag recomputed from `trades.parquet`
-  matches the engine to **≤1.1e-19** and is 1.1%–4.9% of the gross edge. The published
-  Sharpe is not a factor-of-1000 slip.
-- **`LOOKAHEAD_CONFIRMED`** — but the *positions were not knowable when they were traded*.
-  `run_h9_intraday_tsmom_experiment.py::_daily_target_from_hourly` collapses the hourly
-  signal to `resample("1D").last()` (a day-labelled series holding **that day's closing**
-  signal) and `run_h10_intraday_tsmom_pfopt_experiment.py::build_hourly_target` expands it
-  back with `reindex(index, method="ffill")`, which assigns **every bar of day D the value
-  of day D's label**. Every session is positioned at its own open with the signal computed
-  at its own close. This affects **H9, H10, H21, H22 and H25 alike**.
+- **H27** (`HYPOTHESIS_SPEC.md` §H27) — `LEVEL_CONFIRMED` / `LOOKAHEAD_CONFIRMED`. The P&L
+  *level* is arithmetically clean (L1 ≤ 4.9e-16, L2 exact, L3 ≤ 1.1e-19), but the positions
+  were **not knowable when they were traded**: the daily-target collapse hands every bar of day
+  D the signal at day D's **close**.
+- **H28** (`HYPOTHESIS_SPEC.md` §H28) — the **re-certification**. Under a causal daily collapse
+  (same gates, same 55/25/20 splits, same Val-only selection, same Test protection, same cost
+  model, full grids re-run) **every family fails**:
 
-Causal counterfactual (the *selected* config of each family, the daily series lagged by
-exactly one day, nothing else in the pipeline changed, all five rebuilds bit-exact against
-the committed artifacts):
+  | Family | Published | Causal verdict | OOS Sharpe | OOS PF | Max DD | Gates |
+  |---|---|---|---|---|---|---|
+  | H10 | PASS | **CAUSAL_REJECTED** | 0.3909 | 1.087 | −10.1% | 3/8 |
+  | H21 | REJECT | **CAUSAL_REJECTED** | 0.1317 | 1.030 | −26.1% | 3/8 |
+  | H22 | PASS | **CAUSAL_REJECTED** | 0.3605 | 1.077 | −22.8% | 4/9 |
+  | H25 | PASS | **CAUSAL_REJECTED** | 0.3231 | 1.069 | −26.2% | 4/9 |
 
-| Family | Published OOS Sharpe | Causal | Relative drop | Published PF | Causal PF | Published equity | Causal equity |
-|---|---|---|---|---|---|---|---|
-| H9 (REJECT) | 1.0565 | 0.1860 | 82.4% | 1.253 | 1.042 | 8.02x | 1.26x |
-| H10 (PASS) | 1.2758 | 0.2923 | 77.1% | 1.304 | 1.063 | 6.92x | 1.19x |
-| H21 (REJECT) | 0.8394 | 0.1317 | 84.3% | 1.206 | 1.030 | 14.96x | 1.27x |
-| H22 (PASS) | 1.3725 | 0.3605 | 73.7% | 1.334 | 1.077 | 79.80x | 1.89x |
-| H25 (PASS) | 1.3236 | 0.3231 | 75.6% | 1.320 | 1.069 | 100.73x | 2.03x |
+  All four negative controls reproduced the published artifacts **bit-exactly** (max abs diff
+  0.0, including every one of the 13,824 H10 grid rows), so the comparison is sound; and the
+  causal re-selection buys at most +0.10 Sharpe, so the REJECT is not an artefact of a frozen
+  configuration.
 
-94.7%–97.8% of the published gross P&L is **intraday** P&L (open → close), i.e. the part of
-the session that can only be earned by knowing that session's close in advance (the mean
-`sign(w_open) × r_intraday` tilt is +0.00248 published vs +0.00040 causal — a 5.9×–6.2×
-excess). The
-equal-weight buy-and-hold of the same five futures grows **1.36x** over the same window,
-while the published H25 grows **100.7x** under a 5x gross leverage cap.
+**The defect is mechanical, and that makes it searchable.** `pandas` labels a resampled bin at
+its **left edge** for most frequencies but at its **right edge** for month-end frequencies:
 
-**Consequence:** the published PASS verdicts of H10/H11/H12/H22/H25 stand as published (H27
-changed no gate, threshold, verdict or certified number) but they are **not evidence of a
-tradable edge**. The family must be re-certified under a causal daily collapse.
+| Collapse | Bin label | Value held | Expansion `reindex(..., method="ffill")` | Look-ahead? |
+|---|---|---|---|---|
+| `resample("1D")` | **bin start** (day D 00:00) | day D's **close** | every bar of day D gets day D's close | **YES** |
+| `resample("ME")` | **bin end** (last day of the month) | the month's close | the month gets the *previous* month's close | no |
+
+H9/H10 (and everything descending from them: H21/H22/H25) use the first row; H6/H7/H8 use the
+second. That distinction is a *hypothesis* about the untested families, not a result: it was
+derived from the pandas semantics and has **not** been checked against the committed artifacts of
+the daily families.
 
 ## Scope
 
-1. **Implement the causal target builder — without editing the published runners.**
-   `run_h9_intraday_tsmom_experiment.py` and `run_h10_intraday_tsmom_pfopt_experiment.py`
-   are the *historical record*: H26 and H27 both reproduce the committed H10/H21/H22/H25
-   artifacts **bit-exactly** from them, and those artifacts are the certified ones. Editing
-   those functions in place would silently invalidate that reproducibility. Instead:
-   - add a causal builder, e.g. `build_hourly_target(..., lag_days=1)` or a new
-     `causal_daily_target_from_hourly(hourly_signal)` next to the existing one (the exact
-     implementation is already written and tested in
-     `run_h27_pnl_level_audit.py::causal_daily_target_from_hourly` — daily series shifted by
-     one calendar day, with the calendar-completeness assertion);
-   - add a new runner `run_h28_causal_recertification.py` that imports the H9/H10/H21/H22/H25
-     primitives unchanged and uses the causal builder;
-   - cover it with unit tests (the shift semantics, the calendar-gap guard, the
-     module-restore behaviour).
-2. **Re-run the family** with the **same** gates, the same 55/25/20 index splits, the same
-   Val-only selection and the same Test protection, the same cost model and the same
-   capital/leverage/caps:
-   - H22 (8 combos: `target_vol_mult x max_pos`), H25 (8 combos: `target_vol_mult x
-     n_assets`), H21 (16 combos), and H10 (13,824 combos, ≈0.48 CPU-h — permitted because
-     a defect *was* found and this re-registration is explicit).
-   - The H10 grid's selection rule (best Val Sharpe; Val PF reported) and the H25 rule
-     (best Val PF margin) must be reused unchanged.
-3. **Record an honest verdict.** **Expect REJECT.** The causal counterfactual on the
-   *already-selected* configs is OOS Sharpe 0.29–0.36 (gate ≥ 1.0), PF 1.06–1.08 (gate
-   ≥ 1.3) and max DD −12% to −26% (gate ≤ 15%). H28's purpose is to certify the truth,
-   not to find a passing configuration. A causal re-selection could land on a different
-   config; report whatever the selection produces.
-4. **Pin the outcome** in `tests/test_h28_*.py` and write the measure log to
-   `HYPOTHESIS_SPEC.md` §H28, then update `FINAL_REPORT.md`, `HANDOFF.md` and
-   `HANDOFF_NEXT.md`.
+1. **Enumerate every certified family and audit it for the same pattern.** The families H27/H28
+   covered (H9, H10, H21, H22, H25) are done. The ones that are **not**:
+   - the **daily / monthly** families (H1–H8) — the "certified" daily TSMOM family, which is the
+     only other PASS family in the repo;
+   - the **intraday diagnostics** that inherit H10's construction (H11 robustness, H12 selection
+     bias, H13 OOS deflation / PF audit);
+   - **H23** (crypto) — a different runner with no daily-collapse construction; REJECTED, but it
+     should be swept for completeness.
+2. **For each family, decide from the committed artifacts alone** whether the position held at
+   the start of a period is aligned with *that* period's own close (look-ahead) or with the
+   previous period's close (causal). Use the same artifact-only evidence chain H27 used: compare
+   the logged collapsed target against the signal at the period's open and at its close, and
+   check the fraction of bars on which the logged target matches the *same-period* expansion.
+3. **Sweep the source for the pattern**, not just the artifacts: grep every runner for
+   `resample(...)` followed by a forward-fill expansion, and classify each occurrence by the
+   bin-label position. A construction that collapses a sub-daily signal to a coarser frequency
+   and expands it back with `method="ffill"` is a look-ahead **iff** the bin label sits at the
+   bin's start.
+4. **Report per family**, with the mechanism, the evidence and the frozen artifact ids. Where a
+   family is affected, state the magnitude in the same terms H27 used (OOS Sharpe under the
+   minimal causal fix, and the intraday/overnight P&L split) — but do **not** re-run grids.
+   The families that use `resample("ME")` are expected to be clean; a family that is *not* clean
+   is a finding and must be reported as such.
 
 ## Pre-registration requirements (write the spec BEFORE running)
 
-- The verdict rule, e.g. `CAUSAL_CERTIFIED` iff the causal family's OOS gates all pass on
-  the protected OOS window; `CAUSAL_REJECTED` otherwise. State explicitly that the gates,
-  the splits, the selection rule and the cost model are **unchanged** from H9–H25, and that
-  the published artifacts are **not** rewritten.
-- The frozen artifact ids for the causal runs and the frozen list of the *published*
-  artifacts that must remain bit-reproducible (H10, H21, H22, H25) — with the requirement
-  that the H27 look-ahead regression test keeps passing (the published construction must
-  keep its documented look-ahead property, so the record stays auditable).
-- A **negative control**: the same pipeline with the *published* (same-day) expansion must
-  reproduce the published H10/H21/H22/H25 numbers bit-exactly. If it does not, the causal
-  run is not comparable and the run is void.
+- The verdict rule: `SWEEP_CLEAN` iff no audited family shows the same-period expansion on its
+  committed artifacts; `LOOKAHEAD_FOUND` otherwise, listing the affected families. State
+  explicitly that no published artifact is rewritten, no published verdict is changed and no
+  published runner is edited.
+- The frozen list of artifact ids to audit, and the frozen list of the *already-audited*
+  families (H9/H10/H21/H22/H25) whose H27/H28 results must be reproduced by the sweep's
+  machinery (a self-check: the sweep's detector must **fire** on H10 and **not** fire on a
+  monthly family, or the detector is broken).
+- A **negative control for the detector**: the same detector run against a deliberately
+  *causal* construction (the H27 `causal_daily_target_from_hourly` lag) must report clean.
 
 ## Constraints
 
-- **Do not** modify the published artifacts, the published runners' logic, any gate,
-  threshold, verdict or certified number.
-- **Do not** re-label the published family as certified or uncertified in the artifacts; the
-  published verdicts stay as published and the H27 flag travels with them.
-- Keep everything **offline and deterministic** (the cached hourly `=F` + `^VIX` data and
-  the committed `prices.parquet` are sufficient — no new fetch is needed, and the H27 audit
-  rebuilds all five families from the committed prices alone).
-- Do not run the paid-data task (wider OOS window) before H28: buying more data for a
-  construction with a look-ahead is wasted. The paid-data task remains downstream.
+- **Do not** modify the published artifacts, the published runners' logic, any gate, threshold,
+  verdict or certified number.
+- **Do not** re-label the published family as certified or uncertified in the artifacts; H28's
+  `CAUSAL_REJECTED` travels with it.
+- Keep everything **offline and deterministic** (the cached data and the committed
+  `prices.parquet` are sufficient; no new fetch).
+- If the sweep finds a *second* defective family, the follow-up (a causal re-certification like
+  H28) is a separate, explicitly re-registered task — do not run it inside H29.
+- The paid-data task (a wider OOS window for the PF bootstrap margin) stays **downstream** and
+  is *not* justified for the intraday family: a causal construction that fails the gates on the
+  free window will not be rescued by more of the same data. It may still be justified for the
+  *daily* families, which H29 would certify as clean.
 
 ## Verification (same commands as every session)
 
@@ -118,11 +107,13 @@ Note: `qtr` must be importable — run `pip install -e .` from the repo root if
 
 ## Evidence index
 
-- H27 spec + measure log: `HYPOTHESIS_SPEC.md` §H27.
-- H27 runner: `run_h27_pnl_level_audit.py`; artifacts:
-  `.experiments/artifacts/h27_pnl_level/summary.json` + `level_table.parquet`.
-- H27 tests: `tests/test_h27_pnl_level_audit.py` (36 tests, incl. the causal-collapse
-  semantics and the negative guards).
-- H27 report: `FINAL_REPORT.md` §H27 detail and the executive-summary block.
+- H28 spec + measure log: `HYPOTHESIS_SPEC.md` §H28.
+- H28 runner: `run_h28_causal_recertification.py`; artifacts:
+  `.experiments/artifacts/h28_causal_recertification/` + the eight run directories
+  (`h10_h22_h25_h21` control/causal exp ids are listed in that `summary.json`).
+- H28 tests: `tests/test_h28_causal_recertification.py` (47 tests, incl. the negative controls).
+- H27 spec + measure log: `HYPOTHESIS_SPEC.md` §H27; runner `run_h27_pnl_level_audit.py`;
+  artifacts `.experiments/artifacts/h27_pnl_level/`.
+- H27 tests: `tests/test_h27_pnl_level_audit.py` (36 tests).
 - H26 (the scale correction that led here): `HYPOTHESIS_SPEC.md` §H26,
   `run_h26_sharpe_scale_audit.py`, `.experiments/artifacts/h26_sharpe_scale/`.

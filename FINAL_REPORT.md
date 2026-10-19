@@ -41,6 +41,31 @@ certified number (the published PASS verdicts stand as published), but the certi
 must be treated as **not established** pending an explicitly re-registered re-certification
 under a causal daily collapse (H28). See §H27 detail and `HYPOTHESIS_SPEC.md` §H27.
 
+**Causal re-certification (H28, 2026-10-19) — the family is `CAUSAL_REJECTED`.** H28 re-ran
+the **full published grids** (H10 13,824 combos; H21 16; H22 8; H25 8) with the daily collapse
+lagged by one calendar day and **nothing else changed** — same gates, same 55/25/20 splits, same
+Val-only selection, same Test protection, same cost model. Every family's **negative control**
+(the published same-day expansion through the identical harness) reproduced the published
+artifact **bit-exactly** (max abs diff **0.0** on all artifacts, including every one of the
+13,824 H10 grid rows), so the comparison is sound. Under the causal build **every family fails
+the unchanged gates**:
+
+| Family | Published | Causal | OOS Sharpe | OOS PF | Max DD | Gates |
+|---|---|---|---|---|---|---|
+| H10 | PASS | **CAUSAL_REJECTED** | 0.3909 | 1.087 | −10.1% | 3/8 |
+| H21 | REJECT | **CAUSAL_REJECTED** | 0.1317 | 1.030 | −26.1% | 3/8 |
+| H22 | PASS | **CAUSAL_REJECTED** | 0.3605 | 1.077 | −22.8% | 4/9 |
+| H25 | PASS | **CAUSAL_REJECTED** | 0.3231 | 1.069 | −26.2% | 4/9 |
+
+The gates that fail are the same four everywhere: OOS Sharpe (≥ 1.0), PF (≥ 1.3), worst-regime
+Sharpe (≥ 0.3) and the benchmark p-value (< 0.05); H10 also fails the information ratio. The
+causal re-selection buys the family **at most +0.10 Sharpe** (H10 re-selects
+`smooth_span=4, regime_scaling=True`, 0.292 → 0.391) and changes no gate outcome, so the verdict
+is not an artefact of holding the configuration fixed. **The certified family does not survive
+its own re-certification.** The published PASS verdicts stand as published (H28 changed no gate,
+threshold, verdict or certified number) but they are now demonstrated to be **not evidence of a
+tradable edge**. See §H28 detail and `HYPOTHESIS_SPEC.md` §H28.
+
 **Metric-scale correction (H26, 2026-10-19).** Every published "OOS Sharpe" is a
 **√252-per-bar** metric (`sharpe_ratio` with its default `periods_per_year=252`). That is the
 correct calendar annualization for the *daily* families, but for the **intraday (1h)** families
@@ -354,22 +379,77 @@ overnight/intraday attribution, the verdict strings, and negative guards that fa
 checks are made vacuous (a wrong capital, a wrong contract multiplier, a wrong cost, a
 hard-coded annualization, or a *causal* construction).
 
+### H28 detail — causal re-certification of the intraday futures TSMOM family (executed 2026-10-19)
+
+H28 is the **re-certification** H27 asked for. It is not a new hypothesis and not a new
+selection: it re-runs the *published* H10/H21/H22/H25 pipelines with exactly one change — the
+daily collapse is lagged by one calendar day — and gate-evaluates them with the **unchanged**
+gates. Pre-registered in `HYPOTHESIS_SPEC.md` §H28 before execution; artifacts in
+`.experiments/artifacts/h28_causal_recertification/`; runner
+`run_h28_causal_recertification.py`.
+
+**Verdict: every family `CAUSAL_REJECTED`; the certified family (`H10`, `H22`, `H25`) is
+`CAUSAL_REJECTED`.** Runtime 6786.5 s ≈ 1.89 CPU-h, offline, no new data.
+
+**The negative control passed for every family.** Each family's control run — the published
+same-day expansion through the identical harness — reproduced the published artifact
+**bit-exactly**: H10 9/9 artifacts and H21/H22/H25 12/12 each, **max abs diff 0.0** everywhere,
+including `grid_results`, which pins the Val metrics of *every* one of the 13,824 H10 combos.
+The selected configuration, every gate boolean and the verdict are identical. The single
+documented exception is `metrics.wf_stability`, which moves only because the library's
+`walk_forward_splits` was changed on 2026-10-19 09:28 (after the published runs); the published
+value is reproduced bit-exactly by the pre-change implementation, and the gate that consumes it
+is unchanged. **So the published record is fully reproducible, and the only thing that changes
+the result is the causal collapse.**
+
+**The results.** H10 OOS Sharpe **0.3909** / PF 1.087 / DD −10.1% (3/8 gates); H21 **0.1317** /
+1.030 / −26.1% (3/8); H22 **0.3605** / 1.077 / −22.8% (4/9); H25 **0.3231** / 1.069 / −26.2%
+(4/9). The failing gates are the same four in every family — `sharpe` (≥ 1.0), `pf` (≥ 1.3),
+`worst` (worst-regime Sharpe ≥ 0.3) and `p` (benchmark p < 0.05) — plus `ir` for H10.
+
+**The re-selection headroom, now measured.** H27's counterfactual re-ran only the
+already-selected configuration and was therefore a lower bound. H28 re-ran the full grids:
+H10 re-selects a *different* configuration (`smooth_span` None → 4, `regime_scaling` False →
+True), lifting the causal Sharpe from 0.2923 to **0.3909** — real but small, still 2.6× below
+the gate, with PF 0.21 short and a negative information ratio. H21/H22/H25 re-select the
+published configuration itself, so their causal numbers coincide with H27's to the digit. **The
+REJECT is not an artefact of a frozen configuration.**
+
+**What H28 does not change.** No gate, threshold, verdict or certified number: H10/H11/H12/H22/H25
+remain PASS as published, H9/H21 remain REJECT, the published artifacts were not rewritten and
+the published runners were not edited. H28's verdict is an *additional* statement about the
+family's tradability, not a retroactive invalidation of the published record.
+
+**One repo fragility was exposed and closed.** The helpers that resolve a family's artifact
+directory pick the *lexicographically last* depth-1 directory carrying that family's
+`hypothesis` label; the H28 runs initially sat at depth 1 and were picked up as the published
+family runs, which broke four H25-Robustness regression tests. H28's runs are now grouped under
+`.experiments/artifacts/h28_causal_recertification/runs/<exp_id>/` and a regression guard fails
+if that ever recurs. No published artifact, gate, verdict or certified number was touched.
+
+**Verified:** 47 tests in `tests/test_h28_causal_recertification.py` pin the collapse semantics
+(one-day lag, the weekend carry, the calendar guard), the module patch/restore (including on
+failure), the experiment-identity and tracker capture, the control's sensitivity (a perturbed
+artifact, a changed gate boolean, a changed verdict or an unexpected metric each void the
+control), the verdict rule and the pre-registration itself.
+
 ## Conclusion
 
 - **Supported:** the cost-model bug is real and fixed; volatility-scaled momentum *implementation* is correct; the infra runs end-to-end.
 - **Certified (as published, but see H27):** H10 (intraday futures TSMOM, PF-optimized) passes all 8 gates; H11 certifies robustness; H12 certifies the result against selection bias; H22 (vol-targeting gap closed) passes all 9 gates; H25 (PF-margin repair by vol-targeting expansion on a pruned 4-contract basket, drop CL=F) passes all 9 gates. H22 remains the strongest by Sharpe (1.372); H25 is the strongest PF-margin repair (OOS PF 1.320 at 26.25% ann vol, perturbation-robust min ratio 0.946). **H27 caveat: these published verdicts are inflated by a one-day look-ahead in the daily-target collapse (OOS Sharpe −74% to −77%, equity multiple 6.9×/79.8×/100.7× → 1.19×/1.89×/2.03× under the minimal causal fix). The family is *not established*; the verdicts stand as published because H27 is an audit, not a re-certification.**
 - **Invalidated pending re-certification (H27):** the certified intraday family (H10/H11/H12/H22/H25) is built on a construction that positions every session with that session's own closing signal. The P&L *level* is not the problem (L1 ≤ 4.9e-16, L2 exact, L3 ≤ 1.1e-19) — the *information timing* is. Under the minimal causal fix the family's OOS Sharpe is 0.29–0.36, below the 1.0 gate, and 94.7%–97.8% of the published gross P&L is intraday P&L earned with same-day foresight.
+- **Re-certified and REJECTED (H28):** the re-certification has now been run. Under a causal daily collapse — same gates, same splits, same Val-only selection, same Test protection, same cost model, full grids re-run — **every family fails** (H10 3/8, H21 3/8, H22 4/9, H25 4/9): OOS Sharpe 0.13–0.39 against a 1.0 gate, PF 1.03–1.09 against 1.3, max DD −10% to −26% against −15%. All four negative controls reproduced the published artifacts bit-exactly, so the comparison is sound; and the causal re-selection buys at most +0.10 Sharpe, so the verdict is not an artefact of a frozen configuration. **The certified family is not a tradable edge.** The published PASS verdicts stand as published (H28 changed no gate, threshold, verdict or certified number), but they are now demonstrated to be worthless as evidence of tradability.
 - **Qualified (H13 / H25 Robustness):** the certification is Sharpe-robust (worst-case DSR-adj OOS Sharpe 1.2745, p = 0.001) but the PF margin is fragile/CI-fragile — H13 bootstrap 95% CI [1.190, 1.425] for H10; the H25 Robustness audit gives OOS PF 95% CI [1.2049, 1.4425] with P(PF≥1.3)=0.6215 (point-wise pass, CI lower bound below 1.3). The pre-registered block-bootstrap sensitivity (stationary block bootstrap, b=2 on the 5,148-bar OOS slice) gives PF CI [1.2046, 1.4458] P(PF≥1.3)=0.6460 with block-boot LB ≤ i.i.d. LB, so the fragility is REINFORCED under time-series dependence rather than an i.i.d. artifact. **Correction from the H26 scale audit:** the *Sharpe* half of this caveat was a metric-scale artifact — the published Sharpe is a √252-per-bar metric, and rescaling the same bootstrap distribution to the repo's own annualization convention moves the H25 Sharpe CI from [0.8834, 1.7506] to [2.2521, 4.4633] (P(Sharpe ≥ 1.0) = 1.0000). The **PF margin fragility is scale-invariant and stands**, so the certification remains *qualified* on the PF margin (and only on it); production use still requires a longer OOS window (paid data).
 - **Scale-corrected reading of the intraday family (H26):** the published Sharpe of the intraday rows is a **√252-per-bar** metric, not an annualized Sharpe; the correct annualized values are 2.55×–4.76× higher (H10 3.25, H22 3.50, H25 3.37 under the repo's own vol-target convention; 6.07/6.53/6.30 under the empirical calendar convention, confirmed by an independent daily-aggregation estimate of 5.04/5.20/5.09). The daily rows were already correctly annualized and are unaffected. The mis-scaling therefore *understates* the intraday family; it creates no pass and invalidates no verdict. It does mean the single "OOS Sharpe" column of the results table mixed two scales, and that the "the edge is marginal" framing of this record is partly a scale artifact.
 - **Rejected:** H1–H9 (momentum/TSMOM on free data), H16 (factor timing), H17 (VRP), H18 (overnight/intraday), H19 (volume-predictive), H20 (signed volume), H21 (multicontract futures TSMOM), H23 (crypto perpetual futures intraday TSMOM — negative edge on the cached 300-hour Coinbase sample, loss concentrated in the sideways regime; full attribution in `HYPOTHESIS_SPEC.md` §H23).
 
-## Summary statistics (H1–H27)
+## Summary statistics (H1–H28)
 
-- **28 hypothesis instances** evaluated across 7 families: equity momentum (H1–H3), futures TSMOM (H4–H14), equity factor timing (H16), volatility risk premium (H17), overnight/intraday decomposition (H18), volume-based (H19–H20), multi-contract intraday futures TSMOM (H21–H22), crypto perpetuals (H23), PF-margin repair (H25), plus the H25 Robustness bootstrap-CI audit, the **H26 Sharpe annualization-scale audit** and the **H27 P&L level audit + look-ahead attribution** (all post-hoc characterizations of the H25/H10 edge, not new selections). H15 was a probe (LOO PF 1.273 < 1.3; CL=F indispensable), folded into H13. H24 was report consolidation (not an experiment).
-- **5 certified edges** (H10/H11/H12/H22/H25) — all variants of the same intraday futures TSMOM mechanism (**H27: invalidated pending re-certification — the edge is a one-day look-ahead**); of these H22 has the strongest Sharpe (9/9 gates, OOS Sharpe 1.372, PF 1.334, DD −11.9%) and H25 the strongest PF margin (9/9 gates, OOS Sharpe 1.324, PF 1.320, DD −11.9% at 26.25% ann vol); both are *qualified* by an i.i.d. bootstrap CI whose lower bound sits below the PF gate, and the pre-registered block-bootstrap sensitivity confirms the PF fragility is not an i.i.d. artifact. (H26: the published Sharpe is a √252-per-bar metric — the annualized values are 2.55×–4.76× higher; the *PF* qualification is unaffected because PF is scale-invariant.)
+- **28 hypothesis instances** evaluated across 7 families: equity momentum (H1–H3), futures TSMOM (H4–H14), equity factor timing (H16), volatility risk premium (H17), overnight/intraday decomposition (H18), volume-based (H19–H20), multi-contract intraday futures TSMOM (H21–H22), crypto perpetuals (H23), PF-margin repair (H25), plus the H25 Robustness bootstrap-CI audit, the **H26 Sharpe annualization-scale audit**, the **H27 P&L level audit + look-ahead attribution** and the **H28 causal re-certification** (the first three are post-hoc characterizations of the H25/H10 edge, not new selections; H28 is a re-certification of the published pipelines under a corrected construction, with no new gate, threshold or selection rule). H15 was a probe (LOO PF 1.273 < 1.3; CL=F indispensable), folded into H13. H24 was report consolidation (not an experiment).
+- **5 certified edges** (H10/H11/H12/H22/H25) — all variants of the same intraday futures TSMOM mechanism (**H27: the edge is a one-day look-ahead; H28: re-certified under a causal collapse and `CAUSAL_REJECTED` — 3/8 to 4/9 gates, OOS Sharpe 0.13–0.39**); of these H22 has the strongest Sharpe (9/9 gates, OOS Sharpe 1.372, PF 1.334, DD −11.9%) and H25 the strongest PF margin (9/9 gates, OOS Sharpe 1.324, PF 1.320, DD −11.9% at 26.25% ann vol); both are *qualified* by an i.i.d. bootstrap CI whose lower bound sits below the PF gate, and the pre-registered block-bootstrap sensitivity confirms the PF fragility is not an i.i.d. artifact. (H26: the published Sharpe is a √252-per-bar metric — the annualized values are 2.55×–4.76× higher; the *PF* qualification is unaffected because PF is scale-invariant.)
 - **19 rejected** hypotheses, each with a documented root-cause attribution in `HYPOTHESIS_SPEC.md` and `INEFFICIENCY_RANKING.md`.
-- **Total compute:** ~2.5 CPU-h across all hypotheses (well within the ≤ 2 CPU-h per-hypothesis budget; the largest single run was H12 at 0.652 CPU-h). The H25 Robustness audit added 0.0002 CPU-h; the H26 scale audit added 0.0005 CPU-h; the H27 level/look-ahead audit added 0.0014 CPU-h (5 bit-exact rebuilds, no grid re-run).
-- **Test suite:** 586/586 passing (including the 17-test H25 Robustness audit — 12 i.i.d. bootstrap + 5 block-bootstrap sensitivity — the 23-test H25 regression set, and the 44-test H26 scale-audit set).
+- **Total compute:** ~2.5 CPU-h across all hypotheses (well within the ≤ 2 CPU-h per-hypothesis budget; the largest single run was H12 at 0.652 CPU-h). The H25 Robustness audit added 0.0002 CPU-h; the H26 scale audit added 0.0005 CPU-h; the H27 level/look-ahead audit added 0.0014 CPU-h (5 bit-exact rebuilds, no grid re-run); the **H28 causal re-certification added 1.885 CPU-h** (8 runs: 4 controls + 4 causal, the 13,824-combo H10 grid run twice).
+- **Test suite:** 669/669 passing (including the 17-test H25 Robustness audit — 12 i.i.d. bootstrap + 5 block-bootstrap sensitivity — the 23-test H25 regression set, the 44-test H26 scale-audit set, the 36-test H27 level-audit set and the 47-test H28 re-certification set).
 - **Structural walls on free data:** (a) yfinance hourly `=F` hard-capped at ~730 days (no bars beyond 2026-10-11); (b) Coinbase/CCXT hourly OHLCV capped at ~12 days; (c) the joint Sharpe ≥ 1.0 ∧ DD ≤ 15% gate met by no long-only free-data equity family; (d) PF ≥ 1.3 is fragile across the entire intraday-futures-carry family (H13/H14 for H10; H21 for the basket; H22 margin +0.034; H25 margin +0.020 — all CI-fragile, P(PF≥1.3)≈0.5–0.62 on the free window). **Corrected by H26:** the *Sharpe* side of (c)/(d) is not a further blocker — the published intraday Sharpe is a √252-per-bar metric, and on the repo's own annualization convention the certified family's Sharpe CI lower bound is 2.25 ≫ 1.0. The binding constraint is the **PF bootstrap margin plus the 730-day sample**, both of which are scale-invariant.
 
 ## Next Task
@@ -413,4 +493,26 @@ the already-selected configs is OOS Sharpe 0.29–0.36, PF 1.06–1.08, max DD �
 below the gates. Buying more data for a construction with a look-ahead would be wasted, so the
 paid-data task stays queued **behind** H28. Full scope: `NEXT_TASK.md`; evidence:
 `HYPOTHESIS_SPEC.md` §H27 and `FINAL_REPORT.md` §H27 detail.
+
+**H28 (2026-10-19) has now been executed, and the expectation was correct.**
+`HYPOTHESIS_SPEC.md` §H28 (pre-registered before execution) → **`CAUSAL_REJECTED` for every
+family**: H10 OOS Sharpe **0.3909** / PF 1.087 / DD −10.1% (3/8 gates), H21 **0.1317** / 1.030 /
+−26.1% (3/8), H22 **0.3605** / 1.077 / −22.8% (4/9), H25 **0.3231** / 1.069 / −26.2% (4/9). All
+four negative controls reproduced the published artifacts **bit-exactly** (max abs diff 0.0,
+including every one of the 13,824 H10 grid rows), so the comparison is sound; and the causal
+re-selection buys at most +0.10 Sharpe (H10 re-selects `smooth_span=4, regime_scaling=True`),
+so the REJECT is not an artefact of a frozen configuration. The published PASS verdicts stand as
+published — H28 changed no gate, threshold, verdict or certified number — but the family is now
+**demonstrated not to be a tradable edge**.
+
+**The next task is H29: a systematic look-ahead sweep of the *rest* of the certified set.**
+H27 and H28 covered the intraday futures family (H9/H10/H21/H22/H25) and showed that the defect
+is *mechanical*: `resample("1D")` labels each day at the **bin start** with the value of that
+day's **close**, so the expansion `reindex(..., method="ffill")` hands every bar of day D the
+close of day D. The monthly constructions in H6/H7/H8 use `resample("ME")`, which labels each
+month at the **bin end**, and are therefore *not* affected by the same mechanism — but that has
+not been verified on the committed artifacts, and the daily families (H1–H8) and the intraday
+diagnostics (H11–H13) have never been swept for it. H29 is bounded, offline and verifiable:
+audit every remaining certified family for the same pattern, with the labelling rule as the
+discriminator. Full scope: `NEXT_TASK.md`.
 
