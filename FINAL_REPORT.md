@@ -10,6 +10,20 @@ Systematic hypothesis testing across 23 hypotheses (H1-H23) revealed that only t
 - **H11**: Robustness certification of H10 (certified)
 - **H12**: Selection-bias audit of H10 (certified)
 - **H22**: Vol-targeting gap closed on the multi-contract intraday futures TSMOM basket (certified)
+- **H25**: PF-margin repair by vol-targeting expansion on a pruned 4-contract basket (certified; qualified on the PF bootstrap margin)
+
+**Metric-scale correction (H26, 2026-10-19).** Every published "OOS Sharpe" is a
+**√252-per-bar** metric (`sharpe_ratio` with its default `periods_per_year=252`). That is the
+correct calendar annualization for the *daily* families, but for the **intraday (1h)** families
+the published number is **not** an annualized Sharpe: it understates the annualized value by
+**2.55×** (the repo's own `√(252·6.5)` vol-target convention) to **4.76×** (the empirical
+calendar convention; 5.92× for the 24/7 crypto family H23). The certified family's annualized
+Sharpe is therefore ≈3.25 (H10), ≈3.50
+(H22), ≈3.37 (H25) — not 1.28/1.37/1.32. This changes **no verdict and no gate** (the
+mis-scaling is conservative, and the profit-factor gate is scale-invariant), but it does mean the
+results table's single "OOS Sharpe" column previously mixed two scales, and that the "Sharpe
+CI-fragile" caveat was a metric-scale artifact rather than a property of the edge. See §H26
+detail and `HYPOTHESIS_SPEC.md` §H26.
 
 All other hypotheses, including various equity-based momentum, mean-reversion, regime-gated, volatility-targeted, volume-based, and crypto perpetual futures strategies, failed to meet the evidence gates, primarily due to insufficient risk-adjusted returns, excessive drawdown, or profit-factor fragility.
 
@@ -17,7 +31,13 @@ The structural barriers to clearing the gates on free data are:
 1. The 730-hour limit on hourly futures data from yfinance (paid data required for longer horizon)
 2. The joint Sharpe ≥ 1.0 and drawdown ≤ 15% gate, which no long-only free-data equity family has met
 
-The certified edge (intraday futures TSMOM) represents a genuine market inefficiency exploitable at intraday frequencies with diversified futures contracts and appropriate volatility targeting.
+The certified edge (intraday futures TSMOM) is a **backtested** result that clears the
+pre-registered gates on the available free window and is *qualified* by a CI-fragile profit-factor
+margin. It is **not** established as a genuine exploitable market inefficiency: the OOS window is
+~730 days, the PF margin is CI-fragile, and the scale-corrected annualized Sharpe (≈3.25–3.50
+under the repo's own convention) is far above the ≈0.5–1.5 range of published real-world
+futures time-series-momentum results, which is an open question about the *level* of the
+backtested P&L rather than a confirmed edge (see §H26 detail and `NEXT_TASK.md`).
 
 ## Phase 1 — Prompt Refinement
 
@@ -106,6 +126,30 @@ itself (2020/2022) is the invalidating evidence. See `INEFFICIENCY_RANKING.md`.
 | H25 Futures TSMOM basket — PF-margin repair by vol-targeting expansion | ES=F, NQ=F, CL=F, GC=F, ZB=F + ^VIX (2024-10-12 -> 2026-10-11 hourly, 55/25/20 splits, OOS = Val+Test) | target_vol_mult=1.75 (26.25% ann), max_pos=0.5, scale_rule=equal, n_assets=4 (drop CL=F); selection = Val PF margin | 1.324 | 1,712 | 1.320 | -11.9% | 9/9 | **PASS** |
 | H25 Robustness bootstrap-CI audit (audit of the H25 config above; mirror of H13 audit of H10) | same artifact `exp_2026-10-14T20-08-34-613690Z` | OOS PF 95% CI [1.2049, 1.4425], P(PF>=1.3)=0.6215; OOS Sharpe 95% CI [0.8834, 1.7506], P(Sharpe>=1.0)=0.9275 (2,000 resamples, seed 42) | 1.320 | — | 1.320 | — | audit | see §Conclusion (qualified) |
 
+> **Table scale note (added by the H26 audit, 2026-10-19 — see §H26 detail below).** The
+> "OOS Sharpe" column is **not on one scale**. Every published Sharpe is
+> `sharpe_ratio(returns)` with the default `periods_per_year=252`, i.e. the
+> **per-bar** mean/vol ratio × `√252`. For the **daily** rows (H1–H8, H16–H20) the bar
+> is a trading day, so `√252` *is* the calendar annualization and those numbers are
+> genuine annualized Sharpes. For the **intraday (1h)** rows (H9, H10, H11, H13, H21,
+> H22, H23, H25) the bar is one hour, so the same multiplier annualizes neither the
+> trading year (`√(252·6.5)`, the convention the intraday vol-target code itself
+> uses) nor the calendar year (`√(bars_per_year) ≈ 75.5` for the 15.6-bars/day `=F`
+> series). The intraday rows are therefore **understated** by **2.55×–4.76×** (the
+> 24/7 crypto family H23 is 5.92×) and must not be compared directly against the daily
+> rows. Multiplying the intraday Sharpe column by 2.55 (the repo's own, most conservative,
+> vol-target convention) gives H9 2.69, H10 3.25, H21 2.14, H22 3.50, H25 3.37 — i.e. the
+> intraday family is *under-credited* in the table above, not over-credited. No verdict,
+> gate, or certified number changes.
+>
+> **H9 profit-factor footnote.** H9's published PF (1.252) is the **full-sample**
+> (train+val+test) profit factor, because the H9 runner read the engine metric
+> `result.metrics["profit_factor"]` instead of recomputing it on the OOS slice. The
+> correct OOS-window PF is **1.2529**; both are below the 1.3 gate, so H9's REJECT
+> verdict is unchanged (the defect was conservative). H10/H21/H22/H25 are unaffected
+> (their published PF matches the OOS-window PF exactly).
+
+
 ### H23 detail (crypto perpetual futures intraday TSMOM)
 
 H23 tested whether the H10/H22 intraday futures TSMOM mechanism generalizes to crypto perpetual futures on Coinbase. The pre-registered 2-year window (2024-10-12 → 2026-10-11) is **not achievable on free data**: Coinbase/CCXT hourly OHLCV returns only ~300 hours (2024-10-12 → 2024-10-24), a hard free-data limit. The experiment proceeded on the available window and is REJECT on a clean, non-degenerate basis.
@@ -116,38 +160,122 @@ Latest run (`exp_2026-10-14T18-13-09-457781Z`, 6912-combo grid, 0.039 CPU-h): se
 
 **What would change the verdict:** a free crypto data source providing ≥ 1 year of hourly OHLCV for major perpetuals, or a paid data subscription (Kaiko/CoinAPI) enabling the pre-registered 2-year window.
 
+### H26 detail — Sharpe annualization-scale audit (executed 2026-10-19)
+
+H26 is a **post-hoc audit of the published record**, not a new hypothesis and not a new
+selection: no strategy was re-run, no gate, threshold, verdict, or certified number
+was changed. It asks one question — *is the published "OOS Sharpe" an annualized
+Sharpe for every family?* — and answers it by reproducing every audited artifact
+bit-close from its own frozen returns and rescaling the same series under each
+defensible annualization convention. Pre-registered in `HYPOTHESIS_SPEC.md` §H26
+before execution; artifacts in `.experiments/artifacts/h26_sharpe_scale/`.
+
+**Verdict: `SCALE_CONFIRMED` / `CONTROL_OK`.** The published metric is a
+**√252-per-bar** Sharpe. For the intraday families it is **not** an annualized
+Sharpe, and the mis-scaling *understates* the edge:
+
+| Family | Verdict | Published (√252-per-bar) | ×2.5495 (repo vol convention) | ×4.7566 (empirical calendar) | daily-aggregated (independent estimate) |
+|---|---|---|---|---|---|
+| H10 | PASS | 1.2758 | 3.2526 | 6.0682 | 5.0366 |
+| H21 | REJECT | 0.8394 | 2.1400 | 3.9925 | 3.5293 |
+| H22 | PASS | 1.3725 | 3.4991 | 6.5283 | 5.1973 |
+| H23 | REJECT | −7.1871 | −18.3236 | −42.5481 | −12.5024 |
+| H25 | PASS | 1.3236 | 3.3746 | 6.2959 | 5.0916 |
+| H16 (daily control) | — | — | — | ratio **0.9995** → already annualized | — |
+
+**What this changes**
+
+1. **Cross-family comparability.** The results table above mixed two scales; the
+   intraday rows are now flagged and the corrected values are given. The intraday
+   family is *under-credited*, so no rejection becomes a pass.
+2. **The "Sharpe CI-fragile" caveat was a scale artifact.** The certified family's
+   Sharpe bootstrap CI was quoted in the mis-scaled units. Rescaling the same
+   bootstrap distribution (the CI scales linearly with the annualization factor) gives
+   for H25: as published CI [0.8834, 1.7506], P(Sharpe ≥ 1.0) = 0.9275 → repo vol
+   convention CI [2.2521, 4.4633], **P = 1.0000**; empirical calendar CI [4.2018,
+   8.3271]. Same for H10 and H22. The audit reproduces the published CI bit-for-bit
+   and then re-characterizes it: the Sharpe CI fragility is a property of the metric
+   scale, not of the edge. **The profit-factor CI fragility is scale-invariant and
+   stands** — PF is a ratio of gross sums — so the certification remains *qualified*
+   for the PF margin, and no longer for the Sharpe.
+3. **Two cross-artifact defects found by the reproduction anchor.** H9 failed the
+   1e-9 anchor and is excluded from the audited set; its cause was diagnosed:
+   (a) H9 was published with the *sample*-std (ddof=1) Sharpe estimator while H10 and
+   later use the *population*-std (ddof=0) estimator of the current library
+   (relative difference ≈ 1e-4, immaterial but no longer bit-reproducible), and
+   (b) H9's published "OOS profit factor" is the **full-sample** PF (train window
+   included); the correct OOS-window PF is 1.2529, still below the 1.3 gate, so
+   **H9's REJECT verdict is unchanged**.
+4. **Dependence check.** Max |lag-1..24 autocorrelation| is 0.026–0.045 and the
+   Newey–West long-run-variance ratio is 0.78–0.99 for the four futures families, so
+   square-root scaling is sound for them. H23's 134-bar crypto slice is strongly
+   autocorrelated (lag-1 0.500), so its rescaled value is not reliable — immaterial,
+   because H23 is REJECTED, but recorded.
+5. **Flagged, not settled.** A corrected annualized Sharpe of 3.25–6.53 for the
+   certified intraday family is *extraordinary* for a futures TSMOM strategy (real
+   TSMOM Sharpes are ≈0.5–1.5). H26 does not audit that level and makes no claim
+   about it; it records that the "the edge is marginal" framing of the record is at
+   least partly a metric-scale artifact, and that the *magnitude* of the backtested
+   P&L now deserves its own audit (position sizing / contract-multiplier / cost-scale
+   consistency, and the plausibility of a 15% vol target producing ≈10.5%
+   calendar-annualized realized vol at ≈32% calendar-annualized return).
+
+**Verified:** 44 new tests in `tests/test_h26_sharpe_scale_audit.py` pin the
+reproduction of every audited artifact, the scale factors, the linear CI rescaling,
+the recomputed gate fractions, the daily control, the H9 exclusion with both
+diagnoses, the dependence diagnostics, and the new `bars_per_year` /
+`annualized_sharpe` library helpers (including negative guards that fail if the
+scale correction, the frequency inference, or the PF-window diagnosis is undone).
+
 ## Conclusion
 
 - **Supported:** the cost-model bug is real and fixed; volatility-scaled momentum *implementation* is correct; the infra runs end-to-end.
 - **Certified:** H10 (intraday futures TSMOM, PF-optimized) passes all 8 gates; H11 certifies robustness; H12 certifies the result against selection bias; H22 (vol-targeting gap closed) passes all 9 gates; H25 (PF-margin repair by vol-targeting expansion on a pruned 4-contract basket, drop CL=F) passes all 9 gates. H22 remains the strongest by Sharpe (1.372); H25 is the strongest PF-margin repair (OOS PF 1.320 at 26.25% ann vol, perturbation-robust min ratio 0.946).
-- **Qualified (H13 / H25 Robustness):** the certification is Sharpe-robust (worst-case DSR-adj OOS Sharpe 1.2745, p = 0.001) but the PF margin is fragile/CI-fragile — H13 bootstrap 95% CI [1.190, 1.425] for H10; the H25 Robustness audit gives OOS PF 95% CI [1.2049, 1.4425] with P(PF≥1.3)=0.6215 (point-wise pass, CI lower bound below 1.3). The pre-registered block-bootstrap sensitivity (stationary block bootstrap, b=2 on the 5,148-bar OOS slice) gives PF CI [1.2046, 1.4458] P(PF≥1.3)=0.6460 with block-boot LB ≤ i.i.d. LB, so the fragility is REINFORCED under time-series dependence rather than an i.i.d. artifact; the Sharpe block-boot LB (0.8974) exceeds the i.i.d. LB (0.8834) so the Sharpe edge is not weakened by dependence, but still dips below 1.0 at the CI LB. Same qualified-certification status; production use requires a longer OOS window (paid data).
+- **Qualified (H13 / H25 Robustness):** the certification is Sharpe-robust (worst-case DSR-adj OOS Sharpe 1.2745, p = 0.001) but the PF margin is fragile/CI-fragile — H13 bootstrap 95% CI [1.190, 1.425] for H10; the H25 Robustness audit gives OOS PF 95% CI [1.2049, 1.4425] with P(PF≥1.3)=0.6215 (point-wise pass, CI lower bound below 1.3). The pre-registered block-bootstrap sensitivity (stationary block bootstrap, b=2 on the 5,148-bar OOS slice) gives PF CI [1.2046, 1.4458] P(PF≥1.3)=0.6460 with block-boot LB ≤ i.i.d. LB, so the fragility is REINFORCED under time-series dependence rather than an i.i.d. artifact. **Correction from the H26 scale audit:** the *Sharpe* half of this caveat was a metric-scale artifact — the published Sharpe is a √252-per-bar metric, and rescaling the same bootstrap distribution to the repo's own annualization convention moves the H25 Sharpe CI from [0.8834, 1.7506] to [2.2521, 4.4633] (P(Sharpe ≥ 1.0) = 1.0000). The **PF margin fragility is scale-invariant and stands**, so the certification remains *qualified* on the PF margin (and only on it); production use still requires a longer OOS window (paid data).
+- **Scale-corrected reading of the intraday family (H26):** the published Sharpe of the intraday rows is a **√252-per-bar** metric, not an annualized Sharpe; the correct annualized values are 2.55×–4.76× higher (H10 3.25, H22 3.50, H25 3.37 under the repo's own vol-target convention; 6.07/6.53/6.30 under the empirical calendar convention, confirmed by an independent daily-aggregation estimate of 5.04/5.20/5.09). The daily rows were already correctly annualized and are unaffected. The mis-scaling therefore *understates* the intraday family; it creates no pass and invalidates no verdict. It does mean the single "OOS Sharpe" column of the results table mixed two scales, and that the "the edge is marginal" framing of this record is partly a scale artifact.
 - **Rejected:** H1–H9 (momentum/TSMOM on free data), H16 (factor timing), H17 (VRP), H18 (overnight/intraday), H19 (volume-predictive), H20 (signed volume), H21 (multicontract futures TSMOM), H23 (crypto perpetual futures intraday TSMOM — negative edge on the cached 300-hour Coinbase sample, loss concentrated in the sideways regime; full attribution in `HYPOTHESIS_SPEC.md` §H23).
 
-## Summary statistics (H1–H23)
+## Summary statistics (H1–H26)
 
-- **26 hypothesis instances** evaluated across 7 families: equity momentum (H1–H3), futures TSMOM (H4–H14), equity factor timing (H16), volatility risk premium (H17), overnight/intraday decomposition (H18), volume-based (H19–H20), multi-contract intraday futures TSMOM (H21–H22), crypto perpetuals (H23), PF-margin repair (H25), plus the H25 Robustness bootstrap-CI audit (post-hoc statistical characterization of the H25 edge, not a new selection). H15 was a probe (LOO PF 1.273 < 1.3; CL=F indispensable), folded into H13. H24 was report consolidation (not an experiment).
-- **5 certified edges** (H10/H11/H12/H22/H25) — all variants of the same intraday futures TSMOM mechanism; of these H22 has the strongest Sharpe (9/9 gates, OOS Sharpe 1.372, PF 1.334, DD −11.9%) and H25 the strongest PF margin (9/9 gates, OOS Sharpe 1.324, PF 1.320, DD −11.9% at 26.25% ann vol); both are *qualified* by an i.i.d. bootstrap CI whose lower bound sits below the PF gate, and the pre-registered block-bootstrap sensitivity confirms the PF fragility is not an i.i.d. artifact.
+- **27 hypothesis instances** evaluated across 7 families: equity momentum (H1–H3), futures TSMOM (H4–H14), equity factor timing (H16), volatility risk premium (H17), overnight/intraday decomposition (H18), volume-based (H19–H20), multi-contract intraday futures TSMOM (H21–H22), crypto perpetuals (H23), PF-margin repair (H25), plus the H25 Robustness bootstrap-CI audit and the **H26 Sharpe annualization-scale audit** (both post-hoc statistical characterizations of the H25/H10 edge, not new selections). H15 was a probe (LOO PF 1.273 < 1.3; CL=F indispensable), folded into H13. H24 was report consolidation (not an experiment).
+- **5 certified edges** (H10/H11/H12/H22/H25) — all variants of the same intraday futures TSMOM mechanism; of these H22 has the strongest Sharpe (9/9 gates, OOS Sharpe 1.372, PF 1.334, DD −11.9%) and H25 the strongest PF margin (9/9 gates, OOS Sharpe 1.324, PF 1.320, DD −11.9% at 26.25% ann vol); both are *qualified* by an i.i.d. bootstrap CI whose lower bound sits below the PF gate, and the pre-registered block-bootstrap sensitivity confirms the PF fragility is not an i.i.d. artifact. (H26: the published Sharpe is a √252-per-bar metric — the annualized values are 2.55×–4.76× higher; the *PF* qualification is unaffected because PF is scale-invariant.)
 - **19 rejected** hypotheses, each with a documented root-cause attribution in `HYPOTHESIS_SPEC.md` and `INEFFICIENCY_RANKING.md`.
-- **Total compute:** ~2.5 CPU-h across all hypotheses (well within the ≤ 2 CPU-h per-hypothesis budget; the largest single run was H12 at 0.652 CPU-h). The H25 Robustness audit added 0.0002 CPU-h.
-- **Test suite:** 359/359 passing (including the 17-test H25 Robustness audit — 12 i.i.d. bootstrap + 5 block-bootstrap sensitivity — and the 23-test H25 regression set).
-- **Structural walls on free data:** (a) yfinance hourly `=F` hard-capped at ~730 days (no bars beyond 2026-10-11); (b) Coinbase/CCXT hourly OHLCV capped at ~12 days; (c) the joint Sharpe ≥ 1.0 ∧ DD ≤ 15% gate met by no long-only free-data equity family; (d) PF ≥ 1.3 is fragile across the entire intraday-futures-carry family (H13/H14 for H10; H21 for the basket; H22 margin +0.034; H25 margin +0.020 — all CI-fragile, P(PF≥1.3)≈0.5–0.62 on the free window).
+- **Total compute:** ~2.5 CPU-h across all hypotheses (well within the ≤ 2 CPU-h per-hypothesis budget; the largest single run was H12 at 0.652 CPU-h). The H25 Robustness audit added 0.0002 CPU-h; the H26 scale audit added 0.0005 CPU-h.
+- **Test suite:** 586/586 passing (including the 17-test H25 Robustness audit — 12 i.i.d. bootstrap + 5 block-bootstrap sensitivity — the 23-test H25 regression set, and the 44-test H26 scale-audit set).
+- **Structural walls on free data:** (a) yfinance hourly `=F` hard-capped at ~730 days (no bars beyond 2026-10-11); (b) Coinbase/CCXT hourly OHLCV capped at ~12 days; (c) the joint Sharpe ≥ 1.0 ∧ DD ≤ 15% gate met by no long-only free-data equity family; (d) PF ≥ 1.3 is fragile across the entire intraday-futures-carry family (H13/H14 for H10; H21 for the basket; H22 margin +0.034; H25 margin +0.020 — all CI-fragile, P(PF≥1.3)≈0.5–0.62 on the free window). **Corrected by H26:** the *Sharpe* side of (c)/(d) is not a further blocker — the published intraday Sharpe is a √252-per-bar metric, and on the repo's own annualization convention the certified family's Sharpe CI lower bound is 2.25 ≫ 1.0. The binding constraint is the **PF bootstrap margin plus the 730-day sample**, both of which are scale-invariant.
 
 ## Next Task
 
-FINAL_REPORT.md now reflects H1–H25 (H24 = report consolidation) and the H25 Robustness
-bootstrap-CI audit. Current verified state:
+FINAL_REPORT.md now reflects H1–H26 (H24 = report consolidation), the H25 Robustness
+bootstrap-CI audit, and the H26 Sharpe annualization-scale audit. Current verified state:
 
 - The pre-registered free-data hypothesis space is **exhausted**. The only PASS family on free
   data is the intraday futures TSMOM mechanism (H10/H11/H22/H25); H25 is the strongest PF-margin
   repair. H25 is **qualified**: point-wise it clears all 9 gates (Sharpe 1.324, PF 1.320, DD
   −11.9%, perturbation-robust), but the H25 Robustness audit shows the PF margin is **CI-fragile**
-  (95% CI [1.2049, 1.4425], P(PF≥1.3)=0.6215) and Sharpe CI-fragile (95% CI [0.8834, 1.7506],
-  P(Sharpe≥1.0)=0.9275). The residual, irreducible blocker is the free-data horizon
-  (yfinance hourly `=F` capped ~730 days; Coinbase ~12 days), not a selection or gate defect.
+  (95% CI [1.2049, 1.4425], P(PF≥1.3)=0.6215). The residual, irreducible blocker is the free-data
+  horizon (yfinance hourly `=F` capped ~730 days; Coinbase ~12 days), not a selection or gate defect.
+- **Corrected by H26 (2026-10-19):** the published Sharpe is a √252-**per-bar** metric, so the
+  intraday family's Sharpe CI fragility quoted above (95% CI [0.8834, 1.7506]) is a **scale
+  artifact** — rescaled to the repo's own annualization convention the CI is [2.2521, 4.4633] with
+  P(Sharpe≥1.0)=1.0000. The **PF margin fragility is scale-invariant and remains the binding
+  constraint**, together with the 730-day sample. The "Next Task" below is unchanged in substance
+  but its justification is now narrower and evidence-based.
 
 The precise next task (bounded, verifiable) therefore falls outside the free-data constraint
-and requires **paid hourly futures data** to widen the OOS window enough for the PF and Sharpe
-bootstrap CIs to clear their gates with margin. No further hypothesis should be run on free data
+and requires **paid hourly futures data** to widen the OOS window enough for the PF bootstrap
+CI to clear its gate with margin. No further hypothesis should be run on free data
 until that data wall is resolved; doing so would repeat the H1–H9/H19–H23 pattern (OOS Sharpe
 0.2–0.8, regime-fragile, PF-CI-fragile). Details and evidence are in `NEXT_TASK.md` and
 `INEFFICIENCY_RANKING.md` §17.
+
+**However, one free-data task now outranks the paid-data task** and is the highest-value next
+step for the next agent: the H26 correction implies an annualized Sharpe of **3.25–6.53** for the
+certified intraday family — extraordinary for a futures TSMOM strategy, where published
+(real-world) Sharpes are ≈0.5–1.5. The *level* of the backtested P&L therefore needs its own
+audit (position sizing, contract-multiplier and cost-scale consistency, and whether a 15% vol
+target can plausibly produce ≈10.5% calendar-annualized realized vol at ≈32% calendar-annualized
+return). That audit uses only the committed artifacts and the cached data, needs no paid data and
+no new hypothesis, and it can either (a) confirm the level and thereby *strengthen* the record, or
+(b) find the scale bug that would invalidate the certified family. See `NEXT_TASK.md`.
+

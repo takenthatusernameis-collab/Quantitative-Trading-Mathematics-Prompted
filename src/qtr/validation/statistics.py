@@ -62,6 +62,61 @@ def sharpe_ratio(
     return excess.mean() / returns.std() * np.sqrt(periods_per_year)
 
 
+def bars_per_year(index: pd.DatetimeIndex) -> float:
+    """
+    Empirical number of bars per calendar year implied by a bar index.
+
+    The annualization multiplier of a Sharpe ratio (and of any other
+    mean/volatility statistic) is only meaningful if it matches the bar
+    frequency of the series being summarized. This helper derives that
+    multiplier from the timestamps themselves, so an hourly series is scaled
+    by its own bar count per year rather than by a hard-coded daily constant.
+
+    Args:
+        index: Bar timestamps (DatetimeIndex, or anything convertible to one)
+
+    Returns:
+        Bars per calendar year. NaN when the index has fewer than two bars
+        or spans no measurable time.
+    """
+    idx = pd.DatetimeIndex(index)
+    if len(idx) < 2:
+        return float("nan")
+    span_days = (idx[-1] - idx[0]).total_seconds() / 86400.0
+    if span_days <= 0:
+        return float("nan")
+    return float(len(idx) / (span_days / 365.25))
+
+
+def annualized_sharpe(
+    returns: np.ndarray | pd.Series,
+    index: pd.DatetimeIndex,
+    risk_free: float = 0.0,
+) -> float:
+    """
+    Sharpe ratio annualized by the bar frequency of ``index``.
+
+    Unlike :func:`sharpe_ratio` with its default ``periods_per_year=252``,
+    the multiplier is derived from the bar timestamps, so an hourly series
+    is scaled by ``sqrt(bars_per_year)`` (its own frequency) and a daily
+    series by ``sqrt(252)``.
+
+    Args:
+        returns: Per-bar return series
+        index: Bar timestamps for ``returns`` (same length, aligned)
+        risk_free: Annual risk-free rate
+
+    Returns:
+        Annualized Sharpe ratio (0.0 when the frequency cannot be inferred).
+    """
+    bpy = bars_per_year(index)
+    if not np.isfinite(bpy) or bpy <= 0:
+        return 0.0
+    return sharpe_ratio(
+        np.asarray(returns, dtype=float), risk_free=risk_free, periods_per_year=bpy
+    )
+
+
 def sharpe_ratio_ci(
     returns: np.ndarray,
     risk_free: float = 0.0,

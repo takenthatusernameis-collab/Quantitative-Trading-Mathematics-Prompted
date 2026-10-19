@@ -1,0 +1,595 @@
+{
+  "hypothesis": "H26",
+  "kind": "audit",
+  "seed": 42,
+  "n_bootstrap": 2000,
+  "sharpe_gate": 1.0,
+  "as_published_factor": 15.874507866387544,
+  "repo_vol_factor": 40.47221268969612,
+  "reproduction_tolerance": 1e-09,
+  "audited": [
+    {
+      "family": "H10",
+      "artifact": "exp_2026-10-11T17-41-18-169363Z",
+      "published_verdict": "PASS",
+      "n_oos_bars": 5148,
+      "oos_start": "2025-11-14 01:00:00",
+      "oos_end": "2026-10-09 20:00:00",
+      "oos_span_days": 329.7916666666667,
+      "published_oos_sharpe": 1.2757590680990518,
+      "recomputed_oos_sharpe": 1.2757590680990518,
+      "reproduction_abs_diff": 0.0,
+      "reproduced": true,
+      "bars_per_day": 15.609854706253948,
+      "bars_per_year_empirical": 5701.499431459255,
+      "sharpe_convention_check": {
+        "published_oos_sharpe": 1.2757590680990518,
+        "sharpe_population_ddof0": 1.2757590680990518,
+        "sharpe_sample_ddof1": 1.2756351538577708,
+        "abs_diff_ddof0": 0.0,
+        "abs_diff_ddof1": 0.00012391424128099793,
+        "published_convention": "population_ddof0"
+      },
+      "pf_window_check": {
+        "published_profit_factor": 1.3041645169434146,
+        "oos_window_profit_factor": 1.3041645169434146,
+        "full_sample_profit_factor": 1.2573030011812552,
+        "abs_diff_oos_window": 0.0,
+        "abs_diff_full_sample": 0.04686151576215947,
+        "published_pf_window": "oos_window"
+      },
+      "scales": {
+        "as_published": {
+          "factor": 15.874507866387544,
+          "sharpe": 1.2757590680990518,
+          "ci_95": [
+            0.8394333907788376,
+            1.6975845408541967
+          ],
+          "frac_ge_gate": 0.8885,
+          "ci_lower_ge_gate": false
+        },
+        "repo_vol_convention": {
+          "factor": 40.47221268969612,
+          "sharpe": 3.2525601914400055,
+          "ci_95": [
+            2.140143619971325,
+            4.328008349894498
+          ],
+          "frac_ge_gate": 1.0,
+          "ci_lower_ge_gate": true
+        },
+        "empirical_calendar": {
+          "factor": 75.50827392716148,
+          "sharpe": 6.068242618283116,
+          "ci_95": [
+            3.992827175999779,
+            8.074686762210964
+          ],
+          "frac_ge_gate": 1.0,
+          "ci_lower_ge_gate": true
+        },
+        "daily_aggregated_sqrt252": {
+          "factor": 15.874507866387544,
+          "sharpe": 5.0366148839108105,
+          "ci_95": null,
+          "frac_ge_gate": null,
+          "ci_lower_ge_gate": null,
+          "note": "Point estimate only: non-overlapping calendar-day returns (compounded), annualized by sqrt(252). The bootstrap CI is not recomputed on the aggregated series, so the gate fraction is not reported for this scale."
+        }
+      },
+      "scale_ratio_empirical_over_published": 4.756574160452661,
+      "scale_ratio_repo_vol_over_published": 2.5495097567963922,
+      "scale_ratio_daily_agg_over_published": 3.9479357896437546,
+      "dependence": {
+        "autocorrelation": {
+          "lag_1": -0.008955125984677537,
+          "lag_2": -0.007738016783158656,
+          "lag_6": -0.004892365015044536,
+          "lag_12": 0.01838613818496812,
+          "lag_24": -0.017195189523270718
+        },
+        "max_abs_autocorrelation_lag1_24": 0.04407815457191093,
+        "variance_iid": 4.2189984378192154e-06,
+        "newey_west_lrv": {
+          "lag_1": 4.1804049694054725e-06,
+          "lag_12": 3.809364518813739e-06,
+          "lag_24": 3.894836091480878e-06,
+          "lag_48": 3.942923319686392e-06
+        },
+        "lrv_ratio_vs_iid": {
+          "lag_1": 0.9908524572875425,
+          "lag_12": 0.9029073072572138,
+          "lag_24": 0.9231660425771818,
+          "lag_48": 0.9345638254667082
+        }
+      },
+      "gate_impact": {
+        "gate": 1.0,
+        "point_pass_as_published": true,
+        "point_pass_repo_vol_convention": true,
+        "ci_lower_pass_as_published": false,
+        "ci_lower_pass_repo_vol_convention": true,
+        "note": "Reported, never applied: this audit may not re-certify or de-certify any hypothesis."
+      }
+    },
+    {
+      "family": "H21",
+      "artifact": "exp_2026-10-13T23-27-52-101656Z",
+      "published_verdict": "REJECT",
+      "n_oos_bars": 5148,
+      "oos_start": "2025-11-14 01:00:00",
+      "oos_end": "2026-10-09 20:00:00",
+      "oos_span_days": 329.7916666666667,
+      "published_oos_sharpe": 0.8393598580201286,
+      "recomputed_oos_sharpe": 0.8393598580201286,
+      "reproduction_abs_diff": 0.0,
+      "reproduced": true,
+      "bars_per_day": 15.609854706253948,
+      "bars_per_year_empirical": 5701.499431459255,
+      "sharpe_convention_check": {
+        "published_oos_sharpe": 0.8393598580201286,
+        "sharpe_population_ddof0": 0.8393598580201286,
+        "sharpe_sample_ddof1": 0.8392783311530508,
+        "abs_diff_ddof0": 0.0,
+        "abs_diff_ddof1": 8.152686707774137e-05,
+        "published_convention": "population_ddof0"
+      },
+      "pf_window_check": {
+        "published_profit_factor": 1.2058898228640889,
+        "oos_window_profit_factor": 1.2058898228640889,
+        "full_sample_profit_factor": 1.2167794978200335,
+        "abs_diff_oos_window": 0.0,
+        "abs_diff_full_sample": 0.010889674955944617,
+        "published_pf_window": "oos_window"
+      },
+      "scales": {
+        "as_published": {
+          "factor": 15.874507866387544,
+          "sharpe": 0.8393598580201286,
+          "ci_95": [
+            0.3883098585004052,
+            1.2814741508344956
+          ],
+          "frac_ge_gate": 0.239,
+          "ci_lower_ge_gate": false
+        },
+        "repo_vol_convention": {
+          "factor": 40.47221268969612,
+          "sharpe": 2.1399561474855524,
+          "ci_95": [
+            0.9899997729070096,
+            3.267130850634918
+          ],
+          "frac_ge_gate": 0.9745,
+          "ci_lower_ge_gate": false
+        },
+        "empirical_calendar": {
+          "factor": 75.50827392716148,
+          "sharpe": 3.992477411979757,
+          "ci_95": [
+            1.8470246391920562,
+            6.095426833147377
+          ],
+          "frac_ge_gate": 0.996,
+          "ci_lower_ge_gate": true
+        },
+        "daily_aggregated_sqrt252": {
+          "factor": 15.874507866387544,
+          "sharpe": 3.5293087906074176,
+          "ci_95": null,
+          "frac_ge_gate": null,
+          "ci_lower_ge_gate": null,
+          "note": "Point estimate only: non-overlapping calendar-day returns (compounded), annualized by sqrt(252). The bootstrap CI is not recomputed on the aggregated series, so the gate fraction is not reported for this scale."
+        }
+      },
+      "scale_ratio_empirical_over_published": 4.756574160452661,
+      "scale_ratio_repo_vol_over_published": 2.5495097567963922,
+      "scale_ratio_daily_agg_over_published": 4.204762423273739,
+      "dependence": {
+        "autocorrelation": {
+          "lag_1": -0.011798886523608693,
+          "lag_2": -0.033598255771922984,
+          "lag_6": -0.032318078395121075,
+          "lag_12": 0.027975603855711156,
+          "lag_24": -0.030483154462018085
+        },
+        "max_abs_autocorrelation_lag1_24": 0.035145252783716205,
+        "variance_iid": 1.6274088054044406e-05,
+        "newey_west_lrv": {
+          "lag_1": 1.6078948758705453e-05,
+          "lag_12": 1.3424901284835608e-05,
+          "lag_24": 1.3305429307353282e-05,
+          "lag_48": 1.2683510828341626e-05
+        },
+        "lrv_ratio_vs_iid": {
+          "lag_1": 0.988009202439429,
+          "lag_12": 0.8249249506487263,
+          "lag_24": 0.8175837111835363,
+          "lag_48": 0.7793684528571506
+        }
+      },
+      "gate_impact": {
+        "gate": 1.0,
+        "point_pass_as_published": false,
+        "point_pass_repo_vol_convention": true,
+        "ci_lower_pass_as_published": false,
+        "ci_lower_pass_repo_vol_convention": false,
+        "note": "Reported, never applied: this audit may not re-certify or de-certify any hypothesis."
+      }
+    },
+    {
+      "family": "H22",
+      "artifact": "exp_2026-10-14T18-52-08-943792Z",
+      "published_verdict": "PASS",
+      "n_oos_bars": 5148,
+      "oos_start": "2025-11-14 01:00:00",
+      "oos_end": "2026-10-09 20:00:00",
+      "oos_span_days": 329.7916666666667,
+      "published_oos_sharpe": 1.3724750832147166,
+      "recomputed_oos_sharpe": 1.3724750832147166,
+      "reproduction_abs_diff": 0.0,
+      "reproduced": true,
+      "bars_per_day": 15.609854706253948,
+      "bars_per_year_empirical": 5701.499431459255,
+      "sharpe_convention_check": {
+        "published_oos_sharpe": 1.3724750832147166,
+        "sharpe_population_ddof0": 1.3724750832147166,
+        "sharpe_sample_ddof1": 1.3723417749648548,
+        "abs_diff_ddof0": 0.0,
+        "abs_diff_ddof1": 0.00013330824986179657,
+        "published_convention": "population_ddof0"
+      },
+      "pf_window_check": {
+        "published_profit_factor": 1.334150203648997,
+        "oos_window_profit_factor": 1.334150203648997,
+        "full_sample_profit_factor": 1.2879604182295155,
+        "abs_diff_oos_window": 0.0,
+        "abs_diff_full_sample": 0.04618978541948149,
+        "published_pf_window": "oos_window"
+      },
+      "scales": {
+        "as_published": {
+          "factor": 15.874507866387544,
+          "sharpe": 1.3724750832147166,
+          "ci_95": [
+            0.9313755821085057,
+            1.7921185752572284
+          ],
+          "frac_ge_gate": 0.951,
+          "ci_lower_ge_gate": false
+        },
+        "repo_vol_convention": {
+          "factor": 40.47221268969612,
+          "sharpe": 3.49913861561586,
+          "ci_95": [
+            2.3745511338275542,
+            4.569023792954353
+          ],
+          "frac_ge_gate": 1.0,
+          "ci_lower_ge_gate": true
+        },
+        "empirical_calendar": {
+          "factor": 75.50827392716148,
+          "sharpe": 6.528279516684235,
+          "ci_95": [
+            4.430157027533872,
+            8.524344907535768
+          ],
+          "frac_ge_gate": 1.0,
+          "ci_lower_ge_gate": true
+        },
+        "daily_aggregated_sqrt252": {
+          "factor": 15.874507866387544,
+          "sharpe": 5.197318701059897,
+          "ci_95": null,
+          "frac_ge_gate": null,
+          "ci_lower_ge_gate": null,
+          "note": "Point estimate only: non-overlapping calendar-day returns (compounded), annualized by sqrt(252). The bootstrap CI is not recomputed on the aggregated series, so the gate fraction is not reported for this scale."
+        }
+      },
+      "scale_ratio_empirical_over_published": 4.756574160452661,
+      "scale_ratio_repo_vol_over_published": 2.5495097567963922,
+      "scale_ratio_daily_agg_over_published": 3.786821899080556,
+      "dependence": {
+        "autocorrelation": {
+          "lag_1": -0.009934678320235655,
+          "lag_2": 0.005836549744425894,
+          "lag_6": -0.007691904619687888,
+          "lag_12": 0.015906203708640543,
+          "lag_24": -0.01772457121347037
+        },
+        "max_abs_autocorrelation_lag1_24": 0.045007424996864234,
+        "variance_iid": 2.560866090542741e-05,
+        "newey_west_lrv": {
+          "lag_1": 2.5349324162913127e-05,
+          "lag_12": 2.41351848887227e-05,
+          "lag_24": 2.438857933223869e-05,
+          "lag_48": 2.4330106911857062e-05
+        },
+        "lrv_ratio_vs_iid": {
+          "lag_1": 0.9898730845993076,
+          "lag_12": 0.9424618092235965,
+          "lag_24": 0.9523566820735191,
+          "lag_48": 0.9500733756328752
+        }
+      },
+      "gate_impact": {
+        "gate": 1.0,
+        "point_pass_as_published": true,
+        "point_pass_repo_vol_convention": true,
+        "ci_lower_pass_as_published": false,
+        "ci_lower_pass_repo_vol_convention": true,
+        "note": "Reported, never applied: this audit may not re-certify or de-certify any hypothesis."
+      }
+    },
+    {
+      "family": "H23",
+      "artifact": "exp_2026-10-14T18-13-09-457781Z",
+      "published_verdict": "REJECT",
+      "n_oos_bars": 134,
+      "oos_start": "2024-10-18 22:00:00",
+      "oos_end": "2024-10-24 11:00:00",
+      "oos_span_days": 5.541666666666667,
+      "published_oos_sharpe": -7.187089456116173,
+      "recomputed_oos_sharpe": -7.187089456116173,
+      "reproduction_abs_diff": 0.0,
+      "reproduced": true,
+      "bars_per_day": 24.18045112781955,
+      "bars_per_year_empirical": 8831.90977443609,
+      "sharpe_convention_check": {
+        "published_oos_sharpe": -7.187089456116173,
+        "sharpe_population_ddof0": -7.187089456116173,
+        "sharpe_sample_ddof1": -7.160221737935822,
+        "abs_diff_ddof0": 0.0,
+        "abs_diff_ddof1": 0.02686771818035094,
+        "published_convention": "population_ddof0"
+      },
+      "pf_window_check": {
+        "published_profit_factor": 0.0018666912690010527,
+        "oos_window_profit_factor": 0.0018666912690010527,
+        "full_sample_profit_factor": 0.0018666912690010527,
+        "abs_diff_oos_window": 0.0,
+        "abs_diff_full_sample": 0.0,
+        "published_pf_window": "ambiguous_both_match"
+      },
+      "scales": {
+        "as_published": {
+          "factor": 15.874507866387544,
+          "sharpe": -7.187089456116173,
+          "ci_95": [
+            -8.68110293578792,
+            -5.81384602508651
+          ],
+          "frac_ge_gate": 0.0,
+          "ci_lower_ge_gate": false
+        },
+        "repo_vol_convention": {
+          "factor": 40.47221268969612,
+          "sharpe": -18.323554691336657,
+          "ci_95": [
+            -22.132556634545104,
+            -14.822457165469977
+          ],
+          "frac_ge_gate": 0.0,
+          "ci_lower_ge_gate": false
+        },
+        "empirical_calendar": {
+          "factor": 93.97824096266162,
+          "sharpe": -42.54809222509733,
+          "ci_95": [
+            -51.39276066936116,
+            -34.41839125118827
+          ],
+          "frac_ge_gate": 0.0,
+          "ci_lower_ge_gate": false
+        },
+        "daily_aggregated_sqrt252": {
+          "factor": 15.874507866387544,
+          "sharpe": -12.502444645232252,
+          "ci_95": null,
+          "frac_ge_gate": null,
+          "ci_lower_ge_gate": null,
+          "note": "Point estimate only: non-overlapping calendar-day returns (compounded), annualized by sqrt(252). The bootstrap CI is not recomputed on the aggregated series, so the gate fraction is not reported for this scale."
+        }
+      },
+      "scale_ratio_empirical_over_published": 5.920072719964428,
+      "scale_ratio_repo_vol_over_published": 2.5495097567963922,
+      "scale_ratio_daily_agg_over_published": 1.7395699220903313,
+      "dependence": {
+        "autocorrelation": {
+          "lag_1": 0.5004430682514519,
+          "lag_2": 0.03854624048385578,
+          "lag_6": 0.09194517149989634,
+          "lag_12": 0.15233075123950357,
+          "lag_24": 0.342261047447484
+        },
+        "max_abs_autocorrelation_lag1_24": 0.5391403205985544,
+        "variance_iid": 0.003208262139402541,
+        "newey_west_lrv": {
+          "lag_1": 0.00477607574819557,
+          "lag_12": 0.010202446481014024,
+          "lag_24": 0.015790254716371726,
+          "lag_48": 0.022718324568725697
+        },
+        "lrv_ratio_vs_iid": {
+          "lag_1": 1.4886800207307858,
+          "lag_12": 3.1800538851585163,
+          "lag_24": 4.921747048797037,
+          "lag_48": 7.081193363132234
+        }
+      },
+      "gate_impact": {
+        "gate": 1.0,
+        "point_pass_as_published": false,
+        "point_pass_repo_vol_convention": false,
+        "ci_lower_pass_as_published": false,
+        "ci_lower_pass_repo_vol_convention": false,
+        "note": "Reported, never applied: this audit may not re-certify or de-certify any hypothesis."
+      }
+    },
+    {
+      "family": "H25",
+      "artifact": "exp_2026-10-14T20-08-34-613690Z",
+      "published_verdict": "PASS",
+      "n_oos_bars": 5148,
+      "oos_start": "2025-11-14 01:00:00",
+      "oos_end": "2026-10-09 20:00:00",
+      "oos_span_days": 329.7916666666667,
+      "published_oos_sharpe": 1.3236288879255962,
+      "recomputed_oos_sharpe": 1.3236288879255962,
+      "reproduction_abs_diff": 0.0,
+      "reproduced": true,
+      "bars_per_day": 15.609854706253948,
+      "bars_per_year_empirical": 5701.499431459255,
+      "sharpe_convention_check": {
+        "published_oos_sharpe": 1.3236288879255962,
+        "sharpe_population_ddof0": 1.3236288879255962,
+        "sharpe_sample_ddof1": 1.3235003240976086,
+        "abs_diff_ddof0": 0.0,
+        "abs_diff_ddof1": 0.00012856382798753785,
+        "published_convention": "population_ddof0"
+      },
+      "pf_window_check": {
+        "published_profit_factor": 1.3201316886422707,
+        "oos_window_profit_factor": 1.3201316886422707,
+        "full_sample_profit_factor": 1.2885606030463135,
+        "abs_diff_oos_window": 0.0,
+        "abs_diff_full_sample": 0.03157108559595723,
+        "published_pf_window": "oos_window"
+      },
+      "scales": {
+        "as_published": {
+          "factor": 15.874507866387544,
+          "sharpe": 1.3236288879255962,
+          "ci_95": [
+            0.8833604790495369,
+            1.7506423151697315
+          ],
+          "frac_ge_gate": 0.9275,
+          "ci_lower_ge_gate": false
+        },
+        "repo_vol_convention": {
+          "factor": 40.47221268969612,
+          "sharpe": 3.3746047641438657,
+          "ci_95": [
+            2.252136160105129,
+            4.463279663185855
+          ],
+          "frac_ge_gate": 1.0,
+          "ci_lower_ge_gate": true
+        },
+        "empirical_calendar": {
+          "factor": 75.50827392716148,
+          "sharpe": 6.295938966335581,
+          "ci_95": [
+            4.20176962901211,
+            8.327060000531366
+          ],
+          "frac_ge_gate": 1.0,
+          "ci_lower_ge_gate": true
+        },
+        "daily_aggregated_sqrt252": {
+          "factor": 15.874507866387544,
+          "sharpe": 5.091554083838515,
+          "ci_95": null,
+          "frac_ge_gate": null,
+          "ci_lower_ge_gate": null,
+          "note": "Point estimate only: non-overlapping calendar-day returns (compounded), annualized by sqrt(252). The bootstrap CI is not recomputed on the aggregated series, so the gate fraction is not reported for this scale."
+        }
+      },
+      "scale_ratio_empirical_over_published": 4.756574160452661,
+      "scale_ratio_repo_vol_over_published": 2.5495097567963922,
+      "scale_ratio_daily_agg_over_published": 3.846662860175292,
+      "dependence": {
+        "autocorrelation": {
+          "lag_1": -0.02268197043067582,
+          "lag_2": -0.005937001611019239,
+          "lag_6": 0.004896555805330463,
+          "lag_12": 0.008207168055273528,
+          "lag_24": 0.0031771301374048625
+        },
+        "max_abs_autocorrelation_lag1_24": 0.02584371160098727,
+        "variance_iid": 3.0192351165230604e-05,
+        "newey_west_lrv": {
+          "lag_1": 2.9501802223248633e-05,
+          "lag_12": 2.799357856501225e-05,
+          "lag_24": 2.8458689377501835e-05,
+          "lag_48": 2.8043990684777112e-05
+        },
+        "lrv_ratio_vs_iid": {
+          "lag_1": 0.9771283482295607,
+          "lag_12": 0.9271745155524538,
+          "lag_24": 0.9425794374793426,
+          "lag_48": 0.9288442139303303
+        }
+      },
+      "gate_impact": {
+        "gate": 1.0,
+        "point_pass_as_published": true,
+        "point_pass_repo_vol_convention": true,
+        "ci_lower_pass_as_published": false,
+        "ci_lower_pass_repo_vol_convention": true,
+        "note": "Reported, never applied: this audit may not re-certify or de-certify any hypothesis."
+      }
+    }
+  ],
+  "excluded": [
+    {
+      "family": "H9",
+      "artifact": "exp_2026-10-11T16-52-38-694559Z",
+      "published_verdict": "REJECT",
+      "n_oos_bars": 5148,
+      "oos_start": "2025-11-14 01:00:00",
+      "oos_end": "2026-10-09 20:00:00",
+      "oos_span_days": 329.7916666666667,
+      "published_oos_sharpe": 1.0563828964274808,
+      "recomputed_oos_sharpe": 1.0564855126690582,
+      "reproduction_abs_diff": 0.00010261624157736904,
+      "reproduced": false,
+      "bars_per_day": 15.609854706253948,
+      "bars_per_year_empirical": 5701.499431459255,
+      "sharpe_convention_check": {
+        "published_oos_sharpe": 1.0563828964274808,
+        "sharpe_population_ddof0": 1.0564855126690582,
+        "sharpe_sample_ddof1": 1.0563828964274808,
+        "abs_diff_ddof0": 0.00010261624157736904,
+        "abs_diff_ddof1": 0.0,
+        "published_convention": "sample_ddof1"
+      },
+      "pf_window_check": {
+        "published_profit_factor": 1.252218313316879,
+        "oos_window_profit_factor": 1.2528628517519271,
+        "full_sample_profit_factor": 1.252218313316879,
+        "abs_diff_oos_window": 0.000644538435048192,
+        "abs_diff_full_sample": 0.0,
+        "published_pf_window": "full_sample"
+      },
+      "excluded_reason": "reproduction failed: |recomputed - published| = 1.026e-04 > 1e-09",
+      "exclusion_diagnosis": {
+        "published_oos_sharpe": 1.0563828964274808,
+        "sharpe_population_ddof0": 1.0564855126690582,
+        "sharpe_sample_ddof1": 1.0563828964274808,
+        "abs_diff_ddof0": 0.00010261624157736904,
+        "abs_diff_ddof1": 0.0,
+        "published_convention": "sample_ddof1"
+      }
+    }
+  ],
+  "daily_control": {
+    "family": "H16",
+    "artifact": "exp_2026-10-13T21-22-02-751156Z",
+    "interval": "1d",
+    "n_bars": 3773,
+    "bars_per_year_empirical": 251.75159846547314,
+    "factor_empirical": 15.86668202446476,
+    "factor_as_published": 15.874507866387544,
+    "scale_ratio_empirical_over_published": 0.9995070182969669,
+    "is_correctly_annualized": true
+  },
+  "verdict": {
+    "scale_confirmed": true,
+    "control_ok": true,
+    "note": "scale_confirmed: the published intraday metric is materially not an annualized Sharpe. control_ok: the daily family was already correctly annualized and is unaffected. No gate, threshold or certified number is changed by this audit."
+  }
+}

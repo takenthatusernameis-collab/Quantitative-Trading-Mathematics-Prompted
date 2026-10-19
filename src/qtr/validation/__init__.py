@@ -1,6 +1,8 @@
 """Statistical validation utilities for quantitative trading research."""
 
 from qtr.validation.statistics import (
+    annualized_sharpe,
+    bars_per_year,
     bootstrap_confidence_interval,
     capacity_estimate,
     compare_to_benchmark,
@@ -16,6 +18,8 @@ from qtr.validation.statistics import (
 )
 
 __all__ = [
+    "annualized_sharpe",
+    "bars_per_year",
     "bootstrap_confidence_interval",
     "capacity_estimate",
     "compare_to_benchmark",

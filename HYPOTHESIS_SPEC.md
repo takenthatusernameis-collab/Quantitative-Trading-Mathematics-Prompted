@@ -2914,3 +2914,211 @@ rise toward ≥0.90 only as the CI narrows with more bars.
   reinforced; Sharpe block LB > i.i.d. LB but < 1.0 → not weakened but still CI-fragile). Full
   suite 359/359 passing. `ruff` clean on both files.
 
+
+---
+
+## H26: Sharpe Annualization-Scale Audit — intraday (1h) family vs. daily family (pre-registered 2026-10-19, BEFORE execution)
+
+### Statement
+Every published "OOS Sharpe" in this project is produced by
+`qtr.validation.statistics.sharpe_ratio(returns)` with its default
+`periods_per_year=252`, i.e. the **per-bar** mean/vol ratio multiplied by `sqrt(252)`.
+
+- For the **daily** families (H1–H8, H16–H20) the bar *is* a trading day, so `sqrt(252)`
+  **is** the calendar annualization and the published number is a true annualized Sharpe.
+- For the **intraday (1h)** families (H9, H10, H11, H21, H22, H23, H25) the bar is one
+  *hour*; the same `sqrt(252)` multiplier annualizes neither the trading year
+  (`sqrt(252 x 6.5) = 40.47` under the convention the intraday vol-target code itself
+  uses in `vol_scaled_tsmom_hourly`) nor the calendar year (`sqrt(bars_per_year)` implied
+  by the bar index, ~`sqrt(5800)` for the 15.65-bars/day `=F` series). The published
+  number is therefore **not** an annualized Sharpe, and it is **not on the same scale**
+  as the daily-family rows of the `FINAL_REPORT.md` results table.
+
+### Mechanism (why this matters)
+`sharpe_ratio` computes `mean(returns) / std(returns) * sqrt(periods_per_year)`. The
+multiplier is only an annualization if `periods_per_year` matches the bar frequency of
+the series being summarized. The intraday runners pass *hourly* returns to a
+`periods_per_year=252` default, so every intraday Sharpe in the record carries the
+`sqrt(252)` multiplier that belongs to a *daily* series. Two consequences:
+
+1. **Cross-family comparability.** `FINAL_REPORT.md` ranks hypotheses in one table with a
+   single "OOS Sharpe" column; the daily rows and the hourly rows are on different scales,
+   so the ranking between the intraday and the daily families is not a like-for-like
+   comparison.
+2. **The "Sharpe CI-fragile" caveat.** The certified family's Sharpe bootstrap CI lower
+   bound (H25 Robustness: 0.8834 vs. the 1.0 gate) is quoted in the same mis-scaled
+   units. The *profit-factor* CI fragility is scale-invariant (PF is a ratio of gross
+   sums), but the *Sharpe* CI fragility is not: rescaling the same bootstrap distribution
+   to the correct annualization moves the CI lower bound by the same factor.
+
+### Null (H0)
+The published metric is already an annualized Sharpe for every family: the ratio between
+the published value and the calendar-annualized value is `1.0` (within 1%) for both the
+daily and the hourly audited artifacts.
+
+### Pre-registration (measurement plan, frozen before execution)
+1. **Audited artifacts (frozen ids)** — one per intraday family, all committed and
+   read-only: H9 `exp_2026-10-11T16-52-38-694559Z`, H10 `exp_2026-10-11T17-41-18-169363Z`,
+   H21 `exp_2026-10-13T23-27-52-101656Z`, H22 `exp_2026-10-14T18-52-08-943792Z`,
+   H23 `exp_2026-10-14T18-13-09-457781Z`, H25 `exp_2026-10-14T20-08-34-613690Z`.
+   Daily control: H16 `exp_2026-10-13T21-22-02-751156Z` (bar index only).
+2. **Reproduction anchor.** For every audited artifact, recompute the OOS Sharpe from the
+   frozen `returns.parquet` using the runner's own 55/25/20 index split and require
+   `|recomputed - published| <= 1e-9` against `summary.json:metrics.oos_sharpe`. An
+   artifact that fails to reproduce is **excluded** (with the reason recorded); no
+   strategy is re-run and no strategy logic is re-derived.
+3. **Scale factors (frozen).**
+   - `as_published` = `sqrt(252)` — the project's frozen certification metric.
+   - `repo_vol_convention` = `sqrt(252 x 6.5)` — the annualization the intraday
+     vol-target code itself applies to hourly returns.
+   - `empirical_calendar` = `sqrt(bars_per_year)` with
+     `bars_per_year = n_bars / (elapsed_days / 365.25)` computed from the artifact's own
+     bar index.
+   - `daily_aggregated` = Sharpe of non-overlapping **calendar-day** return sums, scaled
+     by `sqrt(252)` (the daily family's own convention) and by `sqrt(365)`.
+4. **Dependence check.** Lag-1..24 autocorrelations and Newey–West long-run variance
+   (lags 1, 12, 24, 48) on the OOS slice, to test whether square-root scaling is valid
+   for the series at all.
+5. **Bootstrap.** i.i.d. percentile bootstrap, `seed=42`, 2,000 resamples on the OOS slice
+   (the same primitive used by H11/H13/H25-Robustness). The per-bar bootstrap CI is
+   computed once; the CI at scale `k` is exactly `k x` the per-bar CI (percentiles scale
+   linearly). The gate fraction `P(Sharpe >= 1.0)` is **recomputed** at every scale, not
+   rescaled.
+6. **No new data, no new selection, no gate change.** The audit is a characterization of
+   already-certified results: it may not re-certify, de-certify, or re-select anything,
+   and it may not alter any gate, threshold, or certified number.
+
+### Verdict rule (pre-registered)
+- `SCALE_CONFIRMED` iff for **every** audited intraday artifact the ratio
+  `empirical_calendar / as_published` differs from `1.0` by more than 1% (i.e. the
+  published metric is materially not an annualized Sharpe). `SCALE_REFUTED` otherwise.
+- `CONTROL_OK` iff the daily control's `empirical_calendar / as_published` ratio is
+  within 1% of `1.0` (i.e. the daily family was already correctly annualized and is not
+  affected).
+- `GATE_IMPACT` is reported, never applied: for each artifact and scale, whether the
+  `Sharpe >= 1.0` gate holds point-wise and at the 95% CI lower bound. A PASS/REJECT
+  change is **forbidden** by this audit; the profit-factor gates are scale-invariant and
+  are untouched.
+
+### Anti-reward-hacking note (frozen)
+The correction direction is **conservative**: the as-published metric is *lower* than the
+correctly annualized value for the intraday family, so this audit cannot manufacture a
+PASS. It can only (a) correct labels, (b) show that intraday rows are not comparable to
+daily rows, and (c) test whether the "Sharpe CI-fragile" caveat survives the scale
+correction. If the audit were to show the opposite (i.e. the published metric were
+*optimistic*), the same measurement plan would report it and the certified family would
+have to be re-labelled as a FAIL — the plan is symmetric in that respect.
+
+### H26 — Measure Log (executed 2026-10-19)
+
+**Verdict: `SCALE_CONFIRMED` / `CONTROL_OK`.** The published "OOS Sharpe" is a
+**√252-per-bar** metric. For the intraday (1h) families it is *not* an annualized
+Sharpe, and the mis-scaling **understates** the edge by **2.55×** (the repo's own
+`√(252·6.5)` vol-target convention) to **4.76×** (the empirical calendar convention).
+The daily families were already correctly annualized and are **unaffected**. No gate,
+threshold, verdict, or certified number was changed by this audit.
+
+Artifacts: `.experiments/artifacts/h26_sharpe_scale/summary.json` +
+`scale_table.parquet`; runner `run_h26_sharpe_scale_audit.py`; tests
+`tests/test_h26_sharpe_scale_audit.py` (44 tests). Runtime ≈ 1.8 s, no network.
+
+**Audited scale table** (published value = √252-per-bar; the other columns are the
+same series rescaled; the daily-aggregated column is an independent estimate from
+non-overlapping calendar-day returns):
+
+| Family | Verdict | OOS bars | bars/day | Published | ×2.5495 (repo vol conv.) | ×4.7566 (empirical calendar) | daily-aggregated (√252) |
+|---|---|---|---|---|---|---|---|
+| H10 | PASS | 5,148 | 15.61 | 1.2758 | 3.2526 | 6.0682 | 5.0366 |
+| H21 | REJECT | 5,148 | 15.61 | 0.8394 | 2.1400 | 3.9925 | 3.5293 |
+| H22 | PASS | 5,148 | 15.61 | 1.3725 | 3.4991 | 6.5283 | 5.1973 |
+| H23 | REJECT | 134 | 24.18 | −7.1871 | −18.3236 | −42.5481 | −12.5024 |
+| H25 | PASS | 5,148 | 15.61 | 1.3236 | 3.3746 | 6.2959 | 5.0916 |
+| H9 | REJECT | 5,148 | 15.61 | 1.0564 | *excluded (see F3)* | — | — |
+| **H16 (daily control)** | — | — | — | — | — | ratio **0.9995** → already annualized | — |
+
+#### F1 — the published metric is not an annualized Sharpe (SCALE_CONFIRMED)
+Every audited intraday artifact reproduces bit-close from its own frozen returns
+(`|recomputed − published| = 0.0`), and the published value is exactly
+`per-bar Sharpe × √252` — the *daily* annualization constant applied to *hourly*
+returns. The daily control (H16's committed daily index) implies 251.75 bars/year,
+so `√252` is the correct annualization *there* and the daily rows of the
+`FINAL_REPORT.md` table are genuine annualized Sharpes. **The intraday and daily
+rows of that table were therefore never on the same scale.** The intraday rows are
+*understated*, so no hypothesis gains from the correction.
+
+#### F2 — the "Sharpe CI-fragile" caveat is a scale artifact, not an edge property
+The certified family's Sharpe bootstrap CI was quoted in the mis-scaled units. The
+bootstrap CI scales **linearly** with the annualization factor (percentiles of a
+rescaled distribution), while the gate fraction `P(Sharpe ≥ 1.0)` must be
+*recomputed*:
+
+| H25 (as published in the record) | CI lower bound ≥ 1.0? | P(Sharpe ≥ 1.0) |
+|---|---|---|
+| as published (√252-per-bar) | **False** (0.8834) | 0.9275 |
+| repo vol convention (×2.5495) | **True** (2.2521) | **1.0000** |
+| empirical calendar (×4.7566) | **True** (4.2018) | **1.0000** |
+
+The same holds for H10 and H22. The audit's as-published CI reproduces the committed
+`pf_robustness` artifact exactly (CI [0.8833604790, 1.7506423152], P = 0.9275), so
+the quoted caveat is reproduced bit-for-bit and then *re-characterized*: the Sharpe
+CI fragility is an artifact of the metric scale. **The profit-factor CI fragility is
+scale-invariant and therefore stands** (PF is a ratio of gross sums) — it remains the
+real, documented caveat on the certified family.
+
+#### F3 — H9 excluded by the reproduction anchor, with two diagnosed causes
+H9 (`exp_2026-10-11T16-52-38-694559Z`) failed the 1e-9 reproduction anchor
+(`|Δ| = 1.03e-4`) and is **excluded** per the pre-registered rule. The cause was
+diagnosed (diagnostics do not re-include it):
+
+1. **Sharpe standard-deviation convention drift.** H9's published Sharpe reproduces
+   *exactly* under the **sample** standard deviation (ddof=1), while H10 and later
+   artifacts reproduce exactly under the **population** standard deviation
+   (ddof=0, the current library, which converts to a numpy array before calling
+   `.std()`). The two differ by `√(n/(n−1))` ≈ 1.0001 — immaterial in magnitude, but
+   it means the H9 artifact is not bit-reproducible with the current library.
+2. **PF gate window defect.** H9's published "OOS profit factor" is the
+   **full-sample** (train+val+test) profit factor, because the H9 runner read
+   `result.metrics["profit_factor"]` — an engine metric computed over the *entire*
+   return series — instead of the OOS slice. The published PF (1.25222) matches the
+   full-sample PF exactly; the correct OOS-window PF is **1.25286**. Both are below
+   the 1.3 gate, so **H9's REJECT verdict is unchanged** and the defect was
+   conservative. H10/H21/H22/H25 are unaffected: their published PF matches the
+   OOS-window PF exactly (and differs from the full-sample PF by 0.011–0.047).
+
+#### F4 — dependence check: the futures series are effectively independent
+Max |lag-1..24 autocorrelation| is 0.026–0.045 and the Newey–West long-run variance
+ratio is 0.78–0.99 for H10/H21/H22/H25, so square-root scaling is sound for them.
+**H23 is the exception**: its 134-bar crypto slice has lag-1 autocorrelation 0.500
+and a long-run-variance ratio of 4.9 at lag 24, so its rescaled annualized value is
+*not* reliable — immaterial, because H23 is REJECTED on gates that are not
+Sharpe-based, but recorded rather than hidden.
+
+#### F5 — flagged for a future audit, not settled here
+Correcting the scale implies an annualized Sharpe of **3.25–6.53** for the certified
+intraday family (5.04–6.53 on the independent daily-aggregated estimate). That is
+**extraordinary** for a futures time-series-momentum strategy — real-world TSMOM
+Sharpes are ≈0.5–1.5 — so the *level* of the backtested P&L now deserves its own
+audit (position sizing / contract-multiplier / cost-scale consistency, and the
+plausibility of a 15% vol target producing ≈10.5% calendar-annualized realized vol
+at ≈32% calendar-annualized return). H26 does **not** attempt that audit and makes
+no claim about it; it only records that the published numbers and the corrected
+numbers point in opposite directions from what a reader would assume, and that the
+"edge is marginal" framing in the record is at least partly a metric-scale artifact.
+
+#### Amendment 1 (2026-10-19, after the first execution)
+The reproduction anchor (pre-registration step 2) flagged H9, and the cause was
+identified by two companion checks that were **not** in the original plan: the
+standard-deviation-convention check and the profit-factor **window** check. Both were
+added to the runner and are applied to *every* audited artifact (not only the
+excluded one) so that the two defect classes are pinned going forward. The
+pre-registered exclusion rule was **not** changed: H9 remains excluded, and the
+scale conclusion for H9 is stated separately as a characterization, flagged as
+excluded.
+
+#### What H26 does *not* change
+No gate, threshold, verdict, or certified number changed. H10/H11/H22/H25 remain
+PASS (9/9 or 8/8 as certified); H9/H21/H23 remain REJECT. Every profit-factor
+conclusion (PF margin fragility, cost-stress break-even, dispensability) is
+scale-invariant and is untouched. The "Next Task" (paid hourly futures data) still
+stands — but the *reason* is now sharper: the binding constraint is the **PF
+bootstrap margin** plus the short sample, not the Sharpe CI.
