@@ -245,3 +245,40 @@ class TestApplyExitsHourly:
         assert h10.sharpe_ratio(oos.values) == pytest.approx(1.056, abs=0.05)
         assert abs(dd) == pytest.approx(0.062, abs=0.03)
         assert pf == pytest.approx(1.252, abs=0.1)
+
+
+def test_experiment_description_matches_pre_registered_grid():
+    """The human-readable EXPERIMENT_DESC must not drift from the actual grid.
+
+    Same defect class fixed across sessions (H22 prose, H23 prose+spec, H25
+    prose, H22 pre-registration, H17/H19/H20/H16/H18/H21 pins): the string is
+    logged verbatim into .experiments/experiments.jsonl and is the first prose
+    an auditor reads. Nothing pinned the prose to the computed grid size, so a
+    stale or absent combo count would survive into the auditable record.
+    """
+    n_combos = (
+        len(h10.SMOOTH_SPANS)
+        * len(h10.VOL_WINDOWS_LONG)
+        * len(h10.REGIME_SCALING_FLAGS)
+        * len(h10.MIN_TRADE_INTERVALS)
+        * len(h10.TRAILING_MULTS)
+        * len(h10.MAX_HOLD_BARS)
+        * len(h10.VOL_LIMIT_MULTS)
+        * len(h10.VOL_FLOOR_FRACTIONS)
+    )
+    assert n_combos == 13824, f"expected 13,824 combos, got {n_combos}"
+    assert f"{n_combos}-combo" in h10.EXPERIMENT_DESC, (
+        f"EXPERIMENT_DESC missing '{n_combos}-combo' (got {h10.EXPERIMENT_DESC!r})"
+    )
+    # Every grid dimension must be enumerated in the prose.
+    for dim in (
+        "smooth_span",
+        "vol_window_long",
+        "regime_scaling",
+        "min_trade_interval",
+        "trailing_mult",
+        "max_hold_bars",
+        "vol_limit_mult",
+        "vol_floor_fraction",
+    ):
+        assert dim in h10.EXPERIMENT_DESC, f"EXPERIMENT_DESC missing dimension {dim!r}"

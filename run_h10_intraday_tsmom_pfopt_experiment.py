@@ -63,7 +63,10 @@ from run_h9_intraday_tsmom_experiment import (
 EXPERIMENT_NAME = "h10_intraday_tsmom_pfopt"
 EXPERIMENT_DESC = (
     "H10: Intraday TSMOM turnover-aware signal + exit grid for profit-factor "
-    "optimization; Val-selected, Test-protected, same gates as H9"
+    "optimization; 13824-combo grid (smooth_span x vol_window_long x "
+    "regime_scaling x min_trade_interval x trailing_mult x max_hold_bars x "
+    "vol_limit_mult x vol_floor_fraction), Val-selected, Test-protected, "
+    "same gates as H9"
 )
 
 TARGET_VOL = 0.15
