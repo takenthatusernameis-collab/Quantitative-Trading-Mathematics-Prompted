@@ -41,6 +41,10 @@ tests/test_h22_futures_tsmom_voltarget.py
 tests/test_h23_crypto_futures_tsmom.py
 tests/test_h25_futures_tsmom_pfmargin.py
 tests/test_h25_pf_robustness.py
+tests/test_h26_sharpe_scale_audit.py
+tests/test_h27_pnl_level_audit.py
+tests/test_h28_causal_recertification.py
+tests/test_h29_lookahead_sweep.py
 tests/test_probe_report_schema.py
 tests/test_statistics.py
 tests/test_tsmom_signal.py
