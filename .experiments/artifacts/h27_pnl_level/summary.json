@@ -1,0 +1,1587 @@
+{
+  "hypothesis": "H27",
+  "kind": "audit",
+  "capital": 1000000.0,
+  "max_leverage": 5.0,
+  "max_position_size": 2.0,
+  "tolerances": {
+    "level_abs": 1e-09,
+    "level_fail_fraction": 0.01,
+    "reproduction": 0.0,
+    "lookahead_structural_fraction": 0.99,
+    "lookahead_sharpe_relative_drop": 0.5
+  },
+  "contract_specs": {
+    "per_symbol": {
+      "ES=F": {
+        "multiplier": 50.0,
+        "tick_size": 0.25,
+        "tick_value": 12.5,
+        "implied_tick_value": 12.5,
+        "tick_value_consistent": true,
+        "commission": 0.5,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+        "cost_per_contract": 9.875,
+        "expected_cost_per_contract": 9.875
+      },
+      "NQ=F": {
+        "multiplier": 20.0,
+        "tick_size": 0.25,
+        "tick_value": 5.0,
+        "implied_tick_value": 5.0,
+        "tick_value_consistent": true,
+        "commission": 0.5,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+        "cost_per_contract": 4.25,
+        "expected_cost_per_contract": 4.25
+      },
+      "CL=F": {
+        "multiplier": 1000.0,
+        "tick_size": 0.01,
+        "tick_value": 10.0,
+        "implied_tick_value": 10.0,
+        "tick_value_consistent": true,
+        "commission": 0.5,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+        "cost_per_contract": 8.0,
+        "expected_cost_per_contract": 8.0
+      },
+      "GC=F": {
+        "multiplier": 100.0,
+        "tick_size": 0.1,
+        "tick_value": 10.0,
+        "implied_tick_value": 10.0,
+        "tick_value_consistent": true,
+        "commission": 0.5,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+        "cost_per_contract": 8.0,
+        "expected_cost_per_contract": 8.0
+      },
+      "ZB=F": {
+        "multiplier": 1000.0,
+        "tick_size": 0.03125,
+        "tick_value": 31.25,
+        "implied_tick_value": 31.25,
+        "tick_value_consistent": true,
+        "commission": 0.5,
+        "spread_ticks": 0.25,
+        "slippage_ticks": 0.5,
+        "cost_per_contract": 23.9375,
+        "expected_cost_per_contract": 23.9375
+      }
+    },
+    "all_tick_values_consistent": true,
+    "all_costs_consistent": true
+  },
+  "audited": [
+    {
+      "family": "H9",
+      "artifact": "exp_2026-10-11T16-52-38-694559Z",
+      "published_verdict": "REJECT",
+      "construction": "portfolio_h9",
+      "published_oos_sharpe": 1.0563828964274808,
+      "published_profit_factor": 1.252218313316879,
+      "published_reconciliation_abs_diff": 0.00010261624157736904,
+      "benchmark": {
+        "uniform_equal_weight_full_sample_equity_multiple": 1.32478250083151,
+        "uniform_equal_weight_oos_equity_multiple": 1.165492092662939,
+        "logged_benchmark_full_sample_equity_multiple": 1.32478250083151,
+        "logged_benchmark_definition": "equal-weight buy-and-hold"
+      },
+      "n_bars": 11441,
+      "oos_start": "2025-11-14 01:00:00",
+      "oos_end": "2026-10-09 20:00:00",
+      "level_checks": {
+        "L1": {
+          "dollar_pnl_matches_engine_gross_max_abs_diff": 3.46077333457373e-16,
+          "recomputed_net_matches_logged_returns_max_abs_diff": 0.0,
+          "n_bars_total": 11441,
+          "n_bars_compared": 11148,
+          "coverage_fraction": 0.9743903504938379,
+          "n_bars_non_finite": 293,
+          "n_bars_with_nan_price": 292,
+          "non_finite_note": "the first bar has no previous price (the contract count is a lagged quantity); any further non-finite bars come from NaN prices in the committed artifact",
+          "passes": true
+        },
+        "L3": {
+          "cost_from_trades_matches_engine_max_abs_diff": 6.776263578034403e-21,
+          "n_trades": 2690,
+          "mean_cost_per_bar": 2.99451092856062e-06,
+          "mean_gross_return_per_bar": 0.00018867911661132964,
+          "cost_share_of_gross_edge": 0.015870918744702284,
+          "passes": true
+        }
+      },
+      "contract_specs": {
+        "per_symbol": {
+          "ES=F": {
+            "multiplier": 50.0,
+            "tick_size": 0.25,
+            "tick_value": 12.5,
+            "implied_tick_value": 12.5,
+            "tick_value_consistent": true,
+            "commission": 0.5,
+            "spread_ticks": 0.25,
+            "slippage_ticks": 0.5,
+            "cost_per_contract": 9.875,
+            "expected_cost_per_contract": 9.875
+          },
+          "NQ=F": {
+            "multiplier": 20.0,
+            "tick_size": 0.25,
+            "tick_value": 5.0,
+            "implied_tick_value": 5.0,
+            "tick_value_consistent": true,
+            "commission": 0.5,
+            "spread_ticks": 0.25,
+            "slippage_ticks": 0.5,
+            "cost_per_contract": 4.25,
+            "expected_cost_per_contract": 4.25
+          },
+          "CL=F": {
+            "multiplier": 1000.0,
+            "tick_size": 0.01,
+            "tick_value": 10.0,
+            "implied_tick_value": 10.0,
+            "tick_value_consistent": true,
+            "commission": 0.5,
+            "spread_ticks": 0.25,
+            "slippage_ticks": 0.5,
+            "cost_per_contract": 8.0,
+            "expected_cost_per_contract": 8.0
+          },
+          "GC=F": {
+            "multiplier": 100.0,
+            "tick_size": 0.1,
+            "tick_value": 10.0,
+            "implied_tick_value": 10.0,
+            "tick_value_consistent": true,
+            "commission": 0.5,
+            "spread_ticks": 0.25,
+            "slippage_ticks": 0.5,
+            "cost_per_contract": 8.0,
+            "expected_cost_per_contract": 8.0
+          },
+          "ZB=F": {
+            "multiplier": 1000.0,
+            "tick_size": 0.03125,
+            "tick_value": 31.25,
+            "implied_tick_value": 31.25,
+            "tick_value_consistent": true,
+            "commission": 0.5,
+            "spread_ticks": 0.25,
+            "slippage_ticks": 0.5,
+            "cost_per_contract": 23.9375,
+            "expected_cost_per_contract": 23.9375
+          }
+        },
+        "all_tick_values_consistent": true,
+        "all_costs_consistent": true
+      },
+      "vol_target_coherence": {
+        "target_vol_annualized": 0.15,
+        "target_applied_to": "hourly returns, scaled by sqrt(252 * 6.5)",
+        "code_annualization_factor": 40.47221268969612,
+        "code_bars_per_year": 1638.0,
+        "empirical_bars_per_year": 5701.499431459255,
+        "empirical_annualization_factor": 75.50827392716148,
+        "annualization_ratio_empirical_over_code": 1.8656818816922565,
+        "realized_vol_code_scale": 0.10055821276440777,
+        "realized_vol_empirical_scale": 0.1876096356099106,
+        "realized_return_code_scale": 0.27085556955992873,
+        "realized_return_empirical_scale": 0.9427856384942042,
+        "realized_vol_over_target_code_scale": 0.6703880850960519,
+        "same_quantity_as_pnl": true,
+        "note": "The vol target is applied to the same hourly-return quantity the P&L is built from, so the target and the realized figure are internally consistent. The code annualizes hourly bars with sqrt(252 * 6.5) while the artifact's own bar index implies sqrt(bars_per_year); the ratio is reported above.",
+        "oos_vol_target_multiplier": 1.0
+      },
+      "lookahead": {
+        "L5a_structural": {
+          "artifact_only": {
+            "available": true,
+            "signal_artifact": "hourly_signal.parquet",
+            "daily_artifact": "daily_target.parquet",
+            "max_abs_diff_signal_at_day_close_vs_daily_collapse": 0.0,
+            "max_abs_diff_signal_at_day_open_vs_daily_collapse": 3.8665741442605217,
+            "fraction_bars_where_same_day_differs_from_prev_day": 0.983914677856456,
+            "target_artifact": null,
+            "target_artifact_reason": "H9 logs no expanded hourly target"
+          },
+          "rebuild": {
+            "per_symbol": {
+              "ES=F": {
+                "same_day_match_fraction": 1.0,
+                "prev_day_match_fraction": 0.016085322143544016
+              },
+              "NQ=F": {
+                "same_day_match_fraction": 1.0,
+                "prev_day_match_fraction": 0.010053326339715011
+              },
+              "CL=F": {
+                "same_day_match_fraction": 1.0,
+                "prev_day_match_fraction": 0.010053326339715011
+              },
+              "GC=F": {
+                "same_day_match_fraction": 1.0,
+                "prev_day_match_fraction": 0.012063991607658012
+              },
+              "ZB=F": {
+                "same_day_match_fraction": 1.0,
+                "prev_day_match_fraction": 0.014074656875601015
+              }
+            },
+            "same_day_match_fraction": 1.0,
+            "prev_day_match_fraction": 0.012466124661246612,
+            "calendar_complete": true,
+            "n_daily_labels": 727
+          },
+          "same_day_match_fraction": 1.0,
+          "prev_day_match_fraction": 0.012466124661246612
+        },
+        "L5b_counterfactual": {
+          "rebuild_positions_max_abs_diff": 0.0,
+          "rebuild_returns_max_abs_diff": 0.0,
+          "reproduced_bit_exact": true,
+          "published_oos": {
+            "n_bars": 5148,
+            "sharpe": 1.0564855126690582,
+            "profit_factor": 1.2528628517519271,
+            "max_drawdown": -0.06196770451848299,
+            "equity_multiple": 2.305572312282082,
+            "mean_bar_return": 0.00016535749057382707,
+            "std_bar_return": 0.002484623549875963
+          },
+          "causal_oos": {
+            "n_bars": 5148,
+            "sharpe": 0.18600824875270178,
+            "profit_factor": 1.0414653649955832,
+            "max_drawdown": -0.16701423993657438,
+            "equity_multiple": 1.1515334321861592,
+            "mean_bar_return": 3.088118971022357e-05,
+            "std_bar_return": 0.002635494351812877
+          },
+          "published_full_sample": {
+            "n_bars": 11441,
+            "sharpe": 1.0884427720288306,
+            "profit_factor": 1.252218313316879,
+            "max_drawdown": -0.07897454703111939,
+            "equity_multiple": 8.022942821345277,
+            "mean_bar_return": 0.000185684605682769,
+            "std_bar_return": 0.0027081366235579257
+          },
+          "causal_full_sample": {
+            "n_bars": 11441,
+            "sharpe": 0.13559423668253634,
+            "profit_factor": 1.0290216598082105,
+            "max_drawdown": -0.16701423993657272,
+            "equity_multiple": 1.2638229618616568,
+            "mean_bar_return": 2.4624487768716974e-05,
+            "std_bar_return": 0.002882877874119904
+          },
+          "oos_sharpe_relative_drop": 0.823936772892627,
+          "oos_pf_relative_drop": 0.1687315466818563
+        },
+        "L5c_attribution": {
+          "published": {
+            "total_overnight_pnl": 0.0476505224739356,
+            "total_intraday_pnl": 2.111027250676287,
+            "total_pnl": 2.1586777731502225,
+            "intraday_share": 0.9779260605419595
+          },
+          "causal": {
+            "total_overnight_pnl": 0.10418999207584313,
+            "total_intraday_pnl": 0.21388070997357334,
+            "total_pnl": 0.31807070204941645,
+            "intraday_share": 0.6724313449666426
+          },
+          "same_day_tilt": {
+            "published": {
+              "per_symbol": {
+                "ES=F": {
+                  "n_sessions": 358,
+                  "mean_signed_intraday_return": 0.001874106778700384,
+                  "mean_abs_intraday_return": 0.004685201092478739,
+                  "same_day_hit_rate": 0.5698324022346368
+                },
+                "NQ=F": {
+                  "n_sessions": 350,
+                  "mean_signed_intraday_return": 0.002675136129584199,
+                  "mean_abs_intraday_return": 0.006722319440782305,
+                  "same_day_hit_rate": 0.6
+                },
+                "CL=F": {
+                  "n_sessions": 274,
+                  "mean_signed_intraday_return": 0.0038612064841044434,
+                  "mean_abs_intraday_return": 0.0168857638878543,
+                  "same_day_hit_rate": 0.5182481751824818
+                },
+                "GC=F": {
+                  "n_sessions": 361,
+                  "mean_signed_intraday_return": 0.0025579041883890086,
+                  "mean_abs_intraday_return": 0.008648818131546688,
+                  "same_day_hit_rate": 0.5484764542936288
+                },
+                "ZB=F": {
+                  "n_sessions": 243,
+                  "mean_signed_intraday_return": 0.001143676037702916,
+                  "mean_abs_intraday_return": 0.0037558761349966345,
+                  "same_day_hit_rate": 0.5349794238683128
+                }
+              },
+              "mean_signed_intraday_return": 0.00242240592369619,
+              "mean_same_day_hit_rate": 0.554307291115812
+            },
+            "causal": {
+              "per_symbol": {
+                "ES=F": {
+                  "n_sessions": 355,
+                  "mean_signed_intraday_return": 0.0005079912162972826,
+                  "mean_abs_intraday_return": 0.004368222959282839,
+                  "same_day_hit_rate": 0.504225352112676
+                },
+                "NQ=F": {
+                  "n_sessions": 347,
+                  "mean_signed_intraday_return": 0.000464364917368252,
+                  "mean_abs_intraday_return": 0.006606672210718902,
+                  "same_day_hit_rate": 0.5273775216138329
+                },
+                "CL=F": {
+                  "n_sessions": 273,
+                  "mean_signed_intraday_return": 0.0006082163316009558,
+                  "mean_abs_intraday_return": 0.018545452710665704,
+                  "same_day_hit_rate": 0.4432234432234432
+                },
+                "GC=F": {
+                  "n_sessions": 361,
+                  "mean_signed_intraday_return": 0.0007267840694261335,
+                  "mean_abs_intraday_return": 0.008868753096058859,
+                  "same_day_hit_rate": 0.49584487534626037
+                },
+                "ZB=F": {
+                  "n_sessions": 233,
+                  "mean_signed_intraday_return": -0.00023914625402879494,
+                  "mean_abs_intraday_return": 0.0038570425759487663,
+                  "same_day_hit_rate": 0.44206008583690987
+                }
+              },
+              "mean_signed_intraday_return": 0.0004136420561327658,
+              "mean_same_day_hit_rate": 0.48254625562662445
+            },
+            "tilt_ratio_published_over_causal": 5.856285374712178
+          }
+        }
+      }
+    },
+    {
+      "family": "H10",
+      "artifact": "exp_2026-10-11T17-41-18-169363Z",
+      "published_verdict": "PASS",
+      "construction": "portfolio_h10",
+      "published_oos_sharpe": 1.2757590680990518,
+      "published_profit_factor": 1.3041645169434146,
+      "published_reconciliation_abs_diff": 0.0,
+      "benchmark": {
+        "uniform_equal_weight_full_sample_equity_multiple": 1.358529635319213,
+        "uniform_equal_weight_oos_equity_multiple": 1.1915828155063888,
+        "logged_benchmark_full_sample_equity_multiple": 1.358529635319213,
+        "logged_benchmark_definition": "equal-weight buy-and-hold"
+      },
+      "n_bars": 11441,
+      "oos_start": "2025-11-14 01:00:00",
+      "oos_end": "2026-10-09 20:00:00",
+      "level_checks": {
+        "L1": {
+          "dollar_pnl_matches_engine_gross_max_abs_diff": 4.3324718812520757e-16,
+          "recomputed_net_matches_logged_returns_max_abs_diff": 0.0,
+          "n_bars_total": 11441,
+          "n_bars_compared": 11440,
+          "coverage_fraction": 0.99991259505288,
+          "n_bars_non_finite": 1,
+          "n_bars_with_nan_price": 0,
+          "non_finite_note": "the first bar has no previous price (the contract count is a lagged quantity); any further non-finite bars come from NaN prices in the committed artifact",
+          "passes": true
+        },
+        "L3": {
+          "cost_from_trades_matches_engine_max_abs_diff": 1.0842021724855044e-19,
+          "n_trades": 3701,
+          "mean_cost_per_bar": 3.0510503310711023e-06,
+          "mean_gross_return_per_bar": 0.00017553556955088906,
+          "cost_share_of_gross_edge": 0.017381379391523153,
+          "passes": true
+        }
+      },
+      "contract_specs": {
+        "per_symbol": {
+          "ES=F": {
+            "multiplier": 50.0,
+            "tick_size": 0.25,
+            "tick_value": 12.5,
+            "implied_tick_value": 12.5,
+            "tick_value_consistent": true,
+            "commission": 0.5,
+            "spread_ticks": 0.25,
+            "slippage_ticks": 0.5,
+            "cost_per_contract": 9.875,
+            "expected_cost_per_contract": 9.875
+          },
+          "NQ=F": {
+            "multiplier": 20.0,
+            "tick_size": 0.25,
+            "tick_value": 5.0,
+            "implied_tick_value": 5.0,
+            "tick_value_consistent": true,
+            "commission": 0.5,
+            "spread_ticks": 0.25,
+            "slippage_ticks": 0.5,
+            "cost_per_contract": 4.25,
+            "expected_cost_per_contract": 4.25
+          },
+          "CL=F": {
+            "multiplier": 1000.0,
+            "tick_size": 0.01,
+            "tick_value": 10.0,
+            "implied_tick_value": 10.0,
+            "tick_value_consistent": true,
+            "commission": 0.5,
+            "spread_ticks": 0.25,
+            "slippage_ticks": 0.5,
+            "cost_per_contract": 8.0,
+            "expected_cost_per_contract": 8.0
+          },
+          "GC=F": {
+            "multiplier": 100.0,
+            "tick_size": 0.1,
+            "tick_value": 10.0,
+            "implied_tick_value": 10.0,
+            "tick_value_consistent": true,
+            "commission": 0.5,
+            "spread_ticks": 0.25,
+            "slippage_ticks": 0.5,
+            "cost_per_contract": 8.0,
+            "expected_cost_per_contract": 8.0
+          },
+          "ZB=F": {
+            "multiplier": 1000.0,
+            "tick_size": 0.03125,
+            "tick_value": 31.25,
+            "implied_tick_value": 31.25,
+            "tick_value_consistent": true,
+            "commission": 0.5,
+            "spread_ticks": 0.25,
+            "slippage_ticks": 0.5,
+            "cost_per_contract": 23.9375,
+            "expected_cost_per_contract": 23.9375
+          }
+        },
+        "all_tick_values_consistent": true,
+        "all_costs_consistent": true
+      },
+      "vol_target_coherence": {
+        "target_vol_annualized": 0.15,
+        "target_applied_to": "hourly returns, scaled by sqrt(252 * 6.5)",
+        "code_annualization_factor": 40.47221268969612,
+        "code_bars_per_year": 1638.0,
+        "empirical_bars_per_year": 5701.499431459255,
+        "empirical_annualization_factor": 75.50827392716148,
+        "annualization_ratio_empirical_over_code": 1.8656818816922565,
+        "realized_vol_code_scale": 0.08312266256896504,
+        "realized_vol_empirical_scale": 0.1550804455129372,
+        "realized_return_code_scale": 0.27036146327831595,
+        "realized_return_empirical_scale": 0.9410657687239381,
+        "realized_vol_over_target_code_scale": 0.5541510837931003,
+        "same_quantity_as_pnl": true,
+        "note": "The vol target is applied to the same hourly-return quantity the P&L is built from, so the target and the realized figure are internally consistent. The code annualizes hourly bars with sqrt(252 * 6.5) while the artifact's own bar index implies sqrt(bars_per_year); the ratio is reported above.",
+        "oos_vol_target_multiplier": 1.0
+      },
+      "lookahead": {
+        "L5a_structural": {
+          "artifact_only": {
+            "available": true,
+            "signal_artifact": "hourly_signal_h9.parquet",
+            "daily_artifact": "daily_target_h9.parquet",
+            "max_abs_diff_signal_at_day_close_vs_daily_collapse": 0.0,
+            "max_abs_diff_signal_at_day_open_vs_daily_collapse": 3.8716960550782407,
+            "fraction_bars_where_same_day_differs_from_prev_day": 0.983914677856456,
+            "target_artifact": null,
+            "target_artifact_reason": "H10's logged hourly_target_selected is built from the 1008-bar signal while the logged daily_target_h9 collapses the 252-bar signal, so the two artifacts are not a matching pair"
+          },
+          "rebuild": {
+            "per_symbol": {
+              "ES=F": {
+                "same_day_match_fraction": 1.0,
+                "prev_day_match_fraction": 0.056211207273363054
+              },
+              "NQ=F": {
+                "same_day_match_fraction": 1.0,
+                "prev_day_match_fraction": 0.046157880933648046
+              },
+              "CL=F": {
+                "same_day_match_fraction": 1.0,
+                "prev_day_match_fraction": 0.04213655039776204
+              },
+              "GC=F": {
+                "same_day_match_fraction": 1.0,
+                "prev_day_match_fraction": 0.04816854620159105
+              },
+              "ZB=F": {
+                "same_day_match_fraction": 1.0,
+                "prev_day_match_fraction": 0.05017921146953405
+              }
+            },
+            "same_day_match_fraction": 1.0,
+            "prev_day_match_fraction": 0.04857067925517965,
+            "calendar_complete": true,
+            "n_daily_labels": 727
+          },
+          "same_day_match_fraction": 1.0,
+          "prev_day_match_fraction": 0.04857067925517965
+        },
+        "L5b_counterfactual": {
+          "rebuild_positions_max_abs_diff": 0.0,
+          "rebuild_returns_max_abs_diff": 0.0,
+          "reproduced_bit_exact": true,
+          "published_oos": {
+            "n_bars": 5148,
+            "sharpe": 1.2757590680990518,
+            "profit_factor": 1.3041645169434146,
+            "max_drawdown": -0.05842847204487622,
+            "equity_multiple": 2.313583834879567,
+            "mean_bar_return": 0.00016505583838725027,
+            "std_bar_return": 0.002053820560943221
+          },
+          "causal_oos": {
+            "n_bars": 5148,
+            "sharpe": 0.2923145945697693,
+            "profit_factor": 1.0626688493913243,
+            "max_drawdown": -0.12177291222377018,
+            "equity_multiple": 1.203479788666049,
+            "mean_bar_return": 3.812138860800759e-05,
+            "std_bar_return": 0.0020702294533945843
+          },
+          "published_full_sample": {
+            "n_bars": 11441,
+            "sharpe": 1.0574626533240554,
+            "profit_factor": 1.2573030011812552,
+            "max_drawdown": -0.13231671881588347,
+            "equity_multiple": 6.923360308197748,
+            "mean_bar_return": 0.00017248451921981798,
+            "std_bar_return": 0.002589317786853312
+          },
+          "causal_full_sample": {
+            "n_bars": 11441,
+            "sharpe": 0.11351227617797129,
+            "profit_factor": 1.0251720750849382,
+            "max_drawdown": -0.16926819924583647,
+            "equity_multiple": 1.194823371113396,
+            "mean_bar_return": 1.914665318380072e-05,
+            "std_bar_return": 0.0026776284188390134
+          },
+          "oos_sharpe_relative_drop": 0.7708700632594103,
+          "oos_pf_relative_drop": 0.18517270207449477
+        },
+        "L5c_attribution": {
+          "published": {
+            "total_overnight_pnl": 0.09485496980264471,
+            "total_intraday_pnl": 1.9134474814290772,
+            "total_pnl": 2.008302451231722,
+            "intraday_share": 0.9527685833652851
+          },
+          "causal": {
+            "total_overnight_pnl": 0.14432940135836486,
+            "total_intraday_pnl": 0.11077532599557414,
+            "total_pnl": 0.255104727353939,
+            "intraday_share": 0.4342347048782108
+          },
+          "same_day_tilt": {
+            "published": {
+              "per_symbol": {
+                "ES=F": {
+                  "n_sessions": 362,
+                  "mean_signed_intraday_return": 0.0017886708033491847,
+                  "mean_abs_intraday_return": 0.004628240750158369,
+                  "same_day_hit_rate": 0.5662983425414365
+                },
+                "NQ=F": {
+                  "n_sessions": 353,
+                  "mean_signed_intraday_return": 0.0026076855790299774,
+                  "mean_abs_intraday_return": 0.006574108084435849,
+                  "same_day_hit_rate": 0.5977337110481586
+                },
+                "CL=F": {
+                  "n_sessions": 283,
+                  "mean_signed_intraday_return": 0.004263038521356126,
+                  "mean_abs_intraday_return": 0.017033761870261222,
+                  "same_day_hit_rate": 0.5017667844522968
+                },
+                "GC=F": {
+                  "n_sessions": 355,
+                  "mean_signed_intraday_return": 0.002657296334302537,
+                  "mean_abs_intraday_return": 0.008738373261996765,
+                  "same_day_hit_rate": 0.5521126760563381
+                },
+                "ZB=F": {
+                  "n_sessions": 255,
+                  "mean_signed_intraday_return": 0.0010618309429170046,
+                  "mean_abs_intraday_return": 0.0035551784711204603,
+                  "same_day_hit_rate": 0.5098039215686274
+                }
+              },
+              "mean_signed_intraday_return": 0.002475704436190966,
+              "mean_same_day_hit_rate": 0.5455430871333715
+            },
+            "causal": {
+              "per_symbol": {
+                "ES=F": {
+                  "n_sessions": 361,
+                  "mean_signed_intraday_return": 0.0004139426492672019,
+                  "mean_abs_intraday_return": 0.004340910884934884,
+                  "same_day_hit_rate": 0.4986149584487535
+                },
+                "NQ=F": {
+                  "n_sessions": 352,
+                  "mean_signed_intraday_return": 0.00038174835089585963,
+                  "mean_abs_intraday_return": 0.00643240795940088,
+                  "same_day_hit_rate": 0.5198863636363636
+                },
+                "CL=F": {
+                  "n_sessions": 283,
+                  "mean_signed_intraday_return": 0.00046993021879433174,
+                  "mean_abs_intraday_return": 0.018429894282694613,
+                  "same_day_hit_rate": 0.4381625441696113
+                },
+                "GC=F": {
+                  "n_sessions": 355,
+                  "mean_signed_intraday_return": 0.0008275697450227883,
+                  "mean_abs_intraday_return": 0.008845740749994798,
+                  "same_day_hit_rate": 0.49859154929577465
+                },
+                "ZB=F": {
+                  "n_sessions": 255,
+                  "mean_signed_intraday_return": -9.487491855907295e-05,
+                  "mean_abs_intraday_return": 0.0035806619895942817,
+                  "same_day_hit_rate": 0.43137254901960786
+                }
+              },
+              "mean_signed_intraday_return": 0.00039966320908422164,
+              "mean_same_day_hit_rate": 0.47732559291402216
+            },
+            "tilt_ratio_published_over_causal": 6.194476699178125
+          }
+        }
+      }
+    },
+    {
+      "family": "H21",
+      "artifact": "exp_2026-10-13T23-27-52-101656Z",
+      "published_verdict": "REJECT",
+      "construction": "per_contract",
+      "published_oos_sharpe": 0.8393598580201286,
+      "published_profit_factor": 1.2058898228640889,
+      "published_reconciliation_abs_diff": 0.0,
+      "benchmark": {
+        "uniform_equal_weight_full_sample_equity_multiple": 1.358529635319213,
+        "uniform_equal_weight_oos_equity_multiple": 1.1915828155063888,
+        "logged_benchmark_full_sample_equity_multiple": 1.219841635968624,
+        "logged_benchmark_definition": "vol-weighted buy-and-hold"
+      },
+      "n_bars": 11441,
+      "oos_start": "2025-11-14 01:00:00",
+      "oos_end": "2026-10-09 20:00:00",
+      "level_checks": {
+        "L1": {
+          "dollar_pnl_matches_engine_gross_max_abs_diff": 4.874572967494828e-16,
+          "recomputed_net_matches_logged_returns_max_abs_diff": 0.0,
+          "n_bars_total": 11441,
+          "n_bars_compared": 11440,
+          "coverage_fraction": 0.99991259505288,
+          "n_bars_non_finite": 1,
+          "n_bars_with_nan_price": 0,
+          "non_finite_note": "the first bar has no previous price (the contract count is a lagged quantity); any further non-finite bars come from NaN prices in the committed artifact",
+          "passes": true
+        },
+        "L3": {
+          "cost_from_trades_matches_engine_max_abs_diff": 1.0842021724855044e-19,
+          "n_trades": 12624,
+          "mean_cost_per_bar": 1.2641138335578932e-05,
+          "mean_gross_return_per_bar": 0.00025841844060021924,
+          "cost_share_of_gross_edge": 0.04891732302933882,
+          "passes": true
+        }
+      },
+      "contract_specs": {
+        "per_symbol": {
+          "ES=F": {
+            "multiplier": 50.0,
+            "tick_size": 0.25,
+            "tick_value": 12.5,
+            "implied_tick_value": 12.5,
+            "tick_value_consistent": true,
+            "commission": 0.5,
+            "spread_ticks": 0.25,
+            "slippage_ticks": 0.5,
+            "cost_per_contract": 9.875,
+            "expected_cost_per_contract": 9.875
+          },
+          "NQ=F": {
+            "multiplier": 20.0,
+            "tick_size": 0.25,
+            "tick_value": 5.0,
+            "implied_tick_value": 5.0,
+            "tick_value_consistent": true,
+            "commission": 0.5,
+            "spread_ticks": 0.25,
+            "slippage_ticks": 0.5,
+            "cost_per_contract": 4.25,
+            "expected_cost_per_contract": 4.25
+          },
+          "CL=F": {
+            "multiplier": 1000.0,
+            "tick_size": 0.01,
+            "tick_value": 10.0,
+            "implied_tick_value": 10.0,
+            "tick_value_consistent": true,
+            "commission": 0.5,
+            "spread_ticks": 0.25,
+            "slippage_ticks": 0.5,
+            "cost_per_contract": 8.0,
+            "expected_cost_per_contract": 8.0
+          },
+          "GC=F": {
+            "multiplier": 100.0,
+            "tick_size": 0.1,
+            "tick_value": 10.0,
+            "implied_tick_value": 10.0,
+            "tick_value_consistent": true,
+            "commission": 0.5,
+            "spread_ticks": 0.25,
+            "slippage_ticks": 0.5,
+            "cost_per_contract": 8.0,
+            "expected_cost_per_contract": 8.0
+          },
+          "ZB=F": {
+            "multiplier": 1000.0,
+            "tick_size": 0.03125,
+            "tick_value": 31.25,
+            "implied_tick_value": 31.25,
+            "tick_value_consistent": true,
+            "commission": 0.5,
+            "spread_ticks": 0.25,
+            "slippage_ticks": 0.5,
+            "cost_per_contract": 23.9375,
+            "expected_cost_per_contract": 23.9375
+          }
+        },
+        "all_tick_values_consistent": true,
+        "all_costs_consistent": true
+      },
+      "vol_target_coherence": {
+        "target_vol_annualized": 0.075,
+        "target_applied_to": "hourly returns, scaled by sqrt(252 * 6.5)",
+        "code_annualization_factor": 40.47221268969612,
+        "code_bars_per_year": 1638.0,
+        "empirical_bars_per_year": 5701.499431459255,
+        "empirical_annualization_factor": 75.50827392716148,
+        "annualization_ratio_empirical_over_code": 1.8656818816922565,
+        "realized_vol_code_scale": 0.16325372312323674,
+        "realized_vol_empirical_scale": 0.30457951334982697,
+        "realized_return_code_scale": 0.34935580839747477,
+        "realized_return_empirical_scale": 1.216026827200971,
+        "realized_vol_over_target_code_scale": 2.1767163083098233,
+        "same_quantity_as_pnl": true,
+        "note": "The vol target is applied to the same hourly-return quantity the P&L is built from, so the target and the realized figure are internally consistent. The code annualizes hourly bars with sqrt(252 * 6.5) while the artifact's own bar index implies sqrt(bars_per_year); the ratio is reported above.",
+        "oos_vol_target_multiplier": 0.5
+      },
+      "lookahead": {
+        "L5a_structural": {
+          "artifact_only": {
+            "available": true,
+            "signal_artifact": "hourly_signal_h10.parquet",
+            "daily_artifact": "daily_target_h10.parquet",
+            "max_abs_diff_signal_at_day_close_vs_daily_collapse": 0.0,
+            "max_abs_diff_signal_at_day_open_vs_daily_collapse": 4.0,
+            "fraction_bars_where_same_day_differs_from_prev_day": 0.6136025876387796,
+            "target_artifact": "hourly_target_selected.parquet",
+            "target_same_day_match_fraction": 1.0,
+            "target_prev_day_match_fraction": 0.3863974123612204
+          },
+          "rebuild": {
+            "per_symbol": {
+              "ES=F": {
+                "same_day_match_fraction": 1.0,
+                "prev_day_match_fraction": 0.3863974123612204
+              },
+              "NQ=F": {
+                "same_day_match_fraction": 1.0,
+                "prev_day_match_fraction": 0.19092578022554418
+              },
+              "CL=F": {
+                "same_day_match_fraction": 1.0,
+                "prev_day_match_fraction": 0.06399160765801207
+              },
+              "GC=F": {
+                "same_day_match_fraction": 1.0,
+                "prev_day_match_fraction": 0.21042049130168722
+              },
+              "ZB=F": {
+                "same_day_match_fraction": 1.0,
+                "prev_day_match_fraction": 0.7829355712911967
+              }
+            },
+            "same_day_match_fraction": 1.0,
+            "prev_day_match_fraction": 0.3269341725675321,
+            "calendar_complete": true,
+            "n_daily_labels": 727
+          },
+          "same_day_match_fraction": 1.0,
+          "prev_day_match_fraction": 0.3269341725675321
+        },
+        "L5b_counterfactual": {
+          "rebuild_positions_max_abs_diff": 0.0,
+          "rebuild_returns_max_abs_diff": 0.0,
+          "reproduced_bit_exact": true,
+          "published_oos": {
+            "n_bars": 5148,
+            "sharpe": 0.8393598580201286,
+            "profit_factor": 1.2058898228640889,
+            "max_drawdown": -0.08603487195947013,
+            "equity_multiple": 2.874760743816964,
+            "mean_bar_return": 0.00021328193430859266,
+            "std_bar_return": 0.0040337236902493285
+          },
+          "causal_oos": {
+            "n_bars": 5148,
+            "sharpe": 0.13170966460927166,
+            "profit_factor": 1.0296424358919745,
+            "max_drawdown": -0.26124008938124976,
+            "equity_multiple": 1.1435560059892234,
+            "mean_bar_return": 3.4937544906026226e-05,
+            "std_bar_return": 0.00421090079523245
+          },
+          "published_full_sample": {
+            "n_bars": 11441,
+            "sharpe": 0.9038616837846482,
+            "profit_factor": 1.2167794978200335,
+            "max_drawdown": -0.13087047953915554,
+            "equity_multiple": 14.955609594655918,
+            "mean_bar_return": 0.0002457773022646403,
+            "std_bar_return": 0.004316582711906533
+          },
+          "causal_full_sample": {
+            "n_bars": 11441,
+            "sharpe": 0.1090804894555876,
+            "profit_factor": 1.024023134020049,
+            "max_drawdown": -0.261240089381254,
+            "equity_multiple": 1.2667364889625614,
+            "mean_bar_return": 3.061822827624312e-05,
+            "std_bar_return": 0.004455877563915471
+          },
+          "oos_sharpe_relative_drop": 0.8430831980457741,
+          "oos_pf_relative_drop": 0.1461554643139057
+        },
+        "L5c_attribution": {
+          "published": {
+            "total_overnight_pnl": 0.11555698245748192,
+            "total_intraday_pnl": 2.8410083964496264,
+            "total_pnl": 2.9565653789071082,
+            "intraday_share": 0.9609151269639106
+          },
+          "causal": {
+            "total_overnight_pnl": 0.11815176202254793,
+            "total_intraday_pnl": 0.38983957452220225,
+            "total_pnl": 0.5079913365447501,
+            "intraday_share": 0.7674138247589196
+          },
+          "same_day_tilt": {
+            "published": {
+              "per_symbol": {
+                "ES=F": {
+                  "n_sessions": 362,
+                  "mean_signed_intraday_return": 0.0017886708033491847,
+                  "mean_abs_intraday_return": 0.004628240750158369,
+                  "same_day_hit_rate": 0.5662983425414365
+                },
+                "NQ=F": {
+                  "n_sessions": 352,
+                  "mean_signed_intraday_return": 0.0026220912546593036,
+                  "mean_abs_intraday_return": 0.006585787049895916,
+                  "same_day_hit_rate": 0.5994318181818182
+                },
+                "CL=F": {
+                  "n_sessions": 283,
+                  "mean_signed_intraday_return": 0.004263038521356126,
+                  "mean_abs_intraday_return": 0.017033761870261222,
+                  "same_day_hit_rate": 0.5017667844522968
+                },
+                "GC=F": {
+                  "n_sessions": 355,
+                  "mean_signed_intraday_return": 0.002657296334302537,
+                  "mean_abs_intraday_return": 0.008738373261996765,
+                  "same_day_hit_rate": 0.5521126760563381
+                },
+                "ZB=F": {
+                  "n_sessions": 255,
+                  "mean_signed_intraday_return": 0.0010618309429170046,
+                  "mean_abs_intraday_return": 0.0035551784711204603,
+                  "same_day_hit_rate": 0.5098039215686274
+                }
+              },
+              "mean_signed_intraday_return": 0.0024785855713168312,
+              "mean_same_day_hit_rate": 0.5458827085601035
+            },
+            "causal": {
+              "per_symbol": {
+                "ES=F": {
+                  "n_sessions": 361,
+                  "mean_signed_intraday_return": 0.0004139426492672019,
+                  "mean_abs_intraday_return": 0.004340910884934884,
+                  "same_day_hit_rate": 0.4986149584487535
+                },
+                "NQ=F": {
+                  "n_sessions": 351,
+                  "mean_signed_intraday_return": 0.0003798379600398906,
+                  "mean_abs_intraday_return": 0.006447735915007889,
+                  "same_day_hit_rate": 0.5185185185185185
+                },
+                "CL=F": {
+                  "n_sessions": 283,
+                  "mean_signed_intraday_return": 0.00046993021879433174,
+                  "mean_abs_intraday_return": 0.018429894282694613,
+                  "same_day_hit_rate": 0.4381625441696113
+                },
+                "GC=F": {
+                  "n_sessions": 355,
+                  "mean_signed_intraday_return": 0.0008275697450227883,
+                  "mean_abs_intraday_return": 0.008845740749994798,
+                  "same_day_hit_rate": 0.49859154929577465
+                },
+                "ZB=F": {
+                  "n_sessions": 255,
+                  "mean_signed_intraday_return": -9.487491855907295e-05,
+                  "mean_abs_intraday_return": 0.0035806619895942817,
+                  "same_day_hit_rate": 0.43137254901960786
+                }
+              },
+              "mean_signed_intraday_return": 0.00039928113091302784,
+              "mean_same_day_hit_rate": 0.4770520238904531
+            },
+            "tilt_ratio_published_over_causal": 6.207620093764765
+          }
+        }
+      }
+    },
+    {
+      "family": "H22",
+      "artifact": "exp_2026-10-14T18-52-08-943792Z",
+      "published_verdict": "PASS",
+      "construction": "per_contract",
+      "published_oos_sharpe": 1.3724750832147166,
+      "published_profit_factor": 1.334150203648997,
+      "published_reconciliation_abs_diff": 0.0,
+      "benchmark": {
+        "uniform_equal_weight_full_sample_equity_multiple": 1.358529635319213,
+        "uniform_equal_weight_oos_equity_multiple": 1.1915828155063888,
+        "logged_benchmark_full_sample_equity_multiple": 1.219841635968624,
+        "logged_benchmark_definition": "vol-weighted buy-and-hold"
+      },
+      "n_bars": 11441,
+      "oos_start": "2025-11-14 01:00:00",
+      "oos_end": "2026-10-09 20:00:00",
+      "level_checks": {
+        "L1": {
+          "dollar_pnl_matches_engine_gross_max_abs_diff": 4.735795089416683e-16,
+          "recomputed_net_matches_logged_returns_max_abs_diff": 0.0,
+          "n_bars_total": 11441,
+          "n_bars_compared": 11440,
+          "coverage_fraction": 0.99991259505288,
+          "n_bars_non_finite": 1,
+          "n_bars_with_nan_price": 0,
+          "non_finite_note": "the first bar has no previous price (the contract count is a lagged quantity); any further non-finite bars come from NaN prices in the committed artifact",
+          "passes": true
+        },
+        "L3": {
+          "cost_from_trades_matches_engine_max_abs_diff": 1.0842021724855044e-19,
+          "n_trades": 4980,
+          "mean_cost_per_bar": 6.150898108946854e-06,
+          "mean_gross_return_per_bar": 0.00040185460743892066,
+          "cost_share_of_gross_edge": 0.01530627743239637,
+          "passes": true
+        }
+      },
+      "contract_specs": {
+        "per_symbol": {
+          "ES=F": {
+            "multiplier": 50.0,
+            "tick_size": 0.25,
+            "tick_value": 12.5,
+            "implied_tick_value": 12.5,
+            "tick_value_consistent": true,
+            "commission": 0.5,
+            "spread_ticks": 0.25,
+            "slippage_ticks": 0.5,
+            "cost_per_contract": 9.875,
+            "expected_cost_per_contract": 9.875
+          },
+          "NQ=F": {
+            "multiplier": 20.0,
+            "tick_size": 0.25,
+            "tick_value": 5.0,
+            "implied_tick_value": 5.0,
+            "tick_value_consistent": true,
+            "commission": 0.5,
+            "spread_ticks": 0.25,
+            "slippage_ticks": 0.5,
+            "cost_per_contract": 4.25,
+            "expected_cost_per_contract": 4.25
+          },
+          "CL=F": {
+            "multiplier": 1000.0,
+            "tick_size": 0.01,
+            "tick_value": 10.0,
+            "implied_tick_value": 10.0,
+            "tick_value_consistent": true,
+            "commission": 0.5,
+            "spread_ticks": 0.25,
+            "slippage_ticks": 0.5,
+            "cost_per_contract": 8.0,
+            "expected_cost_per_contract": 8.0
+          },
+          "GC=F": {
+            "multiplier": 100.0,
+            "tick_size": 0.1,
+            "tick_value": 10.0,
+            "implied_tick_value": 10.0,
+            "tick_value_consistent": true,
+            "commission": 0.5,
+            "spread_ticks": 0.25,
+            "slippage_ticks": 0.5,
+            "cost_per_contract": 8.0,
+            "expected_cost_per_contract": 8.0
+          },
+          "ZB=F": {
+            "multiplier": 1000.0,
+            "tick_size": 0.03125,
+            "tick_value": 31.25,
+            "implied_tick_value": 31.25,
+            "tick_value_consistent": true,
+            "commission": 0.5,
+            "spread_ticks": 0.25,
+            "slippage_ticks": 0.5,
+            "cost_per_contract": 23.9375,
+            "expected_cost_per_contract": 23.9375
+          }
+        },
+        "all_tick_values_consistent": true,
+        "all_costs_consistent": true
+      },
+      "vol_target_coherence": {
+        "target_vol_annualized": 0.15,
+        "target_applied_to": "hourly returns, scaled by sqrt(252 * 6.5)",
+        "code_annualization_factor": 40.47221268969612,
+        "code_bars_per_year": 1638.0,
+        "empirical_bars_per_year": 5701.499431459255,
+        "empirical_annualization_factor": 75.50827392716148,
+        "annualization_ratio_empirical_over_code": 1.8656818816922565,
+        "realized_vol_code_scale": 0.20478974181536047,
+        "realized_vol_empirical_scale": 0.38207251086135313,
+        "realized_return_code_scale": 0.7165876936681299,
+        "realized_return_empirical_scale": 2.4942761465442866,
+        "realized_vol_over_target_code_scale": 1.3652649454357366,
+        "same_quantity_as_pnl": true,
+        "note": "The vol target is applied to the same hourly-return quantity the P&L is built from, so the target and the realized figure are internally consistent. The code annualizes hourly bars with sqrt(252 * 6.5) while the artifact's own bar index implies sqrt(bars_per_year); the ratio is reported above.",
+        "oos_vol_target_multiplier": 1.0
+      },
+      "lookahead": {
+        "L5a_structural": {
+          "artifact_only": {
+            "available": true,
+            "signal_artifact": "hourly_signal_h10.parquet",
+            "daily_artifact": "daily_target_h10.parquet",
+            "max_abs_diff_signal_at_day_close_vs_daily_collapse": 0.0,
+            "max_abs_diff_signal_at_day_open_vs_daily_collapse": 4.0,
+            "fraction_bars_where_same_day_differs_from_prev_day": 0.6136025876387796,
+            "target_artifact": "hourly_target_selected.parquet",
+            "target_same_day_match_fraction": 1.0,
+            "target_prev_day_match_fraction": 0.3863974123612204
+          },
+          "rebuild": {
+            "per_symbol": {
+              "ES=F": {
+                "same_day_match_fraction": 1.0,
+                "prev_day_match_fraction": 0.3863974123612204
+              },
+              "NQ=F": {
+                "same_day_match_fraction": 1.0,
+                "prev_day_match_fraction": 0.19092578022554418
+              },
+              "CL=F": {
+                "same_day_match_fraction": 1.0,
+                "prev_day_match_fraction": 0.06399160765801207
+              },
+              "GC=F": {
+                "same_day_match_fraction": 1.0,
+                "prev_day_match_fraction": 0.21042049130168722
+              },
+              "ZB=F": {
+                "same_day_match_fraction": 1.0,
+                "prev_day_match_fraction": 0.7829355712911967
+              }
+            },
+            "same_day_match_fraction": 1.0,
+            "prev_day_match_fraction": 0.3269341725675321,
+            "calendar_complete": true,
+            "n_daily_labels": 727
+          },
+          "same_day_match_fraction": 1.0,
+          "prev_day_match_fraction": 0.3269341725675321
+        },
+        "L5b_counterfactual": {
+          "rebuild_positions_max_abs_diff": 0.0,
+          "rebuild_returns_max_abs_diff": 0.0,
+          "reproduced_bit_exact": true,
+          "published_oos": {
+            "n_bars": 5148,
+            "sharpe": 1.3724750832147166,
+            "profit_factor": 1.334150203648997,
+            "max_drawdown": -0.11914252854616503,
+            "equity_multiple": 8.899807952161536,
+            "mean_bar_return": 0.0004374772244616178,
+            "std_bar_return": 0.005060008539327977
+          },
+          "causal_oos": {
+            "n_bars": 5148,
+            "sharpe": 0.36047322955118866,
+            "profit_factor": 1.0773354284019054,
+            "max_drawdown": -0.22760444683234615,
+            "equity_multiple": 1.6824686585969897,
+            "mean_bar_return": 0.00011358375081231067,
+            "std_bar_return": 0.005001997368871972
+          },
+          "published_full_sample": {
+            "n_bars": 11441,
+            "sharpe": 1.2381106790124539,
+            "profit_factor": 1.2879604182295155,
+            "max_drawdown": -0.15346495518170533,
+            "equity_multiple": 79.79858393055356,
+            "mean_bar_return": 0.0003957037093299738,
+            "std_bar_return": 0.005073538055198549
+          },
+          "causal_full_sample": {
+            "n_bars": 11441,
+            "sharpe": 0.21233161977690765,
+            "profit_factor": 1.0441434733697414,
+            "max_drawdown": -0.30139364685338255,
+            "equity_multiple": 1.8858295452702425,
+            "mean_bar_return": 6.863141442618002e-05,
+            "std_bar_return": 0.0051310771769857095
+          },
+          "oos_sharpe_relative_drop": 0.7373553560572768,
+          "oos_pf_relative_drop": 0.19249314998017808
+        },
+        "L5c_attribution": {
+          "published": {
+            "total_overnight_pnl": 0.24566725164033484,
+            "total_intraday_pnl": 4.3519513120683575,
+            "total_pnl": 4.597618563708692,
+            "intraday_share": 0.9465664129731185
+          },
+          "causal": {
+            "total_overnight_pnl": 0.26311226375118113,
+            "total_intraday_pnl": 0.5953564706072967,
+            "total_pnl": 0.8584687343584778,
+            "intraday_share": 0.6935097887428581
+          },
+          "same_day_tilt": {
+            "published": {
+              "per_symbol": {
+                "ES=F": {
+                  "n_sessions": 362,
+                  "mean_signed_intraday_return": 0.0017886708033491847,
+                  "mean_abs_intraday_return": 0.004628240750158369,
+                  "same_day_hit_rate": 0.5662983425414365
+                },
+                "NQ=F": {
+                  "n_sessions": 352,
+                  "mean_signed_intraday_return": 0.0026220912546593036,
+                  "mean_abs_intraday_return": 0.006585787049895916,
+                  "same_day_hit_rate": 0.5994318181818182
+                },
+                "CL=F": {
+                  "n_sessions": 283,
+                  "mean_signed_intraday_return": 0.004263038521356126,
+                  "mean_abs_intraday_return": 0.017033761870261222,
+                  "same_day_hit_rate": 0.5017667844522968
+                },
+                "GC=F": {
+                  "n_sessions": 355,
+                  "mean_signed_intraday_return": 0.002657296334302537,
+                  "mean_abs_intraday_return": 0.008738373261996765,
+                  "same_day_hit_rate": 0.5521126760563381
+                },
+                "ZB=F": {
+                  "n_sessions": 255,
+                  "mean_signed_intraday_return": 0.0010618309429170046,
+                  "mean_abs_intraday_return": 0.0035551784711204603,
+                  "same_day_hit_rate": 0.5098039215686274
+                }
+              },
+              "mean_signed_intraday_return": 0.0024785855713168312,
+              "mean_same_day_hit_rate": 0.5458827085601035
+            },
+            "causal": {
+              "per_symbol": {
+                "ES=F": {
+                  "n_sessions": 361,
+                  "mean_signed_intraday_return": 0.0004139426492672019,
+                  "mean_abs_intraday_return": 0.004340910884934884,
+                  "same_day_hit_rate": 0.4986149584487535
+                },
+                "NQ=F": {
+                  "n_sessions": 351,
+                  "mean_signed_intraday_return": 0.0003798379600398906,
+                  "mean_abs_intraday_return": 0.006447735915007889,
+                  "same_day_hit_rate": 0.5185185185185185
+                },
+                "CL=F": {
+                  "n_sessions": 283,
+                  "mean_signed_intraday_return": 0.00046993021879433174,
+                  "mean_abs_intraday_return": 0.018429894282694613,
+                  "same_day_hit_rate": 0.4381625441696113
+                },
+                "GC=F": {
+                  "n_sessions": 355,
+                  "mean_signed_intraday_return": 0.0008275697450227883,
+                  "mean_abs_intraday_return": 0.008845740749994798,
+                  "same_day_hit_rate": 0.49859154929577465
+                },
+                "ZB=F": {
+                  "n_sessions": 255,
+                  "mean_signed_intraday_return": -9.487491855907295e-05,
+                  "mean_abs_intraday_return": 0.0035806619895942817,
+                  "same_day_hit_rate": 0.43137254901960786
+                }
+              },
+              "mean_signed_intraday_return": 0.00039928113091302784,
+              "mean_same_day_hit_rate": 0.4770520238904531
+            },
+            "tilt_ratio_published_over_causal": 6.207620093764765
+          }
+        }
+      }
+    },
+    {
+      "family": "H25",
+      "artifact": "exp_2026-10-14T20-08-34-613690Z",
+      "published_verdict": "PASS",
+      "construction": "per_contract",
+      "published_oos_sharpe": 1.3236288879255962,
+      "published_profit_factor": 1.3201316886422707,
+      "published_reconciliation_abs_diff": 0.0,
+      "benchmark": {
+        "uniform_equal_weight_full_sample_equity_multiple": 1.358529635319213,
+        "uniform_equal_weight_oos_equity_multiple": 1.1915828155063888,
+        "logged_benchmark_full_sample_equity_multiple": 1.219841635968624,
+        "logged_benchmark_definition": "vol-weighted buy-and-hold"
+      },
+      "n_bars": 11441,
+      "oos_start": "2025-11-14 01:00:00",
+      "oos_end": "2026-10-09 20:00:00",
+      "level_checks": {
+        "L1": {
+          "dollar_pnl_matches_engine_gross_max_abs_diff": 4.735795089416683e-16,
+          "recomputed_net_matches_logged_returns_max_abs_diff": 0.0,
+          "n_bars_total": 11441,
+          "n_bars_compared": 11440,
+          "coverage_fraction": 0.99991259505288,
+          "n_bars_non_finite": 1,
+          "n_bars_with_nan_price": 0,
+          "non_finite_note": "the first bar has no previous price (the contract count is a lagged quantity); any further non-finite bars come from NaN prices in the committed artifact",
+          "passes": true
+        },
+        "L3": {
+          "cost_from_trades_matches_engine_max_abs_diff": 1.0842021724855044e-19,
+          "n_trades": 3056,
+          "mean_cost_per_bar": 4.833897849868649e-06,
+          "mean_gross_return_per_bar": 0.00042229600498914686,
+          "cost_share_of_gross_edge": 0.011446705137532338,
+          "passes": true
+        }
+      },
+      "contract_specs": {
+        "per_symbol": {
+          "ES=F": {
+            "multiplier": 50.0,
+            "tick_size": 0.25,
+            "tick_value": 12.5,
+            "implied_tick_value": 12.5,
+            "tick_value_consistent": true,
+            "commission": 0.5,
+            "spread_ticks": 0.25,
+            "slippage_ticks": 0.5,
+            "cost_per_contract": 9.875,
+            "expected_cost_per_contract": 9.875
+          },
+          "NQ=F": {
+            "multiplier": 20.0,
+            "tick_size": 0.25,
+            "tick_value": 5.0,
+            "implied_tick_value": 5.0,
+            "tick_value_consistent": true,
+            "commission": 0.5,
+            "spread_ticks": 0.25,
+            "slippage_ticks": 0.5,
+            "cost_per_contract": 4.25,
+            "expected_cost_per_contract": 4.25
+          },
+          "CL=F": {
+            "multiplier": 1000.0,
+            "tick_size": 0.01,
+            "tick_value": 10.0,
+            "implied_tick_value": 10.0,
+            "tick_value_consistent": true,
+            "commission": 0.5,
+            "spread_ticks": 0.25,
+            "slippage_ticks": 0.5,
+            "cost_per_contract": 8.0,
+            "expected_cost_per_contract": 8.0
+          },
+          "GC=F": {
+            "multiplier": 100.0,
+            "tick_size": 0.1,
+            "tick_value": 10.0,
+            "implied_tick_value": 10.0,
+            "tick_value_consistent": true,
+            "commission": 0.5,
+            "spread_ticks": 0.25,
+            "slippage_ticks": 0.5,
+            "cost_per_contract": 8.0,
+            "expected_cost_per_contract": 8.0
+          },
+          "ZB=F": {
+            "multiplier": 1000.0,
+            "tick_size": 0.03125,
+            "tick_value": 31.25,
+            "implied_tick_value": 31.25,
+            "tick_value_consistent": true,
+            "commission": 0.5,
+            "spread_ticks": 0.25,
+            "slippage_ticks": 0.5,
+            "cost_per_contract": 23.9375,
+            "expected_cost_per_contract": 23.9375
+          }
+        },
+        "all_tick_values_consistent": true,
+        "all_costs_consistent": true
+      },
+      "vol_target_coherence": {
+        "target_vol_annualized": 0.2625,
+        "target_applied_to": "hourly returns, scaled by sqrt(252 * 6.5)",
+        "code_annualization_factor": 40.47221268969612,
+        "code_bars_per_year": 1638.0,
+        "empirical_bars_per_year": 5701.499431459255,
+        "empirical_annualization_factor": 75.50827392716148,
+        "annualization_ratio_empirical_over_code": 1.8656818816922565,
+        "realized_vol_code_scale": 0.22236336153120817,
+        "realized_vol_empirical_scale": 0.41485929476096,
+        "realized_return_code_scale": 0.75038845919426,
+        "realized_return_empirical_scale": 2.6119287994320266,
+        "realized_vol_over_target_code_scale": 0.8470985201188882,
+        "same_quantity_as_pnl": true,
+        "note": "The vol target is applied to the same hourly-return quantity the P&L is built from, so the target and the realized figure are internally consistent. The code annualizes hourly bars with sqrt(252 * 6.5) while the artifact's own bar index implies sqrt(bars_per_year); the ratio is reported above.",
+        "oos_vol_target_multiplier": 1.75
+      },
+      "lookahead": {
+        "L5a_structural": {
+          "artifact_only": {
+            "available": true,
+            "signal_artifact": "hourly_signal_h10.parquet",
+            "daily_artifact": "daily_target_h10.parquet",
+            "max_abs_diff_signal_at_day_close_vs_daily_collapse": 0.0,
+            "max_abs_diff_signal_at_day_open_vs_daily_collapse": 4.0,
+            "fraction_bars_where_same_day_differs_from_prev_day": 0.6136025876387796,
+            "target_artifact": "hourly_target_selected.parquet",
+            "target_same_day_match_fraction": 1.0,
+            "target_prev_day_match_fraction": 0.3863974123612204
+          },
+          "rebuild": {
+            "per_symbol": {
+              "ES=F": {
+                "same_day_match_fraction": 1.0,
+                "prev_day_match_fraction": 0.3863974123612204
+              },
+              "NQ=F": {
+                "same_day_match_fraction": 1.0,
+                "prev_day_match_fraction": 0.19092578022554418
+              },
+              "CL=F": {
+                "same_day_match_fraction": 1.0,
+                "prev_day_match_fraction": 0.06399160765801207
+              },
+              "GC=F": {
+                "same_day_match_fraction": 1.0,
+                "prev_day_match_fraction": 0.21042049130168722
+              },
+              "ZB=F": {
+                "same_day_match_fraction": 1.0,
+                "prev_day_match_fraction": 0.7829355712911967
+              }
+            },
+            "same_day_match_fraction": 1.0,
+            "prev_day_match_fraction": 0.3269341725675321,
+            "calendar_complete": true,
+            "n_daily_labels": 727
+          },
+          "same_day_match_fraction": 1.0,
+          "prev_day_match_fraction": 0.3269341725675321
+        },
+        "L5b_counterfactual": {
+          "rebuild_positions_max_abs_diff": 0.0,
+          "rebuild_returns_max_abs_diff": 0.0,
+          "reproduced_bit_exact": true,
+          "published_oos": {
+            "n_bars": 5148,
+            "sharpe": 1.3236288879255962,
+            "profit_factor": 1.3201316886422707,
+            "max_drawdown": -0.11914252854616447,
+            "equity_multiple": 9.780066014642278,
+            "mean_bar_return": 0.0004581126124507082,
+            "std_bar_return": 0.005494222992849115
+          },
+          "causal_oos": {
+            "n_bars": 5148,
+            "sharpe": 0.3231439026849481,
+            "profit_factor": 1.0692804083717933,
+            "max_drawdown": -0.26191129643718036,
+            "equity_multiple": 1.6433247651613179,
+            "mean_bar_return": 0.00011159884274534364,
+            "std_bar_return": 0.005482315130568681
+          },
+          "published_full_sample": {
+            "n_bars": 11441,
+            "sharpe": 1.2412182677940402,
+            "profit_factor": 1.2885606030463135,
+            "max_drawdown": -0.13426927362494145,
+            "equity_multiple": 100.73416878471222,
+            "mean_bar_return": 0.00041746210713927814,
+            "std_bar_return": 0.005339113736602556
+          },
+          "causal_full_sample": {
+            "n_bars": 11441,
+            "sharpe": 0.22474993221962222,
+            "profit_factor": 1.0466723201300825,
+            "max_drawdown": -0.2690846137014674,
+            "equity_multiple": 2.030397210773516,
+            "mean_bar_return": 7.658692647113786e-05,
+            "std_bar_return": 0.005409477790366944
+          },
+          "oos_sharpe_relative_drop": 0.7558651781985641,
+          "oos_pf_relative_drop": 0.1900198915219382
+        },
+        "L5c_attribution": {
+          "published": {
+            "total_overnight_pnl": 0.25736334102881264,
+            "total_intraday_pnl": 4.574125252052017,
+            "total_pnl": 4.83148859308083,
+            "intraday_share": 0.9467320814132972
+          },
+          "causal": {
+            "total_overnight_pnl": 0.27898278314554925,
+            "total_intraday_pnl": 0.6532694391633427,
+            "total_pnl": 0.9322522223088919,
+            "intraday_share": 0.7007432361441867
+          },
+          "same_day_tilt": {
+            "published": {
+              "per_symbol": {
+                "ES=F": {
+                  "n_sessions": 362,
+                  "mean_signed_intraday_return": 0.0017886708033491847,
+                  "mean_abs_intraday_return": 0.004628240750158369,
+                  "same_day_hit_rate": 0.5662983425414365
+                },
+                "NQ=F": {
+                  "n_sessions": 352,
+                  "mean_signed_intraday_return": 0.0026220912546593036,
+                  "mean_abs_intraday_return": 0.006585787049895916,
+                  "same_day_hit_rate": 0.5994318181818182
+                },
+                "CL=F": {
+                  "n_sessions": 283,
+                  "mean_signed_intraday_return": 0.004263038521356126,
+                  "mean_abs_intraday_return": 0.017033761870261222,
+                  "same_day_hit_rate": 0.5017667844522968
+                },
+                "GC=F": {
+                  "n_sessions": 355,
+                  "mean_signed_intraday_return": 0.002657296334302537,
+                  "mean_abs_intraday_return": 0.008738373261996765,
+                  "same_day_hit_rate": 0.5521126760563381
+                },
+                "ZB=F": {
+                  "n_sessions": 255,
+                  "mean_signed_intraday_return": 0.0010618309429170046,
+                  "mean_abs_intraday_return": 0.0035551784711204603,
+                  "same_day_hit_rate": 0.5098039215686274
+                }
+              },
+              "mean_signed_intraday_return": 0.0024785855713168312,
+              "mean_same_day_hit_rate": 0.5458827085601035
+            },
+            "causal": {
+              "per_symbol": {
+                "ES=F": {
+                  "n_sessions": 361,
+                  "mean_signed_intraday_return": 0.0004139426492672019,
+                  "mean_abs_intraday_return": 0.004340910884934884,
+                  "same_day_hit_rate": 0.4986149584487535
+                },
+                "NQ=F": {
+                  "n_sessions": 351,
+                  "mean_signed_intraday_return": 0.0003798379600398906,
+                  "mean_abs_intraday_return": 0.006447735915007889,
+                  "same_day_hit_rate": 0.5185185185185185
+                },
+                "CL=F": {
+                  "n_sessions": 283,
+                  "mean_signed_intraday_return": 0.00046993021879433174,
+                  "mean_abs_intraday_return": 0.018429894282694613,
+                  "same_day_hit_rate": 0.4381625441696113
+                },
+                "GC=F": {
+                  "n_sessions": 355,
+                  "mean_signed_intraday_return": 0.0008275697450227883,
+                  "mean_abs_intraday_return": 0.008845740749994798,
+                  "same_day_hit_rate": 0.49859154929577465
+                },
+                "ZB=F": {
+                  "n_sessions": 255,
+                  "mean_signed_intraday_return": -9.487491855907295e-05,
+                  "mean_abs_intraday_return": 0.0035806619895942817,
+                  "same_day_hit_rate": 0.43137254901960786
+                }
+              },
+              "mean_signed_intraday_return": 0.00039928113091302784,
+              "mean_same_day_hit_rate": 0.4770520238904531
+            },
+            "tilt_ratio_published_over_causal": 6.207620093764765
+          }
+        }
+      }
+    }
+  ],
+  "verdict": {
+    "level": "LEVEL_CONFIRMED",
+    "lookahead": "LOOKAHEAD_CONFIRMED",
+    "level_checks_passed": {
+      "L1_position_sizing": true,
+      "L2_contract_specs": true,
+      "L3_cost_scale": true
+    },
+    "certified_family_valid": false,
+    "note": "LEVEL_CONFIRMED means the P&L *level* carries no unit or scale error: the returns are exactly the returns the committed positions, prices and contract specs imply. It is NOT a statement that the certified family is valid. LOOKAHEAD_CONFIRMED means the daily-target collapse positions each session with the signal at that session's own close, so the certified family's edge is largely earned with same-day information; the family is invalidated pending an explicitly re-registered re-certification. No gate, threshold, verdict or certified number is changed by this audit."
+  },
+  "elapsed_sec": 5.04
+}

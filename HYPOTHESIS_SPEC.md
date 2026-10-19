@@ -3122,3 +3122,246 @@ conclusion (PF margin fragility, cost-stress break-even, dispensability) is
 scale-invariant and is untouched. The "Next Task" (paid hourly futures data) still
 stands — but the *reason* is now sharper: the binding constraint is the **PF
 bootstrap margin** plus the short sample, not the Sharpe CI.
+
+---
+
+## H27: P&L **Level** Audit of the Certified Intraday Family — unit-error check + look-ahead attribution (pre-registered 2026-10-19)
+
+### Statement
+H26 established that the published intraday "OOS Sharpe" is a √252-per-bar metric, so
+the *correctly annualized* Sharpe of the certified family is **3.25–6.53** — against
+≈0.5–1.5 for published real-world futures time-series-momentum strategies. Two
+explanations are possible, and they are mutually exclusive:
+
+- **(A) the sample is extraordinary** (a genuine, unrepeatable 2-year edge), or
+- **(B) the backtest contains a level/scale or information-timing bug** that inflates
+  the certified family.
+
+H27 tests (B) directly. It asks two separate questions:
+
+1. **Level.** Is the *dollar* P&L that the committed artifacts imply consistent with the
+   engine's contract arithmetic (`contracts = weight x 1e6 / (price x multiplier)`,
+   `P&L = contracts x price change x multiplier`) and with the cost model
+   (`CostModel.future_cost_per_contract`)? A "yes" means there is **no unit error** — the
+   high Sharpe is not a typo, a factor-of-1000 slip or a mis-scaled contract.
+2. **Information timing.** Is the *position* that produced that P&L knowable at the time
+   it was traded? This is the attribution question H26 deliberately did not attempt.
+
+### Scope, frozen artifact ids (all committed, read-only)
+H9 `exp_2026-10-11T16-52-38-694559Z` (REJECT control), H10
+`exp_2026-10-11T17-41-18-169363Z` (PASS), H21 `exp_2026-10-13T23-27-52-101656Z`
+(REJECT control), H22 `exp_2026-10-14T18-52-08-943792Z` (PASS), H25
+`exp_2026-10-14T20-08-34-613690Z` (PASS). Universe, cost model, capital (1e6), leverage
+(5.0 gross) and per-name cap (2.0) are the H9 constants, unchanged.
+
+### Pre-registration (measurement plan, frozen before the audit run)
+
+**L1 — position-sizing consistency.** Recompute, per bar and per symbol, the dollar
+P&L from the committed `prices.parquet` + `positions.parquet` using the engine's
+contract maths, and compare with the committed `returns.parquet` (gross) and with the
+engine's own return series. Tolerance **|Δ| ≤ 1e-9** (absolute, in return units).
+
+**L2 — contract-spec consistency.** For every symbol, `tick_value == tick_size x
+multiplier` and `cost_per_contract == commission + (spread_ticks + slippage_ticks) x
+tick_value`, using `FUTURES_SPECS` from `run_h9_intraday_tsmom_experiment.py`.
+
+**L3 — cost-scale sanity.** Recompute the per-bar cost drag from the committed
+`trades.parquet` (|Δweight| x capital / (price x multiplier) x cost_per_contract /
+capital) and compare with the engine's cost series. Tolerance **|Δ| ≤ 1e-9**.
+
+**L4 — vol-target coherence.** Report the target vol, the realized vol and the realized
+return on **both** scales: the code's own `sqrt(252 x 6.5)` convention and the
+*empirical* `sqrt(bars_per_year)` implied by the artifact's own bar index, and the
+ratio between the two. Check that the vol target is applied to the same hourly-return
+quantity the P&L is built from.
+
+**L5 — information-timing attribution.** Two independent pieces of evidence:
+- **L5a (structural, artifact-only).** For the families that log the hourly signal, the
+  daily collapse *and* the expanded hourly target, compare the logged hourly target
+  against the two candidate expansions of the logged daily collapse: the
+  *same-day* expansion (day D's bars take the signal at the **last bar of day D**) and
+  the *causal* expansion (day D's bars take the signal at the last bar of day D−1).
+  Report the fraction of bars matching each.
+- **L5b (counterfactual).** Rebuild each family's **selected** configuration from the
+  committed `prices.parquet` with the daily collapse replaced by the causal expansion
+  (a one-day lag) and re-run the engine; report the OOS Sharpe / profit factor /
+  max-drawdown / equity of the counterfactual against the published values. The
+  as-published rebuild must first reproduce the committed `positions.parquet` and
+  `returns.parquet` **bit-exactly** (max |Δ| == 0.0), otherwise the family is excluded
+  from the counterfactual with the reason recorded. The counterfactual re-runs the
+  *selected* config only — it performs **no** re-selection and **no** grid re-run, so
+  it is a lower bound on the defect, not a re-certification.
+- **L5c (P&L attribution).** Split each day's P&L into the **overnight** component
+  (last bar of D−1 → first bar of D) and the **intraday** component (first bar of D →
+  last bar of D) for both the published and the causal build, to show *which* part of
+  the P&L the same-day information was monetizing.
+
+### Verdict rule (pre-registered)
+- `LEVEL_CONFIRMED` iff **all three** of L1, L2, L3 pass their tolerances. The P&L
+  *level* is then free of a unit/scale error: the returns are the returns the positions
+  and prices imply.
+- `LEVEL_DEFECT` iff any of L1, L2, L3 fails by more than **1%**.
+- `LOOKAHEAD_CONFIRMED` iff for **every** audited family the same-day expansion matches
+  the published hourly target on ≥99% of bars **and** the causal counterfactual reduces
+  the OOS Sharpe of the certified family (H10/H22/H25) by more than 50% relative.
+  `LOOKAHEAD_ABSENT` otherwise.
+- `VOL_TARGET_COHERENT` is reported: the vol target is applied to the same quantity the
+  P&L is built from (true), and the annualization mismatch between the code's
+  `sqrt(252 x 6.5)` and the empirical `sqrt(bars_per_year)` is reported as a number.
+
+### Anti-reward-hacking note (frozen)
+The plan is **symmetric**: if the level arithmetic had been broken, the audit must
+report `LEVEL_DEFECT` and the certified family would have to be re-labelled as a FAIL;
+if the timing had been clean, the audit must report `LOOKAHEAD_ABSENT` and the
+extraordinary Sharpe would have to be reported as a property of the sample. The
+counterfactual is a *lower bound* (selected config, no re-selection), so it can only
+understate the defect; it is never used to *improve* a published number.
+
+### Constraint (frozen)
+This audit may not change any gate, threshold, verdict or certified number, and may not
+re-run the 13,824-combo H10 grid. It characterizes; it does not re-certify. Any
+re-certification of the intraday family under a causal daily collapse is a **separate,
+explicitly re-registered** hypothesis (H28).
+
+### H27 — Measure Log (executed 2026-10-19)
+
+**Verdict: `LEVEL_CONFIRMED` / `LOOKAHEAD_CONFIRMED` → `certified_family_valid = false`.**
+
+The P&L *level* is free of a unit or scale error; the *information timing* of the positions
+that produced it is not. Artifacts: `.experiments/artifacts/h27_pnl_level/summary.json` +
+`level_table.parquet`; runner `run_h27_pnl_level_audit.py`; tests
+`tests/test_h27_pnl_level_audit.py` (36 tests). Runtime ≈ 5 s, no network, no grid re-run.
+
+**Level table** (frozen artifact ids; L1 = dollar P&L vs. logged returns, L3 = cost drag
+recomputed from `trades.parquet` vs. the engine):
+
+| Family | Verdict | L1 max abs diff | L3 max abs diff | rebuild (positions, returns) | same-day expansion match | published OOS SR | causal OOS SR | drop | published equity | causal equity |
+|---|---|---|---|---|---|---|---|---|---|---|
+| H9 | REJECT | 3.5e-16 | 6.8e-21 | 0.0, 0.0 | 1.0000 | 1.0565 | 0.1860 | 82.4% | 8.02x | 1.26x |
+| H10 | PASS | 4.3e-16 | 1.1e-19 | 0.0, 0.0 | 1.0000 | 1.2758 | 0.2923 | 77.1% | 6.92x | 1.19x |
+| H21 | REJECT | 4.9e-16 | 1.1e-19 | 0.0, 0.0 | 1.0000 | 0.8394 | 0.1317 | 84.3% | 14.96x | 1.27x |
+| H22 | PASS | 4.7e-16 | 1.1e-19 | 0.0, 0.0 | 1.0000 | 1.3725 | 0.3605 | 73.7% | 79.80x | 1.89x |
+| H25 | PASS | 4.7e-16 | 1.1e-19 | 0.0, 0.0 | 1.0000 | 1.3236 | 0.3231 | 75.6% | 100.73x | 2.03x |
+
+#### F1 — the level is clean (LEVEL_CONFIRMED)
+
+L1: `contracts = weight x 1e6 / (price x multiplier)` and `P&L = contracts x dPrice x
+multiplier`, applied bar-by-bar to the committed `prices.parquet` + `positions.parquet`
+(after the engine's own leverage normalization and per-name cap), reproduce the logged
+return series to **≤4.9e-16** for every audited family — machine precision. L2: every
+symbol satisfies `tick_value == tick_size x multiplier` exactly (ES 0.25x50 = 12.50,
+NQ 0.25x20 = 5.00, CL 0.01x1000 = 10.00, GC 0.10x100 = 10.00, ZB 0.03125x1000 = 31.25) and
+`cost_per_contract == commission + (spread_ticks + slippage_ticks) x tick_value` holds
+exactly. L3: the cost drag recomputed from `trades.parquet` matches the engine's cost
+series to **≤1.1e-19**; the drag is **1.1%–4.9%** of the gross edge, so the cost model is
+neither the source of the edge nor a material drag. **The published Sharpe is not a unit
+error**, and the contract-multiplier / capital / position-sizing hypotheses are all
+refuted.
+
+L4 (reported, not applied): the vol target is applied to the same hourly-return quantity
+the P&L is built from, so target and realized are internally consistent. The code
+annualizes hourly bars with `sqrt(252 x 6.5) = 1638` bars/yr while the artifacts' own bar
+index implies **5,701** bars/yr — the same scale mismatch H26 measured from the Sharpe
+side, a factor **1.8657x**. Realized/target vol on the code scale: H9 0.670, H10 0.554,
+H21 2.177, H22 1.365, H25 0.847.
+
+#### F2 — the positions were not knowable when they were traded (LOOKAHEAD_CONFIRMED)
+
+**Mechanism.** `run_h9_intraday_tsmom_experiment.py::_daily_target_from_hourly` (line 195)
+computes `hourly_signal.resample("1D").last().ffill()` — a day-labelled series whose entry
+for day D is the signal at **the last bar of day D**. `run_h10_intraday_tsmom_pfopt_experiment.py::build_hourly_target`
+(line 131) expands it with `daily_target.reindex(prices_index, method="ffill")`, and
+`ffill` on a day-labelled index assigns **every bar of day D the value of day D's label**.
+The session is therefore positioned from its own open with the signal computed at its own
+close. H9 (which expands the day-labelled target inside
+`apply_path_dependent_exits_hourly`), H10, H21, H22 and H25 all inherit this.
+
+**Evidence 1 — artifact-only, no rebuild.** For all five families the logged daily collapse
+equals the logged signal at that day's **close** to **0.0**, while the signal at that day's
+**open** differs by up to **3.87–4.0**; the expansion places the close value on the open
+bar, and the same-day value differs from the previous day's value on **61%–98%** of bars.
+For H21/H22/H25 (the families that log the expanded hourly target built from the *same*
+signal) the logged target matches the **same-day** expansion on **100.0%** of bars and the
+previous-day expansion on only **38.6%**. H10's logged `hourly_target_selected` is built
+from the 1008-bar signal while its logged `daily_target_h9` collapses the 252-bar signal,
+so that pair is *not* a matching artifact and is excluded from this particular comparison
+(the rebuild check below covers it).
+
+**Evidence 2 — bit-exact rebuild.** Each family's **selected** configuration was rebuilt
+from the committed `prices.parquet` with the H9/H10/H21/H22/H25 primitives and reproduces
+the committed `positions.parquet` **and** `returns.parquet` with max abs diff **0.0**; the
+rebuilt target matches the same-day expansion on **100.0%** of bars (previous-day: 1.2% for
+H9, 4.9% for H10, 32.7% for H21/H22/H25). The published OOS Sharpe is re-derived exactly
+for H10/H21/H22/H25 (H9 differs by 1.0e-4 — the pre-existing ddof drift H26 diagnosed).
+
+**Evidence 3 — causal counterfactual.** The *only* change is that the collapsed daily
+series is lagged by one calendar day (`daily.shift(1)`; the calendar-completeness
+assertion passes: 727 labels, 727 calendar days). Nothing else in the pipeline changes —
+same signal, same exits, same engine, same costs, same splits. Result: the table above.
+The counterfactual re-runs the **selected** config only (no re-selection, no grid re-run),
+so it is a **lower bound** on the defect.
+
+**Evidence 4 — where the P&L came from.** Splitting the gross P&L into the overnight
+component (previous close → session open) and the intraday component (open → close):
+
+| Family | published overnight | published intraday | published intraday share | causal overnight | causal intraday | causal intraday share |
+|---|---|---|---|---|---|---|
+| H9 | 0.0477 | 2.1110 | 97.8% | 0.1042 | 0.2139 | 67.2% |
+| H10 | 0.0949 | 1.9134 | 95.3% | 0.1443 | 0.1108 | 43.4% |
+| H21 | 0.1156 | 2.8410 | 96.1% | 0.1182 | 0.3898 | 76.7% |
+| H22 | 0.2457 | 4.3520 | 94.7% | 0.2631 | 0.5954 | 69.4% |
+| H25 | 0.2574 | 4.5741 | 94.7% | 0.2790 | 0.6533 | 70.1% |
+
+The published build books 94.7%–97.8% of its gross P&L *intraday* — the component that
+requires knowing the session's close in advance. The causal build's intraday P&L falls by
+5.6x–9.9x. The **overnight** component is earned almost identically by both constructions
+(H25: 0.257 vs 0.279), which localises the entire difference to the intraday, same-day part
+of the session.
+
+**Evidence 5 — the model-free fingerprint.** If the position held at a session's *open* is
+aligned with *that* session's move, the strategy is trading on information it could not have
+had at the open. Measured on the committed artifacts, the mean of
+`sign(w_open) * r_intraday` over the sessions in which the strategy is positioned is
+**+0.00248** (published) against **+0.00040** (causal) — a **5.9x–6.2x** excess tilt,
+consistent across all five families (per-symbol same-day hit rates 50.2%–59.8% published
+against 43.1%–52.0% causal). This statistic does not depend on the audit's counterfactual
+machinery: it is computed directly from the committed `positions.parquet` and
+`prices.parquet`.
+
+**Calibration.** The equal-weight buy-and-hold of the same five futures grows **1.36x** over
+the same window (H9's own artifact, which carries NaN prices in the live-fetched window,
+grows 1.33x). The published H22 (79.8x) and H25 (100.7x) grow **60x–74x** the market under
+a 5x gross leverage cap, which no amount of leverage can produce — and the causal build
+lands at 1.89x / 2.03x, i.e. in the same range as the market.
+
+#### F3 — what H27 does *not* change
+
+No gate, threshold, verdict or certified number was changed. H10/H11/H12/H22/H25 remain
+PASS (8/8, 8/8, 8/8, 9/9, 9/9) **as published**; H9/H21 remain REJECT. The published
+artifacts were not rewritten and the published runners were not edited (they are the
+historical record that H26 and H27 both reproduce bit-exactly). What changes is the
+*interpretation*: the certified family's published edge is dominated by a one-day
+look-ahead, so the published PASS verdicts are **not evidence of a tradable edge** and the
+family is **not established** pending an explicitly re-registered re-certification (H28,
+`NEXT_TASK.md`).
+
+#### F4 — disclosures
+
+1. The look-ahead hypothesis was first *observed* during exploratory reproduction, before
+   this section was frozen. The **level verdict rule** was pre-registered by the previous
+   agent in `NEXT_TASK.md` before any execution; the look-ahead sub-rule, the frozen
+   artifact ids, the tolerances and the L1–L5 measurement plan were fixed before the
+   formal audit run. The plan is symmetric: a clean timing would have forced
+   `LOOKAHEAD_ABSENT` and a "the sample is extraordinary" conclusion.
+2. The counterfactual re-runs the *selected* config only; a causal re-selection might land
+   on a different configuration. This is why the counterfactual is described as a lower
+   bound, and why H28 re-runs the grids.
+3. H9's artifact carries NaN prices in 292 bars (H9 was run against a live yfinance fetch,
+   before the cached, forward-filled series used from H10 on). L1 therefore compares
+   11,148 of H9's 11,441 bars (97.4% coverage) and 11,440 of every other family's bars;
+   the first bar is structurally non-finite (the contract count is a lagged quantity).
+4. H23 (crypto) is outside this audit's scope — it is a different runner with no
+   daily-collapse construction, and it is REJECTED.
+5. The families use different buy-and-hold benchmarks (equal-weight for H9/H10,
+   vol-weighted for H21/H22/H25); H27 therefore computes a **uniform** equal-weight
+   benchmark for the calibration and reports the logged one alongside.

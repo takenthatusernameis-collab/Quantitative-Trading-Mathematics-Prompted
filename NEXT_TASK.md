@@ -1,111 +1,128 @@
-# NEXT TASK — next agent (post-H26)
+# NEXT TASK — H28: causal re-certification of the intraday futures TSMOM family
 
-## Status: H26 Sharpe annualization-scale audit — COMPLETE
+**Status: assigned to the next agent. Free data, bounded, verifiable.**
+**Written 2026-10-19, immediately after H27 (P&L level audit + look-ahead attribution).**
 
-**What was found (the headline):** every published "OOS Sharpe" in this project is
-`sharpe_ratio(returns)` with the default `periods_per_year=252`, i.e. the **per-bar**
-mean/vol ratio × `√252`. For the **daily** families the bar is a trading day, so
-`√252` *is* the calendar annualization. For the **intraday (1h)** families the bar is
-one hour, so the published number is **not** an annualized Sharpe: it understates the
-annualized value by **2.55×** (the repo's own `√(252·6.5)` vol-target convention) to
-**4.76×** (the empirical calendar convention).
+## Why this task exists (the evidence)
 
-- Certified family, published → annualized (repo vol convention): H10 1.276 → **3.253**,
-  H22 1.372 → **3.499**, H25 1.324 → **3.375**. Independent daily-aggregation estimate:
-  5.04 / 5.20 / 5.09 (confirms the magnitude).
-- **No verdict, gate, threshold or certified number changed.** The mis-scaling is
-  *conservative* (it understates the intraday edge), and the profit-factor gate is
-  scale-invariant.
-- The **"Sharpe CI-fragile" caveat was a scale artifact**: H25's Sharpe CI
-  [0.8834, 1.7506] → **[2.2521, 4.4633]**, P(Sharpe≥1.0) 0.9275 → **1.0000** on the
-  repo's own convention. The **PF margin fragility stands** (scale-invariant).
-- Two cross-artifact defects found by the reproduction anchor (H9 excluded):
-  (a) H9 was published with the *sample*-std (ddof=1) Sharpe estimator, H10+ use
-  *population*-std (ddof=0) — relative difference ≈1e-4, H9 is no longer bit-reproducible
-  with the current library; (b) H9's published "OOS profit factor" is the **full-sample**
-  (train+val+test) PF; the correct OOS-window PF is 1.2529 (still < 1.3, so H9 stays
-  REJECTED — the defect was conservative).
+H27 (pre-registered in `HYPOTHESIS_SPEC.md` §H27, artifacts in
+`.experiments/artifacts/h27_pnl_level/`) settled the open question H26 left open about the
+*level* of the certified intraday P&L. Two verdicts:
 
-**Delivered:** `run_h26_sharpe_scale_audit.py` (deterministic, offline, ~1.8 s),
-`.experiments/artifacts/h26_sharpe_scale/{summary.json,scale_table.parquet}`,
-`tests/test_h26_sharpe_scale_audit.py` (44 tests), `bars_per_year` +
-`annualized_sharpe` in `src/qtr/validation/statistics.py`,
-`HYPOTHESIS_SPEC.md` §H26 (pre-registration **and** measure log),
-`FINAL_REPORT.md` (table scale note, §H26 detail, corrected conclusion + exec summary).
+- **`LEVEL_CONFIRMED`** — the P&L level carries **no unit or scale error**. The dollar P&L
+  recomputed from the committed prices/positions with the engine's contract maths
+  (`contracts = weight x 1e6 / (price x multiplier)`, `P&L = contracts x dPrice x multiplier`)
+  reproduces the logged returns to **≤4.9e-16**; the contract specs are exactly consistent
+  (`tick_value == tick_size x multiplier`); the cost drag recomputed from `trades.parquet`
+  matches the engine to **≤1.1e-19** and is 1.1%–4.9% of the gross edge. The published
+  Sharpe is not a factor-of-1000 slip.
+- **`LOOKAHEAD_CONFIRMED`** — but the *positions were not knowable when they were traded*.
+  `run_h9_intraday_tsmom_experiment.py::_daily_target_from_hourly` collapses the hourly
+  signal to `resample("1D").last()` (a day-labelled series holding **that day's closing**
+  signal) and `run_h10_intraday_tsmom_pfopt_experiment.py::build_hourly_target` expands it
+  back with `reindex(index, method="ffill")`, which assigns **every bar of day D the value
+  of day D's label**. Every session is positioned at its own open with the signal computed
+  at its own close. This affects **H9, H10, H21, H22 and H25 alike**.
 
-**Verified this session:** full suite **586 passed, 0 warnings** (542 before + 44 new);
-`pytest -W error`; `--cov=qtr`; `ruff check`; `ruff format --check`;
-`bash -n .github/scripts/*.sh`; `bash .github/scripts/test_kilo_progress.sh`.
+Causal counterfactual (the *selected* config of each family, the daily series lagged by
+exactly one day, nothing else in the pipeline changed, all five rebuilds bit-exact against
+the committed artifacts):
 
-## Precise next task (free data, bounded, verifiable) — highest value
+| Family | Published OOS Sharpe | Causal | Relative drop | Published PF | Causal PF | Published equity | Causal equity |
+|---|---|---|---|---|---|---|---|
+| H9 (REJECT) | 1.0565 | 0.1860 | 82.4% | 1.253 | 1.042 | 8.02x | 1.26x |
+| H10 (PASS) | 1.2758 | 0.2923 | 77.1% | 1.304 | 1.063 | 6.92x | 1.19x |
+| H21 (REJECT) | 0.8394 | 0.1317 | 84.3% | 1.206 | 1.030 | 14.96x | 1.27x |
+| H22 (PASS) | 1.3725 | 0.3605 | 73.7% | 1.334 | 1.077 | 79.80x | 1.89x |
+| H25 (PASS) | 1.3236 | 0.3231 | 75.6% | 1.320 | 1.069 | 100.73x | 2.03x |
 
-**Audit the *level* of the certified intraday P&L.** The scale correction implies an
-annualized Sharpe of **3.25–6.53** for the certified family, versus ≈0.5–1.5 for
-published real-world futures time-series-momentum strategies. Either the backtest
-contains a scale/level bug (which would invalidate the certified family) or the sample
-is extraordinary (which would need to be stated as such). H26 deliberately did **not**
-attempt this audit.
+94.7%–97.8% of the published gross P&L is **intraday** P&L (open → close), i.e. the part of
+the session that can only be earned by knowing that session's close in advance (the mean
+`sign(w_open) × r_intraday` tilt is +0.00248 published vs +0.00040 causal — a 5.9×–6.2×
+excess). The
+equal-weight buy-and-hold of the same five futures grows **1.36x** over the same window,
+while the published H25 grows **100.7x** under a 5x gross leverage cap.
 
-Scope (all from committed artifacts + the cached data; no paid data, no new hypothesis):
+**Consequence:** the published PASS verdicts of H10/H11/H12/H22/H25 stand as published (H27
+changed no gate, threshold, verdict or certified number) but they are **not evidence of a
+tradable edge**. The family must be re-certified under a causal daily collapse.
 
-1. **Position-sizing consistency.** Recompute, from `prices.parquet` + `positions.parquet`
-   of `exp_2026-10-11T17-41-18-169363Z` (H10) and `exp_2026-10-14T20-08-34-613690Z` (H25),
-   the dollar P&L implied by the engine's contract maths: contracts = weight × 1e6 /
-   (price × multiplier), P&L = contracts × price change × multiplier, and compare with the
-   logged `returns.parquet` bar by bar. Check the futures multipliers/tick values used by
-   `CostModel` against the contract specs in `run_h9_intraday_tsmom_experiment.py`.
-2. **Vol-target coherence.** The strategy targets 15% annualized vol using
-   `√(252·6.5)` on hourly returns; the realized hourly vol of the certified config is
-   0.259% ⇒ ≈10.5% calendar-annualized vol at ≈32% calendar-annualized return
-   (1.725e-4 mean per hour). Verify the vol target is applied to the same quantity the
-   returns are built from, and that the realized vol/return are consistent with the
-   position caps (`max_pos` 0.5 in H22/H25) and the trailing-stop logic.
-3. **Cost-scale sanity.** The mean cost drag is ≈1.17e-5 of capital per hour (~29% of
-   the gross edge). Recompute it from `trades.parquet` (position changes × contracts ×
-   per-contract cost) and confirm the cost model is charged on the same notional the
-   return side uses.
-4. **Verdict rule (pre-register before executing):** `LEVEL_CONFIRMED` iff the
-   recomputed per-bar P&L matches the logged returns to ≤1e-9 *and* the implied
-   annualized Sharpe is reproduced from the position/price/contract inputs alone
-   (i.e. the high Sharpe comes from the strategy on this sample, not from a unit error);
-   `LEVEL_DEFECT` if any of the three checks fails by more than 1%. Either verdict must
-   be written to `HYPOTHESIS_SPEC.md` and pinned by a new test file.
+## Scope
 
-Constraints: do **not** change any gate, threshold, verdict or certified number; do not
-re-run the 13,824-combo H10 grid (0.48 CPU-h) unless a defect is found and the
-re-registration is explicit; keep the audit offline and deterministic.
+1. **Implement the causal target builder — without editing the published runners.**
+   `run_h9_intraday_tsmom_experiment.py` and `run_h10_intraday_tsmom_pfopt_experiment.py`
+   are the *historical record*: H26 and H27 both reproduce the committed H10/H21/H22/H25
+   artifacts **bit-exactly** from them, and those artifacts are the certified ones. Editing
+   those functions in place would silently invalidate that reproducibility. Instead:
+   - add a causal builder, e.g. `build_hourly_target(..., lag_days=1)` or a new
+     `causal_daily_target_from_hourly(hourly_signal)` next to the existing one (the exact
+     implementation is already written and tested in
+     `run_h27_pnl_level_audit.py::causal_daily_target_from_hourly` — daily series shifted by
+     one calendar day, with the calendar-completeness assertion);
+   - add a new runner `run_h28_causal_recertification.py` that imports the H9/H10/H21/H22/H25
+     primitives unchanged and uses the causal builder;
+   - cover it with unit tests (the shift semantics, the calendar-gap guard, the
+     module-restore behaviour).
+2. **Re-run the family** with the **same** gates, the same 55/25/20 index splits, the same
+   Val-only selection and the same Test protection, the same cost model and the same
+   capital/leverage/caps:
+   - H22 (8 combos: `target_vol_mult x max_pos`), H25 (8 combos: `target_vol_mult x
+     n_assets`), H21 (16 combos), and H10 (13,824 combos, ≈0.48 CPU-h — permitted because
+     a defect *was* found and this re-registration is explicit).
+   - The H10 grid's selection rule (best Val Sharpe; Val PF reported) and the H25 rule
+     (best Val PF margin) must be reused unchanged.
+3. **Record an honest verdict.** **Expect REJECT.** The causal counterfactual on the
+   *already-selected* configs is OOS Sharpe 0.29–0.36 (gate ≥ 1.0), PF 1.06–1.08 (gate
+   ≥ 1.3) and max DD −12% to −26% (gate ≤ 15%). H28's purpose is to certify the truth,
+   not to find a passing configuration. A causal re-selection could land on a different
+   config; report whatever the selection produces.
+4. **Pin the outcome** in `tests/test_h28_*.py` and write the measure log to
+   `HYPOTHESIS_SPEC.md` §H28, then update `FINAL_REPORT.md`, `HANDOFF.md` and
+   `HANDOFF_NEXT.md`.
 
-## Documented next task (requires paid data — still outstanding)
+## Pre-registration requirements (write the spec BEFORE running)
 
-Per `FINAL_REPORT.md` §Next Task: widen the OOS window with **paid hourly futures
-data** so the **PF** bootstrap CI clears its gate with margin (H13 CI [1.190, 1.425];
-H25 Robustness CI [1.2049, 1.4425], P(PF≥1.3)=0.6215). The Sharpe side of that
-requirement was withdrawn by H26 (scale artifact). Do not run further hypotheses on
-free data — the free-data hypothesis space is exhausted (yfinance hourly `=F` capped
-~730 days; Coinbase ~12 days).
+- The verdict rule, e.g. `CAUSAL_CERTIFIED` iff the causal family's OOS gates all pass on
+  the protected OOS window; `CAUSAL_REJECTED` otherwise. State explicitly that the gates,
+  the splits, the selection rule and the cost model are **unchanged** from H9–H25, and that
+  the published artifacts are **not** rewritten.
+- The frozen artifact ids for the causal runs and the frozen list of the *published*
+  artifacts that must remain bit-reproducible (H10, H21, H22, H25) — with the requirement
+  that the H27 look-ahead regression test keeps passing (the published construction must
+  keep its documented look-ahead property, so the record stays auditable).
+- A **negative control**: the same pipeline with the *published* (same-day) expansion must
+  reproduce the published H10/H21/H22/H25 numbers bit-exactly. If it does not, the causal
+  run is not comparable and the run is void.
 
-## Verification commands (run before declaring any task done)
+## Constraints
 
-`pip install -e .` (ensure `qtr` importable), then:
-- `python -m pytest -q` (full suite, ~3:30)
-- `python -m pytest -W error -q`
-- `python -m pytest --cov=qtr --cov-report=term-missing`
-- `python -m ruff check src tests run_*.py`
-- `python -m ruff format --check src tests run_*.py`
-- `bash -n .github/scripts/*.sh` and `bash .github/scripts/test_kilo_progress.sh`
+- **Do not** modify the published artifacts, the published runners' logic, any gate,
+  threshold, verdict or certified number.
+- **Do not** re-label the published family as certified or uncertified in the artifacts; the
+  published verdicts stay as published and the H27 flag travels with them.
+- Keep everything **offline and deterministic** (the cached hourly `=F` + `^VIX` data and
+  the committed `prices.parquet` are sufficient — no new fetch is needed, and the H27 audit
+  rebuilds all five families from the committed prices alone).
+- Do not run the paid-data task (wider OOS window) before H28: buying more data for a
+  construction with a look-ahead is wasted. The paid-data task remains downstream.
 
-## Notes
+## Verification (same commands as every session)
 
-- `validate_strategy`'s `param_stability`/`walkforward_stability` are proxies;
-  the literal ±1-std perturbation gate and 5-fold walk-forward metric live in
-  the H10/H11/H9–H25 runners. Do not conflate them.
-- `walk_forward_splits` tail-absorption is already fixed in HEAD
-  (`statistics.py:108-110`); nothing to change there.
-- `sharpe_ratio` uses the **population** std (ddof=0) because it converts to a numpy
-  array first. H9's artifact predates that and used pandas' sample std (ddof=1); the
-  H26 test suite pins both conventions so the drift cannot recur silently.
-- The Sharpe scale convention is now explicit in the code: use
-  `qtr.validation.statistics.annualized_sharpe(returns, index)` (factor inferred from
-  the bar timestamps) when an *annualized* Sharpe is wanted; the legacy
-  `sharpe_ratio(...)` default is the frozen certification metric and must not be
-  relabelled as "annualized" in any report.
+`python -m pytest -q`, `python -m pytest -W error -q`,
+`python -m pytest --cov=qtr --cov-report=term-missing`,
+`python -m ruff check src tests run_*.py`, `python -m ruff format --check src tests run_*.py`,
+`bash -n .github/scripts/*.sh`, `bash .github/scripts/test_kilo_progress.sh`.
+
+Note: `qtr` must be importable — run `pip install -e .` from the repo root if
+`ModuleNotFoundError: No module named 'qtr'` appears at collection time.
+
+## Evidence index
+
+- H27 spec + measure log: `HYPOTHESIS_SPEC.md` §H27.
+- H27 runner: `run_h27_pnl_level_audit.py`; artifacts:
+  `.experiments/artifacts/h27_pnl_level/summary.json` + `level_table.parquet`.
+- H27 tests: `tests/test_h27_pnl_level_audit.py` (36 tests, incl. the causal-collapse
+  semantics and the negative guards).
+- H27 report: `FINAL_REPORT.md` §H27 detail and the executive-summary block.
+- H26 (the scale correction that led here): `HYPOTHESIS_SPEC.md` §H26,
+  `run_h26_sharpe_scale_audit.py`, `.experiments/artifacts/h26_sharpe_scale/`.
