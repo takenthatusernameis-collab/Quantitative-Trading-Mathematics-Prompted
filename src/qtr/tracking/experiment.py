@@ -221,7 +221,19 @@ class ExperimentTracker:
             f.write(json.dumps(record, default=str) + "\n")
 
     def _get_git_info(self) -> tuple[str, bool]:
-        """Get current git commit and dirty status."""
+        """Get current git commit and dirty status.
+
+        ``git_dirty`` records whether the working tree differs from HEAD in
+        ANY way that would invalidate reproducibility: modified tracked
+        files, deleted files, OR untracked files. The previous probe
+        (``git diff --quiet``) only inspects *tracked* working-tree changes,
+        so an experiment that wrote a new artifact into an untracked
+        directory (e.g. ``.experiments/artifacts/<exp_id>/``) would be
+        stamped ``git_dirty=False`` even though the artifact was not
+        committed -- the exact reproducibility failure the flag exists to
+        warn about. ``git status --porcelain`` reports untracked files
+        (``??`` prefix) as well, so any non-empty output means dirty.
+        """
         try:
             commit = (
                 subprocess.check_output(
@@ -230,10 +242,14 @@ class ExperimentTracker:
                 .decode()
                 .strip()
             )
-            dirty = (
-                subprocess.call(["git", "diff", "--quiet"], stderr=subprocess.DEVNULL)
-                != 0
+            status = (
+                subprocess.check_output(
+                    ["git", "status", "--porcelain"], stderr=subprocess.DEVNULL
+                )
+                .decode()
+                .strip()
             )
+            dirty = len(status) > 0
             return commit, dirty
         except Exception:  # noqa: BLE001 -- git unavailable outside a repo; degrade gracefully
             return "unknown", False

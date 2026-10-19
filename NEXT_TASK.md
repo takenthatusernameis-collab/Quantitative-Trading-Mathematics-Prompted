@@ -2,7 +2,30 @@
 
 ## Status: COMPLETE (this session)
 
-No prior agent assignment remained (the H22 pre-registration fix from the prior session was already committed and verified; the working tree was clean). I inspected the repository independently, re-ran the full verification suite, and selected one bounded, high-value task:
+No prior agent assignment remained (the H17/H19/H20 prose fix from the prior session was already committed and verified; the working tree was clean). I inspected the repository independently, re-ran the full verification suite, and selected one bounded, high-value task:
+
+## Task 9 (this session): fix `ExperimentTracker._get_git_info` `git_dirty` blind spot for untracked files
+
+**Demonstrated problem:** the experiment tracker stamps every record in `.experiments/experiments.jsonl` (1,236 tracked records) with `git_commit` + `git_dirty` as its reproducibility marker. The probe was `subprocess.call(["git", "diff", "--quiet"])`, which only inspects **tracked** working-tree changes. `git diff` does not report untracked files at all, so any experiment that wrote a new artifact into an untracked directory (e.g. `.experiments/artifacts/<exp_id>/`) would be recorded with `git_dirty=False` even though the artifact was never committed — a false "clean, reproducible" stamp on an actually unreproducible state. Reproduced deterministically in a throwaway git repo: clean tree → `git diff --quiet` exit 0 → write untracked `experiments.jsonl` → `git diff --quiet` **still exit 0**, while `git status --porcelain` reports `?? experiments.jsonl`. This is the same drift/false-certification class fixed seven prior sessions (H22 prose, H23 prose+spec, H25 prose, H22 pre-registration, H17/H19/H20 prose); here it survived because no test exercised `_get_git_info` against an untracked-file condition — `test_tracker_git_and_deps_exception` only asserted the git-unavailable degrade path, so the probe's blind spot was invisible to the test suite.
+
+**Fix:** `_get_git_info` now shells out via `git status --porcelain` and sets `dirty = len(status) > 0`. `git status --porcelain` reports untracked files (`??` prefix) as well as modified/deleted ones, so any non-empty output means the working tree differs from HEAD in a way that would invalidate reproducibility. Two-line probe swap; does not touch orchestration, permissions, experiment runners, grids, selection, gates, or any certified number.
+
+**Regression test (fails without the fix, passes with it):**
+- `tests/test_experiment_tracker.py::test_git_dirty_detects_untracked_artifacts`
+
+It builds a real clean git repo in `tmp_path`, asserts `dirty is False`, writes an untracked file, asserts `dirty is True` (HEAD unchanged), then modifies a tracked file and asserts `dirty is True` again. `test_tracker_git_and_deps_exception` was updated to drive the failure path through `subprocess.check_output` (the new probe's shell-out); it still asserts the `("unknown", False)` degrade.
+
+## Verified
+- `python -m pytest -q` → 538 passed (was 537), ~207s
+- `python -m pytest -W error -q` → 538 passed, 0 warnings
+- `python -m pytest --cov=qtr --cov-report=term-missing` → 99% on src (919 stmts; single miss is the unreachable `walk_forward_splits` empty-window guard at statistics.py:114)
+- `python -m ruff check` + `python -m ruff format --check` → clean
+- `bash -n .github/scripts/*.sh` → OK
+- `bash .github/scripts/test_kilo_progress.sh` → OK
+- The new regression test fails under the reverted buggy probe (reproduced `assert dirty2 is True` → `False is True`) and passes with the fix.
+- Existing tracker tests (19) still pass; no experiment-runner or artifact regression tests affected.
+
+## Task 8 (prior session): fix stale/absent combo-count prose in H17/H19/H20 `EXPERIMENT_DESC`
 
 ## Task 8 (this session): fix stale/absent combo-count prose in H17/H19/H20 `EXPERIMENT_DESC`
 
@@ -160,8 +183,10 @@ Both fail without the fix (reproduced the inflated beta) and pass with it.
 - `compare_to_benchmark` beta now equals the OLS regression slope.  [done]
 - A regression test fails without the fix, proving the estimator is pinned.  [done]
 - Lint/format clean.  [done]
-- Full suite: 537 passed, 0 warnings, no regressions.  [done]
+- Full suite: 538 passed, 0 warnings, no regressions.  [done]
 - src/ coverage: 99%.  [done]
+- `git_dirty` now reports untracked files (the reproducibility-marker blind spot).  [done]
+- A regression test fails under the buggy `git diff --quiet` probe.  [done]
 - H22 `EXPERIMENT_DESC` matches the pre-registered 8-combo grid.  [done]
 - A regression test fails under the stale "16-combo" prose.  [done]
 - H23 `EXPERIMENT_DESC` matches the pre-registered 6912-combo grid.  [done]

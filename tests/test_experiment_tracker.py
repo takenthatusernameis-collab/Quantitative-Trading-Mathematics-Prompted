@@ -165,22 +165,24 @@ def test_record_artifact_fallback_unknown_type(tmp_path):
 
 
 def test_tracker_git_and_deps_exception(tmp_path, monkeypatch):
-    # Simulate git failure
+    # Simulate git failure. _get_git_info now shells out via
+    # subprocess.check_output (rev-parse + status --porcelain), so the
+    # failure path is driven through that call.
     import subprocess
 
     from qtr.tracking.experiment import ExperimentTracker
 
-    orig = subprocess.call
+    orig = subprocess.check_output
 
-    def bad_call(*args, **kwargs):
+    def bad_output(*args, **kwargs):
         raise RuntimeError("git fail")
 
-    monkeypatch.setattr(subprocess, "call", bad_call)
+    monkeypatch.setattr(subprocess, "check_output", bad_output)
     t = ExperimentTracker(log_dir=tmp_path / "logs")
     commit, dirty = t._get_git_info()
     assert commit == "unknown"
     assert dirty is False
-    monkeypatch.setattr(subprocess, "call", orig)
+    monkeypatch.setattr(subprocess, "check_output", orig)
 
     # Simulate importlib.metadata failure
     import sys
@@ -204,6 +206,49 @@ def test_tracker_git_and_deps_exception(tmp_path, monkeypatch):
     deps = t2._get_dependencies()
     assert deps == {}
     monkeypatch.setattr(builtins, "__import__", real_import)
+
+
+def test_git_dirty_detects_untracked_artifacts(tmp_path, monkeypatch):
+    """git_dirty must be True when the working tree has UNTRACKED files.
+
+    The previous probe (``git diff --quiet``) only inspects tracked
+    working-tree changes, so an experiment that wrote a new artifact into
+    an untracked directory would be stamped ``git_dirty=False`` even
+    though the artifact was never committed -- the exact reproducibility
+    failure the flag exists to warn about.
+    """
+    import subprocess
+
+    from qtr.tracking.experiment import ExperimentTracker
+
+    # Build a real, clean git repo in tmp_path.
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    monkeypatch.chdir(repo)
+    subprocess.run(["git", "init", "-q"], check=True)
+    subprocess.run(["git", "config", "user.email", "t@t.com"], check=True)
+    subprocess.run(["git", "config", "user.name", "t"], check=True)
+    (repo / "tracked.txt").write_text("a")
+    subprocess.run(["git", "add", "tracked.txt"], check=True)
+    subprocess.run(["git", "commit", "-qm", "init"], check=True)
+
+    t = ExperimentTracker(log_dir=tmp_path / "logs")
+    commit, dirty = t._get_git_info()
+    assert commit != "unknown"
+    assert dirty is False  # clean tree
+
+    # Write an UNTRACKED artifact (the reproducibility-invalidating
+    # condition: a new experiment artifact not committed to HEAD).
+    (repo / "experiments.jsonl").write_text('{"new": 1}\n')
+
+    commit2, dirty2 = t._get_git_info()
+    assert commit2 == commit  # HEAD unchanged
+    assert dirty2 is True  # untracked file must register as dirty
+
+    # Also confirm a MODIFIED tracked file still registers dirty.
+    (repo / "tracked.txt").write_text("b")
+    _commit3, dirty3 = t._get_git_info()
+    assert dirty3 is True
 
 
 def test_load_experiment_missing_error(tmp_path):

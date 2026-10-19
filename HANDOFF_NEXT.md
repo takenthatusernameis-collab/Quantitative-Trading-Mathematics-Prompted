@@ -1,12 +1,12 @@
 # Handoff Summary
 
 ## Current state
-- All tests pass: 537 passed, 0 warnings (was 534) — re-confirmed this session (~207s).
-- src/ coverage: 99% (918/918 stmts; single uncovered branch is the unreachable `walk_forward_splits` empty-window guard at statistics.py:114). Lint/format clean on changed files. Workflow scripts pass `bash -n` and the progress-helper regression test.
+- All tests pass: 538 passed, 0 warnings (was 537) — re-confirmed this session (~207s).
+- src/ coverage: 99% (919/919 stmts; single uncovered branch is the unreachable `walk_forward_splits` empty-window guard at statistics.py:114). Lint/format clean on changed files. Workflow scripts pass `bash -n` and the progress-helper regression test.
 - Changes this session (uncommitted):
-  - `run_h17_vrp_experiment.py`, `run_h19_volume_predictive_experiment.py`, `run_h20_signed_volume_experiment.py`: three stale `EXPERIMENT_DESC` strings corrected to carry their pre-registered combo counts and enumerated grid dimensions — H17 "60-combo grid (gate_thresh x vol_window x target_vol x max_pos)", H19 "9-combo grid (volume_decomp_method x threshold_type)", H20 "36-combo grid (sign_rule x target_vol x max_pos x imbalance_lag)". Each is Val-selected, Test-protected.
-  - `tests/test_h17_vrp.py`, `tests/test_h19_volume_predictive.py`, `tests/test_h20_signed_volume.py`: new `test_experiment_description_matches_pre_registered_grid` pins each runner's `EXPERIMENT_DESC` against its computed grid size and requires every grid dimension to be named in the prose.
-- Prior tasks (walk-forward stability gate false-pass, global RNG mutation fix, min_param_stability gate, empty-input guard, coverage gaps, beta ddof fix, H22 prose+pre-registration fix, H23 prose+spec fix, H25 prose fix) remain complete and verified.
+  - `src/qtr/tracking/experiment.py`: `ExperimentTracker._get_git_info` now probes `git status --porcelain` instead of `git diff --quiet`, so **untracked** files (new experiment artifacts) register as `git_dirty=True`. The old probe only inspected tracked working-tree changes, so an experiment that wrote a fresh artifact into an untracked directory would be stamped `git_dirty=False` — a false "clean, reproducible" stamp on an actually unreproducible state.
+  - `tests/test_experiment_tracker.py`: new `test_git_dirty_detects_untracked_artifacts` pins the corrected probe against a real clean git repo, writes an untracked file, and asserts `git_dirty` flips to True (and a modified tracked file still registers dirty). `test_tracker_git_and_deps_exception` was updated to drive the failure path through `subprocess.check_output` (the new probe's shell-out).
+- Prior tasks (H17/H19/H20 combo-count prose fix, H22 pre-registration fix, H23 prose+spec fix, H25 prose fix, walk-forward stability gate false-pass, global RNG mutation fix, min_param_stability gate, empty-input guard, coverage gaps, beta ddof fix) remain complete and verified.
 
 ## Next agent actions
 If assigned a new task, verify with:
@@ -60,10 +60,22 @@ it pins the *frozen pre-registration text* in `HYPOTHESIS_SPEC.md` §H22 against
 runner grid, so a spec/runner divergence (like the H22 16-combo-vs-8 drift) is caught as a
 hard failure rather than surviving indefinitely in the auditable record.
 
-## Verified prose-grid consistency (this session)
+## Reproducibility-marker fix (this session)
+`test_git_dirty_detects_untracked_artifacts` in `tests/test_experiment_tracker.py` closes
+a blind spot in the `git_dirty` reproducibility flag. The previous probe
+(`git diff --quiet`) only inspects *tracked* working-tree changes, so an experiment that
+wrote a new artifact into an untracked directory (e.g.
+`.experiments/artifacts/<exp_id>/`) would be stamped `git_dirty=False` even though the
+artifact was never committed. The corrected probe (`git status --porcelain`, dirty iff
+non-empty output) reports untracked files (`??` prefix) as well as modified/deleted ones.
+The test builds a real clean git repo, asserts `dirty is False`, writes an untracked file,
+asserts `dirty is True`, then writes a modified tracked file and asserts `dirty is True`
+again. It fails under the reverted buggy probe and passes with the fix.
+
+## Verified prose-grid consistency (prior sessions)
 All eight prose combo counts match their grids: H16=54, H17=60, H19=9, H20=36, H21=16,
 H22=8, H23=6912, H25=8. H16 (54), H17 (60), H19 (9), H20 (36), H21 (16) and H25 (8) were
 confirmed as genuinely different grids, so the H17/H19/H20 corrections are scoped and are
 not over-corrections.
 
-(End of file - total 58 lines)
+(End of file)
