@@ -1,9 +1,38 @@
 # Handoff Summary
 
 ## Current state
-- All tests pass: **669 passed, 0 warnings** (~3:40). Full suite re-confirmed this session.
-- src/ coverage: 99% (single uncovered branch is the unreachable `walk_forward_splits` empty-window guard at statistics.py:114, pre-existing). Lint/format clean on `src tests run_*.py`. Workflow scripts pass `bash -n` and the progress-helper regression test.
-- **H28 (this session): causal re-certification of the intraday family — COMPLETE.
+- All tests pass: **705 passed, 0 warnings** (~3:40). Full suite re-confirmed this session.
+- src/ coverage: 99% (single uncovered branch is the unreachable `walk_forward_splits` empty-window guard at statistics.py:169, pre-existing). Lint/format clean on `src tests run_*.py`. Workflow scripts pass `bash -n` and the progress-helper regression test.
+- **H29 (this session): systematic look-ahead sweep of the remaining families — COMPLETE.
+  Verdict `LOOKAHEAD_FOUND`.** Every remaining family was audited for the `resample`
+  look-ahead from the committed artifacts, with a detector that **fires** on the already-audited
+  intraday family (H9/H10/H21/H22/H25 → `LOOKAHEAD`, reproducing H27's same/prev statistic
+  1.000/0.016 and 1.000/0.382), **does not fire** on any `"ME"` family, and reports H27's
+  deliberately *causal* `causal_daily_target_from_hourly` as **`CAUSAL`** (hold lag +2 bars,
+  previous-period expansion on 100% of the bars). The discriminator is the **bin label**, probed
+  at run time on the installed pandas: `"1D"` labels each bin at its **start** with that day's
+  **close** (a look-ahead: min hold lag **−22** bars, 94.7%–96.0% of the bars are positioned
+  with the close of the day they belong to), `"ME"` labels each bin at its **end** with the
+  month's close (hold lag **+1** bar, **0** look-ahead bars). Results: **H1, H2, H3, H4, H5, H6
+  and H8 are `CAUSAL`** — each verdict rests on a **bit-exact** rebuild of the committed
+  artifact from the committed prices (max abs diff **0.0**) and on **0 extra** change points;
+  **H11, H12 and H13 are `LOOKAHEAD`** because they *inherit* H10's construction (H11's
+  `baseline_positions` are bit-identical to H10's `positions`, H12's `selected_oos_sharpe`
+  equals `h10_artifact_oos_sharpe` to the digit, H13's `returns_max_abs_diff_vs_h10` is 0.0) —
+  so **H11's and H12's PASS verdicts rest on the same look-ahead positions as H10's** and are
+  not independent evidence; **H23 is `LOOKAHEAD`** — it *does* use the daily collapse (it
+  imports `_daily_target_from_hourly` from H9), contradicting the inherited premise, and its
+  published build rebuilds **bit-exactly** (OOS Sharpe −7.187089456116173) while the minimal
+  causal fix gives −5.8929 (a look-ahead is a *favourable* bias, so the REJECT stands
+  a fortiori and **no** causal re-certification of H23 is warranted). **H7 has no committed
+  artifact** and is reported `INCONCLUSIVE` (a coverage gap, never a pass). Two inherited
+  premises were corrected: **no daily family passes** (H1 0.093 … H8 0.814, all REJECTED), so
+  **the repo now contains no PASS family that survives a causal construction**; and H23 is not
+  free of the daily collapse. **H29 changed no gate, threshold, verdict or certified number
+  and re-ran no grid** (only the *selected* configuration of the families it measures). See
+  `FINAL_REPORT.md` §H29, `HYPOTHESIS_SPEC.md` §H29 (pre-registration + the pre-execution
+  amendment + the measure log), `NEXT_TASK.md`.
+- **H28 (prior session): causal re-certification of the intraday family — COMPLETE.
   `CAUSAL_REJECTED` for every family.** The published H10/H21/H22/H25 pipelines were re-run
   with **one** change — the daily collapse lagged by one calendar day — and the **unchanged**
   gates, splits, Val-only selection, Test protection and cost model. Every family's
@@ -60,22 +89,22 @@ Note: `qtr` must be importable — run `pip install -e .` from the repo root if
 `ModuleNotFoundError: No module named 'qtr'` appears at collection time.
 
 ## Highest-value next task (free data, bounded, verifiable)
-**H29 — a systematic look-ahead sweep of the *remaining* certified families.**
-H27/H28 closed the question for the **intraday** futures family: the edge was a one-day
-look-ahead and the family is `CAUSAL_REJECTED`. The *mechanism* is mechanical and therefore
-searchable — `resample("1D")` labels each day at the **bin start** with the value of that day's
-**close**, so the forward-fill expansion hands every bar of day D the close of day D, whereas
-`resample("ME")` labels each month at the **bin end** and is therefore *not* affected. That
-distinction is a hypothesis, not a result: the **daily / monthly** families (H1–H8 — the only
-other PASS family in the repo), the intraday diagnostics (H11 robustness, H12 selection bias,
-H13 OOS deflation / PF audit) and H23 have never been swept. H29 must decide from the committed
-artifacts alone whether each family's position at the start of a period is aligned with *that*
-period's close, and must self-check the detector (it must fire on H10 and not fire on a
-monthly family). Do **not** re-run grids and do **not** change any published verdict. Full
-scope, constraints and the pre-registration skeleton: `NEXT_TASK.md`.
+**H30 — close the H7 coverage gap: commit H7's artifact, then audit it.**
+H29 swept every remaining family for the look-ahead and closed every case except one: **H7 has
+no committed artifact** (no `h7` entry in `.experiments/experiments.jsonl`, no `exp_*`
+directory), so the published H7 row (OOS Sharpe 0.789, 1,005 trades, PF 1.166, DD −14.5%, 3/8
+gates) **cannot be re-derived from committed evidence** and H29 had to report it `INCONCLUSIVE`.
+H7 is a **single fixed configuration** (no grid) and the futures cache is complete, so the
+re-run is offline and fast. The task: re-run `run_h7_intraday_tsmom_experiment.py` offline to
+commit its artifact, **reconcile the re-run against the published row field by field** (a
+published number that cannot be re-derived is the defect class this closes), add H7 to the H29
+detector's family list and re-run the sweep (the source says `CAUSAL`; the detector decides),
+and report. Do **not** change any published verdict, gate, threshold or certified number, and
+do **not** re-run any grid. Full scope, constraints and the pre-registration skeleton:
+`NEXT_TASK.md`.
 
 ## Documented next task (requires paid data — outside a free-data session, and no longer
-## justified for the intraday family)
+## justified for any family in the repo)
 Per FINAL_REPORT.md §Next Task: widen the OOS window with **paid hourly futures data**
 so the **PF** bootstrap CI clears its gate with margin. H10/H22/H25 are PASS *as published*
 but the PF-margin is CI-fragile (H13 CI [1.190, 1.425]; H25 Robustness CI [1.2049, 1.4425],
@@ -83,8 +112,10 @@ P(PF≥1.3)=0.6215) — that fragility is scale-invariant and is the binding con
 (the *Sharpe* CI fragility was withdrawn by H26 as a scale artifact). **H27 moved this task
 downstream (buying more data for a construction with a look-ahead would be wasted) and H28
 has now closed it for the intraday family: a causal construction that fails the gates on the
-free window will not be rescued by more of the same data.** The task may still be justified for
-the *daily* families, which H29 would certify as clean.
+free window will not be rescued by more of the same data. H29 closes it for the rest: the
+daily families are *causal* but all REJECT (H1 0.093, H2 0.116, H3 −0.868, H4 0.376,
+H5 0.509, H6 0.708, H7 0.789, H8 0.814), so more of the same free data does not rescue them
+either.**
 
 
 ## Proxy caveat
@@ -232,3 +263,39 @@ The published runners were **not** edited: H28 patches the module-global
 `_daily_target_from_hourly` at run time and restores it, and it calls each published runner's
 own `main()` so the grid, the selection rule and the gates are reused unchanged **by
 construction**.
+
+## H29 drift guards (added this session)
+`tests/test_h29_lookahead_sweep.py` (36 tests) pins the look-ahead *sweep* so the detector
+cannot be quietly weakened or re-pointed:
+
+- `TestCollapseProbe` — the pandas bin-label semantics are **probed, not hard-coded**: `"1D"`
+  labels at the bin **start** (and is a look-ahead on an hourly grid: min hold lag ≤ 0,
+  >90% look-ahead bars), `"ME"` labels at the bin **end** (and is causal on a daily grid: min
+  hold lag ≥ 1, **0** look-ahead bars), a *lagged* collapse (the causal one) is causal on the
+  same grid, and the probe is grid-dependent (a `"1D"` collapse on a daily grid is a no-op).
+- `TestVerdictRule` — the frozen rule's boundaries: a negative hold lag **with** the
+  same-period match is `LOOKAHEAD`, a positive hold lag **with** the previous-period match is
+  `CAUSAL`, the two legs must agree (otherwise `INCONCLUSIVE`), and a missing statistic is
+  `INCONCLUSIVE`.
+- `TestNegativeControl` — H27's `causal_daily_target_from_hourly` must be reported `CAUSAL`
+  (hold lag ≥ 1, previous-period expansion dominant) while the published collapse is reported
+  `LOOKAHEAD` by the same rule, and the H29 runner must use the H27 collapse *object* so the
+  two cannot drift apart.
+- `TestSourceSweep` — the source inventory contains both constructions, the `"1D"` collapse
+  appears **only** in the intraday/audit runners, the `"ME"` collapse appears in exactly the
+  eight daily runners, and the two are classified differently on the grid they run on.
+- `TestRebuilds` — the H1 and H8 rebuilds reproduce their committed artifacts **bit-exactly**,
+  the committed target only changes on predicted bars, and the H23 counterfactual restores the
+  runner module it patches.
+- `TestCommittedReport` — the committed H29 report's verdict, the four self-checks, the daily
+  families' `CAUSAL` verdicts, the intraday families' `LOOKAHEAD` verdicts, H7's coverage-gap
+  status, the bit-exactness of every causal family's rebuild, the already-audited families'
+  verdicts, and the H23 control (bit-exact positions **and** the published OOS Sharpe to the
+  digit, with the causal fix failing to rescue the family).
+- `TestPreRegistration` — `HYPOTHESIS_SPEC.md` must contain §H29, the frozen artifact ids and
+  the **pre-execution amendment**, and the published runners must not have been edited.
+
+The look-ahead lives in the *runners* (`run_h9_intraday_tsmom_experiment.py:195` and
+`run_h10_intraday_tsmom_pfopt_experiment.py:114-133`), not in `src/qtr/`, so H29 added a
+detector **without** editing those functions (the published artifacts are the historical
+record and H26/H27/H28/H29 reproduce them bit-exactly).

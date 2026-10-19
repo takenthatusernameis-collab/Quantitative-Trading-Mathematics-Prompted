@@ -3642,3 +3642,334 @@ edge**, and the certified family is **not established**.
 6. The paid-data task (a wider OOS window for the PF bootstrap margin) remains **downstream**
    and is not justified for this family: a causal construction that fails the gates on the
    free window will not be rescued by more of the same data.
+
+---
+
+## H29: Systematic look-ahead sweep of the *remaining* families (pre-registered 2026-10-19, BEFORE execution)
+
+### Statement
+
+H27 established that the **intraday** futures TSMOM family (H9, H10, H21, H22, H25) positions
+every session with that session's **own closing** signal, and H28 re-certified the family under
+a causal daily collapse and returned `CAUSAL_REJECTED` for every member. The *mechanism* is
+mechanical — a collapse of a finer signal onto a coarser grid followed by a forward-fill
+expansion — and therefore **searchable**. H29 sweeps **every remaining family** in the repo for
+the same defect, decides each family **from the committed artifacts alone**, and reports the
+mechanism, the evidence and the frozen artifact ids. H29 changes **no** published artifact,
+runner, gate, threshold, verdict or certified number, and re-runs **no** grid.
+
+### Mechanism (why a sweep is possible)
+
+A collapse `L = base.resample(freq).last()` is expanded back onto the fine grid with
+`reindex(..., method="ffill")`. The **pandas label position** of the resample decides whether
+the expansion is causal:
+
+| `freq` | pandas bin label | value held | expansion `reindex(..., method="ffill")` | look-ahead? |
+|---|---|---|---|---|
+| `resample("1D")` on an hourly grid | **bin start** (day D 00:00) | day D's **close** | every bar of day D gets day D's close | **YES** |
+| `resample("ME")` on a daily grid | **bin end** (calendar month end) | the month's close | the month gets the *previous* month's close | no |
+
+The label position is a property of the **installed pandas**, not an assumption: H29 *probes*
+it at run time (a synthetic series whose values identify their own bar, resampled with the
+frequency in question) and records the probe's output in the audit artifact.
+
+**The alignment statistic (frozen).** The engine trades `signals.shift(1)`, so a value that
+first *appears* at bar `d` is first *traded* during bar `d + 1`. Let `s` be the **source bar**
+of that value — the bar whose raw signal it carries (the last bar of its bin). The
+**hold lag** of the construction is `d + 1 - s` in bars. The construction is a **look-ahead iff
+`hold lag <= 0`** for some bar: the value was not knowable at the close of `d`, yet it is
+traded from `d + 1`. A **causal** construction has `hold lag >= 1` everywhere.
+
+### Scope — the frozen family list and artifact ids (all committed, read-only)
+
+| Family | Artifact id | Construction | Grid | Collapse | Evidence route |
+|---|---|---|---|---|---|
+| H1 | `exp_2026-10-14T08-26-18-385545Z` | vol-scaled TSMOM, 20 ETFs | daily | `ME` | rebuild + artifact |
+| H2 | `exp_2026-10-10T20-59-28-306148Z` | cross-sectional momentum, 10 ETFs | daily | `ME` | rebuild + artifact |
+| H3 | `exp_2026-10-10T21-27-13-928282Z` | regime-gated TSMOM, 20 ETFs + VXX | daily | `ME` | rebuild + artifact |
+| H4 | `exp_2026-10-14T08-27-02-650342Z` | futures TSMOM top-K ensemble | daily | `ME` | rebuild + artifact |
+| H5 | `exp_2026-10-11T00-26-35-750834Z` | futures TSMOM + DDCV | daily | `ME` | rebuild + artifact |
+| H6 | `exp_2026-10-11T08-02-22-999214Z` | futures TSMOM + VIX gate + DDCV | daily | `ME` | rebuild + artifact |
+| H7 | *(no committed artifact)* | multi-horizon intraday TSMOM + exits | daily | `ME` | source + mechanism only |
+| H8 | `exp_2026-10-11T15-21-31-333870Z` | roll-adjusted futures TSMOM | daily | `ME` | rebuild + artifact |
+| H11 | `exp_2026-10-11T20-25-36-443045Z` | robustness audit of H10 | hourly | `1D` (inherited) | artifact identity + source |
+| H12 | `exp_2026-10-13T12-51-06-515939Z` | selection-bias audit of H10 | hourly | `1D` (inherited) | artifact identity + source |
+| H13 | `exp_2026-10-13T14-35-58-316759Z` | OOS-deflation / PF audit of H10 | hourly | `1D` (inherited) | artifact identity + source |
+| H23 | `exp_2026-10-14T18-13-09-457781Z` | crypto perpetual intraday TSMOM | hourly | `1D` (inherited) | artifact + counterfactual |
+
+**Already audited (self-check only, must reproduce H27/H28):** H9
+(`exp_2026-10-11T16-52-38-694559Z`), H10 (`exp_2026-10-11T17-41-18-169363Z`), H21
+(`exp_2026-10-13T23-27-52-101656Z`), H22 (`exp_2026-10-14T18-52-08-943792Z`), H25
+(`exp_2026-10-14T20-08-34-613690Z`). H28 additionally published its own H28 control/causal
+runs under `.experiments/artifacts/h28_causal_recertification/runs/`; they are **not** audited
+here (H28 already re-certified them).
+
+### The detector (frozen, three independent legs)
+
+* **L1 — source sweep.** Every `run_*.py` is parsed with `ast`; every `resample(<literal>)`
+  call that is expanded with a forward fill is listed with its frequency, its enclosing
+  function and its **probed** label position. The inventory is written to the audit artifact,
+  so the sweep is exhaustive by construction, not by spot checks.
+* **L2 — artifact alignment.** For a family whose committed artifacts contain the collapsed
+  target (or the base signal from which it is rebuilt): (a) the collapse is **rebuilt** from
+  the committed prices with the family's *own* runner code and the published configuration, and
+  must reproduce the committed artifact **bit-exactly** (max abs diff `0.0`); (b) the rebuilt
+  base signal is collapsed with the *published* collapse and the **hold lag** is measured on the
+  committed grid; (c) the **change points** of the committed collapsed series are compared with
+  the change points the classified construction predicts (an *extra* change point means the
+  committed artifact is not the construction that was classified → `INCONCLUSIVE`).
+* **L3 — same-period vs previous-period expansion.** The committed target is compared with the
+  two candidate expansions of the base signal: the **same-period** expansion (the value of
+  period `P` held over the bars of `P` — the look-ahead pattern) and the
+  **previous-period** expansion (the value of period `P-1` held over the bars of `P` — the
+  causal pattern). H27's L5a statistic.
+
+### Verdict rule (frozen, per family)
+
+* `LOOKAHEAD` iff the same-period match fraction is `>= 0.99` **and** the minimum hold lag is
+  `<= 0` **and** the rebuild/identity check is bit-exact. Both legs must agree; a disagreement
+  is `INCONCLUSIVE`, never a pass.
+* `CAUSAL` iff the previous-period match fraction is `>= 0.99` **and** the minimum hold lag is
+  `>= 1`.
+* `INCONCLUSIVE` otherwise (including: no committed artifact, or a rebuild that does not
+  reproduce the committed artifact).
+
+### Sweep verdict (frozen)
+
+* `SWEEP_CLEAN` iff **no** family outside the already-audited set (H9, H10, H21, H22, H25) is
+  `LOOKAHEAD` and every audited family with a committed artifact is `CAUSAL`.
+* `LOOKAHEAD_FOUND` otherwise, with the affected families listed. A family that is
+  `INCONCLUSIVE` **because it has no committed artifact** is reported as a *coverage gap*, not
+  as a pass.
+
+### Mandatory self-checks (frozen — the detector is void without them)
+
+1. **SC1 (fires):** the detector run on the already-audited H10 artifact must return
+   `LOOKAHEAD` and must reproduce H27's L5a numbers (the logged daily collapse equals the
+   signal at the day's close, and the logged hourly target matches the same-day expansion on
+   100% of bars).
+2. **SC2 (does not fire):** the detector must **not** return `LOOKAHEAD` for any monthly
+   (`ME`) family in the audited set.
+3. **SC3 (negative control):** the detector run against a deliberately **causal** construction
+   — H27's `causal_daily_target_from_hourly` (day `D` takes day `D-1`'s close) — must report
+   `CAUSAL`. A detector that fires on the causal control is broken.
+4. **SC4 (source sweep):** the source inventory must contain the H9/H10 daily collapse and the
+   H1–H8 monthly collapse, and must classify them differently.
+
+If any self-check fails, the sweep's verdict is **void** and must be reported as such.
+
+### Constraints (frozen)
+
+* No published artifact, runner, gate, threshold, verdict or certified number is modified.
+* No grid is re-run. H29 rebuilds only the **selected** configuration of a family, and only to
+  measure the *magnitude* of a defect that the detector has already found.
+* Offline and deterministic: the committed artifacts and the cached data are sufficient; no
+  new fetch.
+* A family that is found to be defective is **reported**, not re-certified: a causal
+  re-certification is a separate, explicitly re-registered task (H30) and is NOT run here.
+* The published PASS verdicts stand as published. H29's verdicts are an **additional**
+  statement, exactly as H27's and H28's were.
+
+### Anti-reward-hacking note (frozen)
+
+The verdict is a function of the *measured* hold lag and the *measured* expansion match
+fractions only. The families are not selected after the fact, the artifact ids were frozen
+before execution, the detector is not tuned per family, and a family with no artifact is
+reported as a coverage gap rather than silently passed. The magnitude measurements (the OOS
+Sharpe under the minimal causal fix, the intraday/overnight P&L split) are reported for
+affected families in H27's terms and are **not** used to decide the verdict.
+
+### H29 — Pre-registration amendment (2026-10-19, made **BEFORE** any sweep execution)
+
+The verdict rule above is amended in one place, for a reason that is a property of the
+*statistic*, not of any measurement. The same-period / previous-period match fractions are
+computed **at the signal level**, and the raw fractions are diluted on exactly one bar per
+period: the bar that *carries* the period's label.
+
+* For an **end-labelled** collapse (`"ME"` on a daily grid) the label sits on the period's
+  **last** bar, so the committed target equals the previous-period value on every bar of the
+  period **except** that one bar, on which it equals the period's own value (the value that
+  is knowable at that bar's own close). The previous-period fraction is therefore
+  `1 − (bars per period)⁻¹` (≈0.95 for a 120-month, 2,515-bar daily grid), **not** ≥0.99.
+* For a **start-labelled** collapse (`"1D"` on an hourly grid) the same dilution appears on
+  the first bar of each period at the *position* level.
+
+The thresholded statistic is therefore the **hold lag**, which is exact for every bar of every
+construction (it is either ≥1 everywhere or ≤0 somewhere), and the two match fractions are
+kept as a **corroborating ordering** (which of the two candidates the committed target
+follows), not as a thresholded fraction. The amended rule:
+
+* `LOOKAHEAD` iff the **minimum hold lag ≤ 0** *and* `same_period_match_fraction >
+  prev_period_match_fraction` (the committed target follows the same-period expansion — the
+  look-ahead pattern).
+* `CAUSAL` iff the **minimum hold lag ≥ 1** *and* `prev_period_match_fraction ≥
+  same_period_match_fraction` (the committed target follows the previous-period expansion —
+  the causal pattern).
+* `INCONCLUSIVE` otherwise.
+
+The candidate expansions are defined **against the base signal** (the value of the base
+signal at the *last bar* of the period, and at the last bar of the previous period), so the
+comparison is meaningful for a *lagged* construction as well: the negative control (day `D`
+takes day `D-1`'s close) follows the previous-period expansion on 100% of the bars and is
+reported `CAUSAL` by the same rule. Nothing else in the pre-registration changes: the
+families, the artifact ids, the detector's three legs, the self-checks and the constraints
+are as frozen above.
+
+### H29 — Measure Log (executed 2026-10-19)
+
+Runner: `run_h29_lookahead_sweep.py` (executable, offline, deterministic, 0.8 s).
+Artifacts: `.experiments/artifacts/h29_lookahead_sweep/` — `summary.json`, `sweep_table.parquet`,
+`source_inventory.parquet`. Tests: `tests/test_h29_lookahead_sweep.py` (36 tests).
+
+**Sweep verdict: `LOOKAHEAD_FOUND`.** The affected families are **H11, H12, H13 and H23** — all
+of them either *inherit* H10's daily collapse or *use it directly*. Every daily/monthly family
+with a committed artifact (H1–H6, H8) is **CAUSAL**, and one family (H7) is a **coverage gap**.
+
+#### M1 — the detector (three legs, all executed)
+
+* **L1 (source sweep).** 12 `resample(<literal>)` call sites across 8 runners were parsed with
+  `ast`: 8 × `"ME"` (H1, H2, H3, H4, H5, H6, H7, H8 — every `resample_monthly_signals`) and
+  4 × `"1D"` (H9's `_daily_target_from_hourly`, H27's `causal_daily_target_from_hourly` and
+  `expansion_check`, H26's audit). **No other collapse construction exists in the repo.**
+* **L1 probe (the installed pandas, pandas 3.0.6).** `"1D"` labels each bin at its **start**
+  (day D 00:00) with the value of day D's **close**; `"ME"` labels each bin at its **end**
+  (the calendar month end) with the value of the month's **close**. Probed, not assumed.
+* **L2 (artifact alignment).** For every family with a committed artifact the collapse was
+  **rebuilt from the committed prices with the family's own runner code and the published
+  configuration** and reproduced the committed artifact **bit-exactly** (max abs diff `0.0`):
+  H1 `selected_signals`, H2 `selected_signals`, H3 `selected_signals`, H4 `ensemble_equity`,
+  H5 `best_ddcv_equity`, H6 `best_equity`, H8 `signals_w0.5`. The committed target's change
+  points are a **subset** of the change points the classified construction predicts
+  (**0 extra** change points in every family).
+* **L3 (same-period vs previous-period expansion).** Computed against the base signal, so the
+  comparison is meaningful for a lagged construction as well.
+
+#### M2 — the per-family results
+
+| Family | Collapse | Min hold lag (bars) | Look-ahead bar fraction | same / prev expansion | Rebuild | **Verdict** |
+|---|---|---|---|---|---|---|
+| H1 | `ME` | **+1** | 0.0% | 0.401 / 0.980 | 0.0 (bit-exact) | **CAUSAL** |
+| H2 | `ME` | **+1** | 0.0% | 0.416 / 0.980 | 0.0 (bit-exact) | **CAUSAL** |
+| H3 | `ME` | **+1** | 0.0% | 0.079 / 0.968 | 0.0 (bit-exact) | **CAUSAL** |
+| H4 | `ME` | **+1** | 0.0% | 0.420 / 0.972 | 0.0 (bit-exact) | **CAUSAL** |
+| H5 | `ME` | **+1** | 0.0% | 0.424 / 0.980 | 0.0 (bit-exact) | **CAUSAL** |
+| H6 | `ME` | **+1** | 0.0% | 0.454 / 0.980 | 0.0 (bit-exact) | **CAUSAL** |
+| H7 | `ME` | — | — | — | no artifact | **INCONCLUSIVE (coverage gap)** |
+| H8 | `ME` | **+1** | 0.0% | 0.391 / 0.980 | 0.0 (bit-exact) | **CAUSAL** |
+| H11 | `1D` (inherited) | **−22** | 94.7% | 1.000 / 0.016 | identity 0.0 | **LOOKAHEAD** |
+| H12 | `1D` (inherited) | **−22** | 94.7% | 1.000 / 0.016 | identity 0.0 | **LOOKAHEAD** |
+| H13 | `1D` (inherited) | **−22** | 94.7% | 1.000 / 0.016 | identity 0.0 | **LOOKAHEAD** |
+| H23 | `1D` | **−22** | 96.0% | 1.000 / 0.385 | control 0.0 | **LOOKAHEAD** |
+
+**Why the monthly families are clean.** The `"ME"` label sits on the month's **last bar**, so
+the value that appears at that bar is knowable at that bar's own close, and the engine
+(`signals.shift(1)`) trades it from the **next** bar: the minimum hold lag is **+1 bar** and
+**no** bar is positioned with a not-yet-knowable signal (0.0% look-ahead bars). The daily
+collapse is the opposite: the `"1D"` label sits at the day's **start** with the day's **close**,
+so **94.7%** (H10's grid) / **96.0%** (H23's grid) of the bars are positioned with the close of
+the day they belong to — a minimum hold lag of **−22 bars**.
+
+#### M3 — the self-checks (all PASS; the sweep is not void)
+
+* **SC1 (the detector fires).** H9, H10, H21, H22, H25 → `LOOKAHEAD`, with the same/prev
+  expansion fractions 1.000 / 0.016 (H9, H10) and 1.000 / 0.382 (H21, H22, H25) — the same
+  statistic H27 reported. H27's L5a chain is reproduced verbatim (the logged daily collapse
+  equals the signal at the day's close, max abs diff 0.0).
+* **SC2 (the detector does not fire on a monthly family).** No `"ME"` family returned
+  `LOOKAHEAD`.
+* **SC3 (negative control).** The deliberately causal `causal_daily_target_from_hourly`
+  (day D takes day D−1's close) is reported **`CAUSAL`**: its hold lag is **+2 bars** and it
+  follows the previous-period expansion on **100%** of the bars, while the published collapse
+  is reported `LOOKAHEAD` by the same rule.
+* **SC4 (the source sweep).** The inventory contains both constructions and classifies them
+  differently on the grid they run on.
+
+#### M4 — the affected families
+
+**H11 / H12 / H13 — the defect travels with the PASS.** The three diagnostics *inherit* H10's
+construction, and the inheritance is proved from the committed artifacts, not from the source:
+H11's `baseline_positions` are **bit-identical** to H10's `positions` (max abs diff `0.0`, and
+so are the returns); H12's `selected_oos_sharpe` equals `h10_artifact_oos_sharpe` to the digit
+(1.2757590680990518, diff 0.0); H13's `returns_max_abs_diff_vs_h10` is `0.0`. Their published
+verdicts (H11 PASS, H12 PASS, H13 REJECT) are **unchanged** — H29 changes no published verdict —
+but **H11's PASS and H12's PASS rest on the same look-ahead positions as H10's**, whose causal
+re-certification H28 already returned `CAUSAL_REJECTED` for. The two PASS verdicts are therefore
+carried by the same defect, and they are not independent evidence.
+
+**H23 (crypto) — the handoff's premise was wrong, and the family inherits the defect.**
+`run_h23_crypto_futures_tsmom.py` imports `_daily_target_from_hourly` from H9 (line 30) and
+calls it inside `build_hourly_target` (line 133): the crypto family **does** use the daily
+collapse. The next-task brief described it as "a different runner with no daily-collapse
+construction" — that is **false**, and the sweep corrects it. The evidence chain on the
+committed artifacts: the logged `daily_target_h9` equals the logged `hourly_signal_h9` **at the
+day's close** (max abs diff `0.0`) and differs at the day's open (0.741), and the committed
+`hourly_target_selected` follows the same-day expansion.
+
+**The magnitude, in H27's terms.** The published H23 pipeline was rebuilt from the committed
+`prices.parquet` with the published selected configuration and reproduces the committed
+`positions` **bit-exactly** (max abs diff `0.0`) and the published summary to the digit
+(OOS Sharpe **−7.187089456116173**, 107 trades, max DD −97.56%). Under the minimal causal fix
+(H27's `causal_daily_target_from_hourly`, installed by the same temporary, restored module
+patch H27/H28 used) the OOS Sharpe is **−5.8929** (76 trades, max DD −90.5%): the look-ahead
+*helped* the published build, as a look-ahead must, and the family is still catastrophically
+negative. The intraday/overnight P&L split is **not applicable** — the crypto sample is a
+continuous 24/7 market with no session boundary — and the equivalent magnitude measure is the
+**look-ahead bar fraction: 96.0% of the hourly bars**.
+
+**Consequence for the H23 verdict.** H23 was REJECTED and remains REJECTED: a look-ahead is a
+*favourable* bias, so removing it can only worsen a family that was already deeply negative
+(and, in fact, it improves the Sharpe from −7.19 to −5.89 — nowhere near the +1.0 gate). **No
+causal re-certification of H23 is warranted**; the follow-up named in the next-task brief does
+not apply to a rejected family.
+
+#### M5 — coverage gap: H7
+
+`run_h7_intraday_tsmom_experiment.py` exists and is the source of the H7 row of the results
+table, but **H7 has no committed artifact** — there is no `h7` experiment in
+`.experiments/experiments.jsonl` and no `exp_*` directory for it, so its published numbers
+(OOS Sharpe 0.789, 1,005 trades) cannot be re-derived from committed evidence. Its *mechanism*
+is classified from the source (`resample("ME")` on a **daily** grid — the futures are fetched at
+`interval="1d"` — so the minimum hold lag is +1 bar, the same as the other monthly families),
+but the family is reported **`INCONCLUSIVE`**, not `CAUSAL`: a family with no artifact is a
+coverage gap, never a pass.
+
+#### M6 — corrections to the inherited premises
+
+1. The next-task brief called the daily families "the only other PASS family in the repo".
+   **No daily family passes**: H1 (0.093), H2 (0.116), H3 (−0.868), H4 (0.376), H5 (0.509),
+   H6 (0.708), H7 (0.789) and H8 (0.814) are **all REJECTED**. The only PASS families in the
+   repo are H10, H11, H12, H22 and H25 — **all of them intraday, and all of them now
+   `CAUSAL_REJECTED` under H28's causal re-certification** (H11 and H12 inherit H10's
+   positions, as M4 shows). The repo therefore contains **no PASS family that survives a
+   causal construction**.
+2. The next-task brief expected the `"ME"` families to be clean: **confirmed**, on the committed
+   artifacts and with bit-exact rebuilds.
+3. The next-task brief expected H23 to be free of a daily collapse: **false** (M4).
+4. H7 was not listed as a gap: it is one (M5).
+
+#### M7 — disclosures
+
+1. H29 changed **no** published artifact, runner, gate, threshold, verdict or certified number.
+   The published runners were not edited; the only intervention is a temporary, restored patch
+   of the H23 module global `h23._daily_target_from_hourly` inside `h23_counterfactual()`.
+2. **No grid was re-run.** H29 rebuilds only the *selected* configuration of the families it
+   measures; the H23 counterfactual re-runs the published selected configuration twice
+   (control and causal) and nothing else.
+3. The H23 counterfactual's control is the published build: it reproduces the committed
+   positions bit-exactly and the published OOS Sharpe to the digit, so the causal number is a
+   like-for-like comparison.
+4. H5 and H6 apply the DDCV / VIX overlays *between* two collapses; the L3 comparison is made
+   against the series that enters the final collapse (the overlays are causal multiplicative
+   rescalings of the already-collapsed monthly series). The first collapse is the same `"ME"`
+   construction and is covered by the hold-lag measurement and by the bit-exact equity
+   rebuild.
+5. The H23 logged `hourly_target_selected` is built from the **EWMA-smoothed** signal
+   (`smooth_span=16`) while the logged `daily_target_h9` collapses the **raw** signal, so the
+   two artifacts are not a matching pair (the same caveat H27 recorded for H10). The H23 verdict
+   rests on the hold lag, on the L5a chain and on the bit-exact control rebuild, not on the
+   target-vs-collapse match fractions.
+6. The measured "same-period" match fractions for the monthly families (0.08–0.45) are high
+   only because the monthly signal is *persistent*: the value of the month that just ended
+   equals the value of the month before it whenever the signal did not change. The
+   discriminating statistic is the hold lag, and the two legs of the frozen rule agree in
+   every family.
