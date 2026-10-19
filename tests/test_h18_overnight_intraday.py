@@ -85,6 +85,26 @@ def test_summary_json_hypothesis():
     )
 
 
+def test_experiment_description_matches_pre_registered_grid():
+    """The human-readable EXPERIMENT_DESC must not drift from the actual grid.
+
+    Same defect class fixed seven prior sessions (H22 prose, H23 prose+spec,
+    H25 prose, H22 pre-registration, H17/H19/H20 prose): the string is logged
+    verbatim into .experiments/experiments.jsonl (verified -- 3 H18 records
+    carry the bare "Decomposing daily returns..." string with no combo count)
+    and is the first prose an auditor or next operator reads. Nothing pinned
+    the prose to the computed grid size, so a stale or absent combo count
+    would survive into the auditable record.
+    """
+    n_combos = len(h18.PREDICTORS) * len(h18.HOLD_CONVENTIONS)
+    assert f"{n_combos}-combo" in h18.EXPERIMENT_DESC, (
+        f"EXPERIMENT_DESC missing '{n_combos}-combo' (got {h18.EXPERIMENT_DESC!r})"
+    )
+    # Both grid dimensions must be enumerated in the prose.
+    for dim in ("predictor", "hold_convention"):
+        assert dim in h18.EXPERIMENT_DESC, f"EXPERIMENT_DESC missing dimension {dim!r}"
+
+
 def test_grid_integrity():
     """Grid has 6 unique combos; selection by Val Sharpe."""
     exp_dir = _latest_h18_dir()

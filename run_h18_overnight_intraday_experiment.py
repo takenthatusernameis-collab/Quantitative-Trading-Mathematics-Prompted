@@ -50,6 +50,19 @@ from qtr.validation.statistics import (
     walk_forward_splits,
 )
 
+EXPERIMENT_NAME = "h18_overnight_intraday"
+EXPERIMENT_DESC = (
+    "H18: Overnight-vs-intraday equity return decomposition (daily OHLC); "
+    "6-combo grid (predictor x hold_convention), Val-selected, "
+    "Test-protected, gates per H18 pre-registration"
+)
+
+# Pre-registered grid dimensions (HYPOTHESIS_SPEC.md H18). Module-level so the
+# prose-grid regression test can compute the combo count from the same
+# constants the runner iterates over -- a single source of truth.
+PREDICTORS = ["lagged_1d_overnight_sign", "vix_regime", "prior_5d_return_sign"]
+HOLD_CONVENTIONS = ["next_overnight", "next_intraday"]
+
 
 def _overnight_intraday_signal(
     predictor: str,
@@ -242,22 +255,18 @@ def main() -> None:
     # Initialize tracker
     tracker = get_tracker()
     exp_id = tracker.start_experiment(
-        name="H18_Overnight_Intraday_Decomposition",
-        description="Decomposing daily returns into overnight/intraday legs and selectively capturing the higher-performing leg based on causal predictors",
+        name=EXPERIMENT_NAME,
+        description=EXPERIMENT_DESC,
         config={
             "universe": ["SPY", "QQQ", "IWM"],
-            "predictors": [
-                "lagged_1d_overnight_sign",
-                "vix_regime",
-                "prior_5d_return_sign",
-            ],
-            "hold_conventions": ["next_overnight", "next_intraday"],
+            "predictors": PREDICTORS,
+            "hold_conventions": HOLD_CONVENTIONS,
             "splits": {
                 "train": "2009-01-01 → 2014-12-31",
                 "val": "2015-01-01 → 2019-12-31",
                 "test": "2020-01-01 → 2026-10-08 (protected)",
             },
-            "grid_size": 6,
+            "grid_size": len(PREDICTORS) * len(HOLD_CONVENTIONS),
         },
         data_sources={
             "source": "yahoo_daily_cached",
@@ -315,9 +324,9 @@ def main() -> None:
     val_end = pd.Timestamp("2019-12-31")
     test_end = pd.Timestamp("2026-10-08")
 
-    # Define grid
-    predictors = ["lagged_1d_overnight_sign", "vix_regime", "prior_5d_return_sign"]
-    hold_conventions = ["next_overnight", "next_intraday"]
+    # Define grid (module-level constants, single source of truth).
+    predictors = PREDICTORS
+    hold_conventions = HOLD_CONVENTIONS
 
     # Track results
     results = []

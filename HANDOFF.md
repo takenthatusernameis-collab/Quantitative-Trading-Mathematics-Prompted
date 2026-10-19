@@ -1,44 +1,65 @@
-# Agent Handoff
+# HANDOFF — Session 2/3
 
-## State
-- Full suite: 538 passed, 0 warnings, ~207s. All lint/format clean. Coverage on src/ = 99% (919/919 stmts, one uncovered branch at statistics.py:114 — `walk_forward_splits` empty-window guard, unreachable under real inputs).
-- Working tree has uncommitted changes (not committed per session policy):
-  - `src/qtr/tracking/experiment.py` — `ExperimentTracker._get_git_info` now probes `git status --porcelain` instead of `git diff --quiet`, so **untracked** files (new experiment artifacts) register as `git_dirty=True`. The old probe only inspected tracked working-tree changes, so an experiment that wrote a fresh artifact into an untracked directory (e.g. `.experiments/artifacts/<exp_id>/`) would be stamped `git_dirty=False` — the exact reproducibility failure the flag exists to warn about.
-  - `tests/test_experiment_tracker.py` — new `test_git_dirty_detects_untracked_artifacts` pins the corrected probe against a real, clean git repo, then writes an untracked file and asserts `git_dirty` flips to True (and a modified tracked file still registers dirty).
+## What changed this session
 
-## What this session did
-- No prior agent assignment remained (the H17/H19/H20 prose fix from the previous session was already committed and verified; the working tree was clean). Inspected the repo independently and selected one bounded, high-value task:
-  **`ExperimentTracker._get_git_info` `git_dirty` blind spot for untracked files.** The tracker stamps every experiment record with `git_commit` + `git_dirty` as its reproducibility marker (logged verbatim into `.experiments/experiments.jsonl` — 1,236 tracked records). The probe was `subprocess.call(["git", "diff", "--quiet"])`, which only inspects **tracked** working-tree changes. `git diff` does not report untracked files at all, so any experiment that wrote a new artifact into an untracked directory would be recorded with `git_dirty=False` even though the artifact was never committed — a false "clean, reproducible" stamp on an actually unreproducible state. Reproduced deterministically in a throwaway git repo: clean tree → `git diff --quiet` exit 0 → write untracked `experiments.jsonl` → `git diff --quiet` **still exit 0**, while `git status --porcelain` reports `?? experiments.jsonl`. The fix is a two-line probe swap (`git status --porcelain`, dirty iff non-empty output); it does not touch orchestration, permissions, experiment runners, grids, selection, gates, or any certified number.
+H18 prose-grid drift fix + regression pins for H16/H21 (same defect class).
 
-## Verified
-- `python -m pytest -q` → 538 passed (was 537), ~207s.
-- `python -m pytest -W error -q` → 538 passed, 0 warnings.
-- `python -m pytest --cov=qtr --cov-report=term-missing` → 99% on src (919 stmts; single miss is the unreachable `walk_forward_splits` empty-window guard at statistics.py:114).
-- `python -m ruff check src tests run_*.py` → clean.
-- `python -m ruff format --check src tests run_*.py` → 69 files already formatted.
-- `bash -n .github/scripts/*.sh` → OK; `bash .github/scripts/test_kilo_progress.sh` → OK.
-- The new regression test **fails under the reverted buggy probe** (restored `git diff --quiet`, reproduced `assert dirty2 is True` → `False is True`) and **passes with the fix**.
-- `test_tracker_git_and_deps_exception` was updated to drive the failure path through `subprocess.check_output` (the new probe's shell-out); it still asserts the `("unknown", False)` degrade.
-- Existing tracker tests (19) still pass; no experiment-runner or artifact regression tests were affected.
+### `run_h18_overnight_intraday_experiment.py`
+- Added module-level constants `EXPERIMENT_NAME = "h18_overnight_intraday"`,
+  `EXPERIMENT_DESC` (now carries "6-combo grid (predictor x hold_convention),
+  Val-selected, Test-protected, gates per H18 pre-registration"), and
+  `PREDICTORS` / `HOLD_CONVENTIONS` lists.
+- `main()` now reads `PREDICTORS`/`HOLD_CONVENTIONS` from the module constants
+  (single source of truth) and computes `grid_size` as
+  `len(PREDICTORS) * len(HOLD_CONVENTIONS)` instead of the hardcoded `6`.
+- Logged description in `.experiments/experiments.jsonl` now carries the
+  combo count (verified: 3 stale bare records existed before).
 
-## Unresolved
-- None blocking. The `walkforward_stability` metric remains a *simplified* proxy (first-half vs second-half ratio), not the literal "5 walk-forward folds" measure used by the H9/H10/H11 runners. `validate_strategy` receives returns + trades only, not the full price/vix context the runners have, so it cannot compute the fold-based metric. The H9–H25 gate is unaffected — it computes `wf_stability` independently in the runner, not via `validate_strategy`.
-- `walk_forward_splits` — the documented "drops trailing samples" latent issue is **already fixed in HEAD**: the last window absorbs the trailing tail (`statistics.py:108-110`), so `walk_forward_splits(77, 3)` covers all 77 samples and `walk_forward_splits(252, 5)` covers all 252. Verified empirically. No certified number changes; H10's 5148 bars are divisible by 5 anyway. Nothing to fix here.
+### `tests/test_h18_overnight_intraday.py`
+- Added `test_experiment_description_matches_pre_registered_grid` to
+  `TestPreRegistration` (mirrors the H17/H19/H20/H22/H23/H25 pins).
 
-## Failed approaches
-- None this session. The fix was a two-line probe swap plus one regression test.
+### `tests/test_h16_factor_timing.py`
+- Added `test_experiment_description_matches_pre_registered_grid` to
+  `TestPreRegistration` (H16 prose already carried "54-combo" but nothing
+  pinned it to the computed grid size).
 
-## This session (independent re-verification)
-- `python -m pytest -q` → 538 passed, ~207s
-- `python -m pytest -W error -q` → 538 passed, 0 warnings
-- `python -m pytest --cov=qtr --cov-report=term-missing` → 99% on src (919 stmts)
-- `python -m ruff check` + `ruff format --check` → clean
-- `bash -n .github/scripts/*.sh` → OK
-- `bash .github/scripts/test_kilo_progress.sh` → OK
-- No TODOs/FIXMEs in `src/` or `tests/`
-- Reproduced the defect in a throwaway repo: `git diff --quiet` exit 0 before AND after writing an untracked file; `git status --porcelain` reports `?? experiments.jsonl` after the write.
+### `tests/test_h21_futures_tsmom_multicontract.py`
+- Added `test_experiment_description_matches_pre_registered_grid` to
+  `TestPreRegistration` (H21 prose already carried "16-combo" but nothing
+  pinned it to the computed grid size).
 
-## Next task (precise)
-No bounded task remains within the free-data constraint; the free-data hypothesis space is exhausted (see FINAL_REPORT.md §Next Task). The precise next task requires **paid hourly futures data** to widen the OOS window enough for the PF and Sharpe bootstrap CIs to clear their gates with margin. Do not run further hypotheses on free data. If assigned, verify with the commands above plus `pip install -e .` if `qtr` is not importable.
+## What was actually verified
 
-(End of file)
+- `python -m pytest -q` → **541 passed** (was 538; +3 new tests).
+- `python -m pytest -W error -q` → 541 passed, no warnings.
+- `python -m pytest --cov=qtr --cov-report=term-missing` → 99% coverage
+  (only `src/qtr/validation/statistics.py:114` uncovered, pre-existing).
+- `python -m ruff check src tests run_*.py` → All checks passed.
+- `python -m ruff format --check src tests run_*.py` → 69 files already
+  formatted (applied the 3-file diff first).
+- `bash -n .github/scripts/*.sh` OK; `bash .github/scripts/test_kilo_progress.sh` OK.
+- **Negative test (regression guard):** reverted `run_h18_overnight_intraday_experiment.py`
+  to the stale bare prose and confirmed
+  `test_experiment_description_matches_pre_registered_grid` FAILS with
+  `EXPERIMENT_DESC missing '6-combo'`; restored the fix and it PASSES.
+- Same negative test performed for H16 (removing "54-combo") and H21
+  (removing "16-combo") — both FAIL as expected, both PASS after restore.
+
+## What remains unresolved
+
+- **H10 prose-grid drift (next task).** `run_h10_intraday_tsmom_pfopt_experiment.py:64`
+  `EXPERIMENT_DESC` carries no combo count despite a 13,824-combo grid
+  (8-dim: SMOOTH_SPANS × VOL_WINDOWS_LONG × REGIME_SCALING_FLAGS ×
+  MIN_TRADE_INTERVALS × TRAILING_MULTS × MAX_HOLD_BARS × VOL_LIMIT_MULTS ×
+  VOL_FLOOR_FRACTIONS). `HYPOTHESIS_SPEC.md:881` documents "Full 13,824-combo
+  grid". Same defect class, same fix pattern. H10 is a certified PASS edge
+  (8/8 gates) so the prose is the first thing an auditor reads.
+- `src/qtr/validation/statistics.py:114` is the only uncovered line (pre-existing,
+  not introduced this session).
+
+## Which approaches have already failed and why
+
+- No failed approaches this session. The single fix was a text + constant
+  refactor with no behavioral change; the runner's numerical output is
+  bit-identical because the grid contents are unchanged.

@@ -110,6 +110,25 @@ class TestPreRegistration:
         assert h16.DATA_START == "2010-01-01"
         assert h16.DATA_END == "2024-12-31"
 
+    def test_experiment_description_matches_pre_registered_grid(self):
+        # The human-readable EXPERIMENT_DESC must not drift from the actual
+        # grid it documents. This is the same drift class fixed seven prior
+        # sessions (H22 prose, H23 prose+spec, H25 prose, H22 pre-registration,
+        # H17/H19/H20 prose): the string is logged verbatim into
+        # .experiments/experiments.jsonl (verified -- 6 H16 records carry it)
+        # and is the first prose an auditor or next operator reads. H16's
+        # prose already carried the correct "54-combo" count, but nothing
+        # pinned it to the computed grid size, so the class survived here.
+        n_combos = (
+            len(h16.LOOKBACKS)
+            * len(h16.SKIPS)
+            * len(h16.REGIME_EXPOSURES)
+            * len(h16.N_FACTORS_OPTS)
+        )
+        assert f"{n_combos}-combo" in h16.EXPERIMENT_DESC, (
+            f"EXPERIMENT_DESC missing '{n_combos}-combo': {h16.EXPERIMENT_DESC!r}"
+        )
+
 
 class TestArtifacts:
     def test_artifacts_exist(self):

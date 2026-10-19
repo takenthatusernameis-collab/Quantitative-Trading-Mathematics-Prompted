@@ -117,6 +117,30 @@ class TestPreRegistration:
         assert h21.SEL["vol_limit_mult"] == 1.5
         assert h21.SEL["vol_floor_fraction"] == 0.25
 
+    def test_experiment_description_matches_pre_registered_grid(self):
+        # The human-readable EXPERIMENT_DESC must not drift from the actual
+        # grid it documents. Same drift class fixed seven prior sessions
+        # (H22 prose, H23 prose+spec, H25 prose, H22 pre-registration,
+        # H17/H19/H20 prose): the string is logged verbatim into
+        # .experiments/experiments.jsonl (verified -- 5 H21 records carry it)
+        # and is the first prose an auditor or next operator reads. H21's
+        # prose already carried the correct "16-combo" count, but nothing
+        # pinned it to the computed grid size, so the class survived here.
+        n_combos = (
+            len(h21.TARGET_VOLS)
+            * len(h21.MAX_POSITIONS)
+            * len(h21.SCALE_RULES)
+            * len(h21.N_ASSETS_CHOICES)
+        )
+        assert f"{n_combos}-combo" in h21.EXPERIMENT_DESC, (
+            f"EXPERIMENT_DESC missing '{n_combos}-combo': {h21.EXPERIMENT_DESC!r}"
+        )
+        # All four grid dimensions must be enumerated in the prose.
+        for dim in ("target_vol", "max_pos", "scale_rule", "n_assets"):
+            assert dim in h21.EXPERIMENT_DESC, (
+                f"EXPERIMENT_DESC missing dimension {dim!r}"
+            )
+
 
 class TestArtifacts:
     def test_artifacts_exist(self):
