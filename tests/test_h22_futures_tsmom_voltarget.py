@@ -115,6 +115,40 @@ class TestPreRegistration:
             or "fixed inert" in h22.EXPERIMENT_DESC.lower()
         )
 
+    def test_pre_registration_spec_matches_runner_grid(self):
+        # The frozen pre-registration text (HYPOTHESIS_SPEC.md §H22,
+        # "Pre-registration (frozen)" + Statement) is the auditable record
+        # of what grid was searched. It drifted from the certified runner
+        # (declared 16 combos over TARGET_VOLS x MAX_POSITIONS x
+        # SCALE_RULES={equal,inverse_vol} x N_ASSETS_CHOICES={3,5}; the
+        # runner collapsed the inert dimensions to singletons and searched
+        # 8). Same defect class as the stale EXPERIMENT_DESC prose, but it
+        # survived because no test pinned the *spec text* to the runner
+        # grid -- only the runner's own constants were pinned. The prose
+        # must now describe the executed 8-combo grid with the inert
+        # dimensions named as fixed.
+        spec = (ROOT / "HYPOTHESIS_SPEC.md").read_text()
+        # The H22 pre-registration block declares the grid dimensions it
+        # documents; the executed runner grid must be consistent with it.
+        assert 'SCALE_RULES = ["equal"]' in spec
+        assert "N_ASSETS_CHOICES = [5]" in spec
+        assert "→ 8 combos" in spec
+        # The stale 16-combo declaration must not survive in the H22 block.
+        h22_block = spec.split("## Hypothesis H22:")[1].split("## Hypothesis H23:")[0]
+        assert "16 combos" not in h22_block
+        assert "16-combo" not in h22_block
+        # The runner grid itself is the single source of truth for what was
+        # executed; the spec must agree with it dimension-for-dimension.
+        assert h22.SCALE_RULES == ["equal"]
+        assert h22.N_ASSETS_CHOICES == [5]
+        assert (
+            len(h22.TARGET_VOLS)
+            * len(h22.MAX_POSITIONS)
+            * len(h22.SCALE_RULES)
+            * len(h22.N_ASSETS_CHOICES)
+            == 8
+        )
+
     def test_universe_symbols_are_pre_registered(self):
         assert h22.FUTURES_UNIVERSE == ["ES=F", "NQ=F", "CL=F", "GC=F", "ZB=F"]
         assert h22.VIX_SYMBOL == "^VIX"

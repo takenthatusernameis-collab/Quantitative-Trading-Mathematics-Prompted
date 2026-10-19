@@ -2575,8 +2575,10 @@ futures TSMOM basket (ES=F,NQ=F,CL=F,GC=F,ZB=F) to cover H10's full
 range will test whether H21's shortfall (Sharpe < 1.0, PF < 1.3) was
 due to under-vol-targeting. Specifically: test `target_vol_mult` in
 {0.50, 0.75, 1.0, 1.5} (7.5%, 11.25%, 15%, 22.5% ann) alongside
-`n_assets` in {3,5} and `scale_rule` in {equal,inverse_vol} for 16
-combos total (same engine, cached data), select on Val Sharpe, evaluate
+`max_pos` in {0.5, 1.0}, with `scale_rule` fixed to "equal" and
+`n_assets` fixed to 5 (both inert dimensions collapsed to singletons,
+as in the certified runner) for 8 combos total (same engine, cached
+data), select on Val Sharpe, evaluate
 on OOS (Val+Test) against PROMPT_V2 gates **including +/-20%
 perturbation**. Also include an ES-only 15% ann ablation (reproduce
 H10 baseline within basket pipeline) and other ablations. The executed
@@ -2595,7 +2597,7 @@ diversified basket.
 
 **Pre-registration (frozen).**
 - **Universe/Data:** identical to H21 — `FUTURES_UNIVERSE = ["ES=F","NQ=F","CL=F","GC=F","ZB=F"]`, `VIX_SYMBOL="^VIX"`, `DATA_START="2024-10-12"`, `DATA_END="2026-10-11"`, hourly, 55/25/20 splits (Train/Val/Test), OOS = Val+Test. Cached yfinance hourly data (no paid data).
-- **Grid:** `TARGET_VOLS = [0.5, 0.75, 1.0, 1.5]`, `MAX_POSITIONS = [0.5,1.0]`, `SCALE_RULES = ["equal","inverse_vol"]`, `N_ASSETS_CHOICES = [3,5]` → 16 combos. Selection by Val Sharpe only; Test protected.
+- **Grid:** `TARGET_VOLS = [0.5, 0.75, 1.0, 1.5]`, `MAX_POSITIONS = [0.5,1.0]`, `SCALE_RULES = ["equal"]` (fixed; inert in H21), `N_ASSETS_CHOICES = [5]` (fixed; inert in H21) → 8 combos. Selection by Val Sharpe only; Test protected.
 - **Gates (all):** `{min_sharpe:1.0, min_trades:200, min_profit_factor:1.3, max_drawdown:0.15, min_walkforward_stability:0.7, min_worst_regime_sharpe:0.3, max_p_value:0.05, min_information_ratio:0.0, min_perturbed_sharpe_ratio:0.5}`. Implement `perturbation_eval` for ±20% on `target_vol_mult` and `max_pos`, record `gate.passes["perturbation"]`.
 - **Fixes from H21:** set `metrics.val_sharpe = gate["val_metrics"]["sharpe"]` (true Val Sharpe); include `perturbation` in passes and enforce in summary; preserve causality, point-in-time, weight bounds.
 - **Ablations (OOS):** (a) ES-only at target_vol_mult=1.0 (15% ann), (b) random per-contract sign, (c) daily TSMOM, (d) under-vol-targeted H21 config (tv_mult=0.5) as baseline.
@@ -2603,7 +2605,7 @@ diversified basket.
 
 **Expected outcome.** REJECT in typical case (DD rises at 15%/22.5% ann; PF likely <1.3 per H13/H14/H21). A PASS would require Sharpe>=1.0 & PF>=1.3 & DD<=15% simultaneously at some combo (likely 15% ann). Either way, evidence-based closure.
 
-**Tests.** `tests/test_h22_futures_tsmom_voltarget.py` mirroring test_h21, including perturbation gate presence/computation, val_sharpe correctness, 16-combo grid with new TARGET_VOLS, selection on Val, gate recomputation at 1e-9, causality, weight bounds, determinism, executed verdict.
+**Tests.** `tests/test_h22_futures_tsmom_voltarget.py` mirroring test_h21, including perturbation gate presence/computation, val_sharpe correctness, 8-combo grid with new TARGET_VOLS (scale_rule and n_assets fixed inert), selection on Val, gate recomputation at 1e-9, causality, weight bounds, determinism, executed verdict.
 
 ## Hypothesis H23: Crypto Perpetual Futures Intraday TSMOM
 

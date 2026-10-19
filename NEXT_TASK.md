@@ -2,7 +2,18 @@
 
 ## Status: COMPLETE (this session)
 
-No prior agent assignment remained (the H22 stale-prose fix from the prior session was already committed and verified; the working tree was clean). I inspected the repository independently, re-ran the full verification suite, and selected one bounded, high-value task:
+No prior agent assignment remained (the H23 stale-prose fix from the prior session was already committed and verified; the working tree was clean). I inspected the repository independently, re-ran the full verification suite, and selected one bounded, high-value task:
+
+## Task 7 (this session): fix stale H22 pre-registration text in `HYPOTHESIS_SPEC.md`
+
+**Demonstrated problem:** the frozen H22 pre-registration in `HYPOTHESIS_SPEC.md` declared a **16-combo** grid (`SCALE_RULES = ["equal","inverse_vol"]`, `N_ASSETS_CHOICES = [3,5]`) in three places — the Statement (lines ~2577), the "Pre-registration (frozen)" Grid bullet (line ~2600), and the Tests bullet (line ~2608) — but the certified runner `run_h22_futures_tsmom_voltarget.py:80-89` executes an **8-combo** grid (`SCALE_RULES = ["equal"]`, `N_ASSETS_CHOICES = [5]`; the inert dimensions were collapsed to singletons). The `EXPERIMENT_DESC` prose was already corrected to "8-combo grid (... scale_rule and n_assets are fixed inert dimensions)" in a prior session, but the frozen pre-registration text was never updated. This is the **same drift class** fixed three prior sessions (H22 prose, H23 prose+spec, H25 prose); here it survived in the frozen pre-registration because no test pins the *spec text* to the runner grid — only the runner's own constants were pinned, so the drift was invisible to the test suite. The pre-registration is the auditable record an auditor reads first.
+
+**Fix:** corrected all three H22 declarations to the executed 8-combo grid, naming the inert dimensions as fixed (`SCALE_RULES = ["equal"]`, `N_ASSETS_CHOICES = [5]`). Verified the H21 grid is genuinely 16 combos and H25 is genuinely 8, so the correction is scoped to H22 and is not an over-correction.
+
+**Regression test (fails without the fix, passes with it):**
+- `tests/test_h22_futures_tsmom_voltarget.py::test_pre_registration_spec_matches_runner_grid`
+
+It reads `HYPOTHESIS_SPEC.md`, asserts the H22 block carries the 8-combo declaration with the inert dimensions named as fixed, asserts no "16 combo"/"16-combo" survivor remains in the H22 block, and asserts the runner grid agrees dimension-for-dimension.
 
 ## Task 6 (this session): fix stale `EXPERIMENT_DESC` prose in H23
 

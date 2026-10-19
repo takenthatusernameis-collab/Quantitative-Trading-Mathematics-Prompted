@@ -1,13 +1,12 @@
 # Handoff Summary
 
 ## Current state
-- All tests pass: 533 passed, 0 warnings (was 532) — re-confirmed this session (~199s).
+- All tests pass: 534 passed, 0 warnings (was 533) — re-confirmed this session (~207s).
 - src/ coverage: 99% (918/918 stmts; single uncovered branch is the unreachable `walk_forward_splits` empty-window guard at statistics.py:114). Lint/format clean on changed files. Workflow scripts pass `bash -n` and the progress-helper regression test.
 - Changes this session (uncommitted):
-  - `run_h23_crypto_futures_tsmom.py`: **`EXPERIMENT_DESC` corrected from prose with no combo count to "6912-combo grid (smooth_span x vol_window_long x regime_scaling x min_trade_interval x trailing_mult x max_hold_bars x vol_limit_mult x vol_floor_fraction), Val-selected, Test-protected, gates per H23 pre-registration."** — the pre-registration text (HYPOTHESIS_SPEC.md:2626) and the test docstring both claimed a "2304-combo grid", but the listed parameters yield 6912 (4×3×1×4×4×4×3×3). The description is logged verbatim into `.experiments/experiments.jsonl` (9 H23 records verified).
-  - `tests/test_h23_crypto_futures_tsmom.py`: new `test_experiment_description_matches_pre_registered_grid` asserts the combo count in the prose equals the computed grid size and that all 8 grid dimensions are enumerated.
-  - `HYPOTHESIS_SPEC.md:2626`: "2304-combo grid" → "6912-combo grid".
-- Prior tasks (walk-forward stability gate false-pass, global RNG mutation fix, min_param_stability gate, empty-input guard, coverage gaps, beta ddof fix, H22 stale-prose fix) remain complete and verified.
+  - `HYPOTHESIS_SPEC.md`: **H22 pre-registration text corrected from the stale 16-combo declaration to the executed 8-combo grid** in three places — the Statement (lines ~2577), the "Pre-registration (frozen)" Grid bullet (line ~2600), and the Tests bullet (line ~2608). The inert dimensions are now named as fixed (`SCALE_RULES = ["equal"]`, `N_ASSETS_CHOICES = [5]`). The H22 `EXPERIMENT_DESC` prose was already corrected to "8-combo grid (... scale_rule and n_assets are fixed inert dimensions)" in a prior session; the frozen pre-registration text had drifted and was never updated.
+  - `tests/test_h22_futures_tsmom_voltarget.py`: new `test_pre_registration_spec_matches_runner_grid` reads `HYPOTHESIS_SPEC.md`, asserts the H22 block carries the 8-combo declaration with the inert dimensions named as fixed, asserts no "16 combo"/"16-combo" survivor remains in the H22 block, and asserts the runner grid agrees dimension-for-dimension.
+- Prior tasks (walk-forward stability gate false-pass, global RNG mutation fix, min_param_stability gate, empty-input guard, coverage gaps, beta ddof fix, H22 stale-prose fix, H23 stale-prose+spec fix) remain complete and verified.
 
 ## Next agent actions
 If assigned a new task, verify with:
@@ -23,14 +22,14 @@ Note: `qtr` must be importable — run `pip install -e .` from the repo root if
 Per FINAL_REPORT.md §Next Task: widen the OOS window with **paid hourly futures data**
 so the PF and Sharpe bootstrap CIs clear their gates with margin. H10/H22/H25 are PASS
 but PF-margin is CI-fragile (H13 CI [1.190, 1.425]; H25 Robustness CI [1.2049, 1.4425],
-P(PF≥1.3)≈0.5–0.62). Do not run further hypotheses on free data — the free-data
-hypothesis space is exhausted (yfinance hourly `=F` capped ~730 days; Coinbase ~12 days).
+P(PF≥1.3)=0.6215). Do not run further hypotheses on free data — the free-data hypothesis
+space is exhausted (yfinance hourly `=F` capped ~730 days; Coinbase ~12 days).
 
 ## Proxy caveat
 `validate_strategy`'s `param_stability` is a *proxy* (fold-profitability fraction), not the
 literal "±1 std of optimal parameters" from PROMPT_V2.md, because the function only
-receives returns + trades, not a parameter grid. The real ±1-std perturbation gate lives in
-the H10/H11 runners (`run_h10_intraday_tsmom_pfopt_experiment.py`,
+receives returns + trades, not a parameter grid. The real ±1-std perturbation gate lives
+in the H10/H11 runners (`run_h10_intraday_tsmom_pfopt_experiment.py`,
 `run_h11_robustness_experiment.py`) as `e2_perturbation`. Do not conflate the two.
 
 `validate_strategy`'s `walkforward_stability` is likewise a *simplified* proxy (first-half
@@ -45,13 +44,25 @@ window (`statistics.py:108-110`): `walk_forward_splits(77, 3)` covers all 77 sam
 `walk_forward_splits(252, 5)` covers all 252. Verified empirically. Nothing to fix; no
 certified number changes today (H10's 5148 bars are divisible by 5).
 
-## Stale-prose regression guards (added across two sessions)
+## Stale-prose regression guards (added across three sessions)
 `test_experiment_description_matches_pre_registered_grid` in
 `tests/test_h22_futures_tsmom_voltarget.py`,
-`tests/test_h25_futures_tsmom_pfmargin.py`, and now
+`tests/test_h25_futures_tsmom_pfmargin.py`, and
 `tests/test_h23_crypto_futures_tsmom.py` computes the grid size from the dimension
 lists and asserts the `EXPERIMENT_DESC` string contains that combo count (H23 also asserts
 all grid dimensions are enumerated). Each fails under its stale prose and passes after the
 correction, so the drift class cannot recur silently.
 
-(End of file - total 44 lines)
+`test_pre_registration_spec_matches_runner_grid` in
+`tests/test_h22_futures_tsmom_voltarget.py` (added this session) closes the same drift
+class one layer deeper: it pins the *frozen pre-registration text* in
+`HYPOTHESIS_SPEC.md` §H22 against the certified runner grid, so a spec/runner divergence
+(like the H22 16-combo-vs-8 drift) is caught as a hard failure rather than surviving
+indefinitely in the auditable record.
+
+## Verified prose-grid consistency (this session)
+All five prose combo counts match their grids: H16=54, H21=16, H22=8, H23=6912, H25=8.
+H21 (16) and H25 (8) were confirmed as genuinely different grids, so the H22 correction
+is scoped and is not an over-correction.
+
+(End of file - total 57 lines)
