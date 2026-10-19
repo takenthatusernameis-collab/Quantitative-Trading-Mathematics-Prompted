@@ -2,9 +2,37 @@
 
 ## Status: COMPLETE (this session)
 
-No prior agent assignment remained (the H23 stale-prose fix from the prior session was already committed and verified; the working tree was clean). I inspected the repository independently, re-ran the full verification suite, and selected one bounded, high-value task:
+No prior agent assignment remained (the H22 pre-registration fix from the prior session was already committed and verified; the working tree was clean). I inspected the repository independently, re-ran the full verification suite, and selected one bounded, high-value task:
 
-## Task 7 (this session): fix stale H22 pre-registration text in `HYPOTHESIS_SPEC.md`
+## Task 8 (this session): fix stale/absent combo-count prose in H17/H19/H20 `EXPERIMENT_DESC`
+
+**Demonstrated problem:** three certified runners carried human-readable descriptions with **no combo count at all**:
+- `run_h17_vrp_experiment.py:52` — `"H17: Term-structure-gated, vol-targeted long SVXY (VRP harvesting)"` while the pre-registered grid is **60 combos** (`GATE_THRESHES × VOL_WINDOWS × TARGET_VOLS × MAX_POSS`).
+- `run_h19_volume_predictive_experiment.py:47-50` — `"H19: Volume-predictive return decomposition (anticipated vs unanticipated volume surprise)"` while the pre-registered grid is **9 combos** (`VOLUME_DECOMP_METHODS × THRESHOLD_TYPES`).
+- `run_h20_signed_volume_experiment.py:55-57` — `"H20: Volume-sign (buy/sell-initiated) decomposition + order-flow imbalance"` while the pre-registered grid is **36 combos** (`SIGN_RULES × TARGET_VOLS × MAX_POSITIONS × IMBALANCE_LAGS`).
+
+This is the **same drift class** fixed four prior sessions (H22 prose, H23 prose+spec, H25 prose, H22 pre-registration). It survived here because those three runners had no `test_experiment_description_matches_pre_registered_grid` — only their grid dimensions were pinned, so the prose was invisible to the test suite. The string is logged verbatim into `.experiments/experiments.jsonl` (verified — 3 H17, 5 H19 and 5 H20 records carry the bare prose with no combo count) and is the first prose an auditor or next operator reads.
+
+**Fix:** each `EXPERIMENT_DESC` corrected to carry its combo count and enumerate its grid dimensions — H17 "60-combo grid (gate_thresh x vol_window x target_vol x max_pos)", H19 "9-combo grid (volume_decomp_method x threshold_type)", H20 "36-combo grid (sign_rule x target_vol x max_pos x imbalance_lag)" — each Val-selected, Test-protected. Verified the H16 (54), H21 (16), H22 (8), H23 (6912) and H25 (8) descriptions were already correct, so the correction is scoped to H17/H19/H20 and is not an over-correction.
+
+**Regression tests (all three fail without the fix, pass with it):**
+- `tests/test_h17_vrp.py::TestPreRegistration::test_experiment_description_matches_pre_registered_grid`
+- `tests/test_h19_volume_predictive.py::TestPreRegistration::test_experiment_description_matches_pre_registered_grid`
+- `tests/test_h20_signed_volume.py::TestPreRegistration::test_experiment_description_matches_pre_registered_grid`
+
+Each computes the grid size from the dimension lists, asserts the `EXPERIMENT_DESC` string contains that combo count, and asserts every grid dimension is enumerated in the prose.
+
+## Verified
+- `python -m pytest -q` → 537 passed (was 534), ~207s
+- `python -m pytest -W error -q` → 537 passed, 0 warnings
+- `python -m pytest --cov=qtr --cov-report=term-missing` → 99% on src (918 stmts; single miss is the unreachable `walk_forward_splits` empty-window guard at statistics.py:114)
+- `python -m ruff check` + `python -m ruff format --check` on the six changed files → clean
+- `bash -n .github/scripts/*.sh` → OK
+- `bash .github/scripts/test_kilo_progress.sh` → OK
+- All three new regression tests fail under the reverted stale prose (reproduced the assertion failures) and pass with the fix.
+- H17/H19/H20 artifact regression tests still pass — the fix is prose-only and does not touch grid, selection, gates, or artifacts.
+
+## Task 7 (prior session): fix stale H22 pre-registration text in `HYPOTHESIS_SPEC.md`
 
 **Demonstrated problem:** the frozen H22 pre-registration in `HYPOTHESIS_SPEC.md` declared a **16-combo** grid (`SCALE_RULES = ["equal","inverse_vol"]`, `N_ASSETS_CHOICES = [3,5]`) in three places — the Statement (lines ~2577), the "Pre-registration (frozen)" Grid bullet (line ~2600), and the Tests bullet (line ~2608) — but the certified runner `run_h22_futures_tsmom_voltarget.py:80-89` executes an **8-combo** grid (`SCALE_RULES = ["equal"]`, `N_ASSETS_CHOICES = [5]`; the inert dimensions were collapsed to singletons). The `EXPERIMENT_DESC` prose was already corrected to "8-combo grid (... scale_rule and n_assets are fixed inert dimensions)" in a prior session, but the frozen pre-registration text was never updated. This is the **same drift class** fixed three prior sessions (H22 prose, H23 prose+spec, H25 prose); here it survived in the frozen pre-registration because no test pins the *spec text* to the runner grid — only the runner's own constants were pinned, so the drift was invisible to the test suite. The pre-registration is the auditable record an auditor reads first.
 
@@ -132,12 +160,18 @@ Both fail without the fix (reproduced the inflated beta) and pass with it.
 - `compare_to_benchmark` beta now equals the OLS regression slope.  [done]
 - A regression test fails without the fix, proving the estimator is pinned.  [done]
 - Lint/format clean.  [done]
-- Full suite: 533 passed, 0 warnings, no regressions.  [done]
+- Full suite: 537 passed, 0 warnings, no regressions.  [done]
 - src/ coverage: 99%.  [done]
 - H22 `EXPERIMENT_DESC` matches the pre-registered 8-combo grid.  [done]
 - A regression test fails under the stale "16-combo" prose.  [done]
 - H23 `EXPERIMENT_DESC` matches the pre-registered 6912-combo grid.  [done]
 - A regression test fails under the stale/absent combo-count prose.  [done]
+- H17 `EXPERIMENT_DESC` matches the pre-registered 60-combo grid.  [done]
+- H19 `EXPERIMENT_DESC` matches the pre-registered 9-combo grid.  [done]
+- H20 `EXPERIMENT_DESC` matches the pre-registered 36-combo grid.  [done]
+- Three regression tests fail under the stale/absent combo-count prose.  [done]
+- All eight prose combo counts verified against their grids: H16=54, H17=60, H19=9,
+  H20=36, H21=16, H22=8, H23=6912, H25=8 — all match.  [done]
 
 ## Next task (beyond free-data scope)
 

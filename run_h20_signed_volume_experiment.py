@@ -53,7 +53,9 @@ from qtr.validation.statistics import (
 
 EXPERIMENT_NAME = "h20_signed_volume"
 EXPERIMENT_DESC = (
-    "H20: Volume-sign (buy/sell-initiated) decomposition + order-flow imbalance"
+    "H20: Volume-sign (buy/sell-initiated) decomposition + order-flow imbalance; "
+    "36-combo grid (sign_rule x target_vol x max_pos x imbalance_lag), "
+    "Val-selected, Test-protected"
 )
 
 # Symbols

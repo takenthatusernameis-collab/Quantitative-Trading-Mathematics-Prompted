@@ -97,6 +97,28 @@ class TestPreRegistration:
         assert h17.TRAIN_END == "2019-12-31"
         assert h17.VAL_END == "2021-12-31"
 
+    def test_experiment_description_matches_pre_registered_grid(self):
+        # The human-readable EXPERIMENT_DESC must not drift from the actual
+        # grid dimensions it documents. The pre-registration text declares a
+        # 60-combo grid (gate_thresh x vol_window x target_vol x max_pos);
+        # nothing pinned the prose to the computed grid size, so a stale or
+        # absent combo count would survive into the logged experiment records
+        # (verified: 3 H17 records in .experiments/experiments.jsonl carry the
+        # bare "VRP harvesting" string with no combo count) and is the first
+        # prose an auditor or next operator reads.
+        n_combos = (
+            len(h17.GATE_THRESHES)
+            * len(h17.VOL_WINDOWS)
+            * len(h17.TARGET_VOLS)
+            * len(h17.MAX_POSS)
+        )
+        assert f"{n_combos}-combo" in h17.EXPERIMENT_DESC
+        # All four grid dimensions must be enumerated in the prose.
+        for dim in ("gate_thresh", "vol_window", "target_vol", "max_pos"):
+            assert dim in h17.EXPERIMENT_DESC, (
+                f"EXPERIMENT_DESC missing dimension {dim!r}"
+            )
+
 
 class TestArtifacts:
     def test_artifacts_exist(self):

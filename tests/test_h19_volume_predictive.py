@@ -98,6 +98,23 @@ class TestPreRegistration:
         assert h19.LOOKBACK == 21
         assert h19.ADAPTIVE_Z_THRESHOLD == 0.5
 
+    def test_experiment_description_matches_pre_registered_grid(self):
+        # The human-readable EXPERIMENT_DESC must not drift from the actual
+        # grid dimensions it documents. The pre-registration text declares a
+        # 9-combo grid (volume_decomp_method x threshold_type); nothing pinned
+        # the prose to the computed grid size, so a stale or absent combo count
+        # would survive into the logged experiment records (verified: 5 H19
+        # records in .experiments/experiments.jsonl carry the bare
+        # "Volume-predictive return decomposition" string with no combo count)
+        # and is the first prose an auditor or next operator reads.
+        n_combos = len(h19.VOLUME_DECOMP_METHODS) * len(h19.THRESHOLD_TYPES)
+        assert f"{n_combos}-combo" in h19.EXPERIMENT_DESC
+        # Both grid dimensions must be enumerated in the prose.
+        for dim in ("volume_decomp_method", "threshold_type"):
+            assert dim in h19.EXPERIMENT_DESC, (
+                f"EXPERIMENT_DESC missing dimension {dim!r}"
+            )
+
 
 class TestArtifacts:
     def test_artifacts_exist(self):

@@ -49,7 +49,11 @@ from qtr.validation.statistics import (
 )
 
 EXPERIMENT_NAME = "h17_vrp"
-EXPERIMENT_DESC = "H17: Term-structure-gated, vol-targeted long SVXY (VRP harvesting)"
+EXPERIMENT_DESC = (
+    "H17: Term-structure-gated, vol-targeted long SVXY (VRP harvesting); "
+    "60-combo grid (gate_thresh x vol_window x target_vol x max_pos), "
+    "Val-selected, Test-protected"
+)
 
 # Symbols
 SVXY_SYMBOL = "SVXY"

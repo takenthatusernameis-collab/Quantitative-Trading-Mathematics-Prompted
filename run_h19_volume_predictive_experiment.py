@@ -46,7 +46,9 @@ from qtr.validation.statistics import (
 EXPERIMENT_NAME = "h19_volume_predictive"
 EXPERIMENT_DESC = (
     "H19: Volume-predictive return decomposition "
-    "(anticipated vs unanticipated volume surprise)"
+    "(anticipated vs unanticipated volume surprise); "
+    "9-combo grid (volume_decomp_method x threshold_type), "
+    "Val-selected, Test-protected"
 )
 
 # Symbols

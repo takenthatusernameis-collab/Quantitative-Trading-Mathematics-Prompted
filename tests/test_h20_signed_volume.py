@@ -106,6 +106,28 @@ class TestPreRegistration:
         assert h20.VOL_WINDOW == 63
         assert h20.ALLOW_SHORT is True
 
+    def test_experiment_description_matches_pre_registered_grid(self):
+        # The human-readable EXPERIMENT_DESC must not drift from the actual
+        # grid dimensions it documents. The pre-registration text declares a
+        # 36-combo grid (sign_rule x target_vol x max_pos x imbalance_lag);
+        # nothing pinned the prose to the computed grid size, so a stale or
+        # absent combo count would survive into the logged experiment records
+        # (verified: 5 H20 records in .experiments/experiments.jsonl carry the
+        # bare "Volume-sign ... decomposition" string with no combo count) and
+        # is the first prose an auditor or next operator reads.
+        n_combos = (
+            len(h20.SIGN_RULES)
+            * len(h20.TARGET_VOLS)
+            * len(h20.MAX_POSITIONS)
+            * len(h20.IMBALANCE_LAGS)
+        )
+        assert f"{n_combos}-combo" in h20.EXPERIMENT_DESC
+        # All four grid dimensions must be enumerated in the prose.
+        for dim in ("sign_rule", "target_vol", "max_pos", "imbalance_lag"):
+            assert dim in h20.EXPERIMENT_DESC, (
+                f"EXPERIMENT_DESC missing dimension {dim!r}"
+            )
+
 
 class TestArtifacts:
     def test_artifacts_exist(self):
