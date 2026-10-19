@@ -1,12 +1,10 @@
 # Handoff Summary
 
 ## Current state
-- All tests pass: 538 passed, 0 warnings (was 537) — re-confirmed this session (~207s).
-- src/ coverage: 99% (919/919 stmts; single uncovered branch is the unreachable `walk_forward_splits` empty-window guard at statistics.py:114). Lint/format clean on changed files. Workflow scripts pass `bash -n` and the progress-helper regression test.
-- Changes this session (uncommitted):
-  - `src/qtr/tracking/experiment.py`: `ExperimentTracker._get_git_info` now probes `git status --porcelain` instead of `git diff --quiet`, so **untracked** files (new experiment artifacts) register as `git_dirty=True`. The old probe only inspected tracked working-tree changes, so an experiment that wrote a fresh artifact into an untracked directory would be stamped `git_dirty=False` — a false "clean, reproducible" stamp on an actually unreproducible state.
-  - `tests/test_experiment_tracker.py`: new `test_git_dirty_detects_untracked_artifacts` pins the corrected probe against a real clean git repo, writes an untracked file, and asserts `git_dirty` flips to True (and a modified tracked file still registers dirty). `test_tracker_git_and_deps_exception` was updated to drive the failure path through `subprocess.check_output` (the new probe's shell-out).
-- Prior tasks (H17/H19/H20 combo-count prose fix, H22 pre-registration fix, H23 prose+spec fix, H25 prose fix, walk-forward stability gate false-pass, global RNG mutation fix, min_param_stability gate, empty-input guard, coverage gaps, beta ddof fix) remain complete and verified.
+- All tests pass: **542 passed, 0 warnings** (~3:31). Full suite re-confirmed this session.
+- src/ coverage: 99% (single uncovered branch is the unreachable `walk_forward_splits` empty-window guard at statistics.py:114, pre-existing). Lint/format clean on `src tests run_*.py`. Workflow scripts pass `bash -n` and the progress-helper regression test.
+- H10 prose-grid drift is **resolved**: `run_h10_intraday_tsmom_pfopt_experiment.py` `EXPERIMENT_DESC` carries "13824-combo grid" with all 8 dimension names enumerated, `main()` computes `grid_size` from the constants, and `tests/test_h10_pfopt.py::test_experiment_description_matches_pre_registered_grid` pins it (verified via negative test + restore). Working tree clean; nothing uncommitted.
+- `qtr` must be importable — run `pip install -e .` from the repo root if `ModuleNotFoundError: No module named 'qtr'` appears at collection time.
 
 ## Next agent actions
 If assigned a new task, verify with:
