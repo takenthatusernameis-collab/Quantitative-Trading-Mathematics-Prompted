@@ -1,13 +1,10 @@
 # Handoff Summary
 
 ## Current state
-- All tests pass: 533 passed, 0 warnings (was 532) — re-confirmed this session (~199s).
-- src/ coverage: 99% (918/918 stmts; single uncovered branch is the unreachable `walk_forward_splits` empty-window guard at statistics.py:114). Lint/format clean on changed files. Workflow scripts pass `bash -n` and the progress-helper regression test.
+- All tests pass: **545 passed, 0 warnings** (was 533; +12 from the new H22/H25 value-pinning tests below) — re-confirmed this session (~164s).
+- src/ coverage: 99% (918/918 stmts; single uncovered branch is the unreachable `walk_forward_splits` empty-window guard at statistics.py:114). Lint/format clean. Workflow scripts pass `bash -n` and the progress-helper regression test.
 - Changes this session (uncommitted):
-  - `run_h23_crypto_futures_tsmom.py`: **`EXPERIMENT_DESC` corrected from prose with no combo count to "6912-combo grid (smooth_span x vol_window_long x regime_scaling x min_trade_interval x trailing_mult x max_hold_bars x vol_limit_mult x vol_floor_fraction), Val-selected, Test-protected, gates per H23 pre-registration."** — the pre-registration text (HYPOTHESIS_SPEC.md:2626) and the test docstring both claimed a "2304-combo grid", but the listed parameters yield 6912 (4×3×1×4×4×4×3×3). The description is logged verbatim into `.experiments/experiments.jsonl` (9 H23 records verified).
-  - `tests/test_h23_crypto_futures_tsmom.py`: new `test_experiment_description_matches_pre_registered_grid` asserts the combo count in the prose equals the computed grid size and that all 8 grid dimensions are enumerated.
-  - `HYPOTHESIS_SPEC.md:2626`: "2304-combo grid" → "6912-combo grid".
-- Prior tasks (walk-forward stability gate false-pass, global RNG mutation fix, min_param_stability gate, empty-input guard, coverage gaps, beta ddof fix, H22 stale-prose fix) remain complete and verified.
+  - New `tests/test_certified_artifact_values_h22_h25.py` — value-pins the exact published headline certification numbers (OOS Sharpe, profit factor, max DD, trades, walk-forward stability, worst-regime Sharpe, benchmark p-value, information ratio, selected config, gate booleans, compute budget) as literals against the committed frozen artifacts `exp_2026-10-14T18-52-08-943792Z` (H22) and `exp_2026-10-14T20-08-34-613690Z` (H25). Mirrors `tests/test_certified_artifact_values.py`, which covered H10-H14 but left the two strongest certified PASS edges unpinned: H22 (strongest Sharpe 1.3724750832147166, PF 1.334150203648997, 9/9 gates) and H25 (strongest PF-margin repair 1.3236288879255962 SR / 1.3201316886422707 PF, 9/9 gates, CI-fragile). Hard drift guard so any re-run that corrodes the certified numbers fails fast.
 
 ## Next agent actions
 If assigned a new task, verify with:
