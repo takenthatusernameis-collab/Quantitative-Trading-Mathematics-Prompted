@@ -739,11 +739,17 @@ def main() -> None:
     spy_ret = close.pct_change()
     spy_oos_ret = spy_ret[oos_mask]
     try:
-        benchmark_comparison = compare_to_benchmark(
-            strategy_ret_best, spy_oos_ret, oos_mask
-        )
-        benchmark_p = benchmark_comparison.get("p_value", 1.0)
-        information_ratio = benchmark_comparison.get("information_ratio", 0.0)
+        # Only the two return series are passed: the third positional
+        # argument of ``compare_to_benchmark`` is ``risk_free`` (an annual
+        # scalar rate), and the old call passed the boolean ``oos_mask``
+        # there, which silently turned ``alpha_annualized`` into an array.
+        benchmark_comparison = compare_to_benchmark(strategy_ret_best, spy_oos_ret)
+        # The library returns the alpha p-value under ``alpha_p_value``;
+        # reading ``p_value`` returned the 1.0 default, so the
+        # ``benchmark_p`` gate was always False -- a gate that never tested
+        # anything.
+        benchmark_p = float(benchmark_comparison.get("alpha_p_value", 1.0))
+        information_ratio = float(benchmark_comparison.get("information_ratio", 0.0))
     except Exception as e:  # noqa: BLE001 -- benchmark comparison is advisory; a failure degrades to defaults and continues
         print(f"Warning: Could not compute benchmark comparison: {e}")
         benchmark_p = 1.0

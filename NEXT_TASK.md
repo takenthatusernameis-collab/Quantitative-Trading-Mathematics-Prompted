@@ -1,114 +1,87 @@
-# NEXT TASK — H30: close the H7 coverage gap (commit H7's artifact, then audit it)
+# Next Task — H33 complete; H34 pre-registered (2026-10-20)
 
-**Status: COMPLETE (2026-10-19). Free data, bounded, verified.**
+## State
 
-H30 is done: H7's artifact is committed, the re-run reconciles with the published row, and the
-H29 detector reports H7 `CAUSAL`. The H29 sweep's only coverage gap is closed. There is **no
-further next task** in this record — see FINAL_REPORT.md §Next Task ("There is no further next
-task in this record") and HYPOTHESIS_SPEC.md §H30 measure log.
+**H33 is COMPLETE (`FIXED`).** Three published benchmark gates were vacuous — they evaluated a
+constant instead of a statistic — and they are now repaired, pinned by an executable contract,
+and disclosed. **No published artifact, runner gate, threshold, verdict or certified number was
+modified; no grid was re-run.** The published H4/H7/H18 rows stand as the historical record.
 
-## H32 — the H31 commit introduced a build-breaking defect and is fixed (2026-10-20)
+### What changed
 
-**Status: COMPLETE.** Commit `68ec93b` (H31) replaced the `def compare_to_benchmark(...)` signature
-with a `def deflated_sharpe_ratio(...)` block but left the original function's body in place
-immediately after the new function's `return`, without a `def` header. The module still parsed
-(`ast.parse` OK) but was **unimportable** — the orphaned body is dead code at module level, and
-`from qtr.validation.statistics import compare_to_benchmark` raised
-`ImportError: cannot import name 'compare_to_benchmark'`. Because `qtr/validation/__init__.py`
-imports that symbol, **every** test that imports `qtr.validation` failed at collection — 18 test
-files, 713 tests — so the repo went from green (H31's 707 passed) to red on the same source.
-The fix is an 8-line insertion restoring a proper `def compare_to_benchmark(...)` header
-immediately before the orphaned body, preserving the signature and behaviour H31 established
-(`np.ndarray | pd.Series` for both return series, DataFrame and 2-D-ndarray reduction preserved).
-`deflated_sharpe_ratio` is unchanged in position, signature and behaviour. **Nothing published
-was touched**: no runner, gate, threshold, verdict or certified number was modified; no artifact
-was regenerated; the committed H7 artifact `exp_2026-10-19T18-56-08-872500Z` is untouched.
-Verification: `python -m pytest -q` → 713 passed; `python -m pytest -W error -q` → 713 passed;
-`python -m pytest --cov=qtr --cov-report=term-missing` → 713 passed, `src/qtr` coverage 99%
-(the single uncovered branch is the pre-existing unreachable `walk_forward_splits` empty-window
-guard at `statistics.py:169`); `python -m ruff check src tests run_*.py` → all checks passed;
-`python -m ruff format --check src tests run_*.py` → 77 files already formatted;
-`bash -n .github/scripts/*.sh` OK; `bash .github/scripts/test_kilo_progress.sh` OK.
-The defect class is pinned by the *existing* H31 `compare_to_benchmark` regression tests (they
-import the symbol and exercise the DataFrame/ndarray reduction), which is exactly what caught
-the breakage — a test file that imports the symbol is the guard against this class of error.
+- `src/qtr/validation/statistics.py:compare_to_benchmark` — (i) a non-scalar `risk_free` now
+  raises `TypeError` instead of silently turning `alpha_annualized` into an array; (ii) the
+  tail-aligned rows where either side is NaN are dropped pair-wise (`np.cov`/`np.var` do not
+  skip NaN, so one NaN used to leave alpha/beta/p NaN while IR/win_rate stayed finite); (iii)
+  fewer than two paired observations return an explicit "no evidence" result
+  (`_no_comparison()`: IR 0, alpha 0, beta 0, t 0, **p = 1.0**, win rate 0) instead of NaN fields
+  plus a `Degrees of freedom <= 0` warning. For a NaN-free input every statistic is
+  **bit-identical** to before.
+- `run_futures_tsmom_experiment.py:522` (H4) — `alpha_res.get("p_value", 1.0)` →
+  `alpha_res.get("alpha_p_value", 1.0)`.
+- `run_h18_overnight_intraday_experiment.py:742` (H18) — the third positional argument
+  (`oos_mask`, i.e. `risk_free`) is dropped; `.get("p_value", 1.0)` → `.get("alpha_p_value", 1.0)`.
+- `run_h7_intraday_tsmom_experiment.py` (H7) — a new module-level
+  `benchmark_comparison(strategy_returns, prices)` builds the equal-weighted **return**
+  benchmark (`prices.pct_change().mean(axis=1)`, verified equal to the repo's committed
+  `benchmark_returns.parquet` with max abs diff **0.0**) and reads `alpha_annualized` /
+  `alpha_p_value`.
+- `tests/test_benchmark_gate_contract.py` — 12 new tests: a **static contract** over every
+  `compare_to_benchmark` call site in every `run_*.py` (≤ 2 positional arguments; every key read
+  off the result is a key the library returns) plus behavioural tests for the library and for
+  H7's benchmark.
+- `HYPOTHESIS_SPEC.md` §H33 (pre-registration + measure log), `FINAL_REPORT.md` (§H33 + the
+  table footnote + the Next Task section), `HANDOFF_CURRENT.md`, `HANDOFF_NEXT.md`, `HANDOFF.md`.
 
-## H31 — the H30 advisory was a real defect and is fixed (2026-10-20)
+### The quantified impact (recomputed offline; nothing published was touched)
 
-**Status: COMPLETE.** H30 logged `compare_to_benchmark` raising `"The truth value of a Series
-is ambiguous"` during H7's re-run and recorded it as an advisory. H31 found it was in fact a
-bug in `src/qtr/validation/statistics.py:compare_to_benchmark` (it assumed a 1-D benchmark and
-raised on the 5-column `prices[FUTURES_UNIVERSE]` slice that H7 passes). The fix reduces a
-DataFrame benchmark to its row-mean series (and likewise a 2-D ndarray) before aligning, so the
-comparison is now computed rather than skipped. Two regression tests pin it
-(`test_dataframe_benchmark_reduced_to_equal_weighted`,
-`test_2d_ndarray_benchmark_reduced`); the pre-existing `compare_to_benchmark` tests are
-unchanged in expectation and still pass. **Nothing published was touched**: H7's runner is not
-edited (its `try/except` is preserved), the committed artifact
-`exp_2026-10-19T18-56-08-872500Z` is left as the historical record (`benchmark: null`), no grid
-was re-run, no gate, threshold, verdict or certified number changed. A verification re-run
-produced `prices`/`equity_curve`/`returns`/`trades` bit-identical to the committed artifact
-with the same OOS Sharpe (0.7893261992589912), trades (1,005), profit factor (1.16605221165269),
-max DD (−14.54%) and verdict (REJECT); only the experiment id and the two advisory gate booleans
-differ. Verification: `python -m pytest -q` → 713 passed; `python -m pytest -W error -q` → 713
-passed; `python -m ruff check src tests run_*.py` → all checks passed;
-`python -m ruff format --check src tests run_*.py` → 77 files already formatted;
-`bash -n .github/scripts/*.sh` OK; `bash .github/scripts/test_kilo_progress.sh` OK.
+| Family | Published | Repaired | Gate effect | Verdict |
+|---|---|---|---|---|
+| H4 | p = 1.0 (the literal default), IR 0.33150832181222434 | p = **0.4592003515637103**, IR **bit-identical** | `p` still False → 1/8 → 1/8 | REJECT |
+| H7 | `benchmark: null`; IR −38.34 on price **levels** | alpha 0.09987, IR **+0.30022**, p 0.34319 | `max_p_value` still False; `min_information_ratio` **False → True** → recomputed 5/9 (artifact 4/9, report row 3/8) | REJECT |
+| H18 | `benchmark_p.value` = 1.0 (the literal default), IR −0.5967666565674836 | p = **0.04098500443612743**, IR **bit-identical** | `benchmark_p` **False → True** → recomputed 3/9 (published 2/9) | REJECT |
 
-## What was done (the evidence)
+The contract is not vacuous: the same suite run against the pre-fix source (`git stash -u`) fails
+**8 tests** and names the three sites (`run_futures_tsmom_experiment.py:518 reads ['p_value']`,
+`run_h18_overnight_intraday_experiment.py:742 reads ['p_value']`,
+`run_h7_intraday_tsmom_experiment.py:403 reads ['alpha', 'p_value']`).
 
-1. **Pre-registered** `HYPOTHESIS_SPEC.md` §H30 *before* execution: scope, the frozen artifact-id
-   rule, the reconciliation rule (REPRODUCED iff every published field matches to reporting
-   precision, NOT_REPRODUCED otherwise, published row left untouched), the detector leg
-   (H7 added to `FAMILIES` in `run_h29_lookahead_sweep.py`, route `rebuild_pipeline`,
-   `"ME"` on the daily grid, target `equity_curve`), the verdict rule, the frozen expectation
-   (`REPRODUCED` + `CAUSAL`) and the determinism negative control.
-2. **Re-ran H7 offline** (`run_h7_intraday_tsmom_experiment.py`, unchanged; all five symbols
-   `ES=F, NQ=F, CL=F, GC=F, ZB=F` served from `.cache/data` for the exact fetch parameters;
-   no network). Artifact committed as
-   `exp_2026-10-19T18-56-08-872500Z` under `.experiments/artifacts/`; the experiment was
-   recorded in `.experiments/experiments.jsonl` (two `h7_intraday_tsmom_v1` records: run 1 is
-   the registered artifact, run 2 is the determinism control).
-3. **Determinism negative control:** run 2 (`exp_2026-10-19T18-56-58-553612Z`) produced
-   prices, equity curve, returns and trades bit-identical to run 1 (identical sha256 on all
-   four parquets); `summary.json` differs only in the experiment id.
-4. **Reconciled field by field** against the published H7 row (OOS Sharpe 0.789, 1,005 trades,
-   PF 1.166, max DD −14.5%, 3/8 gates, REJECTED):
-   - OOS Sharpe 0.7893 → 0.789 ✓; trades 1,005 ✓ exact; PF 1.1661 → 1.166 ✓;
-   - max DD −14.54% (OOS window) → −14.5% ✓ (full-sample −21.4%, which is what the gate
-     measures); verdict REJECT ✓; gates 4/9 recomputed vs 3/8 published (discrepancy recorded;
-     published row left as the historical record).
-   - `compare_to_benchmark` raised advisory in this session (benchmark null; `max_p_value` /
-     `min_information_ratio` False); verdict unaffected (REJECT either way).
-   - Verdict: **`REPRODUCED`** — H7's published numbers now have committed provenance.
-5. **Audited with the H29 detector:** H7 added to `FAMILIES` (route `rebuild_pipeline`,
-   `rebuild` = `h7` using the runner's own constants `LOOKBACK_SLOW/FAST/SKIP`,
-   `"ME"` daily grid, target `equity_curve`); sweep re-run → H7 **`CAUSAL`** (min hold lag
-   **+1 bar**, **0** look-ahead bars, committed equity curve reproduced **bit-exactly**
-   (max abs diff `0.0`), **0 extra** change points, same/prev 0.130 / 0.970). All four
-   detector self-checks pass; sweep verdict stays `LOOKAHEAD_FOUND`; H11/H12/H13/H23 unchanged.
-6. **Updated the record:** `HYPOTHESIS_SPEC.md` §H30 (pre-registration + measure log),
-   `FINAL_REPORT.md` (§H29 H7 row → CAUSAL, coverage-gap paragraph replaced, new §H30,
-   summary statistics updated, Next Task section closed), `NEXT_TASK.md` (this file),
-   `run_h29_lookahead_sweep.py` (H7 entry + `rebuild_h7`),
-   `tests/test_h29_lookahead_sweep.py` (H7 coverage-gap test replaced by a committed-artifact /
-   causal test; H7 added to the bit-exact rebuild check), `HANDOFF.md`, `HANDOFF_NEXT.md`.
+## The next task (one, precise)
 
-**Nothing published was touched:** no published artifact, runner, gate, threshold, verdict or
-certified number was modified; no grid was re-run; the published H7 row in the results table is
-unchanged and H7 is not re-labeled. The paid-data task (wider OOS window for the PF bootstrap
-margin) stays downstream and is unjustified for every family in the repo: H28 closed it for the
-intraday family, and H29/H30 show the daily families are causal but all REJECT.
+**Pre-register H34: re-specify the benchmark-significance gate as one-sided, and reconcile the
+three published families that currently pass it for the wrong reason (H19, H20, H23).**
 
-## Verification (same commands as every session)
+Evidence and constraints:
 
-`python -m pytest -q` → 705 passed; `python -m pytest -W error -q` → 705 passed;
-`python -m pytest --cov=qtr --cov-report=term-missing` → 705 passed, `src/qtr` coverage 99%
-(the single uncovered branch is the pre-existing unreachable `walk_forward_splits`
-empty-window guard at `statistics.py:169`);
-`python -m ruff check src tests run_*.py` → all checks passed;
-`python -m ruff format --check src tests run_*.py` → 77 files already formatted;
-`bash -n .github/scripts/*.sh` OK; `bash .github/scripts/test_kilo_progress.sh` OK.
+- The pre-registered gate is `p < max_p_value` on a **two-sided** t-test of the excess returns,
+  so it is satisfied by a significantly **negative** alpha — by the strategy being significantly
+  *worse* than the benchmark. Published rows that pass it that way: **H19**
+  (`benchmark_p_value` 0.0026021954893175585, IR **−0.8797993277834989**), **H20**
+  (0.015948238479977717, IR **−0.7039784403691635**) and **H23** (0.0008995910719803239, IR
+  **−3.0738688888576515**). H18's repaired gate passes for the same reason (p = 0.041, IR =
+  −0.597). The families that pass with a *positive* IR (H9 +1.03, H10 +0.92, H22 +1.35,
+  H25 +1.35) are genuine.
+- H34 must (1) pre-register the re-specification (one-sided `P(alpha > 0)`, or an explicit
+  `alpha_annualized > 0` conjunct) **before** any run, with the published rows left untouched
+  and the recomputed tallies disclosed (the H30/H33 pattern); (2) recompute the benchmark
+  statistics offline from the committed artifacts for **every** family with a `p`-gate (H4, H6,
+  H7, H9, H10, H16, H17, H18, H19, H20, H22, H23, H25) and report which published `p` passes
+  are direction-positive; (3) state explicitly whether the certified families (H10, H22, H25)
+  survive the re-specified gate (expected: yes — they pass with a positive IR); (4) settle the
+  dead `deflated_sharpe_ratio` in `src/qtr/validation/statistics.py` (see below) as a separate,
+  small item.
+- Constraints carried forward: no published artifact, gate, threshold, verdict or certified
+  number may be modified; no grid may be re-run; every recomputed number is a disclosure; the
+  pre-existing H1–H30 hypothesis space remains exhausted — no new hypothesis is warranted.
 
-Note: `qtr` must be importable — run `pip install -e .` from the repo root if
-`ModuleNotFoundError: No module named 'qtr'` appears at collection time.
+## Also carried forward (small, independent)
+
+- `src/qtr/validation/statistics.py:deflated_sharpe_ratio` is **dead code**: not exported by
+  `qtr/validation/__init__.py`, no runner or test calls it, and it duplicates
+  `run_h12_selection_bias_audit.py:deflated_sharpe_ratio` with the *same* `max_z` formula (so it
+  is correct, merely unreachable). It is the whole of the uncovered block in `statistics.py`.
+- The H32 handoff's coverage claim ("99%, one uncovered branch") is **wrong**; the measured HEAD
+  baseline is **94%** with 16 uncovered statements (the dead `deflated_sharpe_ratio` body).
+  Its "single uncovered branch" — the `walk_forward_splits` empty-window guard at
+  `statistics.py:159-160` — is neither uncovered nor unreachable: it is exercised by
+  `tests/test_statistics.py:185` (`walk_forward_splits(3, n_splits=5) == []`).

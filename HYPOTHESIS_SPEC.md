@@ -4275,3 +4275,200 @@ was modified; no grid was re-run; the committed H7 artifact
 `exp_2026-10-19T18-56-08-872500Z` is untouched. The defect class is pinned by the existing H31
 `compare_to_benchmark` regression tests (they import the symbol and exercise the DataFrame/ndarray
 reduction), which is exactly what caught the breakage.
+
+## H33: Three benchmark gates in the published record are vacuous, and they are repaired (pre-registered 2026-10-20)
+
+### Statement
+
+H31 fixed the *raising* defect in `compare_to_benchmark`. It did not check the **consumption
+contract**: what the runners read off the returned dict, and what they feed *into* it. An audit of
+all **17** `compare_to_benchmark` call sites in the repository (`run_*.py`) against the library's
+actual return-key set found **three** defects, each of which makes a *published* benchmark gate
+evaluate a constant instead of a statistic:
+
+| # | Site | Defect | Consequence |
+|---|---|---|---|
+| **D1** | `run_futures_tsmom_experiment.py:522` (H4) | reads `alpha_res.get("p_value", 1.0)`; the library returns `alpha_p_value`, never `p_value` | `p` is **always 1.0** → the `p` gate is **always False** |
+| **D2** | `run_h18_overnight_intraday_experiment.py:742-745` (H18) | (a) `oos_mask` is passed as the **3rd positional argument**, i.e. as `risk_free`; (b) reads `.get("p_value", 1.0)` | `alpha_annualized` becomes a length-N **array** instead of a float; `benchmark_p` is **always 1.0** → the `benchmark_p` gate is **always False** |
+| **D3** | `run_h7_intraday_tsmom_experiment.py:403-409,431` (H7) | (a) reads `.get("alpha", ...)` / `.get("p_value", ...)` (the library returns `alpha_annualized` / `alpha_p_value`); (b) the **benchmark is a price level**, `prices[FUTURES_UNIVERSE]`, while the strategy side is a **return** series | the recorded `benchmark` is `{alpha: NaN, ir: -38.34, p_value: NaN}`; `max_p_value` compares `NaN < 0.05` → **always False**; and the IR it *does* read is a **unit-mismatched** number (returns minus price levels) |
+
+The other **14** call sites use the canonical key names and pass no third positional argument.
+
+### Evidence (from the committed artifacts, before any change)
+
+- **H4** — `.experiments/artifacts/exp_2026-10-14T08-27-02-650342Z/summary.json`:
+  `"alpha_vs_benchmark": {"p_value": 1.0, "information_ratio": 0.33150832181222434}` and
+  `"passes": {..., "p": false, "ir": true}`. The `p_value` is *exactly* the literal `1.0` that
+  `.get("p_value", 1.0)` supplies — the statistic was never read.
+- **H18** — `.experiments/artifacts/exp_2026-10-13T22-14-50-729923Z/summary.json`:
+  `gate_metrics.benchmark_p.value = 1.0` (threshold 0.05, `passes: false`), while the sibling
+  `information_ratio` is a real number (−0.5968). The p-value is the literal default.
+- **H7** — `.experiments/artifacts/exp_2026-10-19T18-56-08-872500Z/summary.json`:
+  `"benchmark": null`, `"gates": {..., "max_p_value": false, "min_information_ratio": false}`.
+  Recomputing H7's comparison from the committed `prices.parquet`/`returns.parquet` gives
+  IR = **−38.34**, `excess_return_annual` = **−767 093**, `alpha_p_value` = **0.0** — i.e. the
+  unit mismatch would have published an *apparently significant* p-value of 0.0 had the key names
+  been right. The NaN default is the only reason it did not. The `min_information_ratio` gate
+  (IR > 0) is evaluated on that meaningless −38.34.
+- **The library trap.** `compare_to_benchmark` computes `information_ratio` and `win_rate` on the
+  raw aligned arrays but computes `beta`/`alpha`/`alpha_p_value` from `np.cov`/`np.var`, which do
+  **not** skip NaN. A single NaN in the input therefore yields a dict in which some fields are
+  finite and others are NaN — an internally inconsistent result that no caller checks.
+- **The argument trap.** `risk_free` is not validated. Passing a boolean mask (H18) makes
+  `alpha_annualized` an array of length N instead of a float, silently.
+
+### Scope (frozen)
+
+- Edit `src/qtr/validation/statistics.py:compare_to_benchmark` only: (i) drop aligned rows where
+  either series is NaN **pair-wise** (after the existing tail alignment, so the alignment
+  semantics are unchanged and a NaN-free input is bit-identical to before); (ii) require a scalar
+  `risk_free` (`TypeError` otherwise); (iii) return a well-defined degenerate result when fewer
+  than two aligned observations survive.
+- Edit three runners, and only the benchmark plumbing: `run_futures_tsmom_experiment.py`,
+  `run_h18_overnight_intraday_experiment.py`, `run_h7_intraday_tsmom_experiment.py`.
+- Add `tests/test_benchmark_gate_contract.py`: a **static contract** over every `run_*.py` call
+  site (at most two positional arguments; every key read off the result is a key the library
+  actually returns) plus behavioural tests for the library and for H7's benchmark.
+- Do **not** touch any published artifact, gate threshold, verdict, certified number or published
+  row. Do **not** re-run any grid. The published artifacts stay the historical record; the
+  *recomputed* gate tallies are disclosed, not written back.
+- Do **not** change the H29 sweep, the H28 runner, or any other runner.
+
+### Impact rule (frozen)
+
+The repair can only change a *recomputed* gate boolean, never a published row. For each of H4, H7
+and H18 the published verdict is REJECT with **at least five other gates already failing**, so
+`all_pass` is False before and after the repair: **no verdict can change**. The recomputed
+benchmark statistics and the resulting gate tallies are reported in the measure log as a
+disclosure, exactly as H30 reported its 3/8-vs-4/9 gate discrepancy.
+
+### Verdict rule (frozen)
+
+- `FIXED` iff (a) every one of the 17 call sites passes the static contract; (b) the new
+  behavioural tests pass; (c) the full suite passes clean including `-W error`; (d) lint and
+  format are clean on `src tests run_*.py`; (e) the pre-existing `compare_to_benchmark` tests are
+  unchanged in expectation and still pass; and (f) the recomputed H4/H7/H18 benchmark statistics
+  are finite and unit-consistent (no NaN, no price-level contamination).
+- `NOT_FIXED` otherwise: record the failing check and stop.
+
+### Frozen expectation
+
+`FIXED`. The repaired gates become **real tests** for the first time. The expected *magnitude* of
+the change: H4's `p` gate is expected to remain False (its OOS alpha against buy-and-hold is not
+significant), H18's `benchmark_p` gate is expected to remain False, and H7's `max_p_value` gate is
+expected to remain False while its `min_information_ratio` gate is expected to become **True**
+(IR ≈ +0.30 for an equal-weight buy-and-hold *return* benchmark, versus the meaningless −38.34
+produced by the price-level comparison). H7's published tally therefore stays 3/8 only because the
+published artifact is immutable — the recomputed tally is 4/8 and is disclosed as such.
+
+### H33 — Measure Log (executed 2026-10-20)
+
+**Result: `FIXED`.** All six verdict-rule conditions hold (see *Verification* below).
+
+#### 1. The library (`src/qtr/validation/statistics.py:compare_to_benchmark`)
+
+Three changes, all in the function H31 repaired:
+
+- `risk_free` is now validated: a non-scalar (H18's boolean mask) raises
+  `TypeError: risk_free must be a scalar annual rate; got ndarray with ndim=1. Pass it as the
+  keyword argument `risk_free=.` instead of silently turning `alpha_annualized` into an array.
+- The tail-aligned rows where **either** side is NaN are dropped (pair-wise). `np.cov`/`np.var`
+  do not skip NaN, so before this a single NaN left `alpha_annualized`, `beta` and
+  `alpha_p_value` NaN while `information_ratio` and `win_rate` stayed finite. For a NaN-free
+  input the mask is a no-op and every statistic is **bit-identical** to before (verified below).
+- Fewer than two paired observations now return an explicit "no evidence" result
+  (`_no_comparison()`: IR 0, alpha 0, beta 0, t 0, **p = 1.0**, win rate 0) instead of NaN
+  fields plus a `Degrees of freedom <= 0` RuntimeWarning (which `-W error` turns into a
+  failure). The empty-side case is handled too: `x[-0:]` is the *whole* array, so a zero-length
+  side would otherwise have compared the full series against itself.
+
+#### 2. The three runners
+
+| Runner | Change |
+|---|---|
+| `run_futures_tsmom_experiment.py:522` (H4) | `alpha_res.get("p_value", 1.0)` → `alpha_res.get("alpha_p_value", 1.0)` |
+| `run_h18_overnight_intraday_experiment.py:742` (H18) | the third positional argument (`oos_mask`) is dropped; `benchmark_comparison.get("p_value", 1.0)` → `.get("alpha_p_value", 1.0)` |
+| `run_h7_intraday_tsmom_experiment.py` (H7) | a new module-level `benchmark_comparison(strategy_returns, prices)` builds the equal-weighted **return** benchmark (`prices.pct_change().mean(axis=1)`) and reads `alpha_annualized` / `alpha_p_value`; `main()` calls it |
+
+The benchmark construction is the repo's own: `prices.pct_change().mean(axis=1)` was verified to
+equal the committed `benchmark_returns.parquet` of `exp_2026-10-13T21-51-45-034237Z` with a
+**max abs diff of 0.0**, and it is what the engine produces for a constant 1/N buy-and-hold
+(`(signals.shift(1) * price_returns).sum(axis=1)`). On H4's committed prices the two agree on
+2,494 of 2,514 bars; the 20 that differ are the first month, where `resample_monthly_signals`
+leaves the benchmark's position flat.
+
+#### 3. The executable invariant (`tests/test_benchmark_gate_contract.py`, 12 tests)
+
+- **Static contract**: every `compare_to_benchmark` call site in every `run_*.py` passes **at
+  most two positional arguments** (the two return series — the third is `risk_free`), and every
+  key read off the result is a key the library actually returns.
+- **Negative control** (the contract is not vacuous): replayed against the pre-fix source
+  (`git show HEAD:<runner>`), the contract reports exactly the three defect sites —
+  `run_futures_tsmom_experiment.py:518 reads ['p_value']`,
+  `run_h18_overnight_intraday_experiment.py:742 reads ['p_value']`,
+  `run_h7_intraday_tsmom_experiment.py:403 reads ['alpha', 'p_value']` — and the full suite run
+  against the pre-fix source fails **8 tests** (the contract tests plus the behavioural ones).
+- **Behavioural**: the pinned key set; the `TypeError` on a non-scalar `risk_free`; the pair-wise
+  NaN drop (the dirty result equals the result on the NaN-free rows for all eight fields); the
+  degenerate inputs failing closed; the empty-side case; and H7's benchmark being a return
+  series (its IR is +0.30 against the price-level comparison's −38+ magnitude).
+
+#### 4. The quantified impact (recomputed offline; **no published artifact was touched**)
+
+| Family | Published benchmark record | Repaired benchmark record | Gate effect | Verdict |
+|---|---|---|---|---|
+| **H4** | `p_value: 1.0` (the literal default), IR `0.33150832181222434` | alpha p-value **0.4592003515637103**, IR `0.33150832181222434` (**bit-identical**) | `p` gate still False → tally **1/8 → 1/8** | REJECT (unchanged) |
+| **H7** | `benchmark: null`; IR −38.34 on price levels | alpha **0.09987**, IR **+0.30022**, p **0.34319** | `max_p_value` still False; `min_information_ratio` **False → True** → recomputed tally **5/9** (published artifact 4/9, published report row 3/8) | REJECT (unchanged) |
+| **H18** | `benchmark_p.value: 1.0` (the literal default), IR `−0.5967666565674836` | alpha p-value **0.04098500443612743**, IR `−0.5967666565674836` (**bit-identical**) | `benchmark_p` gate **False → True** → recomputed tally **3/9** (published 2/9) | REJECT (unchanged) |
+
+The H4 and H18 recomputations were produced by replicating each runner's own pipeline from the
+committed artifacts (H4: the H29 `rebuild_h4` ensemble, which reproduces the published OOS
+Sharpe **0.3757006004618035** to the digit; H18: the cached SPY/QQQ/IWM/^VIX daily bars, no
+network). The published information ratios are reproduced **bit-exactly**, which is the direct
+evidence that the library change is a no-op on the healthy path.
+
+#### 5. Disclosure — the benchmark-significance gate is **direction-blind**
+
+The pre-registered gate is `p < max_p_value` on a **two-sided** t-test of the excess returns, so
+it is satisfied by a *significantly negative* alpha — i.e. by the strategy being **significantly
+worse** than the benchmark. Three published families already carry such a PASS:
+
+| Family | published `benchmark_p_value` | published IR | `p` gate |
+|---|---|---|---|
+| H19 | 0.0026021954893175585 | **−0.8797993277834989** | **True** |
+| H20 | 0.015948238479977717 | **−0.7039784403691635** | **True** |
+| H23 | 0.0008995910719803239 | **−3.0738688888576515** | **True** |
+
+and H18's repaired gate passes for exactly the same reason (p = 0.041 with IR = −0.597). The
+gate **definition** is pre-registered, so H33 does **not** change it; it is recorded here and
+named as the next task. (The families whose `p` gate passes with a *positive* IR — H9 +1.03,
+H10 +0.92, H22 +1.35, H25 +1.35 — are genuine.)
+
+#### 6. Correction to the previous session's coverage claim
+
+The H32 handoff states "`src/qtr` coverage 99% (the single uncovered branch is the pre-existing
+unreachable `walk_forward_splits` empty-window guard at `statistics.py:169`)". Measured at HEAD
+(`git stash -u`, `python -m pytest --cov=qtr --cov-report=term-missing -q`), the real baseline is
+**94%**: `src/qtr/validation/statistics.py` misses **16 statements**, lines 418–435 — the entire
+body of `deflated_sharpe_ratio`. That function is **dead code**: it is not exported by
+`qtr/validation/__init__.py`, no runner and no test calls it, and it duplicates
+`run_h12_selection_bias_audit.py:deflated_sharpe_ratio` with the *same* `max_z` formula (so it
+is correct, merely unreachable). H33 does not touch it; it is named as the next task.
+
+#### Verification
+
+- `python -m pytest -q` → **725 passed** (713 + 12 new), 0 warnings.
+- `python -m pytest -W error -q` → **725 passed**.
+- `python -m pytest --cov=qtr --cov-report=term-missing` → 725 passed; `src/qtr` coverage **94%**,
+  the same 16 uncovered statements as the HEAD baseline (the dead `deflated_sharpe_ratio` body) —
+  i.e. H33's new code is fully covered and coverage did not regress.
+- `python -m ruff check src tests run_*.py` → All checks passed.
+- `python -m ruff format --check src tests run_*.py` → 78 files already formatted.
+- `bash -n .github/scripts/*.sh` OK; `bash .github/scripts/test_kilo_progress.sh` OK.
+- Negative control: the same suite run against the pre-fix source fails **8 tests**, naming the
+  three defect sites.
+
+**Nothing published was touched:** no published artifact, runner gate, threshold, verdict or
+certified number was modified; no grid was re-run; the published H4/H7/H18 rows stand as the
+historical record; the recomputed benchmark statistics and gate tallies above are a disclosure,
+not a rewrite.

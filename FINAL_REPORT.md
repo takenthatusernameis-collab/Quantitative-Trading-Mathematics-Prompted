@@ -237,6 +237,18 @@ itself (2020/2022) is the invalidating evidence. See `INEFFICIENCY_RANKING.md`.
 > correct OOS-window PF is **1.2529**; both are below the 1.3 gate, so H9's REJECT
 > verdict is unchanged (the defect was conservative). H10/H21/H22/H25 are unaffected
 > (their published PF matches the OOS-window PF exactly).
+>
+> **H33 benchmark-gate footnote (added 2026-10-20 — see §H33 detail below).** The
+> benchmark-significance gate (`p < 0.05` on a two-sided t-test of the excess returns) is
+> **direction-blind**: it is satisfied by a significantly *negative* alpha. **H19**
+> (p = 0.00260, IR **−0.880**), **H20** (p = 0.01595, IR **−0.704**) and **H23**
+> (p = 0.00090, IR **−3.074**) carry such a PASS in the published rows above — their
+> benchmark gate is evidence that they *underperform* the benchmark, not that they beat it.
+> H34 (the next task) will re-specify the gate; until then these three rows' `p` passes
+> must be read as "significantly different from the benchmark", not "significantly better".
+> H33 separately repaired three *vacuous* benchmark gates (H4's `p`, H18's `benchmark_p`,
+> H7's `max_p_value`/`min_information_ratio`); those repairs change no verdict and no
+> published number.
 
 
 ### H23 detail (crypto perpetual futures intraday TSMOM)
@@ -472,7 +484,9 @@ control), the verdict rule and the pre-registration itself.
 - **5 certified edges** (H10/H11/H12/H22/H25) — all variants of the same intraday futures TSMOM mechanism (**H27: the edge is a one-day look-ahead; H28: re-certified under a causal collapse and `CAUSAL_REJECTED` — 3/8 to 4/9 gates, OOS Sharpe 0.13–0.39; H29/H30: the daily/monthly families are `CAUSAL` on the committed artifacts, including H7 once its artifact was committed, while H11/H12 inherit H10's look-ahead positions and H23 uses the same collapse — so **no certified edge in this record survives a causal construction**); of these H22 has the strongest Sharpe (9/9 gates, OOS Sharpe 1.372, PF 1.334, DD −11.9%) and H25 the strongest PF margin (9/9 gates, OOS Sharpe 1.324, PF 1.320, DD −11.9% at 26.25% ann vol); both are *qualified* by an i.i.d. bootstrap CI whose lower bound sits below the PF gate, and the pre-registered block-bootstrap sensitivity confirms the PF fragility is not an i.i.d. artifact. (H26: the published Sharpe is a √252-per-bar metric — the annualized values are 2.55×–4.76× higher; the *PF* qualification is unaffected because PF is scale-invariant.)
 - **19 rejected** hypotheses, each with a documented root-cause attribution in `HYPOTHESIS_SPEC.md` and `INEFFICIENCY_RANKING.md`.
 - **Total compute:** ~2.5 CPU-h across all hypotheses (well within the ≤ 2 CPU-h per-hypothesis budget; the largest single run was H12 at 0.652 CPU-h). The H25 Robustness audit added 0.0002 CPU-h; the H26 scale audit added 0.0005 CPU-h; the H27 level/look-ahead audit added 0.0014 CPU-h (5 bit-exact rebuilds, no grid re-run); the **H28 causal re-certification added 1.885 CPU-h** (8 runs: 4 controls + 4 causal, the 13,824-combo H10 grid run twice); the **H29/H30 look-ahead sweep added 0.0002 CPU-h** (8 bit-exact rebuilds of the *selected* configurations, one counterfactual, no grid re-run).
-- **Test suite:** 713/713 passing (including the 17-test H25 Robustness audit — 12 i.i.d. bootstrap + 5 block-bootstrap sensitivity — the 23-test H25 regression set, the 44-test H26 scale-audit set, the 36-test H27 level-audit set, the 47-test H28 re-certification set and the 36-test H29 sweep set, plus the 2 new H31 `compare_to_benchmark` DataFrame/ndarray regression tests, plus the 6 new H32 `deflated_sharpe_ratio` + `purged_kfold_splits`/`combinatorial_purged_cv` regression tests).
+- **Test suite:** 725/725 passing (including the 17-test H25 Robustness audit — 12 i.i.d. bootstrap + 5 block-bootstrap sensitivity — the 23-test H25 regression set, the 44-test H26 scale-audit set, the 36-test H27 level-audit set, the 47-test H28 re-certification set and the 36-test H29 sweep set, plus the 2 new H31 `compare_to_benchmark` DataFrame/ndarray regression tests, plus the 6 new H32 `deflated_sharpe_ratio` + `purged_kfold_splits`/`combinatorial_purged_cv` regression tests, plus the 12 new H33 benchmark-contract tests).
+- **Coverage (corrected by H33):** `src/qtr` coverage is **94%**, not the 99% claimed in the H32 handoff. Measured at HEAD, `src/qtr/validation/statistics.py` misses 16 statements — the entire body of `deflated_sharpe_ratio`, which is **dead code** (not exported by `qtr/validation/__init__.py`, no runner or test calls it) duplicating `run_h12_selection_bias_audit.py:deflated_sharpe_ratio` with the same `max_z` formula. H33's new code is fully covered and coverage did not regress. (The H32 handoff's "single uncovered branch" — the `walk_forward_splits` empty-window guard at `statistics.py:159-160` — is in fact covered by `tests/test_statistics.py:185`.)
+- **Benchmark gates (H33):** three published benchmark gates were vacuous (H4's `p`, H18's `benchmark_p`, H7's `max_p_value`/`min_information_ratio`) because the runner read a key the library never returns, passed a boolean mask as `risk_free`, or compared returns against **price levels**. They are repaired and pinned by an executable contract; the recomputed tallies are H4 1/8 (unchanged), H7 5/9 (published 4/9), H18 3/9 (published 2/9); no verdict changes. The pre-registered gate is *direction-blind* — it is satisfied by a significantly **negative** alpha — and three published families (H19, H20, H23) carry such a PASS; disclosed, not changed.
 - **Structural walls on free data:** (a) yfinance hourly `=F` hard-capped at ~730 days (no bars beyond 2026-10-11); (b) Coinbase/CCXT hourly OHLCV capped at ~12 days; (c) the joint Sharpe ≥ 1.0 ∧ DD ≤ 15% gate met by no long-only free-data equity family; (d) PF ≥ 1.3 is fragile across the entire intraday-futures-carry family (H13/H14 for H10; H21 for the basket; H22 margin +0.034; H25 margin +0.020 — all CI-fragile, P(PF≥1.3)≈0.5–0.62 on the free window). **Corrected by H26:** the *Sharpe* side of (c)/(d) is not a further blocker — the published intraday Sharpe is a √252-per-bar metric, and on the repo's own annualization convention the certified family's Sharpe CI lower bound is 2.25 ≫ 1.0. The binding constraint is the **PF bootstrap margin plus the 730-day sample**, both of which are scale-invariant.
 
 ## Next Task
@@ -573,6 +587,56 @@ NaN, ir: -38.34, p_value: NaN}` with `prices`/`equity_curve`/`returns`/`trades` 
 to the committed artifact and OOS Sharpe (0.7893261992589912), trades (1,005), profit factor
 (1.16605221165269), max DD (−14.54%) and verdict (REJECT) unchanged. Two new regression tests
 pin the behaviour; the pre-existing `compare_to_benchmark` tests are unchanged in expectation.
+
+**H33 — three benchmark gates were vacuous and are repaired (2026-10-20).** The audit of all 17
+`compare_to_benchmark` call sites found three defects that made a published gate evaluate a
+constant instead of a statistic (H4's `p`, H18's `benchmark_p`, H7's `max_p_value` /
+`min_information_ratio`): a key-name mismatch against the library's return dict, a boolean mask
+passed positionally as `risk_free`, and a benchmark that was a **price level** compared against a
+**return** series. The library now rejects a non-scalar `risk_free`, drops NaN pairs instead of
+returning a half-NaN dict, and fails closed on degenerate inputs; the three runners read the
+keys the library actually returns; and `tests/test_benchmark_gate_contract.py` pins the contract
+statically over every call site (the same suite run against the pre-fix source fails 8 tests and
+names the three sites). Recomputed offline from the committed artifacts: H4 p = 0.4592 (gate
+still False, tally 1/8 unchanged), H7 alpha 0.0999 / IR +0.3002 / p 0.3432 (`min_information_ratio`
+False → True, recomputed 5/9 vs published 4/9), H18 p = 0.0410 (gate False → True, recomputed 3/9
+vs published 2/9). The published IRs are reproduced bit-exactly. **No verdict changes** (all
+three families are REJECT with ≥ 5 other failing gates) and no published artifact, gate,
+threshold or certified number was modified. The repair also exposes a **disclosure**: the
+pre-registered benchmark-significance gate is *direction-blind* (a two-sided `p < 0.05` is
+satisfied by a significantly **negative** alpha), and H19 (p = 0.0026, IR −0.880), H20
+(p = 0.0159, IR −0.704) and H23 (p = 0.0009, IR −3.074) already carry such a PASS. The gate
+definition is pre-registered and is **not** changed here; it is the next task.
+
+
+---
+
+## Next Task (updated 2026-10-20, after H33)
+
+**Pre-register H34: re-specify the benchmark-significance gate as one-sided and reconcile the
+three published families that pass it for the wrong reason (H19, H20, H23).**
+
+The defect class H33 found is not exhausted: the gate *evaluation* is now real, but the gate
+*definition* — `p < max_p_value` on a two-sided t-test of the excess returns — is satisfied by
+a significantly **negative** alpha, i.e. by the strategy being significantly **worse** than the
+benchmark. H19, H20 and H23 carry such a PASS in the published record. H34 must:
+
+1. **Pre-register** the re-specification (one-sided `P(alpha > 0)`, or an explicit
+   `alpha_annualized > 0` conjunct) *before* any run, with the rule that the published rows are
+   **not** rewritten and that the recomputed tallies are disclosed (the H30/H33 pattern);
+2. recompute the benchmark statistics for **every** family with a `p`-gate (H4, H6, H7, H9,
+   H10, H16, H17, H18, H19, H20, H22, H23, H25) from the committed artifacts, offline, and
+   report which published `p` passes are direction-positive;
+3. decide, explicitly and in writing, whether the **certified** families (H10, H22, H25) survive
+   the re-specified gate — they pass with a *positive* IR, so the expectation is that they do;
+4. keep the dead `deflated_sharpe_ratio` in `src/qtr/validation/statistics.py` in scope as a
+   separate, small item: either delete it or make it the single source of truth and have
+   `run_h12_selection_bias_audit.py` / `run_h13_oos_deflation_pf_audit.py` call it (it currently
+   duplicates H12's implementation with the same formula but is unreachable and untested).
+
+Constraints carried forward: no published artifact, gate, threshold, verdict or certified number
+may be modified; no grid may be re-run; every recomputed number is a disclosure; the pre-existing
+H1–H30 hypothesis space remains exhausted (no new hypothesis is warranted).
 
 
 ---
@@ -748,6 +812,53 @@ runner, gate, threshold, verdict or certified number was modified; no artifact w
 the committed H7 artifact `exp_2026-10-19T18-56-08-872500Z` is untouched. The defect class is
 pinned by the existing H31 `compare_to_benchmark` regression tests (they import the symbol and
 exercise the DataFrame/ndarray reduction), which is exactly what caught the breakage.
+
+**H33 — three benchmark gates were vacuous; they are repaired and the record is re-disclosed
+(2026-10-20).** H31 fixed the *raising* defect in `compare_to_benchmark` but not its
+**consumption contract**. An audit of all **17** call sites in the repository against the
+library's actual return-key set found three defects, each of which made a published benchmark
+gate evaluate a **constant** instead of a statistic:
+
+| # | Site | Defect | Consequence |
+|---|---|---|---|
+| D1 | `run_futures_tsmom_experiment.py:522` (H4) | read `alpha_res.get("p_value", 1.0)`; the library returns `alpha_p_value` | `p` always 1.0 → the `p` gate always **False** |
+| D2 | `run_h18_overnight_intraday_experiment.py:742` (H18) | (a) `oos_mask` passed as the **3rd positional argument** (`risk_free`); (b) read `.get("p_value", 1.0)` | `alpha_annualized` became an **array**; `benchmark_p` always 1.0 → the gate always **False** |
+| D3 | `run_h7_intraday_tsmom_experiment.py:403` (H7) | (a) read `.get("alpha")`/`.get("p_value")`; (b) the benchmark was the **price level** `prices[FUTURES_UNIVERSE]` against a **return** series | `benchmark` = `{alpha: NaN, ir: −38.34, p_value: NaN}`; `max_p_value` compared `NaN < 0.05` → always **False**; the IR was a unit-mismatched number |
+
+The other 14 call sites use the canonical keys and pass no third positional argument. The
+published artifacts carry the fingerprints: H4's `alpha_vs_benchmark.p_value` is the literal
+`1.0`, H18's `gate_metrics.benchmark_p.value` is the literal `1.0`, H7's `benchmark` is `null`.
+Had the key names been right without the unit fix, H7 would have published an alpha p-value of
+**0.0** — an apparently significant result computed from returns minus price levels; the NaN
+default was the only thing that protected the record.
+
+The repair (library + three runners + a 12-test contract) and the recomputed impact:
+
+| Family | Published | Repaired | Gate effect | Verdict |
+|---|---|---|---|---|
+| H4 | p = 1.0 (default), IR 0.33150832181222434 | p = **0.4592003515637103**, IR 0.33150832181222434 (bit-identical) | `p` still False → 1/8 → 1/8 | REJECT |
+| H7 | `null`; IR −38.34 on price levels | alpha 0.09987, IR **+0.30022**, p 0.34319 | `max_p_value` still False; `min_information_ratio` **False → True** → recomputed 5/9 (artifact 4/9, report row 3/8) | REJECT |
+| H18 | `benchmark_p` = 1.0 (default), IR −0.5967666565674836 | p = **0.04098500443612743**, IR −0.5967666565674836 (bit-identical) | `benchmark_p` **False → True** → recomputed 3/9 (published 2/9) | REJECT |
+
+The published information ratios are reproduced **bit-exactly**, which is the direct evidence
+that the library change is a no-op on the healthy path. The invariant is now executable:
+`tests/test_benchmark_gate_contract.py` statically checks every call site (≤ 2 positional
+arguments; every key read off the result is a key the library returns) and the same suite run
+against the pre-fix source fails 8 tests, naming exactly the three defect sites.
+
+**Disclosure — the benchmark-significance gate is direction-blind.** The pre-registered gate is
+`p < max_p_value` on a **two-sided** t-test of the excess returns, so it is satisfied by a
+*significantly negative* alpha — by the strategy being significantly **worse** than the
+benchmark. Three published families already carry such a PASS: **H19** (p = 0.00260, IR =
+−0.8798), **H20** (p = 0.01595, IR = −0.7040) and **H23** (p = 0.000900, IR = −3.0739); H18's
+repaired gate passes for the same reason (p = 0.041, IR = −0.5968). The families whose `p` gate
+passes with a *positive* IR (H9 +1.03, H10 +0.92, H22 +1.35, H25 +1.35) are genuine. The gate
+**definition** is pre-registered, so H33 does not change it — it is disclosed and named as the
+next task.
+
+**Nothing published was touched:** no published artifact, runner gate, threshold, verdict or
+certified number was modified; no grid was re-run; the published H4/H7/H18 rows stand as the
+historical record and the recomputed tallies above are a disclosure, not a rewrite.
 
 **Timing audit (H29 detector re-run):** H7 was added to `FAMILIES` in
 `run_h29_lookahead_sweep.py` (route `rebuild_pipeline`, `rebuild` = `h7`,

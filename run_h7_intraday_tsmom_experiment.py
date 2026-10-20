@@ -283,6 +283,49 @@ def evaluate_split(split_returns: pd.Series, gate_name: str) -> dict:
     return {"sharpe": sr, "n": len(split_returns), "max_dd": max_dd}
 
 
+def benchmark_comparison(
+    strategy_returns: pd.Series, prices: pd.DataFrame
+) -> dict[str, float]:
+    """Compare the strategy against an equal-weight buy-and-hold benchmark.
+
+    The benchmark must be a **return** series. The previous call passed
+    ``prices[FUTURES_UNIVERSE]`` -- close *price levels* -- against a
+    strategy return series, which mixes units: the information ratio came
+    out at -38.34, the "annualized" excess return at -767 093 and the
+    alpha p-value at 0.0, i.e. an apparently significant result computed
+    from a meaningless comparison.
+
+    The benchmark here is the equal-weighted simple return of the same
+    universe, which is the construction every other runner in this repo
+    obtains from its buy-and-hold backtest (``signals.shift(1) *
+    price_returns).sum(axis=1)`` with constant 1/N weights). It differs
+    from that backtest only in the first month, where the monthly
+    resample of the benchmark's signals leaves the position flat.
+
+    Args:
+        strategy_returns: The strategy's per-bar return series.
+        prices: The futures close prices of the benchmark universe.
+
+    Returns:
+        Dict with ``alpha`` (annualized), ``ir`` (information ratio) and
+        ``p_value`` (alpha p-value).
+    """
+    benchmark_returns = prices.pct_change().mean(axis=1)
+    if isinstance(strategy_returns, pd.Series):
+        common = strategy_returns.index.intersection(benchmark_returns.index)
+        strategy_returns = strategy_returns.loc[common]
+        benchmark_returns = benchmark_returns.loc[common]
+    res = compare_to_benchmark(strategy_returns, benchmark_returns, risk_free=0.0)
+    # The library returns the alpha under ``alpha_annualized`` and the
+    # p-value under ``alpha_p_value``; reading ``alpha``/``p_value``
+    # returned the NaN default and voided both benchmark gates.
+    return {
+        "alpha": float(res.get("alpha_annualized", np.nan)),
+        "ir": float(res.get("information_ratio", np.nan)),
+        "p_value": float(res.get("alpha_p_value", np.nan)),
+    }
+
+
 def main():
     np.random.seed(SEED)
     tracker = get_tracker()
@@ -400,14 +443,7 @@ def main():
         # Benchmark comparison
         bench = None
         try:
-            bench_res = compare_to_benchmark(
-                result.returns, prices[FUTURES_UNIVERSE], risk_free=0.0
-            )
-            bench = {
-                "alpha": bench_res.get("alpha", np.nan),
-                "ir": bench_res.get("information_ratio", np.nan),
-                "p_value": bench_res.get("p_value", np.nan),
-            }
+            bench = benchmark_comparison(result.returns, prices[FUTURES_UNIVERSE])
         except Exception as e:  # noqa: BLE001 -- benchmark comparison is advisory; a failure is logged and the run continues
             print(f"Benchmark comparison failed: {e}")
 

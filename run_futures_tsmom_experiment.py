@@ -519,7 +519,12 @@ def main():
                 oos_ret.values if hasattr(oos_ret, "values") else oos_ret,
                 bh_oos.values if hasattr(bh_oos, "values") else bh_oos,
             )
-            p = float(alpha_res.get("p_value", 1.0))
+            # ``compare_to_benchmark`` returns the alpha p-value under the
+            # key ``alpha_p_value`` (there is no ``p_value`` key), so the
+            # previous lookup silently returned the 1.0 default and the
+            # ``p`` gate below was always False -- a gate that never tested
+            # anything. Read the key the library actually returns.
+            p = float(alpha_res.get("alpha_p_value", 1.0))
             ir = float(alpha_res.get("information_ratio", -np.inf))
         else:
             p, ir = 1.0, -np.inf

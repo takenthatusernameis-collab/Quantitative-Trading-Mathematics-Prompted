@@ -145,7 +145,10 @@ described as free of a daily collapse — it is not.
   H5 0.509, H6 0.708, H7 0.789, H8 0.814), and every intraday family is `CAUSAL_REJECTED`
   under H28 — the repo contains **no PASS family that survives a causal construction**.
 - `src/qtr/validation/statistics.py:169` remains the single uncovered branch (unreachable
-  `walk_forward_splits` empty-window guard, pre-existing).
+  `walk_forward_splits` empty-window guard, pre-existing). *(Corrected by H33: this was wrong —
+  the guard is at `statistics.py:159-160`, it is reachable (`walk_forward_splits(3, n_splits=5)`
+  → `[]`) and it is covered by `tests/test_statistics.py:185`. The real uncovered block is the
+  dead `deflated_sharpe_ratio` body, and the measured `src/qtr` coverage is **94%**, not 99%.)*
 - The documented **library drift** in `walk_forward_splits` (changed 2026-10-19 09:28) still
   moves `metrics.wf_stability` by ~1.3e-3 on a re-run of a published experiment. H29's/H30's
   rebuilds are unaffected (they do not use that helper's output).
@@ -249,7 +252,10 @@ confirming the restored function still reduces a DataFrame/2-D-ndarray benchmark
 series and that the OLS-beta / zero-variance / unit-interval-p-value expectations are unchanged.
 
 **What remains unresolved.** Nothing from the audit record. The single uncovered branch is the
-pre-existing unreachable `walk_forward_splits` empty-window guard at `statistics.py:169`. The
+pre-existing unreachable `walk_forward_splits` empty-window guard at `statistics.py:169`.
+*(Corrected by H33: the coverage claim is wrong — see the H33 section; the guard is at
+`statistics.py:159-160`, it is covered, and the real uncovered block is the dead
+`deflated_sharpe_ratio` body. Measured `src/qtr` coverage is **94%**, not 99%.)* The
 documented library drift in `walk_forward_splits` (changed 2026-10-19 09:28) still moves
 `metrics.wf_stability` by ~1.3e-3 on a re-run of a published experiment; H29's/H30's rebuilds
 are unaffected (they do not use that helper's output). The paid-data task remains unjustified for
@@ -259,15 +265,102 @@ every family in the repo.
 restoration of an existing function's header; no runner, gate, threshold, verdict or certified
 number was modified, no grid was re-run, and no published artifact was touched.
 
+## H33 — three published benchmark gates were vacuous; they are repaired (2026-10-20)
+
+**What changed.** H31 fixed the *raising* defect in `compare_to_benchmark` but not its
+**consumption contract**. An audit of all **17** call sites in the repository against the
+library's actual return-key set found three defects, each of which made a published benchmark
+gate evaluate a **constant** instead of a statistic:
+
+- **D1 (H4, `run_futures_tsmom_experiment.py:522`)** — read `alpha_res.get("p_value", 1.0)`;
+  the library returns `alpha_p_value` and never `p_value`, so `p` was always 1.0 and the `p`
+  gate always False. The published artifact `exp_2026-10-14T08-27-02-650342Z` carries the
+  fingerprint: `"alpha_vs_benchmark": {"p_value": 1.0, ...}`.
+- **D2 (H18, `run_h18_overnight_intraday_experiment.py:742`)** — (a) `oos_mask` was passed as
+  the **third positional argument**, i.e. as `risk_free`, which silently turned
+  `alpha_annualized` into a length-N array; (b) `.get("p_value", 1.0)` → `benchmark_p` always
+  1.0 and the `benchmark_p` gate always False. The published artifact records
+  `gate_metrics.benchmark_p.value = 1.0`.
+- **D3 (H7, `run_h7_intraday_tsmom_experiment.py:403`)** — (a) `.get("alpha")`/`.get("p_value")`
+  → `benchmark` = `{alpha: NaN, ir: -38.34, p_value: NaN}` and `max_p_value` compared
+  `NaN < 0.05` → always False; (b) the benchmark was the **price level**
+  `prices[FUTURES_UNIVERSE]` compared against a **return** series — a unit mismatch whose
+  information ratio is −38.34 and whose alpha p-value is **0.0** (so had the key names been
+  right, H7 would have published an *apparently significant* alpha from a meaningless
+  comparison; the NaN default was the only thing that protected the record).
+
+The other 14 call sites use the canonical keys and pass no third positional argument. The repair:
+the library validates `risk_free` (a non-scalar raises `TypeError`), drops NaN rows **pair-wise**
+(`np.cov`/`np.var` do not skip NaN, so one NaN used to leave alpha/beta/p NaN while
+IR/win_rate stayed finite — an internally inconsistent dict that silently voided any gate reading
+it) and fails closed on degenerate inputs; the three runners read the keys the library actually
+returns; and H7's new module-level `benchmark_comparison()` helper builds the equal-weighted
+**return** benchmark (`prices.pct_change().mean(axis=1)`, verified equal to the repo's committed
+`benchmark_returns.parquet` with max abs diff **0.0**). `tests/test_benchmark_gate_contract.py`
+(12 tests) pins the contract **statically** over every call site — at most two positional
+arguments, and every key read off the result is a key the library returns.
+
+**What was verified.** `python -m pytest -q` → **725 passed** (713 + 12 new), 0 warnings;
+`python -m pytest -W error -q` → 725 passed; `python -m pytest --cov=qtr --cov-report=term-missing`
+→ 725 passed, `src/qtr` coverage **94%** (the same 16 uncovered statements as the HEAD baseline —
+the dead `deflated_sharpe_ratio` body — so no regression);
+`python -m ruff check src tests run_*.py` → All checks passed;
+`python -m ruff format --check src tests run_*.py` → 78 files already formatted;
+`bash -n .github/scripts/*.sh` OK; `bash .github/scripts/test_kilo_progress.sh` OK.
+**Negative control:** the same suite run against the pre-fix source (`git stash -u`) fails **8
+tests** and names the three defect sites, so the new contract is not vacuous. **Impact** (recomputed
+offline from the committed artifacts; nothing published was touched): H4 p = **0.4592** (gate
+still False → tally 1/8 unchanged; the published IR 0.33150832181222434 is reproduced
+**bit-exactly**), H7 alpha 0.09987 / IR **+0.30022** / p 0.34319 (`min_information_ratio` False →
+True → recomputed 5/9 vs published 4/9), H18 p = **0.04098500443612743** (gate False → True →
+recomputed 3/9 vs published 2/9; the published IR −0.5967666565674836 is reproduced
+**bit-exactly**). All three verdicts stay REJECT.
+
+**What remains unresolved.** (i) The pre-registered benchmark-significance gate is
+**direction-blind**: it is `p < max_p_value` on a **two-sided** t-test of the excess returns, so
+it is satisfied by a significantly **negative** alpha — by the strategy being significantly
+*worse* than the benchmark. **H19** (p = 0.00260, IR −0.8798), **H20** (p = 0.01595, IR −0.7040)
+and **H23** (p = 0.00090, IR −3.0739) already carry such a PASS in the published record, and
+H18's repaired gate passes for the same reason. The gate *definition* is pre-registered, so it is
+not changed here — it is disclosed and named as the next task. (ii) The dead
+`deflated_sharpe_ratio` in `src/qtr/validation/statistics.py` (lines 394–435) is unreachable: not
+exported by `qtr/validation/__init__.py`, no runner or test calls it, and it duplicates
+`run_h12_selection_bias_audit.py:deflated_sharpe_ratio` with the same `max_z` formula (correct,
+merely unreachable) — it is the whole of the uncovered block. (iii) The H32 handoff's coverage
+claim ("99%, one uncovered branch") is **wrong**: the measured HEAD baseline is **94%**, and its
+named "uncovered branch" (the `walk_forward_splits` empty-window guard at
+`statistics.py:159-160`) is covered by `tests/test_statistics.py:185`.
+
+**Which approaches have already failed and why.** Fixing the runners by adding alias keys to the
+library's return dict was rejected — it would leave the callers wrong and mask the next typo.
+Changing the *direction* of the benchmark gate was not attempted: the gate definition is
+pre-registered and changing it would change published gates. Re-running the H4/H7/H18 grids was
+not done (forbidden and unnecessary): the benchmark statistics were recomputed offline from the
+committed artifacts, reproducing the published OOS Sharpe and IR bit-exactly.
+
 ## One precise next task
 
-**None.** H32 is complete and the pre-registered free-data hypothesis space (H1–H30) is
-exhausted: every family has a committed artifact or a documented reason for the gap, every
-daily/monthly family is `CAUSAL` and REJECTED, every intraday family is `CAUSAL_REJECTED`
-under H28, and the paid-data task (a wider OOS window for the PF bootstrap margin) is
-unjustified for every family in the repo — H28 closed it for the intraday family and
-H29/H30 show the daily families are causal but all REJECT. Buying more free-data-equivalent
-data changes no verdict.
+**Pre-register H34: re-specify the benchmark-significance gate as one-sided (or add an explicit
+`alpha_annualized > 0` conjunct) and reconcile the three published families that currently pass it
+for the wrong reason (H19, H20, H23).** H34 must (1) pre-register the re-specification *before*
+any run, leaving the published rows untouched and disclosing the recomputed tallies (the
+H30/H33 pattern); (2) recompute the benchmark statistics offline from the committed artifacts for
+every family with a `p`-gate (H4, H6, H7, H9, H10, H16, H17, H18, H19, H20, H22, H23, H25) and
+report which published `p` passes are direction-positive; (3) state explicitly whether the
+certified families (H10, H22, H25) survive the re-specified gate — expected: yes, they pass with
+a *positive* IR; (4) settle the dead `deflated_sharpe_ratio` as a separate small item (delete it
+or make it the single source of truth that H12/H13 call). Constraints carried forward: no
+published artifact, gate, threshold, verdict or certified number may be modified; no grid may be
+re-run; every recomputed number is a disclosure; the pre-existing H1–H30 hypothesis space remains
+exhausted — no new hypothesis is warranted. Full statement: `NEXT_TASK.md` and
+`FINAL_REPORT.md` §Next Task.
+
+The pre-registered free-data hypothesis space (H1–H30) remains exhausted: every family has a
+committed artifact or a documented reason for the gap, every daily/monthly family is `CAUSAL` and
+REJECTED, every intraday family is `CAUSAL_REJECTED` under H28, and the paid-data task (a wider
+OOS window for the PF bootstrap margin) is unjustified for every family in the repo — H28 closed
+it for the intraday family and H29/H30 show the daily families are causal but all REJECT. Buying
+more free-data-equivalent data changes no verdict.
 
 If the next agent is given a *new* assignment, verify with:
 `python -m pytest -q`, `python -m pytest -W error -q`,

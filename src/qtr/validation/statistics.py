@@ -435,6 +435,26 @@ def deflated_sharpe_ratio(
     return float(observed_sr * p), float(1.0 - p)
 
 
+def _no_comparison() -> dict[str, float]:
+    """The result returned when no comparison can be made.
+
+    Every field is the "no evidence" value: a zero information ratio, a zero
+    alpha and beta, a zero t-statistic, a p-value of 1.0 (never significant)
+    and a zero win rate. A caller gating on any of these therefore fails
+    closed; nothing here can manufacture a pass.
+    """
+    return {
+        "information_ratio": 0.0,
+        "alpha_annualized": 0.0,
+        "beta": 0.0,
+        "alpha_t_stat": 0.0,
+        "alpha_p_value": 1.0,
+        "win_rate": 0.0,
+        "excess_return_annual": 0.0,
+        "excess_vol_annual": 0.0,
+    }
+
+
 def compare_to_benchmark(
     strategy_returns: np.ndarray | pd.Series,
     benchmark_returns: np.ndarray | pd.Series,
@@ -444,15 +464,31 @@ def compare_to_benchmark(
     """
     Compare strategy to benchmark with statistical tests.
 
+    Both series are **return** series. A multi-symbol benchmark is reduced to
+    its equal-weighted return series; passing price *levels* instead of
+    returns mixes units and makes every statistic below meaningless.
+
     Args:
         strategy_returns: Strategy return series
         benchmark_returns: Benchmark return series
-        risk_free: Risk-free rate (annual)
+        risk_free: Risk-free rate (annual), a scalar
         periods_per_year: Periods per year for annualization
 
     Returns:
         Dictionary with comparison metrics
     """
+    # ``risk_free`` is used as a scalar in the CAPM alpha below. A
+    # non-scalar (e.g. a boolean mask passed positionally) would silently
+    # turn ``alpha_annualized`` into an array instead of a float, so it is
+    # rejected loudly here rather than propagated.
+    if np.ndim(risk_free) != 0:
+        raise TypeError(
+            "risk_free must be a scalar annual rate; got "
+            f"{type(risk_free).__name__} with ndim={np.ndim(risk_free)}. "
+            "Pass it as the keyword argument `risk_free=`."
+        )
+    risk_free = float(risk_free)
+
     # A multi-symbol benchmark (e.g. a DataFrame slice of a futures
     # universe) is reduced to a single series by averaging across symbols,
     # so the comparison is against the equal-weighted benchmark return.
@@ -469,11 +505,35 @@ def compare_to_benchmark(
 
     # Align
     min_len = min(len(strategy_returns), len(benchmark_returns))
+    if min_len == 0:
+        # `x[-0:]` is the whole array, so an empty side must be handled
+        # before the tail alignment below.
+        return _no_comparison()
     strat = strategy_returns[-min_len:]
     bench = benchmark_returns[-min_len:]
 
+    # Drop the aligned rows where either side is NaN. `np.cov`/`np.var` do
+    # not skip NaN, so a single NaN leaves `alpha_annualized`, `beta` and
+    # `alpha_p_value` NaN while `information_ratio` and `win_rate` stay
+    # finite -- an internally inconsistent result that silently voids any
+    # gate reading those fields. The mask is pair-wise (a row is dropped if
+    # EITHER side is NaN) and is applied to the tail-aligned inputs, so for
+    # a NaN-free input the computation is bit-identical to before.
+    valid = ~(
+        np.isnan(np.asarray(strat, dtype=float))
+        | np.isnan(np.asarray(bench, dtype=float))
+    )
+    if not valid.all():
+        strat = strat[valid]
+        bench = bench[valid]
+
     # Excess returns
     excess = strat - bench
+
+    if len(excess) < 2:
+        # Fewer than two paired observations: `np.cov(..., ddof=1)` is
+        # undefined and `stats.ttest_1samp` is degenerate.
+        return _no_comparison()
 
     # Information ratio
     ir = (
