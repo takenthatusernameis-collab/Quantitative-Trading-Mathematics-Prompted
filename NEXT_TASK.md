@@ -1,6 +1,21 @@
-# Next Task — H35 complete; every published gate fails closed (2026-10-20)
+# Next Task — H36 complete (point-in-time invariant); extend it to the runners (2026-10-20)
 
 ## State
+
+**H35 is COMPLETE and H36 is COMPLETE.** H36 closed the *point-in-time* gap in the shared
+research infrastructure: `qtr.strategies` (the signal library) and `qtr.backtest` (the
+vectorized engine) — the code path behind almost every runner — had **no** generic
+look-ahead coverage (only one narrow engine test and two runner-specific suites, H23/H28).
+`tests/test_causality_invariant.py` (new, 30 tests + 1 skip) now pins the contract *"no
+output observed at or before bar t may depend on any price strictly after bar t"* for the
+whole `STRATEGY_REGISTRY` and end-to-end through `run_backtest`, with a negative control, a
+non-vacuity check, a registry coverage pin, two static look-ahead checks, and a cost-timing
+test. It is backed by three injected negative controls (a negative `shift`, a backward
+`pct_change`, and a non-leak control that must *not* fail). `pyproject.toml` also gained
+`pythonpath = ["src"]`, so `python -m pytest` now runs from a bare clone with no install step
+(previously the suite could not even be collected: `ModuleNotFoundError: No module named
+'qtr'`). **No published artifact, gate threshold, verdict, certified number or published row
+was modified; no grid was re-run.**
 
 **H34 and its follow-up are COMPLETE, and H35 is COMPLETE.** The benchmark-significance
 gate is direction-aware in code and published (H34); the *remaining* gate-defect class —
@@ -105,12 +120,53 @@ rows' **numbers** are identical in all three artifacts, so only the **pointer** 
    (`[tool.ruff]*`), ruff is installed (v0.17.1), `ruff check src tests run_*.py` reports
    "All checks passed!", `ruff format --check src tests run_*.py` reports "79 files already
    formatted", and the suite passes (748 passed).
+6. **The point-in-time gap in the shared infrastructure is closed (H36).**
+   `tests/test_causality_invariant.py` (30 tests + 1 skip) pins the point-in-time contract
+   for the whole `qtr.strategies` registry and end-to-end through `qtr.backtest`: dense
+   per-bar future-perturbation sweep + sparse sweep with the runners' lookbacks, a negative
+   control, a non-vacuity check, a registry coverage pin, two static look-ahead checks
+   (no negative `shift`, no backward `pct_change`/`diff` period) and a rebalance cost-timing
+   test. Verified: `python -m pytest -q -W error` → **780 passed, 1 skipped**;
+   `src/qtr` coverage **100%** (1011 statements, 0 missed); `ruff check` / `ruff format
+   --check` clean (81 files formatted). Three injected negative controls into
+   `src/qtr/strategies/baselines.py` (a negative `shift`, a backward `pct_change`, and a
+   non-leak control) were detected / correctly not detected, and the library file was
+   restored (`git diff` empty).
+7. **The test suite is runnable from a bare clone.** `pyproject.toml` now carries
+   `pythonpath = ["src"]` under `[tool.pytest.ini_options]`. Before this, `python -m pytest`
+   failed at collection with `ModuleNotFoundError: No module named 'qtr'` unless the package
+   had been pip-installed (it was not, in this environment), so the published test count was
+   not reproducible from a fresh checkout.
 
 ## The next task (one, precise)
 
-**None assigned.** The pre-registered free-data hypothesis space (H1–H30) is exhausted and
-every gate class that has produced a defect so far is now closed by an executable invariant.
-The `ruff` reproducibility item is complete; nothing else is warranted.
+**Extend the point-in-time invariant from the shared library to the runners' inline signal
+code.**
+
+*Evidence.* The shared library is now proven point-in-time by an executable probe (item 6
+above), and the only documented causality suites are
+`tests/test_h23_crypto_futures_tsmom.py::TestCausality` and
+`tests/test_h28_causal_recertification.py`. The runners
+`run_h10_intraday_tsmom_pfopt_experiment.py`, `run_h12_selection_bias_audit.py`,
+`run_h16_factor_timing_experiment.py`, `run_h18_overnight_intraday_experiment.py`,
+`run_h19_volume_predictive_experiment.py`, `run_h20_signed_volume_experiment.py`,
+`run_h21_futures_tsmom_multicontract.py`, `run_h22_futures_tsmom_voltarget.py`,
+`run_h25_futures_tsmom_pfmargin.py`, `run_h27_pnl_level_audit.py` and
+`run_h29_lookahead_sweep.py` each construct position series inline, and a look-ahead there
+is invisible to the invariant added this session.
+
+*Deliverable.* An inventory of the runners' signal constructors, pinned by a test, in which
+every constructor is either (a) covered by a future-perturbation probe of the kind added
+this session (dense + sparse cuts, negative control retained), or (b) covered by a static
+check plus a written, tested argument for why a dynamic probe does not apply. A new runner
+signal constructor must be classified or the suite fails.
+
+*Also open (disclosure only, do not rewrite):* the engine's `metrics["total_return"]`
+excludes the first bar and is therefore inconsistent with its own equity curve and with
+`annualized_return`'s period count (a few bps; `metrics` values are in published artifacts);
+and `DataFetcher.fetch_sp500_constituents(date=...)` silently ignores its `date` argument and
+returns the *current* constituent list (a latent survivorship-bias footgun; no runner calls
+it).
 
 Do **not** re-run any grid, do **not** modify a published artifact, gate threshold, verdict
 or certified number, and do **not** add a hypothesis: the free-data hypothesis space is
@@ -123,3 +179,5 @@ exhausted and the H1–H30 records are frozen.
 - The pre-existing H1–H30 hypothesis space remains exhausted — no new hypothesis is
   warranted.
 - The certified families' numbers and verdicts are frozen (H10, H11, H12, H22, H25).
+- The shared library and the engine are now pinned as point-in-time; keep them that way
+  (re-run `tests/test_causality_invariant.py` after any change under `src/qtr`).

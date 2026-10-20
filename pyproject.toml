@@ -30,6 +30,12 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+# The package uses a src/ layout and is not required to be pip-installed for
+# the test suite to run: pytest prepends these paths to sys.path, so
+# `python -m pytest` works from a bare clone with no install step (and no
+# network). Without this, every test module that imports `qtr` fails at
+# collection with ModuleNotFoundError unless `pip install -e .` was run.
+pythonpath = ["src"]
 
 [tool.ruff]
 target-version = "py310"
