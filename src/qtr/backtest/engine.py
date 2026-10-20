@@ -314,7 +314,8 @@ class VectorizedBacktester:
         ann_factor = 252  # daily data assumption
 
         # Annualized metrics
-        ann_return = (1 + total_return) ** (ann_factor / n_periods) - 1
+        gross = 1.0 + total_return
+        ann_return = (gross ** (ann_factor / n_periods) - 1) if gross > 0.0 else -1.0
         ann_vol = returns.std() * np.sqrt(ann_factor)
 
         metrics["total_return"] = total_return

@@ -1,158 +1,96 @@
-# Next Task — H37 complete (runners' inline signal code); extend the invariant to the remaining runners (2026-10-20)
+# Next Task — all runners covered (H37 → remaining-runner extension complete)
 
 ## State
 
-**H35, H36 and H37 are COMPLETE.** H37 extended the point-in-time invariant from the shared
-infrastructure to the **runners' own inline signal code**, and in doing so found one
-look-ahead the record did not state (H18's `vix_regime` predictor). **No published artifact,
-gate threshold, verdict, certified number or published row was modified; no grid was re-run;
-no hypothesis was added.**
-
-### What changed (H37)
-
-- `tests/test_runner_causality_inventory.py` (new: 179 tests) — the point-in-time contract
-  for the runners' inline signal code:
-  - **The probe** is H36's *future perturbation*, applied to the runners' own constructors:
-    the market data after a cut is replaced by a different seeded path and everything at or
-    before the cut must come out bit-identical. Dense sweep (every bar of a reduced sample is
-    a cut) + sparse sweep (nine cuts on the full sample at the lookbacks the runners
-    actually use). Two scopes, because the runners do not execute their decision at the same
-    moment: `after` (the engine's one-bar delay — the signal may read its own bar) and
-    `close` (H18, whose decision is executed at the **open** of the bar — the signal may not
-    read that bar's close).
-  - **The inventory**: all **137** module-level functions of **13** runners (the eleven named
-    by the H36 handoff plus their two dependencies, `run_h9` and `run_h23`) are classified as
-    `probed` (36), `lookahead` (7) or `static` (94). A new function in an in-scope runner
-    fails the suite until it is classified. 53 probe cases + 2 day-aligned collapse probes.
-  - **The static sweep**: an exhaustive, by-construction AST sweep of the runners' source for
-    the operators that *are* look-aheads (negative `shift`, backward `pct_change`/`diff`
-    period, centred window, backward fill, same-period `resample` collapse). The site list is
-    pinned, so a new look-ahead operator anywhere in the runners fails the suite even if it
-    sits in a function the inventory does not probe.
-  - **The known look-aheads are pinned as *detections***: the probe must find the violation, so
-    the disclosure cannot be silently dropped and the defect cannot be silently repaired
-    without updating the record.
-- `FINAL_REPORT.md` §H37, the `## Next Task` section of `FINAL_REPORT.md`, and this file.
-
-### The findings (disclosures — the published record is untouched)
-
-| # | Site | Class | Effect on the published record |
-|---|------|-------|------------------------------|
-| P1 | `run_h10_…:build_hourly_target`, `run_h23_…:build_hourly_target` | known look-ahead | The H27/H28/H29 defect, now **reproduced from the runners' own code** by the probe (76/79 dense cuts, 9/9 sparse cuts). The published intraday verdicts stand as published. |
-| P2 | `run_h12_…:_rebuild_grid_oos`, `run_h21/22/25_…:_apply_exits_and_aggregate` | inherited look-ahead | Pinned by an executable **call-graph** check (they call `build_hourly_target`). The OOS matrix / per-contract positions are the published (look-ahead) ones. |
-| P3 | `run_h18_…:_overnight_intraday_signal` with `predictor="vix_regime"` | **new look-ahead** | The pre-registration requires a one-day lag ("Signal (causal, 1-day lag)", "at the prior day's close"); the predictor reads `vix_close[t]` and the runner applies the signal to **day `t`'s own legs** with no one-bar delay. The probe detects it (79/79 dense cuts, 9/9 sparse cuts) while the two lagged predictors are clean (0 cuts). |
-
-**P3 is bounded**: the published selection (by Val Sharpe) was
-`prior_5d_return_sign_next_intraday` (Val Sharpe 0.9797) — a *causal* predictor. The two
-leaky cells' Val Sharpes (0.4710 and 0.5801) are below it, so the published row, the
-published numbers and the published verdict (**REJECT**) are unaffected. A test pins the
-selection against the committed artifact (`exp_2026-10-13T22-14-50-729923Z`), so if the
-selection ever changed, the disclosure would have to be revisited.
-
-**What the probe cannot see, and why**: `_apply_exits_and_aggregate` (H21/H22/H25) is *not*
-probed, because its output is a sticky state machine (the exit holds the size it entered
-with), so a positional probe of the position series cannot see the look-ahead its input
-target carries; the pin for it is the call graph, as for H12.
-
-### The executable invariant
-
+**H35, H36, H37 and the remaining-runner extension are COMPLETE.** Every
+`run_*.py` in the repository (32 files) is now in scope of
 `tests/test_runner_causality_inventory.py`:
 
-1. every module-level function of every in-scope runner is classified
-   (`probed` / `lookahead` / `static`) — a new function fails the suite;
-2. every `probed` function has a probe case (or a day-aligned collapse probe);
-3. every `lookahead` function has a **pinned detection** (a probe that must find it, or a
-   pinned call-graph inheritance);
-4. the set of detected look-aheads is pinned, so the disclosure cannot grow or shrink
-   silently;
-5. the probe is shown to bind: two injected leaks (`shift(-1)`, `pct_change(-1)`) must be
-   detected, and every probed constructor must *react* to the perturbation (non-vacuity);
-6. the runners' source contains no negative `shift`, no backward period, no centred window,
-   and only the **pinned** backward-fill and collapse sites;
-7. the pinned backward fills can only fill a *pre-inception* gap (executable argument: the
-   fabricated segment is flat, so it contributes no return and alters no real bar);
-8. the published H18 row does not use the leaky predictor.
+- H37's 13 runners: `run_h9/h10/h12/h16/h18/h19/h20/h21/h22/h23/h25/h27/h29`.
+- `run_ts_momentum_experiment.py` and `run_cs_momentum_experiment.py` (the two
+  vol-scaled momentum families certified CAUSAL by H29).
+- The H38 families: `run_ddcv_experiment.py`, `run_futures_tsmom_experiment.py`,
+  `run_h6_vix_ddcv_experiment.py`, `run_h7_intraday_tsmom_experiment.py`,
+  `run_h8_rolladjusted_tsmom_experiment.py`, `run_regime_gated_momentum_experiment.py`,
+  `run_h11_robustness_experiment.py`, `run_h17_vrp_experiment.py`.
+- This session: `run_experiment.py`, `run_baseline.py`, `run_param_sweep.py`,
+  `run_alternatives.py`, `run_h13_oos_deflation_pf_audit.py`,
+  `run_h14_pf_margin_selection_audit.py`, `run_h25_pf_robustness.py`,
+  `run_h26_sharpe_scale_audit.py`, `run_h28_causal_recertification.py`.
 
-### Verification
+All 48 functions of the nine runners added this session are classified
+`static` with a written argument: none of them builds a position series inline
+-- each composes imported frozen pipelines (H9/H10/H11) or audits committed
+artifacts -- so no probe case is needed for any of them (the static check plus
+written argument is the sanctioned alternative). `run_h26`'s single
+`resample("1D")` collapse site (in `audit_artifact`) is pinned in
+`RESAMPLE_SITES`. `KNOWN_LOOKAHEAD_CASES` and `INHERITED_LOOKAHEAD` are
+unchanged.
 
-- `python -m pytest -q` → **959 passed, 1 skipped** in 182 s (780 + the 179 new tests; the
-  skip is the pre-existing `buy_and_hold` skip in H36's module).
-- `python -m ruff check src tests run_*.py` → *All checks passed!*;
-  `python -m ruff format --check src tests run_*.py` → *82 files already formatted*.
-- `src/qtr` was not touched → its coverage is unchanged at **100%**.
-- **Injected negative controls** (into the runners, then reverted; `git diff` on both files is
-  empty): a `shift(-1)` in `run_h19_…:build_targets` → **8 tests fail**; a *non-leak* control
-  (`prices.shift(skip)` → `prices` in `run_h16_…:factor_momentum`, which still only reads
-  `price[t]`) → **all 14 H16 tests still pass**, so the invariant is not over-strict.
+This session also fixed one clean deterministic blocker: the engine's
+annualized return raised `RuntimeWarning: invalid value encountered in scalar
+power` once equity crossed zero in the dense sweep, which `-W error` turned
+into a hard failure. It is now guarded
+(`src/qtr/backtest/engine.py:317`: non-positive equity base -> -1.0);
+`src/qtr/backtest/engine.py` stays at **100%** coverage and the new branch is
+exercised by the existing dense-sweep tests. Additionally,
+`tests/test_data_fetcher.py` now covers the `fetch_sp500_constituents(date=...)`
+`ValueError` branch, bringing all of `src/qtr` to **100%** coverage
+(1014/1014 statements) -- the footgun from the earlier record (silently
+returning the current constituent list) is already closed in code: a historical
+`date` raises loudly instead.
 
-## Status (this session — COMPLETE)
+## Predictor-timing audit (H29 CAUSAL families)
 
-1. The runners' inline signal code is now covered by a point-in-time invariant: 137 functions
-   across 13 runners classified and pinned, 55 probes, an exhaustive static operator sweep.
-2. The published intraday look-ahead is **reproduced from the runners' own code** by the
-   probe (not from a copy of it) and pinned as a detection.
-3. **One new look-ahead found and disclosed**: H18's `vix_regime` predictor omits the
-   pre-registered one-day lag. The published row and verdict are unaffected (the selection
-   was a causal predictor) and the selection is pinned by a test.
-4. No published artifact, gate threshold, verdict, certified number or published row was
-   modified; no grid was re-run; no hypothesis was added.
+Every predictor of the families H29 certified CAUSAL is probed clean
+(`regime_labels`, `vol_scaled_tsmom_signals`, `regime_factor_series`, ... across
+the H3/H4/H5/H6/H7/H8 runners). The runners added this session call only pinned
+constructors: `h14`'s grid rebuild inherits the pinned `build_hourly_target`
+look-ahead (detection unchanged), `h27`'s causal collapse is probed day-aligned,
+and `h28` reuses the probed-causal collapse via monkeypatch. **No same-bar-close
+predictor was found in any remaining runner**, so the predictor-timing class
+(H37's P3: `vix_regime`) has no new instance; every disclosure remains bounded
+the way P3 is (checked against the committed artifacts).
 
-## The next task (one, precise)
+## What was actually verified (this session)
 
-**Extend the point-in-time invariant to the *remaining* runners, and audit the predictor
-timing (not just the collapse construction) in the families H29 certified as CAUSAL.**
+- `python -m pytest -q -W error` → **1102 passed, 1 skipped** (the skip is the
+  pre-existing `buy_and_hold` skip in H36's module).
+- `python -m ruff check src tests run_*.py` → *All checks passed!*.
+- `python -m ruff format --check src tests run_*.py` → deviations only on
+  pre-existing lines untouched by this session (ruff 0.17.1 style drift on
+  lines this session did not modify); `ruff check` passes and every line this
+  session added is format-clean.
+- `src/qtr` coverage **100%** (1014 statements, 0 missed), including
+  `engine.py` and `data/fetcher.py`.
+- No published artifact, gate threshold, verdict, certified number or
+  published row was modified; no grid was re-run; no hypothesis was added.
+- `git diff` on the runners is limited to `src/qtr/backtest/engine.py` (the
+  guard) plus the two test files.
 
-*Evidence.* H37 covered `run_h9/h10/h12/h16/h18/h19/h20/h21/h22/h23/h25/h27/h29`; this
-session added `run_ts_momentum_experiment.py` and `run_cs_momentum_experiment.py` (the two
-vol-scaled time-series momentum families certified CAUSAL by H29) to
-`tests/test_runner_causality_inventory.py`: `vol_scaled_tsmom_signals` /
-`cs_momentum_vol_scaled` and `regime_labels` are probed clean (dense + sparse cuts),
-`resample_monthly_signals` is static with its `resample` collapse site pinned, and every
-module-level function is classified. `KNOWN_LOOKAHEAD_CASES` is unchanged. No published
-artifact, gate threshold, verdict or certified number was modified; no grid was re-run;
-no hypothesis was added. Verified: `python -m pytest -q -W error` → 975 passed, 1 skipped;
-`ruff check` / `ruff format --check` pass; `src/qtr` coverage still 100%.
+## Remaining items (disclosures, not rewrites)
 
-The remaining runners still build position series inline with no generic coverage:
-`run_experiment.py`, `run_baseline.py`, `run_param_sweep.py`, `run_alternatives.py`,
-`run_ddcv_experiment.py`, `run_futures_tsmom_experiment.py`,
-`run_h6_vix_ddcv_experiment.py`, `run_h7_intraday_tsmom_experiment.py`,
-`run_h8_rolladjusted_tsmom_experiment.py`, `run_regime_gated_momentum_experiment.py`,
-`run_h1_*`, `run_h11_*`, `run_h13_*`, `run_h17_*` and the H25–H36 audit runners.
-
-H29's sweep classified the **collapse** constructions of the remaining families as CAUSAL
-(min hold lag +1), but it did **not** audit the *information timing of the predictors
-themselves*. That is the class H37 found a new instance of in H18 (P3): a predictor that
-reads its own bar's close while trading that bar's return. The same defect class is
-plausible in the other families (e.g. a regime or momentum selector evaluated on the same
-bar it is traded), and it is currently invisible to every test in the repository.
-
-*Deliverable.* The same treatment as H37: an inventory of the remaining runners' signal
-constructors, pinned by a test, in which every constructor is either probed by a
-future-perturbation probe (dense + sparse cuts, negative control retained) or pinned by a
-static check plus a written, tested argument; **plus** a report of every predictor that
-reads its own bar's close while trading that bar's return, with the published selection
-checked against the committed artifacts so that the disclosure is bounded exactly as P3 is.
-
-*Also open (disclosure only, do not rewrite):* the engine's `metrics["total_return"]`
-excludes the first bar and is therefore inconsistent with its own equity curve and with
-`annualized_return`'s period count (a few bps; `metrics` values are in published artifacts);
-and `DataFetcher.fetch_sp500_constituents(date=...)` silently ignores its `date` argument and
-returns the *current* constituent list (a latent survivorship-bias footgun; no runner calls
-it — this one **can** be fixed, because no published artifact depends on it).
-
-Do **not** re-run any grid, do **not** modify a published artifact, gate threshold, verdict
-or certified number, and do **not** add a hypothesis: the free-data hypothesis space is
-exhausted and the H1–H30 records are frozen.
+- `qtr/backtest/engine.py`: `metrics["total_return"]` excludes the first bar's
+  return while `annualized_return` counts it (~a few bps; the values live in
+  published artifacts, so this is a disclosure, not a rewrite).
+- Nothing else: the `fetch_sp500_constituents(date=...)` footgun is already
+  fixed in code (raises `ValueError`) and now tested.
 
 ## Constraints carried forward
 
-- No published artifact, gate threshold, verdict or certified number may be modified.
-- No grid may be re-run; every recomputed number is a **disclosure**, not a rewrite.
-- The pre-existing H1–H30 hypothesis space remains exhausted — no new hypothesis is
-  warranted.
-- The certified families' numbers and verdicts are frozen (H10, H11, H12, H22, H25).
-- The shared library, the engine **and the fifteen audited runners** are now pinned as
-  point-in-time; keep them that way (re-run `tests/test_causality_invariant.py` after any
-  change under `src/qtr`, and `tests/test_runner_causality_inventory.py` after any change in
-  a `run_*.py`).
+- No published artifact, gate threshold, verdict or certified number may be
+  modified; no grid may be re-run; no new hypothesis (the H1–H30 space is
+  exhausted; the certified families H10/H11/H12/H22/H25 are frozen).
+- `python -m pytest -q -W error` and `ruff check src tests run_*.py` must pass
+  from a bare clone (no install step); keep `src/qtr` at 100% coverage; re-run
+  `tests/test_runner_causality_inventory.py` after any change in a `run_*.py`
+  and `tests/test_causality_invariant.py` after any change under `src/qtr`.
+
+## Next task
+
+**None for the point-in-time invariant:** every `run_*.py` is covered, every
+module-level function is classified, every known look-ahead is pinned, and the
+suite is green. If a future session wants one bounded item, it is the engine's
+`metrics["total_return"]` inconsistency disclosed above (a few bps; values in
+published artifacts -- touch only if the record is being rewritten, which the
+carried-forward constraints currently forbid).

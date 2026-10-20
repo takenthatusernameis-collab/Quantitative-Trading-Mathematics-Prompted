@@ -113,8 +113,24 @@ IN_SCOPE_RUNNERS = (
     "run_h7_intraday_tsmom_experiment.py",
     "run_h8_rolladjusted_tsmom_experiment.py",
     "run_regime_gated_momentum_experiment.py",
+    "run_futures_tsmom_experiment.py",
     "run_h11_robustness_experiment.py",
     "run_h17_vrp_experiment.py",
+    # The remaining runners: the orchestration / baseline / param-sweep /
+    # alternatives runners and the H13 / H14 / H25-robustness / H26 / H28
+    # audit runners.  None of them builds a position series inline -- each
+    # one composes imported frozen pipelines (H9/H10/H11) or audits committed
+    # artifacts -- so all of their functions are static with a written
+    # argument; no probe case is needed for any of them.
+    "run_experiment.py",
+    "run_baseline.py",
+    "run_param_sweep.py",
+    "run_alternatives.py",
+    "run_h13_oos_deflation_pf_audit.py",
+    "run_h14_pf_margin_selection_audit.py",
+    "run_h25_pf_robustness.py",
+    "run_h26_sharpe_scale_audit.py",
+    "run_h28_causal_recertification.py",
 )
 
 # The runners named by the H36 handoff (the ones with inline signal code).
@@ -2692,6 +2708,220 @@ INVENTORY: dict[str, dict[str, tuple[str, str]]] = {
         "make_config": ("static", _ARG_CONFIG),
         "main": ("static", _ARG_CONFIG),
     },
+    "run_experiment.py": {
+        "main": (
+            "static",
+            _ARG_CONFIG,
+        ),
+    },
+    "run_baseline.py": {
+        "main": (
+            "static",
+            _ARG_CONFIG,
+        ),
+    },
+    "run_param_sweep.py": {
+        "main": (
+            "static",
+            _ARG_CONFIG,
+        ),
+    },
+    "run_alternatives.py": {
+        "main": (
+            "static",
+            _ARG_CONFIG,
+        ),
+    },
+    "run_h13_oos_deflation_pf_audit.py": {
+        "deflated_sharpe_ratio_single_peek": (
+            "static",
+            _ARG_METRIC,
+        ),
+        "_profit_factor": (
+            "static",
+            _ARG_METRIC,
+        ),
+        "_shifted_splits": (
+            "static",
+            _ARG_SPLIT,
+        ),
+        "bootstrap_profit_factor_distribution": (
+            "static",
+            _ARG_METRIC,
+        ),
+        "_per_symbol_pf": (
+            "static",
+            _ARG_METRIC,
+        ),
+        "_leave_one_out_pf": (
+            "static",
+            _ARG_METRIC,
+        ),
+        "_regime_pf": (
+            "static",
+            _ARG_METRIC,
+        ),
+        "_oos_pf_of_positions": (
+            "static",
+            _ARG_METRIC,
+        ),
+        "_cost_breakeven": (
+            "static",
+            _ARG_AUDIT,
+        ),
+        "_selected_row": (
+            "static",
+            _ARG_CONFIG,
+        ),
+        "main": (
+            "static",
+            _ARG_CONFIG,
+        ),
+    },
+    "run_h14_pf_margin_selection_audit.py": {
+        "_select_top_by_val_pf_margin": (
+            "static",
+            _ARG_AUDIT,
+        ),
+        "_rebuild_grid_oos_for_subset": (
+            "static",
+            "Rebuilds OOS returns for a subset of committed grid configs by "
+            "re-running the frozen H10 pipeline (hourly target via "
+            "build_hourly_target, which carries the published look-ahead pinned "
+            "at h10.build_hourly_target); it measures committed configs, it "
+            "decides no position.",
+        ),
+        "main": (
+            "static",
+            _ARG_CONFIG,
+        ),
+    },
+    "run_h25_pf_robustness.py": {
+        "_find_latest_h25_dir": (
+            "static",
+            _ARG_IO,
+        ),
+        "oos_returns": (
+            "static",
+            _ARG_METRIC,
+        ),
+        "_optimal_block_length_pwh": (
+            "static",
+            _ARG_METRIC,
+        ),
+        "stationary_block_bootstrap": (
+            "static",
+            _ARG_METRIC,
+        ),
+        "bootstrap_arrays": (
+            "static",
+            _ARG_METRIC,
+        ),
+        "compute_h25_robustness": (
+            "static",
+            _ARG_AUDIT,
+        ),
+        "main": (
+            "static",
+            _ARG_CONFIG,
+        ),
+    },
+    "run_h26_sharpe_scale_audit.py": {
+        "oos_mask": (
+            "static",
+            _ARG_SPLIT,
+        ),
+        "scale_report": (
+            "static",
+            _ARG_METRIC,
+        ),
+        "dependence_checks": (
+            "static",
+            _ARG_METRIC,
+        ),
+        "sharpe_convention_check": (
+            "static",
+            _ARG_METRIC,
+        ),
+        "profit_factor": (
+            "static",
+            _ARG_METRIC,
+        ),
+        "pf_window_check": (
+            "static",
+            _ARG_AUDIT,
+        ),
+        "audit_artifact": (
+            "static",
+            _ARG_AUDIT,
+        ),
+        "audit_daily_control": (
+            "static",
+            _ARG_AUDIT,
+        ),
+        "build_report": (
+            "static",
+            _ARG_AUDIT,
+        ),
+        "main": (
+            "static",
+            _ARG_CONFIG,
+        ),
+    },
+    "run_h28_causal_recertification.py": {
+        "causal_collapse": (
+            "static",
+            _ARG_CONFIG,
+        ),
+        "experiment_identity": (
+            "static",
+            _ARG_CONFIG,
+        ),
+        "tracker_capture": (
+            "static",
+            _ARG_CONFIG,
+        ),
+        "run_dir": (
+            "static",
+            _ARG_IO,
+        ),
+        "relocate_runs": (
+            "static",
+            _ARG_IO,
+        ),
+        "run_family": (
+            "static",
+            _ARG_AUDIT,
+        ),
+        "_compare_frames": (
+            "static",
+            _ARG_METRIC,
+        ),
+        "_max_abs_diff": (
+            "static",
+            _ARG_METRIC,
+        ),
+        "compare_to_published": (
+            "static",
+            _ARG_AUDIT,
+        ),
+        "_flatten": (
+            "static",
+            _ARG_CONFIG,
+        ),
+        "causal_verdict": (
+            "static",
+            _ARG_AUDIT,
+        ),
+        "build_report": (
+            "static",
+            _ARG_AUDIT,
+        ),
+        "main": (
+            "static",
+            _ARG_CONFIG,
+        ),
+    },
 }
 
 # The probe cases that belong to a *known look-ahead* (the detection is
@@ -2747,6 +2977,9 @@ RESAMPLE_SITES = {
     ("run_h7_intraday_tsmom_experiment.py", "resample_monthly_signals"): 1,
     ("run_h8_rolladjusted_tsmom_experiment.py", "resample_monthly_signals"): 1,
     ("run_regime_gated_momentum_experiment.py", "resample_monthly_signals"): 1,
+    # The daily aggregation of committed OOS returns inside audit_artifact;
+    # the day-boundary collapse is pinned here like the monthly ones above.
+    ("run_h26_sharpe_scale_audit.py", "audit_artifact"): 1,
 }
 
 

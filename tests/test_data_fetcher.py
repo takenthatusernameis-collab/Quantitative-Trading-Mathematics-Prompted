@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from qtr.data.fetcher import DataCache, DataFetcher
 
@@ -61,6 +62,14 @@ def test_fetch_sp500_fallback(monkeypatch):
     fetcher = DataFetcher(cache=DataCache(cache_dir=d))
     res = fetcher.fetch_sp500_constituents()
     assert res == ["SPY", "IVV", "VOO", "SPLG"]
+
+
+def test_fetch_sp500_constituents_rejects_date(tmp_path):
+    """A historical ``date`` must raise loudly instead of returning the
+    current list (which would introduce survivorship bias)."""
+    fetcher = DataFetcher(cache=DataCache(cache_dir=tmp_path))
+    with pytest.raises(ValueError, match="point-in-time lookup"):
+        fetcher.fetch_sp500_constituents(date="2020-01-01")
 
 
 def test_fetch_yahoo_empty_result(monkeypatch):

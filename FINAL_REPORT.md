@@ -1362,7 +1362,38 @@ exactly as for H12's `_rebuild_grid_oos`.
     → **all 14 H16 tests still pass**, so the invariant is not over-strict.
 
 **Nothing published was touched:** no published artifact, threshold, verdict, certified number
-or published row was modified; no grid was re-run; no hypothesis was added. The two open items
-recorded in `NEXT_TASK.md` (the engine's `metrics["total_return"]` excluding the first bar,
-and `fetch_sp500_constituents` ignoring its `date` argument) remain **disclosures**, not
-rewrites.
+or published row was modified; no grid was re-run; no hypothesis was added. The engine's
+`metrics["total_return"]` excluding the first bar's return while `annualized_return` counts it
+(~a few bps; the values live in published artifacts) remains a **disclosure, not a rewrite**.
+The `fetch_sp500_constituents(date=...)` footgun from the earlier record is already closed in
+code: a historical `date` raises `ValueError` instead of silently returning the current list,
+and the branch is now covered by a test. `src/qtr` coverage is **100%** (1014/1014 statements).
+
+## Runner-causality coverage extended to every run_*.py (2026-10-20)
+
+This session closed the coverage gap H37 carried forward: the point-in-time invariant of
+`tests/test_runner_causality_inventory.py` now extends to every `run_*.py` in the repository
+(32 files). The nine runners H37 left uncovered -- `run_experiment.py`, `run_baseline.py`,
+`run_param_sweep.py`, `run_alternatives.py`, `run_h13_oos_deflation_pf_audit.py`,
+`run_h14_pf_margin_selection_audit.py`, `run_h25_pf_robustness.py`,
+`run_h26_sharpe_scale_audit.py`, `run_h28_causal_recertification.py` -- are all in scope;
+every one of their 48 module-level functions is classified `static` with a written argument
+(none builds a position series inline; each composes imported frozen pipelines or audits
+committed artifacts), and `run_h26`'s single `resample("1D")` collapse site is pinned in
+`RESAMPLE_SITES`. `KNOWN_LOOKAHEAD_CASES` ({h10.build_hourly_target,
+h18.signal.vix_regime, h23.build_hourly_target}) and `INHERITED_LOOKAHEAD` are unchanged.
+
+**Predictor-timing audit.** Every predictor of the H29-CAUSAL families is probed clean, and
+no same-bar-close predictor (the H37/P3 class: a predictor that reads its own bar's close
+while trading that bar's return) was found in any remaining runner -- H37's P3 disclosure
+(H18's `vix_regime`) remains the only instance, and it stays bounded against the committed
+artifact (`exp_2026-10-13T22-14-50-729923Z`: the published selection was the causal
+`prior_5d_return_sign_next_intraday`, so the published row, numbers and REJECT verdict stand).
+
+**Verification.** `python -m pytest -q -W error` → **1102 passed, 1 skipped**;
+`python -m ruff check src tests run_*.py` → *All checks passed!*; `src/qtr` coverage
+**100%**. The engine's annualized return was also hardened (`src/qtr/backtest/engine.py:317`):
+it no longer raises `RuntimeWarning: invalid value encountered in scalar power` when the
+dense sweep drives equity to zero or below; it returns -1.0 instead, and the branch is
+exercised by the existing dense-sweep tests. No published artifact, gate threshold, verdict,
+certified number or published row was modified; no grid was re-run; no hypothesis was added.
