@@ -689,6 +689,7 @@ class TestValidateStrategy:
 
 def test_purged_kfold_basic():
     from qtr.validation.statistics import purged_kfold_splits
+
     splits = purged_kfold_splits(100, n_splits=5)
     assert len(splits) == 5
     for tr, te in splits:
@@ -698,6 +699,7 @@ def test_purged_kfold_basic():
 
 def test_purged_kfold_purge_embargo():
     from qtr.validation.statistics import purged_kfold_splits
+
     splits = purged_kfold_splits(100, n_splits=5, purge=2, embargo=2)
     # train should not contain samples within purge of test
     for tr, te in splits:
@@ -710,6 +712,7 @@ def test_purged_kfold_purge_embargo():
 
 def test_purged_kfold_invalid():
     from qtr.validation.statistics import purged_kfold_splits
+
     assert purged_kfold_splits(0, 5) == []
     assert purged_kfold_splits(10, 0) == []
     assert purged_kfold_splits(3, 5) == []
@@ -717,6 +720,7 @@ def test_purged_kfold_invalid():
 
 def test_combinatorial_purged_cv_basic():
     from qtr.validation.statistics import combinatorial_purged_cv
+
     splits = combinatorial_purged_cv(100, n_splits=5, n_test_splits=2)
     # C(5,2)=10
     assert len(splits) == 10
@@ -727,6 +731,7 @@ def test_combinatorial_purged_cv_basic():
 
 def test_combinatorial_purged_cv_invalid():
     from qtr.validation.statistics import combinatorial_purged_cv
+
     assert combinatorial_purged_cv(0, 5, 2) == []
     assert combinatorial_purged_cv(100, 5, 0) == []
     assert combinatorial_purged_cv(100, 5, 5) == []
