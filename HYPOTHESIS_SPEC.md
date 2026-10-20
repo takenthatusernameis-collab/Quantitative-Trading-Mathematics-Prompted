@@ -4698,7 +4698,7 @@ benchmark-significance gate.
 | H12 | frozen H10 p | 4.7903e-10 (Bonferroni) | +0.9248 | True | True | **certified** |
 | H16 | `exp_2026-10-13T21-11-45-843908Z` | 0.20836 | −0.4764 | False | False | — |
 | H17 | `exp_2026-10-13T21-51-45-034237Z` | 0.53389 | −0.2396 | False | False | — |
-| H18 | `exp_2026-10-13T22-13-37-475937Z` | 1.0 (vacuous) | −0.5968 | False | False | H33 repair: p = 0.040985 → wrong reason → still False |
+| H18 | `exp_2026-10-13T22-14-50-729923Z` | 1.0 (vacuous) | −0.5968 | False | False | H33 repair: p = 0.040985 → wrong reason → still False |
 | H19 | `exp_2026-10-13T22-40-41-870350Z` | 0.0026022 | −0.8798 | **True** | **False** | **wrong-reason pass** |
 | H20 | `exp_2026-10-13T23-06-33-191710Z` | 0.0159482 | −0.7040 | **True** | **False** | **wrong-reason pass** |
 | H21 | `exp_2026-10-13T23-27-52-101656Z` | 1.9148e-10 | +0.9459 | True | True | genuine |
@@ -4759,3 +4759,117 @@ cleanup" is superseded — the cleanup is done.
   `tests/test_benchmark_gate_contract.py`, which fails if any committed artifact carries an
   undisclosed benchmark p-pass that is not evidence for the hypothesis (wrong direction or not
   significant).
+
+---
+
+## H35 — The published gates must fail closed (2026-10-20)
+
+### Motivation
+
+H33 found three benchmark gates that evaluated a **constant** instead of a statistic, and
+H34 closed the *direction* half of the same defect class. H35 closes the remaining half: a
+gate that **is** a constant, or that compares a **placeholder** constant, can never fail, so
+it contributes a **free PASS** to the published tally. Such a gate is not evidence for the
+hypothesis — it is a gate that never tests anything.
+
+H35 is an **offline static audit** of every gate site in the repository. **No grid was
+re-run, no artifact was modified, no threshold, verdict or certified number changed.**
+
+### The audit
+
+Every gate site in every `run_*.py` is parsed and every gate expression is classified:
+
+| class | meaning | example |
+|-------|---------|---------|
+| evaluating | depends on a computed statistic | `oos_m["sharpe"] >= GATES["min_sharpe"]` |
+| **constant** | the gate *is* a literal | `"min_worst_regime_sharpe": True` |
+| **placeholder** | the gate compares a name that is only ever assigned a constant | `perturbation_ratio >= 0.5` with `perturbation_ratio = 1.0` |
+| **permissive default** | the threshold is read with a fallback that makes the gate unconditional | `ir > GATES.get("min_information_ratio", -1e18)` |
+
+### Findings
+
+| # | Site | Class | Effect on the published record |
+|---|------|-------|------------------------------|
+| F1 | `run_h7_intraday_tsmom_experiment.py:466-467` | constant | `min_perturbed_sharpe_ratio` and `min_worst_regime_sharpe` are hard-coded `True`; H7 never computes either statistic. **Two of H7's nine gates can never fail.** |
+| F2 | `run_h18_overnight_intraday_experiment.py:764` | placeholder | `perturbation_ratio = 1.0  # Placeholder`, so the `perturbation_ratio` gate (`>= 0.5`) can never fail. **One of H18's nine gates can never fail.** |
+| F3 | `run_h18_overnight_intraday_experiment.py:768-807, 831-874` | drift risk | H18 is the only runner that spells its nine thresholds out instead of reading a shared `GATES` dict; a change to the shared set would silently not apply to H18. The values are currently **equal** to the shared PROMPT_V2 gate set. |
+| F4 | `run_futures_tsmom_experiment.py:547`, `run_ddcv_experiment.py:457`, `run_h6_vix_ddcv_experiment.py:553` | permissive default | the IR threshold was read as `GATES.get("min_information_ratio", -1e18)`; with the sentinel the gate is unconditionally true whenever the key is absent. **Latent** — the key exists in all three runners, so no published number changes. |
+
+**No certified family is affected.** The audit finds a non-evaluating gate in **H7 and H18
+only**; the certified families (H9, H10, H11, H12, H21, H22, H25) and every other family
+(H1–H6, H8, H13–H20, H23–H29) evaluate all of their gates.
+
+### The disclosed non-evaluating gates
+
+Recomputed **offline from the committed artifacts** (no grid re-run):
+
+| Family | published tally | of which free PASSes | tally on the evaluable gates | verdict |
+|--------|-----------------|----------------------|------------------------------|---------|
+| H7 | **4/9** (`exp_2026-10-19T18-56-08-872500Z`) | 2 (`min_perturbed_sharpe_ratio`, `min_worst_regime_sharpe`) | **2/7** | REJECT (unchanged) |
+| H18 | **2/9** (`exp_2026-10-13T22-14-50-729923Z`) | 1 (`perturbation_ratio`) | **1/8** | REJECT (unchanged) |
+
+Forcing the disclosed gates to False leaves both families short of an all-pass, so **no
+published verdict rests on a gate that never tests anything**. The published artifacts are
+immutable and are not rewritten; the table above is a disclosure.
+
+### The fix
+
+Only **F4** is changed in the runners, and the change is behaviour-preserving: the IR
+threshold is read by direct subscript (`GATES["min_information_ratio"]`) instead of through a
+permissive default, so a missing threshold now fails loudly instead of silently making the
+gate unconditionally true. The key exists in all three runners and its value (`0.0`) is
+unchanged, so **no published number, tally, threshold or verdict changes**.
+
+F1, F2 and F3 are **disclosed and pinned, not silently repaired**: implementing the missing
+perturbation / worst-regime statistics would require re-running the H7 and H18 grids, which
+the constraints forbid, and it would change published tallies.
+
+### The executable invariant
+
+`tests/test_gate_vacuity_contract.py` (11 tests) pins the class:
+
+1. no runner may read a gate threshold through `GATES.get(key, default)`;
+2. every `GATES["key"]` a runner reads must exist in that runner's `GATES` dict, resolved
+   through the `from X import GATES` chain (so the derived runners are covered too);
+3. the set of gates that are a constant or that compare a placeholder is **pinned to the
+   disclosed set** — a new always-true gate fails the suite;
+4. forcing the disclosed gates to False changes no published verdict, recomputed offline
+   from the committed artifacts;
+5. H18's hard-coded thresholds are pinned **equal** to the shared gate set;
+6. the published H18 artifact is the one its Measure Log names
+   (`exp_2026-10-13T22-14-50-729923Z`, 2/9), not one of its two earlier siblings.
+
+### The `alpha_p_value_one_sided` item (closed)
+
+H34 carried one small item forward: the library returns `alpha_p_value_one_sided`, an
+**informational** one-sided view of the benchmark comparison that no runner reads. It is
+**kept**, but `compare_to_benchmark`'s docstring now states explicitly that it is *not* the
+gate's statistic — a one-sided test at 5% is a two-sided test at 10%, so it is strictly
+*looser* than the published gate and would admit passes the gate rejects. A new test in
+`tests/test_benchmark_gate_contract.py` pins that non-equivalence on a sample whose two-sided
+p-value is 0.0609 (the gate rejects it) while its one-sided p-value is 0.0304 (the one-sided
+rule would accept it).
+
+### A correction to the H34 disclosure tables (citation only)
+
+The H34 tables in `FINAL_REPORT.md` and in this file cite H18's artifact as
+`exp_2026-10-13T22-13-37-475937Z`. H18's **published** row is
+`exp_2026-10-13T22-14-50-729923Z` — the experiment named in H18's Measure Log (above) and in
+the H33 evidence section, and the only one whose gate tally is the published 2/9. The two
+earlier siblings record a 3/9 tally: their `max_drawdown` gate still read `True` although the
+OOS drawdown is 22.2% against a 15% limit (the drawdown gate was corrected before the
+published run). The H34 rows' **numbers** (p = 1.0 vacuous, IR = −0.5968, p-gate `False`)
+are identical in all three artifacts, so only the **pointer** is corrected. No published
+number changes.
+
+### Verification
+
+- `python -m pytest -q -W error` → **748 passed** (736 + 12 new).
+- `python -m pytest --cov=qtr --cov-report=term-missing` → `src/qtr` coverage **100%**
+  (1010 statements, 0 missed).
+- **Negative control:** the same test module run against the pre-H35 runner sources
+  (`git checkout` of the three changed runners) fails **1** test and names the three
+  permissive-default sites, so the contract really binds the change.
+- No published artifact, gate threshold, verdict or certified number was modified; no grid
+  was re-run; no hypothesis was added — the pre-registered free-data hypothesis space
+  (H1–H30) remains exhausted.

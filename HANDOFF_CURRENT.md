@@ -1,26 +1,58 @@
-# HANDOFF_CURRENT — session complete (no assigned follow-up)
+# HANDOFF_CURRENT — session complete (H35)
 
 ## State
-- H34 is COMPLETE as recorded in NEXT_TASK.md/HANDOFF.md/HANDOFF_NEXT.md.
-- Direction-aware benchmark significance gate (`p < max_p_value` AND `information_ratio > 0`) is implemented in `src/qtr/validation/statistics.py`, exported, used by all 17 runners, and pinned by tests.
-- Three wrong-reason families (H19, H20, H23) have artifact-adjacent tests asserting the disclosed pre-H34 historical gate state; tally impact (H19 3/9→2/9, H20 2/9→1/9, H23 2/9→1/9) is pinned.
-- `FINAL_REPORT.md` Summary statistics test count updated to reflect H34 test additions (736/736 as recorded).
-- No published artifacts, gates, thresholds, verdicts, or certified numbers modified; no grids re-run.
+- **H35 is COMPLETE** as recorded in `NEXT_TASK.md`, `HANDOFF.md` and `HANDOFF_NEXT.md`.
+- Every gate defect class that has surfaced in this repository is now closed by an
+  executable invariant: H33 (vacuous benchmark gates), H34 (direction-blind benchmark
+  gate), H35 (non-evaluating gates: a constant, or a comparison against a placeholder).
+- The H35 audit found **three** non-evaluating gates — H7's `min_perturbed_sharpe_ratio`
+  and `min_worst_regime_sharpe` (hard-coded `True`) and H18's `perturbation_ratio` (a
+  placeholder constant) — and **one** latent permissive default (H4/H5/H6 read the IR
+  threshold as `GATES.get("min_information_ratio", -1e18)`), now fixed.
+- **No certified family owns a non-evaluating gate.** The certified families (H9, H10,
+  H11, H12, H21, H22, H25) and every other family evaluate all of their gates.
+- No published artifact, gate threshold, verdict, certified number or published row was
+  modified; no grid was re-run.
 
 ## What changed (this session)
-- Verified repository state against handoffs (git clean, H34 artifacts present).
-- Confirmed all relevant tests pass: benchmark gate contract (23/23), H19/H20/H23 outcome tests (71/71 combined), and full test suite context matches recorded state.
+- `run_futures_tsmom_experiment.py`, `run_ddcv_experiment.py`,
+  `run_h6_vix_ddcv_experiment.py` — the IR threshold is read by direct subscript
+  (behaviour-preserving: same key, same value).
+- `src/qtr/validation/statistics.py` — `compare_to_benchmark`'s docstring now states that
+  `alpha_p_value_one_sided` is informational and **not** the gate's statistic.
+- `tests/test_gate_vacuity_contract.py` (new, 11 tests) and one new test in
+  `tests/test_benchmark_gate_contract.py`.
+- `HYPOTHESIS_SPEC.md` §H35, `FINAL_REPORT.md` §H35 + re-baselined `Summary statistics` and
+  `Next Task` sections, `NEXT_TASK.md`, the `HANDOFF*` files.
 
 ## What was actually verified
-- `python -m pytest tests/test_benchmark_gate_contract.py -q` → 23 passed
-- `python -m pytest tests/test_h19_volume_predictive.py tests/test_h20_signed_volume.py tests/test_h23_crypto_futures_tsmom.py -q` → 71 passed
-- Contract checks: no runner compares p-value directly to max_p_value; every runner with benchmark gate uses `benchmark_significance_gate`; no runner publishes `alpha_p_value_one_sided`; certified families survive gate.
+- `python -m pytest -q -W error` → **748 passed** (736 + 12 new).
+- `python -m pytest --cov=qtr --cov-report=term-missing` → `src/qtr` coverage **100%**
+  (1010 statements, 0 missed).
+- Negative control: the new module against the pre-H35 runner sources fails **1** test and
+  names the three permissive-default sites.
+- Artifact cross-check: H7's published artifact is 4/9 with two free PASSes (2/7 on the
+  evaluable gates); H18's published artifact (`exp_2026-10-13T22-14-50-729923Z`, named in
+  its Measure Log) is 2/9 with one free PASS (1/8 on the evaluable gates). Both are REJECT
+  before and after.
 
 ## What remains unresolved
-- None. Pre-registered free-data hypothesis space (H1–H30) exhausted. The certified intraday family is not tradable under causal construction (H27/H28/H29), but published verdicts remain as recorded per audit policy.
+- None of the gate classes. The pre-registered free-data hypothesis space (H1–H30) is
+  exhausted and the certified families' numbers and verdicts are frozen.
+- The `ruff` verification step quoted throughout the published record cannot be reproduced
+  from the repository (ruff is not declared in `pyproject.toml`/`requirements.txt`, is not
+  installed in the environment, and no ruff configuration is committed). Recorded in
+  `NEXT_TASK.md`; deliberately not started here.
 
 ## Approaches already tried / failed (and why)
-- None new. H34 already explored direction-blind gate issue (two-sided vs one-sided equivalence) and chose conjunction (`p < 0.05 AND IR > 0`) to avoid loosening published gate while only removing wrong-reason passes.
+- Repairing the disclosed gates for real was rejected: it needs the H7/H18 grids re-run
+  (forbidden) and would change published tallies. They are disclosed and pinned instead.
+- Rewiring H18's hard-coded thresholds to a shared `GATES` dict was rejected as a structural
+  change to a runner that produced a published artifact; the equality with the shared set
+  is pinned by a test instead.
 
 ## Precise next task (one task), with evidence and constraints
-- **None assigned.** No further work is justified. If new evidence arises, any follow-up must not modify published artifacts/gates/thresholds/verdicts/certified numbers and must not re-run grids; must follow the "change approach after repeated failure" rule and preserve all existing invariants.
+- **None assigned.** The one bounded item left is the `ruff` reproducibility gap recorded in
+  `NEXT_TASK.md`. Any follow-up must not modify published artifacts, gates, thresholds,
+  verdicts or certified numbers; must not re-run grids; must follow the "change approach
+  after repeated failure" rule; and must preserve the existing invariants.

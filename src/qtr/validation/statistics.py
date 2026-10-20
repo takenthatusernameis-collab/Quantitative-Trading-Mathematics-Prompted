@@ -463,6 +463,15 @@ def compare_to_benchmark(
     its equal-weighted return series; passing price *levels* instead of
     returns mixes units and makes every statistic below meaningless.
 
+    ``alpha_p_value`` is the **two-sided** p-value and is the statistic the
+    published benchmark-significance gate is built on (see
+    :func:`benchmark_significance_gate`). ``alpha_p_value_one_sided`` is an
+    **informational** view of the same comparison and is deliberately NOT the
+    gate's statistic: a one-sided test at level 0.05 is a two-sided test at
+    0.10, so it is strictly *looser* than the published gate and would admit
+    passes the gate rejects. It is kept because it is a useful diagnostic, and
+    it must never be substituted for the gate.
+
     Args:
         strategy_returns: Strategy return series
         benchmark_returns: Benchmark return series

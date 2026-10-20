@@ -141,6 +141,33 @@ def test_one_sided_p_is_direction_aware(rng):
     assert neg["alpha_p_value_one_sided"] > 0.5
 
 
+def test_the_one_sided_p_value_is_not_the_gate_statistic(rng):
+    """``alpha_p_value_one_sided`` is the informational one-sided view of the
+    same comparison, **not** the gate's statistic. A one-sided test at 5% is a
+    two-sided test at 10%, so it is strictly *looser* than the published gate:
+    it admits passes the gate rejects. Substituting it for the gate would
+    loosen the published benchmark-significance rule."""
+    # A sample whose two-sided p-value is above the 5% gate but whose
+    # one-sided p-value is below 5%.
+    seeded = np.random.default_rng(36)
+    strat = seeded.normal(0.0009, 0.01, 400)
+    bench = np.zeros(400)
+    res = compare_to_benchmark(strat, bench)
+
+    two_sided = res["alpha_p_value"]
+    one_sided = res["alpha_p_value_one_sided"]
+    assert 0.05 <= two_sided < 0.10
+    assert one_sided == pytest.approx(two_sided / 2.0, rel=1e-12)
+    assert one_sided < 0.05
+
+    # the published gate rejects it ...
+    assert benchmark_significance_gate(
+        two_sided, res["information_ratio"], 0.05
+    ) is False
+    # ... while the one-sided rule would have accepted it
+    assert one_sided < 0.05
+
+
 @pytest.mark.parametrize("n", [0, 1])
 def test_degenerate_inputs_fail_closed(rng, n):
     """With fewer than two paired observations no comparison is possible; the

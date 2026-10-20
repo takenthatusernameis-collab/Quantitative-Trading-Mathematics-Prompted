@@ -541,7 +541,10 @@ def main():
             "stab": wf_stab >= GATES["min_walkforward_stability"],
             "worst": worst >= GATES["min_worst_regime_sharpe"],
             "p": benchmark_significance_gate(p, ir, GATES["max_p_value"]),
-            "ir": ir > GATES.get("min_information_ratio", -1e18),
+            # The threshold is read by direct subscript: a missing key must
+            # fail loudly instead of silently degrading the gate to a
+            # permissive sentinel (a gate that never tests anything).
+            "ir": ir > GATES["min_information_ratio"],
         }
         all_pass = all(passes.values())
         summary = {

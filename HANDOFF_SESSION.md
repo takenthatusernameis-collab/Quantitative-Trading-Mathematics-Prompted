@@ -1,31 +1,50 @@
 # HANDOFF — Session complete (verification)
 
 ## State
-- Repository at commit ad6116d on main, working tree clean (no uncommitted changes)
-- H34 is COMPLETE as documented in existing handoffs and NEXT_TASK.md
-- Direction-aware benchmark gate (`p < max_p_value AND information_ratio > 0`) implemented in `src/qtr/validation/statistics.py`, exported from `qtr.validation`
-- All 17 runners use the centralized `benchmark_significance_gate` for the benchmark gate site
-- Test suite: 736 tests collected; contract tests (23/23) and H19/H20/H23 outcome tests (71/71) pass; no new changes made
+- Repository at the H35 commit on main; working tree contains only the intended H35
+  changes.
+- H34 and its follow-up are COMPLETE; **H35 is COMPLETE**: the last open gate-defect
+  class (gates that are a constant, or that compare a placeholder, and can therefore never
+  fail) is audited, disclosed and pinned.
+- The direction-aware benchmark gate (`p < max_p_value AND information_ratio > 0`) remains
+  implemented in `src/qtr/validation/statistics.py`, exported from `qtr.validation`, and
+  used by all 17 runners.
 
 ## What changed (this session)
-- Inspected repository state, confirmed no changes to source or tests
-- Verified critical subset of tests pass (benchmark gate contract and the three wrong-reason families)
-- Confirmed working tree clean and no control-marker commits
+- H4/H5/H6 read their IR threshold by direct subscript instead of a permissive default.
+- `compare_to_benchmark`'s docstring marks `alpha_p_value_one_sided` as informational and
+  explicitly *not* the gate's statistic.
+- New `tests/test_gate_vacuity_contract.py` (11 tests) + one new test in
+  `tests/test_benchmark_gate_contract.py`.
+- `HYPOTHESIS_SPEC.md` §H35, `FINAL_REPORT.md` §H35 + re-baselined summary/next-task
+  sections, `NEXT_TASK.md`, the `HANDOFF*` files.
 
 ## What was actually verified
-- `python -m pytest tests/test_benchmark_gate_contract.py -q` → 23 passed (2.67s)
-- `python -m pytest tests/test_h19_volume_predictive.py tests/test_h20_signed_volume.py tests/test_h23_crypto_futures_tsmom.py -q` → 71 passed (2.35s)
-- Working tree clean (`git diff --name-only` empty, `git status --short` empty)
-- Repository structure consistent with documented state
+- `python -m pytest -q -W error` → **748 passed**.
+- `python -m pytest --cov=qtr --cov-report=term-missing` → **100%** (1010 statements, 0
+  missed).
+- Negative control against the pre-H35 runner sources: the new module fails **1** test and
+  names the three permissive-default sites.
+- Artifact cross-checks: H7 published 4/9 (2/7 on the evaluable gates), H18 published 2/9
+  (1/8 on the evaluable gates); both REJECT before and after.
 
 ## What remains unresolved
-- None. All tasks H1–H34 complete. No further work is justified given the exhausted free-data hypothesis space.
+- None of the gate classes. The `ruff` reproduction gap is recorded in `NEXT_TASK.md` as
+  the only open, bounded item.
 
 ## Approaches already tried / failed (and why)
-- None. No new attempts made.
+- None failed. Two options were evaluated and rejected on constraint grounds (repairing the
+  disclosed gates for real needs a grid re-run; rewiring H18's thresholds is a structural
+  change to a runner that produced a published artifact) — both are documented in
+  `NEXT_TASK.md`.
 
 ## Precise next task (one task), with evidence and constraints
-- **None assigned.** No further work is justified. Any follow-up must not modify published artifacts, gates, thresholds, verdicts, or certified numbers; must not re-run grids; must follow "change approach after repeated failure" rule; must preserve existing invariants.
+- **None assigned.** See `NEXT_TASK.md` for the single open bounded item (the `ruff`
+  reproducibility gap) and for the constraints that carry forward: no published artifact,
+  gate threshold, verdict or certified number may be modified; no grid may be re-run; the
+  H1–H30 hypothesis space remains exhausted.
 
 ## Execution
-This session executed verification only. No source, test, or configuration files were modified.
+This session executed a bounded offline audit (H35), one behaviour-preserving code fix, one
+documentation fix in the library, two test modules, and the record updates. No published
+artifact, gate threshold, verdict or certified number was modified and no grid was re-run.
