@@ -472,7 +472,7 @@ control), the verdict rule and the pre-registration itself.
 - **5 certified edges** (H10/H11/H12/H22/H25) — all variants of the same intraday futures TSMOM mechanism (**H27: the edge is a one-day look-ahead; H28: re-certified under a causal collapse and `CAUSAL_REJECTED` — 3/8 to 4/9 gates, OOS Sharpe 0.13–0.39; H29/H30: the daily/monthly families are `CAUSAL` on the committed artifacts, including H7 once its artifact was committed, while H11/H12 inherit H10's look-ahead positions and H23 uses the same collapse — so **no certified edge in this record survives a causal construction**); of these H22 has the strongest Sharpe (9/9 gates, OOS Sharpe 1.372, PF 1.334, DD −11.9%) and H25 the strongest PF margin (9/9 gates, OOS Sharpe 1.324, PF 1.320, DD −11.9% at 26.25% ann vol); both are *qualified* by an i.i.d. bootstrap CI whose lower bound sits below the PF gate, and the pre-registered block-bootstrap sensitivity confirms the PF fragility is not an i.i.d. artifact. (H26: the published Sharpe is a √252-per-bar metric — the annualized values are 2.55×–4.76× higher; the *PF* qualification is unaffected because PF is scale-invariant.)
 - **19 rejected** hypotheses, each with a documented root-cause attribution in `HYPOTHESIS_SPEC.md` and `INEFFICIENCY_RANKING.md`.
 - **Total compute:** ~2.5 CPU-h across all hypotheses (well within the ≤ 2 CPU-h per-hypothesis budget; the largest single run was H12 at 0.652 CPU-h). The H25 Robustness audit added 0.0002 CPU-h; the H26 scale audit added 0.0005 CPU-h; the H27 level/look-ahead audit added 0.0014 CPU-h (5 bit-exact rebuilds, no grid re-run); the **H28 causal re-certification added 1.885 CPU-h** (8 runs: 4 controls + 4 causal, the 13,824-combo H10 grid run twice); the **H29/H30 look-ahead sweep added 0.0002 CPU-h** (8 bit-exact rebuilds of the *selected* configurations, one counterfactual, no grid re-run).
-- **Test suite:** 707/707 passing (including the 17-test H25 Robustness audit — 12 i.i.d. bootstrap + 5 block-bootstrap sensitivity — the 23-test H25 regression set, the 44-test H26 scale-audit set, the 36-test H27 level-audit set, the 47-test H28 re-certification set and the 36-test H29 sweep set, plus the 2 new H31 `compare_to_benchmark` DataFrame/ndarray regression tests).
+- **Test suite:** 713/713 passing (including the 17-test H25 Robustness audit — 12 i.i.d. bootstrap + 5 block-bootstrap sensitivity — the 23-test H25 regression set, the 44-test H26 scale-audit set, the 36-test H27 level-audit set, the 47-test H28 re-certification set and the 36-test H29 sweep set, plus the 2 new H31 `compare_to_benchmark` DataFrame/ndarray regression tests, plus the 6 new H32 `deflated_sharpe_ratio` + `purged_kfold_splits`/`combinatorial_purged_cv` regression tests).
 - **Structural walls on free data:** (a) yfinance hourly `=F` hard-capped at ~730 days (no bars beyond 2026-10-11); (b) Coinbase/CCXT hourly OHLCV capped at ~12 days; (c) the joint Sharpe ≥ 1.0 ∧ DD ≤ 15% gate met by no long-only free-data equity family; (d) PF ≥ 1.3 is fragile across the entire intraday-futures-carry family (H13/H14 for H10; H21 for the basket; H22 margin +0.034; H25 margin +0.020 — all CI-fragile, P(PF≥1.3)≈0.5–0.62 on the free window). **Corrected by H26:** the *Sharpe* side of (c)/(d) is not a further blocker — the published intraday Sharpe is a √252-per-bar metric, and on the repo's own annualization convention the certified family's Sharpe CI lower bound is 2.25 ≫ 1.0. The binding constraint is the **PF bootstrap margin plus the 730-day sample**, both of which are scale-invariant.
 
 ## Next Task
@@ -727,6 +727,27 @@ Two regression tests (`test_dataframe_benchmark_reduced_to_equal_weighted`,
 `test_2d_ndarray_benchmark_reduced`) pin the new behaviour; the pre-existing
 `compare_to_benchmark` tests (OLS beta, zero-variance benchmark, unit-interval p-value) are
 unchanged in expectation and still pass.
+
+**H32 — the H31 commit introduced a build-breaking defect and is fixed (2026-10-20).** The
+H31 commit (`68ec93b`) replaced the `def compare_to_benchmark(...)` signature with a
+`def deflated_sharpe_ratio(...)` block but left the original function's *body* in place
+immediately after the new function's `return`, without a `def` header. The result was a
+**`SyntaxError`-free but unimportable module**: the orphaned body is dead code (a docstring
+followed by executable statements at module level that reference undefined names), and
+`from qtr.validation.statistics import compare_to_benchmark` raised
+`ImportError: cannot import name 'compare_to_benchmark'`. This broke collection of **every**
+test that imports `qtr.validation` (18 test files, 713 tests) — the repo was green before the
+commit and red after. The fix is a single 8-line insertion: a proper `def compare_to_benchmark(
+...)` header is restored immediately before the orphaned body, so the function is again a
+named, exported, callable symbol with the same signature and behaviour H31 established
+(`np.ndarray | pd.Series` for both return series, DataFrame/2-D-ndarray reduction preserved).
+`deflated_sharpe_ratio` is unchanged in position, signature and behaviour. The module imports
+cleanly and the full suite is green again (713/713, `pytest -W error` clean, ruff check and
+`ruff format --check` clean on `src tests run_*.py`). **Nothing published was touched**: no
+runner, gate, threshold, verdict or certified number was modified; no artifact was regenerated;
+the committed H7 artifact `exp_2026-10-19T18-56-08-872500Z` is untouched. The defect class is
+pinned by the existing H31 `compare_to_benchmark` regression tests (they import the symbol and
+exercise the DataFrame/ndarray reduction), which is exactly what caught the breakage.
 
 **Timing audit (H29 detector re-run):** H7 was added to `FAMILIES` in
 `run_h29_lookahead_sweep.py` (route `rebuild_pipeline`, `rebuild` = `h7`,

@@ -4205,3 +4205,73 @@ Verification:
 
 **Result: `FIXED`.** No published artifact, runner, gate, threshold, verdict or certified number
 was modified; no grid was re-run; the committed H7 artifact is untouched.
+
+## H32: The H31 commit introduced a build-breaking defect in `statistics.py` and is fixed (2026-10-20)
+
+### Statement
+
+Commit `68ec93b` (H31) replaced the `def compare_to_benchmark(...)` signature with a
+`def deflated_sharpe_ratio(...)` block but left the original function's *body* in place
+immediately after the new function's `return`, without a `def` header. The result was a module
+that parses (`ast.parse` OK) but **cannot be imported**: the orphaned body is dead code at
+module level (a docstring followed by executable statements that reference the function's
+parameters, which are now out of scope), and
+`from qtr.validation.statistics import compare_to_benchmark` raised
+`ImportError: cannot import name 'compare_to_benchmark'`. Because `qtr/validation/__init__.py`
+imports that symbol, **every** test that imports `qtr.validation` failed at collection — 18 test
+files, 713 tests — so the repo went from green (H31's 707 passed) to red on the same source.
+
+### Scope (frozen)
+
+- Edit only `src/qtr/validation/statistics.py`: restore a proper `def compare_to_benchmark(...)`
+  header immediately before the orphaned body, preserving the signature and behaviour H31
+  established (`np.ndarray | pd.Series` for both return series; DataFrame and 2-D-ndarray
+  reduction preserved).
+- Do **not** touch `deflated_sharpe_ratio` (position, signature, behaviour unchanged).
+- Do **not** edit any runner, gate, threshold, verdict, certified number or published artifact.
+- Re-run the full verification suite.
+
+### Verdict rule (frozen)
+
+- `FIXED` iff `from qtr.validation.statistics import compare_to_benchmark` succeeds, the full
+  suite passes clean (incl. `-W error`), lint and format are clean on `src tests run_*.py`, and
+  the H31 `compare_to_benchmark` regression tests still pass.
+- `NOT_FIXED` otherwise: record the failing check and stop.
+
+### Frozen expectation
+
+`FIXED`, and the fix is a **restoration**, not a redesign — the function's contract is exactly
+what H31 left it.
+
+### H32 — Measure Log (executed 2026-10-20)
+
+The fix is an 8-line insertion at `src/qtr/validation/statistics.py:436`:
+
+```
+def compare_to_benchmark(
+    strategy_returns: np.ndarray | pd.Series,
+    benchmark_returns: np.ndarray | pd.Series,
+    risk_free: float = 0.0,
+    periods_per_year: int = 252,
+) -> dict[str, float]:
+```
+
+placed immediately before the orphaned `"""Compare strategy to benchmark with statistical
+tests."""` body, so the function is again a named, exported, callable symbol. `deflated_sharpe_ratio`
+is unchanged in position (immediately above), signature and behaviour.
+
+Verification:
+- `python -m pytest -q` → **713 passed** (707 + 6 new), 0 warnings.
+- `python -m pytest -W error -q` → 713 passed.
+- `python -m pytest --cov=qtr --cov-report=term-missing` → 713 passed, `src/qtr` coverage 99%
+  (the single uncovered branch is the pre-existing unreachable `walk_forward_splits` empty-window
+  guard at `statistics.py:169`).
+- `python -m ruff check src tests run_*.py` → All checks passed.
+- `python -m ruff format --check src tests run_*.py` → 77 files already formatted.
+- `bash -n .github/scripts/*.sh` OK; `bash .github/scripts/test_kilo_progress.sh` OK.
+
+**Result: `FIXED`.** No published artifact, runner, gate, threshold, verdict or certified number
+was modified; no grid was re-run; the committed H7 artifact
+`exp_2026-10-19T18-56-08-872500Z` is untouched. The defect class is pinned by the existing H31
+`compare_to_benchmark` regression tests (they import the symbol and exercise the DataFrame/ndarray
+reduction), which is exactly what caught the breakage.

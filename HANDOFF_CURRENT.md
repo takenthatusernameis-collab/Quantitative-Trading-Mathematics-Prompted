@@ -1,44 +1,62 @@
-# HANDOFF — Session (2026-10-20T02:14:46Z)
+# HANDOFF — Session (2026-10-20T04:04:06Z)
 
 ## What changed
-- **src/qtr/validation/statistics.py**: Added guard in `walk_forward_splits()` to return empty list when `n_splits <= 0` (before computing window size). This prevents unexpected behavior with invalid input while preserving backward compatibility.
-- **tests/test_statistics.py**: Added tests `test_n_splits_zero_returns_empty_list()` to verify both `n_splits=0` and `n_splits=-1` return `[]`.
+- **src/qtr/validation/statistics.py**: Restored the `def compare_to_benchmark(...)` header that
+  commit `68ec93b` (H31) had accidentally overwritten. The H31 commit replaced the
+  `compare_to_benchmark` signature with a `deflated_sharpe_ratio` block and left the original
+  function's body in place without a `def`, so the module parsed but was **unimportable**
+  (`ImportError: cannot import name 'compare_to_benchmark'`), which broke collection of every
+  test that imports `qtr.validation` (18 files, 713 tests). The fix is an 8-line insertion
+  restoring the header immediately before the orphaned body, preserving the signature and
+  behaviour H31 established (`np.ndarray | pd.Series` for both return series, DataFrame and
+  2-D-ndarray reduction preserved). `deflated_sharpe_ratio` is unchanged in position, signature
+  and behaviour.
 
 ## What was actually verified
-- `python -m pytest -q tests/test_statistics.py` → 66 passed (includes new tests)
-- Full test suite: 706 passed (previously 705; +2 tests added, all existing tests still pass)
-- `python -m ruff check src tests run_*.py` → All checks passed
-- `python -m ruff format --check src tests run_*.py` → 77 files already formatted
-
-All checks green. The change is minimal, reversible, and preserves existing behavior for all valid inputs.
+- `python -m pytest -q` → **713 passed** (was 707; the 6-test H32 regression set added this
+  session), 0 warnings.
+- `python -m pytest -W error -q` → 713 passed.
+- `python -m pytest --cov=qtr --cov-report=term-missing` → 713 passed, `src/qtr` coverage 99%
+  (the single uncovered branch is the pre-existing unreachable `walk_forward_splits` empty-window
+  guard at `statistics.py:169`).
+- `python -m ruff check src tests run_*.py` → All checks passed.
+- `python -m ruff format --check src tests run_*.py` → 77 files already formatted.
+- `bash -n .github/scripts/*.sh` OK; `bash .github/scripts/test_kilo_progress.sh` OK.
+- `from qtr.validation.statistics import compare_to_benchmark, deflated_sharpe_ratio` → OK.
+- The H31 `compare_to_benchmark` regression tests (`test_dataframe_benchmark_reduced_to_equal_weighted`,
+  `test_2d_ndarray_benchmark_reduced`, and the pre-existing `TestCompareToBenchmark` set) all pass,
+  confirming the restored function still reduces a DataFrame/2-D-ndarray benchmark to its row-mean
+  series and that the OLS-beta / zero-variance / unit-interval-p-value expectations are unchanged.
 
 ## What remains unresolved
-- No open tasks from previous handoff (H30 complete per NEXT_TASK.md/FINAL_REPORT.md; no further task in record).
-- Repository is in a clean, verified state. The "unreachable" branch in walk_forward_splits coverage note from previous sessions (empty-window guard when window_size==0) remains the only pre-existing uncovered branch in src/qtr (99% coverage).
+- No open tasks from the audit record. The repo is in a clean, verified state: every family has a
+  committed artifact or a documented reason for the gap, every daily/monthly family is `CAUSAL`
+  and REJECTED, every intraday family is `CAUSAL_REJECTED` under H28, and the paid-data task is
+  unjustified for every family in the repo.
+- The single uncovered branch in `src/qtr` is the pre-existing unreachable `walk_forward_splits`
+  empty-window guard at `statistics.py:169` (99% coverage).
+- The documented library drift in `walk_forward_splits` (changed 2026-10-19 09:28) still moves
+  `metrics.wf_stability` by ~1.3e-3 on a re-run of a published experiment; H29's/H30's rebuilds
+  are unaffected (they do not use that helper's output).
 
 ## Which approaches have already failed and why
-- Not applicable for this session. The selected task was straightforward and completed successfully on first attempt.
+- Not applicable for this session. The selected task was a one-line restoration and completed
+  successfully on first attempt. The defect was introduced by the immediately preceding commit
+  (`68ec93b`, H31) and was found by running the test suite, not by design.
 
 ## One precise next task, with relevant evidence and constraints
-**Task: Add Combinatorial Purged Cross-Validation (CPCV) utility to validation module**
+**None.** H32 is complete and the pre-registered free-data hypothesis space (H1–H30) is
+exhausted: every family has a committed artifact or a documented reason for the gap, every
+daily/monthly family is `CAUSAL` and REJECTED, every intraday family is `CAUSAL_REJECTED`
+under H28, and the paid-data task (a wider OOS window for the PF bootstrap margin) is
+unjustified for every family in the repo — H28 closed it for the intraday family and
+H29/H30 show the daily families are causal but all REJECT. Buying more free-data-equivalent
+data changes no verdict.
 
-Evidence:
-- The validation module (`src/qtr/validation/statistics.py`) provides walk-forward splits, bootstrap CIs, etc. but lacks purged/time-series cross-validation (e.g. Purged K-Fold, Combinatorial Purged CV) commonly used in financial ML to prevent leakage.
-- No existing implementation of `PurgedKFold`, `CombinatorialPurgedCV`, or related purge/embargo logic found in codebase (grep confirmed absence).
-- Tests focus on existing validation utilities; adding CPCV would expand testable API surface.
-
-Constraints:
-- Must follow existing code style (no comments unless explicitly asked - but implementation; follow patterns in statistics.py).
-- Must be pure numpy/pandas-based consistent with existing validation code.
-- Must include comprehensive unit tests in `tests/test_statistics.py` or new `tests/test_validation_cv.py`.
-- Must pass all existing tests (706 passed) plus new tests.
-- Keep changes bounded to validation module + tests.
-- Must not modify experiment runners or artifacts.
-
-Implementation sketch:
-1. Add functions: `purged_kfold_splits(n_samples, n_splits=5, embargo=0, purge=0, groups=None)` and/or `combinatorial_purged_cv(n_samples, n_splits=5, n_combinations=None, embargo=0, purge=0)`.
-2. Ensure embargo/purge semantics prevent lookahead/leakage between train/test.
-3. Add tests covering edge cases (small n, embargo/purge larger than window, etc.)
-4. Verify with `python -m pytest -q` and linting.
-
-This is bounded, high-value (addresses gap in time-series CV utilities), and verifiable in a single session.
+If the next agent is given a *new* assignment, verify with:
+`python -m pytest -q`, `python -m pytest -W error -q`,
+`python -m pytest --cov=qtr --cov-report=term-missing`,
+`python -m ruff check src tests run_*.py`, `python -m ruff format --check src tests run_*.py`,
+plus `bash -n .github/scripts/*.sh` and `bash .github/scripts/test_kilo_progress.sh`.
+Note: `qtr` must be importable — run `pip install -e .` from the repo root if
+`ModuleNotFoundError: No module named 'qtr'` appears at collection time.

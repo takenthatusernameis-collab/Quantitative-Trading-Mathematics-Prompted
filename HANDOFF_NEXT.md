@@ -1,7 +1,7 @@
 # Handoff Summary
 
 ## Current state
-- All tests pass: **707 passed, 0 warnings** (~3:50). Full suite re-confirmed this session.
+- All tests pass: **713 passed, 0 warnings** (~3:35). Full suite re-confirmed this session.
 - src/ coverage: 99% (single uncovered branch is the unreachable `walk_forward_splits` empty-window guard at statistics.py:169, pre-existing). Lint/format clean on `src tests run_*.py`. Workflow scripts pass `bash -n` and the progress-helper regression test.
 - **H31 (this session): the H30 `compare_to_benchmark` advisory was a real defect and is fixed.** H30 recorded that `compare_to_benchmark` raised `"The truth value of a Series is ambiguous"` during H7's re-run and logged it as advisory. It was in fact a bug in `src/qtr/validation/statistics.py`: the function assumed a 1-D benchmark and raised whenever the caller passed a multi-column DataFrame (which is exactly what H7 does — `prices[FUTURES_UNIVERSE]`, a 5-column slice). The function now reduces a DataFrame benchmark to its row-mean series (and likewise a 2-D ndarray) before aligning, so the comparison is computed rather than skipped. The fix is in the library, not in H7's runner (the runner's `try/except` is preserved), and it changes no published number: the benchmark is advisory in H7's gate set, both benchmark-fed gates were already False in the published row's 3/8 count, and the verdict is REJECT either way. The committed artifact `exp_2026-10-19T18-56-08-872500Z` is untouched (`benchmark: null` is the historical record of the run as executed); a verification re-run produced `benchmark = {alpha: NaN, ir: -38.34, p_value: NaN}` with `prices`/`equity_curve`/`returns`/`trades` **bit-identical** to the committed artifact (identical sha256 on all four parquets) and OOS Sharpe (0.7893261992589912), trades (1,005), profit factor (1.16605221165269), max DD (−14.54%) and verdict (REJECT) unchanged. Two new regression tests pin the behaviour (`test_dataframe_benchmark_reduced_to_equal_weighted`, `test_2d_ndarray_benchmark_reduced`); the pre-existing `compare_to_benchmark` tests (OLS beta, zero-variance benchmark, unit-interval p-value) are unchanged in expectation and still pass. See `FINAL_REPORT.md` §H30 (H31 paragraph), `tests/test_statistics.py`.
 - **H29 (prior session): systematic look-ahead sweep of the remaining families — COMPLETE.
@@ -315,3 +315,24 @@ The fix is in `src/qtr/validation/statistics.py` (`compare_to_benchmark`), not i
 runners' `try/except` around the call is preserved, and the committed H7 artifact
 (`exp_2026-10-19T18-56-08-872500Z`, `benchmark: null`) is untouched as the historical record of
 the run as it was executed.
+
+## H32 drift guard (added this session)
+
+Commit `68ec93b` (H31) introduced a build-breaking defect that the H31 drift guards did not catch:
+it replaced the `def compare_to_benchmark(...)` signature with a `def deflated_sharpe_ratio(...)`
+block and left the original function's body in place without a `def` header. The module still
+parsed but was **unimportable** (`ImportError: cannot import name 'compare_to_benchmark'`), which
+broke collection of every test that imports `qtr.validation` (18 files, 713 tests) — the repo went
+from green to red on the same source. The fix is an 8-line insertion restoring the
+`def compare_to_benchmark(...)` header immediately before the orphaned body, preserving the
+signature and behaviour H31 established (`np.ndarray | pd.Series` for both return series,
+DataFrame and 2-D-ndarray reduction preserved). `deflated_sharpe_ratio` is unchanged in position,
+signature and behaviour. The repo is green again: **713/713 passed**, `pytest -W error` clean,
+ruff check and `ruff format --check` clean on `src tests run_*.py`, `bash -n .github/scripts/*.sh`
+OK, `bash .github/scripts/test_kilo_progress.sh` OK. **Nothing published was touched**: no
+runner, gate, threshold, verdict or certified number was modified; no artifact was regenerated;
+the committed H7 artifact `exp_2026-10-19T18-56-08-872500Z` is untouched.
+
+The defect class is pinned by the *existing* H31 `compare_to_benchmark` regression tests (they
+import the symbol and exercise the DataFrame/ndarray reduction), which is exactly what caught
+the breakage — a test file that imports the symbol is the guard against this class of error.

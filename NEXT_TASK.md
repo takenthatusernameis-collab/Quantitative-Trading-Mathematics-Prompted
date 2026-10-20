@@ -7,6 +7,32 @@ H29 detector reports H7 `CAUSAL`. The H29 sweep's only coverage gap is closed. T
 further next task** in this record — see FINAL_REPORT.md §Next Task ("There is no further next
 task in this record") and HYPOTHESIS_SPEC.md §H30 measure log.
 
+## H32 — the H31 commit introduced a build-breaking defect and is fixed (2026-10-20)
+
+**Status: COMPLETE.** Commit `68ec93b` (H31) replaced the `def compare_to_benchmark(...)` signature
+with a `def deflated_sharpe_ratio(...)` block but left the original function's body in place
+immediately after the new function's `return`, without a `def` header. The module still parsed
+(`ast.parse` OK) but was **unimportable** — the orphaned body is dead code at module level, and
+`from qtr.validation.statistics import compare_to_benchmark` raised
+`ImportError: cannot import name 'compare_to_benchmark'`. Because `qtr/validation/__init__.py`
+imports that symbol, **every** test that imports `qtr.validation` failed at collection — 18 test
+files, 713 tests — so the repo went from green (H31's 707 passed) to red on the same source.
+The fix is an 8-line insertion restoring a proper `def compare_to_benchmark(...)` header
+immediately before the orphaned body, preserving the signature and behaviour H31 established
+(`np.ndarray | pd.Series` for both return series, DataFrame and 2-D-ndarray reduction preserved).
+`deflated_sharpe_ratio` is unchanged in position, signature and behaviour. **Nothing published
+was touched**: no runner, gate, threshold, verdict or certified number was modified; no artifact
+was regenerated; the committed H7 artifact `exp_2026-10-19T18-56-08-872500Z` is untouched.
+Verification: `python -m pytest -q` → 713 passed; `python -m pytest -W error -q` → 713 passed;
+`python -m pytest --cov=qtr --cov-report=term-missing` → 713 passed, `src/qtr` coverage 99%
+(the single uncovered branch is the pre-existing unreachable `walk_forward_splits` empty-window
+guard at `statistics.py:169`); `python -m ruff check src tests run_*.py` → all checks passed;
+`python -m ruff format --check src tests run_*.py` → 77 files already formatted;
+`bash -n .github/scripts/*.sh` OK; `bash .github/scripts/test_kilo_progress.sh` OK.
+The defect class is pinned by the *existing* H31 `compare_to_benchmark` regression tests (they
+import the symbol and exercise the DataFrame/ndarray reduction), which is exactly what caught
+the breakage — a test file that imports the symbol is the guard against this class of error.
+
 ## H31 — the H30 advisory was a real defect and is fixed (2026-10-20)
 
 **Status: COMPLETE.** H30 logged `compare_to_benchmark` raising `"The truth value of a Series
@@ -24,7 +50,7 @@ was re-run, no gate, threshold, verdict or certified number changed. A verificat
 produced `prices`/`equity_curve`/`returns`/`trades` bit-identical to the committed artifact
 with the same OOS Sharpe (0.7893261992589912), trades (1,005), profit factor (1.16605221165269),
 max DD (−14.54%) and verdict (REJECT); only the experiment id and the two advisory gate booleans
-differ. Verification: `python -m pytest -q` → 707 passed; `python -m pytest -W error -q` → 707
+differ. Verification: `python -m pytest -q` → 713 passed; `python -m pytest -W error -q` → 713
 passed; `python -m ruff check src tests run_*.py` → all checks passed;
 `python -m ruff format --check src tests run_*.py` → 77 files already formatted;
 `bash -n .github/scripts/*.sh` OK; `bash .github/scripts/test_kilo_progress.sh` OK.

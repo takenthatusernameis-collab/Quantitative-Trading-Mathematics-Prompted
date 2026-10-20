@@ -220,9 +220,48 @@ output). The paid-data task remains unjustified for every family in the repo.
 minimal, additive change to a library function; no runner, gate, threshold, verdict or
 certified number was modified, no grid was re-run, and no published artifact was touched.
 
+## H32 — the H31 commit introduced a build-breaking defect and is fixed (2026-10-20)
+
+**What changed.** Commit `68ec93b` (H31) replaced the `def compare_to_benchmark(...)` signature
+with a `def deflated_sharpe_ratio(...)` block but left the original function's *body* in place
+immediately after the new function's `return`, without a `def` header. The module still parsed
+(`ast.parse` OK) but was **unimportable**: the orphaned body is dead code at module level, and
+`from qtr.validation.statistics import compare_to_benchmark` raised
+`ImportError: cannot import name 'compare_to_benchmark'`. Because `qtr/validation/__init__.py`
+imports that symbol, **every** test that imports `qtr.validation` failed at collection — 18 test
+files, 713 tests — so the repo went from green (H31's 707 passed) to red on the same source.
+The fix is an 8-line insertion restoring a proper `def compare_to_benchmark(...)` header
+immediately before the orphaned body, preserving the signature and behaviour H31 established
+(`np.ndarray | pd.Series` for both return series, DataFrame and 2-D-ndarray reduction preserved).
+`deflated_sharpe_ratio` is unchanged in position, signature and behaviour.
+
+**What was verified.** `python -m pytest -q` → **713 passed** (707 + 6 new), 0 warnings;
+`python -m pytest -W error -q` → 713 passed; `python -m pytest --cov=qtr --cov-report=term-missing`
+→ 713 passed, `src/qtr` coverage 99% (the single uncovered branch is the pre-existing
+unreachable `walk_forward_splits` empty-window guard at `statistics.py:169`);
+`python -m ruff check src tests run_*.py` → All checks passed;
+`python -m ruff format --check src tests run_*.py` → 77 files already formatted;
+`bash -n .github/scripts/*.sh` OK; `bash .github/scripts/test_kilo_progress.sh` OK.
+`from qtr.validation.statistics import compare_to_benchmark, deflated_sharpe_ratio` succeeds.
+The H31 `compare_to_benchmark` regression tests (`test_dataframe_benchmark_reduced_to_equal_weighted`,
+`test_2d_ndarray_benchmark_reduced`, and the pre-existing `TestCompareToBenchmark` set) all pass,
+confirming the restored function still reduces a DataFrame/2-D-ndarray benchmark to its row-mean
+series and that the OLS-beta / zero-variance / unit-interval-p-value expectations are unchanged.
+
+**What remains unresolved.** Nothing from the audit record. The single uncovered branch is the
+pre-existing unreachable `walk_forward_splits` empty-window guard at `statistics.py:169`. The
+documented library drift in `walk_forward_splits` (changed 2026-10-19 09:28) still moves
+`metrics.wf_stability` by ~1.3e-3 on a re-run of a published experiment; H29's/H30's rebuilds
+are unaffected (they do not use that helper's output). The paid-data task remains unjustified for
+every family in the repo.
+
+**Which approaches have already failed and why.** None new this session. The fix was a minimal
+restoration of an existing function's header; no runner, gate, threshold, verdict or certified
+number was modified, no grid was re-run, and no published artifact was touched.
+
 ## One precise next task
 
-**None.** H31 is complete and the pre-registered free-data hypothesis space (H1–H30) is
+**None.** H32 is complete and the pre-registered free-data hypothesis space (H1–H30) is
 exhausted: every family has a committed artifact or a documented reason for the gap, every
 daily/monthly family is `CAUSAL` and REJECTED, every intraday family is `CAUSAL_REJECTED`
 under H28, and the paid-data task (a wider OOS window for the PF bootstrap margin) is

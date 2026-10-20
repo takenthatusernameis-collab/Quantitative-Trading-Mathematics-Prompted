@@ -433,6 +433,14 @@ def deflated_sharpe_ratio(
     dsr_adj = numerator / denom
     p = float(stats.norm.cdf(dsr_adj))
     return float(observed_sr * p), float(1.0 - p)
+
+
+def compare_to_benchmark(
+    strategy_returns: np.ndarray | pd.Series,
+    benchmark_returns: np.ndarray | pd.Series,
+    risk_free: float = 0.0,
+    periods_per_year: int = 252,
+) -> dict[str, float]:
     """
     Compare strategy to benchmark with statistical tests.
 
