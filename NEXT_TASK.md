@@ -100,31 +100,21 @@ rows' **numbers** are identical in all three artifacts, so only the **pointer** 
    after H34)` section of `FINAL_REPORT.md` (which still assigned the three-part H34
    follow-up) now describes the state after H35, the H34 verification paragraph states that
    the suite has since grown, and the `Summary statistics` bullets are re-baselined.
+5. The `ruff` reproducibility item is **closed**: ruff is declared in `pyproject.toml`
+   (`[project.optional-dependencies] lint`), its configuration is committed
+   (`[tool.ruff]*`), ruff is installed (v0.17.1), `ruff check src tests run_*.py` reports
+   "All checks passed!", `ruff format --check src tests run_*.py` reports "79 files already
+   formatted", and the suite passes (748 passed).
 
 ## The next task (one, precise)
 
-**None assigned — the pre-registered free-data hypothesis space (H1–H30) is exhausted and
-every gate class that has produced a defect so far is now closed by an executable
-invariant.** Two small, self-contained items remain open and are recorded here so that a
-future session can pick them up without re-deriving them:
+**None assigned.** The pre-registered free-data hypothesis space (H1–H30) is exhausted and
+every gate class that has produced a defect so far is now closed by an executable invariant.
+The `ruff` reproducibility item is complete; nothing else is warranted.
 
-1. **Make the `ruff` verification step reproducible from the declared dependency set.**
-   `ruff check` / `ruff format --check` is quoted as a verification step throughout
-   `HYPOTHESIS_SPEC.md`, `FINAL_REPORT.md` and `NEXT_TASK.md`, and the sources carry
-   `# noqa: BLE001` / `# noqa: UP045` markers that assume a **non-default** ruff rule
-   selection — but ruff is **not** declared in `pyproject.toml` or `requirements.txt`, is
-   **not** installed in the agent environment (`python -m ruff` → "No module named ruff"),
-   and **no ruff configuration is committed** (there is no `[tool.ruff]` section, no
-   `ruff.toml` and no `.ruff.toml`). The quoted lint result therefore cannot be
-   reproduced from the repository as it stands. The bounded fix is to declare ruff in
-   `pyproject.toml` (`[project.optional-dependencies] lint`) and commit the ruff
-   configuration that makes the quoted commands meaningful — and to check whether the
-   installed ruff reports the tree clean under that configuration before quoting it again.
-   **Evidence to re-check first:** `pip install ruff` (network), then
-   `ruff check src tests run_*.py` and `ruff format --check src tests run_*.py`.
-2. **Nothing else is warranted.** Do **not** re-run any grid, do **not** modify a published
-   artifact, gate threshold, verdict or certified number, and do **not** add a hypothesis:
-   the free-data hypothesis space is exhausted and the H1–H30 records are frozen.
+Do **not** re-run any grid, do **not** modify a published artifact, gate threshold, verdict
+or certified number, and do **not** add a hypothesis: the free-data hypothesis space is
+exhausted and the H1–H30 records are frozen.
 
 ## Constraints carried forward
 
