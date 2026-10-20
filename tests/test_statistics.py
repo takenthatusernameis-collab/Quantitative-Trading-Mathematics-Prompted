@@ -685,3 +685,49 @@ class TestValidateStrategy:
         returns = pd.Series(rng.normal(0.001, 0.01, 400))
         res = st.validate_strategy(returns, self._trades(50), {})
         assert "sharpe" in res
+
+
+def test_purged_kfold_basic():
+    from qtr.validation.statistics import purged_kfold_splits
+    splits = purged_kfold_splits(100, n_splits=5)
+    assert len(splits) == 5
+    for tr, te in splits:
+        assert len(tr) > 0 and len(te) > 0
+        assert set(tr).isdisjoint(set(te))
+
+
+def test_purged_kfold_purge_embargo():
+    from qtr.validation.statistics import purged_kfold_splits
+    splits = purged_kfold_splits(100, n_splits=5, purge=2, embargo=2)
+    # train should not contain samples within purge of test
+    for tr, te in splits:
+        for t in te:
+            for x in tr:
+                assert abs(x - t) > 2 or x < t - 2 or x > t + 2
+        # embargo: no train index within embargo after test block
+    assert len(splits) >= 1
+
+
+def test_purged_kfold_invalid():
+    from qtr.validation.statistics import purged_kfold_splits
+    assert purged_kfold_splits(0, 5) == []
+    assert purged_kfold_splits(10, 0) == []
+    assert purged_kfold_splits(3, 5) == []
+
+
+def test_combinatorial_purged_cv_basic():
+    from qtr.validation.statistics import combinatorial_purged_cv
+    splits = combinatorial_purged_cv(100, n_splits=5, n_test_splits=2)
+    # C(5,2)=10
+    assert len(splits) == 10
+    for tr, te in splits:
+        assert len(tr) > 0 and len(te) > 0
+        assert set(tr).isdisjoint(set(te))
+
+
+def test_combinatorial_purged_cv_invalid():
+    from qtr.validation.statistics import combinatorial_purged_cv
+    assert combinatorial_purged_cv(0, 5, 2) == []
+    assert combinatorial_purged_cv(100, 5, 0) == []
+    assert combinatorial_purged_cv(100, 5, 5) == []
+    assert combinatorial_purged_cv(3, 5, 2) == []

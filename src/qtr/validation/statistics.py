@@ -637,3 +637,81 @@ def validate_strategy(
     )
 
     return results
+
+
+from itertools import combinations as _combinations
+
+
+def purged_kfold_splits(
+    n_samples: int,
+    n_splits: int = 5,
+    purge: int = 0,
+    embargo: int = 0,
+) -> list[tuple[np.ndarray, np.ndarray]]:
+    """Generate purged k-fold train/test splits with optional embargo."""
+    if n_samples <= 0 or n_splits <= 0:
+        return []
+    fold_size = n_samples // n_splits
+    if fold_size == 0:
+        return []
+    splits = []
+    for i in range(n_splits):
+        test_start = i * fold_size
+        test_end = n_samples if i == n_splits - 1 else (i + 1) * fold_size
+        test_idx = np.arange(test_start, test_end)
+        mask = np.ones(n_samples, dtype=bool)
+        mask[test_start:test_end] = False
+        lo = max(0, test_start - purge)
+        hi = min(n_samples, test_end + purge)
+        mask[lo:hi] = False
+        emb_start = test_end
+        emb_end = min(n_samples, test_end + embargo)
+        mask[emb_start:emb_end] = False
+        train_idx = np.where(mask)[0]
+        if len(train_idx) > 0 and len(test_idx) > 0:
+            splits.append((train_idx, test_idx))
+    return splits
+
+
+def combinatorial_purged_cv(
+    n_samples: int,
+    n_splits: int = 5,
+    n_test_splits: int = 2,
+    purge: int = 0,
+    embargo: int = 0,
+) -> list[tuple[np.ndarray, np.ndarray]]:
+    """Generate combinatorial purged cross-validation splits."""
+    if (
+        n_samples <= 0
+        or n_splits <= 0
+        or n_test_splits <= 0
+        or n_test_splits >= n_splits
+    ):
+        return []
+    fold_size = n_samples // n_splits
+    if fold_size == 0:
+        return []
+    groups = []
+    for i in range(n_splits):
+        s = i * fold_size
+        e = n_samples if i == n_splits - 1 else (i + 1) * fold_size
+        groups.append((s, e))
+    splits = []
+    for test_groups in _combinations(range(n_splits), n_test_splits):
+        test_idx = np.concatenate(
+            [np.arange(groups[g][0], groups[g][1]) for g in test_groups]
+        )
+        mask = np.ones(n_samples, dtype=bool)
+        for g in test_groups:
+            s, e = groups[g]
+            mask[s:e] = False
+            lo = max(0, s - purge)
+            hi = min(n_samples, e + purge)
+            mask[lo:hi] = False
+            emb_start = e
+            emb_end = min(n_samples, e + embargo)
+            mask[emb_start:emb_end] = False
+        train_idx = np.where(mask)[0]
+        if len(train_idx) > 0 and len(test_idx) > 0:
+            splits.append((train_idx, test_idx))
+    return splits
