@@ -4138,3 +4138,70 @@ coverage gap (H7) is closed.**
 No published artifact, runner, gate, threshold, verdict or certified number was modified; no
 grid was re-run; the published H7 row in the results table is unchanged. The paid-data task
 stays downstream and is unjustified for every family in the repo.
+
+## H31: The `compare_to_benchmark` defect logged as advisory in H30 is a real bug, and it is fixed (2026-10-20)
+
+### Statement
+
+H30's re-run of `run_h7_intraday_tsmom_experiment.py` recorded, as an advisory, that
+`compare_to_benchmark` raised `ValueError: The truth value of a Series is ambiguous` and that
+the benchmark comparison was therefore skipped (`benchmark: null` in the committed artifact).
+H31 re-examines that exception and finds it is **not** a data artefact: `compare_to_benchmark`
+in `src/qtr/validation/statistics.py` assumed a 1-D benchmark and raised whenever the caller
+passed a multi-column DataFrame, which is exactly what H7 does (`prices[FUTURES_UNIVERSE]`, a
+5-column slice of the futures universe). The advisory was a **real defect in the library**, and
+the fix is in the library, not in H7's runner.
+
+### Scope (frozen)
+
+- Edit only `src/qtr/validation/statistics.py:compare_to_benchmark` (reduce a DataFrame
+  benchmark to its row-mean series before aligning; likewise a 2-D ndarray).
+- Add regression tests to `tests/test_statistics.py`; update `FINAL_REPORT.md` §H30 and the
+  `H31` paragraph, `HANDOFF.md`, `HANDOFF_NEXT.md`, `NEXT_TASK.md`.
+- Do **not** edit `run_h7_intraday_tsmom_experiment.py` (its `try/except` is preserved).
+- Do **not** touch the committed artifact `exp_2026-10-19T18-56-08-872500Z`; its `benchmark:
+  null` is the historical record of the run as it was executed.
+- Do **not** re-run any grid, change any gate, threshold, verdict or certified number, or
+  re-label H7.
+
+### Verdict rule (frozen)
+
+- `FIXED` iff the two new regression tests pass, the pre-existing `compare_to_benchmark` tests
+  are unchanged in expectation and still pass, the full suite passes clean (incl. `-W error`),
+  lint and format are clean, and a verification re-run of H7 reproduces the committed
+  artifact's `prices`/`equity_curve`/`returns`/`trades` bit-exactly with the same OOS Sharpe,
+  trade count, profit factor, max DD and verdict.
+- `NOT_FIXED` otherwise: record the failing check and stop.
+
+### Frozen expectation
+
+`FIXED`, and the fix is **additive** — it changes no published number. The benchmark is
+advisory in H7's gate set (`max_p_value`, `min_information_ratio`); both were already False in
+the published row's 3/8 count, and the verdict is REJECT either way, so the re-run's
+`benchmark = {alpha: NaN, ir: -38.34, p_value: NaN}` changes no gate outcome.
+
+### H31 — Measure Log (executed 2026-10-20)
+
+The fix is in `src/qtr/validation/statistics.py:compare_to_benchmark`: a multi-symbol benchmark
+(a DataFrame, or a 2-D ndarray) is now reduced to a single series by averaging across symbols
+before the excess-return computation, so the boolean-mask expressions below no longer raise.
+The pre-existing single-series path is unchanged.
+
+Verification:
+- `python -m pytest -q` → **707 passed** (705 + 2 new), 0 warnings.
+- `python -m pytest -W error -q` → 707 passed.
+- `python -m ruff check src tests run_*.py` → All checks passed.
+- `python -m ruff format --check src tests run_*.py` → 77 files already formatted.
+- `bash -n .github/scripts/*.sh` OK; `bash .github/scripts/test_kilo_progress.sh` OK.
+- The H29 sweep re-run is unchanged in verdict (`LOOKAHEAD_FOUND`, all four self-checks pass,
+  H1–H8 `CAUSAL`, H11/H12/H13/H23 `LOOKAHEAD`).
+- A verification re-run of H7 (`exp_2026-10-20T01-51-28-367059Z`, since deleted from the tree —
+  it was a reproduction, not a committed artifact) produced `prices`/`equity_curve`/`returns`/
+  `trades` **bit-identical** to the committed artifact `exp_2026-10-19T18-56-08-872500Z`
+  (identical sha256 on all four parquets); `summary.json` differs only in the experiment id and
+  the two benchmark-fed gate booleans (`max_p_value: False`, `min_information_ratio: "False"`
+  instead of `false`); OOS Sharpe (0.7893261992589912), trades (1,005), profit factor
+  (1.16605221165269), max DD (−14.54%) and verdict (REJECT) are unchanged.
+
+**Result: `FIXED`.** No published artifact, runner, gate, threshold, verdict or certified number
+was modified; no grid was re-run; the committed H7 artifact is untouched.

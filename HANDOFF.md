@@ -183,9 +183,46 @@ described as free of a daily collapse — it is not.
   the artifact id. The failing rebuild is reported as `INCONCLUSIVE` with the traceback rather
   than being skipped.
 
+## H31 — the H30 advisory was a real defect and is fixed (2026-10-20)
+
+**What changed.** H30 logged `compare_to_benchmark` raising `"The truth value of a Series is
+ambiguous"` during H7's re-run and recorded it as an advisory. It was in fact a bug in
+`src/qtr/validation/statistics.py:compare_to_benchmark`: the function assumed a 1-D benchmark
+and raised whenever the caller passed a multi-column DataFrame, which is exactly what H7 does
+(`prices[FUTURES_UNIVERSE]`, a 5-column slice). The function now reduces a DataFrame
+benchmark to its row-mean series (and likewise a 2-D ndarray) before aligning, so the
+comparison is computed rather than skipped. Two regression tests pin the behaviour
+(`test_dataframe_benchmark_reduced_to_equal_weighted`,
+`test_2d_ndarray_benchmark_reduced` in `tests/test_statistics.py`); the pre-existing
+`compare_to_benchmark` tests are unchanged in expectation and still pass.
+
+**What was verified.** `python -m pytest -q` → **707 passed** (705 + 2 new), 0 warnings;
+`python -m pytest -W error -q` → 707 passed; `python -m ruff check src tests run_*.py` → All
+checks passed; `python -m ruff format --check src tests run_*.py` → 77 files already
+formatted; `bash -n .github/scripts/*.sh` OK; `bash .github/scripts/test_kilo_progress.sh`
+OK. The H29 sweep re-run (`run_h29_lookahead_sweep.py`) is unchanged in verdict
+(`LOOKAHEAD_FOUND`, all four self-checks pass, H1–H8 `CAUSAL`, H11/H12/H13/H23 `LOOKAHEAD`).
+A verification re-run of H7 (`exp_2026-10-20T01-51-28-367059Z`, since deleted from the tree —
+it was a reproduction, not a committed artifact) produced `prices`/`equity_curve`/`returns`/
+`trades` **bit-identical** to the committed artifact `exp_2026-10-19T18-56-08-872500Z`
+(identical sha256 on all four parquets) and `summary.json` differing only in the experiment id
+and the two benchmark-fed gate booleans; OOS Sharpe (0.7893261992589912), trades (1,005),
+profit factor (1.16605221165269), max DD (−14.54%) and verdict (REJECT) are unchanged.
+
+**What remains unresolved.** Nothing from the audit record. The single uncovered branch is the
+pre-existing unreachable `walk_forward_splits` empty-window guard at
+`src/qtr/validation/statistics.py:169`. The documented library drift in `walk_forward_splits`
+(changed 2026-10-19 09:28) still moves `metrics.wf_stability` by ~1.3e-3 on a re-run of a
+published experiment; H29's/H30's rebuilds are unaffected (they do not use that helper's
+output). The paid-data task remains unjustified for every family in the repo.
+
+**Which approaches have already failed and why.** None new this session. The fix was a
+minimal, additive change to a library function; no runner, gate, threshold, verdict or
+certified number was modified, no grid was re-run, and no published artifact was touched.
+
 ## One precise next task
 
-**None.** H30 is complete and the pre-registered free-data hypothesis space (H1–H30) is
+**None.** H31 is complete and the pre-registered free-data hypothesis space (H1–H30) is
 exhausted: every family has a committed artifact or a documented reason for the gap, every
 daily/monthly family is `CAUSAL` and REJECTED, every intraday family is `CAUSAL_REJECTED`
 under H28, and the paid-data task (a wider OOS window for the PF bootstrap margin) is

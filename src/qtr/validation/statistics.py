@@ -407,6 +407,20 @@ def compare_to_benchmark(
     Returns:
         Dictionary with comparison metrics
     """
+    # A multi-symbol benchmark (e.g. a DataFrame slice of a futures
+    # universe) is reduced to a single series by averaging across symbols,
+    # so the comparison is against the equal-weighted benchmark return.
+    # Without this, `excess = strat - bench` raises "The truth value of a
+    # Series is ambiguous" on the boolean-mask expressions below.
+    if isinstance(benchmark_returns, pd.DataFrame):
+        benchmark_returns = benchmark_returns.mean(axis=1)
+    elif not isinstance(benchmark_returns, pd.Series):
+        arr = np.asarray(benchmark_returns, dtype=float)
+        benchmark_returns = arr.mean(axis=1) if arr.ndim > 1 else arr
+
+    if not isinstance(strategy_returns, pd.Series):
+        strategy_returns = np.asarray(strategy_returns, dtype=float)
+
     # Align
     min_len = min(len(strategy_returns), len(benchmark_returns))
     strat = strategy_returns[-min_len:]

@@ -1,9 +1,10 @@
 # Handoff Summary
 
 ## Current state
-- All tests pass: **705 passed, 0 warnings** (~3:40). Full suite re-confirmed this session.
+- All tests pass: **707 passed, 0 warnings** (~3:50). Full suite re-confirmed this session.
 - src/ coverage: 99% (single uncovered branch is the unreachable `walk_forward_splits` empty-window guard at statistics.py:169, pre-existing). Lint/format clean on `src tests run_*.py`. Workflow scripts pass `bash -n` and the progress-helper regression test.
-- **H29 (this session): systematic look-ahead sweep of the remaining families — COMPLETE.
+- **H31 (this session): the H30 `compare_to_benchmark` advisory was a real defect and is fixed.** H30 recorded that `compare_to_benchmark` raised `"The truth value of a Series is ambiguous"` during H7's re-run and logged it as advisory. It was in fact a bug in `src/qtr/validation/statistics.py`: the function assumed a 1-D benchmark and raised whenever the caller passed a multi-column DataFrame (which is exactly what H7 does — `prices[FUTURES_UNIVERSE]`, a 5-column slice). The function now reduces a DataFrame benchmark to its row-mean series (and likewise a 2-D ndarray) before aligning, so the comparison is computed rather than skipped. The fix is in the library, not in H7's runner (the runner's `try/except` is preserved), and it changes no published number: the benchmark is advisory in H7's gate set, both benchmark-fed gates were already False in the published row's 3/8 count, and the verdict is REJECT either way. The committed artifact `exp_2026-10-19T18-56-08-872500Z` is untouched (`benchmark: null` is the historical record of the run as executed); a verification re-run produced `benchmark = {alpha: NaN, ir: -38.34, p_value: NaN}` with `prices`/`equity_curve`/`returns`/`trades` **bit-identical** to the committed artifact (identical sha256 on all four parquets) and OOS Sharpe (0.7893261992589912), trades (1,005), profit factor (1.16605221165269), max DD (−14.54%) and verdict (REJECT) unchanged. Two new regression tests pin the behaviour (`test_dataframe_benchmark_reduced_to_equal_weighted`, `test_2d_ndarray_benchmark_reduced`); the pre-existing `compare_to_benchmark` tests (OLS beta, zero-variance benchmark, unit-interval p-value) are unchanged in expectation and still pass. See `FINAL_REPORT.md` §H30 (H31 paragraph), `tests/test_statistics.py`.
+- **H29 (prior session): systematic look-ahead sweep of the remaining families — COMPLETE.
   Verdict `LOOKAHEAD_FOUND`.** Every remaining family was audited for the `resample`
   look-ahead from the committed artifacts, with a detector that **fires** on the already-audited
   intraday family (H9/H10/H21/H22/H25 → `LOOKAHEAD`, reproducing H27's same/prev statistic
@@ -297,3 +298,20 @@ The look-ahead lives in the *runners* (`run_h9_intraday_tsmom_experiment.py:195`
 `run_h10_intraday_tsmom_pfopt_experiment.py:114-133`), not in `src/qtr/`, so H29 added a
 detector **without** editing those functions (the published artifacts are the historical
 record and H26/H27/H28/H29 reproduce them bit-exactly).
+
+## H31 drift guards (added this session)
+`tests/test_statistics.py` pins the `compare_to_benchmark` multi-symbol fix so the defect class
+cannot recur silently:
+
+- `test_dataframe_benchmark_reduced_to_equal_weighted` — a DataFrame benchmark is reduced to its
+  row-mean series before the comparison, and the result must equal the comparison against that
+  mean series exactly (so the reduction is the *only* transformation).
+- `test_2d_ndarray_benchmark_reduced` — a 2-D ndarray benchmark is likewise reduced along axis 1.
+- The pre-existing `TestCompareToBenchmark` expectations (OLS beta, mixed-ddof inflation,
+  zero-variance benchmark, unit-interval p-value) are unchanged and still pass, so the fix is
+  additive, not a redefinition of the function's contract.
+
+The fix is in `src/qtr/validation/statistics.py` (`compare_to_benchmark`), not in any runner: the
+runners' `try/except` around the call is preserved, and the committed H7 artifact
+(`exp_2026-10-19T18-56-08-872500Z`, `benchmark: null`) is untouched as the historical record of
+the run as it was executed.

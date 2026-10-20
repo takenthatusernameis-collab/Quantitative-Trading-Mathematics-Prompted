@@ -7,6 +7,28 @@ H29 detector reports H7 `CAUSAL`. The H29 sweep's only coverage gap is closed. T
 further next task** in this record — see FINAL_REPORT.md §Next Task ("There is no further next
 task in this record") and HYPOTHESIS_SPEC.md §H30 measure log.
 
+## H31 — the H30 advisory was a real defect and is fixed (2026-10-20)
+
+**Status: COMPLETE.** H30 logged `compare_to_benchmark` raising `"The truth value of a Series
+is ambiguous"` during H7's re-run and recorded it as an advisory. H31 found it was in fact a
+bug in `src/qtr/validation/statistics.py:compare_to_benchmark` (it assumed a 1-D benchmark and
+raised on the 5-column `prices[FUTURES_UNIVERSE]` slice that H7 passes). The fix reduces a
+DataFrame benchmark to its row-mean series (and likewise a 2-D ndarray) before aligning, so the
+comparison is now computed rather than skipped. Two regression tests pin it
+(`test_dataframe_benchmark_reduced_to_equal_weighted`,
+`test_2d_ndarray_benchmark_reduced`); the pre-existing `compare_to_benchmark` tests are
+unchanged in expectation and still pass. **Nothing published was touched**: H7's runner is not
+edited (its `try/except` is preserved), the committed artifact
+`exp_2026-10-19T18-56-08-872500Z` is left as the historical record (`benchmark: null`), no grid
+was re-run, no gate, threshold, verdict or certified number changed. A verification re-run
+produced `prices`/`equity_curve`/`returns`/`trades` bit-identical to the committed artifact
+with the same OOS Sharpe (0.7893261992589912), trades (1,005), profit factor (1.16605221165269),
+max DD (−14.54%) and verdict (REJECT); only the experiment id and the two advisory gate booleans
+differ. Verification: `python -m pytest -q` → 707 passed; `python -m pytest -W error -q` → 707
+passed; `python -m ruff check src tests run_*.py` → all checks passed;
+`python -m ruff format --check src tests run_*.py` → 77 files already formatted;
+`bash -n .github/scripts/*.sh` OK; `bash .github/scripts/test_kilo_progress.sh` OK.
+
 ## What was done (the evidence)
 
 1. **Pre-registered** `HYPOTHESIS_SPEC.md` §H30 *before* execution: scope, the frozen artifact-id

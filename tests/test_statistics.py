@@ -456,6 +456,28 @@ class TestCompareToBenchmark:
         )
         assert 0.0 <= res["alpha_p_value"] <= 1.0
 
+    def test_dataframe_benchmark_reduced_to_equal_weighted(self, rng):
+        """A multi-symbol benchmark (e.g. a DataFrame slice of a futures
+        universe) must be reduced to a single series by averaging across
+        symbols, not raise "The truth value of a Series is ambiguous".
+        """
+        strat = pd.Series(rng.normal(0.001, 0.01, 400))
+        bench_df = pd.DataFrame(rng.normal(0.0003, 0.01, (400, 5)))
+        res = st.compare_to_benchmark(strat, bench_df)
+        # The result must equal the comparison against the row-mean series.
+        res_mean = st.compare_to_benchmark(strat, bench_df.mean(axis=1))
+        for key in res:
+            assert res[key] == pytest.approx(res_mean[key])
+
+    def test_2d_ndarray_benchmark_reduced(self, rng):
+        """A 2-D ndarray benchmark is likewise reduced along axis 1."""
+        strat = rng.normal(0.001, 0.01, 400)
+        bench_2d = rng.normal(0.0003, 0.01, (400, 3))
+        res = st.compare_to_benchmark(strat, bench_2d)
+        res_mean = st.compare_to_benchmark(strat, bench_2d.mean(axis=1))
+        assert res["beta"] == pytest.approx(res_mean["beta"])
+        assert res["alpha_annualized"] == pytest.approx(res_mean["alpha_annualized"])
+
 
 # ===========================================================================
 # statistical_power_analysis
