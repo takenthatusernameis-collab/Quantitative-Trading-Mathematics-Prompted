@@ -167,9 +167,9 @@ def main():
         bt_config.cost_model.equity_spread_bps = CONFIG["backtest"]["cost_model"][
             "equity_spread_bps"
         ]
-        bt_config.cost_model.equity_impact_bps_per_pct_adv = CONFIG["backtest"][
-            "cost_model"
-        ]["equity_impact_bps_per_pct_adv"]
+        bt_config.cost_model.equity_impact_bps_per_pct_adv = CONFIG["backtest"]["cost_model"][
+            "equity_impact_bps_per_pct_adv"
+        ]
 
         adv = volumes.rolling(20).mean().iloc[-1]
 
@@ -196,9 +196,7 @@ def main():
         )
 
         # Bootstrap CI for Sharpe
-        sharpe_ci = sharpe_ratio_ci(
-            result.returns.values, n_bootstrap=1000, random_state=42
-        )
+        sharpe_ci = sharpe_ratio_ci(result.returns.values, n_bootstrap=1000, random_state=42)
         validation["sharpe_ci_lower"] = sharpe_ci[0]
         validation["sharpe_ci_upper"] = sharpe_ci[1]
 

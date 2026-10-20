@@ -107,9 +107,7 @@ class TestTsmomSignInvariant:
         )
         sig = vol_scaled_tsmom_signals(prices, lookback=63, skip=1, long_only=False)
         # direction is 0 where momentum == 0, so weight must be 0.
-        assert sig.abs().max().max() <= 1e-12, (
-            "zero momentum must produce zero TSMOM weight"
-        )
+        assert sig.abs().max().max() <= 1e-12, "zero momentum must produce zero TSMOM weight"
 
 
 class TestTsmomVolScaling:
@@ -126,12 +124,8 @@ class TestTsmomVolScaling:
 
     def test_position_cap_respected(self):
         prices = _trending_prices()
-        sig = vol_scaled_tsmom_signals(
-            prices, lookback=63, skip=1, max_position_size=1.5
-        )
-        assert (sig.abs() <= 1.5 + 1e-12).all().all(), (
-            "weights must respect max_position_size cap"
-        )
+        sig = vol_scaled_tsmom_signals(prices, lookback=63, skip=1, max_position_size=1.5)
+        assert (sig.abs() <= 1.5 + 1e-12).all().all(), "weights must respect max_position_size cap"
 
     def test_lookahead_safety(self):
         """Signal at time t must depend only on data through t (shift is applied)."""

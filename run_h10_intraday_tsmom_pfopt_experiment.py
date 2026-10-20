@@ -272,9 +272,7 @@ def _count_in(trades: pd.DataFrame, mask, prices) -> int:
     return int(((ts >= lo) & (ts <= hi)).sum())
 
 
-def _full_gate_eval(
-    result, oos_mask, val_mask, test_mask, prices, vix_hourly, bh_result
-):
+def _full_gate_eval(result, oos_mask, val_mask, test_mask, prices, vix_hourly, bh_result):
     """Compute the 8 H9-family gates on OOS (Val+Test) plus a Test-only sanity
     check."""
     train_mask = prices.index <= prices.index[int(len(prices) * 0.55)]
@@ -297,9 +295,7 @@ def _full_gate_eval(
         if len(tr_r) > 1:
             train_sharpes.append(sharpe_ratio(tr_r))
     wf_stab = (
-        float(np.mean(oos_sharpes) / np.mean(train_sharpes))
-        if np.mean(train_sharpes) != 0
-        else 0.0
+        float(np.mean(oos_sharpes) / np.mean(train_sharpes)) if np.mean(train_sharpes) != 0 else 0.0
     )
 
     # Regime sharpes (worst) using hourly VIX ffill
@@ -325,16 +321,13 @@ def _full_gate_eval(
         "pf": oos_m["profit_factor"] >= GATES["min_profit_factor"],
         "dd": abs(oos_max_dd) <= GATES["max_drawdown"] if oos_max_dd < 0 else False,
         "stab": wf_stab >= GATES["min_walkforward_stability"],
-        "worst": worst >= GATES["min_worst_regime_sharpe"]
-        if worst != np.inf
-        else False,
+        "worst": worst >= GATES["min_worst_regime_sharpe"] if worst != np.inf else False,
         "p": benchmark_significance_gate(
             float(bench.get("alpha_p_value", 1.0)),
             float(bench.get("information_ratio", -np.inf)),
             GATES["max_p_value"],
         ),
-        "ir": float(bench.get("information_ratio", -np.inf))
-        > GATES["min_information_ratio"],
+        "ir": float(bench.get("information_ratio", -np.inf)) > GATES["min_information_ratio"],
     }
     all_pass = all(passes.values())
     return {
@@ -429,9 +422,7 @@ def main():
 
         # Hourly VIX (cached). yfinance ^VIX hourly comes back tz-naive; keep it
         # tz-naive so the reindex against the (now tz-naive) prices index works.
-        vix_df = fetcher.fetch_yahoo(
-            [VIX_SYMBOL], start=DATA_START, end=DATA_END, interval="1h"
-        )
+        vix_df = fetcher.fetch_yahoo([VIX_SYMBOL], start=DATA_START, end=DATA_END, interval="1h")
         vix = vix_df.get(VIX_SYMBOL, pd.DataFrame())
         if len(vix) > 0:
             if hasattr(vix.index, "tz_convert") and vix.index.tzinfo is not None:
@@ -453,18 +444,16 @@ def main():
         pct = prices.pct_change().fillna(0)
         atr = prices * pct.rolling(14, min_periods=7).std()
         atr = atr.replace(0, np.nan).ffill().fillna(prices * 0.001)
-        vol_exit = pct.rolling(
-            EXIT_VOL_WINDOW, min_periods=EXIT_VOL_WINDOW // 2
-        ).std() * np.sqrt(252 * 6.5)
+        vol_exit = pct.rolling(EXIT_VOL_WINDOW, min_periods=EXIT_VOL_WINDOW // 2).std() * np.sqrt(
+            252 * 6.5
+        )
         vol_exit = vol_exit.replace(0, np.nan).ffill()
 
         cfg = make_futures_config()
         bh_weights = pd.DataFrame(
             1.0 / len(prices.columns), index=prices.index, columns=prices.columns
         )
-        bh_result = run_backtest(
-            prices=prices, signals=bh_weights, volumes=volumes, config=cfg
-        )
+        bh_result = run_backtest(prices=prices, signals=bh_weights, volumes=volumes, config=cfg)
 
         # --- build the 3 base signals (one per vol window) once ---
         base_signals = {}
@@ -523,9 +512,7 @@ def main():
                     vm = _period_metrics(val_ret, val_tr)
                     row = {
                         "vol_window_long": vw,
-                        "smooth_span": (
-                            str(smooth_span) if smooth_span is not None else "none"
-                        ),
+                        "smooth_span": (str(smooth_span) if smooth_span is not None else "none"),
                         "regime_scaling": regime,
                         "min_trade_interval": min_int,
                         "trailing_mult": tm,
@@ -561,9 +548,7 @@ def main():
                                 "vol_floor_fraction": vff,
                             },
                         )
-                    if vm["profit_factor"] > best_val_pf and vm[
-                        "profit_factor"
-                    ] != float("inf"):
+                    if vm["profit_factor"] > best_val_pf and vm["profit_factor"] != float("inf"):
                         best_val_pf = vm["profit_factor"]
                         best_by_pf = (
                             (vw, smooth_span, regime),
@@ -598,9 +583,7 @@ def main():
             target_vol=TARGET_VOL,
             min_trade_interval=min_int,
         )
-        sel_result = run_backtest(
-            prices=prices, signals=sel_positions, volumes=volumes, config=cfg
-        )
+        sel_result = run_backtest(prices=prices, signals=sel_positions, volumes=volumes, config=cfg)
 
         gate = _full_gate_eval(
             sel_result, oos_mask, val_mask, test_mask, prices, vix_hourly, bh_result
@@ -611,9 +594,7 @@ def main():
         ablation_equity = {}
 
         def _ablation(name, positions):
-            r = run_backtest(
-                prices=prices, signals=positions, volumes=volumes, config=cfg
-            )
+            r = run_backtest(prices=prices, signals=positions, volumes=volumes, config=cfg)
             oos_ret = r.returns[oos_mask]
             test_ret = r.returns[test_mask]
             om = _period_metrics(oos_ret, _count_in(r.trades, oos_mask, prices))
@@ -665,9 +646,7 @@ def main():
                 (
                     sp,
                     _count_in(r.trades, oos_mask, prices),
-                    _period_metrics(
-                        r.returns[oos_mask], _count_in(r.trades, oos_mask, prices)
-                    ),
+                    _period_metrics(r.returns[oos_mask], _count_in(r.trades, oos_mask, prices)),
                 )
             )
         best_sp = max(smooth_pfs, key=lambda x: x[2]["profit_factor"])[0]
@@ -706,9 +685,7 @@ def main():
             vw_pfs.append(
                 (
                     vw,
-                    _period_metrics(
-                        r.returns[oos_mask], _count_in(r.trades, oos_mask, prices)
-                    ),
+                    _period_metrics(r.returns[oos_mask], _count_in(r.trades, oos_mask, prices)),
                 )
             )
         best_vw = max(vw_pfs, key=lambda x: x[1]["profit_factor"])[0]
@@ -760,9 +737,7 @@ def main():
             mi_pfs.append(
                 (
                     mi,
-                    _period_metrics(
-                        r.returns[oos_mask], _count_in(r.trades, oos_mask, prices)
-                    ),
+                    _period_metrics(r.returns[oos_mask], _count_in(r.trades, oos_mask, prices)),
                 )
             )
         best_mi = max(mi_pfs, key=lambda x: x[1]["profit_factor"])[0]
@@ -795,17 +770,13 @@ def main():
         tracker.log_dataframe("vix_hourly", vix_hourly.to_frame("vix"))
         if (252, None, False) in targets:
             tracker.log_dataframe("hourly_signal_h9", base_signals[252])
-            tracker.log_dataframe(
-                "daily_target_h9", _daily_target_from_hourly(base_signals[252])
-            )
+            tracker.log_dataframe("daily_target_h9", _daily_target_from_hourly(base_signals[252]))
         tracker.log_dataframe("hourly_target_selected", hourly_target)
         tracker.log_dataframe("positions", sel_positions)
         tracker.log_dataframe("equity", sel_result.equity_curve.to_frame("equity"))
         tracker.log_dataframe("returns", sel_result.returns.to_frame("returns"))
         tracker.log_dataframe("trades", sel_result.trades)
-        tracker.log_dataframe(
-            "benchmark_equity", bh_result.equity_curve.to_frame("equity")
-        )
+        tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
 
         # exit events (CT-style) for selected config
         prev_pos = sel_positions.shift(1).fillna(0.0)
@@ -847,9 +818,7 @@ def main():
             ],
         ).sort_values("timestamp")
         tracker.log_dataframe("exit_events", exit_events)
-        tracker.log_dataframe(
-            "regime_factors", regime_factor_hourly(vix_hourly).to_frame("factor")
-        )
+        tracker.log_dataframe("regime_factors", regime_factor_hourly(vix_hourly).to_frame("factor"))
 
         # param grid: also log best by Val PF for transparency
         best_pf_info = {}
@@ -867,9 +836,7 @@ def main():
                 target_vol=TARGET_VOL,
                 min_trade_interval=mi2,
             )
-            bp_res = run_backtest(
-                prices=prices, signals=bp_pos, volumes=volumes, config=cfg
-            )
+            bp_res = run_backtest(prices=prices, signals=bp_pos, volumes=volumes, config=cfg)
             bp_gate = _full_gate_eval(
                 bp_res, oos_mask, val_mask, test_mask, prices, vix_hourly, bh_result
             )
@@ -933,9 +900,7 @@ def main():
                 summary,
                 f,
                 indent=2,
-                default=lambda x: (
-                    float(x) if isinstance(x, (np.integer, np.floating)) else str(x)
-                ),
+                default=lambda x: float(x) if isinstance(x, (np.integer, np.floating)) else str(x),
             )
         tracker.log_artifact("summary", exp_dir / "summary.json")
         tracker.finish_experiment(status="completed")

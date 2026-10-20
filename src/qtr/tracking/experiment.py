@@ -59,9 +59,7 @@ class ExperimentTracker:
     """
 
     def __init__(self, log_dir: Path | None = None):
-        self.log_dir = log_dir or Path(
-            get_config().get("tracking.log_dir", ".experiments")
-        )
+        self.log_dir = log_dir or Path(get_config().get("tracking.log_dir", ".experiments"))
         self.log_dir.mkdir(parents=True, exist_ok=True)
         self.current_experiment: ExperimentMetadata | None = None
         self.current_results: dict[str, Any] = {}
@@ -161,9 +159,7 @@ class ExperimentTracker:
         self, name: str, df: pd.DataFrame, metadata: dict[str, Any] | None = None
     ) -> str:
         """Log a DataFrame as parquet artifact."""
-        artifact_dir = (
-            self.log_dir / "artifacts" / self.current_experiment.experiment_id
-        )
+        artifact_dir = self.log_dir / "artifacts" / self.current_experiment.experiment_id
         artifact_dir.mkdir(parents=True, exist_ok=True)
 
         file_path = artifact_dir / f"{name}.parquet"
@@ -199,9 +195,7 @@ class ExperimentTracker:
         # Save experiment record
         self._save_experiment(result)
 
-        logger.info(
-            f"Finished experiment: {self.current_experiment.experiment_id} ({status})"
-        )
+        logger.info(f"Finished experiment: {self.current_experiment.experiment_id} ({status})")
         self.current_experiment = None
         return result
 
@@ -236,16 +230,12 @@ class ExperimentTracker:
         """
         try:
             commit = (
-                subprocess.check_output(
-                    ["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL
-                )
+                subprocess.check_output(["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL)
                 .decode()
                 .strip()
             )
             status = (
-                subprocess.check_output(
-                    ["git", "status", "--porcelain"], stderr=subprocess.DEVNULL
-                )
+                subprocess.check_output(["git", "status", "--porcelain"], stderr=subprocess.DEVNULL)
                 .decode()
                 .strip()
             )

@@ -22,6 +22,7 @@ dependencies = [
 data = ["yfinance>=0.2.0", "ccxt>=4.0.0"]
 test = ["pytest>=7.4.0", "pytest-cov>=4.1.0"]
 opt = ["optuna>=3.0.0"]
+lint = ["ruff>=0.6.0"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -29,3 +30,15 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP"]
+ignore = ["E402", "E741", "F841", "F401", "E501", "E722"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

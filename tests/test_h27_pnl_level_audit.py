@@ -44,9 +44,7 @@ import run_h27_pnl_level_audit as h27
 from run_h9_intraday_tsmom_experiment import FUTURES_SPECS
 
 SUMMARY_PATH = ROOT / ".experiments" / "artifacts" / "h27_pnl_level" / "summary.json"
-TABLE_PATH = (
-    ROOT / ".experiments" / "artifacts" / "h27_pnl_level" / "level_table.parquet"
-)
+TABLE_PATH = ROOT / ".experiments" / "artifacts" / "h27_pnl_level" / "level_table.parquet"
 SPEC_PATH = ROOT / "HYPOTHESIS_SPEC.md"
 
 CERTIFIED = ("H10", "H22", "H25")
@@ -75,10 +73,7 @@ class TestLevelChecks:
             l1 = a["level_checks"]["L1"]
             assert l1["passes"], family
             assert l1["dollar_pnl_matches_engine_gross_max_abs_diff"] <= h27.LEVEL_TOL
-            assert (
-                l1["recomputed_net_matches_logged_returns_max_abs_diff"]
-                <= h27.LEVEL_TOL
-            )
+            assert l1["recomputed_net_matches_logged_returns_max_abs_diff"] <= h27.LEVEL_TOL
 
     def test_l1_covers_almost_every_bar(self):
         for family, a in _audited().items():
@@ -107,9 +102,7 @@ class TestLevelChecks:
         assert specs["all_tick_values_consistent"]
         assert specs["all_costs_consistent"]
         for row in specs["per_symbol"].values():
-            assert row["implied_tick_value"] == pytest.approx(
-                row["tick_value"], rel=1e-12
-            )
+            assert row["implied_tick_value"] == pytest.approx(row["tick_value"], rel=1e-12)
             assert row["cost_per_contract"] == pytest.approx(
                 row["expected_cost_per_contract"], rel=1e-12
             )
@@ -151,9 +144,7 @@ class TestVolTargetCoherence:
             # artifact's own bar index implies far more bars per year.
             assert v["code_bars_per_year"] == 1638.0
             assert v["empirical_bars_per_year"] > 5000
-            assert v["annualization_ratio_empirical_over_code"] == pytest.approx(
-                1.8657, rel=1e-3
-            )
+            assert v["annualization_ratio_empirical_over_code"] == pytest.approx(1.8657, rel=1e-3)
 
     def test_realized_vol_over_target_is_pinned_per_family(self):
         # The ratio realized/target on the code's own scale.  H10 and H25
@@ -168,9 +159,9 @@ class TestVolTargetCoherence:
         }
         for family, ratio in expected.items():
             v = _audited()[family]["vol_target_coherence"]
-            assert v["realized_vol_over_target_code_scale"] == pytest.approx(
-                ratio, rel=1e-3
-            ), family
+            assert v["realized_vol_over_target_code_scale"] == pytest.approx(ratio, rel=1e-3), (
+                family
+            )
 
 
 class TestLookaheadStructure:
@@ -181,15 +172,11 @@ class TestLookaheadStructure:
             art = a["lookahead"]["L5a_structural"]["artifact_only"]
             assert art["available"], family
             # The day-labelled collapse holds the signal at that day's CLOSE.
-            assert art["max_abs_diff_signal_at_day_close_vs_daily_collapse"] <= 1e-12, (
-                family
-            )
+            assert art["max_abs_diff_signal_at_day_close_vs_daily_collapse"] <= 1e-12, family
             # ... and the signal at that day's OPEN is a different number, so
             # the session is not being positioned with information it could
             # have had at the open.
-            assert art["max_abs_diff_signal_at_day_open_vs_daily_collapse"] > 1e-6, (
-                family
-            )
+            assert art["max_abs_diff_signal_at_day_open_vs_daily_collapse"] > 1e-6, family
 
     def test_expansion_puts_the_day_close_on_the_day_open(self):
         for a in _audited().values():
@@ -233,19 +220,16 @@ class TestCausalCounterfactual:
                 # H9 was published with the sample-std Sharpe convention; H26
                 # already excluded it for that reason.
                 continue
-            assert a["published_reconciliation_abs_diff"] == pytest.approx(
-                0.0, abs=1e-12
-            ), family
+            assert a["published_reconciliation_abs_diff"] == pytest.approx(0.0, abs=1e-12), family
 
     def test_causal_collapse_collapses_the_certified_family(self):
         for family in CERTIFIED:
             l5b = _audited()[family]["lookahead"]["L5b_counterfactual"]
             assert l5b["oos_sharpe_relative_drop"] > 0.5, family
             assert l5b["causal_oos"]["sharpe"] < l5b["published_oos"]["sharpe"], family
-            assert (
-                l5b["causal_oos"]["profit_factor"]
-                < l5b["published_oos"]["profit_factor"]
-            ), family
+            assert l5b["causal_oos"]["profit_factor"] < l5b["published_oos"]["profit_factor"], (
+                family
+            )
 
     def test_causal_equity_multiple_collapses(self):
         for family in CERTIFIED:
@@ -287,8 +271,7 @@ class TestPnLAttribution:
         for family, a in _audited().items():
             attr = a["lookahead"]["L5c_attribution"]
             assert (
-                attr["causal"]["total_intraday_pnl"]
-                < 0.3 * attr["published"]["total_intraday_pnl"]
+                attr["causal"]["total_intraday_pnl"] < 0.3 * attr["published"]["total_intraday_pnl"]
             ), family
 
     def test_same_day_tilt_is_the_look_ahead_fingerprint(self):
@@ -329,9 +312,7 @@ class TestCausalCollapseSemantics:
         signal = pd.DataFrame({"X": np.arange(48, dtype=float)}, index=index)
         daily = signal.resample("1D").last()
         published = daily.reindex(index, method="ffill")
-        causal = h27.causal_daily_target_from_hourly(signal).reindex(
-            index, method="ffill"
-        )
+        causal = h27.causal_daily_target_from_hourly(signal).reindex(index, method="ffill")
         # Day 0 (00:00-23:00) is flat in the causal version (no previous close).
         assert causal["X"].iloc[0] != published["X"].iloc[0]
         # From the second day on, the causal target is the previous day's close.
@@ -400,9 +381,7 @@ class TestVerdict:
             assert row["published_oos_sharpe"] == pytest.approx(
                 l5b["published_oos"]["sharpe"], rel=1e-9
             )
-            assert row["causal_oos_sharpe"] == pytest.approx(
-                l5b["causal_oos"]["sharpe"], rel=1e-9
-            )
+            assert row["causal_oos_sharpe"] == pytest.approx(l5b["causal_oos"]["sharpe"], rel=1e-9)
 
 
 class TestNegativeGuards:
@@ -428,9 +407,7 @@ class TestNegativeGuards:
         dollars = pd.Series(0.0, index=prices.index)
         for sym in prices.columns:
             m = FUTURES_SPECS[sym]["multiplier"]
-            contracts = (
-                positions[sym].shift(1) * wrong_capital / (prices[sym].shift(1) * m)
-            )
+            contracts = positions[sym].shift(1) * wrong_capital / (prices[sym].shift(1) * m)
             price_change = (prices[sym] - prices[sym].shift(1)).fillna(0.0)
             dollars = dollars + contracts * price_change * m
         assert float((dollars / wrong_capital - gross).abs().max()) <= h27.LEVEL_TOL
@@ -462,9 +439,7 @@ class TestNegativeGuards:
                 }
                 for sym, spec in original.items()
             }
-            from_trades_wrong = (
-                h27.costs_from_trades(wrong).reindex(prices.index).fillna(0.0)
-            )
+            from_trades_wrong = h27.costs_from_trades(wrong).reindex(prices.index).fillna(0.0)
         finally:
             h27.h9.FUTURES_SPECS = original
         mean_cost = float(costs.mean())
@@ -487,9 +462,7 @@ class TestNegativeGuards:
             index=inflated.index,
         )
         inflated["weight_change"] = inflated["weight_change"] * multiplier
-        from_trades_2 = (
-            h27.costs_from_trades(inflated).reindex(prices.index).fillna(0.0)
-        )
+        from_trades_2 = h27.costs_from_trades(inflated).reindex(prices.index).fillna(0.0)
         mean_cost = float(costs.mean())
         assert float((from_trades_2 - costs).abs().max()) / mean_cost > 0.1
 

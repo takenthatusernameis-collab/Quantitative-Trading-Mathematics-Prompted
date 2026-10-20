@@ -111,9 +111,7 @@ class TestPreRegistration:
         assert f"{n_combos}-combo" in h19.EXPERIMENT_DESC
         # Both grid dimensions must be enumerated in the prose.
         for dim in ("volume_decomp_method", "threshold_type"):
-            assert dim in h19.EXPERIMENT_DESC, (
-                f"EXPERIMENT_DESC missing dimension {dim!r}"
-            )
+            assert dim in h19.EXPERIMENT_DESC, f"EXPERIMENT_DESC missing dimension {dim!r}"
 
 
 class TestArtifacts:
@@ -231,15 +229,10 @@ class TestGateRecomputation:
         val_max_idx = grid["val_sharpe"].idxmax()
         test_max_idx = grid["test_sharpe"].idxmax()
         sel = s["selected_config"]
-        assert (
-            grid.loc[val_max_idx, "volume_decomp_method"] == sel["volume_decomp_method"]
-        )
+        assert grid.loc[val_max_idx, "volume_decomp_method"] == sel["volume_decomp_method"]
         assert grid.loc[val_max_idx, "threshold_type"] == sel["threshold_type"]
         if val_max_idx != test_max_idx:
-            assert (
-                grid.loc[test_max_idx, "val_sharpe"]
-                < grid.loc[val_max_idx, "val_sharpe"]
-            )
+            assert grid.loc[test_max_idx, "val_sharpe"] < grid.loc[val_max_idx, "val_sharpe"]
 
     def test_passes_reflect_gates(self):
         exp_dir = _latest_h19_dir()
@@ -247,15 +240,9 @@ class TestGateRecomputation:
         p = s["passes"]
         assert p["sharpe"] == (s["metrics"]["oos_sharpe"] >= h19.GATES["min_sharpe"])
         assert p["trades"] == (s["metrics"]["trades"] >= h19.GATES["min_trades"])
-        assert p["pf"] == (
-            s["metrics"]["profit_factor"] >= h19.GATES["min_profit_factor"]
-        )
-        assert p["dd"] == (
-            abs(s["metrics"]["max_drawdown"]) <= h19.GATES["max_drawdown"]
-        )
-        assert p["stab"] == (
-            s["metrics"]["wf_stability"] >= h19.GATES["min_walkforward_stability"]
-        )
+        assert p["pf"] == (s["metrics"]["profit_factor"] >= h19.GATES["min_profit_factor"])
+        assert p["dd"] == (abs(s["metrics"]["max_drawdown"]) <= h19.GATES["max_drawdown"])
+        assert p["stab"] == (s["metrics"]["wf_stability"] >= h19.GATES["min_walkforward_stability"])
         assert p["worst"] == (
             s["metrics"]["worst_regime_sharpe"] >= h19.GATES["min_worst_regime_sharpe"]
         )
@@ -328,9 +315,7 @@ class TestCausality:
                 np.testing.assert_array_almost_equal(
                     t0.loc[common_idx, "SPY"].values,
                     t1.loc[common_idx, "SPY"].values,
-                    err_msg=(
-                        f"future perturbation changes past targets ({method}_{thr})"
-                    ),
+                    err_msg=(f"future perturbation changes past targets ({method}_{thr})"),
                 )
 
 

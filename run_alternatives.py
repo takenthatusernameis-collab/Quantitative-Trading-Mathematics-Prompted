@@ -129,9 +129,9 @@ def main():
         bt_config.cost_model.equity_spread_bps = CONFIG["backtest"]["cost_model"][
             "equity_spread_bps"
         ]
-        bt_config.cost_model.equity_impact_bps_per_pct_adv = CONFIG["backtest"][
-            "cost_model"
-        ]["equity_impact_bps_per_pct_adv"]
+        bt_config.cost_model.equity_impact_bps_per_pct_adv = CONFIG["backtest"]["cost_model"][
+            "equity_impact_bps_per_pct_adv"
+        ]
 
         adv = volumes.rolling(20).mean().iloc[-1]
 
@@ -188,9 +188,7 @@ def main():
                         "max_drawdown": max_dd,
                         "num_trades": n_trades,
                         "annualized_return": ann_return,
-                        "annualized_volatility": result.metrics[
-                            "annualized_volatility"
-                        ],
+                        "annualized_volatility": result.metrics["annualized_volatility"],
                         "profit_factor": result.metrics["profit_factor"],
                     }
                 )
@@ -210,18 +208,12 @@ def main():
         tracker.log_dataframe("strategy_results", results_df)
 
         if best_result is not None:
-            tracker.log_dataframe(
-                "best_equity_curve", best_result.equity_curve.to_frame("equity")
-            )
+            tracker.log_dataframe("best_equity_curve", best_result.equity_curve.to_frame("equity"))
             tracker.log_dataframe("best_trades", best_result.trades)
 
         tracker.log_metrics({"benchmark_sharpe": bh_result.metrics["sharpe"]}, step=0)
-        tracker.log_metrics(
-            {"benchmark_return": bh_result.metrics["annualized_return"]}, step=0
-        )
-        tracker.log_metrics(
-            {"benchmark_max_dd": bh_result.metrics["max_drawdown"]}, step=0
-        )
+        tracker.log_metrics({"benchmark_return": bh_result.metrics["annualized_return"]}, step=0)
+        tracker.log_metrics({"benchmark_max_dd": bh_result.metrics["max_drawdown"]}, step=0)
 
         # Save summary
         summary = {

@@ -115,9 +115,7 @@ GATES = {
 
 SEED = 42
 INITIAL_CAPITAL = 1_000_000.0
-MAX_LEVERAGE = (
-    5.0  # headroom; portfolio-level vol targeting sets scale (engine won't bind)
-)
+MAX_LEVERAGE = 5.0  # headroom; portfolio-level vol targeting sets scale (engine won't bind)
 MAX_POSITION_SIZE = 2.0  # per-asset cap enforced both here and in the engine
 
 COST_MODEL = {
@@ -157,9 +155,7 @@ def make_config(allow_short: bool) -> BacktestConfig:
     )
     cfg.cost_model.equity_commission_bps = COST_MODEL["equity_commission_bps"]
     cfg.cost_model.equity_spread_bps = COST_MODEL["equity_spread_bps"]
-    cfg.cost_model.equity_impact_bps_per_pct_adv = COST_MODEL[
-        "equity_impact_bps_per_pct_adv"
-    ]
+    cfg.cost_model.equity_impact_bps_per_pct_adv = COST_MODEL["equity_impact_bps_per_pct_adv"]
     return cfg
 
 
@@ -381,16 +377,12 @@ def main():
         # ------------------------------------------------------------
         print("Building equal-weight benchmark...")
         bh_cfg = make_config(allow_short=False)
-        bh_signals = run_strategy(
-            prices, "buy_and_hold", weight=1.0 / len(prices.columns)
-        )
+        bh_signals = run_strategy(prices, "buy_and_hold", weight=1.0 / len(prices.columns))
         bh_signals = resample_monthly_signals(bh_signals)
         bh_result = run_backtest(
             prices=prices, signals=bh_signals, volumes=volumes, adv=adv, config=bh_cfg
         )
-        tracker.log_dataframe(
-            "benchmark_equity", bh_result.equity_curve.to_frame("equity")
-        )
+        tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
         tracker.log_dataframe("benchmark_trades", bh_result.trades)
         tracker.log_metrics(
             {f"benchmark_{k}": float(v) for k, v in bh_result.metrics.items()}, step=0
@@ -410,12 +402,8 @@ def main():
         combo_records = []
         for i, (long_only, lookback, skip) in enumerate(grid):
             allow_short = not long_only
-            result, _ = evaluate_combo(
-                prices, volumes, adv, allow_short, lookback, skip
-            )
-            train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(
-                result.returns
-            )
+            result, _ = evaluate_combo(prices, volumes, adv, allow_short, lookback, skip)
+            train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(result.returns)
 
             # Internal walk-forward on train
             train_sharpes = wf_oos_sharpes(train_ret, n_splits=4)
@@ -434,12 +422,8 @@ def main():
                 "val_sharpe": float(sharpe_ratio(val_ret.values)),
                 "test_sharpe": float(sharpe_ratio(test_ret.values)),
                 "oos_sharpe": float(sharpe_ratio(oos_ret.values)),
-                "oos_trades": int(
-                    (result.trades["timestamp"] > pd.Timestamp(TRAIN_END)).sum()
-                ),
-                "train_trades": int(
-                    (result.trades["timestamp"] <= pd.Timestamp(TRAIN_END)).sum()
-                ),
+                "oos_trades": int((result.trades["timestamp"] > pd.Timestamp(TRAIN_END)).sum()),
+                "train_trades": int((result.trades["timestamp"] <= pd.Timestamp(TRAIN_END)).sum()),
                 "full_sharpe": float(result.metrics["sharpe"]),
                 "full_max_dd": float(result.metrics["max_drawdown"]),
                 "full_pf": float(result.metrics["profit_factor"]),
@@ -495,14 +479,10 @@ def main():
         final_result, final_signals = evaluate_combo(
             prices, volumes, adv, sel_allow_short, sel_lookback, sel_skip
         )
-        train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(
-            final_result.returns
-        )
+        train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(final_result.returns)
 
         tracker.log_dataframe("selected_signals", final_signals)
-        tracker.log_dataframe(
-            "selected_equity", final_result.equity_curve.to_frame("equity")
-        )
+        tracker.log_dataframe("selected_equity", final_result.equity_curve.to_frame("equity"))
         tracker.log_dataframe("selected_trades", final_result.trades)
 
         # ------------------------------------------------------------
@@ -512,14 +492,10 @@ def main():
         oos_returns = oos_ret
         oos_sharpe = sharpe_ratio(oos_returns.values)
         oos_returns_arr = oos_returns.values
-        sharpe_ci = sharpe_ratio_ci(
-            oos_returns_arr, n_bootstrap=1000, random_state=SEED
-        )
+        sharpe_ci = sharpe_ratio_ci(oos_returns_arr, n_bootstrap=1000, random_state=SEED)
 
         # Trades split
-        oos_trades = final_result.trades[
-            final_result.trades["timestamp"] > pd.Timestamp(TRAIN_END)
-        ]
+        oos_trades = final_result.trades[final_result.trades["timestamp"] > pd.Timestamp(TRAIN_END)]
 
         # Profit factor / drawdown on OOS equity
         oos_equity = (1 + oos_returns).cumprod()
@@ -582,11 +558,7 @@ def main():
         def ir_func(x):
             b = bench_arr[: len(x)]
             excess = x - b
-            return (
-                float(excess.mean() / excess.std() * np.sqrt(252))
-                if excess.std() > 0
-                else 0.0
-            )
+            return float(excess.mean() / excess.std() * np.sqrt(252)) if excess.std() > 0 else 0.0
 
         ir_ci = bootstrap_confidence_interval(
             oos_returns_arr - bench_arr, ir_func, n_bootstrap=1000, random_state=SEED
@@ -631,9 +603,7 @@ def main():
             "param_perturbation": {
                 "value": round(min_perturbed, 4),
                 "threshold": round(oos_sharpe * GATES["min_perturbed_sharpe_ratio"], 4),
-                "pass": bool(
-                    min_perturbed >= oos_sharpe * GATES["min_perturbed_sharpe_ratio"]
-                ),
+                "pass": bool(min_perturbed >= oos_sharpe * GATES["min_perturbed_sharpe_ratio"]),
                 "details": {k: round(float(v), 4) for k, v in perturbations.items()},
             },
             "regime_stability": {
@@ -672,18 +642,12 @@ def main():
         print(
             f"Selected: long_only={sel_long_only} lookback={sel_lookback} skip={sel_skip} vol_target={TARGET_VOL}"
         )
-        print(
-            f"OOS Sharpe={oos_sharpe:.3f} (95% CI [{sharpe_ci[0]:.3f}, {sharpe_ci[1]:.3f}])"
-        )
+        print(f"OOS Sharpe={oos_sharpe:.3f} (95% CI [{sharpe_ci[0]:.3f}, {sharpe_ci[1]:.3f}])")
         print(
             f"Train Sharpe={train_sharpe:.3f}  Val Sharpe={sharpe_ratio(val_ret.values):.3f}  Test Sharpe={sharpe_ratio(test_ret.values):.3f}"
         )
-        print(
-            f"OOS trades={len(oos_trades)}  Profit factor={oos_pf:.3f}  Max DD={oos_dd:.2%}"
-        )
-        print(
-            f"WF stability={wf_stability:.3f}  Worst regime Sharpe={worst_regime_sharpe:.3f}"
-        )
+        print(f"OOS trades={len(oos_trades)}  Profit factor={oos_pf:.3f}  Max DD={oos_dd:.2%}")
+        print(f"WF stability={wf_stability:.3f}  Worst regime Sharpe={worst_regime_sharpe:.3f}")
         print(f"Benchmark IR={cmp['information_ratio']:.3f}  alpha p={alpha_p:.4f}")
         print()
         for name, g in gates.items():
@@ -742,13 +706,9 @@ def main():
         tracker.log_artifact("summary", exp_dir / "summary.json")
 
         tracker.log_dataframe("param_grid_results", combos_df)
-        tracker.log_dataframe(
-            "selected_equity", final_result.equity_curve.to_frame("equity")
-        )
+        tracker.log_dataframe("selected_equity", final_result.equity_curve.to_frame("equity"))
         tracker.log_dataframe("selected_trades", final_result.trades)
-        tracker.log_dataframe(
-            "benchmark_equity", bh_result.equity_curve.to_frame("equity")
-        )
+        tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
 
         tracker.finish_experiment(status="completed")
 

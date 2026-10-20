@@ -59,9 +59,7 @@ def test_artifact_schema():
         "metadata.json",
     ]
     # At least one combo should exist (look in subdirectories)
-    combo_dirs = [
-        d for d in exp_dir.iterdir() if d.is_dir() and not d.name.startswith(".")
-    ]
+    combo_dirs = [d for d in exp_dir.iterdir() if d.is_dir() and not d.name.startswith(".")]
     assert len(combo_dirs) > 0, "no combo artifact directories found"
     # Check that at least one combo directory has equity.parquet
     equity_artifacts = []
@@ -80,9 +78,7 @@ def test_summary_json_hypothesis():
     exp_dir = _latest_h18_dir()
     with open(exp_dir / "summary.json") as f:
         summary = json.load(f)
-    assert summary.get("hypothesis") == "H18", (
-        f"expected H18, got {summary.get('hypothesis')}"
-    )
+    assert summary.get("hypothesis") == "H18", f"expected H18, got {summary.get('hypothesis')}"
 
 
 def test_experiment_description_matches_pre_registered_grid():
@@ -157,14 +153,10 @@ def test_signal_causality():
     from qtr.data.fetcher import get_data_fetcher
 
     fetcher = get_data_fetcher()
-    spy_data = fetcher.fetch_yahoo(
-        ["SPY"], start="2009-01-01", end="2022-12-31", interval="1d"
-    )
+    spy_data = fetcher.fetch_yahoo(["SPY"], start="2009-01-01", end="2022-12-31", interval="1d")
     close = spy_data["SPY"]["close"]
     open_ = spy_data["SPY"]["open"]
-    vix_data = fetcher.fetch_yahoo(
-        ["^VIX"], start="2009-01-01", end="2022-12-31", interval="1d"
-    )
+    vix_data = fetcher.fetch_yahoo(["^VIX"], start="2009-01-01", end="2022-12-31", interval="1d")
     vix_close = vix_data["^VIX"]["close"]
 
     # Test each predictor
@@ -173,9 +165,7 @@ def test_signal_causality():
 
     for predictor in predictors:
         for hold_conv in hold_conventions:
-            signal = h18._overnight_intraday_signal(
-                predictor, hold_conv, close, open_, vix_close
-            )
+            signal = h18._overnight_intraday_signal(predictor, hold_conv, close, open_, vix_close)
 
             # Signal should not have NaNs in the main range (except possibly at very start)
             # Due to lagging, first few values might be NaN
@@ -195,9 +185,7 @@ def test_weight_bounds():
 
     # Load the best combo equity curve to infer weights
     selected = summary.get("selected_config", {})
-    combo_name = (
-        f"{selected.get('predictor', '')}_{selected.get('hold_convention', '')}"
-    )
+    combo_name = f"{selected.get('predictor', '')}_{selected.get('hold_convention', '')}"
     best_dir_name = f"best_{combo_name}"
     equity_path = exp_dir / best_dir_name / "equity.parquet"
 
@@ -213,14 +201,10 @@ def test_determinism():
     from qtr.data.fetcher import get_data_fetcher
 
     fetcher = get_data_fetcher()
-    spy_data = fetcher.fetch_yahoo(
-        ["SPY"], start="2009-01-01", end="2022-12-31", interval="1d"
-    )
+    spy_data = fetcher.fetch_yahoo(["SPY"], start="2009-01-01", end="2022-12-31", interval="1d")
     close = spy_data["SPY"]["close"]
     open_ = spy_data["SPY"]["open"]
-    vix_data = fetcher.fetch_yahoo(
-        ["^VIX"], start="2009-01-01", end="2022-12-31", interval="1d"
-    )
+    vix_data = fetcher.fetch_yahoo(["^VIX"], start="2009-01-01", end="2022-12-31", interval="1d")
     vix_close = vix_data["^VIX"]["close"]
 
     # Run signal generation twice
@@ -229,18 +213,12 @@ def test_determinism():
 
     for predictor in predictors:
         for hold_conv in hold_conventions:
-            signal1 = h18._overnight_intraday_signal(
-                predictor, hold_conv, close, open_, vix_close
-            )
-            signal2 = h18._overnight_intraday_signal(
-                predictor, hold_conv, close, open_, vix_close
-            )
+            signal1 = h18._overnight_intraday_signal(predictor, hold_conv, close, open_, vix_close)
+            signal2 = h18._overnight_intraday_signal(predictor, hold_conv, close, open_, vix_close)
 
             # Signals should be identical
             pd.testing.assert_series_equal(signal1, signal2)
-            assert signal1.equals(signal2), (
-                f"Signal not deterministic for {predictor}_{hold_conv}"
-            )
+            assert signal1.equals(signal2), f"Signal not deterministic for {predictor}_{hold_conv}"
 
 
 def test_executed_outcome():

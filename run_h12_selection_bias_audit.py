@@ -198,10 +198,7 @@ def _cscv_pbo_multi(performance_matrix, n_blocks):
     if T % n_blocks != 0:
         raise ValueError(f"CSCV requires T divisible by S; got T={T}, S={n_blocks}")
     block_size = T // n_blocks
-    blocks = [
-        performance_matrix[i * block_size : (i + 1) * block_size, :]
-        for i in range(n_blocks)
-    ]
+    blocks = [performance_matrix[i * block_size : (i + 1) * block_size, :] for i in range(n_blocks)]
     half = n_blocks // 2
     ranks = []
     is_opt_oos_means = []
@@ -290,9 +287,7 @@ def _rebuild_grid_oos(prices, volumes, vix_hourly, cfg, masks):
         "oos_max_drawdown",
         "oos_trades",
     ]
-    meta = {
-        c: np.empty(N, dtype=object if c == "smooth_span" else float) for c in meta_cols
-    }
+    meta = {c: np.empty(N, dtype=object if c == "smooth_span" else float) for c in meta_cols}
     oos_matrix = np.empty((N, T_oos), dtype=np.float32)
 
     combos = list(
@@ -324,9 +319,7 @@ def _rebuild_grid_oos(prices, volumes, vix_hourly, cfg, masks):
             target_vol=0.15,
             min_trade_interval=min_int,
         )
-        res = run_backtest(
-            prices=prices, signals=positions, volumes=volumes, config=cfg
-        )
+        res = run_backtest(prices=prices, signals=positions, volumes=volumes, config=cfg)
         oos_ret = res.returns[oos_mask].reindex(oos_index).fillna(0.0)
         om = _period_metrics(oos_ret, _count_in(res.trades, oos_mask, prices))
         meta["vol_window_long"][i] = vw
@@ -469,9 +462,7 @@ def main():
         # 1. Deflated Sharpe Ratio (Bailey & Lopez de Prado 2014)
         # ============================================================
         print("[H12] --- 1. Deflated Sharpe Ratio ---")
-        dsr_h10, p_h10 = deflated_sharpe_ratio(
-            observed_sr, N_GRID, n_obs, var_trials, skew, kurt
-        )
+        dsr_h10, p_h10 = deflated_sharpe_ratio(observed_sr, N_GRID, n_obs, var_trials, skew, kurt)
         sr0_h10, _ = _expected_max_sharpe(N_GRID, var_trials / PERIODS_PER_YEAR)
         sr0_h10_annual = sr0_h10 * np.sqrt(PERIODS_PER_YEAR)
         print(f"  E[max SR | N={N_GRID}] = {sr0_h10_annual:.4f} (annualized)")
@@ -544,9 +535,7 @@ def main():
         dsr_family, p_family = deflated_sharpe_ratio(
             observed_sr, FAMILY_TOTAL, n_obs, var_trials, skew, kurt
         )
-        sr0_family, _ = _expected_max_sharpe(
-            FAMILY_TOTAL, var_trials / PERIODS_PER_YEAR
-        )
+        sr0_family, _ = _expected_max_sharpe(FAMILY_TOTAL, var_trials / PERIODS_PER_YEAR)
         sr0_family_annual = sr0_family * np.sqrt(PERIODS_PER_YEAR)
         # Bonferroni and Benjamini-Hochberg adjustment of the H10 OOS
         # benchmark p-value under the pooled family trial count. With a
@@ -573,12 +562,9 @@ def main():
         sharpe_pass_frac_oos = float((oos_sharpe >= GATES["min_sharpe"]).mean())
         sel_val_pf = float(sel_row["val_profit_factor"])
         sel_val_pf_rank = int((val_pf > sel_val_pf).sum()) + 1
-        pf_quantiles = {
-            str(q): float(val_pf.quantile(q)) for q in (0.05, 0.25, 0.50, 0.75, 0.95)
-        }
+        pf_quantiles = {str(q): float(val_pf.quantile(q)) for q in (0.05, 0.25, 0.50, 0.75, 0.95)}
         sr_quantiles = {
-            str(q): float(grid["val_sharpe"].quantile(q))
-            for q in (0.05, 0.25, 0.50, 0.75, 0.95)
+            str(q): float(grid["val_sharpe"].quantile(q)) for q in (0.05, 0.25, 0.50, 0.75, 0.95)
         }
         print(
             f"  val PF: selected={sel_val_pf:.4f} (rank {sel_val_pf_rank}"
@@ -690,9 +676,7 @@ def main():
                 summary,
                 f,
                 indent=2,
-                default=lambda x: (
-                    float(x) if isinstance(x, (np.integer, np.floating)) else str(x)
-                ),
+                default=lambda x: float(x) if isinstance(x, (np.integer, np.floating)) else str(x),
             )
         tracker.log_artifact("summary", exp_dir / "summary.json")
         tracker.finish_experiment(status="completed")

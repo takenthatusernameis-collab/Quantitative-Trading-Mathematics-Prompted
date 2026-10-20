@@ -140,9 +140,7 @@ def build_targets(
 
 def _splits(prices_idx: pd.Index):
     train_mask = prices_idx <= pd.Timestamp(TRAIN_END)
-    val_mask = (prices_idx > pd.Timestamp(TRAIN_END)) & (
-        prices_idx <= pd.Timestamp(VAL_END)
-    )
+    val_mask = (prices_idx > pd.Timestamp(TRAIN_END)) & (prices_idx <= pd.Timestamp(VAL_END))
     test_mask = prices_idx > pd.Timestamp(VAL_END)
     return train_mask, val_mask, test_mask
 
@@ -214,9 +212,7 @@ def full_gate_eval(
         if len(tr_r) > 1:
             train_sharpes.append(sharpe_ratio(tr_r.values))
     wf_stab = (
-        float(np.mean(oos_sharpes) / np.mean(train_sharpes))
-        if np.mean(train_sharpes) != 0
-        else 0.0
+        float(np.mean(oos_sharpes) / np.mean(train_sharpes)) if np.mean(train_sharpes) != 0 else 0.0
     )
 
     # Regime sharpes on the OOS window
@@ -246,16 +242,13 @@ def full_gate_eval(
         if oos_m["max_drawdown"] < 0
         else False,
         "stab": wf_stab >= GATES["min_walkforward_stability"],
-        "worst": worst >= GATES["min_worst_regime_sharpe"]
-        if worst != np.inf
-        else False,
+        "worst": worst >= GATES["min_worst_regime_sharpe"] if worst != np.inf else False,
         "p": benchmark_significance_gate(
             float(bench.get("alpha_p_value", 1.0)),
             float(bench.get("information_ratio", -np.inf)),
             GATES["max_p_value"],
         ),
-        "ir": float(bench.get("information_ratio", -np.inf))
-        > GATES["min_information_ratio"],
+        "ir": float(bench.get("information_ratio", -np.inf)) > GATES["min_information_ratio"],
     }
     all_pass = all(passes.values())
     return {
@@ -319,9 +312,7 @@ def perturbation_eval(
             )
             res = run_backtest(prices=prices, signals=targets, config=cfg)
             r = res.returns[oos_mask].dropna()
-            variants[f"{param}={v}"] = (
-                float(sharpe_ratio(r.values)) if len(r) > 1 else 0.0
-            )
+            variants[f"{param}={v}"] = float(sharpe_ratio(r.values)) if len(r) > 1 else 0.0
     if opt_oos_sharpe > 0:
         min_ratio = float(min(variants.values()) / opt_oos_sharpe) if variants else 0.0
     else:
@@ -437,28 +428,14 @@ def main():
                         )
                         res = run_backtest(prices=prices, signals=targets, config=cfg)
                         train_r = res.returns[train_mask].dropna()
-                        train_sr = (
-                            float(sharpe_ratio(train_r.values))
-                            if len(train_r) > 1
-                            else 0.0
-                        )
+                        train_sr = float(sharpe_ratio(train_r.values)) if len(train_r) > 1 else 0.0
                         test_r = res.returns[test_mask].dropna()
-                        test_sr = (
-                            float(sharpe_ratio(test_r.values))
-                            if len(test_r) > 1
-                            else 0.0
-                        )
+                        test_sr = float(sharpe_ratio(test_r.values)) if len(test_r) > 1 else 0.0
                         val_r = res.returns[val_mask].dropna()
-                        val_sr = (
-                            float(sharpe_ratio(val_r.values)) if len(val_r) > 1 else 0.0
-                        )
+                        val_sr = float(sharpe_ratio(val_r.values)) if len(val_r) > 1 else 0.0
                         oos_r = res.returns[oos_mask].dropna()
-                        oos_sr = (
-                            float(sharpe_ratio(oos_r.values)) if len(oos_r) > 1 else 0.0
-                        )
-                        grid_results[(gate_thresh, vol_window, target_vol, max_pos)] = (
-                            res
-                        )
+                        oos_sr = float(sharpe_ratio(oos_r.values)) if len(oos_r) > 1 else 0.0
+                        grid_results[(gate_thresh, vol_window, target_vol, max_pos)] = res
                         grid_rows.append(
                             {
                                 "gate_thresh": gate_thresh,
@@ -495,9 +472,7 @@ def main():
         }
 
         # --- full gate evaluation on protected OOS (Val+Test) ---
-        gate = full_gate_eval(
-            sel_result, oos_mask, val_mask, test_mask, prices, vix, bench_result
-        )
+        gate = full_gate_eval(sel_result, oos_mask, val_mask, test_mask, prices, vix, bench_result)
 
         # --- perturbation gate (OAT +/-20% on selected params) ---
         pert = perturbation_eval(
@@ -540,16 +515,12 @@ def main():
             ug["max_pos"],
         )
         ug_res = run_backtest(prices=prices, signals=ug_t, config=cfg)
-        ug_gate = full_gate_eval(
-            ug_res, oos_mask, val_mask, test_mask, prices, vix, bench_result
-        )
+        ug_gate = full_gate_eval(ug_res, oos_mask, val_mask, test_mask, prices, vix, bench_result)
         ablations["ungated_vol_target"] = {"oos_metrics": ug_gate["oos_metrics"]}
         # (c) gate-only (no vol target: target_vol=1.0 effectively full position, max_pos=1.0)
         go_t = build_targets(svxy_close, vix, vix3m, sel_key[0], 21, 1.0, 1.0)
         go_res = run_backtest(prices=prices, signals=go_t, config=cfg)
-        go_gate = full_gate_eval(
-            go_res, oos_mask, val_mask, test_mask, prices, vix, bench_result
-        )
+        go_gate = full_gate_eval(go_res, oos_mask, val_mask, test_mask, prices, vix, bench_result)
         ablations["gate_only_no_vol_target"] = {"oos_metrics": go_gate["oos_metrics"]}
         # (d) BH SPY reference
         if not spy.isna().all():
@@ -573,16 +544,10 @@ def main():
         tracker.log_dataframe("selected_signals", sel_result.positions)
         tracker.log_dataframe("best_equity", sel_result.equity_curve.to_frame("equity"))
         tracker.log_dataframe("best_trades", sel_result.trades)
-        tracker.log_dataframe(
-            "benchmark_equity", bench_result.equity_curve.to_frame("equity")
-        )
-        tracker.log_dataframe(
-            "benchmark_returns", bench_result.returns.to_frame("returns")
-        )
+        tracker.log_dataframe("benchmark_equity", bench_result.equity_curve.to_frame("equity"))
+        tracker.log_dataframe("benchmark_returns", bench_result.returns.to_frame("returns"))
         for name, ab in ablations.items():
-            tracker.log_metrics(
-                {f"ablation_{name}_oos_sharpe": ab["oos_metrics"]["sharpe"]}
-            )
+            tracker.log_metrics({f"ablation_{name}_oos_sharpe": ab["oos_metrics"]["sharpe"]})
 
         total_elapsed = time.time() - t_start
         summary = {
@@ -598,9 +563,7 @@ def main():
             "grid_elapsed_sec": float(round(grid_elapsed, 1)),
             "total_elapsed_sec": float(round(total_elapsed, 1)),
             "compute_cpu_hours": float(round(total_elapsed / 3600, 3)),
-            "svxy_inception": str(svxy_inception.date())
-            if svxy_inception is not None
-            else None,
+            "svxy_inception": str(svxy_inception.date()) if svxy_inception is not None else None,
             "metrics": {
                 "train_sharpe": gate["train_sharpe"],
                 "val_sharpe": gate["val_sharpe"],
@@ -630,9 +593,7 @@ def main():
                 summary,
                 f,
                 indent=2,
-                default=lambda x: (
-                    float(x) if isinstance(x, (np.integer, np.floating)) else str(x)
-                ),
+                default=lambda x: float(x) if isinstance(x, (np.integer, np.floating)) else str(x),
             )
         tracker.log_artifact("summary", exp_dir / "summary.json")
         tracker.finish_experiment(status="completed")
@@ -655,9 +616,7 @@ def main():
             f"Test={gate['test_metrics']['sharpe']:.3f} | "
             f"WF stab={gate['wf_stability']:.3f} | worst-regime={gate['worst_regime_sharpe']:.3f}"
         )
-        print(
-            f"  Benchmark: p={gate['benchmark_p_value']:.4f} IR={gate['information_ratio']:.3f}"
-        )
+        print(f"  Benchmark: p={gate['benchmark_p_value']:.4f} IR={gate['information_ratio']:.3f}")
         print(f"  Perturbation min ratio={pert['min_perturbed_sharpe_ratio']:.3f}")
         print(f"  Selected: {selected}")
         print(

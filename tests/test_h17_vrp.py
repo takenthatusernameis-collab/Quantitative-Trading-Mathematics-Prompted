@@ -74,10 +74,7 @@ class TestPreRegistration:
 
     def test_grid_is_the_pre_registered_60_combos(self):
         assert (
-            len(h17.GATE_THRESHES)
-            * len(h17.VOL_WINDOWS)
-            * len(h17.TARGET_VOLS)
-            * len(h17.MAX_POSS)
+            len(h17.GATE_THRESHES) * len(h17.VOL_WINDOWS) * len(h17.TARGET_VOLS) * len(h17.MAX_POSS)
             == 60
         )
         assert h17.GATE_THRESHES == [0.00, 0.02, 0.05]
@@ -107,17 +104,12 @@ class TestPreRegistration:
         # bare "VRP harvesting" string with no combo count) and is the first
         # prose an auditor or next operator reads.
         n_combos = (
-            len(h17.GATE_THRESHES)
-            * len(h17.VOL_WINDOWS)
-            * len(h17.TARGET_VOLS)
-            * len(h17.MAX_POSS)
+            len(h17.GATE_THRESHES) * len(h17.VOL_WINDOWS) * len(h17.TARGET_VOLS) * len(h17.MAX_POSS)
         )
         assert f"{n_combos}-combo" in h17.EXPERIMENT_DESC
         # All four grid dimensions must be enumerated in the prose.
         for dim in ("gate_thresh", "vol_window", "target_vol", "max_pos"):
-            assert dim in h17.EXPERIMENT_DESC, (
-                f"EXPERIMENT_DESC missing dimension {dim!r}"
-            )
+            assert dim in h17.EXPERIMENT_DESC, f"EXPERIMENT_DESC missing dimension {dim!r}"
 
 
 class TestArtifacts:
@@ -241,10 +233,7 @@ class TestGateRecomputation:
         assert grid.loc[val_max_idx, "gate_thresh"] == sel["gate_thresh"]
         # The selected config may not be the test-sharps maximizing one
         if val_max_idx != test_max_idx:
-            assert (
-                grid.loc[test_max_idx, "val_sharpe"]
-                < grid.loc[val_max_idx, "val_sharpe"]
-            )
+            assert grid.loc[test_max_idx, "val_sharpe"] < grid.loc[val_max_idx, "val_sharpe"]
 
     def test_passes_reflect_gates(self):
         exp_dir = _latest_h17_dir()
@@ -252,15 +241,9 @@ class TestGateRecomputation:
         p = s["passes"]
         assert p["sharpe"] == (s["metrics"]["oos_sharpe"] >= h17.GATES["min_sharpe"])
         assert p["trades"] == (s["metrics"]["trades"] >= h17.GATES["min_trades"])
-        assert p["pf"] == (
-            s["metrics"]["profit_factor"] >= h17.GATES["min_profit_factor"]
-        )
-        assert p["dd"] == (
-            abs(s["metrics"]["max_drawdown"]) <= h17.GATES["max_drawdown"]
-        )
-        assert p["stab"] == (
-            s["metrics"]["wf_stability"] >= h17.GATES["min_walkforward_stability"]
-        )
+        assert p["pf"] == (s["metrics"]["profit_factor"] >= h17.GATES["min_profit_factor"])
+        assert p["dd"] == (abs(s["metrics"]["max_drawdown"]) <= h17.GATES["max_drawdown"])
+        assert p["stab"] == (s["metrics"]["wf_stability"] >= h17.GATES["min_walkforward_stability"])
         assert p["worst"] == (
             s["metrics"]["worst_regime_sharpe"] >= h17.GATES["min_worst_regime_sharpe"]
         )
@@ -354,9 +337,7 @@ class TestExecutedOutcome:
     def test_h17_worst_regime_sharpe_undefined_in_bear(self):
         s = _load_summary(_latest_h17_dir())
         assert s["metrics"]["worst_regime_sharpe"] < 0
-        assert (
-            s["metrics"]["worst_regime_sharpe"] < h17.GATES["min_worst_regime_sharpe"]
-        )
+        assert s["metrics"]["worst_regime_sharpe"] < h17.GATES["min_worst_regime_sharpe"]
 
 
 def _period_metrics(ret, n_trades, equity):

@@ -52,8 +52,7 @@ def test_fetch_sp500_fallback(monkeypatch):
 
     monkeypatch.setattr(pd, "read_html", raise_html)
     fetcher = DataFetcher(
-        cache=DataCache(cache_dir=Path("/tmp/scratchpad") if False else None)
-        or DataCache()
+        cache=DataCache(cache_dir=Path("/tmp/scratchpad") if False else None) or DataCache()
     )
     # use tmp cache dir
     import tempfile
@@ -93,9 +92,7 @@ def test_fetch_ccxt_missing_module(monkeypatch):
 
     d = Path(tempfile.mkdtemp())
     fetcher = DataFetcher(cache=DataCache(cache_dir=d))
-    res = fetcher.fetch_ccxt(
-        "binance", ["BTC/USDT"], "2020-01-01", "2020-02-01", use_cache=False
-    )
+    res = fetcher.fetch_ccxt("binance", ["BTC/USDT"], "2020-01-01", "2020-02-01", use_cache=False)
     assert res == {}
 
 
@@ -243,9 +240,7 @@ def test_fetch_ccxt_success(monkeypatch):
 
     d = Path(tempfile.mkdtemp())
     fetcher = DataFetcher(cache=DataCache(cache_dir=d))
-    res = fetcher.fetch_ccxt(
-        "binance", ["BTC/USDT"], "2020-01-01", "2020-02-01", use_cache=False
-    )
+    res = fetcher.fetch_ccxt("binance", ["BTC/USDT"], "2020-01-01", "2020-02-01", use_cache=False)
     assert "BTC/USDT" in res
     assert len(res["BTC/USDT"]) == 2
     assert "close" in res["BTC/USDT"].columns
@@ -271,14 +266,10 @@ def test_fetch_ccxt_success_with_cache(monkeypatch):
 
     d = Path(tempfile.mkdtemp())
     fetcher = DataFetcher(cache=DataCache(cache_dir=d))
-    res = fetcher.fetch_ccxt(
-        "binance", ["BTC/USDT"], "2020-01-01", "2020-02-01", use_cache=True
-    )
+    res = fetcher.fetch_ccxt("binance", ["BTC/USDT"], "2020-01-01", "2020-02-01", use_cache=True)
     assert len(res["BTC/USDT"]) == 2
     # cache should now be populated
-    res2 = fetcher.fetch_ccxt(
-        "binance", ["BTC/USDT"], "2020-01-01", "2020-02-01", use_cache=True
-    )
+    res2 = fetcher.fetch_ccxt("binance", ["BTC/USDT"], "2020-01-01", "2020-02-01", use_cache=True)
     pd.testing.assert_frame_equal(res2["BTC/USDT"], res["BTC/USDT"], check_names=False)
 
 
@@ -298,9 +289,7 @@ def test_fetch_ccxt_fetch_exception_returns_empty(monkeypatch):
 
     d = Path(tempfile.mkdtemp())
     fetcher = DataFetcher(cache=DataCache(cache_dir=d))
-    res = fetcher.fetch_ccxt(
-        "binance", ["BTC/USDT"], "2020-01-01", "2020-02-01", use_cache=False
-    )
+    res = fetcher.fetch_ccxt("binance", ["BTC/USDT"], "2020-01-01", "2020-02-01", use_cache=False)
     assert res["BTC/USDT"].empty
 
 
@@ -437,9 +426,7 @@ def test_fetch_ccxt_cache_hit(monkeypatch):
     cache = DataCache(cache_dir=d)
     cache.set("ccxt", "binance:BTC_USDT", "2020-01-01", "2020-02-01", "1h", df)
     fetcher = DataFetcher(cache=cache)
-    res = fetcher.fetch_ccxt(
-        "binance", ["BTC/USDT"], "2020-01-01", "2020-02-01", use_cache=True
-    )
+    res = fetcher.fetch_ccxt("binance", ["BTC/USDT"], "2020-01-01", "2020-02-01", use_cache=True)
     pd.testing.assert_frame_equal(res["BTC/USDT"], df, check_names=False)
 
 
@@ -460,9 +447,7 @@ def test_fetch_ccxt_no_ohlcv(monkeypatch):
 
     d = Path(tempfile.mkdtemp())
     fetcher = DataFetcher(cache=DataCache(cache_dir=d))
-    res = fetcher.fetch_ccxt(
-        "binance", ["BTC/USDT"], "2020-01-01", "2020-02-01", use_cache=False
-    )
+    res = fetcher.fetch_ccxt("binance", ["BTC/USDT"], "2020-01-01", "2020-02-01", use_cache=False)
     assert res["BTC/USDT"].empty
 
 

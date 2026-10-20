@@ -113,9 +113,7 @@ def make_config(allow_short):
     )
     cfg.cost_model.equity_commission_bps = COST_MODEL["equity_commission_bps"]
     cfg.cost_model.equity_spread_bps = COST_MODEL["equity_spread_bps"]
-    cfg.cost_model.equity_impact_bps_per_pct_adv = COST_MODEL[
-        "equity_impact_bps_per_pct_adv"
-    ]
+    cfg.cost_model.equity_impact_bps_per_pct_adv = COST_MODEL["equity_impact_bps_per_pct_adv"]
     return cfg
 
 
@@ -239,20 +237,14 @@ def main():
         # Benchmark: equal-weight buy-and-hold (vol-scaled) on the 10 ETFs
         print("Benchmark equal-weight...")
         bh_cfg = make_config(False)
-        bh_signals = run_strategy(
-            prices, "buy_and_hold", weight=1.0 / len(prices.columns)
-        )
+        bh_signals = run_strategy(prices, "buy_and_hold", weight=1.0 / len(prices.columns))
         bh_signals = resample_monthly_signals(bh_signals)
         bh_result = run_backtest(
             prices=prices, signals=bh_signals, volumes=vol, adv=adv, config=bh_cfg
         )
-        tracker.log_dataframe(
-            "benchmark_equity", bh_result.equity_curve.to_frame("equity")
-        )
+        tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
 
-        grid = list(
-            itertools.product(LONG_ONLY_CHOICES, LOOKBACKS, SKIPS, N_TOP_CHOICES)
-        )
+        grid = list(itertools.product(LONG_ONLY_CHOICES, LOOKBACKS, SKIPS, N_TOP_CHOICES))
         print(f"Grid search on TRAIN period ({len(grid)} combos)...")
         records = []
         for i, (long_only, lb, sk, n_top) in enumerate(grid):
@@ -260,9 +252,7 @@ def main():
             sig = cs_momentum_vol_scaled(prices, lb, sk, long_only)
             sig_m = resample_monthly_signals(sig)
             cfg = make_config(allow_short)
-            res = run_backtest(
-                prices=prices, signals=sig_m, volumes=vol, adv=adv, config=cfg
-            )
+            res = run_backtest(prices=prices, signals=sig_m, volumes=vol, adv=adv, config=cfg)
             tr, va, te, oo = split_returns_by_date(res.returns)
             train_sr = sharpe_ratio(tr.values)
             wf = wf_oos_sharpes(tr)
@@ -278,9 +268,7 @@ def main():
                 "val_sharpe": float(sharpe_ratio(va.values)),
                 "test_sharpe": float(sharpe_ratio(te.values)),
                 "oos_sharpe": float(sharpe_ratio(oo.values)),
-                "oos_trades": int(
-                    (res.trades["timestamp"] > pd.Timestamp(TRAIN_END)).sum()
-                ),
+                "oos_trades": int((res.trades["timestamp"] > pd.Timestamp(TRAIN_END)).sum()),
                 "full_sharpe": float(res.metrics["sharpe"]),
                 "full_dd": float(res.metrics["max_drawdown"]),
                 "full_pf": float(res.metrics["profit_factor"]),
@@ -326,9 +314,7 @@ def main():
         sig = cs_momentum_vol_scaled(prices, sel_lb, sel_sk, sel_lo)
         sig_m = resample_monthly_signals(sig)
         cfg = make_config(sel_allow_short)
-        final = run_backtest(
-            prices=prices, signals=sig_m, volumes=vol, adv=adv, config=cfg
-        )
+        final = run_backtest(prices=prices, signals=sig_m, volumes=vol, adv=adv, config=cfg)
         tr, va, te, oo = split_returns_by_date(final.returns)
         tracker.log_dataframe("selected_signals", sig_m)
         tracker.log_dataframe("selected_equity", final.equity_curve.to_frame("equity"))
@@ -336,9 +322,7 @@ def main():
 
         oos_returns = oo
         oos_sharpe = sharpe_ratio(oos_returns.values)
-        sharpe_ci = sharpe_ratio_ci(
-            oos_returns.values, n_bootstrap=1000, random_state=SEED
-        )
+        sharpe_ci = sharpe_ratio_ci(oos_returns.values, n_bootstrap=1000, random_state=SEED)
         oos_trades = final.trades[final.trades["timestamp"] > pd.Timestamp(TRAIN_END)]
         oos_eq = (1 + oos_returns).cumprod()
         oos_dd = float((oos_eq / oos_eq.expanding().max()).min() - 1)
@@ -367,9 +351,7 @@ def main():
             s2 = cs_momentum_vol_scaled(prices, lb, sk, sel_lo)
             s2m = resample_monthly_signals(s2)
             cfg2 = make_config(sel_allow_short)
-            r2 = run_backtest(
-                prices=prices, signals=s2m, volumes=vol, adv=adv, config=cfg2
-            )
+            r2 = run_backtest(prices=prices, signals=s2m, volumes=vol, adv=adv, config=cfg2)
             _, _, _, oo2 = split_returns_by_date(r2.returns)
             return sharpe_ratio(oo2.values)
 
@@ -434,9 +416,7 @@ def main():
             "param_perturbation": {
                 "value": round(min_pert, 4),
                 "threshold": round(oos_sharpe * GATES["min_perturbed_sharpe_ratio"], 4),
-                "pass": bool(
-                    min_pert >= oos_sharpe * GATES["min_perturbed_sharpe_ratio"]
-                ),
+                "pass": bool(min_pert >= oos_sharpe * GATES["min_perturbed_sharpe_ratio"]),
                 "details": {k: round(float(v), 4) for k, v in perturbs.items()},
             },
             "regime_stability": {
@@ -465,9 +445,7 @@ def main():
         print("CROSS-SECTIONAL MOMENTUM -- EVIDENCE GATES (OOS: Val+Test)")
         print("=" * 72)
         print(f"Selected: long_only={sel_lo} lb={sel_lb} sk={sel_sk}")
-        print(
-            f"OOS Sharpe={oos_sharpe:.3f} (CI [{sharpe_ci[0]:.3f}, {sharpe_ci[1]:.3f}])"
-        )
+        print(f"OOS Sharpe={oos_sharpe:.3f} (CI [{sharpe_ci[0]:.3f}, {sharpe_ci[1]:.3f}])")
         print(
             f"Train={train_sharpe:.3f} Val={sharpe_ratio(va.values):.3f} Test={sharpe_ratio(te.values):.3f}"
         )

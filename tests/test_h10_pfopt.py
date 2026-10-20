@@ -147,9 +147,7 @@ class TestApplyExitsHourly:
         _pct, atr, vol = _make_inputs(prices)
         daily_target = h9._daily_target_from_hourly(h9.vol_scaled_tsmom_hourly(prices))
         h9_pos = h9.apply_path_dependent_exits_hourly(daily_target, prices, atr)
-        h10_pos = h10.apply_exits_hourly(
-            daily_target, prices, atr, vol, min_trade_interval=0
-        )
+        h10_pos = h10.apply_exits_hourly(daily_target, prices, atr, vol, min_trade_interval=0)
         assert h10_pos.shape == h9_pos.shape
         assert np.allclose(h10_pos.values, h9_pos.values, atol=1e-12)
 
@@ -159,19 +157,13 @@ class TestApplyExitsHourly:
         prices = _hourly_frame(n=1500)
         _pct, atr, vol = _make_inputs(prices)
         daily_target = h9._daily_target_from_hourly(h9.vol_scaled_tsmom_hourly(prices))
-        base = h10.apply_exits_hourly(
-            daily_target, prices, atr, vol, min_trade_interval=0
-        )
-        gated = h10.apply_exits_hourly(
-            daily_target, prices, atr, vol, min_trade_interval=24
-        )
+        base = h10.apply_exits_hourly(daily_target, prices, atr, vol, min_trade_interval=0)
+        gated = h10.apply_exits_hourly(daily_target, prices, atr, vol, min_trade_interval=24)
         base_changes = int((base.diff().fillna(0) != 0).sum().sum())
         gated_changes = int((gated.diff().fillna(0) != 0).sum().sum())
         assert gated_changes <= base_changes
         # And a larger gate further reduces (non-trivially) on this noisy signal
-        big = h10.apply_exits_hourly(
-            daily_target, prices, atr, vol, min_trade_interval=120
-        )
+        big = h10.apply_exits_hourly(daily_target, prices, atr, vol, min_trade_interval=120)
         big_changes = int((big.diff().fillna(0) != 0).sum().sum())
         assert big_changes <= gated_changes
 
@@ -181,12 +173,8 @@ class TestApplyExitsHourly:
         prices = _hourly_frame(n=1500)
         _pct, atr, vol = _make_inputs(prices)
         daily_target = h9._daily_target_from_hourly(h9.vol_scaled_tsmom_hourly(prices))
-        small = h10.apply_exits_hourly(
-            daily_target, prices, atr, vol, min_trade_interval=4
-        )
-        huge = h10.apply_exits_hourly(
-            daily_target, prices, atr, vol, min_trade_interval=99999
-        )
+        small = h10.apply_exits_hourly(daily_target, prices, atr, vol, min_trade_interval=4)
+        huge = h10.apply_exits_hourly(daily_target, prices, atr, vol, min_trade_interval=99999)
         assert int((huge.diff().fillna(0) != 0).sum().sum()) <= int(
             (small.diff().fillna(0) != 0).sum().sum()
         )
@@ -213,10 +201,7 @@ class TestApplyExitsHourly:
             volumes_list.append(df["volume"].rename(sym))
         prices = pd.concat(prices_list, axis=1, sort=True).sort_index().ffill().bfill()
         volumes = (
-            pd.concat(volumes_list, axis=1, sort=True)
-            .sort_index()
-            .reindex(prices.index)
-            .fillna(0)
+            pd.concat(volumes_list, axis=1, sort=True).sort_index().reindex(prices.index).fillna(0)
         )
         n = len(prices)
         train_end = prices.index[int(n * 0.55)]
@@ -232,9 +217,7 @@ class TestApplyExitsHourly:
         vol = vol.replace(0, np.nan).ffill()
         daily_target = h9._daily_target_from_hourly(h9.vol_scaled_tsmom_hourly(prices))
 
-        pos = h10.apply_exits_hourly(
-            daily_target, prices, atr, vol, min_trade_interval=0
-        )
+        pos = h10.apply_exits_hourly(daily_target, prices, atr, vol, min_trade_interval=0)
         cfg = h10.make_futures_config()
         res = run_backtest(prices=prices, signals=pos, volumes=volumes, config=cfg)
 

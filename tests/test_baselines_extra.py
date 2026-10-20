@@ -7,9 +7,7 @@ import pytest
 from qtr.strategies import baselines
 
 
-def _make_prices(
-    n_days: int = 400, n_syms: int = 3, start: str = "2020-01-01", seed=42
-):
+def _make_prices(n_days: int = 400, n_syms: int = 3, start: str = "2020-01-01", seed=42):
     idx = pd.date_range(start, periods=n_days, freq="D")
     rng = np.random.default_rng(seed)
     data = rng.normal(0, 0.01, (n_days, n_syms)).cumsum(0)

@@ -52,10 +52,7 @@ def test_report_schema():
 def test_decomposition_invariant_pf_reconstructed():
     with open(REPORT_JSON) as f:
         d = json.load(f)
-    pf = (
-        d["reconstruction"]["gross_up_all_oos"]
-        / d["reconstruction"]["gross_dn_all_oos"]
-    )
+    pf = d["reconstruction"]["gross_up_all_oos"] / d["reconstruction"]["gross_dn_all_oos"]
     assert abs(pf - d["reconstruction"]["pf_pooled_oos"]) < 1e-10
 
 

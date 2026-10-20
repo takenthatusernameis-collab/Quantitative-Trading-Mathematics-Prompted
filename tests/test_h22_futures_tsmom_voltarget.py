@@ -110,10 +110,7 @@ class TestPreRegistration:
         )
         assert f"{n_combos}-combo" in h22.EXPERIMENT_DESC
         # Inert dimensions are fixed, so the prose must say so.
-        assert (
-            "scale_rule" in h22.EXPERIMENT_DESC
-            or "fixed inert" in h22.EXPERIMENT_DESC.lower()
-        )
+        assert "scale_rule" in h22.EXPERIMENT_DESC or "fixed inert" in h22.EXPERIMENT_DESC.lower()
 
     def test_pre_registration_spec_matches_runner_grid(self):
         # The frozen pre-registration text (HYPOTHESIS_SPEC.md §H22,
@@ -297,12 +294,9 @@ class TestCausality:
         rng = pd.date_range("2024-10-12", periods=2000, freq="h")
         prices = pd.DataFrame(
             {
-                "ES=F": 5000.0
-                + np.cumsum(np.random.default_rng(42).normal(0, 5, 2000)),
-                "NQ=F": 18000.0
-                + np.cumsum(np.random.default_rng(43).normal(0, 20, 2000)),
-                "CL=F": 75.0
-                + np.cumsum(np.random.default_rng(44).normal(0, 0.5, 2000)),
+                "ES=F": 5000.0 + np.cumsum(np.random.default_rng(42).normal(0, 5, 2000)),
+                "NQ=F": 18000.0 + np.cumsum(np.random.default_rng(43).normal(0, 20, 2000)),
+                "CL=F": 75.0 + np.cumsum(np.random.default_rng(44).normal(0, 0.5, 2000)),
             },
             index=rng,
         )
@@ -349,9 +343,7 @@ class TestCausality:
             # The perturbation must propagate to at least one future target
             future_idx = t0.index.intersection(t1.index)[1500:]
             if len(future_idx) > 0:
-                diff = np.abs(
-                    t0.loc[future_idx, sym].values - t1.loc[future_idx, sym].values
-                )
+                diff = np.abs(t0.loc[future_idx, sym].values - t1.loc[future_idx, sym].values)
                 assert diff.max() > 0, f"future perturbation had no effect for {sym}"
 
 
@@ -371,9 +363,7 @@ class TestWeightBounds:
         exp_dir = _latest_h22_dir()
         per_contract = read_parquet_safe(exp_dir / "per_contract_positions.parquet")
         for col in per_contract.columns:
-            assert (per_contract[col].dropna() >= -1e-9).all(), (
-                f"{col} has negative weights"
-            )
+            assert (per_contract[col].dropna() >= -1e-9).all(), f"{col} has negative weights"
 
 
 class TestDeterminism:
@@ -382,8 +372,7 @@ class TestDeterminism:
         prices = pd.DataFrame(
             {
                 "ES=F": 5000.0 + np.cumsum(np.random.default_rng(42).normal(0, 5, 100)),
-                "NQ=F": 18000.0
-                + np.cumsum(np.random.default_rng(43).normal(0, 20, 100)),
+                "NQ=F": 18000.0 + np.cumsum(np.random.default_rng(43).normal(0, 20, 100)),
                 "CL=F": 75.0 + np.cumsum(np.random.default_rng(44).normal(0, 0.5, 100)),
             },
             index=rng,
@@ -395,9 +384,7 @@ class TestDeterminism:
             s2 = h22.vol_scaled_tsmom_hourly(
                 prices[[sym]], vol_window_long=1008, vol_window_short=252
             )
-            assert (s1.values == s2.values).all(), (
-                f"base signal not deterministic for {sym}"
-            )
+            assert (s1.values == s2.values).all(), f"base signal not deterministic for {sym}"
 
     def test_apply_exits_is_deterministic(self):
         rng = pd.date_range("2024-10-12", periods=100, freq="h")
@@ -491,12 +478,8 @@ class TestExecutedOutcome:
         assert p["trades"] == (m["trades"] >= h22.GATES["min_trades"])
         assert p["pf"] == (m["profit_factor"] >= h22.GATES["min_profit_factor"])
         assert p["dd"] == (abs(m["max_drawdown"]) <= h22.GATES["max_drawdown"])
-        assert p["stab"] == (
-            m["wf_stability"] >= h22.GATES["min_walkforward_stability"]
-        )
-        assert p["worst"] == (
-            m["worst_regime_sharpe"] >= h22.GATES["min_worst_regime_sharpe"]
-        )
+        assert p["stab"] == (m["wf_stability"] >= h22.GATES["min_walkforward_stability"])
+        assert p["worst"] == (m["worst_regime_sharpe"] >= h22.GATES["min_worst_regime_sharpe"])
         assert p["p"] == (m["benchmark_p_value"] < h22.GATES["max_p_value"])
         assert p["ir"] == (m["information_ratio"] > h22.GATES["min_information_ratio"])
 

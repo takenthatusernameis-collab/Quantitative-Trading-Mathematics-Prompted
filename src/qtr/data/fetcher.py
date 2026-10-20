@@ -21,14 +21,10 @@ class DataCache:
     """File-based cache for downloaded data with content hashing."""
 
     def __init__(self, cache_dir: Path | None = None):
-        self.cache_dir = cache_dir or Path(
-            get_config().get("data.cache_dir", ".cache/data")
-        )
+        self.cache_dir = cache_dir or Path(get_config().get("data.cache_dir", ".cache/data"))
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
-    def _cache_key(
-        self, source: str, symbol: str, start: str, end: str, interval: str
-    ) -> str:
+    def _cache_key(self, source: str, symbol: str, start: str, end: str, interval: str) -> str:
         key = f"{source}:{symbol}:{start}:{end}:{interval}"
         return hashlib.sha256(key.encode()).hexdigest()[:16]
 
@@ -176,9 +172,7 @@ class DataFetcher:
 
         for symbol in symbols:
             if not symbol.endswith("=F"):
-                logger.warning(
-                    f"Futures symbol {symbol} should end with =F; proceeding anyway"
-                )
+                logger.warning(f"Futures symbol {symbol} should end with =F; proceeding anyway")
 
             if use_cache:
                 cached = self.cache.get("yahoo_futures", symbol, start, end, interval)
@@ -288,9 +282,7 @@ class DataFetcher:
                 current_since = since
 
                 while current_since < end_ms:
-                    ohlcv = exchange.fetch_ohlcv(
-                        symbol, timeframe, since=current_since, limit=1000
-                    )
+                    ohlcv = exchange.fetch_ohlcv(symbol, timeframe, since=current_since, limit=1000)
                     if not ohlcv:
                         break
                     all_ohlcv.extend(ohlcv)

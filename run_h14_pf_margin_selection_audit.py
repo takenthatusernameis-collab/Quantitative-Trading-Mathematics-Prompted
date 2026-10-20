@@ -96,7 +96,7 @@ def _select_top_by_val_pf_margin(grid_df: pd.DataFrame, k: int = K_TOP) -> pd.Da
     frozen_mask = (
         (grid_df["vol_window_long"] == 1008)
         & (grid_df["smooth_span"].astype(str) == "none")
-        & (grid_df["regime_scaling"] == False)
+        & (not grid_df["regime_scaling"])
         & (grid_df["min_trade_interval"] == 0)
         & (grid_df["trailing_mult"] == 2.0)
         & (grid_df["max_hold_bars"] == 60)
@@ -159,9 +159,7 @@ def _rebuild_grid_oos_for_subset(prices, volumes, vix_hourly, cfg, masks, subset
         "oos_profit_factor",
         "oos_trades",
     ]
-    meta = {
-        c: np.empty(N, dtype=object if c == "smooth_span" else float) for c in meta_cols
-    }
+    meta = {c: np.empty(N, dtype=object if c == "smooth_span" else float) for c in meta_cols}
     oos_matrix = np.empty((N, T_oos), dtype=np.float32)
 
     t0 = time.time()
@@ -196,9 +194,7 @@ def _rebuild_grid_oos_for_subset(prices, volumes, vix_hourly, cfg, masks, subset
             target_vol=0.15,
             min_trade_interval=min_int,
         )
-        res = run_backtest(
-            prices=prices, signals=positions, volumes=volumes, config=cfg
-        )
+        res = run_backtest(prices=prices, signals=positions, volumes=volumes, config=cfg)
         oos_ret = res.returns[oos_mask].reindex(oos_index).fillna(0.0)
         om = _period_metrics(oos_ret, _count_in(res.trades, oos_mask, prices))
         meta["vol_window_long"][i] = vw
@@ -248,9 +244,7 @@ def main():
         grid_df = pd.read_parquet(H10_GRID_PARQUET)
         topk_df = _select_top_by_val_pf_margin(grid_df, K_TOP)
 
-        print(
-            f"H14: selected top {len(topk_df)} configs by Val PF margin (excluding frozen H10)"
-        )
+        print(f"H14: selected top {len(topk_df)} configs by Val PF margin (excluding frozen H10)")
         print(
             f"  top1 val_pf_margin={topk_df['val_pf_margin'].iloc[0]:.4f}, val_pf={topk_df['val_profit_factor'].iloc[0]:.4f}"
         )
@@ -306,9 +300,7 @@ def main():
             # Easier: rebuild positions for this config and compute contribs
             vw = int(cfg_row["vol_window_long"])
             smooth_span = (
-                None
-                if str(cfg_row["smooth_span"]) == "none"
-                else int(cfg_row["smooth_span"])
+                None if str(cfg_row["smooth_span"]) == "none" else int(cfg_row["smooth_span"])
             )
             regime = bool(cfg_row["regime_scaling"])
             min_int = int(cfg_row["min_trade_interval"])
@@ -354,9 +346,7 @@ def main():
             all_disp = all(v >= min_pf_gate for v in loo_pf.values())
 
             res = {
-                "combo_index": int(cfg_row["combo_index"])
-                if "combo_index" in cfg_row
-                else i,
+                "combo_index": int(cfg_row["combo_index"]) if "combo_index" in cfg_row else i,
                 "val_pf_margin": float(cfg_row["val_pf_margin"]),
                 "val_profit_factor": float(cfg_row["val_profit_factor"]),
                 "val_sharpe": float(cfg_row["val_sharpe"]),
@@ -424,9 +414,7 @@ def main():
         print("  H14 PF-margin-targeted selection audit:")
         print(f"    Top K={K_TOP} by Val PF margin tested")
         print(f"    Passing configs: {len(passes)}")
-        print(
-            f"    Verdict: {summary['verdict']} (H0 {'' if all_pass_flag else 'NOT '}rejected)"
-        )
+        print(f"    Verdict: {summary['verdict']} (H0 {'' if all_pass_flag else 'NOT '}rejected)")
         print(f"    Time: {total_elapsed / 60:.1f} min")
         print("=" * 72)
         return 0 if all_pass_flag else 1

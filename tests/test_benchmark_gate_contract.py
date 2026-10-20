@@ -67,9 +67,7 @@ def rng():
 
 
 def test_library_returns_the_pinned_key_set(rng):
-    res = compare_to_benchmark(
-        rng.normal(0.001, 0.01, 200), rng.normal(0.0005, 0.01, 200)
-    )
+    res = compare_to_benchmark(rng.normal(0.001, 0.01, 200), rng.normal(0.0005, 0.01, 200))
     assert set(res) == LIBRARY_KEYS
 
 
@@ -78,9 +76,7 @@ def test_non_scalar_risk_free_is_rejected(rng):
     turn `alpha_annualized` into an array of length N."""
     mask = pd.Series(rng.random(200) > 0.5)
     with pytest.raises(TypeError, match="risk_free must be a scalar"):
-        compare_to_benchmark(
-            rng.normal(0.001, 0.01, 200), rng.normal(0.0005, 0.01, 200), mask
-        )
+        compare_to_benchmark(rng.normal(0.001, 0.01, 200), rng.normal(0.0005, 0.01, 200), mask)
 
 
 def test_nan_rows_are_dropped_pairwise(rng):
@@ -123,9 +119,7 @@ def test_one_sided_p_is_direction_aware(rng):
     pos_strat = rng.normal(0.005, 0.01, 500)
     pos_bench = rng.normal(0.0, 0.01, 500)
     pos = compare_to_benchmark(pos_strat, pos_bench)
-    assert pos["alpha_p_value_one_sided"] == pytest.approx(
-        pos["alpha_p_value"] / 2.0, rel=1e-12
-    )
+    assert pos["alpha_p_value_one_sided"] == pytest.approx(pos["alpha_p_value"] / 2.0, rel=1e-12)
     assert pos["alpha_t_stat"] > 0
     if pos["alpha_p_value"] < 0.05:
         assert pos["alpha_p_value_one_sided"] < 0.05
@@ -161,9 +155,7 @@ def test_the_one_sided_p_value_is_not_the_gate_statistic(rng):
     assert one_sided < 0.05
 
     # the published gate rejects it ...
-    assert (
-        benchmark_significance_gate(two_sided, res["information_ratio"], 0.05) is False
-    )
+    assert benchmark_significance_gate(two_sided, res["information_ratio"], 0.05) is False
     # ... while the one-sided rule would have accepted it
     assert one_sided < 0.05
 
@@ -205,9 +197,7 @@ def test_h7_benchmark_comparison_is_unit_consistent():
         index=idx,
         columns=["ES=F", "NQ=F", "CL=F", "GC=F", "ZB=F"],
     )
-    strategy_returns = pd.Series(
-        rng.normal(0.0005, 0.01, 300), index=idx, name="returns"
-    )
+    strategy_returns = pd.Series(rng.normal(0.0005, 0.01, 300), index=idx, name="returns")
 
     bench = h7.benchmark_comparison(strategy_returns, prices)
 
@@ -405,11 +395,7 @@ def _benchmark_p_and_ir(summary: dict) -> tuple[float, float] | None:
     bench_gate = gate_metrics.get("benchmark_p") or {}
 
     def _num(value):
-        return (
-            value
-            if isinstance(value, (int, float)) and not isinstance(value, bool)
-            else None
-        )
+        return value if isinstance(value, (int, float)) and not isinstance(value, bool) else None
 
     p = None
     for candidate in (
@@ -566,9 +552,7 @@ def test_h34_tally_impact_is_pinned_as_a_disclosure():
         # the p pass is wrong-reason: small two-sided p, negative information ratio
         assert passes.get("p") is True
         assert m["information_ratio"] < 0.0
-        gate = benchmark_significance_gate(
-            m["benchmark_p_value"], m["information_ratio"], 0.05
-        )
+        gate = benchmark_significance_gate(m["benchmark_p_value"], m["information_ratio"], 0.05)
         assert gate is False
         # H34 flips only the p gate: True -> False, every other gate unchanged
         recomputed = published - 1

@@ -71,9 +71,7 @@ def _parse(path: pathlib.Path) -> ast.AST:
     return ast.parse(path.read_text())
 
 
-def _gates_dict(
-    path: pathlib.Path, _seen: frozenset = frozenset()
-) -> dict[str, float] | None:
+def _gates_dict(path: pathlib.Path, _seen: frozenset = frozenset()) -> dict[str, float] | None:
     """The ``GATES`` dict a runner uses.
 
     ``None`` means the runner has no ``GATES`` literal of its own and does not
@@ -192,9 +190,7 @@ def _gate_expressions(tree: ast.AST) -> list[tuple[str, int, ast.expr]]:
     for node in ast.walk(tree):
         if not isinstance(node, ast.Assign) or not isinstance(node.value, ast.Dict):
             continue
-        if not any(
-            isinstance(t, ast.Name) and t.id in GATE_DICT_NAMES for t in node.targets
-        ):
+        if not any(isinstance(t, ast.Name) and t.id in GATE_DICT_NAMES for t in node.targets):
             continue
         for key, value in zip(node.value.keys, node.value.values):
             if not (isinstance(key, ast.Constant) and isinstance(key.value, str)):
@@ -378,9 +374,7 @@ def test_forcing_the_disclosed_gates_to_false_changes_no_verdict(family):
     }
     assert disclosed, f"{family} owns no disclosed gate"
 
-    recomputed_pass = [
-        name for name, passed in gates.items() if passed and name not in disclosed
-    ]
+    recomputed_pass = [name for name, passed in gates.items() if passed and name not in disclosed]
     assert len(published_pass) > len(recomputed_pass)
     assert recomputed_pass != published_pass
     # the family is not an all-pass as published ...
@@ -437,9 +431,7 @@ def test_the_published_h18_artifact_is_the_one_named_in_the_spec():
         with open(path) as f:
             summary = json.load(f)
         sibling_gates = summary["gate_metrics"]
-        sibling_passes = sum(
-            1 for value in sibling_gates.values() if _as_bool(value["passes"])
-        )
+        sibling_passes = sum(1 for value in sibling_gates.values() if _as_bool(value["passes"]))
         assert sibling_passes == 3, f"{sibling} is not an earlier H18 sibling"
         assert _as_bool(sibling_gates["max_drawdown"]["passes"]) is True
 
@@ -484,9 +476,7 @@ def _hard_coded_thresholds(tree: ast.AST) -> dict[str, float]:
     for node in ast.walk(tree):
         if not isinstance(node, ast.Assign) or not isinstance(node.value, ast.Dict):
             continue
-        if not any(
-            isinstance(t, ast.Name) and t.id in GATE_DICT_NAMES for t in node.targets
-        ):
+        if not any(isinstance(t, ast.Name) and t.id in GATE_DICT_NAMES for t in node.targets):
             continue
         for key, value in zip(node.value.keys, node.value.values):
             if not (isinstance(key, ast.Constant) and isinstance(key.value, str)):
@@ -494,10 +484,7 @@ def _hard_coded_thresholds(tree: ast.AST) -> dict[str, float]:
             if not isinstance(value, ast.Dict):
                 continue
             for inner_key, inner_value in zip(value.keys, value.values):
-                if (
-                    isinstance(inner_key, ast.Constant)
-                    and inner_key.value == "threshold"
-                ):
+                if isinstance(inner_key, ast.Constant) and inner_key.value == "threshold":
                     number = _numeric_literal(inner_value)
                     if number is not None:
                         found[key.value] = number
@@ -509,9 +496,7 @@ def test_the_hard_coded_h18_thresholds_match_the_shared_gate_set():
     shared = _gates_keys(ROOT / "run_h9_intraday_tsmom_experiment.py")
     assert shared is not None
 
-    thresholds = _hard_coded_thresholds(
-        _parse(ROOT / "run_h18_overnight_intraday_experiment.py")
-    )
+    thresholds = _hard_coded_thresholds(_parse(ROOT / "run_h18_overnight_intraday_experiment.py"))
     assert set(thresholds) == set(H18_GATE_TO_SHARED_KEY)
 
     shared_values = _gates_values(ROOT / "run_h9_intraday_tsmom_experiment.py")

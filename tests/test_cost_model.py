@@ -117,8 +117,7 @@ class TestCostUnitsRegression:
         # for a full-weight entry: -2/1e4 = -0.0002).
         for price, res in results.items():
             assert res.returns.iloc[0] == pytest.approx(-2.0 / 10_000, abs=1e-12), (
-                f"day-0 cost depends on price level for price={price} "
-                "(cost-model units regression)"
+                f"day-0 cost depends on price level for price={price} (cost-model units regression)"
             )
 
     def test_cost_scales_linearly_with_weight_delta(self):
@@ -142,9 +141,7 @@ class TestCostUnitsRegression:
         full = run_backtest(
             prices=prices, signals=self._step_signals(prices.index, 1.0), config=cfg
         )
-        assert half.returns.iloc[0] == pytest.approx(
-            full.returns.iloc[0] / 2.0, abs=1e-12
-        )
+        assert half.returns.iloc[0] == pytest.approx(full.returns.iloc[0] / 2.0, abs=1e-12)
 
     def test_zero_cost_model_gives_zero_cost(self):
         cm = CostModel(
@@ -189,9 +186,7 @@ class TestCostUnitsRegression:
             prices=prices,
             signals=signals,
             config=BacktestConfig(
-                cost_model=CostModel(
-                    equity_commission_bps=10.0, equity_spread_bps=10.0
-                ),
+                cost_model=CostModel(equity_commission_bps=10.0, equity_spread_bps=10.0),
                 **base,
             ),
         )

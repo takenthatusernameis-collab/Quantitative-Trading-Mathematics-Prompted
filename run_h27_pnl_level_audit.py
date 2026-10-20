@@ -154,9 +154,7 @@ CERTIFIED = ("H10", "H22", "H25")
 def make_cost_model() -> CostModel:
     """The H9 cost model (single source of truth for the contract specs)."""
     return CostModel(
-        future_commission_per_contract=h9.COST_MODEL_DEFAULTS[
-            "future_commission_per_contract"
-        ],
+        future_commission_per_contract=h9.COST_MODEL_DEFAULTS["future_commission_per_contract"],
         future_spread_ticks=h9.COST_MODEL_DEFAULTS["future_spread_ticks"],
         future_slippage_ticks=h9.COST_MODEL_DEFAULTS["future_slippage_ticks"],
         futures_specs=h9.FUTURES_SPECS,
@@ -191,9 +189,7 @@ def engine_positions(raw: pd.DataFrame) -> pd.DataFrame:
     return signals.clip(-MAX_POSITION_SIZE, MAX_POSITION_SIZE)
 
 
-def dollar_pnl(
-    prices: pd.DataFrame, positions: pd.DataFrame
-) -> tuple[pd.Series, pd.Series]:
+def dollar_pnl(prices: pd.DataFrame, positions: pd.DataFrame) -> tuple[pd.Series, pd.Series]:
     """Per-bar dollar P&L from the engine's contract arithmetic.
 
     ``contracts = weight x capital / (price x multiplier)`` (held over the bar)
@@ -203,9 +199,7 @@ def dollar_pnl(
     dollars = pd.Series(0.0, index=prices.index)
     for sym in prices.columns:
         mult = h9.FUTURES_SPECS[sym]["multiplier"]
-        contracts = (
-            positions[sym].shift(1) * INITIAL_CAPITAL / (prices[sym].shift(1) * mult)
-        )
+        contracts = positions[sym].shift(1) * INITIAL_CAPITAL / (prices[sym].shift(1) * mult)
         price_change = (prices[sym] - prices[sym].shift(1)).fillna(0.0)
         dollars = dollars + contracts * price_change * mult
     return dollars, dollars / INITIAL_CAPITAL
@@ -238,9 +232,7 @@ def costs_from_trades(trades: pd.DataFrame) -> pd.Series:
     t["multiplier"] = t["symbol"].map(
         lambda s: h9.FUTURES_SPECS[s]["multiplier"] if s in h9.FUTURES_SPECS else np.nan
     )
-    t["contracts"] = (
-        t["weight_change"].abs() * INITIAL_CAPITAL / (t["price"] * t["multiplier"])
-    )
+    t["contracts"] = t["weight_change"].abs() * INITIAL_CAPITAL / (t["price"] * t["multiplier"])
     t["cost_per_contract"] = t["symbol"].map(cm.future_cost_per_contract)
     t["cost_frac"] = t["contracts"] * t["cost_per_contract"] / INITIAL_CAPITAL
     out = t.groupby("timestamp")["cost_frac"].sum()
@@ -296,9 +288,7 @@ def _atr(prices: pd.DataFrame) -> pd.DataFrame:
 
 
 def _vol_exit(prices: pd.DataFrame) -> pd.DataFrame:
-    vol = prices.pct_change().fillna(0).rolling(20, min_periods=10).std() * np.sqrt(
-        252 * 6.5
-    )
+    vol = prices.pct_change().fillna(0).rolling(20, min_periods=10).std() * np.sqrt(252 * 6.5)
     return vol.replace(0, np.nan).ffill()
 
 
@@ -319,14 +309,10 @@ def rebuild_pipeline(
         # H9's exit function expands the day-labelled target onto the hourly
         # grid itself; that expansion is the effective target.
         target = daily_target.reindex(prices.index, method="ffill").fillna(0.0)
-        positions = h9.apply_path_dependent_exits_hourly(
-            daily_target, prices, _atr(prices)
-        )
+        positions = h9.apply_path_dependent_exits_hourly(daily_target, prices, _atr(prices))
         return {"signal": base, "target": target, "positions": positions}
     if construction == "portfolio_h10":
-        base = h9.vol_scaled_tsmom_hourly(
-            prices, vol_window_long=1008, vol_window_short=252
-        )
+        base = h9.vol_scaled_tsmom_hourly(prices, vol_window_long=1008, vol_window_short=252)
         target = h10.build_hourly_target(base, None, 1008, False, vix, prices.index)
         positions = h10.apply_exits_hourly(
             target,
@@ -350,9 +336,7 @@ def rebuild_pipeline(
             for sym in prices.columns
         }
         targets = {
-            sym: h10.build_hourly_target(
-                base[sym], None, 1008, False, vix, prices.index
-            )[sym]
+            sym: h10.build_hourly_target(base[sym], None, 1008, False, vix, prices.index)[sym]
             for sym in prices.columns
         }
         per_contract, _, _ = module._apply_exits_and_aggregate(
@@ -395,9 +379,7 @@ def contract_spec_check() -> dict:
             "tick_size": float(tick_size),
             "tick_value": float(spec["tick_value"]),
             "implied_tick_value": float(implied_tick_value),
-            "tick_value_consistent": bool(
-                abs(implied_tick_value - spec["tick_value"]) <= 1e-12
-            ),
+            "tick_value_consistent": bool(abs(implied_tick_value - spec["tick_value"]) <= 1e-12),
             "commission": float(spec["commission"]),
             "spread_ticks": float(spec["spread_ticks"]),
             "slippage_ticks": float(spec["slippage_ticks"]),
@@ -409,9 +391,7 @@ def contract_spec_check() -> dict:
         }
     return {
         "per_symbol": rows,
-        "all_tick_values_consistent": bool(
-            all(r["tick_value_consistent"] for r in rows.values())
-        ),
+        "all_tick_values_consistent": bool(all(r["tick_value_consistent"] for r in rows.values())),
         "all_costs_consistent": bool(
             all(
                 abs(r["cost_per_contract"] - r["expected_cost_per_contract"]) <= 1e-12
@@ -421,9 +401,7 @@ def contract_spec_check() -> dict:
     }
 
 
-def expansion_check(
-    signal: pd.DataFrame, target: pd.DataFrame, index: pd.DatetimeIndex
-) -> dict:
+def expansion_check(signal: pd.DataFrame, target: pd.DataFrame, index: pd.DatetimeIndex) -> dict:
     """Compare a published hourly target with the two candidate expansions.
 
     The daily collapse ``L`` holds, for each day D, the signal at the **last
@@ -501,12 +479,8 @@ def artifact_lookahead(spec: dict, art_dir: Path, index: pd.DatetimeIndex) -> di
     signal_at_open = signal.reindex(index).where(is_first)
     daily_on_grid = daily.reindex(index, method="ffill")
 
-    close_chain = float(
-        np.nanmax(np.abs(signal_at_close.to_numpy() - daily_on_grid.to_numpy()))
-    )
-    open_chain = float(
-        np.nanmax(np.abs(signal_at_open.to_numpy() - daily_on_grid.to_numpy()))
-    )
+    close_chain = float(np.nanmax(np.abs(signal_at_close.to_numpy() - daily_on_grid.to_numpy())))
+    open_chain = float(np.nanmax(np.abs(signal_at_open.to_numpy() - daily_on_grid.to_numpy())))
     same_day = daily.reindex(index, method="ffill").to_numpy()
     prev_day = daily.shift(1).reindex(index, method="ffill").to_numpy()
     finite = np.isfinite(same_day) & np.isfinite(prev_day)
@@ -598,9 +572,7 @@ def same_day_tilt(prices: pd.DataFrame, positions: pd.DataFrame) -> dict:
         "mean_signed_intraday_return": float(
             np.mean([r["mean_signed_intraday_return"] for r in rows.values()])
         ),
-        "mean_same_day_hit_rate": float(
-            np.mean([r["same_day_hit_rate"] for r in rows.values()])
-        ),
+        "mean_same_day_hit_rate": float(np.mean([r["same_day_hit_rate"] for r in rows.values()])),
     }
 
 
@@ -620,9 +592,7 @@ def _window_metrics(returns: pd.Series, mask, prices: pd.DataFrame) -> dict:
     }
 
 
-def _vol_coherence(
-    returns: pd.Series, index: pd.DatetimeIndex, target_vol: float
-) -> dict:
+def _vol_coherence(returns: pd.Series, index: pd.DatetimeIndex, target_vol: float) -> dict:
     """L4: target vs. realized vol/return on the code scale and the empirical scale."""
     bpy = float(bars_per_year(index))
     empirical_factor = float(np.sqrt(bpy)) if np.isfinite(bpy) else float("nan")
@@ -637,9 +607,7 @@ def _vol_coherence(
         "code_bars_per_year": float(252 * 6.5),
         "empirical_bars_per_year": bpy,
         "empirical_annualization_factor": empirical_factor,
-        "annualization_ratio_empirical_over_code": float(
-            empirical_factor / CODE_VOL_FACTOR
-        ),
+        "annualization_ratio_empirical_over_code": float(empirical_factor / CODE_VOL_FACTOR),
         "realized_vol_code_scale": float(realized_vol_code),
         "realized_vol_empirical_scale": float(std * empirical_factor),
         "realized_return_code_scale": float(realized_ret_code),
@@ -663,9 +631,7 @@ def audit_family(spec: dict) -> dict:
     art_dir = ARTIFACTS / spec["artifact"]
     prices = pd.read_parquet(art_dir / "prices.parquet")
     raw_positions = pd.read_parquet(art_dir / "positions.parquet")
-    logged_returns = pd.read_parquet(art_dir / "returns.parquet")["returns"].astype(
-        float
-    )
+    logged_returns = pd.read_parquet(art_dir / "returns.parquet")["returns"].astype(float)
     trades = pd.read_parquet(art_dir / "trades.parquet")
     with open(art_dir / "summary.json") as f:
         summary = json.load(f)
@@ -700,9 +666,7 @@ def audit_family(spec: dict) -> dict:
             "lagged quantity); any further non-finite bars come from NaN "
             "prices in the committed artifact"
         ),
-        "passes": bool(
-            l1_dollar_vs_gross <= LEVEL_TOL and l1_dollar_vs_logged <= LEVEL_TOL
-        ),
+        "passes": bool(l1_dollar_vs_gross <= LEVEL_TOL and l1_dollar_vs_logged <= LEVEL_TOL),
     }
 
     # --- L3: cost-scale sanity ---------------------------------------------
@@ -724,9 +688,7 @@ def audit_family(spec: dict) -> dict:
     _train_mask, val_mask, test_mask = h10._splits(prices)
     oos_mask = val_mask | test_mask
     target_vol = 0.15 * float(spec.get("target_vol_mult", 1.0))
-    l4 = _vol_coherence(
-        logged_returns[oos_mask], logged_returns[oos_mask].index, target_vol
-    )
+    l4 = _vol_coherence(logged_returns[oos_mask], logged_returns[oos_mask].index, target_vol)
     l4["oos_vol_target_multiplier"] = float(spec.get("target_vol_mult", 1.0))
 
     # --- L5a: look-ahead, artifact-only and rebuild-based -------------------
@@ -760,12 +722,8 @@ def audit_family(spec: dict) -> dict:
         config=backtest_config(),
     )
 
-    pos_diff = float(
-        np.abs(published_positions.to_numpy() - raw_positions.to_numpy()).max()
-    )
-    ret_diff = float(
-        np.abs(published_result.returns.to_numpy() - logged_returns.to_numpy()).max()
-    )
+    pos_diff = float(np.abs(published_positions.to_numpy() - raw_positions.to_numpy()).max())
+    ret_diff = float(np.abs(published_result.returns.to_numpy() - logged_returns.to_numpy()).max())
     reproduced = bool(pos_diff <= REPRODUCTION_TOL and ret_diff <= REPRODUCTION_TOL)
 
     l5b = {
@@ -787,10 +745,7 @@ def audit_family(spec: dict) -> dict:
         else float("nan")
     )
     l5b["oos_pf_relative_drop"] = (
-        float(
-            1.0
-            - l5b["causal_oos"]["profit_factor"] / l5b["published_oos"]["profit_factor"]
-        )
+        float(1.0 - l5b["causal_oos"]["profit_factor"] / l5b["published_oos"]["profit_factor"])
         if l5b["published_oos"]["profit_factor"]
         else float("nan")
     )
@@ -821,8 +776,7 @@ def audit_family(spec: dict) -> dict:
             eq_result.equity_curve.iloc[-1] / eq_result.equity_curve.iloc[0]
         ),
         "uniform_equal_weight_oos_equity_multiple": float(
-            eq_result.equity_curve[oos_mask].iloc[-1]
-            / eq_result.equity_curve[oos_mask].iloc[0]
+            eq_result.equity_curve[oos_mask].iloc[-1] / eq_result.equity_curve[oos_mask].iloc[0]
         ),
     }
     bench_path = art_dir / "benchmark_equity.parquet"
@@ -894,8 +848,7 @@ def build_report() -> dict:
     )
     certified = [a for a in audits if a["family"] in CERTIFIED]
     drop_ok = all(
-        a["lookahead"]["L5b_counterfactual"]["oos_sharpe_relative_drop"]
-        > LOOKAHEAD_SHARPE_DROP
+        a["lookahead"]["L5b_counterfactual"]["oos_sharpe_relative_drop"] > LOOKAHEAD_SHARPE_DROP
         for a in certified
     )
     reproduced_ok = all(
@@ -928,8 +881,7 @@ def build_report() -> dict:
             "level_checks_passed": {
                 "L1_position_sizing": bool(l1_ok),
                 "L2_contract_specs": bool(
-                    specs["all_tick_values_consistent"]
-                    and specs["all_costs_consistent"]
+                    specs["all_tick_values_consistent"] and specs["all_costs_consistent"]
                 ),
                 "L3_cost_scale": bool(l3_ok),
             },
@@ -983,21 +935,21 @@ def main() -> int:
                 "published_equity_x": l5b["published_full_sample"]["equity_multiple"],
                 "causal_equity_x": l5b["causal_full_sample"]["equity_multiple"],
                 "sharpe_relative_drop": l5b["oos_sharpe_relative_drop"],
-                "published_intraday_share": a["lookahead"]["L5c_attribution"][
-                    "published"
-                ]["intraday_share"],
+                "published_intraday_share": a["lookahead"]["L5c_attribution"]["published"][
+                    "intraday_share"
+                ],
                 "causal_intraday_share": a["lookahead"]["L5c_attribution"]["causal"][
                     "intraday_share"
                 ],
-                "same_day_tilt_published": a["lookahead"]["L5c_attribution"][
-                    "same_day_tilt"
-                ]["published"]["mean_signed_intraday_return"],
-                "same_day_tilt_causal": a["lookahead"]["L5c_attribution"][
-                    "same_day_tilt"
-                ]["causal"]["mean_signed_intraday_return"],
-                "same_day_tilt_ratio": a["lookahead"]["L5c_attribution"][
-                    "same_day_tilt"
-                ]["tilt_ratio_published_over_causal"],
+                "same_day_tilt_published": a["lookahead"]["L5c_attribution"]["same_day_tilt"][
+                    "published"
+                ]["mean_signed_intraday_return"],
+                "same_day_tilt_causal": a["lookahead"]["L5c_attribution"]["same_day_tilt"][
+                    "causal"
+                ]["mean_signed_intraday_return"],
+                "same_day_tilt_ratio": a["lookahead"]["L5c_attribution"]["same_day_tilt"][
+                    "tilt_ratio_published_over_causal"
+                ],
             }
         )
     pd.DataFrame(rows).to_parquet(ART_DIR / "level_table.parquet")

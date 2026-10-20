@@ -175,9 +175,7 @@ def build_targets(
 
 def _splits(prices_idx: pd.Index):
     train_mask = prices_idx <= pd.Timestamp(TRAIN_END)
-    val_mask = (prices_idx > pd.Timestamp(TRAIN_END)) & (
-        prices_idx <= pd.Timestamp(VAL_END)
-    )
+    val_mask = (prices_idx > pd.Timestamp(TRAIN_END)) & (prices_idx <= pd.Timestamp(VAL_END))
     test_mask = prices_idx > pd.Timestamp(VAL_END)
     return train_mask, val_mask, test_mask
 
@@ -246,9 +244,7 @@ def full_gate_eval(
         if len(tr_r) > 1:
             train_sharpes.append(sharpe_ratio(tr_r.values))
     wf_stab = (
-        float(np.mean(oos_sharpes) / np.mean(train_sharpes))
-        if np.mean(train_sharpes) != 0
-        else 0.0
+        float(np.mean(oos_sharpes) / np.mean(train_sharpes)) if np.mean(train_sharpes) != 0 else 0.0
     )
 
     # Regime sharpes on the OOS window
@@ -278,16 +274,13 @@ def full_gate_eval(
         if oos_m["max_drawdown"] < 0
         else False,
         "stab": wf_stab >= GATES["min_walkforward_stability"],
-        "worst": worst >= GATES["min_worst_regime_sharpe"]
-        if worst != np.inf
-        else False,
+        "worst": worst >= GATES["min_worst_regime_sharpe"] if worst != np.inf else False,
         "p": benchmark_significance_gate(
             float(bench.get("alpha_p_value", 1.0)),
             float(bench.get("information_ratio", -np.inf)),
             GATES["max_p_value"],
         ),
-        "ir": float(bench.get("information_ratio", -np.inf))
-        > GATES["min_information_ratio"],
+        "ir": float(bench.get("information_ratio", -np.inf)) > GATES["min_information_ratio"],
     }
     all_pass = all(passes.values())
     return {
@@ -326,9 +319,7 @@ def perturbation_eval(
     lookback_base = selected["lookback"]
     params = {"lookback": lookback_base}
     if selected.get("threshold_type") == "adaptive":
-        params["adaptive_z_threshold"] = selected.get(
-            "adaptive_z_threshold", ADAPTIVE_Z_THRESHOLD
-        )
+        params["adaptive_z_threshold"] = selected.get("adaptive_z_threshold", ADAPTIVE_Z_THRESHOLD)
 
     for param, base in params.items():
         for factor in (0.8, 1.2):
@@ -351,9 +342,7 @@ def perturbation_eval(
             )
             res = run_backtest(prices=prices, signals=targets, config=cfg)
             r = res.returns[oos_mask].dropna()
-            variants[f"{param}={v}"] = (
-                float(sharpe_ratio(r.values)) if len(r) > 1 else 0.0
-            )
+            variants[f"{param}={v}"] = float(sharpe_ratio(r.values)) if len(r) > 1 else 0.0
     if opt_oos_sharpe > 0:
         min_ratio = float(min(variants.values()) / opt_oos_sharpe) if variants else 0.0
     else:
@@ -482,9 +471,7 @@ def main():
                 res = run_backtest(prices=prices, signals=targets, config=cfg)
 
                 train_r = res.returns[train_mask].dropna()
-                train_sr = (
-                    float(sharpe_ratio(train_r.values)) if len(train_r) > 1 else 0.0
-                )
+                train_sr = float(sharpe_ratio(train_r.values)) if len(train_r) > 1 else 0.0
                 val_r = res.returns[val_mask].dropna()
                 val_sr = float(sharpe_ratio(val_r.values)) if len(val_r) > 1 else 0.0
                 test_r = res.returns[test_mask].dropna()
@@ -523,15 +510,11 @@ def main():
             "volume_decomp_method": sel_key[0],
             "threshold_type": sel_key[1],
             "lookback": LOOKBACK,
-            "adaptive_z_threshold": ADAPTIVE_Z_THRESHOLD
-            if sel_key[1] == "adaptive"
-            else None,
+            "adaptive_z_threshold": ADAPTIVE_Z_THRESHOLD if sel_key[1] == "adaptive" else None,
         }
 
         # --- full gate evaluation on protected OOS (Val+Test) ---
-        gate = full_gate_eval(
-            sel_result, oos_mask, val_mask, test_mask, prices, vix, bench_result
-        )
+        gate = full_gate_eval(sel_result, oos_mask, val_mask, test_mask, prices, vix, bench_result)
 
         # --- perturbation gate (OAT +/-20%) ---
         pert = perturbation_eval(
@@ -561,9 +544,7 @@ def main():
         }
         # (b) random volume-based signal (shuffle volume, recompute signal)
         rng = np.random.RandomState(SEED)
-        shuffled_vol = pd.Series(
-            rng.permutation(spy_volume.values), index=spy_volume.index
-        )
+        shuffled_vol = pd.Series(rng.permutation(spy_volume.values), index=spy_volume.index)
         random_targets = build_targets(
             spy_close,
             shuffled_vol,
@@ -596,8 +577,7 @@ def main():
             selected["volume_decomp_method"],
             selected["threshold_type"],
             lookback=selected["lookback"],
-            adaptive_z_threshold=selected.get("adaptive_z_threshold")
-            or ADAPTIVE_Z_THRESHOLD,
+            adaptive_z_threshold=selected.get("adaptive_z_threshold") or ADAPTIVE_Z_THRESHOLD,
         )
         cross_val = {}
         for sym, close_cv in [("QQQ", qqq_close), ("IWM", iwm_close)]:
@@ -610,11 +590,7 @@ def main():
                 cv_sr = 0.0
             # Apply the selected SPY signal to the cross-val asset returns
             sig_oos = sel_targets["SPY"][oos_mask]
-            cv_oos_ret = (
-                (sig_oos.shift(1) * close_cv.pct_change())
-                .reindex(cv_ret.index)
-                .dropna()
-            )
+            cv_oos_ret = (sig_oos.shift(1) * close_cv.pct_change()).reindex(cv_ret.index).dropna()
             if len(cv_oos_ret) > 1:
                 cv_strat_sr = float(sharpe_ratio(cv_oos_ret.values))
             else:
@@ -632,16 +608,10 @@ def main():
         tracker.log_dataframe("selected_signals", sel_result.positions)
         tracker.log_dataframe("best_equity", sel_result.equity_curve.to_frame("equity"))
         tracker.log_dataframe("best_trades", sel_result.trades)
-        tracker.log_dataframe(
-            "benchmark_equity", bench_result.equity_curve.to_frame("equity")
-        )
-        tracker.log_dataframe(
-            "benchmark_returns", bench_result.returns.to_frame("returns")
-        )
+        tracker.log_dataframe("benchmark_equity", bench_result.equity_curve.to_frame("equity"))
+        tracker.log_dataframe("benchmark_returns", bench_result.returns.to_frame("returns"))
         for name, ab in ablations.items():
-            tracker.log_metrics(
-                {f"ablation_{name}_oos_sharpe": ab["oos_metrics"]["sharpe"]}
-            )
+            tracker.log_metrics({f"ablation_{name}_oos_sharpe": ab["oos_metrics"]["sharpe"]})
 
         total_elapsed = time.time() - t_start
         summary = {
@@ -689,9 +659,7 @@ def main():
                 summary,
                 f,
                 indent=2,
-                default=lambda x: (
-                    float(x) if isinstance(x, (np.integer, np.floating)) else str(x)
-                ),
+                default=lambda x: float(x) if isinstance(x, (np.integer, np.floating)) else str(x),
             )
         tracker.log_artifact("summary", exp_dir / "summary.json")
 
@@ -732,9 +700,7 @@ def main():
             f"Test={gate['test_metrics']['sharpe']:.3f} | "
             f"WF stab={gate['wf_stability']:.3f} | worst-regime={gate['worst_regime_sharpe']:.3f}"
         )
-        print(
-            f"  Benchmark: p={gate['benchmark_p_value']:.4f} IR={gate['information_ratio']:.3f}"
-        )
+        print(f"  Benchmark: p={gate['benchmark_p_value']:.4f} IR={gate['information_ratio']:.3f}")
         print(f"  Perturbation min ratio={pert['min_perturbed_sharpe_ratio']:.3f}")
         print(f"  Selected: {selected}")
         print(

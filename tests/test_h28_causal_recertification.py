@@ -91,9 +91,7 @@ class TestCausalCollapseSemantics:
 
     def test_h28_uses_the_h27_collapse_object(self):
         # the H27 regression test and the H28 counterfactual cannot drift apart
-        assert (
-            h28.causal_daily_target_from_hourly is h27.causal_daily_target_from_hourly
-        )
+        assert h28.causal_daily_target_from_hourly is h27.causal_daily_target_from_hourly
 
     def test_build_hourly_target_is_lagged_under_the_collapse(self):
         sig = _hourly_signal()
@@ -112,9 +110,7 @@ class TestCausalCollapseSemantics:
         with h28.causal_collapse():
             for m in h28.COLLAPSE_MODULES:
                 assert m._daily_target_from_hourly is not originals[m]
-                assert (
-                    m._daily_target_from_hourly is h27.causal_daily_target_from_hourly
-                )
+                assert m._daily_target_from_hourly is h27.causal_daily_target_from_hourly
         for m in h28.COLLAPSE_MODULES:
             assert m._daily_target_from_hourly is originals[m]
 
@@ -128,9 +124,7 @@ class TestCausalCollapseSemantics:
     def test_the_collapse_carries_the_last_trading_day_over_a_weekend(self):
         # Fri 2024-01-05 has two bars (close = 2.0), Sat/Sun are non-trading,
         # Mon 2024-01-08 has one bar (close = 9.0).
-        idx = pd.to_datetime(
-            ["2024-01-05 21:00", "2024-01-05 22:00", "2024-01-08 22:00"]
-        )
+        idx = pd.to_datetime(["2024-01-05 21:00", "2024-01-05 22:00", "2024-01-08 22:00"])
         sig = pd.DataFrame({"A": [1.0, 2.0, 9.0]}, index=idx)
         published = h9._daily_target_from_hourly(sig)
         causal = h27.causal_daily_target_from_hourly(sig)
@@ -164,9 +158,7 @@ class TestExperimentIdentity:
 
 
 class TestNegativeControl:
-    def _fake_dirs(
-        self, tmp_path, published_id, control_id, perturb=False, control_summary=None
-    ):
+    def _fake_dirs(self, tmp_path, published_id, control_id, perturb=False, control_summary=None):
         (tmp_path / published_id).mkdir(parents=True)
         (tmp_path / control_id).mkdir(parents=True)
         df = pd.DataFrame(
@@ -187,9 +179,7 @@ class TestNegativeControl:
             "passes": {"sharpe": True, "pf": True, "stab": True},
             "metrics": {"oos_sharpe": 1.2, "wf_stability": 0.87},
         }
-        (tmp_path / published_id / "summary.json").write_text(
-            json.dumps(published_summary)
-        )
+        (tmp_path / published_id / "summary.json").write_text(json.dumps(published_summary))
         (tmp_path / control_id / "summary.json").write_text(
             json.dumps(control_summary or published_summary)
         )
@@ -392,9 +382,7 @@ class TestFrozenElements:
         for fname, rule in sources.items():
             assert rule in (ROOT / fname).read_text()
         # the H28 runner must not contain its own copy of the rule
-        assert (
-            "best Val" not in (ROOT / "run_h28_causal_recertification.py").read_text()
-        )
+        assert "best Val" not in (ROOT / "run_h28_causal_recertification.py").read_text()
 
     def test_the_frozen_published_artifacts(self):
         ids = {s["family"]: s["published_artifact"] for s in h28.FAMILY_SPECS}
@@ -538,9 +526,7 @@ class TestPublishedArtifactDiscovery:
         paths = summary["run_artifact_paths"]
         assert len(paths) == 8
         for rel in paths.values():
-            assert rel.startswith(
-                ".experiments/artifacts/h28_causal_recertification/runs/"
-            )
+            assert rel.startswith(".experiments/artifacts/h28_causal_recertification/runs/")
             assert (ROOT / rel).is_dir()
         for rec in summary["runs"]:
             assert rec["artifact_path"] == paths[rec["experiment_id"]]

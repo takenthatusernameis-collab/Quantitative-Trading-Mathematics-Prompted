@@ -116,9 +116,7 @@ class TestNegativeControl:
 
     def test_the_control_uses_the_h27_collapse_object(self):
         # the H27 regression test and the H29 negative control cannot drift
-        assert (
-            h29.causal_daily_target_from_hourly is h27.causal_daily_target_from_hourly
-        )
+        assert h29.causal_daily_target_from_hourly is h27.causal_daily_target_from_hourly
 
 
 class TestSourceSweep:

@@ -4,10 +4,7 @@ import re
 from pathlib import Path
 
 PROBE_PATH = (
-    Path(__file__).parent.parent
-    / ".experiments"
-    / "probes"
-    / "extended_data_feasibility_probe.md"
+    Path(__file__).parent.parent / ".experiments" / "probes" / "extended_data_feasibility_probe.md"
 )
 
 
@@ -47,11 +44,7 @@ def test_probe_report_structure():
     assert "Executive Summary" in content or "executive summary" in content.lower()
 
     # Must have verdict/conclusion
-    assert (
-        "Verdict" in content
-        or "verdict" in content.lower()
-        or "Recommendation" in content
-    )
+    assert "Verdict" in content or "verdict" in content.lower() or "Recommendation" in content
 
     # Must reference H13/H14 results
     assert "H13" in content
@@ -67,10 +60,7 @@ def test_probe_report_structure():
 def test_probe_report_no_network_fetches():
     """Probe report explicitly states no network fetches were performed."""
     content = PROBE_PATH.read_text()
-    assert (
-        "no external network fetches" in content.lower()
-        or "no network" in content.lower()
-    )
+    assert "no external network fetches" in content.lower() or "no network" in content.lower()
 
 
 def test_probe_report_readonly():
@@ -86,6 +76,4 @@ def test_probe_report_readonly():
 def test_probe_report_runtime_bound():
     """Probe report mentions runtime constraint."""
     content = PROBE_PATH.read_text()
-    assert (
-        "0.01" in content or "cpu-h" in content.lower() or "runtime" in content.lower()
-    )
+    assert "0.01" in content or "cpu-h" in content.lower() or "runtime" in content.lower()

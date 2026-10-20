@@ -136,9 +136,7 @@ EXPERIMENT_DESC = (
 
 def make_futures_config(allow_short: bool = False) -> BacktestConfig:
     cm = CostModel(
-        future_commission_per_contract=COST_MODEL_DEFAULTS[
-            "future_commission_per_contract"
-        ],
+        future_commission_per_contract=COST_MODEL_DEFAULTS["future_commission_per_contract"],
         future_spread_ticks=COST_MODEL_DEFAULTS["future_spread_ticks"],
         future_slippage_ticks=COST_MODEL_DEFAULTS["future_slippage_ticks"],
         futures_specs=FUTURES_SPECS,
@@ -284,9 +282,7 @@ def evaluate_split(split_returns: pd.Series, gate_name: str) -> dict:
     return {"sharpe": sr, "n": len(split_returns), "max_dd": max_dd}
 
 
-def benchmark_comparison(
-    strategy_returns: pd.Series, prices: pd.DataFrame
-) -> dict[str, float]:
+def benchmark_comparison(strategy_returns: pd.Series, prices: pd.DataFrame) -> dict[str, float]:
     """Compare the strategy against an equal-weight buy-and-hold benchmark.
 
     The benchmark must be a **return** series. The previous call passed
@@ -387,15 +383,11 @@ def main():
         result = run_backtest(
             prices=prices, signals=signals, volumes=None, adv=adv, config=bt_config
         )
-        tracker.log_dataframe(
-            "equity_curve", pd.DataFrame({"equity": result.equity_curve})
-        )
+        tracker.log_dataframe("equity_curve", pd.DataFrame({"equity": result.equity_curve}))
         tracker.log_dataframe("returns", pd.DataFrame({"returns": result.returns}))
         tracker.log_dataframe(
             "trades", result.trades
-        ) if result.trades is not None else tracker.log_dataframe(
-            "trades", pd.DataFrame()
-        )
+        ) if result.trades is not None else tracker.log_dataframe("trades", pd.DataFrame())
 
         # Compute splits
         ret_train, ret_val, ret_test, ret_oos = split_returns_by_date(result.returns)
@@ -452,16 +444,10 @@ def main():
         pf = result.metrics.get("profit_factor", np.nan)
 
         gate_results = {
-            "min_sharpe": sharpe >= GATES["min_sharpe"]
-            if not np.isnan(sharpe)
-            else False,
+            "min_sharpe": sharpe >= GATES["min_sharpe"] if not np.isnan(sharpe) else False,
             "min_trades": n_trades >= GATES["min_trades"],
-            "min_profit_factor": pf >= GATES["min_profit_factor"]
-            if not np.isnan(pf)
-            else False,
-            "max_drawdown": abs(max_dd) <= GATES["max_drawdown"]
-            if not np.isnan(max_dd)
-            else False,
+            "min_profit_factor": pf >= GATES["min_profit_factor"] if not np.isnan(pf) else False,
+            "max_drawdown": abs(max_dd) <= GATES["max_drawdown"] if not np.isnan(max_dd) else False,
             "min_walkforward_stability": wf_stab >= GATES["min_walkforward_stability"],
             "min_perturbed_sharpe_ratio": True,
             "min_worst_regime_sharpe": True,
@@ -472,8 +458,7 @@ def main():
             )
             if bench
             else False,
-            "min_information_ratio": bench.get("ir", -np.inf)
-            > GATES["min_information_ratio"]
+            "min_information_ratio": bench.get("ir", -np.inf) > GATES["min_information_ratio"]
             if bench
             else False,
         }

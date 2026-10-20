@@ -238,20 +238,20 @@ def main() -> int:
     with open(ART_DIR / "summary.json", "w") as f:
         json.dump(res, f, indent=2, default=lambda x: str(x))
 
-    pd.DataFrame(
-        {"bootstrap_index": np.arange(len(pf_boot)), "profit_factor": pf_boot}
-    ).to_parquet(ART_DIR / "pf_bootstrap.parquet")
-    pd.DataFrame(
-        {"bootstrap_index": np.arange(len(sr_boot)), "sharpe": sr_boot}
-    ).to_parquet(ART_DIR / "sharpe_bootstrap.parquet")
+    pd.DataFrame({"bootstrap_index": np.arange(len(pf_boot)), "profit_factor": pf_boot}).to_parquet(
+        ART_DIR / "pf_bootstrap.parquet"
+    )
+    pd.DataFrame({"bootstrap_index": np.arange(len(sr_boot)), "sharpe": sr_boot}).to_parquet(
+        ART_DIR / "sharpe_bootstrap.parquet"
+    )
     # block bootstrap outputs
     _, _, pf_block, sr_block = bootstrap_arrays(oos)
     pd.DataFrame(
         {"bootstrap_index": np.arange(len(pf_block)), "profit_factor": pf_block}
     ).to_parquet(ART_DIR / "pf_bootstrap_block.parquet")
-    pd.DataFrame(
-        {"bootstrap_index": np.arange(len(sr_block)), "sharpe": sr_block}
-    ).to_parquet(ART_DIR / "sharpe_bootstrap_block.parquet")
+    pd.DataFrame({"bootstrap_index": np.arange(len(sr_block)), "sharpe": sr_block}).to_parquet(
+        ART_DIR / "sharpe_bootstrap_block.parquet"
+    )
 
     print("=" * 72)
     print(f"[H25-robustness] source artifact: {h25_dir.name}")

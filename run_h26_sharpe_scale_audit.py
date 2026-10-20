@@ -127,9 +127,7 @@ def oos_mask(index: pd.DatetimeIndex) -> np.ndarray:
     return np.asarray(val | test)
 
 
-def scale_report(
-    per_bar_sharpe: float, factor: float, boot_per_bar: np.ndarray
-) -> dict:
+def scale_report(per_bar_sharpe: float, factor: float, boot_per_bar: np.ndarray) -> dict:
     """Sharpe/CI/gate-fraction at one annualization scale.
 
     The Sharpe and its CI scale linearly with the annualization factor; the
@@ -169,11 +167,7 @@ def dependence_checks(r: np.ndarray) -> dict:
     return {
         "autocorrelation": acf,
         "max_abs_autocorrelation_lag1_24": float(
-            max(
-                abs(np.corrcoef(x[:-lag], x[lag:])[0, 1])
-                for lag in range(1, 25)
-                if n > lag
-            )
+            max(abs(np.corrcoef(x[:-lag], x[lag:])[0, 1]) for lag in range(1, 25) if n > lag)
         ),
         "variance_iid": var,
         "newey_west_lrv": lrv,
@@ -266,9 +260,7 @@ def audit_artifact(spec: dict) -> dict:
     published_pf = float(summary["metrics"]["profit_factor"])
     mask = oos_mask(prices.index)
     oos_series = (
-        pd.to_numeric(returns["returns"], errors="coerce")
-        .iloc[np.flatnonzero(mask)]
-        .dropna()
+        pd.to_numeric(returns["returns"], errors="coerce").iloc[np.flatnonzero(mask)].dropna()
     )
     oos = oos_series.to_numpy(dtype=float)
     oos_index = oos_series.index
@@ -282,9 +274,7 @@ def audit_artifact(spec: dict) -> dict:
         "n_oos_bars": len(oos),
         "oos_start": str(oos_index[0]),
         "oos_end": str(oos_index[-1]),
-        "oos_span_days": float(
-            (oos_index[-1] - oos_index[0]).total_seconds() / 86400.0
-        ),
+        "oos_span_days": float((oos_index[-1] - oos_index[0]).total_seconds() / 86400.0),
         "published_oos_sharpe": published,
         "recomputed_oos_sharpe": recomputed,
         "reproduction_abs_diff": float(abs_diff),
@@ -310,15 +300,11 @@ def audit_artifact(spec: dict) -> dict:
     # Daily aggregation: compound the hourly returns inside each calendar day.
     daily = (1.0 + oos_series).resample("1D").prod() - 1.0
     daily = daily.dropna()
-    daily_sharpe = (
-        float(daily.mean() / daily.std() * np.sqrt(252)) if len(daily) > 1 else 0.0
-    )
+    daily_sharpe = float(daily.mean() / daily.std() * np.sqrt(252)) if len(daily) > 1 else 0.0
 
     scales = {
         "as_published": scale_report(per_bar_sharpe, AS_PUBLISHED_FACTOR, boot_per_bar),
-        "repo_vol_convention": scale_report(
-            per_bar_sharpe, REPO_VOL_FACTOR, boot_per_bar
-        ),
+        "repo_vol_convention": scale_report(per_bar_sharpe, REPO_VOL_FACTOR, boot_per_bar),
         "empirical_calendar": scale_report(
             per_bar_sharpe,
             float(np.sqrt(out["bars_per_year_empirical"])),
@@ -353,16 +339,13 @@ def audit_artifact(spec: dict) -> dict:
     out["gate_impact"] = {
         "gate": SR_GATE,
         "point_pass_as_published": bool(published >= SR_GATE),
-        "point_pass_repo_vol_convention": bool(
-            scales["repo_vol_convention"]["sharpe"] >= SR_GATE
-        ),
+        "point_pass_repo_vol_convention": bool(scales["repo_vol_convention"]["sharpe"] >= SR_GATE),
         "ci_lower_pass_as_published": bool(scales["as_published"]["ci_lower_ge_gate"]),
         "ci_lower_pass_repo_vol_convention": bool(
             scales["repo_vol_convention"]["ci_lower_ge_gate"]
         ),
         "note": (
-            "Reported, never applied: this audit may not re-certify or "
-            "de-certify any hypothesis."
+            "Reported, never applied: this audit may not re-certify or de-certify any hypothesis."
         ),
     }
     return out
@@ -383,9 +366,7 @@ def audit_daily_control(spec: dict) -> dict:
         "factor_empirical": factor,
         "factor_as_published": AS_PUBLISHED_FACTOR,
         "scale_ratio_empirical_over_published": float(factor / AS_PUBLISHED_FACTOR),
-        "is_correctly_annualized": bool(
-            abs(factor / AS_PUBLISHED_FACTOR - 1.0) <= 0.01
-        ),
+        "is_correctly_annualized": bool(abs(factor / AS_PUBLISHED_FACTOR - 1.0) <= 0.01),
     }
 
 
@@ -472,9 +453,7 @@ def main() -> int:
         f"correctly_annualized={c['is_correctly_annualized']}"
     )
     v = report["verdict"]
-    print(
-        f"  verdict: scale_confirmed={v['scale_confirmed']} control_ok={v['control_ok']}"
-    )
+    print(f"  verdict: scale_confirmed={v['scale_confirmed']} control_ok={v['control_ok']}")
     print(f"  wrote {ART_DIR}")
     print("=" * 100)
     return 0

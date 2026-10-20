@@ -291,9 +291,7 @@ def _compare_frames(a: pd.DataFrame, b: pd.DataFrame) -> dict:
     for col in a.columns:
         x, y = a[col], b[col]
         if pd.api.types.is_numeric_dtype(x) and pd.api.types.is_numeric_dtype(y):
-            diffs.append(
-                _max_abs_diff(x.to_numpy(dtype=float), y.to_numpy(dtype=float))
-            )
+            diffs.append(_max_abs_diff(x.to_numpy(dtype=float), y.to_numpy(dtype=float)))
         else:
             diffs.append(0.0 if x.equals(y) else np.inf)
     out["max_abs_diff"] = float(np.nanmax(diffs)) if diffs else 0.0
@@ -364,9 +362,7 @@ def compare_to_published(spec: dict, control_exp_id: str) -> dict:
                     "control": ctl_flat.get(key),
                 }
         drift = {k: v for k, v in diffs.items() if k in DOCUMENTED_DRIFT_FIELDS}
-        unexpected = {
-            k: v for k, v in diffs.items() if k not in DOCUMENTED_DRIFT_FIELDS
-        }
+        unexpected = {k: v for k, v in diffs.items() if k not in DOCUMENTED_DRIFT_FIELDS}
         result["summary_differences"] = diffs
         result["documented_library_drift"] = drift
         result["unexpected_differences"] = unexpected
@@ -374,11 +370,7 @@ def compare_to_published(spec: dict, control_exp_id: str) -> dict:
         # the gate booleans and the verdict must be identical
         result["gate_outcomes_match"] = pub_sum.get("passes") == ctl_sum.get("passes")
         result["verdict_match"] = pub_sum.get("verdict") == ctl_sum.get("verdict")
-        if (
-            unexpected
-            or not result["gate_outcomes_match"]
-            or not result["verdict_match"]
-        ):
+        if unexpected or not result["gate_outcomes_match"] or not result["verdict_match"]:
             result["bit_exact"] = False
     else:
         result["summary_differences"] = {"_missing": True}
@@ -454,9 +446,7 @@ def causal_verdict(spec: dict, causal_exp_id: str, control_ok: bool) -> dict:
 # --------------------------------------------------------------------------- #
 def build_report(records: list[dict], controls: dict, verdicts: dict) -> dict:
     certified = [
-        f
-        for f in CERTIFIED_FAMILY
-        if verdicts.get(f, {}).get("verdict") == "CAUSAL_CERTIFIED"
+        f for f in CERTIFIED_FAMILY if verdicts.get(f, {}).get("verdict") == "CAUSAL_CERTIFIED"
     ]
     return {
         "hypothesis": HYPOTHESIS,
@@ -464,9 +454,7 @@ def build_report(records: list[dict], controls: dict, verdicts: dict) -> dict:
         "certified_family": list(CERTIFIED_FAMILY),
         "causal_certified_members": certified,
         "family_verdict": (
-            "CAUSAL_CERTIFIED"
-            if len(certified) == len(CERTIFIED_FAMILY)
-            else "CAUSAL_REJECTED"
+            "CAUSAL_CERTIFIED" if len(certified) == len(CERTIFIED_FAMILY) else "CAUSAL_REJECTED"
         ),
         "verdict_rule": (
             "per family: CAUSAL_CERTIFIED iff the negative control reproduced the "
@@ -510,9 +498,7 @@ def main() -> int:
             continue
         cmp = compare_to_published(spec, ctl["experiment_id"])
         controls[spec["family"]] = cmp
-        print(
-            f"[H28] {spec['family']} control bit-exact vs published: {cmp['bit_exact']}"
-        )
+        print(f"[H28] {spec['family']} control bit-exact vs published: {cmp['bit_exact']}")
 
         print("=" * 100)
         print(f"[H28] {spec['family']}  causal (lagged daily collapse) ...")
@@ -560,9 +546,7 @@ def main() -> int:
                 "wf_stability": v.get("wf_stability"),
                 "worst_regime_sharpe": v.get("worst_regime_sharpe"),
                 "n_gates_passed": (
-                    int(sum(bool(x) for x in v["passes"].values()))
-                    if v.get("passes")
-                    else None
+                    int(sum(bool(x) for x in v["passes"].values())) if v.get("passes") else None
                 ),
             }
         )

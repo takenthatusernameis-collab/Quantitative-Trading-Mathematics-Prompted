@@ -307,18 +307,14 @@ def _frame_max_abs_diff(a: pd.DataFrame, b: pd.DataFrame) -> float:
     cols = [c for c in a.columns if c in b.columns]
     if not cols:
         return float("nan")
-    diff = np.abs(
-        a.loc[idx, cols].to_numpy(dtype=float) - b.loc[idx, cols].to_numpy(dtype=float)
-    )
+    diff = np.abs(a.loc[idx, cols].to_numpy(dtype=float) - b.loc[idx, cols].to_numpy(dtype=float))
     return float(np.nanmax(diff)) if diff.size else float("nan")
 
 
 # --------------------------------------------------------------------------- #
 # L1 -- the construction-level probe
 # --------------------------------------------------------------------------- #
-def probe_collapse(
-    freq: str, grid: pd.DatetimeIndex, source_bin_offset: int = 0
-) -> dict:
+def probe_collapse(freq: str, grid: pd.DatetimeIndex, source_bin_offset: int = 0) -> dict:
     """Probe a collapse construction on ``grid``.
 
     A synthetic series whose value identifies its own bar is collapsed with
@@ -355,9 +351,7 @@ def probe_collapse(
 
     # the label in force at each grid bar (the last label at or before it)
     idx = labels.searchsorted(grid, side="right") - 1
-    in_force = np.where(
-        idx >= 0, source_ord[np.clip(idx, 0, len(source_ord) - 1)], np.nan
-    )
+    in_force = np.where(idx >= 0, source_ord[np.clip(idx, 0, len(source_ord) - 1)], np.nan)
 
     # the position held during bar t is the signal at t-1
     held_source = np.concatenate(([np.nan], in_force[:-1]))
@@ -380,9 +374,7 @@ def probe_collapse(
         "min_hold_lag_bars": float(np.min(lags)) if len(lags) else float("nan"),
         "max_hold_lag_bars": float(np.max(lags)) if len(lags) else float("nan"),
         "n_lookahead_bars": int(np.sum(lags <= 0)) if len(lags) else 0,
-        "lookahead_bar_fraction": (
-            float(np.mean(lags <= 0)) if len(lags) else float("nan")
-        ),
+        "lookahead_bar_fraction": (float(np.mean(lags <= 0)) if len(lags) else float("nan")),
         "_labels": labels,
         "_source_ord": source_ord,
     }
@@ -526,9 +518,7 @@ def expansion_match_fractions(
             }
             continue
         per_symbol[key] = {
-            "same_period_match_fraction": float(
-                np.mean(np.abs(t[ok] - same[ok]) <= VALUE_TOL)
-            ),
+            "same_period_match_fraction": float(np.mean(np.abs(t[ok] - same[ok]) <= VALUE_TOL)),
             "prev_period_match_fraction": float(
                 np.mean(np.abs(t[ok] - prev_vals[ok]) <= VALUE_TOL)
             ),
@@ -679,9 +669,7 @@ def rebuild_h5(art_dir: Path):
     base = scaled
     adv = volumes.rolling(20).mean().iloc[-1] if len(volumes) else None
     cfg = h5.make_futures_config(allow_short=not h5.LONG_ONLY)
-    result = run_backtest(
-        prices=prices, signals=target, volumes=volumes, adv=adv, config=cfg
-    )
+    result = run_backtest(prices=prices, signals=target, volumes=volumes, adv=adv, config=cfg)
     return base, target, result.equity_curve.to_frame("equity")
 
 
@@ -712,9 +700,7 @@ def rebuild_h6(art_dir: Path):
     base = scaled
     adv = volumes.rolling(20).mean().iloc[-1] if len(volumes) else None
     cfg = h6.make_futures_config(allow_short=not h6.LONG_ONLY)
-    result = run_backtest(
-        prices=prices, signals=target, volumes=volumes, adv=adv, config=cfg
-    )
+    result = run_backtest(prices=prices, signals=target, volumes=volumes, adv=adv, config=cfg)
     return base, target, result.equity_curve.to_frame("equity")
 
 
@@ -733,9 +719,7 @@ def rebuild_h7(art_dir: Path):
     signals = h7.apply_path_dependent_exits_daily(target, prices, atr)
     cfg = h7.make_futures_config(allow_short=False)
     adv = pd.Series(100_000, index=prices.columns)  # placeholder, matches the runner
-    result = run_backtest(
-        prices=prices, signals=signals, volumes=None, adv=adv, config=cfg
-    )
+    result = run_backtest(prices=prices, signals=signals, volumes=None, adv=adv, config=cfg)
     return base, target, result.equity_curve.to_frame("equity")
 
 
@@ -909,12 +893,8 @@ def audit_intraday_artifact(spec: dict) -> dict:
 
     if target is not None:
         out["committed_artifact"] = spec["target_artifact"]
-        out["target_same_day_match_fraction"] = chain.get(
-            "target_same_day_match_fraction"
-        )
-        out["target_prev_day_match_fraction"] = chain.get(
-            "target_prev_day_match_fraction"
-        )
+        out["target_same_day_match_fraction"] = chain.get("target_same_day_match_fraction")
+        out["target_prev_day_match_fraction"] = chain.get("target_prev_day_match_fraction")
     else:
         out["committed_artifact"] = None
 
@@ -947,9 +927,7 @@ def audit_inherited(spec: dict) -> dict:
             out["reason"] = "missing baseline_positions / H10 positions"
             out["verdict"] = "INCONCLUSIVE"
             return out
-        evidence["max_abs_diff_positions_vs_h10"] = _frame_max_abs_diff(
-            own, h10_positions
-        )
+        evidence["max_abs_diff_positions_vs_h10"] = _frame_max_abs_diff(own, h10_positions)
         evidence["baseline_returns_max_abs_diff_vs_h10"] = _frame_max_abs_diff(
             read_parquet(spec["artifact"], "baseline_returns"), h10_returns
         )
@@ -965,9 +943,7 @@ def audit_inherited(spec: dict) -> dict:
     elif spec["family"] == "H13":
         summary = read_json(spec["artifact"])
         checks = summary.get("reproduction_checks", {})
-        evidence["returns_max_abs_diff_vs_h10"] = checks.get(
-            "returns_max_abs_diff_vs_h10"
-        )
+        evidence["returns_max_abs_diff_vs_h10"] = checks.get("returns_max_abs_diff_vs_h10")
         evidence["per_symbol_reconstruction_max_abs_diff"] = checks.get(
             "per_symbol_reconstruction_max_abs_diff"
         )
@@ -988,9 +964,7 @@ def audit_inherited(spec: dict) -> dict:
     signal = read_parquet(h10_artifact, "hourly_signal_h9")
     daily = read_parquet(h10_artifact, "daily_target_h9")
     if signal is not None and daily is not None:
-        match = expansion_match_fractions(
-            signal.iloc[:, 0].to_frame("signal"), daily, grid, probe
-        )
+        match = expansion_match_fractions(signal.iloc[:, 0].to_frame("signal"), daily, grid, probe)
         out["same_period_match_fraction"] = match["same_period_match_fraction"]
         out["prev_period_match_fraction"] = match["prev_period_match_fraction"]
     out["verdict"] = classify(
@@ -1148,18 +1122,12 @@ def h23_counterfactual() -> dict:
             target_vol=h23.TARGET_VOL,
             min_trade_interval=int(config["min_trade_interval"]),
         )
-        result = run_backtest(
-            prices=prices, signals=positions, volumes=volumes, config=cfg
-        )
+        result = run_backtest(prices=prices, signals=positions, volumes=volumes, config=cfg)
         oos = result.returns[oos_mask]
         return positions, {
-            "oos_sharpe": float(sharpe_ratio(oos.to_numpy()))
-            if len(oos) > 1
-            else float("nan"),
+            "oos_sharpe": float(sharpe_ratio(oos.to_numpy())) if len(oos) > 1 else float("nan"),
             "oos_n_trades": len(
-                result.trades[
-                    result.trades["timestamp"] > prices.index[int(len(prices) * 0.55)]
-                ]
+                result.trades[result.trades["timestamp"] > prices.index[int(len(prices) * 0.55)]]
             ),
             "oos_max_drawdown": float(
                 (1 + oos).cumprod().div((1 + oos).cumprod().cummax()).sub(1).min()
@@ -1176,13 +1144,10 @@ def h23_counterfactual() -> dict:
         "artifact": artifact,
         "selected_config": config,
         "control_max_abs_diff_positions_vs_committed": control_diff,
-        "control_bit_exact": bool(
-            np.isfinite(control_diff) and control_diff <= REBUILD_TOL
-        ),
+        "control_bit_exact": bool(np.isfinite(control_diff) and control_diff <= REBUILD_TOL),
         "published_build": control_metrics,
         "causal_build": causal_metrics,
-        "oos_sharpe_delta": causal_metrics["oos_sharpe"]
-        - control_metrics["oos_sharpe"],
+        "oos_sharpe_delta": causal_metrics["oos_sharpe"] - control_metrics["oos_sharpe"],
         "min_hold_lag_bars": probe["min_hold_lag_bars"],
         "lookahead_bar_fraction": probe["lookahead_bar_fraction"],
         "overnight_split": "not applicable: the crypto sample is a continuous 24/7 market with no session boundary",
@@ -1244,9 +1209,7 @@ def main() -> int:
             art_dir,
             grid,
         )
-        match = expansion_match_fractions(
-            signal.iloc[:, 0].to_frame("signal"), daily, grid, probe
-        )
+        match = expansion_match_fractions(signal.iloc[:, 0].to_frame("signal"), daily, grid, probe)
         verdict = classify(
             probe["min_hold_lag_bars"],
             match["same_period_match_fraction"],
@@ -1313,16 +1276,13 @@ def main() -> int:
             monthly_on_daily["min_hold_lag_bars"] >= 1
         ),
         "daily_and_monthly_classified_differently": bool(
-            daily_on_hourly["min_hold_lag_bars"] <= 0
-            and monthly_on_daily["min_hold_lag_bars"] >= 1
+            daily_on_hourly["min_hold_lag_bars"] <= 0 and monthly_on_daily["min_hold_lag_bars"] >= 1
         ),
     }
 
     # the self-check bookkeeping
     sc1_ok = all(r["verdict"] == "LOOKAHEAD" for r in self_check)
-    sc2_ok = not any(
-        r["verdict"] == "LOOKAHEAD" for r in results if r.get("collapse_freq") == "ME"
-    )
+    sc2_ok = not any(r["verdict"] == "LOOKAHEAD" for r in results if r.get("collapse_freq") == "ME")
     sc3_ok = control["causal_verdict"] == "CAUSAL"
     sc4_ok = all(sc4.values())
     self_checks = {
@@ -1383,19 +1343,14 @@ def main() -> int:
             }
         )
     pd.DataFrame(rows).to_parquet(ART_DIR / "sweep_table.parquet", index=False)
-    pd.DataFrame(inventory).to_parquet(
-        ART_DIR / "source_inventory.parquet", index=False
-    )
+    pd.DataFrame(inventory).to_parquet(ART_DIR / "source_inventory.parquet", index=False)
 
     print("\n" + "=" * 78)
     print(f"H29 verdict: {verdict}")
     for name, ok in self_checks.items():
         print(f"   {name}: {'PASS' if ok else 'FAIL'}")
     for r in results:
-        print(
-            f"   {r['family']:>4s}  {r['verdict']:<13s} "
-            f"(published {r.get('published_verdict')})"
-        )
+        print(f"   {r['family']:>4s}  {r['verdict']:<13s} (published {r.get('published_verdict')})")
     print(f"   artifacts: {ART_DIR}")
     print(f"   elapsed: {summary['elapsed_sec']:.1f}s")
     print("=" * 78)

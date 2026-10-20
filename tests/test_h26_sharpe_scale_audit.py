@@ -42,9 +42,7 @@ from qtr.validation.statistics import (
 )
 
 SUMMARY_PATH = ROOT / ".experiments" / "artifacts" / "h26_sharpe_scale" / "summary.json"
-TABLE_PATH = (
-    ROOT / ".experiments" / "artifacts" / "h26_sharpe_scale" / "scale_table.parquet"
-)
+TABLE_PATH = ROOT / ".experiments" / "artifacts" / "h26_sharpe_scale" / "scale_table.parquet"
 
 # The committed H25 robustness audit -- the published source of the
 # "Sharpe CI-fragile" caveat that H26 re-characterizes.
@@ -128,9 +126,7 @@ class TestReproductionAnchor:
 
     def test_published_convention_is_population_std(self):
         for a in _audited().values():
-            assert a["sharpe_convention_check"]["published_convention"] == (
-                "population_ddof0"
-            )
+            assert a["sharpe_convention_check"]["published_convention"] == ("population_ddof0")
 
 
 class TestScaleFactors:
@@ -140,16 +136,12 @@ class TestScaleFactors:
         expected = np.sqrt(252 * 6.5) / np.sqrt(252)
         assert expected == pytest.approx(2.549509756796992, rel=1e-12)
         for a in _audited().values():
-            assert a["scale_ratio_repo_vol_over_published"] == pytest.approx(
-                expected, rel=1e-12
-            )
+            assert a["scale_ratio_repo_vol_over_published"] == pytest.approx(expected, rel=1e-12)
 
     def test_empirical_calendar_ratio(self):
         a = _audited()["H25"]
         assert a["bars_per_day"] == pytest.approx(15.6098, abs=1e-3)
-        assert a["scale_ratio_empirical_over_published"] == pytest.approx(
-            4.7566, rel=1e-4
-        )
+        assert a["scale_ratio_empirical_over_published"] == pytest.approx(4.7566, rel=1e-4)
 
     @pytest.mark.parametrize(
         "family,published,repo_vol,empirical",
@@ -162,12 +154,8 @@ class TestScaleFactors:
     def test_corrected_sharpe_values(self, family, published, repo_vol, empirical):
         a = _audited()[family]
         assert a["published_oos_sharpe"] == pytest.approx(published, rel=1e-12)
-        assert a["scales"]["repo_vol_convention"]["sharpe"] == pytest.approx(
-            repo_vol, rel=1e-4
-        )
-        assert a["scales"]["empirical_calendar"]["sharpe"] == pytest.approx(
-            empirical, rel=1e-4
-        )
+        assert a["scales"]["repo_vol_convention"]["sharpe"] == pytest.approx(repo_vol, rel=1e-4)
+        assert a["scales"]["empirical_calendar"]["sharpe"] == pytest.approx(empirical, rel=1e-4)
 
     def test_corrected_sharpe_magnitude_is_larger_than_published(self):
         """The mis-scaling is conservative: it understates the edge.

@@ -151,15 +151,9 @@ class TestH11Certification:
     def test_e4_window_robustness(self):
         e4 = _summary(H11_DIR)["e4_window_robustness"]["shifted_splits"]
         by = {r["split"]: r for r in e4}
-        assert by["60/20/20"]["oos_profit_factor"] == pytest.approx(
-            1.3297783905647602, abs=1e-12
-        )
-        assert by["50/25/25"]["oos_profit_factor"] == pytest.approx(
-            1.28064754854388, abs=1e-12
-        )
-        assert by["45/30/25"]["oos_profit_factor"] == pytest.approx(
-            1.2915554339489663, abs=1e-12
-        )
+        assert by["60/20/20"]["oos_profit_factor"] == pytest.approx(1.3297783905647602, abs=1e-12)
+        assert by["50/25/25"]["oos_profit_factor"] == pytest.approx(1.28064754854388, abs=1e-12)
+        assert by["45/30/25"]["oos_profit_factor"] == pytest.approx(1.2915554339489663, abs=1e-12)
         rw = _summary(H11_DIR)["e4_window_robustness"]["rolling_window_summary"]
         assert rw["n_windows"] == 16
         assert rw["min_sharpe"] == pytest.approx(0.709065213698279, abs=1e-12)
@@ -173,9 +167,7 @@ class TestH11Certification:
         assert e5["max_gross_profit_share"] < 0.25
         by = {x["symbol"]: x for x in e5["per_symbol"]}
         assert len(by) == 5
-        assert by["CL=F"]["oos_profit_factor"] == pytest.approx(
-            1.3578645592334793, abs=1e-12
-        )
+        assert by["CL=F"]["oos_profit_factor"] == pytest.approx(1.3578645592334793, abs=1e-12)
 
     def test_reproduction_vs_h10(self):
         """H11 must reproduce H10's frozen metrics bit-for-bit."""
@@ -207,16 +199,10 @@ class TestH12Certification:
         dsr = _summary(H12_DIR)["dsr"]
         assert dsr["n_trials_h10"] == 13824
         assert dsr["n_trials_family"] == 14389
-        assert dsr["expected_max_sharpe_h10"] == pytest.approx(
-            0.6213985379019645, abs=1e-12
-        )
-        assert dsr["dsr_adjusted_sharpe_h10"] == pytest.approx(
-            1.409362160369927, abs=1e-9
-        )
+        assert dsr["expected_max_sharpe_h10"] == pytest.approx(0.6213985379019645, abs=1e-12)
+        assert dsr["dsr_adjusted_sharpe_h10"] == pytest.approx(1.409362160369927, abs=1e-9)
         assert dsr["p_value_h10"] == pytest.approx(0.0028335844626995454, rel=1e-6)
-        assert dsr["dsr_adjusted_sharpe_family"] == pytest.approx(
-            1.4092966525685025, abs=1e-9
-        )
+        assert dsr["dsr_adjusted_sharpe_family"] == pytest.approx(1.4092966525685025, abs=1e-9)
 
     def test_pbo(self):
         pbo = _summary(H12_DIR)["pbo"]
@@ -241,9 +227,7 @@ class TestH12Certification:
         pm = _summary(H12_DIR)["pf_margin"]
         assert pm["frac_oos_pf_pass"] == pytest.approx(0.00318287037037037, abs=1e-9)
         assert pm["frac_val_pf_pass"] == pytest.approx(0.07262731481481481, abs=1e-9)
-        assert pm["selected_val_profit_factor"] == pytest.approx(
-            1.3527016462448131, abs=1e-9
-        )
+        assert pm["selected_val_profit_factor"] == pytest.approx(1.3527016462448131, abs=1e-9)
 
 
 class TestH13Certification:
@@ -258,9 +242,7 @@ class TestH13Certification:
     def test_deflation_gate_passes(self):
         d = _summary(H13_DIR)["oos_deflation"]
         assert d["n_trials_worst_case"] == 13824
-        assert d["dsr_adjusted_sharpe_worst_case"] == pytest.approx(
-            1.2744528901196646, abs=1e-9
-        )
+        assert d["dsr_adjusted_sharpe_worst_case"] == pytest.approx(1.2744528901196646, abs=1e-9)
         assert d["p_value_worst_case"] == pytest.approx(0.0010238437743056439, rel=1e-6)
         assert d["dsr_adjusted_sharpe_worst_case"] >= 1.0
 
@@ -278,20 +260,14 @@ class TestH13Certification:
     def test_per_symbol_dispensability(self):
         ps = _summary(H13_DIR)["per_symbol_net_oos"]
         # CL=F and GC=F indispensable (leave-one-out pooled PF < 1.3)
-        assert ps["CL=F"]["leave_one_out_pooled_pf"] == pytest.approx(
-            1.249383030332208, abs=1e-9
-        )
-        assert ps["GC=F"]["leave_one_out_pooled_pf"] == pytest.approx(
-            1.2821295085444708, abs=1e-9
-        )
+        assert ps["CL=F"]["leave_one_out_pooled_pf"] == pytest.approx(1.249383030332208, abs=1e-9)
+        assert ps["GC=F"]["leave_one_out_pooled_pf"] == pytest.approx(1.2821295085444708, abs=1e-9)
         assert ps["CL=F"]["leave_one_out_pooled_pf"] < 1.3
         assert ps["GC=F"]["leave_one_out_pooled_pf"] < 1.3
         # ES/ZB dispensable
         assert ps["ES=F"]["leave_one_out_pooled_pf"] >= 1.3
         assert ps["ZB=F"]["leave_one_out_pooled_pf"] >= 1.3
-        assert ps["CL=F"]["net_profit_factor"] == pytest.approx(
-            1.3578645592334793, abs=1e-12
-        )
+        assert ps["CL=F"]["net_profit_factor"] == pytest.approx(1.3578645592334793, abs=1e-12)
 
     def test_gates(self):
         g = _summary(H13_DIR)["gates"]
@@ -317,12 +293,8 @@ class TestH13Certification:
         """Pre-registered: 50/25/25 and 45/30/25 splits drop PF below 1.3
         (driven by CL=F on the bull regime)."""
         rows = {r["split"]: r for r in _summary(H13_DIR)["shifted_splits"]["results"]}
-        assert rows["50/25/25"]["oos_profit_factor"] == pytest.approx(
-            1.28064754854388, abs=1e-12
-        )
-        assert rows["45/30/25"]["oos_profit_factor"] == pytest.approx(
-            1.2915554339489663, abs=1e-12
-        )
+        assert rows["50/25/25"]["oos_profit_factor"] == pytest.approx(1.28064754854388, abs=1e-12)
+        assert rows["45/30/25"]["oos_profit_factor"] == pytest.approx(1.2915554339489663, abs=1e-12)
         assert rows["50/25/25"]["oos_profit_factor"] < 1.3
         assert rows["45/30/25"]["oos_profit_factor"] < 1.3
 
@@ -364,9 +336,7 @@ class TestH14Certification:
         res = read_parquet_safe(H14_DIR / "h14_results.parquet")
         topk = read_parquet_safe(H14_DIR / "topk_selected.parquet")
         assert len(topk) == len(res) == 50
-        assert set(res["combo_index"].astype(int)) == set(
-            topk["combo_index"].astype(int)
-        )
+        assert set(res["combo_index"].astype(int)) == set(topk["combo_index"].astype(int))
 
     def test_subset_oos_metrics(self):
         df = read_parquet_safe(H14_DIR / "subset_oos_metrics.parquet")

@@ -81,9 +81,7 @@ class TestSinglePeekDSR:
         }
         for sr in (0.5, 1.0, 1.275759, 2.0):
             dsr_1, _ = h13.deflated_sharpe_ratio_single_peek(observed_sr=sr, **kwargs)
-            dsr_wc, _ = h12.deflated_sharpe_ratio(
-                observed_sr=sr, n_trials=13_824, **kwargs
-            )
+            dsr_wc, _ = h12.deflated_sharpe_ratio(observed_sr=sr, n_trials=13_824, **kwargs)
             assert dsr_1 >= dsr_wc - 1e-12
 
     def test_bounded_by_observed_sr(self):
@@ -189,9 +187,7 @@ class TestLeaveOneOut:
         rng = np.random.default_rng(seed)
         idx = pd.date_range("2020-01-01", periods=3000, freq="h")
         cols = ["a", "b", "c", "d"]
-        return pd.DataFrame(
-            rng.normal(0.0001, 0.01, size=(3000, 4)), index=idx, columns=cols
-        )
+        return pd.DataFrame(rng.normal(0.0001, 0.01, size=(3000, 4)), index=idx, columns=cols)
 
     def test_drop_and_subtract_forms_coincide(self):
         contrib = self._synthetic_contrib()
@@ -226,9 +222,7 @@ class TestCostBreakeven:
             return pf, 1.0, 100
 
         monkeypatch.setattr(h13, "_oos_pf_of_positions", fake_pf)
-        breakeven, pf_lo, pf_hi = h13._cost_breakeven(
-            None, None, None, None, 0.25, 0.75, tol=1e-3
-        )
+        breakeven, pf_lo, pf_hi = h13._cost_breakeven(None, None, None, None, 0.25, 0.75, tol=1e-3)
         assert breakeven == pytest.approx(0.5, abs=1e-3)
         assert pf_lo >= 1.3 >= pf_hi
 
@@ -247,9 +241,7 @@ def frozen_pipeline():
     artifacts (one deterministic backtest)."""
     prices, volumes, vix_hourly, h10_returns = h13._load_cached_data()
     atr, vol_exit = h13._build_exit_inputs(prices)
-    positions = h13.build_positions(
-        prices, atr, vol_exit, vix_hourly, **h13.FROZEN_CONFIG
-    )
+    positions = h13.build_positions(prices, atr, vol_exit, vix_hourly, **h13.FROZEN_CONFIG)
     cfg = h13.make_futures_config()
     from qtr.backtest.engine import run_backtest
 
@@ -273,9 +265,7 @@ class TestFrozenPipelineReproduction:
         _, val_mask, test_mask = h13._splits(prices)
         oos = val_mask | test_mask
         pooled = contrib.sum(axis=1)
-        assert h13._profit_factor(pooled[oos]) == pytest.approx(
-            1.3041645169434146, rel=1e-9
-        )
+        assert h13._profit_factor(pooled[oos]) == pytest.approx(1.3041645169434146, rel=1e-9)
 
     def test_shifted_splits_reproduce_h11_e4a(self, frozen_pipeline):
         prices, _, _, _, _res, contrib = frozen_pipeline

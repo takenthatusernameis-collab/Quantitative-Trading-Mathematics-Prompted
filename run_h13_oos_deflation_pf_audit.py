@@ -120,9 +120,7 @@ H12_ARTIFACT_DIR = Path(".experiments/artifacts/exp_2026-10-13T12-51-06-515939Z"
 H12_GRID_PARQUET = H12_ARTIFACT_DIR / "grid_oos_metrics.parquet"
 
 # Original H11 experiment (E4a shifted splits to confirm).
-H11_ORIGINAL_ARTIFACT_DIR = Path(
-    ".experiments/artifacts/exp_2026-10-11T18-40-37-427062Z"
-)
+H11_ORIGINAL_ARTIFACT_DIR = Path(".experiments/artifacts/exp_2026-10-11T18-40-37-427062Z")
 H11_ORIGINAL_SUMMARY = H11_ORIGINAL_ARTIFACT_DIR / "summary.json"
 
 # H11 E4a shifted split boundaries (train/val/test fractions).
@@ -147,9 +145,7 @@ MIN_SR = GATES["min_sharpe"]
 # ---------------------------------------------------------------------------
 # DSR for a single-peek (N=1) OOS evaluation
 # ---------------------------------------------------------------------------
-def deflated_sharpe_ratio_single_peek(
-    observed_sr, n_obs, var_trials, skewness, kurtosis
-):
+def deflated_sharpe_ratio_single_peek(observed_sr, n_obs, var_trials, skewness, kurtosis):
     """DSR of a single OOS evaluation (N=1 trial).
 
     With one trial there is no selection, so the deflation
@@ -223,10 +219,7 @@ def _per_symbol_pf(contrib, mask):
 def _leave_one_out_pf(contrib, mask):
     """Pooled PF with each symbol removed (dispensability)."""
     pooled = contrib.sum(axis=1)
-    return {
-        sym: _profit_factor(pooled[mask] - contrib[sym][mask])
-        for sym in contrib.columns
-    }
+    return {sym: _profit_factor(pooled[mask] - contrib[sym][mask]) for sym in contrib.columns}
 
 
 def _regime_pf(pooled_returns, regimes, mask):
@@ -248,9 +241,7 @@ def _oos_pf_of_positions(positions, prices, volumes, cfg, oos_mask):
     return om["profit_factor"], om["sharpe"], om["trades"]
 
 
-def _cost_breakeven(
-    positions, prices, volumes, oos_mask, lo, hi, tol=COST_BREAKEVEN_TOL
-):
+def _cost_breakeven(positions, prices, volumes, oos_mask, lo, hi, tol=COST_BREAKEVEN_TOL):
     """Bisect the cost multiplier at which OOS PF = 1.3.
 
     ``lo`` must keep PF >= 1.3 and ``hi`` must drop below;
@@ -352,18 +343,9 @@ def main():
         sel_oos_sharpe = float(sel_grid_row["oos_sharpe"])
         sel_oos_pf = float(sel_grid_row["oos_profit_factor"])
         h12_summary = json.loads((H12_ARTIFACT_DIR / "summary.json").read_text())
+        assert abs(sel_oos_sharpe - h12_summary["rerun_oos_metrics"]["selected_oos_sharpe"]) < 1e-12
         assert (
-            abs(
-                sel_oos_sharpe - h12_summary["rerun_oos_metrics"]["selected_oos_sharpe"]
-            )
-            < 1e-12
-        )
-        assert (
-            abs(
-                sel_oos_pf
-                - h12_summary["rerun_oos_metrics"]["selected_oos_profit_factor"]
-            )
-            < 1e-12
+            abs(sel_oos_pf - h12_summary["rerun_oos_metrics"]["selected_oos_profit_factor"]) < 1e-12
         )
         print(
             f"[H13] window: {prices.shape} OOS bars={n_obs} "
@@ -379,9 +361,7 @@ def main():
         # 1. OOS deflation: worst-case (N=13,824) and single-peek (N=1)
         # =================================================================
         print("[H13] --- 1. OOS deflation (DSR) ---")
-        sr0_wc_per_bar, max_z_wc = _expected_max_sharpe(
-            N_GRID, var_trials_oos / PERIODS_PER_YEAR
-        )
+        sr0_wc_per_bar, max_z_wc = _expected_max_sharpe(N_GRID, var_trials_oos / PERIODS_PER_YEAR)
         sr0_wc_annual = sr0_wc_per_bar * np.sqrt(PERIODS_PER_YEAR)
         dsr_wc, p_wc = deflated_sharpe_ratio(
             sel_oos_sharpe, N_GRID, n_obs, var_trials_oos, skew, kurt
@@ -389,10 +369,7 @@ def main():
         dsr_1, p_1 = deflated_sharpe_ratio_single_peek(
             sel_oos_sharpe, n_obs, var_trials_oos, skew, kurt
         )
-        print(
-            f"  worst-case N={N_GRID}: E[max SR | null] = "
-            f"{sr0_wc_annual:.4f} (annualized)"
-        )
+        print(f"  worst-case N={N_GRID}: E[max SR | null] = {sr0_wc_annual:.4f} (annualized)")
         print(f"  DSR (worst-case) = {dsr_wc:.4f}  p = {p_wc:.6f}")
         print(f"  DSR (single-peek N=1) = {dsr_1:.4f}  p = {p_1:.6f}")
 
@@ -402,9 +379,7 @@ def main():
         atr, vol_exit = _build_exit_inputs(prices)
         positions = build_positions(prices, atr, vol_exit, vix_hourly, **FROZEN_CONFIG)
         cfg = make_futures_config()
-        res = run_backtest(
-            prices=prices, signals=positions, volumes=volumes, config=cfg
-        )
+        res = run_backtest(prices=prices, signals=positions, volumes=volumes, config=cfg)
         max_ret_diff = float((res.returns - h10_returns).abs().max())
         assert max_ret_diff < 1e-9, max_ret_diff
         print(
@@ -576,9 +551,7 @@ def main():
         above = cost_df[cost_df.oos_profit_factor >= MIN_PF]
         lo = float(above.cost_multiplier.max())
         hi = float(below.cost_multiplier.min())
-        breakeven, pf_lo, pf_hi = _cost_breakeven(
-            positions, prices, volumes, oos_mask, lo, hi
-        )
+        breakeven, pf_lo, pf_hi = _cost_breakeven(positions, prices, volumes, oos_mask, lo, hi)
         h11_breakeven = None
         if H11_ORIGINAL_SUMMARY.exists():
             h11_orig = json.loads(H11_ORIGINAL_SUMMARY.read_text())
@@ -709,9 +682,7 @@ def main():
         )
         tracker.log_dataframe(
             "pf_bootstrap",
-            pd.DataFrame(
-                {"bootstrap_index": np.arange(N_BOOTSTRAP), "profit_factor": pf_boot}
-            ),
+            pd.DataFrame({"bootstrap_index": np.arange(N_BOOTSTRAP), "profit_factor": pf_boot}),
         )
         tracker.log_dataframe("shifted_splits", pd.DataFrame(shifted_rows))
         tracker.log_dataframe(
@@ -731,9 +702,7 @@ def main():
                 summary,
                 f,
                 indent=2,
-                default=lambda x: (
-                    float(x) if isinstance(x, (np.integer, np.floating)) else str(x)
-                ),
+                default=lambda x: float(x) if isinstance(x, (np.integer, np.floating)) else str(x),
             )
         tracker.log_artifact("summary", exp_dir / "summary.json")
         tracker.finish_experiment(status="completed")
@@ -744,10 +713,7 @@ def main():
             f"    worst-case DSR-adj OOS Sharpe {dsr_wc:.4f} "
             f"(>= 1.0) -> {'PASS' if dsr_gate else 'FAIL'}"
         )
-        print(
-            f"    PF bootstrap CI LB {ci_lo:.4f} (>= 1.3) -> "
-            f"{'PASS' if ci_gate else 'FAIL'}"
-        )
+        print(f"    PF bootstrap CI LB {ci_lo:.4f} (>= 1.3) -> {'PASS' if ci_gate else 'FAIL'}")
         print(
             f"    all symbols dispensable (min LOO PF "
             f"{min(lou_pf.values()):.4f} >= 1.3) -> "

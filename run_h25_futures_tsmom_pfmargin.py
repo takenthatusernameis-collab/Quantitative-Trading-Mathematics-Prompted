@@ -113,10 +113,7 @@ def _build_data(fetcher, start, end):
         volumes_list.append(df["volume"].rename(sym))
     prices = pd.concat(prices_list, axis=1, sort=True).sort_index().ffill().bfill()
     volumes = (
-        pd.concat(volumes_list, axis=1, sort=True)
-        .sort_index()
-        .reindex(prices.index)
-        .fillna(0)
+        pd.concat(volumes_list, axis=1, sort=True).sort_index().reindex(prices.index).fillna(0)
     )
 
     vix_df = fetcher.fetch_yahoo([VIX_SYMBOL], start=start, end=end, interval="1h")
@@ -136,9 +133,9 @@ def _build_exit_inputs(prices):
     pct = prices.pct_change().fillna(0)
     atr = prices * pct.rolling(14, min_periods=7).std()
     atr = atr.replace(0, np.nan).ffill().fillna(prices * 0.001)
-    vol_exit = pct.rolling(
-        EXIT_VOL_WINDOW, min_periods=EXIT_VOL_WINDOW // 2
-    ).std() * np.sqrt(252 * 6.5)
+    vol_exit = pct.rolling(EXIT_VOL_WINDOW, min_periods=EXIT_VOL_WINDOW // 2).std() * np.sqrt(
+        252 * 6.5
+    )
     vol_exit = vol_exit.replace(0, np.nan).ffill()
     return atr, vol_exit
 
@@ -212,9 +209,7 @@ def _apply_exits_and_aggregate(
         )
         per_contract_positions[sym] = pos[sym]
 
-    per_contract_df = pd.DataFrame(per_contract_positions, index=prices.index).fillna(
-        0.0
-    )
+    per_contract_df = pd.DataFrame(per_contract_positions, index=prices.index).fillna(0.0)
 
     # Cross-sectional aggregation for reporting (BASKET)
     if scale_rule == "equal":
@@ -304,9 +299,7 @@ def main():
     np.random.seed(SEED)
     t_start = time.time()
     tracker = get_tracker()
-    grid_size = (
-        len(TARGET_VOLS) * len(MAX_POSITIONS) * len(SCALE_RULES) * len(N_ASSETS_CHOICES)
-    )
+    grid_size = len(TARGET_VOLS) * len(MAX_POSITIONS) * len(SCALE_RULES) * len(N_ASSETS_CHOICES)
     exp_id = tracker.start_experiment(
         name=EXPERIMENT_NAME,
         description=EXPERIMENT_DESC,
@@ -361,9 +354,7 @@ def main():
         realized_vol = realized_vol.replace(0, np.nan).ffill().fillna(0.15)
         inv_vol = 1.0 / realized_vol
         bench_weights = inv_vol.div(inv_vol.sum(axis=1), axis=0).fillna(0.0)
-        bh_result = run_backtest(
-            prices=prices, signals=bench_weights, volumes=volumes, config=cfg
-        )
+        bh_result = run_backtest(prices=prices, signals=bench_weights, volumes=volumes, config=cfg)
 
         # --- grid search ---
         grid_rows = []
@@ -437,20 +428,18 @@ def main():
 
         # --- evaluate the SELECTED (best Val Sharpe) config fully ---
         target_vol_mult, max_pos, scale_rule, n_assets = best_config
-        sel_per_contract, sel_agg, sel_per_contract_selected = (
-            _apply_exits_and_aggregate(
-                prices,
-                volumes,
-                vix_hourly,
-                atr,
-                vol_exit,
-                base_signals,
-                target_vol_mult,
-                max_pos,
-                scale_rule,
-                n_assets,
-                min_trade_interval=0,
-            )
+        sel_per_contract, sel_agg, sel_per_contract_selected = _apply_exits_and_aggregate(
+            prices,
+            volumes,
+            vix_hourly,
+            atr,
+            vol_exit,
+            base_signals,
+            target_vol_mult,
+            max_pos,
+            scale_rule,
+            n_assets,
+            min_trade_interval=0,
         )
         sel_result = run_backtest(
             prices=prices, signals=sel_per_contract, volumes=volumes, config=cfg
@@ -492,9 +481,7 @@ def main():
         ablation_equity = {}
 
         def _ablation(name, positions):
-            r = run_backtest(
-                prices=prices, signals=positions, volumes=volumes, config=cfg
-            )
+            r = run_backtest(prices=prices, signals=positions, volumes=volumes, config=cfg)
             oos_ret = r.returns[oos_mask]
             test_ret = r.returns[test_mask]
             om = _period_metrics(oos_ret, _count_in(r.trades, oos_mask, prices))
@@ -562,12 +549,8 @@ def main():
             else:
                 df.index = pd.to_datetime(df.index)
             daily_prices_list.append(df["close"].rename(sym))
-        daily_prices = (
-            pd.concat(daily_prices_list, axis=1, sort=True).sort_index().ffill().bfill()
-        )
-        daily_prices = daily_prices.reindex(
-            prices.index.date
-        ).ffill()  # align to hourly dates
+        daily_prices = pd.concat(daily_prices_list, axis=1, sort=True).sort_index().ffill().bfill()
+        daily_prices = daily_prices.reindex(prices.index.date).ffill()  # align to hourly dates
         daily_prices.index = prices.index
 
         # Use vol_scaled_tsmom_signals from baselines (daily TSMOM)
@@ -616,9 +599,7 @@ def main():
         tracker.log_dataframe("volumes", volumes)
         tracker.log_dataframe("vix_hourly", vix_hourly.to_frame("vix"))
         tracker.log_dataframe("hourly_signal_h10", base_signals["ES=F"])
-        tracker.log_dataframe(
-            "daily_target_h10", _daily_target_from_hourly(base_signals["ES=F"])
-        )
+        tracker.log_dataframe("daily_target_h10", _daily_target_from_hourly(base_signals["ES=F"]))
         tracker.log_dataframe(
             "hourly_target_selected",
             build_hourly_target(
@@ -636,15 +617,9 @@ def main():
         tracker.log_dataframe("equity", sel_result.equity_curve.to_frame("equity"))
         tracker.log_dataframe("returns", sel_result.returns.to_frame("returns"))
         tracker.log_dataframe("trades", sel_result.trades)
-        tracker.log_dataframe(
-            "benchmark_equity", bh_result.equity_curve.to_frame("equity")
-        )
-        tracker.log_dataframe(
-            "benchmark_returns", bh_result.returns.to_frame("returns")
-        )
-        tracker.log_dataframe(
-            "regime_factors", regime_factor_hourly(vix_hourly).to_frame("factor")
-        )
+        tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
+        tracker.log_dataframe("benchmark_returns", bh_result.returns.to_frame("returns"))
+        tracker.log_dataframe("regime_factors", regime_factor_hourly(vix_hourly).to_frame("factor"))
 
         total_elapsed = time.time() - t_start
         summary = {
@@ -695,9 +670,7 @@ def main():
                 summary,
                 f,
                 indent=2,
-                default=lambda x: (
-                    float(x) if isinstance(x, (np.integer, np.floating)) else str(x)
-                ),
+                default=lambda x: float(x) if isinstance(x, (np.integer, np.floating)) else str(x),
             )
         tracker.log_artifact("summary", exp_dir / "summary.json")
         tracker.finish_experiment(status="completed")

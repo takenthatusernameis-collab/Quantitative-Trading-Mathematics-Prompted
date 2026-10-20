@@ -135,9 +135,7 @@ class TestPreRegistration:
             "vol_limit_mult",
             "vol_floor_fraction",
         ):
-            assert dim in h23.EXPERIMENT_DESC, (
-                f"EXPERIMENT_DESC missing dimension {dim!r}"
-            )
+            assert dim in h23.EXPERIMENT_DESC, f"EXPERIMENT_DESC missing dimension {dim!r}"
 
     def test_universe_symbols_are_pre_registered(self):
         assert h23.CRYPTO_UNIVERSE == [
@@ -253,9 +251,7 @@ class TestArtifacts:
         sel = s["selected_config"]
         assert sel["vol_window_long"] == best_val["vol_window_long"]
         assert sel["smooth_span"] == (
-            str(best_val["smooth_span"])
-            if best_val["smooth_span"] != "none"
-            else "none"
+            str(best_val["smooth_span"]) if best_val["smooth_span"] != "none" else "none"
         )
         assert sel["regime_scaling"] == best_val["regime_scaling"]
         assert sel["min_trade_interval"] == best_val["min_trade_interval"]
@@ -332,12 +328,9 @@ class TestCausality:
         rng = pd.date_range("2024-10-12", periods=2000, freq="h")
         prices = pd.DataFrame(
             {
-                "ES=F": 5000.0
-                + np.cumsum(np.random.default_rng(42).normal(0, 5, 2000)),
-                "NQ=F": 18000.0
-                + np.cumsum(np.random.default_rng(43).normal(0, 20, 2000)),
-                "CL=F": 75.0
-                + np.cumsum(np.random.default_rng(44).normal(0, 0.5, 2000)),
+                "ES=F": 5000.0 + np.cumsum(np.random.default_rng(42).normal(0, 5, 2000)),
+                "NQ=F": 18000.0 + np.cumsum(np.random.default_rng(43).normal(0, 20, 2000)),
+                "CL=F": 75.0 + np.cumsum(np.random.default_rng(44).normal(0, 0.5, 2000)),
             },
             index=rng,
         )
@@ -384,9 +377,7 @@ class TestCausality:
             # The perturbation must propagate to at least one future target
             future_idx = t0.index.intersection(t1.index)[1500:]
             if len(future_idx) > 0:
-                diff = np.abs(
-                    t0.loc[future_idx, sym].values - t1.loc[future_idx, sym].values
-                )
+                diff = np.abs(t0.loc[future_idx, sym].values - t1.loc[future_idx, sym].values)
                 assert diff.max() > 0, f"future perturbation had no effect for {sym}"
 
 
@@ -407,9 +398,7 @@ class TestWeightBounds:
         exp_dir = _latest_h23_dir()
         positions = read_parquet_safe(exp_dir / "positions.parquet")
         for col in positions.columns:
-            assert (positions[col].dropna() >= -1e-9).all(), (
-                f"{col} has negative weights"
-            )
+            assert (positions[col].dropna() >= -1e-9).all(), f"{col} has negative weights"
 
 
 class TestDeterminism:
@@ -418,8 +407,7 @@ class TestDeterminism:
         prices = pd.DataFrame(
             {
                 "ES=F": 5000.0 + np.cumsum(np.random.default_rng(42).normal(0, 5, 100)),
-                "NQ=F": 18000.0
-                + np.cumsum(np.random.default_rng(43).normal(0, 20, 100)),
+                "NQ=F": 18000.0 + np.cumsum(np.random.default_rng(43).normal(0, 20, 100)),
                 "CL=F": 75.0 + np.cumsum(np.random.default_rng(44).normal(0, 0.5, 100)),
             },
             index=rng,
@@ -431,9 +419,7 @@ class TestDeterminism:
             s2 = h23.vol_scaled_tsmom_hourly(
                 prices[[sym]], vol_window_long=1008, vol_window_short=252
             )
-            assert (s1.values == s2.values).all(), (
-                f"base signal not deterministic for {sym}"
-            )
+            assert (s1.values == s2.values).all(), f"base signal not deterministic for {sym}"
 
     def test_apply_exits_is_deterministic(self):
         rng = pd.date_range("2024-10-12", periods=100, freq="h")
@@ -515,9 +501,7 @@ class TestExecutedOutcome:
         s = _load_summary(_latest_h23_dir())
         sel = s["selected_config"]
         assert sel["vol_window_long"] in h23.VOL_WINDOWS_LONG
-        assert sel["smooth_span"] in [
-            str(x) if x is not None else "none" for x in h23.SMOOTH_SPANS
-        ]
+        assert sel["smooth_span"] in [str(x) if x is not None else "none" for x in h23.SMOOTH_SPANS]
         assert sel["regime_scaling"] in h23.REGIME_SCALING_FLAGS
         assert sel["min_trade_interval"] in h23.MIN_TRADE_INTERVALS
         assert sel["trailing_mult"] in h23.TRAILING_MULTS
@@ -533,12 +517,8 @@ class TestExecutedOutcome:
         assert p["trades"] == (m["trades"] >= h23.GATES["min_trades"])
         assert p["pf"] == (m["profit_factor"] >= h23.GATES["min_profit_factor"])
         assert p["dd"] == (abs(m["max_drawdown"]) <= h23.GATES["max_drawdown"])
-        assert p["stab"] == (
-            m["wf_stability"] >= h23.GATES["min_walkforward_stability"]
-        )
-        assert p["worst"] == (
-            m["worst_regime_sharpe"] >= h23.GATES["min_worst_regime_sharpe"]
-        )
+        assert p["stab"] == (m["wf_stability"] >= h23.GATES["min_walkforward_stability"])
+        assert p["worst"] == (m["worst_regime_sharpe"] >= h23.GATES["min_worst_regime_sharpe"])
         assert p["p"] == (m["benchmark_p_value"] < h23.GATES["max_p_value"])
         assert m["information_ratio"] < 0.0
         assert p["p"] is True

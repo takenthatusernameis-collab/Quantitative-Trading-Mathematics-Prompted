@@ -250,10 +250,7 @@ class TestGridAndSelection:
         assert set(grid["skip"]) == {1, 5, 21}
         assert set(grid["n_factors"]) == {1, 2, 3}
         assert len(set(grid["regime_exposure"])) == 2
-        assert (
-            grid.duplicated(["lookback", "skip", "regime_exposure", "n_factors"]).sum()
-            == 0
-        )
+        assert grid.duplicated(["lookback", "skip", "regime_exposure", "n_factors"]).sum() == 0
 
     def test_selection_is_argmax_train_wf_sharpe(self):
         exp_dir = _latest_h16_dir()
@@ -319,9 +316,7 @@ class TestSignalInvariants:
         change_dates = changes[changes > 1e-12].index
         for d in change_dates:
             month_rows = pos.loc[pos.index.to_period("M") == d.to_period("M")]
-            assert d == month_rows.index[-1], (
-                f"position changed on non-month-end date {d}"
-            )
+            assert d == month_rows.index[-1], f"position changed on non-month-end date {d}"
 
     def test_weight_bounds_and_exposure_cap(self):
         exp_dir = _latest_h16_dir()
@@ -344,9 +339,7 @@ class TestSignalInvariants:
         assert (t1.values == t2.values).all()
 
     def test_regime_factor_thresholds(self):
-        vix = pd.Series(
-            [15.0, 25.0, 35.0], index=pd.bdate_range("2020-01-01", periods=3)
-        )
+        vix = pd.Series([15.0, 25.0, 35.0], index=pd.bdate_range("2020-01-01", periods=3))
         f = h16.regime_factor_series(vix, (1.0, 0.5, 0.25))
         assert f.iloc[0] == 1.0
         assert f.iloc[1] == 0.5
@@ -377,8 +370,7 @@ class TestExecutedOutcome:
         s = _load_summary(_latest_h16_dir())
         abl = s["metrics"]["ablations"]
         sharpes = [
-            abl[f"family_{f}"]["oos_metrics"]["sharpe"]
-            for f in ("value", "momentum", "quality")
+            abl[f"family_{f}"]["oos_metrics"]["sharpe"] for f in ("value", "momentum", "quality")
         ]
         assert len({round(x, 6) for x in sharpes}) == 3
 

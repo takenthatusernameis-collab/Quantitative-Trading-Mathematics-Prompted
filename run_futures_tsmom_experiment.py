@@ -186,9 +186,7 @@ FUTURES_SPECS = {
 
 def make_futures_config(allow_short: bool = False) -> BacktestConfig:
     cm = CostModel(
-        future_commission_per_contract=COST_MODEL_DEFAULTS[
-            "future_commission_per_contract"
-        ],
+        future_commission_per_contract=COST_MODEL_DEFAULTS["future_commission_per_contract"],
         future_spread_ticks=COST_MODEL_DEFAULTS["future_spread_ticks"],
         future_slippage_ticks=COST_MODEL_DEFAULTS["future_slippage_ticks"],
         futures_specs=FUTURES_SPECS,
@@ -253,9 +251,7 @@ def evaluate_combo(prices, volumes, adv, long_only, lookback, skip):
         prices, lookback=lookback, skip=skip, long_only=long_only, target_vol=TARGET_VOL
     )
     sig_monthly = resample_monthly_signals(sig)
-    result = run_backtest(
-        prices=prices, signals=sig_monthly, volumes=volumes, adv=adv, config=cfg
-    )
+    result = run_backtest(prices=prices, signals=sig_monthly, volumes=volumes, adv=adv, config=cfg)
     return result, sig_monthly
 
 
@@ -374,9 +370,7 @@ def main():
         if len(prices.columns) > 0:
             bh_cfg = make_futures_config(allow_short=False)
             n = len(prices.columns)
-            bh_signals = run_strategy(
-                prices, "buy_and_hold", weight=1.0 / n if n > 0 else 0.0
-            )
+            bh_signals = run_strategy(prices, "buy_and_hold", weight=1.0 / n if n > 0 else 0.0)
             bh_signals = resample_monthly_signals(bh_signals)
             bh_result = run_backtest(
                 prices=prices,
@@ -385,9 +379,7 @@ def main():
                 adv=adv,
                 config=bh_cfg,
             )
-            tracker.log_dataframe(
-                "benchmark_equity", bh_result.equity_curve.to_frame("equity")
-            )
+            tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
             tracker.log_metrics(
                 {f"benchmark_{k}": float(v) for k, v in bh_result.metrics.items()},
                 step=0,
@@ -404,23 +396,15 @@ def main():
         combo_records = []
         for i, (long_only, lookback, skip) in enumerate(grid):
             try:
-                result, sig = evaluate_combo(
-                    prices, volumes, adv, long_only, lookback, skip
-                )
+                result, sig = evaluate_combo(prices, volumes, adv, long_only, lookback, skip)
             except Exception as e:  # noqa: BLE001 -- per-combo grid failure is non-fatal; log and skip the combo
                 print(f"  ERR on {i}: {e}")
                 continue
-            train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(
-                result.returns
-            )
+            train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(result.returns)
             train_sharpes = wf_oos_sharpes(train_ret, n_splits=4)
             sel = selection_metric(train_ret, train_sharpes)
             train_sharpe = sharpe_ratio(train_ret.values)
-            train_vol = (
-                float(np.std(train_ret.values) * np.sqrt(252))
-                if len(train_ret)
-                else 0.0
-            )
+            train_vol = float(np.std(train_ret.values) * np.sqrt(252)) if len(train_ret) else 0.0
             rec = {
                 "long_only": bool(long_only),
                 "lookback": lookback,
@@ -429,15 +413,9 @@ def main():
                 "train_vol_annual": train_vol,
                 "wf_oos_mean_sharpe": float(sel),
                 "wf_oos_sharpes": [float(s) for s in train_sharpes],
-                "val_sharpe": float(sharpe_ratio(val_ret.values))
-                if len(val_ret)
-                else 0.0,
-                "test_sharpe": float(sharpe_ratio(test_ret.values))
-                if len(test_ret)
-                else 0.0,
-                "oos_sharpe": float(sharpe_ratio(oos_ret.values))
-                if len(oos_ret)
-                else 0.0,
+                "val_sharpe": float(sharpe_ratio(val_ret.values)) if len(val_ret) else 0.0,
+                "test_sharpe": float(sharpe_ratio(test_ret.values)) if len(test_ret) else 0.0,
+                "oos_sharpe": float(sharpe_ratio(oos_ret.values)) if len(oos_ret) else 0.0,
             }
             combo_records.append(rec)
         if not combo_records:
@@ -482,9 +460,7 @@ def main():
         ens_result = run_backtest(
             prices=prices, signals=ens_monthly, volumes=volumes, adv=adv, config=cfg_ens
         )
-        train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(
-            ens_result.returns
-        )
+        train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(ens_result.returns)
         oos_sharpe = sharpe_ratio(oos_ret.values) if len(oos_ret) else 0.0
         oos_equity = (1 + oos_ret).cumprod() if len(oos_ret) else pd.Series([1])
         if len(oos_equity) >= 2:
@@ -513,9 +489,7 @@ def main():
         if worst == np.inf:
             worst = oos_sharpe
         if bh_result is not None and len(oos_ret) > 0:
-            bh_oos = bh_result.returns[
-                bh_result.returns.index > pd.Timestamp(TRAIN_END)
-            ]
+            bh_oos = bh_result.returns[bh_result.returns.index > pd.Timestamp(TRAIN_END)]
             alpha_res = compare_to_benchmark(
                 oos_ret.values if hasattr(oos_ret, "values") else oos_ret,
                 bh_oos.values if hasattr(bh_oos, "values") else bh_oos,
@@ -574,9 +548,7 @@ def main():
             int(best_combo["lookback"]),
             int(best_combo["skip"]),
         )
-        argmax_oos = argmax_res.returns[
-            argmax_res.returns.index > pd.Timestamp(TRAIN_END)
-        ]
+        argmax_oos = argmax_res.returns[argmax_res.returns.index > pd.Timestamp(TRAIN_END)]
         argmax_oos_sh = sharpe_ratio(argmax_oos.values) if len(argmax_oos) else 0.0
         summary["ablation"] = {
             "argmax": {
@@ -593,14 +565,10 @@ def main():
             json.dump(summary, f, indent=2, default=str)
         tracker.log_artifact("summary", exp_dir / "summary.json")
         tracker.log_dataframe("param_grid_results", combos_df)
-        tracker.log_dataframe(
-            "ensemble_equity", ens_result.equity_curve.to_frame("equity")
-        )
+        tracker.log_dataframe("ensemble_equity", ens_result.equity_curve.to_frame("equity"))
         tracker.log_dataframe("ensemble_trades", ens_result.trades)
         if bh_result is not None:
-            tracker.log_dataframe(
-                "benchmark_equity", bh_result.equity_curve.to_frame("equity")
-            )
+            tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
 
         tracker.finish_experiment(status="completed")
         print(f"\nAll pass: {all_pass}")

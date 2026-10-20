@@ -210,9 +210,7 @@ def make_equity_config() -> BacktestConfig:
 
 def _splits(prices: pd.DataFrame):
     train_mask = prices.index <= pd.Timestamp(TRAIN_END)
-    val_mask = (prices.index > pd.Timestamp(TRAIN_END)) & (
-        prices.index <= pd.Timestamp(VAL_END)
-    )
+    val_mask = (prices.index > pd.Timestamp(TRAIN_END)) & (prices.index <= pd.Timestamp(VAL_END))
     test_mask = prices.index > pd.Timestamp(VAL_END)
     return train_mask, val_mask, test_mask
 
@@ -294,9 +292,7 @@ def full_gate_eval(
         if len(tr_r) > 1:
             train_sharpes.append(sharpe_ratio(tr_r))
     wf_stab = (
-        float(np.mean(oos_sharpes) / np.mean(train_sharpes))
-        if np.mean(train_sharpes) != 0
-        else 0.0
+        float(np.mean(oos_sharpes) / np.mean(train_sharpes)) if np.mean(train_sharpes) != 0 else 0.0
     )
 
     # Regime sharpes on the OOS window (VIX labels, daily ffill)
@@ -325,16 +321,13 @@ def full_gate_eval(
         "pf": oos_m["profit_factor"] >= GATES["min_profit_factor"],
         "dd": abs(oos_max_dd) <= GATES["max_drawdown"] if oos_max_dd < 0 else False,
         "stab": wf_stab >= GATES["min_walkforward_stability"],
-        "worst": worst >= GATES["min_worst_regime_sharpe"]
-        if worst != np.inf
-        else False,
+        "worst": worst >= GATES["min_worst_regime_sharpe"] if worst != np.inf else False,
         "p": benchmark_significance_gate(
             float(bench.get("alpha_p_value", 1.0)),
             float(bench.get("information_ratio", -np.inf)),
             GATES["max_p_value"],
         ),
-        "ir": float(bench.get("information_ratio", -np.inf))
-        > GATES["min_information_ratio"],
+        "ir": float(bench.get("information_ratio", -np.inf)) > GATES["min_information_ratio"],
     }
     all_pass = all(passes.values())
     return {
@@ -391,9 +384,7 @@ def perturbation_eval(
             )
             res = run_backtest(prices=prices, signals=pos, volumes=volumes, config=cfg)
             r = res.returns[oos_mask].dropna()
-            variants[f"{param}={v}"] = (
-                float(sharpe_ratio(r.values)) if len(r) > 1 else 0.0
-            )
+            variants[f"{param}={v}"] = float(sharpe_ratio(r.values)) if len(r) > 1 else 0.0
     if opt_oos_sharpe > 0:
         min_ratio = float(min(variants.values()) / opt_oos_sharpe)
     else:
@@ -405,9 +396,7 @@ def main():
     np.random.seed(SEED)
     t_start = time.time()
     tracker = get_tracker()
-    grid_size = (
-        len(LOOKBACKS) * len(SKIPS) * len(REGIME_EXPOSURES) * len(N_FACTORS_OPTS)
-    )
+    grid_size = len(LOOKBACKS) * len(SKIPS) * len(REGIME_EXPOSURES) * len(N_FACTORS_OPTS)
     exp_id = tracker.start_experiment(
         name=EXPERIMENT_NAME,
         description=EXPERIMENT_DESC,
@@ -480,9 +469,7 @@ def main():
         # Equal-weight buy-and-hold benchmark over the point-in-time universe
         avail = prices.notna().astype(float)
         ew_weights = avail.div(avail.sum(axis=1), axis=0).fillna(0.0)
-        bench_result = run_backtest(
-            prices=prices, signals=ew_weights, volumes=volumes, config=cfg
-        )
+        bench_result = run_backtest(prices=prices, signals=ew_weights, volumes=volumes, config=cfg)
 
         # --- 54-combo grid: selection on train-only walk-forward Sharpe ---
         grid_rows = []
@@ -496,14 +483,10 @@ def main():
                             prices, vix, lookback, skip, regime_exposure, n_factors
                         )
                         pos = monthly_rebalance(daily)
-                        res = run_backtest(
-                            prices=prices, signals=pos, volumes=volumes, config=cfg
-                        )
+                        res = run_backtest(prices=prices, signals=pos, volumes=volumes, config=cfg)
                         wf_sel = train_only_wf_sharpe(res.returns, train_mask)
                         oos_r = res.returns[oos_mask].dropna()
-                        oos_sr = (
-                            float(sharpe_ratio(oos_r.values)) if len(oos_r) > 1 else 0.0
-                        )
+                        oos_sr = float(sharpe_ratio(oos_r.values)) if len(oos_r) > 1 else 0.0
                         grid_results[(lookback, skip, regime_exposure, n_factors)] = res
                         grid_rows.append(
                             {
@@ -513,9 +496,7 @@ def main():
                                 "n_factors": n_factors,
                                 "train_wf_sharpe": wf_sel,
                                 "train_sharpe": float(
-                                    sharpe_ratio(
-                                        res.returns[train_mask].dropna().values
-                                    )
+                                    sharpe_ratio(res.returns[train_mask].dropna().values)
                                 )
                                 if train_mask.sum() > 1
                                 else 0.0,
@@ -532,9 +513,7 @@ def main():
                                 "oos_sharpe": oos_sr,
                             }
                         )
-        grid_df = pd.DataFrame(grid_rows).sort_values(
-            "train_wf_sharpe", ascending=False
-        )
+        grid_df = pd.DataFrame(grid_rows).sort_values("train_wf_sharpe", ascending=False)
         grid_elapsed = time.time() - t_grid
         print(
             f"[H16] grid {len(grid_rows)} combos in {grid_elapsed:.1f}s; "
@@ -558,9 +537,7 @@ def main():
         }
 
         # --- full gate evaluation on protected OOS (Val+Test) ---
-        gate = full_gate_eval(
-            sel_result, oos_mask, val_mask, test_mask, prices, vix, bench_result
-        )
+        gate = full_gate_eval(sel_result, oos_mask, val_mask, test_mask, prices, vix, bench_result)
 
         # --- perturbation gate (OAT +/-20% on lookback, skip) ---
         pert = perturbation_eval(
@@ -579,9 +556,7 @@ def main():
         ungated_pos = monthly_rebalance(
             build_daily_targets(prices, vix, sel[0], sel[1], (1.0, 1.0, 1.0), sel[3])
         )
-        ungated_res = run_backtest(
-            prices=prices, signals=ungated_pos, volumes=volumes, config=cfg
-        )
+        ungated_res = run_backtest(prices=prices, signals=ungated_pos, volumes=volumes, config=cfg)
         ungated_gate = full_gate_eval(
             ungated_res, oos_mask, val_mask, test_mask, prices, vix, bench_result
         )
@@ -596,9 +571,7 @@ def main():
                 bench_result.returns[oos_mask],
                 _count_in(bench_result.trades, oos_mask, prices),
             ),
-            "train_sharpe": float(
-                sharpe_ratio(bench_result.returns[train_mask].dropna().values)
-            ),
+            "train_sharpe": float(sharpe_ratio(bench_result.returns[train_mask].dropna().values)),
         }
         # (c) single-factor-family exposure (each family alone,
         # selected lookback/skip/regime, n_factors=1 within family)
@@ -613,9 +586,7 @@ def main():
                 families={fam: etfs},
             )
             fam_pos = monthly_rebalance(fam_daily)
-            fam_res = run_backtest(
-                prices=prices, signals=fam_pos, volumes=volumes, config=cfg
-            )
+            fam_res = run_backtest(prices=prices, signals=fam_pos, volumes=volumes, config=cfg)
             ablations[f"family_{fam}"] = {
                 "oos_metrics": _period_metrics(
                     fam_res.returns[oos_mask],
@@ -639,16 +610,10 @@ def main():
         tracker.log_dataframe("selected_signals", sel_pos)
         tracker.log_dataframe("best_equity", sel_result.equity_curve.to_frame("equity"))
         tracker.log_dataframe("best_trades", sel_result.trades)
-        tracker.log_dataframe(
-            "benchmark_equity", bench_result.equity_curve.to_frame("equity")
-        )
-        tracker.log_dataframe(
-            "benchmark_returns", bench_result.returns.to_frame("returns")
-        )
+        tracker.log_dataframe("benchmark_equity", bench_result.equity_curve.to_frame("equity"))
+        tracker.log_dataframe("benchmark_returns", bench_result.returns.to_frame("returns"))
         for name, ab in ablations.items():
-            tracker.log_metrics(
-                {f"ablation_{name}_oos_sharpe": ab["oos_metrics"]["sharpe"]}
-            )
+            tracker.log_metrics({f"ablation_{name}_oos_sharpe": ab["oos_metrics"]["sharpe"]})
 
         total_elapsed = time.time() - t_start
         summary = {
@@ -695,9 +660,7 @@ def main():
                 summary,
                 f,
                 indent=2,
-                default=lambda x: (
-                    float(x) if isinstance(x, (np.integer, np.floating)) else str(x)
-                ),
+                default=lambda x: float(x) if isinstance(x, (np.integer, np.floating)) else str(x),
             )
         tracker.log_artifact("summary", exp_dir / "summary.json")
         tracker.finish_experiment(status="completed")
@@ -720,9 +683,7 @@ def main():
             f"Test={gate['test_metrics']['sharpe']:.3f} | "
             f"WF stab={gate['wf_stability']:.3f} | worst-regime={gate['worst_regime_sharpe']:.3f}"
         )
-        print(
-            f"  Benchmark: p={gate['benchmark_p_value']:.4f} IR={gate['information_ratio']:.3f}"
-        )
+        print(f"  Benchmark: p={gate['benchmark_p_value']:.4f} IR={gate['information_ratio']:.3f}")
         print(f"  Perturbation min ratio={pert['min_perturbed_sharpe_ratio']:.3f}")
         print(f"  Selected: {selected}")
         print(

@@ -116,9 +116,7 @@ EXPERIMENT_DESC = (
 
 def make_futures_config(allow_short=False):
     cm = CostModel(
-        future_commission_per_contract=COST_MODEL_DEFAULTS[
-            "future_commission_per_contract"
-        ],
+        future_commission_per_contract=COST_MODEL_DEFAULTS["future_commission_per_contract"],
         future_spread_ticks=COST_MODEL_DEFAULTS["future_spread_ticks"],
         future_slippage_ticks=COST_MODEL_DEFAULTS["future_slippage_ticks"],
         futures_specs=FUTURES_SPECS,
@@ -187,9 +185,7 @@ def apply_fixed_cut(prices, base_signals, cut_factor):
     return base_signals.multiply(scale, axis=0), scale
 
 
-def apply_vix_gate(
-    prices, base_signals, vix, bull_factor=1.0, sid_factor=0.25, bear_factor=0.10
-):
+def apply_vix_gate(prices, base_signals, vix, bull_factor=1.0, sid_factor=0.25, bear_factor=0.10):
     """Ablation (c): VIX-gated vol target (H3-style), no VXX hedge."""
     vix_ff = vix.reindex(base_signals.index).ffill()
     scale = pd.Series(1.0, index=base_signals.index)
@@ -201,9 +197,7 @@ def apply_vix_gate(
 def evaluate(prices, signals, volumes, adv):
     cfg = make_futures_config(allow_short=not LONG_ONLY)
     sig_monthly = resample_monthly_signals(signals)
-    return run_backtest(
-        prices=prices, signals=sig_monthly, volumes=volumes, adv=adv, config=cfg
-    )
+    return run_backtest(prices=prices, signals=sig_monthly, volumes=volumes, adv=adv, config=cfg)
 
 
 def window_max_drawdown(equity, start, end):
@@ -313,9 +307,7 @@ def main():
         bh_result = run_backtest(
             prices=prices, signals=bh_signals, volumes=volumes, adv=adv, config=bh_cfg
         )
-        tracker.log_dataframe(
-            "benchmark_equity", bh_result.equity_curve.to_frame("equity")
-        )
+        tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
         tracker.log_metrics(
             {f"benchmark_{k}": float(v) for k, v in bh_result.metrics.items()}, step=0
         )
@@ -343,35 +335,21 @@ def main():
             for dd_factor in DD_FACTOR_GRID:
                 scaled, _, _ = apply_ddcv(prices, base_sig, dd_trigger, dd_factor)
                 result = evaluate(prices, scaled, volumes, adv)
-                train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(
-                    result.returns
-                )
+                train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(result.returns)
                 rec = {
                     "dd_trigger": dd_trigger,
                     "dd_factor": dd_factor,
-                    "val_sharpe": float(sharpe_ratio(val_ret.values))
-                    if len(val_ret)
-                    else 0.0,
+                    "val_sharpe": float(sharpe_ratio(val_ret.values)) if len(val_ret) else 0.0,
                     "train_sharpe": float(sharpe_ratio(train_ret.values))
                     if len(train_ret)
                     else 0.0,
-                    "test_sharpe": float(sharpe_ratio(test_ret.values))
-                    if len(test_ret)
-                    else 0.0,
-                    "oos_sharpe": float(sharpe_ratio(oos_ret.values))
-                    if len(oos_ret)
-                    else 0.0,
-                    "val_dd": window_max_drawdown(
-                        result.equity_curve, TRAIN_END, VAL_END
-                    ),
-                    "oos_dd": window_max_drawdown(
-                        result.equity_curve, TRAIN_END, END_DATE
-                    ),
+                    "test_sharpe": float(sharpe_ratio(test_ret.values)) if len(test_ret) else 0.0,
+                    "oos_sharpe": float(sharpe_ratio(oos_ret.values)) if len(oos_ret) else 0.0,
+                    "val_dd": window_max_drawdown(result.equity_curve, TRAIN_END, VAL_END),
+                    "oos_dd": window_max_drawdown(result.equity_curve, TRAIN_END, END_DATE),
                     "val_pf": float(result.metrics["profit_factor"]),
                     "val_trades": len(
-                        result.trades[
-                            result.trades["timestamp"] > pd.Timestamp(TRAIN_END)
-                        ]
+                        result.trades[result.trades["timestamp"] > pd.Timestamp(TRAIN_END)]
                     )
                     if len(result.trades)
                     else 0,
@@ -401,9 +379,7 @@ def main():
         best_factor = best["dd_factor"]
         scaled_best, _, _ = apply_ddcv(prices, base_sig, best_trigger, best_factor)
         best_result = evaluate(prices, scaled_best, volumes, adv)
-        train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(
-            best_result.returns
-        )
+        train_ret, val_ret, test_ret, oos_ret = split_returns_by_date(best_result.returns)
         oos_sharpe = sharpe_ratio(oos_ret.values) if len(oos_ret) else 0.0
         oos_equity = (1 + oos_ret).cumprod() if len(oos_ret) else pd.Series([1])
         oos_dd = (
@@ -415,9 +391,7 @@ def main():
         gross_l = abs(oos_ret[oos_ret < 0].sum()) if len(oos_ret) else 1e-18
         oos_pf = float(gross_p / gross_l) if gross_l > 0 else np.inf
         oos_trades = (
-            best_result.trades[
-                best_result.trades["timestamp"] > pd.Timestamp(TRAIN_END)
-            ]
+            best_result.trades[best_result.trades["timestamp"] > pd.Timestamp(TRAIN_END)]
             if len(best_result.trades)
             else pd.DataFrame()
         )
@@ -435,9 +409,7 @@ def main():
         if worst == np.inf:
             worst = oos_sharpe
         if len(oos_ret) > 0:
-            bh_oos = bh_result.returns[
-                bh_result.returns.index > pd.Timestamp(TRAIN_END)
-            ]
+            bh_oos = bh_result.returns[bh_result.returns.index > pd.Timestamp(TRAIN_END)]
             alpha_res = compare_to_benchmark(oos_ret.values, bh_oos.values)
             p = float(alpha_res.get("alpha_p_value", 1.0))
             ir = float(alpha_res.get("information_ratio", -np.inf))
@@ -472,14 +444,10 @@ def main():
             ablation_records.append(
                 {
                     "name": name,
-                    "oos_sharpe": float(sharpe_ratio(oos_ar.values))
-                    if len(oos_ar)
-                    else 0.0,
+                    "oos_sharpe": float(sharpe_ratio(oos_ar.values)) if len(oos_ar) else 0.0,
                     "oos_max_dd": dd_val,
                     "oos_pf": float(res.metrics["profit_factor"]),
-                    "oos_trades": len(
-                        res.trades[res.trades["timestamp"] > pd.Timestamp(TRAIN_END)]
-                    )
+                    "oos_trades": len(res.trades[res.trades["timestamp"] > pd.Timestamp(TRAIN_END)])
                     if len(res.trades)
                     else 0,
                 }
@@ -517,21 +485,15 @@ def main():
                 default=lambda o: (
                     bool(o)
                     if isinstance(o, (np.bool_,))
-                    else (
-                        float(o) if isinstance(o, (np.integer, np.floating)) else str(o)
-                    )
+                    else (float(o) if isinstance(o, (np.integer, np.floating)) else str(o))
                 ),
             )
         tracker.log_artifact("summary", exp_dir / "summary.json")
         tracker.log_dataframe("param_grid_results", ddcv_df)
-        tracker.log_dataframe(
-            "best_ddcv_equity", best_result.equity_curve.to_frame("equity")
-        )
+        tracker.log_dataframe("best_ddcv_equity", best_result.equity_curve.to_frame("equity"))
         tracker.log_dataframe("best_ddcv_trades", best_result.trades)
         tracker.log_dataframe("ablations", ablation_df)
-        tracker.log_dataframe(
-            "benchmark_equity", bh_result.equity_curve.to_frame("equity")
-        )
+        tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
 
         tracker.finish_experiment(status="completed")
         print("All pass:", all_pass)

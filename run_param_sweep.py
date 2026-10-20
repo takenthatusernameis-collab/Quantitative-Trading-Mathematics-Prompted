@@ -43,9 +43,7 @@ def main():
     slow_windows = [20, 30, 50, 100, 200]
 
     # Filter: fast < slow
-    param_combos = [
-        (f, s) for f, s in itertools.product(fast_windows, slow_windows) if f < s
-    ]
+    param_combos = [(f, s) for f, s in itertools.product(fast_windows, slow_windows) if f < s]
 
     CONFIG = {
         "symbols": ["SPY"],
@@ -136,9 +134,9 @@ def main():
         bt_config.cost_model.equity_spread_bps = CONFIG["backtest"]["cost_model"][
             "equity_spread_bps"
         ]
-        bt_config.cost_model.equity_impact_bps_per_pct_adv = CONFIG["backtest"][
-            "cost_model"
-        ]["equity_impact_bps_per_pct_adv"]
+        bt_config.cost_model.equity_impact_bps_per_pct_adv = CONFIG["backtest"]["cost_model"][
+            "equity_impact_bps_per_pct_adv"
+        ]
 
         adv = volumes.rolling(20).mean().iloc[-1]
 
@@ -196,9 +194,7 @@ def main():
                 best_params = (fast, slow)
                 best_result = result
 
-            print(
-                f"Sharpe={sharpe:.3f}, DD={max_dd:.2%}, Trades={n_trades}, Ret={ann_return:.2%}"
-            )
+            print(f"Sharpe={sharpe:.3f}, DD={max_dd:.2%}, Trades={n_trades}, Ret={ann_return:.2%}")
 
         # ============================================================
         # LOG RESULTS
@@ -208,9 +204,7 @@ def main():
 
         # Log best result details
         if best_result is not None:
-            tracker.log_dataframe(
-                "best_equity_curve", best_result.equity_curve.to_frame("equity")
-            )
+            tracker.log_dataframe("best_equity_curve", best_result.equity_curve.to_frame("equity"))
             tracker.log_dataframe("best_trades", best_result.trades)
             tracker.log_dataframe(
                 "best_signals",
@@ -234,12 +228,8 @@ def main():
         )
 
         tracker.log_metrics({"benchmark_sharpe": bh_result.metrics["sharpe"]}, step=0)
-        tracker.log_metrics(
-            {"benchmark_return": bh_result.metrics["annualized_return"]}, step=0
-        )
-        tracker.log_metrics(
-            {"benchmark_max_dd": bh_result.metrics["max_drawdown"]}, step=0
-        )
+        tracker.log_metrics({"benchmark_return": bh_result.metrics["annualized_return"]}, step=0)
+        tracker.log_metrics({"benchmark_max_dd": bh_result.metrics["max_drawdown"]}, step=0)
 
         # ============================================================
         # SAVE SUMMARY

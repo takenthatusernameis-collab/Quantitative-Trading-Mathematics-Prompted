@@ -124,9 +124,7 @@ class TestPreRegistration:
         assert f"{n_combos}-combo" in h20.EXPERIMENT_DESC
         # All four grid dimensions must be enumerated in the prose.
         for dim in ("sign_rule", "target_vol", "max_pos", "imbalance_lag"):
-            assert dim in h20.EXPERIMENT_DESC, (
-                f"EXPERIMENT_DESC missing dimension {dim!r}"
-            )
+            assert dim in h20.EXPERIMENT_DESC, f"EXPERIMENT_DESC missing dimension {dim!r}"
 
 
 class TestArtifacts:
@@ -260,10 +258,7 @@ class TestGateRecomputation:
         assert grid.loc[val_max_idx, "max_pos"] == sel["max_pos"]
         assert grid.loc[val_max_idx, "imbalance_lag"] == sel["imbalance_lag"]
         if val_max_idx != test_max_idx:
-            assert (
-                grid.loc[test_max_idx, "val_sharpe"]
-                < grid.loc[val_max_idx, "val_sharpe"]
-            )
+            assert grid.loc[test_max_idx, "val_sharpe"] < grid.loc[val_max_idx, "val_sharpe"]
 
 
 class TestCausality:
@@ -292,19 +287,13 @@ class TestCausality:
                         ohlc_pert = ohlc.copy()
                         vol_idx = ohlc_pert.index[55]
                         close_idx = ohlc_pert.index[58]
-                        ohlc_pert.loc[vol_idx, "volume"] = (
-                            ohlc.loc[vol_idx, "volume"] * 3.0
-                        )
-                        ohlc_pert.loc[close_idx, "close"] = (
-                            ohlc.loc[close_idx, "close"] * 1.5
-                        )
+                        ohlc_pert.loc[vol_idx, "volume"] = ohlc.loc[vol_idx, "volume"] * 3.0
+                        ohlc_pert.loc[close_idx, "close"] = ohlc.loc[close_idx, "close"] * 1.5
                         ohlc_pert.loc[close_idx, "high"] = max(
                             ohlc_pert.loc[close_idx, "high"],
                             ohlc_pert.loc[close_idx, "close"],
                         )
-                        t1 = h20.build_targets(
-                            ohlc_pert, rule, tv, mp, lag, vol_window=10
-                        )
+                        t1 = h20.build_targets(ohlc_pert, rule, tv, mp, lag, vol_window=10)
                         # Past targets (well before the perturbation window)
                         # must be identical - no lookahead.
                         common_idx = t0.index.intersection(t1.index)[:40]
@@ -321,12 +310,10 @@ class TestCausality:
                         future_idx = t0.index.intersection(t1.index)[55:]
                         if len(future_idx) > 0:
                             diff = np.abs(
-                                t0.loc[future_idx, "SPY"].values
-                                - t1.loc[future_idx, "SPY"].values
+                                t0.loc[future_idx, "SPY"].values - t1.loc[future_idx, "SPY"].values
                             )
                             assert diff.max() > 0, (
-                                f"future perturbation had no effect "
-                                f"({rule}_tv{tv}_mp{mp}_lag{lag})"
+                                f"future perturbation had no effect ({rule}_tv{tv}_mp{mp}_lag{lag})"
                             )
 
 
@@ -362,8 +349,7 @@ class TestDeterminism:
                         t1 = h20.build_targets(ohlc, rule, tv, mp, lag, vol_window=10)
                         t2 = h20.build_targets(ohlc, rule, tv, mp, lag, vol_window=10)
                         assert (t1.values == t2.values).all(), (
-                            f"signal not deterministic for "
-                            f"{rule}_tv{tv}_mp{mp}_lag{lag}"
+                            f"signal not deterministic for {rule}_tv{tv}_mp{mp}_lag{lag}"
                         )
 
     def test_sign_rule_directions_bounded(self):
@@ -444,12 +430,8 @@ class TestExecutedOutcome:
         assert p["trades"] == (m["trades"] >= h20.GATES["min_trades"])
         assert p["pf"] == (m["profit_factor"] >= h20.GATES["min_profit_factor"])
         assert p["dd"] == (abs(m["max_drawdown"]) <= h20.GATES["max_drawdown"])
-        assert p["stab"] == (
-            m["wf_stability"] >= h20.GATES["min_walkforward_stability"]
-        )
-        assert p["worst"] == (
-            m["worst_regime_sharpe"] >= h20.GATES["min_worst_regime_sharpe"]
-        )
+        assert p["stab"] == (m["wf_stability"] >= h20.GATES["min_walkforward_stability"])
+        assert p["worst"] == (m["worst_regime_sharpe"] >= h20.GATES["min_worst_regime_sharpe"])
         assert p["p"] == (m["benchmark_p_value"] < h20.GATES["max_p_value"])
         assert m["information_ratio"] < 0.0
         assert p["p"] is True

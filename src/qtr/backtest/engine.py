@@ -45,9 +45,7 @@ class CostModel:
     crypto_spread_bps: float = 2.0
     crypto_slippage_bps_per_pct_daily_vol: float = 1.0
 
-    def equity_cost_bps(
-        self, spread_bps: float | None = None, adv_pct: float = 0.0
-    ) -> float:
+    def equity_cost_bps(self, spread_bps: float | None = None, adv_pct: float = 0.0) -> float:
         """Total equity cost in basis points."""
         spread = spread_bps if spread_bps is not None else self.equity_spread_bps
         impact = self.equity_impact_bps_per_pct_adv * adv_pct
@@ -72,9 +70,7 @@ class CostModel:
     def get_future_contract_multiplier(self, symbol: str | None = None) -> float:
         """Contract multiplier for a given symbol."""
         if symbol and symbol in self.futures_specs:
-            return self.futures_specs[symbol].get(
-                "multiplier", self.future_contract_multiplier
-            )
+            return self.futures_specs[symbol].get("multiplier", self.future_contract_multiplier)
         return self.future_contract_multiplier
 
     def crypto_cost_bps(self, daily_vol_pct: float = 0.0) -> float:
@@ -147,9 +143,7 @@ class VectorizedBacktester:
         if volumes is not None:
             volumes = volumes.loc[common_index]
         else:
-            volumes = pd.DataFrame(
-                index=prices.index, columns=prices.columns, dtype=float
-            )
+            volumes = pd.DataFrame(index=prices.index, columns=prices.columns, dtype=float)
 
         # Forward fill signals (hold position until change)
         signals = signals.ffill().fillna(0)
@@ -164,9 +158,7 @@ class VectorizedBacktester:
             )
 
         # Enforce max position size per symbol
-        signals = signals.clip(
-            -self.config.max_position_size, self.config.max_position_size
-        )
+        signals = signals.clip(-self.config.max_position_size, self.config.max_position_size)
 
         # If short not allowed, clip negative positions
         if not self.config.allow_short:
@@ -229,9 +221,7 @@ class VectorizedBacktester:
                 if adv is not None and symbol in adv.index and adv[symbol] > 0:
                     # Position change in shares = weight_change * initial_capital / price
                     shares_traded = changes * self.config.initial_capital / price
-                    adv_pct = (shares_traded / adv[symbol]).clip(
-                        0, 1
-                    ) * 100  # as percentage
+                    adv_pct = (shares_traded / adv[symbol]).clip(0, 1) * 100  # as percentage
                 else:
                     adv_pct = 0.0
 
@@ -251,12 +241,8 @@ class VectorizedBacktester:
                 # Position in contracts = weight * portfolio_value / (price * contract_multiplier)
                 # contracts_traded = weight_change * portfolio_value / (price * multiplier)
                 # Using initial_capital as portfolio_value approximation (consistent with equity path)
-                contracts_traded = (
-                    changes * self.config.initial_capital / (price * multiplier)
-                )
-                symbol_costs = (
-                    contracts_traded.abs() * contract_cost / self.config.initial_capital
-                )
+                contracts_traded = changes * self.config.initial_capital / (price * multiplier)
+                symbol_costs = contracts_traded.abs() * contract_cost / self.config.initial_capital
 
             elif self.config.asset_class == AssetClass.CRYPTO:
                 daily_vol_pct = 0.0  # Would need 24h volume data
@@ -340,9 +326,7 @@ class VectorizedBacktester:
         excess_returns = returns - risk_free / ann_factor
 
         if returns.std() > 0:
-            metrics["sharpe"] = (
-                excess_returns.mean() / returns.std() * np.sqrt(ann_factor)
-            )
+            metrics["sharpe"] = excess_returns.mean() / returns.std() * np.sqrt(ann_factor)
         else:
             metrics["sharpe"] = 0.0
 
@@ -357,9 +341,7 @@ class VectorizedBacktester:
         shortfall = np.minimum(0, returns - risk_free / ann_factor)
         downside_dev = np.sqrt(np.mean(shortfall**2))
         if downside_dev > 0:
-            metrics["sortino"] = (
-                excess_returns.mean() / downside_dev * np.sqrt(ann_factor)
-            )
+            metrics["sortino"] = excess_returns.mean() / downside_dev * np.sqrt(ann_factor)
         else:
             metrics["sortino"] = 0.0
 
@@ -372,9 +354,7 @@ class VectorizedBacktester:
         # Profit factor
         gross_profit = returns[returns > 0].sum()
         gross_loss = abs(returns[returns < 0].sum())
-        metrics["profit_factor"] = (
-            gross_profit / gross_loss if gross_loss > 0 else np.inf
-        )
+        metrics["profit_factor"] = gross_profit / gross_loss if gross_loss > 0 else np.inf
 
         # Trade stats
         if len(trades) > 0:

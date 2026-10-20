@@ -166,8 +166,7 @@ class TestProbeLiveExtension:
             def fetch_futures(self, symbols, *a, **k):
                 idx = pd.date_range("2026-10-01", periods=250, freq="h")
                 return {
-                    s: pd.DataFrame({"close": 100.0 + np.arange(250)}, index=idx)
-                    for s in symbols
+                    s: pd.DataFrame({"close": 100.0 + np.arange(250)}, index=idx) for s in symbols
                 }
 
         probe = h11.probe_live_extension(_FakeFetcher())

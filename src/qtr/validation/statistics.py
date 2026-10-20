@@ -112,9 +112,7 @@ def annualized_sharpe(
     bpy = bars_per_year(index)
     if not np.isfinite(bpy) or bpy <= 0:
         return 0.0
-    return sharpe_ratio(
-        np.asarray(returns, dtype=float), risk_free=risk_free, periods_per_year=bpy
-    )
+    return sharpe_ratio(np.asarray(returns, dtype=float), risk_free=risk_free, periods_per_year=bpy)
 
 
 def sharpe_ratio_ci(
@@ -207,9 +205,7 @@ def multiple_testing_correction(
             adjusted[idx] = min(sorted_p[i] * n / (i + 1), 1.0)
         # Ensure monotonicity
         for i in range(n - 2, -1, -1):
-            adjusted[sorted_idx[i]] = min(
-                adjusted[sorted_idx[i]], adjusted[sorted_idx[i + 1]]
-            )
+            adjusted[sorted_idx[i]] = min(adjusted[sorted_idx[i]], adjusted[sorted_idx[i + 1]])
         rejected = adjusted < alpha
     else:
         raise ValueError(f"Unknown method: {method}")
@@ -358,7 +354,8 @@ def capacity_estimate(
     """
     if impact_model is None:
         # Simple square-root impact model
-        impact_model = lambda p: 10 * np.sqrt(p / 0.01)  # 10 bps at 1% ADV
+        def impact_model(p):
+            return 10 * np.sqrt(p / 0.01)  # 10 bps at 1% ADV
 
     current_sharpe = sharpe_ratio(returns)
     results = {"current_sharpe": current_sharpe}
@@ -523,10 +520,7 @@ def compare_to_benchmark(
     # gate reading those fields. The mask is pair-wise (a row is dropped if
     # EITHER side is NaN) and is applied to the tail-aligned inputs, so for
     # a NaN-free input the computation is bit-identical to before.
-    valid = ~(
-        np.isnan(np.asarray(strat, dtype=float))
-        | np.isnan(np.asarray(bench, dtype=float))
-    )
+    valid = ~(np.isnan(np.asarray(strat, dtype=float)) | np.isnan(np.asarray(bench, dtype=float)))
     if not valid.all():
         strat = strat[valid]
         bench = bench[valid]
@@ -540,11 +534,7 @@ def compare_to_benchmark(
         return _no_comparison()
 
     # Information ratio
-    ir = (
-        excess.mean() / excess.std() * np.sqrt(periods_per_year)
-        if excess.std() > 0
-        else 0
-    )
+    ir = excess.mean() / excess.std() * np.sqrt(periods_per_year) if excess.std() > 0 else 0
 
     # Alpha / Beta (CAPM). beta is the OLS regression slope of strategy
     # returns on benchmark returns, cov(S, B) / var(B) with a CONSISTENT
@@ -719,9 +709,7 @@ def validate_strategy(
     # strategy scores 1.0 (every fold profitable); a wildly unstable one
     # scores 0.0. Threshold 0.8 = >=80% of folds profitable.
     _wf_splits = walk_forward_splits(len(returns), n_splits=5)
-    _fold_sharpes = [
-        sharpe_ratio(returns.iloc[te].values) for _, te in _wf_splits if len(te) > 1
-    ]
+    _fold_sharpes = [sharpe_ratio(returns.iloc[te].values) for _, te in _wf_splits if len(te) > 1]
     if len(_fold_sharpes) > 0:
         param_stability = float(np.mean(np.array(_fold_sharpes) > 0))
     else:
@@ -801,12 +789,7 @@ def combinatorial_purged_cv(
     embargo: int = 0,
 ) -> list[tuple[np.ndarray, np.ndarray]]:
     """Generate combinatorial purged cross-validation splits."""
-    if (
-        n_samples <= 0
-        or n_splits <= 0
-        or n_test_splits <= 0
-        or n_test_splits >= n_splits
-    ):
+    if n_samples <= 0 or n_splits <= 0 or n_test_splits <= 0 or n_test_splits >= n_splits:
         return []
     fold_size = n_samples // n_splits
     if fold_size == 0:
@@ -818,9 +801,7 @@ def combinatorial_purged_cv(
         groups.append((s, e))
     splits = []
     for test_groups in _combinations(range(n_splits), n_test_splits):
-        test_idx = np.concatenate(
-            [np.arange(groups[g][0], groups[g][1]) for g in test_groups]
-        )
+        test_idx = np.concatenate([np.arange(groups[g][0], groups[g][1]) for g in test_groups])
         mask = np.ones(n_samples, dtype=bool)
         for g in test_groups:
             s, e = groups[g]

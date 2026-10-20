@@ -91,9 +91,7 @@ def _overnight_intraday_signal(
     # Determine which leg is favored based on predictor
     if predictor == "lagged_1d_overnight_sign":
         # Lagged overnight return sign
-        fav_overnight = (
-            overnight_ret.shift(1) > 0
-        )  # yesterday's overnight return positive
+        fav_overnight = overnight_ret.shift(1) > 0  # yesterday's overnight return positive
     elif predictor == "vix_regime":
         if vix_close is None:
             raise ValueError("VIX data required for vix_regime predictor")
@@ -111,14 +109,10 @@ def _overnight_intraday_signal(
     # Apply hold convention: signal determines position for next period
     if hold_convention == "next_overnight":
         # If favoring overnight, go long overnight leg tomorrow
-        signal = np.where(
-            fav_overnight, 1, -1
-        )  # 1 = long overnight, -1 = long intraday
+        signal = np.where(fav_overnight, 1, -1)  # 1 = long overnight, -1 = long intraday
     elif hold_convention == "next_intraday":
         # If favoring intraday, go long intraday leg tomorrow
-        signal = np.where(
-            fav_overnight, -1, 1
-        )  # -1 = long overnight, 1 = long intraday
+        signal = np.where(fav_overnight, -1, 1)  # -1 = long overnight, 1 = long intraday
     else:
         raise ValueError(f"Unknown hold convention: {hold_convention}")
 
@@ -149,9 +143,7 @@ def _run_ablation(
         max_leverage=config.max_leverage,
         allow_short=config.allow_short,
     )
-    equity_oh, stats_oh = run_backtest(
-        prices=price_df_oh, signals=signals_df_oh, config=config_oh
-    )
+    equity_oh, stats_oh = run_backtest(prices=price_df_oh, signals=signals_df_oh, config=config_oh)
 
     # Save ablation artifacts
     oh_dir = exp_dir / "ablation_overnight"
@@ -178,9 +170,7 @@ def _run_ablation(
         max_leverage=config.max_leverage,
         allow_short=config.allow_short,
     )
-    equity_ih, stats_ih = run_backtest(
-        prices=price_df_ih, signals=signals_df_ih, config=config_ih
-    )
+    equity_ih, stats_ih = run_backtest(prices=price_df_ih, signals=signals_df_ih, config=config_ih)
 
     # Save ablation artifacts
     ih_dir = exp_dir / "ablation_intraday"
@@ -207,9 +197,7 @@ def _run_ablation(
         max_leverage=config.max_leverage,
         allow_short=config.allow_short,
     )
-    equity_bh, stats_bh = run_backtest(
-        prices=price_df_bh, signals=signals_df_bh, config=config_bh
-    )
+    equity_bh, stats_bh = run_backtest(prices=price_df_bh, signals=signals_df_bh, config=config_bh)
 
     # Save ablation artifacts
     bh_dir = exp_dir / "ablation_SPY"
@@ -236,9 +224,7 @@ def _run_ablation(
         max_leverage=config.max_leverage,
         allow_short=config.allow_short,
     )
-    equity_ew, stats_ew = run_backtest(
-        prices=price_df_ew, signals=signals_df_ew, config=config_ew
-    )
+    equity_ew, stats_ew = run_backtest(prices=price_df_ew, signals=signals_df_ew, config=config_ew)
 
     # Save ablation artifacts
     ew_dir = exp_dir / "ablation_equalweight"
@@ -313,9 +299,7 @@ def main() -> None:
     open_ = spy_df["open"]
     vix_close = vix_df["close"].reindex(common)
 
-    print(
-        f"Data loaded: {len(close)} trading days from {close.index[0]} to {close.index[-1]}"
-    )
+    print(f"Data loaded: {len(close)} trading days from {close.index[0]} to {close.index[-1]}")
 
     # Define splits
     # Train: 2009-01-01 → 2014-12-31
@@ -339,9 +323,7 @@ def main() -> None:
             print(f"  Testing {combo_name}...")
 
             # Generate signal
-            signal = _overnight_intraday_signal(
-                predictor, hold_conv, close, open_, vix_close
-            )
+            signal = _overnight_intraday_signal(predictor, hold_conv, close, open_, vix_close)
 
             # Calculate positions (weights)
             # For our strategy, we go long either the overnight leg or intraday leg
@@ -474,9 +456,7 @@ def main() -> None:
 
             position_overnight = (signal == 1).astype(float)
             position_intraday = (signal == -1).astype(float)
-            strategy_ret = (
-                position_overnight * overnight_ret + position_intraday * intraday_ret
-            )
+            strategy_ret = position_overnight * overnight_ret + position_intraday * intraday_ret
 
             # Create a price series that, when percent-changed, gives our strategy returns
             price_series = (1 + strategy_ret).cumprod()
@@ -529,36 +509,22 @@ def main() -> None:
 
             # Calculate Sharpe ratios
             train_sharpe = (
-                sharpe_ratio(train_equity.pct_change().dropna())
-                if len(train_equity) > 1
-                else 0.0
+                sharpe_ratio(train_equity.pct_change().dropna()) if len(train_equity) > 1 else 0.0
             )
             val_sharpe = (
-                sharpe_ratio(val_equity.pct_change().dropna())
-                if len(val_equity) > 1
-                else 0.0
+                sharpe_ratio(val_equity.pct_change().dropna()) if len(val_equity) > 1 else 0.0
             )
             test_sharpe = (
-                sharpe_ratio(test_equity.pct_change().dropna())
-                if len(test_equity) > 1
-                else 0.0
+                sharpe_ratio(test_equity.pct_change().dropna()) if len(test_equity) > 1 else 0.0
             )
             oos_equity = pd.concat([val_equity, test_equity])
             oos_sharpe = (
-                sharpe_ratio(oos_equity.pct_change().dropna())
-                if len(oos_equity) > 1
-                else 0.0
+                sharpe_ratio(oos_equity.pct_change().dropna()) if len(oos_equity) > 1 else 0.0
             )
 
             # Calculate other metrics from full period
-            total_return = (
-                (equity.iloc[-1] / equity.iloc[0] - 1) if len(equity) > 0 else 0.0
-            )
-            max_dd = (
-                ((equity / equity.expanding().max()) - 1).min()
-                if len(equity) > 0
-                else 0.0
-            )
+            total_return = (equity.iloc[-1] / equity.iloc[0] - 1) if len(equity) > 0 else 0.0
+            max_dd = ((equity / equity.expanding().max()) - 1).min() if len(equity) > 0 else 0.0
 
             # Count trades (signal changes) - approximate from equity curve turnover
             # For simplicity, we'll use the number of trades from the stats
@@ -590,9 +556,7 @@ def main() -> None:
     # Select best combo based on Val Sharpe
     best_result = max(results, key=lambda x: x["val_sharpe"])
     best_combo = best_result["combo_name"]
-    print(
-        f"\nBest combination: {best_combo} (Val Sharpe: {best_result['val_sharpe']:.4f})"
-    )
+    print(f"\nBest combination: {best_combo} (Val Sharpe: {best_result['val_sharpe']:.4f})")
 
     # Run backtest for best combo on full period for OOS gate evaluation
     # Parse the best_combo to get predictor and hold convention
@@ -620,9 +584,7 @@ def main() -> None:
 
     position_overnight = (signal_best == 1).astype(float)
     position_intraday = (signal_best == -1).astype(float)
-    strategy_ret_best = (
-        position_overnight * overnight_ret + position_intraday * intraday_ret
-    )
+    strategy_ret_best = position_overnight * overnight_ret + position_intraday * intraday_ret
 
     # Configure backtest for best combo
     config_best = BacktestConfig(
@@ -643,9 +605,7 @@ def main() -> None:
     signals_df_best = pd.DataFrame({"SPY": 1.0}, index=close.index)
 
     # Run backtest with our constructed prices and signals
-    result_best = run_backtest(
-        prices=price_df_best, signals=signals_df_best, config=config_best
-    )
+    result_best = run_backtest(prices=price_df_best, signals=signals_df_best, config=config_best)
     equity_best = result_best.equity_curve
     stats_best = {
         "returns": result_best.returns,
@@ -678,9 +638,7 @@ def main() -> None:
         (oos_equity.iloc[-1] / oos_equity.iloc[0] - 1) if len(oos_equity) > 0 else 0.0
     )
     oos_max_dd = (
-        ((oos_equity / oos_equity.expanding().max()) - 1).min()
-        if len(oos_equity) > 0
-        else 0.0
+        ((oos_equity / oos_equity.expanding().max()) - 1).min() if len(oos_equity) > 0 else 0.0
     )
 
     oos_returns_series = oos_equity.pct_change().dropna()
@@ -726,9 +684,7 @@ def main() -> None:
         bear_returns = strategy_ret_best[bear_mask].dropna()
 
         bull_sharpe = sharpe_ratio(bull_returns) if len(bull_returns) > 0 else 0.0
-        sideways_sharpe = (
-            sharpe_ratio(sideways_returns) if len(sideways_returns) > 0 else 0.0
-        )
+        sideways_sharpe = sharpe_ratio(sideways_returns) if len(sideways_returns) > 0 else 0.0
         bear_sharpe = sharpe_ratio(bear_returns) if len(bear_returns) > 0 else 0.0
 
         worst_regime_sharpe = min(bull_sharpe, sideways_sharpe, bear_sharpe)
@@ -884,9 +840,7 @@ def main() -> None:
             final_results,
             f,
             indent=2,
-            default=lambda x: (
-                float(x) if isinstance(x, (np.integer, np.floating)) else str(x)
-            ),
+            default=lambda x: float(x) if isinstance(x, (np.integer, np.floating)) else str(x),
         )
     tracker.log_artifact("summary", summary_path)
 

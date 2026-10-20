@@ -47,9 +47,7 @@ def prices(rng):
 # ===========================================================================
 class TestBootstrapConfidenceInterval:
     def test_returns_tuple_of_floats(self, returns):
-        lo, hi = st.bootstrap_confidence_interval(
-            returns, n_bootstrap=500, random_state=42
-        )
+        lo, hi = st.bootstrap_confidence_interval(returns, n_bootstrap=500, random_state=42)
         assert isinstance(lo, float) or np.isscalar(lo)
         assert lo < hi
 
@@ -59,9 +57,7 @@ class TestBootstrapConfidenceInterval:
         assert a == b
 
     def test_default_statistic_is_mean(self, returns):
-        lo, hi = st.bootstrap_confidence_interval(
-            returns, n_bootstrap=500, random_state=1
-        )
+        lo, hi = st.bootstrap_confidence_interval(returns, n_bootstrap=500, random_state=1)
         assert lo <= returns.mean() <= hi
 
     def test_confidence_level_changes_width(self, returns):
@@ -78,9 +74,7 @@ class TestBootstrapConfidenceInterval:
         assert np.isnan(lo) and np.isnan(hi)
 
     def test_single_observation(self):
-        lo, hi = st.bootstrap_confidence_interval(
-            np.array([0.05]), n_bootstrap=100, random_state=3
-        )
+        lo, hi = st.bootstrap_confidence_interval(np.array([0.05]), n_bootstrap=100, random_state=3)
         assert lo == pytest.approx(0.05) and hi == pytest.approx(0.05)
 
     def test_custom_statistic_median(self, returns):
@@ -132,9 +126,7 @@ class TestSharpeRatio:
         rng = np.random.default_rng(21)
         daily = rng.normal(0.001, 0.01, 252)
         std = daily.std()
-        assert st.sharpe_ratio(
-            daily, risk_free=0.10, periods_per_year=252
-        ) == pytest.approx(
+        assert st.sharpe_ratio(daily, risk_free=0.10, periods_per_year=252) == pytest.approx(
             st.sharpe_ratio(daily, risk_free=0.0, periods_per_year=252)
             - 0.10 / (std * np.sqrt(252))
         )
@@ -156,12 +148,8 @@ class TestSharpeRatio:
         assert lo <= point <= hi
 
     def test_ci_wider_at_lower_confidence(self, returns):
-        lo90, hi90 = st.sharpe_ratio_ci(
-            returns, confidence=0.90, n_bootstrap=800, random_state=5
-        )
-        lo99, hi99 = st.sharpe_ratio_ci(
-            returns, confidence=0.99, n_bootstrap=800, random_state=5
-        )
+        lo90, hi90 = st.sharpe_ratio_ci(returns, confidence=0.90, n_bootstrap=800, random_state=5)
+        lo99, hi99 = st.sharpe_ratio_ci(returns, confidence=0.99, n_bootstrap=800, random_state=5)
         assert (hi99 - lo99) > (hi90 - lo90)
 
 
@@ -220,17 +208,13 @@ class TestMultipleTestingCorrection:
 
     def test_bonferroni_caps_at_one(self):
         # p=[0.5], n=1 -> adjusted = min(0.5*1, 1) = 0.5, not rejected at alpha 0.05
-        rejected, adjusted = st.multiple_testing_correction(
-            np.array([0.5]), "bonferroni", 0.05
-        )
+        rejected, adjusted = st.multiple_testing_correction(np.array([0.5]), "bonferroni", 0.05)
         assert adjusted[0] == 0.5
         assert not rejected[0]
 
     def test_bonferroni_caps_adjusted_at_one(self):
         # p=[0.5], n=2 -> adjusted = min(1.0, 1) = 1.0, capped
-        _, adjusted = st.multiple_testing_correction(
-            np.array([0.5, 0.5]), "bonferroni", 0.05
-        )
+        _, adjusted = st.multiple_testing_correction(np.array([0.5, 0.5]), "bonferroni", 0.05)
         assert adjusted[0] == 1.0
 
     def test_bh_is_less_conservative_than_bonferroni(self):
@@ -251,9 +235,7 @@ class TestMultipleTestingCorrection:
             st.multiple_testing_correction(np.array([0.01]), "unknown", 0.05)
 
     def test_empty_input(self):
-        rejected, adjusted = st.multiple_testing_correction(
-            np.array([]), "bonferroni", 0.05
-        )
+        rejected, adjusted = st.multiple_testing_correction(np.array([]), "bonferroni", 0.05)
         assert len(rejected) == 0 and len(adjusted) == 0
 
 
@@ -356,9 +338,7 @@ class TestStressedCostTest:
         base_returns = rng.normal(0.0, 0.01, 400)
         base_costs = np.full(400, 0.0005)
         res = st.stressed_cost_test(base_returns, base_costs)
-        assert res["stressed_commission_sharpe"] == pytest.approx(
-            res["stressed_spread_sharpe"]
-        )
+        assert res["stressed_commission_sharpe"] == pytest.approx(res["stressed_spread_sharpe"])
 
 
 # ===========================================================================
@@ -387,7 +367,10 @@ class TestCapacityEstimate:
 
     def test_custom_impact_model_used(self, rng):
         returns = rng.normal(0.001, 0.01, 400)
-        impact = lambda p: 50.0 * p
+
+        def impact(p):
+            return 50.0 * p
+
         res = st.capacity_estimate(returns, adv=1_000_000.0, impact_model=impact)
         assert res["max_participation_rate"] > 0.0
 
@@ -429,9 +412,7 @@ class TestCompareToBenchmark:
         expected_beta = np.cov(strat, bench, ddof=1)[0, 1] / np.var(bench, ddof=1)
         assert res["beta"] == pytest.approx(expected_beta)
         assert res["beta"] == pytest.approx(np.polyfit(bench, strat, 1)[0], rel=1e-9)
-        assert res["beta"] == pytest.approx(
-            stats.linregress(bench, strat).slope, rel=1e-9
-        )
+        assert res["beta"] == pytest.approx(stats.linregress(bench, strat).slope, rel=1e-9)
 
     def test_beta_matches_ols_not_mixed_ddof(self, rng):
         """Regression: beta must equal the OLS slope, not the inflated
@@ -455,9 +436,7 @@ class TestCompareToBenchmark:
         assert res["alpha_annualized"] == 0.0
 
     def test_p_value_in_unit_interval(self, rng):
-        res = st.compare_to_benchmark(
-            rng.normal(0.001, 0.01, 400), rng.normal(0.0005, 0.01, 400)
-        )
+        res = st.compare_to_benchmark(rng.normal(0.001, 0.01, 400), rng.normal(0.0005, 0.01, 400))
         assert 0.0 <= res["alpha_p_value"] <= 1.0
 
     def test_dataframe_benchmark_reduced_to_equal_weighted(self, rng):
@@ -603,9 +582,7 @@ class TestValidateStrategy:
     def test_profit_factor_infinite_when_no_losses(self, rng):
         # All-positive returns => no gross loss => profit_factor is inf.
         returns = np.abs(rng.normal(0.001, 0.01, 400)) + 1e-6
-        res = st.validate_strategy(
-            returns, self._trades(50), {"min_profit_factor": 1.0}
-        )
+        res = st.validate_strategy(returns, self._trades(50), {"min_profit_factor": 1.0})
         assert np.isinf(res["profit_factor"])
 
     def test_walkforward_zero_when_first_half_flat(self):

@@ -53,21 +53,15 @@ def test_buy_and_hold():
 
 def test_ewma_crossover():
     prices = _make_prices()
-    sig = baselines.ewma_crossover_signals(
-        prices, fast_span=5, slow_span=10, long_only=True
-    )
+    sig = baselines.ewma_crossover_signals(prices, fast_span=5, slow_span=10, long_only=True)
     assert sig.shape == prices.shape
-    sig_ls = baselines.ewma_crossover_signals(
-        prices, fast_span=5, slow_span=10, long_only=False
-    )
+    sig_ls = baselines.ewma_crossover_signals(prices, fast_span=5, slow_span=10, long_only=False)
     assert (sig_ls.values >= -1).all() and (sig_ls.values <= 1).all()
 
 
 def test_ewma_short_not_enough():
     prices = _make_prices(n_days=15)
-    sig = baselines.ewma_crossover_signals(
-        prices, fast_span=5, slow_span=20, long_only=True
-    )
+    sig = baselines.ewma_crossover_signals(prices, fast_span=5, slow_span=20, long_only=True)
     assert sig.values.sum() == 0
 
 
@@ -75,17 +69,13 @@ def test_momentum_basic():
     prices = _make_prices(n_days=300)
     sig = baselines.momentum_signals(prices, lookback=20, skip=5, long_only=True)
     assert sig.shape == prices.shape
-    sig_ls = baselines.momentum_signals(
-        prices, lookback=20, skip=5, long_only=False, n_top=1
-    )
+    sig_ls = baselines.momentum_signals(prices, lookback=20, skip=5, long_only=False, n_top=1)
     assert sig_ls.shape == prices.shape
 
 
 def test_momentum_top_n():
     prices = _make_prices(n_days=300, n_syms=5)
-    sig = baselines.momentum_signals(
-        prices, lookback=30, skip=5, long_only=True, n_top=2
-    )
+    sig = baselines.momentum_signals(prices, lookback=30, skip=5, long_only=True, n_top=2)
     # on any day with signal, sum magnitude relates to weights
     assert sig.shape == prices.shape
 
@@ -158,9 +148,7 @@ def test_momentum_long_short_n_top_negative():
         data[i, 1] = -0.01 * i  # down
         data[i, 2] = 0.0
     prices = pd.DataFrame(data, index=idx, columns=["S0", "S1", "S2"])
-    sig = baselines.momentum_signals(
-        prices, lookback=30, skip=5, long_only=False, n_top=1
-    )
+    sig = baselines.momentum_signals(prices, lookback=30, skip=5, long_only=False, n_top=1)
     assert isinstance(sig, pd.DataFrame)
     assert sig.shape == prices.shape
 
@@ -168,9 +156,7 @@ def test_momentum_long_short_n_top_negative():
 def test_vol_scaled_tsmom_constant_prices():
     idx = pd.date_range("2020-01-01", periods=100, freq="D")
     prices = pd.DataFrame({"A": [1.0] * 100}, index=idx)
-    sig = baselines.vol_scaled_tsmom_signals(
-        prices, lookback=30, skip=5, long_only=True
-    )
+    sig = baselines.vol_scaled_tsmom_signals(prices, lookback=30, skip=5, long_only=True)
     assert sig.shape == prices.shape
     assert np.allclose(sig.values, 0.0)
 
@@ -235,9 +221,7 @@ def test_momentum_all_negative_long_short():
         data[i, 0] = 10 - 0.1 * i
         data[i, 1] = 10 - 0.2 * i
     prices = pd.DataFrame(data, index=idx, columns=["S0", "S1"])
-    sig = baselines.momentum_signals(
-        prices, lookback=30, skip=5, long_only=False, n_top=None
-    )
+    sig = baselines.momentum_signals(prices, lookback=30, skip=5, long_only=False, n_top=None)
     assert isinstance(sig, pd.DataFrame)
     # When all negative and long_short, each gets negative weight (-1/2)
     assert np.allclose(sig.iloc[-1].values, -0.5)

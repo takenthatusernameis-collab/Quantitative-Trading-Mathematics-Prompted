@@ -116,9 +116,7 @@ def _perturbed_value(param, factor):
 # Perturbation grid: exactly +/-20% on every numeric parameter of the
 # frozen config. Each entry is (param, perturbed_value).
 PERTURBATIONS = [
-    (param, _perturbed_value(param, factor))
-    for param in PERTURBATION_KEYS
-    for factor in (0.8, 1.2)
+    (param, _perturbed_value(param, factor)) for param in PERTURBATION_KEYS for factor in (0.8, 1.2)
 ]
 
 # Joint perturbations: all numeric parameters moved simultaneously.
@@ -189,10 +187,7 @@ def _build_data(fetcher, start, end):
         volumes_list.append(df["volume"].rename(sym))
     prices = pd.concat(prices_list, axis=1, sort=True).sort_index().ffill().bfill()
     volumes = (
-        pd.concat(volumes_list, axis=1, sort=True)
-        .sort_index()
-        .reindex(prices.index)
-        .fillna(0)
+        pd.concat(volumes_list, axis=1, sort=True).sort_index().reindex(prices.index).fillna(0)
     )
 
     vix_df = fetcher.fetch_yahoo([VIX_SYMBOL], start=start, end=end, interval="1h")
@@ -225,10 +220,7 @@ def _config_with_cost_mult(base_cfg, mult):
         sp["spread_ticks"] = COST_MODEL_DEFAULTS["future_spread_ticks"] * mult
         sp["slippage_ticks"] = COST_MODEL_DEFAULTS["future_slippage_ticks"] * mult
     cm = CostModel(
-        future_commission_per_contract=COST_MODEL_DEFAULTS[
-            "future_commission_per_contract"
-        ]
-        * mult,
+        future_commission_per_contract=COST_MODEL_DEFAULTS["future_commission_per_contract"] * mult,
         future_spread_ticks=COST_MODEL_DEFAULTS["future_spread_ticks"] * mult,
         future_slippage_ticks=COST_MODEL_DEFAULTS["future_slippage_ticks"] * mult,
         futures_specs=specs,
@@ -358,14 +350,10 @@ def per_symbol_contributions(result, prices, cfg):
         elif cfg.asset_class == AssetClass.FUTURE:
             contract_cost = cfg.cost_model.future_cost_per_contract(sym)
             multiplier = cfg.cost_model.get_future_contract_multiplier(sym)
-            contracts_traded = (
-                changes * cfg.initial_capital / (prices[sym] * multiplier)
-            )
+            contracts_traded = changes * cfg.initial_capital / (prices[sym] * multiplier)
             cost_s = contracts_traded.abs() * contract_cost / cfg.initial_capital
         elif cfg.asset_class == AssetClass.EQUITY:
-            cost_bps = cfg.cost_model.equity_cost_bps(
-                cfg.cost_model.equity_spread_bps, 0.0
-            )
+            cost_bps = cfg.cost_model.equity_cost_bps(cfg.cost_model.equity_spread_bps, 0.0)
             cost_s = changes * (cost_bps / 10000.0)
         elif cfg.asset_class == AssetClass.CRYPTO:
             cost_bps = cfg.cost_model.crypto_cost_bps(0.0)
@@ -413,9 +401,7 @@ def probe_live_extension(fetcher, start=DATA_START, end=DATA_END):
     """
     cached_end = _cached_data_end()
     try:
-        data = fetcher.fetch_futures(
-            FUTURES_UNIVERSE, start=start, end=end, interval="1h"
-        )
+        data = fetcher.fetch_futures(FUTURES_UNIVERSE, start=start, end=end, interval="1h")
         max_ts = None
         n_fresh = 0
         for df in data.values():
@@ -496,9 +482,7 @@ def main():
         bh_weights = pd.DataFrame(
             1.0 / len(prices.columns), index=prices.index, columns=prices.columns
         )
-        bh_result = run_backtest(
-            prices=prices, signals=bh_weights, volumes=volumes, config=cfg
-        )
+        bh_result = run_backtest(prices=prices, signals=bh_weights, volumes=volumes, config=cfg)
 
         # ============================================================
         # 1. Perturbation robustness (NEW gate)
@@ -509,9 +493,7 @@ def main():
         for label, overrides in pert_rows_table:
             params = dict(FROZEN_CONFIG, **overrides)
             pos = build_positions(prices, atr, vol_exit, vix_hourly, **params)
-            res, gate = _eval_positions(
-                pos, prices, volumes, cfg, masks, vix_hourly, bh_result
-            )
+            res, gate = _eval_positions(pos, prices, volumes, cfg, masks, vix_hourly, bh_result)
             om = gate["oos_metrics"]
             row = {
                 "label": label,
@@ -557,9 +539,7 @@ def main():
         base_pos = build_positions(prices, atr, vol_exit, vix_hourly, **FROZEN_CONFIG)
         for mult in COST_MULTIPLIERS:
             cm_cfg = _config_with_cost_mult(cfg, mult)
-            res = run_backtest(
-                prices=prices, signals=base_pos, volumes=volumes, config=cm_cfg
-            )
+            res = run_backtest(prices=prices, signals=base_pos, volumes=volumes, config=cm_cfg)
             oos_ret = res.returns[masks["oos"]]
             test_ret = res.returns[masks["test"]]
             om = _period_metrics(oos_ret, _count_in(res.trades, masks["oos"], prices))
@@ -624,9 +604,7 @@ def main():
             # Re-fetch the latest available hourly bars (data beyond the H10 Test
             # window). yfinance hourly =F is capped at ~730 days, so the fresh
             # extension is whatever new bars have appeared since the H10 run.
-            fresh_prices, fresh_volumes, fresh_vix = _build_data(
-                fetcher, DATA_START, DATA_END
-            )
+            fresh_prices, fresh_volumes, fresh_vix = _build_data(fetcher, DATA_START, DATA_END)
             fresh_oos = _fresh_oos_window(fresh_prices, h10_test_end)
             n_fresh = int(fresh_oos.sum())
             if n_fresh > 0:
@@ -665,11 +643,7 @@ def main():
                     config=fresh_cfg,
                 )
                 fr = fresh_res.returns[fresh_oos]
-                fsr = (
-                    float(sharpe_ratio(fr.values))
-                    if len(fr) > 1 and fr.std() > 0
-                    else 0.0
-                )
+                fsr = float(sharpe_ratio(fr.values)) if len(fr) > 1 and fr.std() > 0 else 0.0
                 fcum = (1 + fr).cumprod()
                 fdd = float((fcum / fcum.cummax() - 1).min()) if len(fcum) > 0 else 0.0
                 fpf = (
@@ -772,14 +746,10 @@ def main():
         tracker.log_dataframe("volumes", volumes)
         tracker.log_dataframe("vix_hourly", vix_hourly.to_frame("vix"))
         tracker.log_dataframe("baseline_positions", base_pos)
-        tracker.log_dataframe(
-            "baseline_equity", base_res.equity_curve.to_frame("equity")
-        )
+        tracker.log_dataframe("baseline_equity", base_res.equity_curve.to_frame("equity"))
         tracker.log_dataframe("baseline_returns", base_res.returns.to_frame("returns"))
         tracker.log_dataframe("baseline_trades", base_res.trades)
-        tracker.log_dataframe(
-            "benchmark_equity", bh_result.equity_curve.to_frame("equity")
-        )
+        tracker.log_dataframe("benchmark_equity", bh_result.equity_curve.to_frame("equity"))
 
         exp_dir = Path(tracker.log_dir) / "artifacts" / exp_id
         exp_dir.mkdir(parents=True, exist_ok=True)
@@ -788,9 +758,7 @@ def main():
                 summary,
                 f,
                 indent=2,
-                default=lambda x: (
-                    float(x) if isinstance(x, (np.integer, np.floating)) else str(x)
-                ),
+                default=lambda x: float(x) if isinstance(x, (np.integer, np.floating)) else str(x),
             )
         tracker.log_artifact("summary", exp_dir / "summary.json")
         tracker.finish_experiment(status="completed")
@@ -805,12 +773,8 @@ def main():
             f"    perturbation robustness: {'PASS' if pert_pass else 'FAIL'} "
             f"(min perturbed SR {pert_df['oos_sharpe'].min():.3f} vs floor {pert_sharpe_floor:.3f})"
         )
-        print(
-            f"    cost sensitivity (PF@x1.5 >= 1.3): {'PASS' if cost_pass else 'FAIL'}"
-        )
-        print(
-            f"    per-symbol concentration (>=3 symbols +SR): {'PASS' if conc_pass else 'FAIL'}"
-        )
+        print(f"    cost sensitivity (PF@x1.5 >= 1.3): {'PASS' if cost_pass else 'FAIL'}")
+        print(f"    per-symbol concentration (>=3 symbols +SR): {'PASS' if conc_pass else 'FAIL'}")
         print(f"    fresh OOS extension: {fresh_verdict}")
         print(
             f"  OVERALL: {summary['verdict']}  "
