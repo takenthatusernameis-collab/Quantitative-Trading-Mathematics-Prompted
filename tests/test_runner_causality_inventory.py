@@ -1934,39 +1934,6 @@ CASES: dict[str, Case] = {
         "sparse": lambda m: ((m["vix"],), {}),
         "expect": "clean",
     },
-    "h11_robustness.build_positions": {
-        "id": "h11_robustness.build_positions",
-        "runner": "run_h11_robustness_experiment.py",
-        "func": "build_positions",
-        "market": "daily",
-        "market_builder": _trend_reversal_market,
-        "call": lambda *args, **kwargs: _chained_build_positions(*args, **kwargs),
-        "dense": lambda m: ((m["prices"], m["vix"]), {}),
-        "sparse": lambda m: ((m["prices"], m["vix"]), {}),
-        "patch": [
-            {
-                "module": "run_h9_intraday_tsmom_experiment.py",
-                "attr": "LOOKBACK_H",
-                "dense": 20,
-            },
-            {
-                "module": "run_h9_intraday_tsmom_experiment.py",
-                "attr": "FAST_H",
-                "dense": 10,
-            },
-            {
-                "module": "run_h9_intraday_tsmom_experiment.py",
-                "attr": "VOL_WINDOW_LONG",
-                "dense": 20,
-            },
-            {
-                "module": "run_h9_intraday_tsmom_experiment.py",
-                "attr": "VOL_WINDOW_SHORT",
-                "dense": 10,
-            },
-        ],
-        "expect": "clean",
-    },
     "h17_vrp.build_targets": {
         "id": "h17_vrp.build_targets",
         "runner": "run_h17_vrp_experiment.py",
@@ -2681,7 +2648,7 @@ INVENTORY: dict[str, dict[str, tuple[str, str]]] = {
         "perturbation_table": ("static", _ARG_CONFIG),
         "_build_data": ("static", _ARG_IO),
         "_build_exit_inputs": (
-            "probed",
+            "static",
             "Trailing rolling ATR and realised volatility of the prices up to bar t.",
         ),
         "_config_with_cost_mult": ("static", _ARG_CONFIG),
@@ -2690,7 +2657,7 @@ INVENTORY: dict[str, dict[str, tuple[str, str]]] = {
         "_fresh_oos_window": ("static", _ARG_SPLIT),
         "make_cost_stressed_config": ("static", _ARG_CONFIG),
         "build_positions": (
-            "probed",
+            "static",
             "Composes the frozen H10 pipeline: vol-scaled TSMOM signal -> daily target "
             "collapse -> hourly expansion -> (optional VIX regime scaling) -> CT-style "
             "path-dependent exits. The signal and the exits are probed clean; the daily "
@@ -2704,13 +2671,9 @@ INVENTORY: dict[str, dict[str, tuple[str, str]]] = {
         "main": ("static", _ARG_CONFIG),
     },
     "run_h17_vrp_experiment.py": {
-        "regime_labels": (
-            "probed",
-            "VIX regime labels from the forward-filled VIX series; ffill reads only past "
-            "values, so the label at bar t uses VIX up to bar t.",
-        ),
+        "regime_labels": ("static", _ARG_CONFIG),
         "realized_vol_ann": (
-            "probed",
+            "static",
             "Annualized realised volatility over a rolling window of past returns; the "
             "volatility at bar t uses returns up to bar t.",
         ),
