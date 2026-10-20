@@ -485,8 +485,8 @@ control), the verdict rule and the pre-registration itself.
 - **5 certified edges** (H10/H11/H12/H22/H25) — all variants of the same intraday futures TSMOM mechanism (**H27: the edge is a one-day look-ahead; H28: re-certified under a causal collapse and `CAUSAL_REJECTED` — 3/8 to 4/9 gates, OOS Sharpe 0.13–0.39; H29/H30: the daily/monthly families are `CAUSAL` on the committed artifacts, including H7 once its artifact was committed, while H11/H12 inherit H10's look-ahead positions and H23 uses the same collapse — so **no certified edge in this record survives a causal construction**); of these H22 has the strongest Sharpe (9/9 gates, OOS Sharpe 1.372, PF 1.334, DD −11.9%) and H25 the strongest PF margin (9/9 gates, OOS Sharpe 1.324, PF 1.320, DD −11.9% at 26.25% ann vol); both are *qualified* by an i.i.d. bootstrap CI whose lower bound sits below the PF gate, and the pre-registered block-bootstrap sensitivity confirms the PF fragility is not an i.i.d. artifact. (H26: the published Sharpe is a √252-per-bar metric — the annualized values are 2.55×–4.76× higher; the *PF* qualification is unaffected because PF is scale-invariant.)
 - **19 rejected** hypotheses, each with a documented root-cause attribution in `HYPOTHESIS_SPEC.md` and `INEFFICIENCY_RANKING.md`.
 - **Total compute:** ~2.5 CPU-h across all hypotheses (well within the ≤ 2 CPU-h per-hypothesis budget; the largest single run was H12 at 0.652 CPU-h). The H25 Robustness audit added 0.0002 CPU-h; the H26 scale audit added 0.0005 CPU-h; the H27 level/look-ahead audit added 0.0014 CPU-h (5 bit-exact rebuilds, no grid re-run); the **H28 causal re-certification added 1.885 CPU-h** (8 runs: 4 controls + 4 causal, the 13,824-combo H10 grid run twice); the **H29/H30 look-ahead sweep added 0.0002 CPU-h** (8 bit-exact rebuilds of the *selected* configurations, one counterfactual, no grid re-run).
-- **Test suite:** 959 passing, 1 skipped (including the 17-test H25 Robustness audit — 12 i.i.d. bootstrap + 5 block-bootstrap sensitivity — the 23-test H25 regression set, the 44-test H26 scale-audit set, the 36-test H27 level-audit set, the 47-test H28 re-certification set and the 36-test H29 sweep set, plus the 2 new H31 `compare_to_benchmark` DataFrame/ndarray regression tests, plus the 6 new H32 `deflated_sharpe_ratio` + `purged_kfold_splits`/`combinatorial_purged_cv` regression tests, plus the 12 new H33 benchmark-contract tests, plus the 10 new H34 direction-aware benchmark-gate tests, plus the 11 new H35 gate-vacuity contract tests and the 1 new H35 one-sided-vs-gate non-equivalence test, plus the 30 new H36 point-in-time contract tests, plus the 179 new H37 runner-causality inventory tests; the single skip is `buy_and_hold`, a constant position that cannot react to a perturbation).
-- **Coverage (corrected by H33, re-measured by H34):** the H33 baseline of **94%** was caused by the dead `deflated_sharpe_ratio` body (16 uncovered statements in `src/qtr/validation/statistics.py`). H34 **deleted** that dead code (it was not exported, had no caller and duplicated `run_h12_selection_bias_audit.py:deflated_sharpe_ratio` with the same `max_z` formula), and the measured coverage is now **100%** — `src/qtr` has **1010 statements, 0 missed** (`python -m pytest --cov=qtr --cov-report=term-missing`), with H34's new gate helper fully covered. (The H32 handoff's "99%, one uncovered branch" claim was wrong: its named guard — the `walk_forward_splits` empty-window branch at `statistics.py:159-160` — is covered by `tests/test_statistics.py:185`.)
+- **Test suite:** 1115 passing, 1 skipped (including the 17-test H25 Robustness audit — 12 i.i.d. bootstrap + 5 block-bootstrap sensitivity — the 23-test H25 regression set, the 44-test H26 scale-audit set, the 36-test H27 level-audit set, the 47-test H28 re-certification set and the 36-test H29 sweep set, plus the 2 new H31 `compare_to_benchmark` DataFrame/ndarray regression tests, plus the 6 new H32 `deflated_sharpe_ratio` + `purged_kfold_splits`/`combinatorial_purged_cv` regression tests, plus the 12 new H33 benchmark-contract tests, plus the 10 new H34 direction-aware benchmark-gate tests, plus the 11 new H35 gate-vacuity contract tests and the 1 new H35 one-sided-vs-gate non-equivalence test, plus the 30 new H36 point-in-time contract tests, plus the 179 new H37 runner-causality inventory tests, plus the 13 new H38 engine-metric-consistency tests; the single skip is `buy_and_hold`, a constant position that cannot react to a perturbation).
+- **Coverage (corrected by H33, re-measured by H34 and H38):** the H33 baseline of **94%** was caused by the dead `deflated_sharpe_ratio` body (16 uncovered statements in `src/qtr/validation/statistics.py`). H34 **deleted** that dead code (it was not exported, had no caller and duplicated `run_h12_selection_bias_audit.py:deflated_sharpe_ratio` with the same `max_z` formula), and the measured coverage is now **100%** — `src/qtr` has **1014 statements, 0 missed** (`python -m pytest --cov=qtr --cov-report=term-missing`), with H34's new gate helper fully covered and H38's engine change adding no new branch. (The H32 handoff's "99%, one uncovered branch" claim was wrong: its named guard — the `walk_forward_splits` empty-window branch at `statistics.py:159-160` — is covered by `tests/test_statistics.py:185`.)
 - **Benchmark gates (H33 + H34 + H35):** three published benchmark gates were vacuous (H4's `p`, H18's `benchmark_p`, H7's `max_p_value`/`min_information_ratio`) because the runner read a key the library never returns, passed a boolean mask as `risk_free`, or compared returns against **price levels**. They are repaired and pinned by an executable contract; the recomputed tallies are H4 1/8 (unchanged), H7 5/9 (published 4/9), H18 3/9 (published 2/9); no verdict changes. The pre-registered gate was also *direction-blind* — it is satisfied by a significantly **negative** alpha. **H34 re-specified it** (`p < 0.05` **and** a positive excess return), closed it in the code for all 17 runners and disclosed the impact: four published artifacts (H3, H19, H20, H23) carry a wrong-reason `p` PASS; the certified families (H10, H22, H25) survive; no published row, threshold, verdict or certified number changes. **H35 audited the remaining gate class** — gates that are a constant, or that compare a placeholder, and can therefore never fail — and found three of them: **H7's** `min_perturbed_sharpe_ratio` and `min_worst_regime_sharpe` (hard-coded `True`) and **H18's** `perturbation_ratio` (a placeholder constant). Both families are REJECT, so no published verdict rests on them (H7's published 4/9 is 2/7 on the evaluable gates; H18's published 2/9 is 1/8). Three runners (H4/H5/H6) also read their IR threshold through a permissive default (`GATES.get(..., -1e18)`), which is now a direct subscript so a missing threshold fails loudly. No certified family has a non-evaluating gate.
 - **Structural walls on free data:** (a) yfinance hourly `=F` hard-capped at ~730 days (no bars beyond 2026-10-11); (b) Coinbase/CCXT hourly OHLCV capped at ~12 days; (c) the joint Sharpe ≥ 1.0 ∧ DD ≤ 15% gate met by no long-only free-data equity family; (d) PF ≥ 1.3 is fragile across the entire intraday-futures-carry family (H13/H14 for H10; H21 for the basket; H22 margin +0.034; H25 margin +0.020 — all CI-fragile, P(PF≥1.3)≈0.5–0.62 on the free window). **Corrected by H26:** the *Sharpe* side of (c)/(d) is not a further blocker — the published intraday Sharpe is a √252-per-bar metric, and on the repo's own annualization convention the certified family's Sharpe CI lower bound is 2.25 ≫ 1.0. The binding constraint is the **PF bootstrap margin plus the 730-day sample**, both of which are scale-invariant.
 
@@ -612,11 +612,12 @@ definition is pre-registered and is **not** changed here; it is the next task.
 
 ---
 
-## Next Task (updated 2026-10-20, after H37)
+## Next Task (updated 2026-10-20, after H38)
 
 **H34 and its follow-up are complete, H35 has closed the last open gate-defect class, H36 has
-closed the point-in-time gap in the shared infrastructure, and H37 has closed it in the
-runners' inline signal code.** The three items H34 left behind were finished in the session
+closed the point-in-time gap in the shared infrastructure, H37 has closed it in the
+runners' inline signal code, and H38 has closed the last open metric defect — the engine's
+`total_return`, which measured the wrong horizon.** The three items H34 left behind were finished in the session
 that followed it (the artifact-adjacent assertions for H20 and H23 now assert the *disclosed*
 state, the tally impact is pinned in `tests/test_benchmark_gate_contract.py`, and the
 `Summary statistics` bullets were re-baselined); **H35** then audited the remaining gate
@@ -624,7 +625,10 @@ class — gates that are a constant, or that compare a placeholder, and can ther
 — found three of them (H7 ×2, H18 ×1), disclosed them, and pinned them with an executable
 contract; **H36** pinned the *point-in-time* contract of the shared signal library and backtest
 engine; **H37** extended the same contract to the runners' own position series, and in doing so
-**found one look-ahead the record did not state** (H18's `vix_regime` predictor, below).
+**found one look-ahead the record did not state** (H18's `vix_regime` predictor, below); **H38**
+found that the engine's `total_return` dropped the first bar — the only bar that carries the
+initial entry cost — so that the metric was blind to a 205× change in the cost model, and fixed
+it (see §H38).
 
 **One task is assigned** (stated in full in `NEXT_TASK.md`):
 
@@ -644,6 +648,11 @@ engine; **H37** extended the same contract to the runners' own position series, 
 > runners, and report every predictor that reads its own bar's close while trading that
 > bar's return.
 
+*(This task was assigned after H37 and **completed** in the session that followed it: all 32
+`run_*.py` files are now in scope of `tests/test_runner_causality_inventory.py` and every
+predictor of the H29-CAUSAL families is probed clean. The bullet above is kept as the record of
+what was assigned.)*
+
 The state a next session inherits:
 
 - The pre-registered free-data hypothesis space (H1–H30) remains **exhausted**; no new
@@ -652,19 +661,18 @@ The state a next session inherits:
   non-evaluating gate** — the H35 audit covers every gate site in the repository.
 - Every published artifact, threshold, verdict and certified number is frozen. Every
   recomputed number in this report is a **disclosure**, not a rewrite.
-- The shared library, the engine **and the eleven audited runners** are now pinned as
+- The shared library, the engine **and every `run_*.py` in the repository** are now pinned as
   **point-in-time**; keep them that way (re-run `tests/test_causality_invariant.py` after any
   change under `src/qtr`, and `tests/test_runner_causality_inventory.py` after any change in a
   `run_*.py`).
 - The test suite now runs **from a bare clone with no install step** (`pyproject.toml` carries
   `pythonpath = ["src"]`); before H36 the suite could not even be collected in an environment
   where the package had not been pip-installed.
-- Two small, self-contained items remain open and are listed in `NEXT_TASK.md`: the engine's
-  `metrics["total_return"]` is inconsistent with its own equity curve (it excludes the first
-  bar — a **disclosure**, since `metrics` values are in published artifacts), and
-  `DataFetcher.fetch_sp500_constituents(date=...)` silently ignores its `date` argument and
-  returns the *current* constituent list (a latent survivorship-bias footgun; no runner
-  calls it).
+- The two small items that H37 listed as open are now closed: the engine's
+  `metrics["total_return"]` is **fixed** (§H38 — it now spans every bar, and the two metric
+  functions of the package can no longer disagree), and
+  `DataFetcher.fetch_sp500_constituents(date=...)` no longer silently returns the *current*
+  constituent list (a historical `date` raises `ValueError`, and the branch is tested).
 
 Constraints carried forward: no published artifact, gate threshold, verdict or certified number
 may be modified; no grid may be re-run; every recomputed number is a disclosure; the pre-existing
@@ -1397,3 +1405,130 @@ it no longer raises `RuntimeWarning: invalid value encountered in scalar power` 
 dense sweep drives equity to zero or below; it returns -1.0 instead, and the branch is
 exercised by the existing dense-sweep tests. No published artifact, gate threshold, verdict,
 certified number or published row was modified; no grid was re-run; no hypothesis was added.
+
+---
+
+## H38 — the engine's `total_return` measured the wrong horizon (2026-10-20)
+
+**Verdict: a real defect, found and fixed in the library. No published number, gate, verdict or
+certified number changed.**
+
+### The gap
+
+The one open item H37 carried forward was the engine's `metrics["total_return"]`, described as
+"inconsistent with its own equity curve (it excludes the first bar's return while
+`annualized_return` counts it) — ~a few bps", and left as a **disclosure** because `metrics`
+values live in published artifacts.
+
+It was carried forward as too small to touch. The audit below shows it was not a cosmetic
+few-bps issue: the metric was measuring **the wrong quantity**, and the error was **invisible in
+the published record**.
+
+### The defect
+
+`src/qtr/backtest/engine.py:_calculate_metrics` measured the total return over the *observed*
+part of the equity curve:
+
+```python
+total_return = equity.iloc[-1] / equity.iloc[0] - 1        # pre-fix
+```
+
+The equity curve is `cumprod(1 + net_returns) * initial_capital`, so `equity.iloc[0]` is already
+**one bar into the sample**. The first bar is the only bar on which the engine charges the
+*initial entry cost* (`position_changes = signals.diff().fillna(signals.iloc[0])` — the position
+goes from flat to invested on bar 0). The pre-fix range therefore covered `n - 1` compounding
+periods, while `annualized_return` divided by `n_periods = len(returns)`: **the two metrics of
+one equity curve described two different horizons.**
+
+The same package computes the same quantity the other way round:
+`qtr.validation.statistics.validate_strategy` uses `(1 + returns).prod() - 1`, i.e. the full
+`n`-bar product, which equals `equity.iloc[-1] / initial_capital - 1`. `run_experiment.py` writes
+**both** into the same artifact (`strategy_metrics` = the engine's, `validation` =
+`validate_strategy`'s), so the published artifacts report **two different `total_return` values
+for one and the same run**.
+
+### The evidence (all of it inside the committed artifacts)
+
+| Artifact | block | published `total_return` | from the initial capital | gap |
+|---|---|---|---|---|
+| `exp_2026-10-10T17-05-58-697503Z` (buy & hold, SPY) | `strategy_metrics` | 1.863359741396068 | 1.7456586208201519 | **11.77 pp** |
+| " | `validation` | 1.7456586208201519 | 1.7456586208201519 | 0 |
+| `exp_2026-10-14T08-26-02-537359Z` (the same run, re-executed) | `strategy_metrics` | 1.8633597413960814 | 1.862786791365549 | 5.73 bps |
+| " | `validation` | 1.862786791365549 | 1.862786791365549 | 0 |
+| `exp_2026-10-10T17-02-22-080026Z` (MA crossover) | `strategy_metrics` | −0.9998648207588501 | −0.9998648207588501 | 0 |
+| " | `benchmark_metrics` | 1.1226267977582687 | 1.0778936803171542 | **4.47 pp** |
+
+The first two rows are **one artifact reporting two values for one run**. The benchmark row has
+no `validation` counterpart, so its 4.47-pp error was **invisible** in the artifact. The three
+MA-crossover artifacts show a zero gap because their strategy starts flat (the MA warm-up leaves
+bar 0 empty), which is exactly why the defect never showed up in the headline runs.
+
+**The metric was blind to the dominant term of the cost model.** The buy-and-hold run was
+re-executed on 2026-10-14, after the cost-model fix cut the per-trade cost from **4.11% to
+0.02%** of capital — a 205× change in the strategy's entire cost:
+
+| | per-trade cost | published `total_return` | published `annualized_return` | from the initial capital |
+|---|---|---|---|---|
+| `exp_2026-10-10T17-05-58-697503Z` | 0.041105949376283715 | 1.863359741396068 | 0.11116466309386919 | 1.7456586208201519 |
+| `exp_2026-10-14T08-26-02-537359Z` | 0.00020009711746988646 | 1.8633597413960814 | 0.11116466309386963 | 1.862786791365549 |
+
+The published `total_return` and `annualized_return` are **identical to 13 significant digits**
+across that 205× cost change: the whole difference lands on the first bar, which the metric
+dropped. The cost *was* visible elsewhere (Sharpe 0.6596 → 0.6846, PF 1.1347 → 1.1401), so the
+return metrics were the only place it was invisible.
+
+### The fix
+
+`src/qtr/backtest/engine.py` now measures the total return from the initial capital:
+
+```python
+total_return = equity.iloc[-1] / self.config.initial_capital - 1.0
+```
+
+This is the quantity `validate_strategy` computes, so the two metric functions of the package can
+no longer disagree, and `annualized_return` is now the `n`-period annualization of an `n`-period
+total return (the pair is invertible).
+
+**Nothing published was rewritten.** The corrected value is *already* in every affected artifact,
+under its `validation` block; the `strategy_metrics` / `benchmark_metrics` blocks keep their
+pre-fix values — they are the historical record of the runs as executed — and are now pinned by
+tests so that a silent change to either convention is caught. No gate, threshold, verdict or
+certified number depends on the metric: a new test asserts that **no runner reads
+`metrics["total_return"]`**, so no selection, row or verdict can move.
+
+### What remains a disclosure
+
+`run_h18_overnight_intraday_experiment.py:526` (full period) and `:637` (OOS window) carry their
+own copy of the pre-fix convention for the runner-local `total_return` the runner publishes. The
+H18 artifacts are frozen, so the copy stays; the effect is bounded and pinned:
+
+- the published full-period `all_combo_results[*].total_return` of the selected row is **6.34 bps
+  above** the from-the-initial-capital value (2.169671442460739 vs 2.169037508172247); the
+  difference is exactly the first bar's 2 bps entry cost;
+- H18's **OOS** `total_return` is *not* affected: it is computed on the `oos_equity` window with
+  the same convention, so it equals the compounded OOS return series
+  (0.7162049014199334 vs `(1 + oos_returns).prod() - 1` = 0.7162049014199359) and reproduces
+  the committed equity curve exactly (OOS Sharpe 0.4424368131799029, max DD −0.22230414028780243,
+  PF 1.0890543891778597 — all bit-identical to the published block);
+- H18's nine gates do not use `total_return` (Sharpe, trades, PF, DD, WF stability, worst-regime
+  Sharpe, benchmark p, IR, perturbation ratio), so the disclosure cannot move a verdict.
+
+### Verification
+
+- Baseline before this session: `python -m pytest -q -W error` → **1102 passed, 1 skipped**.
+- After: `python -m pytest -q -W error` → **1115 passed, 1 skipped** in 210 s (1102 + the 13 new
+  H38 tests; the skip is the pre-existing `buy_and_hold` skip in H36's module).
+- `python -m ruff check src tests run_*.py` → *All checks passed!*;
+  `python -m ruff format --check src tests run_*.py` → the only deviations are on pre-existing
+  lines of `tests/test_runner_causality_inventory.py` that this session did not touch (ruff
+  0.17.1 style drift); every line this session added is format-clean.
+- `src/qtr` coverage **100%** (the change is one expression, no new branch).
+- **Negative control:** re-injecting the pre-fix formula into the engine makes **4 of the 13 new
+  tests fail** (the metric contract, the `validate_strategy` agreement, the pre-fix-detection
+  control and the horizon check), and the file is restored afterwards (`git diff` on the engine
+  shows only the intended change).
+- **The published numbers were not recomputed by re-running anything:** every figure in the
+  tables above is read out of the committed artifacts and the committed equity curves.
+
+**Nothing published was touched:** no published artifact, gate threshold, verdict, certified number
+or published row was modified; no grid was re-run; no hypothesis was added.

@@ -309,7 +309,15 @@ class VectorizedBacktester:
         metrics = {}
 
         # Basic returns
-        total_return = equity.iloc[-1] / equity.iloc[0] - 1
+        # The total return is measured from the INITIAL capital to the final
+        # equity, so it spans every bar of the return series (n_periods
+        # compounding periods). Measuring it from equity.iloc[0] instead would
+        # silently drop the first bar -- the only bar on which the initial
+        # entry cost is charged -- and would disagree with
+        # qtr.validation.statistics.validate_strategy, which computes
+        # (1 + returns).prod() - 1 over the same series. See
+        # tests/test_engine_total_return_consistency.py.
+        total_return = equity.iloc[-1] / self.config.initial_capital - 1.0
         n_periods = len(returns)
         ann_factor = 252  # daily data assumption
 
