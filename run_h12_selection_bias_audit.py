@@ -53,6 +53,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 from qtr.backtest.engine import run_backtest
 from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
+    benchmark_significance_gate,
     sharpe_ratio,
 )
 
@@ -125,6 +126,10 @@ CSCV_S = 12
 
 # Benchmark p-value from H11 (bit-exact reproduction of the H10 artifact).
 BENCHMARK_P_VALUE = 4.790305556723297e-10
+# Information ratio of the same H10 benchmark comparison (positive: the H10
+# family beats its benchmark). The benchmark-significance gate is
+# direction-aware (H34), so the sign is part of the gate's input.
+BENCHMARK_INFORMATION_RATIO = 0.9247889169803807
 
 
 # ---------------------------------------------------------------------------
@@ -596,7 +601,9 @@ def main():
         # alpha is not significant after family-wide correction.
         dsr_gate = bool(dsr_family >= GATES["min_sharpe"])
         pbo_gate = bool(pbo_result["pbo"] < 0.5)
-        family_gate = bool(bonferroni_p < GATES["max_p_value"])
+        family_gate = benchmark_significance_gate(
+            bonferroni_p, BENCHMARK_INFORMATION_RATIO, GATES["max_p_value"]
+        )
         all_pass = bool(dsr_gate and pbo_gate and family_gate)
         verdict = "PASS" if all_pass else "REJECT"
 

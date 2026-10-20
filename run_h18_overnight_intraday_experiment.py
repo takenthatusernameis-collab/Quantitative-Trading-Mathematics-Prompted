@@ -45,6 +45,7 @@ from qtr.backtest.engine import (
 from qtr.data.fetcher import get_data_fetcher
 from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
+    benchmark_significance_gate,
     compare_to_benchmark,
     sharpe_ratio,
     walk_forward_splits,
@@ -747,8 +748,9 @@ def main() -> None:
         # The library returns the alpha p-value under ``alpha_p_value``;
         # reading ``p_value`` returned the 1.0 default, so the
         # ``benchmark_p`` gate was always False -- a gate that never tested
-        # anything.
-        benchmark_p = float(benchmark_comparison.get("alpha_p_value_one_sided", 1.0))
+        # anything. The published number is the two-sided p-value; the gate
+        # itself is direction-aware (H34).
+        benchmark_p = float(benchmark_comparison.get("alpha_p_value", 1.0))
         information_ratio = float(benchmark_comparison.get("information_ratio", 0.0))
     except Exception as e:  # noqa: BLE001 -- benchmark comparison is advisory; a failure degrades to defaults and continues
         print(f"Warning: Could not compute benchmark comparison: {e}")
@@ -788,7 +790,10 @@ def main() -> None:
         "benchmark_p": {
             "value": benchmark_p,
             "threshold": 0.05,
-            "passes": benchmark_p < 0.05,
+            # Direction-aware (H34): significance must be in the POSITIVE
+            # direction -- a significantly negative alpha is evidence of
+            # underperformance, not of beating the benchmark.
+            "passes": benchmark_significance_gate(benchmark_p, information_ratio, 0.05),
         },
         "information_ratio": {
             "value": information_ratio,

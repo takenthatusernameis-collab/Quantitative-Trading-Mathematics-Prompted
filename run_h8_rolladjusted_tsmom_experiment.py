@@ -45,6 +45,7 @@ from qtr.data.fetcher import get_data_fetcher
 from qtr.strategies.baselines import vol_scaled_tsmom_signals
 from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
+    benchmark_significance_gate,
     compare_to_benchmark,
     sharpe_ratio,
 )
@@ -397,7 +398,7 @@ def compute_gate_metrics(result, prices, vix, label=""):
     bh_oos = bh_result.returns[bh_result.returns.index > pd.Timestamp(TRAIN_END)]
     if len(oos_ret) > 0 and len(bh_oos) > 0:
         alpha_res = compare_to_benchmark(oos_ret.values[-len(bh_oos) :], bh_oos.values)
-        p_val = float(alpha_res.get("alpha_p_value_one_sided", 1.0))
+        p_val = float(alpha_res.get("alpha_p_value", 1.0))
         ir = float(alpha_res.get("information_ratio", -np.inf))
     else:
         p_val, ir = 1.0, -np.inf
@@ -409,7 +410,7 @@ def compute_gate_metrics(result, prices, vix, label=""):
         "dd": bool(abs(oos_dd) <= GATES["max_drawdown"]),
         "stab": bool(wf_stab >= GATES["min_walkforward_stability"]),
         "worst": bool(worst >= GATES["min_worst_regime_sharpe"]),
-        "p": bool(p_val < GATES["max_p_value"]),
+        "p": benchmark_significance_gate(p_val, ir, GATES["max_p_value"]),
         "ir": bool(ir > GATES["min_information_ratio"]),
     }
 

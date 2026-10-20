@@ -31,6 +31,7 @@ from qtr.data.fetcher import get_data_fetcher
 from qtr.strategies import run_strategy
 from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
+    benchmark_significance_gate,
     compare_to_benchmark,
     sharpe_ratio,
     walk_forward_splits,
@@ -524,7 +525,11 @@ def main():
             # previous lookup silently returned the 1.0 default and the
             # ``p`` gate below was always False -- a gate that never tested
             # anything. Read the key the library actually returns.
-            p = float(alpha_res.get("alpha_p_value_one_sided", 1.0))
+            # The published number is the TWO-SIDED p-value (the statistic
+            # the committed artifact records); the gate itself is evaluated
+            # by ``benchmark_significance_gate`` so that it also requires
+            # the excess return to be positive (H34).
+            p = float(alpha_res.get("alpha_p_value", 1.0))
             ir = float(alpha_res.get("information_ratio", -np.inf))
         else:
             p, ir = 1.0, -np.inf
@@ -535,7 +540,7 @@ def main():
             "dd": abs(oos_dd) <= GATES["max_drawdown"],
             "stab": wf_stab >= GATES["min_walkforward_stability"],
             "worst": worst >= GATES["min_worst_regime_sharpe"],
-            "p": p < GATES["max_p_value"],
+            "p": benchmark_significance_gate(p, ir, GATES["max_p_value"]),
             "ir": ir > GATES.get("min_information_ratio", -1e18),
         }
         all_pass = all(passes.values())

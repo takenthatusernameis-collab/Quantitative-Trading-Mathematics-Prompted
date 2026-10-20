@@ -4604,3 +4604,158 @@ cleanup (deletion is safe because nothing imports it).
 **Nothing published was touched:** no published artifact, runner gate, threshold, verdict or
 certified number was modified; no grid was re-run; the recomputed tallies are a disclosure, not
 a rewrite.
+
+---
+
+## H34 (amendment): the gate is re-specified, the runners are corrected, and the disclosure is completed (2026-10-20)
+
+This section **amends** the frozen H34 pre-registration above. The pre-registration was
+written before the gate was re-specified; three of its statements are contradicted by the
+committed code and are corrected here, explicitly and with a reason. Nothing published is
+rewritten: no artifact, threshold, verdict, certified number or published row is modified, and
+no grid is re-run.
+
+### Amendment 1 — the re-specified gate is the conjunction, not the one-sided p-value
+
+The pre-registration states that the gate is re-specified as "one-sided `P(alpha > 0) <
+max_p_value`, equivalently the conjunction `p < max_p_value` **and** `alpha_annualized > 0`".
+**The two are not equivalent**, and the choice matters:
+
+| rule | equivalent test | effect on the published 5% level |
+|------|-----------------|-----------------------------------|
+| one-sided `P(alpha > 0) < 0.05` | two-sided `p < 0.10` **and** alpha > 0 | **loosens** the published gate (a two-sided 10% test) |
+| conjunction `p < 0.05` **and** excess > 0 | one-sided `P(alpha > 0) < 0.025` | keeps the published 5% two-sided level |
+
+The **conjunction** is what is implemented (`benchmark_significance_gate` in
+`src/qtr/validation/statistics.py`). Reasons, in order of weight:
+
+1. **It cannot loosen a published gate.** The conjunction can only turn a published PASS into a
+   FAIL; the one-sided rule could *manufacture* a PASS the published gate did not grant (any
+   family with a two-sided `p` in [0.05, 0.10) and a positive excess return). No committed
+   family falls in that band, so both rules give the same verdict for every published family —
+   but only the conjunction keeps that guarantee for future runs.
+2. **It keeps the committed artifacts reproducible from the code.** The published
+   `benchmark_p_value` is the two-sided p-value (H10's certified value `4.790305556723297e-10`
+   is pinned in `tests/test_certified_artifact_values.py`). Publishing a one-sided value instead
+   would change every committed artifact's number and break the certification anchor.
+3. The direction criterion is the sign of the **excess return** (information ratio > 0), not
+   the CAPM intercept. The information ratio carries the sign of the mean excess return, i.e.
+   the sign of the t-statistic the p-value is computed from, so it is the direction the p-value
+   actually measures. The CAPM intercept can carry the opposite sign (committed H16: IR = −0.3531
+   but `alpha_annualized` = +0.0124), and it is not recorded in the certified families'
+   artifacts at all, so it could not have been verified from the committed record.
+
+### Amendment 2 — the runner gates are changed (the pre-registration said they would not be)
+
+The pre-registration's scope said "the runners continue to gate on `alpha_p_value <
+max_p_value` exactly as before" and "no runner gate is changed". That is no longer true, and it
+was not achievable: leaving the runners untouched would leave the defect live in the code, so the
+next run would publish the same direction-blind gate. The scope is therefore widened to the
+runner gate sites and the impact is disclosed below. (An intermediate commit switched twelve
+runners to read the one-sided field directly; that variant is superseded by the conjunction
+above, because it both loosened the published level and changed the published artifact number.)
+
+**Changed** — the library helper `benchmark_significance_gate` (exported from `qtr.validation`)
+and the benchmark-significance gate site of 17 runners: `run_ts_momentum_experiment.py` (H1),
+`run_cs_momentum_experiment.py` (H2), `run_regime_gated_momentum_experiment.py` (H3),
+`run_futures_tsmom_experiment.py` (H4), `run_ddcv_experiment.py` (H5),
+`run_h6_vix_ddcv_experiment.py` (H6), `run_h7_intraday_tsmom_experiment.py` (H7),
+`run_h8_rolladjusted_tsmom_experiment.py` (H8), `run_h9_intraday_tsmom_experiment.py` (H9),
+`run_h10_intraday_tsmom_pfopt_experiment.py` (H10, and H21/H22/H25 through its shared
+`_full_gate_eval`), `run_h12_selection_bias_audit.py` (H12),
+`run_h16_factor_timing_experiment.py` (H16), `run_h17_vrp_experiment.py` (H17),
+`run_h18_overnight_intraday_experiment.py` (H18), `run_h19_volume_predictive_experiment.py`
+(H19), `run_h20_signed_volume_experiment.py` (H20), `run_h23_crypto_futures_tsmom.py` (H23).
+
+**Not changed** — every published artifact, threshold, verdict, certified number and published
+row. The published `benchmark_p_value` remains the two-sided p-value, so every committed
+artifact stays numerically reproducible from the code; only the benchmark gate *boolean* of the
+three wrong-reason families (H19, H20, H23) would change on a re-run, which is the intended
+effect and is disclosed in the table below.
+
+### Amendment 3 — the disclosure table is complete
+
+The pre-registration's table listed thirteen families. It omitted five families that own a
+benchmark-significance gate (**H1, H2, H3, H5, H8**) and one that owns the corrected gate in a
+different artifact shape (**H21**), and it missed one wrong-reason pass (**H3**). The table
+below is recomputed offline from the committed artifacts and covers every family that owns a
+benchmark-significance gate.
+
+### Complete disclosure (recomputed offline from the committed artifacts)
+
+| Family | published artifact | p (two-sided) | IR | published `p`-gate | H34 gate | note |
+|--------|---------------------|---------------|----|---------------------|----------|------|
+| H1 | `exp_2026-10-14T08-26-18-385545Z` | 0.78174 | −0.1241 | False | False | — |
+| H2 | `exp_2026-10-10T21-09-06-830199Z` | 0.57342 | −0.2523 | False | False | — |
+| H3 | `exp_2026-10-10T21-28-20-920399Z` | 0.046364 | −0.8932 | False | False | see note 1 |
+| H4 | `exp_2026-10-14T08-27-02-650342Z` | 1.0 (vacuous) | +0.3315 | False | False | H33 repair: p = 0.4592 → still False |
+| H5 | `exp_2026-10-11T00-34-05-381535Z` | 0.37864 | +0.3943 | False | False | — |
+| H6 | `exp_2026-10-11T08-02-22-999214Z` | 0.42178 | +0.3598 | False | False | — |
+| H7 | `exp_2026-10-19T18-56-08-872500Z` | null (no benchmark) | — | False | False | H30: benchmark unavailable |
+| H8 | `exp_2026-10-11T15-21-31-333870Z` | 0.24133 | +0.5249 | False | False | — |
+| H9 | `exp_2026-10-11T16-52-38-694559Z` | 6.3295e-12 | +1.0210 | True | True | genuine |
+| H10 | `exp_2026-10-11T17-41-18-169363Z` | 4.7903e-10 | +0.9248 | True | True | **certified** |
+| H12 | frozen H10 p | 4.7903e-10 (Bonferroni) | +0.9248 | True | True | **certified** |
+| H16 | `exp_2026-10-13T21-11-45-843908Z` | 0.20836 | −0.4764 | False | False | — |
+| H17 | `exp_2026-10-13T21-51-45-034237Z` | 0.53389 | −0.2396 | False | False | — |
+| H18 | `exp_2026-10-13T22-13-37-475937Z` | 1.0 (vacuous) | −0.5968 | False | False | H33 repair: p = 0.040985 → wrong reason → still False |
+| H19 | `exp_2026-10-13T22-40-41-870350Z` | 0.0026022 | −0.8798 | **True** | **False** | **wrong-reason pass** |
+| H20 | `exp_2026-10-13T23-06-33-191710Z` | 0.0159482 | −0.7040 | **True** | **False** | **wrong-reason pass** |
+| H21 | `exp_2026-10-13T23-27-52-101656Z` | 1.9148e-10 | +0.9459 | True | True | genuine |
+| H22 | `exp_2026-10-14T18-52-08-943792Z` | 1.3341e-19 | +1.3467 | True | True | **certified** |
+| H23 | `exp_2026-10-14T18-13-09-457781Z` | 0.00089959 | −3.0739 | **True** | **False** | **wrong-reason pass** |
+| H25 | `exp_2026-10-14T20-08-34-613690Z` | 1.4029e-19 | +1.3459 | True | True | **certified** |
+
+**Note 1 — H3 (newly disclosed).** H3's *published* row (`exp_2026-10-10T21-28-20-920399Z`,
+3/10 gates) already records the benchmark-significance gate as **False**: the runner's
+direction-aware conjunct (`IR > 0`) was added between the family's two committed runs. The
+**earlier** committed H3 artifact (`exp_2026-10-10T21-27-13-928282Z`, 4/10 gates) records
+`benchmark_significance.pass = true` with p = 0.046364 and IR = −0.8932 — a **wrong-reason
+pass** in the direction-blind rule. It is disclosed, not rewritten; the published H3 row is
+unaffected.
+
+**Note 2 — H19, H20, H23.** These three families' published rows carry a benchmark
+significance PASS that is in the wrong direction: the two-sided p-value is small because the
+strategy is significantly **worse** than the benchmark (IR < 0). Their published gate tallies
+are 3/9 (H19), 2/9 (H20) and 2/9 (H23); under the H34 gate the benchmark gate does not pass,
+so a re-run would report 2/9, 1/9 and 1/9. **No verdict changes** — all three are REJECT on
+other gates — and no published row is modified.
+
+**Note 3 — H18.** The H33 repair raised the vacuous `benchmark_p` gate from 1.0 to 0.040985,
+which under the direction-blind rule would have flipped the published 2/9 to 3/9. Under the
+H34 direction-aware gate it stays **False** (IR = −0.5968), so the repaired tally returns to
+the published 2/9.
+
+**Note 4 — H7.** H7's benchmark comparison is unavailable (H30), so the published artifact
+carries `max_p_value = false`; H30's repaired p = 0.3432 with IR = +0.3002 fails the gate
+under either rule.
+
+**Certified-family survival:** H10, H22 and H25 (and H9, H12 and H21) pass the direction-aware
+gate — their excess return is positive and their p-value is far below the threshold. **No
+certified family is lost by the re-specification**, and no certified number changes.
+
+### Dead code — settled
+
+`deflated_sharpe_ratio` is **deleted** from `src/qtr/validation/statistics.py` (it was
+unreachable, unexported and duplicative of `run_h12_selection_bias_audit.py`'s own copy;
+nothing imported it). The pre-registration's note "left in place pending a separate small
+cleanup" is superseded — the cleanup is done.
+
+### Verification
+
+- `python -m pytest -q` → all tests pass (**735 passed**, 726 + 9 new), ~3m37s.
+- `python -m pytest -W error -q` → clean (**735 passed**), no warnings.
+- `python -m pytest --cov=qtr --cov-report=term-missing` → **735 passed**; `src/qtr` coverage is now
+  **100%** (1010 statements, 0 missed) — the dead `deflated_sharpe_ratio` deletion removed the last
+  uncovered block and H34's gate helper is fully covered.
+- `python -m ruff check src tests run_*.py` → All checks passed; `ruff format --check` → 78 files
+  already formatted.
+- `bash -n .github/scripts/*.sh` OK; `bash .github/scripts/test_kilo_progress.sh` OK.
+- **Negative control:** the same test module run against the pre-H34 source (`git stash -u`, test
+  file restored) fails **7** tests (the three behavioural gate tests, the certified-family
+  survival test, and the three static contracts), so the new tests really do bind the change.
+- The disclosure table is reproducible from the committed artifacts
+  (`.experiments/artifacts/*/summary.json`) and is pinned by
+  `tests/test_benchmark_gate_contract.py`, which fails if any committed artifact carries an
+  undisclosed benchmark p-pass that is not evidence for the hypothesis (wrong direction or not
+  significant).

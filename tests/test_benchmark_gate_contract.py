@@ -1,4 +1,4 @@
-"""H33 — the benchmark-comparison contract.
+"""H33/H34 — the benchmark-comparison contract.
 
 Three benchmark gates in the published record were vacuous: they evaluated a
 constant instead of a statistic, because the runner read a key the library
@@ -13,10 +13,15 @@ that makes those defects impossible to reintroduce:
 2. **behavioural** checks of the library on the inputs that used to break
    it (NaN rows, a non-scalar ``risk_free``, degenerate lengths);
 3. a **behavioural** check that H7's benchmark is a return series and not a
-   price level.
+   price level;
+4. the **H34** direction-aware benchmark-significance gate: every runner
+   must evaluate it through ``benchmark_significance_gate`` (a bare
+   two-sided p-value comparison is a direction-blind gate), and the gate
+   must never let a significantly *negative* excess return pass.
 """
 
 import ast
+import json
 import pathlib
 import sys
 
@@ -30,6 +35,13 @@ sys.path.insert(0, str(ROOT))
 
 import run_h7_intraday_tsmom_experiment as h7
 from qtr.validation.statistics import compare_to_benchmark
+
+try:  # the H34 gate helper (absent in the pre-H34 source: negative control)
+    from qtr.validation.statistics import benchmark_significance_gate
+except ImportError:  # pragma: no cover - exercised by the negative control
+    benchmark_significance_gate = None
+
+ARTIFACTS = ROOT / ".experiments" / "artifacts"
 
 # The exact key set `compare_to_benchmark` returns. The static contract below
 # is only meaningful against a pinned contract, so the set is asserted first.
@@ -311,3 +323,315 @@ def test_the_contract_covers_the_three_known_defect_sites():
     assert sites["run_futures_tsmom_experiment.py"] >= 1
     assert sites["run_h7_intraday_tsmom_experiment.py"] >= 1
     assert sites["run_h18_overnight_intraday_experiment.py"] >= 1
+
+
+# --------------------------------------------------------------------------- #
+# 4. H34 — the direction-aware benchmark-significance gate
+# --------------------------------------------------------------------------- #
+def test_the_gate_requires_a_positive_excess_return():
+    """A significantly NEGATIVE excess return (the strategy being
+    significantly *worse* than the benchmark) must not pass."""
+    assert benchmark_significance_gate(0.001, 1.0) is True
+    assert benchmark_significance_gate(0.001, -3.0) is False
+    assert benchmark_significance_gate(0.6, 1.0) is False
+    # the threshold is strict: p == max_p_value does not pass
+    assert benchmark_significance_gate(0.05, 1.0) is False
+    assert benchmark_significance_gate(0.0499, 1.0) is True
+    # an exactly zero information ratio is not a positive excess return
+    assert benchmark_significance_gate(0.001, 0.0) is False
+
+
+def test_the_gate_never_manufactures_a_pass():
+    """The re-specified gate can only ever REMOVE a pass: a pass still
+    requires the pre-registered two-sided p-value to be below the
+    threshold."""
+    for p in np.linspace(0.0, 1.0, 101):
+        for ir in (-3.0, -0.001, 0.0, 0.001, 3.0):
+            gate = benchmark_significance_gate(p, ir, 0.05)
+            assert gate == bool(p < 0.05 and ir > 0.0)
+            assert not (gate and p >= 0.05)
+
+
+def test_the_gate_fails_closed_on_degenerate_inputs():
+    assert benchmark_significance_gate(np.nan, 1.0) is False
+    assert benchmark_significance_gate(0.001, np.nan) is False
+    assert benchmark_significance_gate(1.0, -np.inf) is False
+    assert benchmark_significance_gate(0.0, 0.0) is False
+
+
+def _summary(path: pathlib.Path) -> dict:
+    with open(path / "summary.json") as f:
+        return json.load(f)
+
+
+def _benchmark_p_and_ir(summary: dict) -> tuple[float, float] | None:
+    """The committed benchmark p-value and information ratio of an artifact.
+
+    The families record the pair under different names (the runners predate
+    the H33 contract), so every published shape is accepted. ``None`` means
+    the artifact carries no benchmark comparison at all.
+    """
+    metrics = summary.get("metrics") or {}
+    gate_metrics = summary.get("gate_metrics") or {}
+    alpha = summary.get("alpha_vs_benchmark") or {}
+    comparison = summary.get("benchmark_comparison") or {}
+    bench_gate = gate_metrics.get("benchmark_p") or {}
+
+    def _num(value):
+        return (
+            value
+            if isinstance(value, (int, float)) and not isinstance(value, bool)
+            else None
+        )
+
+    p = None
+    for candidate in (
+        metrics.get("benchmark_p_value"),
+        gate_metrics.get("benchmark_p_value"),
+        alpha.get("p_value"),
+        comparison.get("alpha_p_value"),
+        bench_gate.get("value"),
+    ):
+        p = _num(candidate)
+        if p is not None:
+            break
+    ir = None
+    ir_gate = gate_metrics.get("information_ratio")
+    for candidate in (
+        metrics.get("information_ratio"),
+        ir_gate if isinstance(ir_gate, (int, float)) else None,
+        alpha.get("information_ratio"),
+        comparison.get("information_ratio"),
+        ir_gate.get("value") if isinstance(ir_gate, dict) else None,
+    ):
+        ir = _num(candidate)
+        if ir is not None:
+            break
+    if p is None or ir is None:
+        return None
+    return float(p), float(ir)
+
+
+def _as_bool(value) -> bool | None:
+    """The published artifacts record gate booleans as real booleans and (in
+    the older families) as the strings "True"/"False"."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str) and value in ("True", "False"):
+        return value == "True"
+    return None
+
+
+def _published_p_gate(summary: dict) -> bool | None:
+    """The benchmark p-gate as PUBLISHED in the artifact (four shapes)."""
+    passes = summary.get("passes") or {}
+    if "p" in passes:
+        return _as_bool(passes["p"])
+    gates = summary.get("gates") or {}
+    bench = gates.get("benchmark_significance") or {}
+    if "pass" in bench:
+        return _as_bool(bench["pass"])
+    gate_metrics = summary.get("gate_metrics") or {}
+    bench_gate = gate_metrics.get("benchmark_p") or {}
+    if "passes" in bench_gate:
+        return _as_bool(bench_gate["passes"])
+    if "max_p_value" in gates:
+        return _as_bool(gates["max_p_value"])
+    return None
+
+
+# The published artifacts whose benchmark-significance gate passed for the
+# WRONG reason: the two-sided p-value is small because the strategy is
+# significantly WORSE than the benchmark (a negative information ratio).
+# Disclosed in HYPOTHESIS_SPEC.md section H34 and FINAL_REPORT.md.
+WRONG_REASON_P_PASSES = {
+    "exp_2026-10-10T21-27-13-928282Z",  # H3  p=0.046364, IR=-0.8932
+    "exp_2026-10-13T22-40-41-870350Z",  # H19 p=0.002602, IR=-0.8798
+    "exp_2026-10-13T23-06-33-191710Z",  # H20 p=0.015948, IR=-0.7040
+    "exp_2026-10-14T11-53-37-996139Z",  # H23 p=0.000900, IR=-3.0739
+    "exp_2026-10-14T18-13-09-457781Z",  # H23 p=0.000900, IR=-3.0739
+}
+
+
+def _wrong_reason_p_passes() -> dict[str, tuple[float, float]]:
+    """Committed artifacts whose published benchmark p-pass is NOT evidence
+    for the hypothesis: either the p-value is not below the threshold, or the
+    excess return is negative (the strategy is significantly *worse* than the
+    benchmark)."""
+    found = {}
+    for path in sorted(ARTIFACTS.glob("*/summary.json")):
+        summary = _summary(path.parent)
+        pair = _benchmark_p_and_ir(summary)
+        if pair is None:
+            continue
+        p, ir = pair
+        if _published_p_gate(summary) and not (p < 0.05 and ir > 0.0):
+            found[path.parent.name] = (p, ir)
+    return found
+
+
+def test_no_committed_artifact_carries_an_undisclosed_wrong_reason_p_pass():
+    """Every published benchmark p-pass must be in the direction of the
+    hypothesis, except the ones explicitly disclosed as wrong-reason
+    passes."""
+    found = _wrong_reason_p_passes()
+    offenders = {
+        artifact_id: values
+        for artifact_id, values in found.items()
+        if artifact_id not in WRONG_REASON_P_PASSES
+    }
+    assert offenders == {}
+    assert found, "no committed artifact with a benchmark comparison was found"
+
+
+def test_the_disclosed_wrong_reason_passes_are_the_known_ones():
+    """The disclosure is pinned: the wrong-reason passes are exactly the
+    published artifacts of H3, H19, H20 and H23."""
+    assert set(_wrong_reason_p_passes()) == WRONG_REASON_P_PASSES
+
+
+def test_the_certified_families_survive_the_direction_aware_gate():
+    """H10, H22 and H25 (and the other genuine p-passes) must still pass."""
+    certified = {
+        "exp_2026-10-11T17-41-18-169363Z": (
+            "H10",
+            4.790305556723297e-10,
+            0.9247889169803807,
+        ),
+        "exp_2026-10-14T18-52-08-943792Z": (
+            "H22",
+            1.3340812548651885e-19,
+            1.3466905696542812,
+        ),
+        "exp_2026-10-14T20-08-34-613690Z": (
+            "H25",
+            1.4028853805082562e-19,
+            1.3458716250016904,
+        ),
+    }
+    for artifact_id, (family, p, ir) in certified.items():
+        summary = _summary(ARTIFACTS / artifact_id)
+        pair = _benchmark_p_and_ir(summary)
+        assert pair is not None, f"{family} artifact carries no benchmark comparison"
+        assert pair == pytest.approx((p, ir), rel=1e-12)
+        assert benchmark_significance_gate(p, ir, 0.05) is True, (
+            f"{family} must survive the direction-aware gate"
+        )
+
+
+# --------------------------------------------------------------------------- #
+# 5. the static contract over every benchmark p-gate site
+# --------------------------------------------------------------------------- #
+def _max_p_value_comparisons(tree: ast.AST) -> list[ast.Compare]:
+    """Every comparison of a value against ``GATES["max_p_value"]``."""
+    found = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Compare):
+            continue
+        operands = [node.left, *node.comparators]
+        for operand in operands:
+            for sub in ast.walk(operand):
+                if (
+                    isinstance(sub, ast.Subscript)
+                    and isinstance(sub.value, ast.Name)
+                    and sub.value.id == "GATES"
+                    and isinstance(sub.slice, ast.Constant)
+                    and sub.slice.value == "max_p_value"
+                ):
+                    found.append(node)
+                    break
+            else:
+                continue
+            break
+    return found
+
+
+def _parents(tree: ast.AST) -> dict[ast.AST, ast.AST]:
+    parents = {}
+    for node in ast.walk(tree):
+        for child in ast.iter_child_nodes(node):
+            parents[child] = node
+    return parents
+
+
+def _inside_gate_helper(node: ast.AST, parents: dict[ast.AST, ast.AST]) -> bool:
+    """True if `node` is an argument of a ``benchmark_significance_gate`` call."""
+    current = node
+    while current in parents:
+        current = parents[current]
+        if (
+            isinstance(current, ast.Call)
+            and isinstance(current.func, ast.Name)
+            and current.func.id == "benchmark_significance_gate"
+        ):
+            return True
+    return False
+
+
+def test_no_runner_compares_a_p_value_against_max_p_value_directly():
+    """A bare ``p < GATES["max_p_value"]`` is the direction-blind gate: it is
+    satisfied by a significantly NEGATIVE excess return. Every benchmark
+    significance gate must go through ``benchmark_significance_gate``."""
+    offenders = []
+    for path in _runner_files():
+        tree = ast.parse(path.read_text())
+        parents = _parents(tree)
+        for compare in _max_p_value_comparisons(tree):
+            if not _inside_gate_helper(compare, parents):
+                offenders.append(f"{path.name}:{compare.lineno}")
+    assert offenders == []
+
+
+def test_every_runner_with_a_benchmark_gate_uses_the_direction_aware_helper():
+    """The contract must not be satisfiable by deleting the gates: every
+    runner that owns a benchmark-significance gate must call the helper."""
+    users = set()
+    for path in _runner_files():
+        tree = ast.parse(path.read_text())
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == "benchmark_significance_gate"
+            ):
+                users.add(path.name)
+    expected = {
+        "run_cs_momentum_experiment.py",
+        "run_ddcv_experiment.py",
+        "run_futures_tsmom_experiment.py",
+        "run_h10_intraday_tsmom_pfopt_experiment.py",
+        "run_h12_selection_bias_audit.py",
+        "run_h16_factor_timing_experiment.py",
+        "run_h17_vrp_experiment.py",
+        "run_h18_overnight_intraday_experiment.py",
+        "run_h19_volume_predictive_experiment.py",
+        "run_h20_signed_volume_experiment.py",
+        "run_h23_crypto_futures_tsmom.py",
+        "run_h6_vix_ddcv_experiment.py",
+        "run_h7_intraday_tsmom_experiment.py",
+        "run_h8_rolladjusted_tsmom_experiment.py",
+        "run_h9_intraday_tsmom_experiment.py",
+        "run_regime_gated_momentum_experiment.py",
+        "run_ts_momentum_experiment.py",
+    }
+    assert expected <= users, f"missing the direction-aware gate in: {expected - users}"
+
+
+def test_no_runner_publishes_the_one_sided_p_value():
+    """The published ``benchmark_p_value`` must stay the TWO-SIDED p-value:
+    it is the number the committed artifacts record, so the artifacts stay
+    reproducible from the code."""
+    offenders = []
+    for path in _runner_files():
+        tree = ast.parse(path.read_text())
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "get"
+                and node.args
+                and isinstance(node.args[0], ast.Constant)
+                and node.args[0].value == "alpha_p_value_one_sided"
+            ):
+                offenders.append(f"{path.name}:{node.lineno}")
+    assert offenders == []

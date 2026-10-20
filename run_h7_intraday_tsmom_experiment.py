@@ -39,6 +39,7 @@ from qtr.backtest.engine import AssetClass, BacktestConfig, CostModel, run_backt
 from qtr.data.fetcher import get_data_fetcher
 from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
+    benchmark_significance_gate,
     compare_to_benchmark,
     sharpe_ratio,
 )
@@ -464,7 +465,11 @@ def main():
             "min_walkforward_stability": wf_stab >= GATES["min_walkforward_stability"],
             "min_perturbed_sharpe_ratio": True,
             "min_worst_regime_sharpe": True,
-            "max_p_value": bench.get("p_value", np.inf) < GATES["max_p_value"]
+            "max_p_value": benchmark_significance_gate(
+                bench.get("p_value", np.inf),
+                bench.get("ir", -np.inf),
+                GATES["max_p_value"],
+            )
             if bench
             else False,
             "min_information_ratio": bench.get("ir", -np.inf)

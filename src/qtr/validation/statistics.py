@@ -412,6 +412,44 @@ def _no_comparison() -> dict[str, float]:
     }
 
 
+def benchmark_significance_gate(
+    p_value: float,
+    information_ratio: float,
+    max_p_value: float = 0.05,
+) -> bool:
+    """
+    Evaluate the benchmark-significance gate in the direction of the hypothesis.
+
+    The published gate was ``p < max_p_value`` on a **two-sided** t-test of the
+    excess returns, which is direction-blind: a significantly *negative* alpha
+    (the strategy being significantly **worse** than the benchmark) satisfies it
+    exactly as a significantly positive one does. H34 re-specifies the gate so
+    that a pass requires the strategy to be significantly **better** than the
+    benchmark:
+
+    * the pre-registered significance level is kept (``p_value`` is the
+      two-sided p-value and must still be below ``max_p_value``), and
+    * the direction of the excess return is added as an explicit requirement
+      (``information_ratio > 0``; the information ratio has the sign of the mean
+      excess return, i.e. the sign of the t-statistic the p-value is computed
+      from).
+
+    The gate can therefore only ever *remove* a pass, never manufacture one:
+    it is the conjunction ``p < max_p_value AND excess return > 0``, which is
+    the one-sided test of ``H1: alpha > 0`` at the same 5% two-sided level
+    (i.e. a one-sided test at 2.5%).
+
+    Args:
+        p_value: Two-sided p-value of the t-test on the excess returns
+        information_ratio: Information ratio of the excess returns
+        max_p_value: Pre-registered significance level of the gate
+
+    Returns:
+        True only if the strategy is significantly better than the benchmark
+    """
+    return bool(float(p_value) < float(max_p_value) and float(information_ratio) > 0.0)
+
+
 def compare_to_benchmark(
     strategy_returns: np.ndarray | pd.Series,
     benchmark_returns: np.ndarray | pd.Series,

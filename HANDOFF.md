@@ -155,6 +155,16 @@ described as free of a daily collapse — it is not.
 - The **paid-data task is unjustified for every family in the repo**: it was closed for the
   intraday family by H28; H29/H30 show the daily families are *causal* but all REJECT, so more
   of the same free data does not rescue them either. It stays downstream.
+- **H34's leftovers (the next task).** (i) The committed artifacts of H19, H20 and H23 still
+  record the **pre-H34** gate boolean (`passes["p"] = true`) while the current code computes the
+  direction-aware `false`; the artifacts are immutable, so the disagreement must be pinned in the
+  artifact-adjacent tests — `tests/test_h20_signed_volume.py:453` and
+  `tests/test_h23_crypto_futures_tsmom.py:542` still assert the pre-H34 identity
+  `p["p"] == (benchmark_p_value < max_p_value)`. (ii) The `FINAL_REPORT.md` §Summary statistics
+  test-count bullet still quotes the H33 number ("725/725 passing"; H34 measured **735/735**) and
+  must be re-stated after the test changes. (iii) The library's `alpha_p_value_one_sided` field is
+  now an informational output that no runner reads (the gate uses the two-sided p-value plus the
+  direction requirement).
 
 ## Which approaches have already failed and why
 
@@ -338,22 +348,134 @@ pre-registered and changing it would change published gates. Re-running the H4/H
 not done (forbidden and unnecessary): the benchmark statistics were recomputed offline from the
 committed artifacts, reproducing the published OOS Sharpe and IR bit-exactly.
 
+## H34 — the benchmark-significance gate is direction-aware (2026-10-20)
+
+**What changed.** The pre-registered benchmark-significance gate is `p < max_p_value` on a
+**two-sided** t-test of the excess returns, so it is satisfied by a significantly *negative*
+alpha — by the strategy being significantly **worse** than the benchmark. H34 re-specified it,
+implemented it once in the library, applied it at the benchmark-significance gate site of all
+**17** runners, and re-disclosed the published record. **No published artifact, gate threshold,
+verdict, certified number or published row was modified; no grid was re-run.**
+
+**The gate** (`src/qtr/validation/statistics.py:benchmark_significance_gate`, exported from
+`qtr.validation`):
+
+```
+p_gate = (two-sided p < max_p_value) AND (information_ratio > 0)
+```
+
+The frozen pre-registration proposed "one-sided `P(alpha > 0) < max_p_value`, equivalently the
+conjunction `p < max_p_value` and `alpha_annualized > 0`". **The two are not equivalent**: the
+one-sided rule at 5% is a two-sided **10%** test and therefore *loosens* the published gate,
+while the conjunction keeps the published 5% two-sided level (the one-sided test at 2.5%). The
+conjunction is implemented, because it can only ever *remove* a pass, and because it keeps every
+committed artifact numerically reproducible from the code (the published `benchmark_p_value`
+stays the two-sided p-value; H10's certified `4.790305556723297e-10` is still what the runner
+publishes). The direction criterion is the sign of the **excess return** (IR > 0 — the sign of
+the t-statistic the p-value is computed from), not the CAPM intercept, which can carry the
+opposite sign (committed H16: IR = −0.3531 but `alpha_annualized` = +0.0124) and is not recorded
+in the certified artifacts at all. The frozen pre-registration is **amended explicitly** — the
+corrected equivalence, the widened scope ("the runners continue to gate on `alpha_p_value` …
+exactly as before" is no longer true, and leaving it true would have left the defect live in the
+code) and the complete family list — in `HYPOTHESIS_SPEC.md` §H34.
+
+**Scope.** The library helper plus the benchmark-significance gate site of
+`run_ts_momentum_experiment.py` (H1), `run_cs_momentum_experiment.py` (H2),
+`run_regime_gated_momentum_experiment.py` (H3), `run_futures_tsmom_experiment.py` (H4),
+`run_ddcv_experiment.py` (H5), `run_h6_vix_ddcv_experiment.py` (H6),
+`run_h7_intraday_tsmom_experiment.py` (H7), `run_h8_rolladjusted_tsmom_experiment.py` (H8),
+`run_h9_intraday_tsmom_experiment.py` (H9), `run_h10_intraday_tsmom_pfopt_experiment.py` (H10,
+and H21/H22/H25 through its shared `_full_gate_eval`), `run_h12_selection_bias_audit.py` (H12),
+`run_h16_factor_timing_experiment.py` (H16), `run_h17_vrp_experiment.py` (H17),
+`run_h18_overnight_intraday_experiment.py` (H18), `run_h19_volume_predictive_experiment.py`
+(H19), `run_h20_signed_volume_experiment.py` (H20), `run_h23_crypto_futures_tsmom.py` (H23).
+`src/qtr/validation/statistics.py:deflated_sharpe_ratio` was **deleted** (dead: not exported, no
+caller, duplicative of `run_h12_selection_bias_audit.py`'s own copy).
+
+**Disclosure — the complete table** (recomputed offline from the committed artifacts, for every
+family that owns a benchmark-significance gate; the pre-registration's list omitted H1, H2, H3,
+H5, H8 and H21):
+
+| Family | p | IR | published `p`-gate | H34 gate |
+|--------|---|----|---------------------|----------|
+| H1 | 0.78174 | −0.1241 | False | False |
+| H2 | 0.57342 | −0.2523 | False | False |
+| H3 | 0.046364 | −0.8932 | False | False |
+| H4 | 1.0 (vacuous) | +0.3315 | False | False |
+| H5 | 0.37864 | +0.3943 | False | False |
+| H6 | 0.42178 | +0.3598 | False | False |
+| H7 | null | — | False | False |
+| H8 | 0.24133 | +0.5249 | False | False |
+| H9 | 6.3295e-12 | +1.0210 | True | True |
+| H10 | 4.7903e-10 | +0.9248 | True | **True (certified)** |
+| H12 | 4.7903e-10 (Bonferroni) | +0.9248 | True | **True (certified)** |
+| H16 | 0.20836 | −0.4764 | False | False |
+| H17 | 0.53389 | −0.2396 | False | False |
+| H18 | 1.0 (vacuous) | −0.5968 | False | False |
+| H19 | 0.0026022 | −0.8798 | **True** | **False** |
+| H20 | 0.0159482 | −0.7040 | **True** | **False** |
+| H21 | 1.9148e-10 | +0.9459 | True | True |
+| H22 | 1.3341e-19 | +1.3467 | True | **True (certified)** |
+| H23 | 0.00089959 | −3.0739 | **True** | **False** |
+| H25 | 1.4029e-19 | +1.3459 | True | **True (certified)** |
+
+**Four published artifacts carry a wrong-reason PASS**: H3's earlier artifact
+`exp_2026-10-10T21-27-13-928282Z` (p = 0.046364, IR = −0.8932; H3's *published* row comes from
+the later artifact `exp_2026-10-10T21-28-20-920399Z`, which already records the gate as False),
+H19, H20 and H23. Their published tallies (3/9, 2/9, 2/9) would read 2/9, 1/9 and 1/9 on a
+re-run; H18's H33-repaired gate (p = 0.041, IR = −0.597) stays False, so its repaired tally
+returns to the published 2/9. **No verdict changes** and no published row is modified.
+**Certified-family survival: yes** — H10, H22, H25 (and H9, H12, H21) pass.
+
+**What was actually verified.** `python -m pytest -q` → **735 passed** (726 + 9 new), ~3m37s;
+`python -m pytest -W error -q` → clean; `python -m pytest --cov=qtr --cov-report=term-missing` →
+**735 passed**, `src/qtr` coverage **100%** (1010 statements, 0 missed — the dead-code deletion
+removed the last uncovered block); `ruff check` / `ruff format --check` → clean; `bash -n
+.github/scripts/*.sh` and `bash .github/scripts/test_kilo_progress.sh` → OK.
+**Negative control**: the new test module replayed against the pre-H34 source (`git stash -u`,
+test file restored) fails **7** tests and names the 17 runners without the helper and the 19
+sites that read the one-sided p-value — the contract is not vacuous. The disclosure table was
+recomputed from the committed `.experiments/artifacts/*/summary.json`, not from the runners.
+
+**Which approaches have already failed and why.** The one-sided p-value as the gate statistic was
+tried first (an intermediate commit read `alpha_p_value_one_sided` in twelve runners) and was
+reverted: it loosens the published gate (one-sided 5% = two-sided 10%) and changes every
+published `benchmark_p_value`, which would have broken the reproducibility of the certified
+artifacts. The CAPM-intercept direction criterion was rejected: it is not the direction the
+p-value tests, it disagrees with the information ratio in committed artifacts (H16, H17) and it
+is not recorded in the certified artifacts, so it could not have been verified from the record.
+Leaving the runners untouched (the frozen pre-registration's scope) was rejected: it would have
+left the defect live in the code. Rewriting the published rows and re-running the grids were not
+done (forbidden and unnecessary).
+
+**What remains unresolved.** The committed artifacts of H19/H20/H23 still record the pre-H34 gate
+boolean while the code computes the direction-aware value — the two artifact-adjacent tests that
+assert the old identity must be rewritten to assert the disclosed state (see the next task). The
+report's coverage and test-count bullets are stale (the dead code is gone). The library's
+`alpha_p_value_one_sided` field is now an informational output that no runner reads.
+
 ## One precise next task
 
-**Pre-register H34: re-specify the benchmark-significance gate as one-sided (or add an explicit
-`alpha_annualized > 0` conjunct) and reconcile the three published families that currently pass it
-for the wrong reason (H19, H20, H23).** H34 must (1) pre-register the re-specification *before*
-any run, leaving the published rows untouched and disclosing the recomputed tallies (the
-H30/H33 pattern); (2) recompute the benchmark statistics offline from the committed artifacts for
-every family with a `p`-gate (H4, H6, H7, H9, H10, H16, H17, H18, H19, H20, H22, H23, H25) and
-report which published `p` passes are direction-positive; (3) state explicitly whether the
-certified families (H10, H22, H25) survive the re-specified gate — expected: yes, they pass with
-a *positive* IR; (4) settle the dead `deflated_sharpe_ratio` as a separate small item (delete it
-or make it the single source of truth that H12/H13 call). Constraints carried forward: no
-published artifact, gate, threshold, verdict or certified number may be modified; no grid may be
-re-run; every recomputed number is a disclosure; the pre-existing H1–H30 hypothesis space remains
-exhausted — no new hypothesis is warranted. Full statement: `NEXT_TASK.md` and
-`FINAL_REPORT.md` §Next Task.
+**Close the artifact/code disagreement for the three wrong-reason families and re-baseline the
+report's coverage and test-count bullets** (H34's leftovers; full statement in `NEXT_TASK.md`).
+
+H34 re-specified the benchmark-significance gate and closed it in the code, but the committed
+artifacts of H19, H20 and H23 still record the **pre-H34** gate boolean (`passes["p"] = true`)
+while the current code computes `false`. The artifacts are immutable, so the disagreement has to
+be pinned in the artifact-adjacent tests: `tests/test_h20_signed_volume.py:453` and
+`tests/test_h23_crypto_futures_tsmom.py:542` still assert the pre-H34 identity
+`p["p"] == (benchmark_p_value < max_p_value)`; rewrite them to assert the **disclosed** state
+(the artifact records the pre-H34 rule, the information ratio is negative, the published pass is
+a wrong-reason pass, the direction-aware gate is `False`). Then extend
+`tests/test_benchmark_gate_contract.py` with the tally-impact pin (H19 3/9 → 2/9, H20 2/9 → 1/9,
+H23 2/9 → 1/9), re-run the suite and update the `FINAL_REPORT.md` §Summary statistics test-count
+bullet (it reads "735/735 passing" — H34 measured **735/735**; the coverage bullet is already
+correct: `src/qtr` is at **100%**, 1010 statements, 0 missed, after the dead-code deletion). Do
+**not** re-run any grid and do **not** touch the published rows.
+
+Constraints carried forward: no published artifact, gate threshold, verdict or certified number
+may be modified; no grid may be re-run; every recomputed number is a disclosure; the pre-existing
+H1–H30 hypothesis space remains exhausted — no new hypothesis is warranted.
 
 The pre-registered free-data hypothesis space (H1–H30) remains exhausted: every family has a
 committed artifact or a documented reason for the gap, every daily/monthly family is `CAUSAL` and

@@ -57,6 +57,7 @@ from qtr.data.fetcher import get_data_fetcher
 from qtr.strategies import run_strategy
 from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
+    benchmark_significance_gate,
     bootstrap_confidence_interval,
     compare_to_benchmark,
     multiple_testing_correction,
@@ -856,10 +857,10 @@ def main():
                 "value": round(float(alpha_p), 4),
                 "threshold": GATES["max_p_value"],
                 # Direction-aware: significance alone is not evidence for
-                # the hypothesis -- alpha must be positive (IR > 0).
-                "pass": bool(
-                    alpha_p < GATES["max_p_value"]
-                    and cmp["information_ratio"] > GATES["min_information_ratio"]
+                # the hypothesis -- the excess return must be positive
+                # (IR > 0). Same rule as every other runner (H34).
+                "pass": benchmark_significance_gate(
+                    alpha_p, cmp["information_ratio"], GATES["max_p_value"]
                 ),
                 "information_ratio": round(float(cmp["information_ratio"]), 4),
                 "alpha_p_value": round(float(alpha_p), 4),

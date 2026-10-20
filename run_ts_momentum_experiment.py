@@ -47,6 +47,7 @@ from qtr.data.fetcher import get_data_fetcher
 from qtr.strategies import run_strategy
 from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
+    benchmark_significance_gate,
     bootstrap_confidence_interval,
     compare_to_benchmark,
     multiple_testing_correction,
@@ -644,7 +645,12 @@ def main():
             "benchmark_significance": {
                 "value": round(float(alpha_p), 4),
                 "threshold": GATES["max_p_value"],
-                "pass": bool(alpha_p < GATES["max_p_value"]),
+                # Direction-aware (H34): significance must be in the POSITIVE
+                # direction -- a significantly negative alpha is evidence of
+                # underperformance, not of beating the benchmark.
+                "pass": benchmark_significance_gate(
+                    alpha_p, cmp["information_ratio"], GATES["max_p_value"]
+                ),
                 "information_ratio": round(float(cmp["information_ratio"]), 4),
                 "alpha_p_value": round(float(alpha_p), 4),
             },

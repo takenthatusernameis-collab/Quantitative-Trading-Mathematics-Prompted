@@ -3,6 +3,7 @@
 from qtr.validation.statistics import (
     annualized_sharpe,
     bars_per_year,
+    benchmark_significance_gate,
     bootstrap_confidence_interval,
     capacity_estimate,
     combinatorial_purged_cv,
@@ -22,6 +23,7 @@ from qtr.validation.statistics import (
 __all__ = [
     "annualized_sharpe",
     "bars_per_year",
+    "benchmark_significance_gate",
     "bootstrap_confidence_interval",
     "capacity_estimate",
     "combinatorial_purged_cv",

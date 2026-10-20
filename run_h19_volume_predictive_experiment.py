@@ -38,6 +38,7 @@ from qtr.backtest.engine import (
 from qtr.data.fetcher import get_data_fetcher
 from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
+    benchmark_significance_gate,
     compare_to_benchmark,
     sharpe_ratio,
     walk_forward_splits,
@@ -280,7 +281,11 @@ def full_gate_eval(
         "worst": worst >= GATES["min_worst_regime_sharpe"]
         if worst != np.inf
         else False,
-        "p": float(bench.get("alpha_p_value_one_sided", 1.0)) < GATES["max_p_value"],
+        "p": benchmark_significance_gate(
+            float(bench.get("alpha_p_value", 1.0)),
+            float(bench.get("information_ratio", -np.inf)),
+            GATES["max_p_value"],
+        ),
         "ir": float(bench.get("information_ratio", -np.inf))
         > GATES["min_information_ratio"],
     }
@@ -297,7 +302,7 @@ def full_gate_eval(
         "wf_stability": float(wf_stab),
         "worst_regime_sharpe": float(worst) if worst != np.inf else 0.0,
         "regime_sharpes": regime_sharpes,
-        "benchmark_p_value": float(bench.get("alpha_p_value_one_sided", 1.0)),
+        "benchmark_p_value": float(bench.get("alpha_p_value", 1.0)),
         "information_ratio": float(bench.get("information_ratio", -np.inf)),
         "benchmark_alpha_annual": float(bench.get("alpha_annualized", 0.0)),
         "passes": passes,

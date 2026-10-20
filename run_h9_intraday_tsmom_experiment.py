@@ -17,6 +17,7 @@ from qtr.backtest.engine import AssetClass, BacktestConfig, CostModel, run_backt
 from qtr.data.fetcher import get_data_fetcher
 from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
+    benchmark_significance_gate,
     compare_to_benchmark,
     sharpe_ratio,
     walk_forward_splits,
@@ -531,7 +532,11 @@ def main():
             "worst": worst >= GATES["min_worst_regime_sharpe"]
             if worst != np.inf
             else False,
-            "p": bench_cmp.get("alpha_p_value_one_sided", 1.0) < GATES["max_p_value"],
+            "p": benchmark_significance_gate(
+                bench_cmp.get("alpha_p_value", 1.0),
+                bench_cmp.get("information_ratio", -np.inf),
+                GATES["max_p_value"],
+            ),
             "ir": bench_cmp.get("information_ratio", -np.inf)
             > GATES["min_information_ratio"],
         }
@@ -550,7 +555,7 @@ def main():
                 "wf_stability": float(wf_stab),
                 "worst_regime_sharpe": float(worst) if worst != np.inf else 0.0,
                 "regime_sharpes": regime_sharpes,
-                "benchmark_p_value": float(bench_cmp.get("alpha_p_value_one_sided", 1.0)),
+                "benchmark_p_value": float(bench_cmp.get("alpha_p_value", 1.0)),
                 "information_ratio": float(bench_cmp.get("information_ratio", -np.inf)),
                 "ablations": ablations,
             },
