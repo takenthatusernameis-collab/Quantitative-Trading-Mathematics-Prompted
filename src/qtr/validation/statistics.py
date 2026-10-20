@@ -390,6 +390,7 @@ def capacity_estimate(
 
     return results
 
+
 def _no_comparison() -> dict[str, float]:
     """The result returned when no comparison can be made.
 
@@ -404,6 +405,7 @@ def _no_comparison() -> dict[str, float]:
         "beta": 0.0,
         "alpha_t_stat": 0.0,
         "alpha_p_value": 1.0,
+        "alpha_p_value_one_sided": 1.0,
         "win_rate": 0.0,
         "excess_return_annual": 0.0,
         "excess_vol_annual": 0.0,
@@ -517,11 +519,22 @@ def compare_to_benchmark(
         beta = 0
         alpha_annual = 0
 
-    # T-test for alpha
+    # T-test for alpha. `stats.ttest_1samp` is two-sided by default, so its
+    # p-value is direction-blind: a significantly *negative* alpha passes
+    # ``p < max_p_value`` just as a significantly positive one does. The
+    # one-sided p-value for ``H1: alpha > 0`` (strategy beats benchmark) puts
+    # all of alpha in the upper tail when ``t_stat > 0`` and in the lower
+    # tail otherwise, so it only passes when the excess return is both
+    # significant *and* positive.
     if excess.std() > 1e-12:
         t_stat, p_value = stats.ttest_1samp(excess, 0)
+        if t_stat > 0:
+            alpha_p_value_one_sided = p_value / 2.0
+        else:
+            alpha_p_value_one_sided = 1.0 - p_value / 2.0
     else:
         t_stat, p_value = 0.0, 1.0
+        alpha_p_value_one_sided = 0.5
 
     # Win rate
     win_rate = (excess > 0).mean()
@@ -532,6 +545,7 @@ def compare_to_benchmark(
         "beta": beta,
         "alpha_t_stat": t_stat,
         "alpha_p_value": p_value,
+        "alpha_p_value_one_sided": alpha_p_value_one_sided,
         "win_rate": win_rate,
         "excess_return_annual": excess.mean() * periods_per_year,
         "excess_vol_annual": excess.std() * np.sqrt(periods_per_year),

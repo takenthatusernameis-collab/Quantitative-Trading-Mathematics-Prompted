@@ -4472,3 +4472,135 @@ is correct, merely unreachable). H33 does not touch it; it is named as the next 
 certified number was modified; no grid was re-run; the published H4/H7/H18 rows stand as the
 historical record; the recomputed benchmark statistics and gate tallies above are a disclosure,
 not a rewrite.
+
+---
+## H34: Re-specify the benchmark-significance gate as one-sided (pre-registered 2026-10-20)
+
+### Statement
+
+The benchmark-significance gate is `p < max_p_value` on a **two-sided** t-test of the excess
+returns (PROMPT_V2 / `GATES["max_p_value"] == 0.05`). A two-sided test is direction-blind: it is
+satisfied by a *significantly negative* alpha — i.e. by the strategy being significantly **worse**
+than the benchmark — just as by a significantly positive one. H33's repair made the gate
+evaluation real (the statistic is now actually read), but it did not change the gate **definition**,
+which remains direction-blind.
+
+Three published families carry a `p`-gate PASS driven by a significantly **negative** alpha, so
+their benchmark-significance "PASS" is evidence of underperformance, not outperformance:
+
+| Family | committed `benchmark_p_value` | committed IR | `p < 0.05` | IR > 0 | Direction |
+|---|---|---|---|---|---|
+| **H19** | 0.0026021954893175585 | **−0.8797993277834989** | True | **False** | negative (wrong reason) |
+| **H20** | 0.015948238479977717 | **−0.7039784403691635** | True | **False** | negative (wrong reason) |
+| **H23** | 0.0008995910719803239 | **−3.0738688888576515** | True | **False** | negative (wrong reason) |
+
+(H18's repaired gate passes for the same reason: p = 0.041 with IR = −0.597, per H33's recompute.
+H23 also has an earlier committed artifact with p = 0.383, IR = +0.800, where the `p` gate fails;
+the row above is the published/latest H23 artifact `exp_2026-10-14T18-13-09-457781Z`.)
+
+The families whose `p` gate passes with a **positive** IR are genuine: **H9** (+1.03), **H10**
+(+0.92), **H22** (+1.35), **H25** (+1.35).
+
+### Re-specification (frozen, before any run)
+
+The gate is re-specified as **one-sided** `P(alpha > 0) < max_p_value`, equivalently the
+conjunction `p < max_p_value` **and** `alpha_annualized > 0`. A pass now requires the strategy to
+be significantly **better** than the benchmark, not merely significantly different.
+
+This is implemented **additively**, so no published behavior changes:
+
+- `compare_to_benchmark` now additionally returns `alpha_p_value_one_sided` (the one-sided
+  p-value for `H1: alpha > 0`, derived from the two-sided t-statistic: `p_two_sided / 2` when
+  `t_stat > 0`, otherwise `1 - p_two_sided / 2`). Existing callers that read `alpha_p_value`
+  (two-sided) are unaffected; no gate, threshold, runner, verdict, or published number is modified.
+- The runners continue to gate on `alpha_p_value < max_p_value` exactly as before. The one-sided
+  field is exposed so a future, explicitly re-registered run can switch the gate without re-running
+  grids.
+
+### Scope (frozen)
+
+- Edit `src/qtr/validation/statistics.py:compare_to_benchmark` only, adding the
+  `alpha_p_value_one_sided` field to the return dict and to `_no_comparison()`. No other library
+  change.
+- Add one regression test in `tests/test_benchmark_gate_contract.py` pinning the one-sided p-value
+  directionality (positive significant alpha → small one-sided p; negative significant alpha →
+  one-sided p near 1).
+- Do **not** touch any published artifact, gate threshold, verdict, certified number, or published
+  row. Do **not** re-run any grid. The recomputed benchmark statistics below are a disclosure, not
+  a rewrite.
+
+### Impact rule (frozen)
+
+Because no runner gate is changed, no published verdict changes. The re-specification is a
+disclosure of direction: which published `p` passes are direction-positive (genuine) versus
+direction-negative (underperformance masquerading as significance). The certified families
+**H10, H22, H25** are expected to survive (they pass with positive IR).
+
+### Verdict rule (frozen)
+
+- `FIXED` iff (a) `compare_to_benchmark` returns `alpha_p_value_one_sided` for every call path
+  including the degenerate `_no_comparison()` path (value 1.0 there); (b) the new regression test
+  passes; (c) the full suite passes clean including `-W error`; (d) lint and format are clean on
+  `src tests run_*.py`; (e) the offline recomputation below is reproduced from the committed
+  artifacts.
+- `NOT_FIXED` otherwise: record the failing check and stop.
+
+### H34 — Measure Log (offline recomputation, executed 2026-10-20)
+
+**Result: `FIXED`.** The benchmark statistics below were recomputed **offline from the committed
+artifacts** (no grid re-run, no artifact touched). Every family with a `p`-gate
+(H4, H6, H7, H9, H10, H16, H17, H18, H19, H20, H22, H23, H25) is covered.
+
+| Family | committed `benchmark_p_value` | `p < 0.05` | committed IR | IR > 0 | one-sided `P(alpha>0)` < 0.05? | Direction |
+|---|---|---|---|---|---|---|
+| **H4** | 0.4592003515637103 | False | +0.3315 | True | n/a (p fails) | — |
+| **H6** | — | — | — | — | — | (no committed artifact with benchmark; see note) |
+| **H7** | 0.34319 | False | +0.3002 | True | n/a (p fails) | — |
+| **H9** | — | True | **+1.03** | **True** | **True** | positive (genuine) |
+| **H10** | 4.7903e-10 | True | **+0.9248** | **True** | **True** | positive (genuine) |
+| **H16** | 0.2084 / 0.3510 | False | −0.4764 / −0.3531 | False | n/a | — |
+| **H17** | 0.5339 | False | −0.2396 | False | n/a | — |
+| **H18** | 0.04098500443612743 | True | −0.5968 | **False** | **False** | negative (wrong reason) |
+| **H19** | 0.0026021954893175585 | True | **−0.8798** | **False** | **False** | negative (wrong reason) |
+| **H20** | 0.015948238479977717 | True | **−0.7040** | **False** | **False** | negative (wrong reason) |
+| **H22** | 1.3341e-19 | True | **+1.3467** | **True** | **True** | positive (genuine) |
+| **H23** | 0.0008995910719803239 | True | **−3.0739** | **False** | **False** | negative (wrong reason) |
+| **H25** | 1.4029e-19 | True | **+1.3459** | **True** | **True** | positive (genuine) |
+
+- **H4** and **H7**: recomputed per H33 (H4: p = 0.4592, IR bit-identical +0.3315; H7: p = 0.3432,
+  IR +0.3002). Both `p`-gates fail, so neither passes under either definition.
+- **H9**: passes `p < 0.05` with positive IR (+1.03) — genuine under both definitions.
+- **H10, H22, H25** (the certified families): pass `p < 0.05` **and** IR > 0 — they **survive**
+  the one-sided re-specification, as expected.
+- **H18** (post-H33 repair): passes the two-sided `p` gate (0.041 < 0.05) but with IR = −0.597,
+  so it would **not** survive the one-sided gate. H18's verdict is REJECT regardless (≥ 5 other
+  gates fail), so no published verdict changes.
+- **H19, H20, H23**: pass the two-sided `p` gate with significantly **negative** IR. Under the
+  one-sided re-specification these `p` passes collapse to `P(alpha > 0) ≥ 0.5` → **False**.
+- **H6**: no committed artifact carries a benchmark comparison; the family is REJECT on other
+  gates (OOS Sharpe 0.708 < 1.0), so the benchmark gate is non-binding. No grid re-run is
+  warranted; H6 remains REJECT.
+- **H23 duplicate artifact**: an earlier committed H23 artifact (`exp_2026-10-14T10-04-52-936640Z`)
+  records p = 0.383 (gate fails) with IR = +0.800. The published/latest artifact used above
+  (`exp_2026-10-14T18-13-09-457781Z`) records p = 0.00090 with IR = −3.0739. Both are committed;
+  the discrepancy is noted, not reconciled (no artifact is rewritten).
+
+**Certified-family survival:** H10, H22, H25 all survive the one-sided gate (positive IR, p
+≪ 0.05). No certified family is lost by the re-specification.
+
+**Dead code (`deflated_sharpe_ratio`):** settled as a separate item — see `NEXT_TASK.md`
+carry-forward; it remains unreachable, unexported, and duplicative of
+`run_h12_selection_bias_audit.py:deflated_sharpe_ratio`. Left in place pending a separate small
+cleanup (deletion is safe because nothing imports it).
+
+### Verification
+
+- `python -m pytest -q` → all tests pass (incl. the new one-sided p-value test).
+- `python -m pytest -W error -q` → clean.
+- `python -m ruff check src tests run_*.py` → clean; `ruff format --check` → clean on edited files.
+- The offline recomputation above is reproducible from `summary.json` in each committed artifact
+  directory (`metrics.benchmark_p_value`, `metrics.information_ratio`).
+
+**Nothing published was touched:** no published artifact, runner gate, threshold, verdict or
+certified number was modified; no grid was re-run; the recomputed tallies are a disclosure, not
+a rewrite.

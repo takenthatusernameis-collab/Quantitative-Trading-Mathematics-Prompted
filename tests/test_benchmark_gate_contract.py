@@ -39,6 +39,7 @@ LIBRARY_KEYS = {
     "beta",
     "alpha_t_stat",
     "alpha_p_value",
+    "alpha_p_value_one_sided",
     "win_rate",
     "excess_return_annual",
     "excess_vol_annual",
@@ -100,6 +101,32 @@ def test_nan_free_input_is_not_reshaped(rng):
     reference = compare_to_benchmark(strat, bench)
     for key in LIBRARY_KEYS:
         assert res[key] == pytest.approx(reference[key], rel=1e-15, abs=1e-18)
+
+
+def test_one_sided_p_is_direction_aware(rng):
+    """The one-sided p-value ``P(alpha > 0)`` must be small only when the
+    excess return is significant *and* positive: a two-sided significant but
+    negative alpha must NOT pass the one-sided gate."""
+    # Significantly positive excess return -> one-sided p = two-sided / 2 (small)
+    pos_strat = rng.normal(0.005, 0.01, 500)
+    pos_bench = rng.normal(0.0, 0.01, 500)
+    pos = compare_to_benchmark(pos_strat, pos_bench)
+    assert pos["alpha_p_value_one_sided"] == pytest.approx(
+        pos["alpha_p_value"] / 2.0, rel=1e-12
+    )
+    assert pos["alpha_t_stat"] > 0
+    if pos["alpha_p_value"] < 0.05:
+        assert pos["alpha_p_value_one_sided"] < 0.05
+
+    # Significantly negative excess return -> one-sided p near 1 (not significant)
+    neg_strat = rng.normal(-0.005, 0.01, 500)
+    neg_bench = rng.normal(0.0, 0.01, 500)
+    neg = compare_to_benchmark(neg_strat, neg_bench)
+    assert neg["alpha_t_stat"] < 0
+    assert neg["alpha_p_value_one_sided"] == pytest.approx(
+        1.0 - neg["alpha_p_value"] / 2.0, rel=1e-12
+    )
+    assert neg["alpha_p_value_one_sided"] > 0.5
 
 
 @pytest.mark.parametrize("n", [0, 1])
