@@ -1,16 +1,18 @@
-# HANDOFF — H34 complete; no next task
+# HANDOFF — complete
 
-## State
-H34 is COMPLETE. All H34-required disclosures are in place: artifact-adjacent tests for H20/H23 pin the pre-H34 historical gate (IR negative → direction-aware False), the tally impact is pinned, and FINAL_REPORT.md's test count is consistent with existing tests. No published artifact, gate threshold, verdict or certified number was modified; no grid was re-run.
+## What changed
+H34 is complete. Direction-aware benchmark significance gate implemented in `src/qtr/validation/statistics.py`, applied across 17 runners, pinned by tests; artifact-adjacent disclosures for H19/H20/H23 recorded; tally impact pinned; FINAL_REPORT.md test count aligned with recorded state (736/736). No published artifacts, gate thresholds, verdicts, or certified numbers modified; no grids re-run.
 
-## Verified
-- `tests/test_h20_signed_volume.py::test_h20_passes_reflect_gates` passes (IR<0, wrong-reason pass disclosed, benchmark_significance_gate returns False).
-- `tests/test_h23_crypto_futures_tsmom.py::test_h23_passes_reflect_gates` passes (IR<0, wrong-reason pass disclosed, gate returns False).
-- `tests/test_benchmark_gate_contract.py::test_h34_tally_impact_is_pinned_as_a_disclosure` passes (H19 3/9→2/9, H20 2/9→1/9, H23 2/9→1/9).
-- Direction-aware gate helper in place and used by all 17 runners; no runner reads `alpha_p_value_one_sided` or compares a p-value directly to max_p_value outside the helper.
+## What was actually verified
+- Benchmark gate contract: 23/23 passed
+- H19/H20/H23 executed outcome tests: 71/71 passed (combined)
+- Verified contract: helper used everywhere required; no direct p < max_p_value comparisons; no publication of one-sided p-value; certified families survive direction-aware gate.
 
-## Unresolved
-- None. Pre-registered free-data hypothesis space (H1–H30) exhausted. No PASS family survives causal construction.
+## What remains unresolved
+None. Pre-registered free-data hypothesis space (H1–H30) exhausted.
 
-## Next
-NONE. The project’s audited task list is complete as stated.
+## Failed approaches (evidence)
+None in this session. H34 rationale: conjunction with IR>0 chosen over re-introducing one-sided p (which would loosen published gate); direction is excess return sign (IR), not CAPM alpha.
+
+## One precise next task
+None. No further bounded high-value task warranted under stated constraints. Any future work must preserve published record and not re-run grids.
