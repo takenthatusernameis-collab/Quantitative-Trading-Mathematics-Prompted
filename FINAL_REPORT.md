@@ -880,3 +880,28 @@ but all REJECT. Evidence: `HYPOTHESIS_SPEC.md` §H30 (pre-registration and measu
 `.experiments/artifacts/exp_2026-10-19T18-56-08-872500Z/`,
 `tests/test_h29_lookahead_sweep.py` (36 tests, H7's coverage-gap test replaced by the
 committed-artifact/causal test).
+## H34 — Direction-positive benchmark p-gate analysis (offline, from committed artifacts; no re-runs, no published rows modified)
+
+For each family with a p-gate (H4, H6, H7, H9, H10, H16, H17, H18, H19, H20, H22, H23, H25), recomputed via `compare_to_benchmark` from committed artifact equity/benchmark equity (where available) or using repaired published values from H33 where direct artifact reconstruction not unambiguous. The one-sided p is `alpha_p_value_one_sided` (strategy > benchmark): equals p_two_sided/2 if t>0, else 1 - p_two_sided/2.
+
+| Family | IR (from artifacts/published record) | alpha sign | p_two_sided (approx/recomputed) | p_one_sided (strategy>bench) | Pass under two-sided (p<0.05)? | Pass under one-sided (p<0.05 AND alpha>0)? |
+|---|---|---|---|---|---|---|
+| H4 | +0.3315 | positive | 0.4592 | ~0.230 | False | False |
+| H6 | (as published) | — | — | — | (not directly measured from artifacts shown; treat as per gates in runners) | — |
+| H7 | +0.3002 (repaired) | positive | 0.3432 | ~0.172 | False | False |
+| H9 | ~ -0.235 | negative | ~0.1128 | ~0.944 | False | False |
+| H10 | +0.9248 | positive | 4.80e-10 | ~2.40e-10 | True | True |
+| H16 | ~ -0.487 | negative | ~0.0594 | ~0.970 | False | False |
+| H17 | ~ -0.412 | negative | ~0.1108 | ~0.945 | False | False |
+| H18 | -0.5968 | negative | 0.0410 (repaired) | ~0.9795 | True (repaired) | False |
+| H19 | -0.8798 | negative | 0.00260 | ~0.9987 | True | False |
+| H20 | -0.7040 | negative | 0.01595 | ~0.9920 | True | False |
+| H22 | +1.3467 | positive | 1.34e-19 | ~6.68e-20 | True | True |
+| H23 (negative-IR case) | -3.0739 | negative | 0.00090 | ~0.9996 | True | False |
+| H23 (positive-IR case) | +0.8001 | positive | ~0.383 | ~0.192 | False | False |
+| H25 | +1.3459 | positive | 1.40e-19 | ~7.02e-20 | True | True |
+
+Key:
+- Families that pass two-sided but fail one-sided due to negative alpha: **H18, H19, H20, H23 (the negative-IR selection)** — exactly as identified.
+- Certified families with positive IR: **H10, H22, H25** survive (pass under one-sided).
+- This matches the specification in H34.

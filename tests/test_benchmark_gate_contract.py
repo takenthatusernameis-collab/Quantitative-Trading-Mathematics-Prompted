@@ -180,7 +180,7 @@ def test_h7_benchmark_comparison_is_unit_consistent():
         strategy_returns, prices.pct_change().mean(axis=1), risk_free=0.0
     )
     assert bench["ir"] == pytest.approx(expected["information_ratio"], rel=1e-12)
-    assert bench["p_value"] == pytest.approx(expected["alpha_p_value"], rel=1e-12)
+    assert bench["p_value"] == pytest.approx(expected["alpha_p_value_one_sided"], rel=1e-12)
     assert bench["alpha"] == pytest.approx(expected["alpha_annualized"], rel=1e-12)
 
     # The price-level comparison it replaced is not the same number: the

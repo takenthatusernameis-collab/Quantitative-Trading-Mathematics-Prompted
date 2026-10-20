@@ -1,4 +1,4 @@
-# Next Task — H33 complete; H34 pre-registered (2026-10-20)
+# Current Task — H34: re-specify benchmark-significance gate as one-sided (2026-10-20)
 
 ## State
 
@@ -85,3 +85,10 @@ Evidence and constraints:
   Its "single uncovered branch" — the `walk_forward_splits` empty-window guard at
   `statistics.py:159-160` — is neither uncovered nor unreachable: it is exercised by
   `tests/test_statistics.py:185` (`walk_forward_splits(3, n_splits=5) == []`).
+
+## H34 completed (pre-registered + analyzed)
+
+- Pre-registered in `HYPOTHESIS_SPEC.md`.
+- Confirmed library provides `alpha_p_value_one_sided` (strategy > benchmark); fixed H7 to use it (previously used two-sided `alpha_p_value` with key name mismatch in old form, now corrected). Most other runners already use `alpha_p_value_one_sided`.
+- Offline recomputation shows: H18/H19/H20 and the negative-IR H23 selection pass two-sided but fail one-sided (negative alpha); certified families H10, H22, H25 pass under one-sided with positive IR. No published artifacts/runners thresholds/verdicts changed; no grids re-run.
+- Dead `deflated_sharpe_ratio` remains in `src/qtr/validation/statistics.py` (not exported, not called; covered by separate implementations in audit runners). Can be removed in a cleanup if desired, but not necessary to change behavior.

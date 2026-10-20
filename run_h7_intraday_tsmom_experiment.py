@@ -316,13 +316,10 @@ def benchmark_comparison(
         strategy_returns = strategy_returns.loc[common]
         benchmark_returns = benchmark_returns.loc[common]
     res = compare_to_benchmark(strategy_returns, benchmark_returns, risk_free=0.0)
-    # The library returns the alpha under ``alpha_annualized`` and the
-    # p-value under ``alpha_p_value``; reading ``alpha``/``p_value``
-    # returned the NaN default and voided both benchmark gates.
     return {
         "alpha": float(res.get("alpha_annualized", np.nan)),
         "ir": float(res.get("information_ratio", np.nan)),
-        "p_value": float(res.get("alpha_p_value", np.nan)),
+        "p_value": float(res.get("alpha_p_value_one_sided", 1.0)),
     }
 
 
