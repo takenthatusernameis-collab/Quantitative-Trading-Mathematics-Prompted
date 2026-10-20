@@ -68,13 +68,13 @@ import pytest
 # robustness / plain futures TSMOM families (H38) are imported eagerly so their
 # module-level configuration is available to the probe.
 import run_ddcv_experiment  # noqa: E402
+import run_futures_tsmom_experiment  # noqa: E402
 import run_h6_vix_ddcv_experiment  # noqa: E402
 import run_h7_intraday_tsmom_experiment  # noqa: E402
 import run_h8_rolladjusted_tsmom_experiment  # noqa: E402
 import run_h11_robustness_experiment  # noqa: E402
 import run_h17_vrp_experiment  # noqa: E402
 import run_regime_gated_momentum_experiment  # noqa: E402
-import run_futures_tsmom_experiment  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -686,8 +686,8 @@ def _chained_build_positions(*args, **kwargs):
     prices = args[0]
     vix = args[1]
     from run_h10_intraday_tsmom_pfopt_experiment import (  # noqa: PLC0415
-        build_hourly_target,
         apply_exits_hourly,
+        build_hourly_target,
         vol_scaled_tsmom_hourly,
     )
 
