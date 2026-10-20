@@ -89,6 +89,8 @@ IN_SCOPE_RUNNERS = (
     "run_h25_futures_tsmom_pfmargin.py",
     "run_h27_pnl_level_audit.py",
     "run_h29_lookahead_sweep.py",
+    "run_ts_momentum_experiment.py",
+    "run_cs_momentum_experiment.py",
 )
 
 # The runners named by the H36 handoff (the ones with inline signal code).
@@ -1314,6 +1316,44 @@ CASES: dict[str, Case] = {
         },
         "expect": "clean",
     },
+    # ---------------- TS momentum: H1 vol-scaled time-series momentum -------- #
+    "ts_momentum.vol_scaled_tsmom_signals": {
+        "id": "ts_momentum.vol_scaled_tsmom_signals",
+        "runner": "run_ts_momentum_experiment.py",
+        "func": "vol_scaled_tsmom_signals",
+        "market": "daily",
+        "dense": lambda m: ((m["prices"],), {"lookback": 10, "skip": 2}),
+        "sparse": lambda m: ((m["prices"],), {"lookback": 252, "skip": 21}),
+        "expect": "clean",
+    },
+    "ts_momentum.regime_labels": {
+        "id": "ts_momentum.regime_labels",
+        "runner": "run_ts_momentum_experiment.py",
+        "func": "regime_labels",
+        "market": "daily",
+        "dense": lambda m: ((m["vix"],), {}),
+        "sparse": lambda m: ((m["vix"],), {}),
+        "expect": "clean",
+    },
+    # ---------------- CS momentum: cross-sectional vol-scaled TSMOM ---------- #
+    "cs_momentum.cs_momentum_vol_scaled": {
+        "id": "cs_momentum.cs_momentum_vol_scaled",
+        "runner": "run_cs_momentum_experiment.py",
+        "func": "cs_momentum_vol_scaled",
+        "market": "daily",
+        "dense": lambda m: ((m["prices"],), {"lookback": 10, "skip": 2, "long_only": True}),
+        "sparse": lambda m: ((m["prices"],), {"lookback": 252, "skip": 21, "long_only": True}),
+        "expect": "clean",
+    },
+    "cs_momentum.regime_labels": {
+        "id": "cs_momentum.regime_labels",
+        "runner": "run_cs_momentum_experiment.py",
+        "func": "regime_labels",
+        "market": "daily",
+        "dense": lambda m: ((m["vix"],), {}),
+        "sparse": lambda m: ((m["vix"],), {}),
+        "expect": "clean",
+    },
 }
 
 
@@ -1728,6 +1768,60 @@ INVENTORY: dict[str, dict[str, tuple[str, str]]] = {
         "h23_counterfactual": ("static", _ARG_AUDIT),
         "main": ("static", _ARG_CONFIG),
     },
+    "run_ts_momentum_experiment.py": {
+        "split_returns_by_date": ("static", _ARG_SPLIT),
+        "make_config": ("static", _ARG_CONFIG),
+        "resample_monthly_signals": (
+            "static",
+            "Resamples signals to month-end and forward-fills: each bar takes the last "
+            "month-end close, which is known at that close, so the hold lag is +1 bar and "
+            "no bar reads data after itself. The single resample collapse site is pinned "
+            "in RESAMPLE_SITES.",
+        ),
+        "vol_scaled_tsmom_signals": (
+            "probed",
+            "Momentum is pct_change(lookback).shift(skip) with skip >= 1, so the direction "
+            "at bar t uses prices up to bar t-skip (<= t). The vol-targeting scale is the "
+            "portfolio vol estimated from returns up to bar t; nothing after bar t is read.",
+        ),
+        "evaluate_combo": (
+            "static",
+            "Builds the probed signal and runs the engine on an already-built position "
+            "series; the decision logic itself is vol_scaled_tsmom_signals.",
+        ),
+        "selection_metric": ("static", _ARG_METRIC),
+        "wf_oos_sharpes": ("static", _ARG_METRIC),
+        "regime_labels": (
+            "probed",
+            "VIX regime labels from the forward-filled VIX series; ffill reads only past "
+            "values, so the label at bar t uses VIX up to bar t.",
+        ),
+        "main": ("static", _ARG_CONFIG),
+    },
+    "run_cs_momentum_experiment.py": {
+        "split_returns_by_date": ("static", _ARG_SPLIT),
+        "make_config": ("static", _ARG_CONFIG),
+        "resample_monthly_signals": (
+            "static",
+            "Resamples signals to month-end and forward-fills: each bar takes the last "
+            "month-end close, which is known at that close, so the hold lag is +1 bar and "
+            "no bar reads data after itself. The single resample collapse site is pinned "
+            "in RESAMPLE_SITES.",
+        ),
+        "cs_momentum_vol_scaled": (
+            "probed",
+            "Direction is the sign of pct_change(lookback).shift(skip) with skip >= 1, so "
+            "the signal at bar t uses prices up to bar t-skip (<= t). The vol-targeting "
+            "scale uses portfolio vol estimated from returns up to bar t.",
+        ),
+        "regime_labels": (
+            "probed",
+            "VIX regime labels from the forward-filled VIX series; ffill reads only past "
+            "values, so the label at bar t uses VIX up to bar t.",
+        ),
+        "wf_oos_sharpes": ("static", _ARG_METRIC),
+        "main": ("static", _ARG_CONFIG),
+    },
 }
 
 # The probe cases that belong to a *known look-ahead* (the detection is
@@ -1767,6 +1861,8 @@ RESAMPLE_SITES = {
     ("run_h27_pnl_level_audit.py", "causal_daily_target_from_hourly"): 1,
     ("run_h27_pnl_level_audit.py", "expansion_check"): 1,
     ("run_h29_lookahead_sweep.py", "probe_collapse"): 1,
+    ("run_ts_momentum_experiment.py", "resample_monthly_signals"): 1,
+    ("run_cs_momentum_experiment.py", "resample_monthly_signals"): 1,
 }
 
 

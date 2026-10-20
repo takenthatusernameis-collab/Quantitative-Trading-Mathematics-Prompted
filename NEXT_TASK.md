@@ -102,10 +102,19 @@ target carries; the pin for it is the call graph, as for H12.
 **Extend the point-in-time invariant to the *remaining* runners, and audit the predictor
 timing (not just the collapse construction) in the families H29 certified as CAUSAL.**
 
-*Evidence.* H37 covered `run_h9/h10/h12/h16/h18/h19/h20/h21/h22/h23/h25/h27/h29`. The
-remaining runners still build position series inline with no generic coverage:
+*Evidence.* H37 covered `run_h9/h10/h12/h16/h18/h19/h20/h21/h22/h23/h25/h27/h29`; this
+session added `run_ts_momentum_experiment.py` and `run_cs_momentum_experiment.py` (the two
+vol-scaled time-series momentum families certified CAUSAL by H29) to
+`tests/test_runner_causality_inventory.py`: `vol_scaled_tsmom_signals` /
+`cs_momentum_vol_scaled` and `regime_labels` are probed clean (dense + sparse cuts),
+`resample_monthly_signals` is static with its `resample` collapse site pinned, and every
+module-level function is classified. `KNOWN_LOOKAHEAD_CASES` is unchanged. No published
+artifact, gate threshold, verdict or certified number was modified; no grid was re-run;
+no hypothesis was added. Verified: `python -m pytest -q -W error` → 975 passed, 1 skipped;
+`ruff check` / `ruff format --check` pass; `src/qtr` coverage still 100%.
+
+The remaining runners still build position series inline with no generic coverage:
 `run_experiment.py`, `run_baseline.py`, `run_param_sweep.py`, `run_alternatives.py`,
-`run_cs_momentum_experiment.py`, `run_ts_momentum_experiment.py`,
 `run_ddcv_experiment.py`, `run_futures_tsmom_experiment.py`,
 `run_h6_vix_ddcv_experiment.py`, `run_h7_intraday_tsmom_experiment.py`,
 `run_h8_rolladjusted_tsmom_experiment.py`, `run_regime_gated_momentum_experiment.py`,
@@ -143,7 +152,7 @@ exhausted and the H1–H30 records are frozen.
 - The pre-existing H1–H30 hypothesis space remains exhausted — no new hypothesis is
   warranted.
 - The certified families' numbers and verdicts are frozen (H10, H11, H12, H22, H25).
-- The shared library, the engine **and the thirteen audited runners** are now pinned as
+- The shared library, the engine **and the fifteen audited runners** are now pinned as
   point-in-time; keep them that way (re-run `tests/test_causality_invariant.py` after any
   change under `src/qtr`, and `tests/test_runner_causality_inventory.py` after any change in
   a `run_*.py`).
