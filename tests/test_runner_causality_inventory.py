@@ -63,6 +63,19 @@ import numpy as np
 import pandas as pd
 import pytest
 
+# The runners under test are imported lazily inside the helpers below, but
+# the DDCV / VIX-gated / multi-horizon / roll-adjusted / regime-gated / VRP /
+# robustness / plain futures TSMOM families (H38) are imported eagerly so their
+# module-level configuration is available to the probe.
+import run_ddcv_experiment  # noqa: E402
+import run_h6_vix_ddcv_experiment  # noqa: E402
+import run_h7_intraday_tsmom_experiment  # noqa: E402
+import run_h8_rolladjusted_tsmom_experiment  # noqa: E402
+import run_h11_robustness_experiment  # noqa: E402
+import run_h17_vrp_experiment  # noqa: E402
+import run_regime_gated_momentum_experiment  # noqa: E402
+import run_futures_tsmom_experiment  # noqa: E402
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -91,6 +104,17 @@ IN_SCOPE_RUNNERS = (
     "run_h29_lookahead_sweep.py",
     "run_ts_momentum_experiment.py",
     "run_cs_momentum_experiment.py",
+    # H38: the remaining signal-building runners (the DDCV / VIX-gated /
+    # multi-horizon / roll-adjusted / regime-gated / VRP / robustness /
+    # plain futures TSMOM families).
+    "run_ddcv_experiment.py",
+    "run_futures_tsmom_experiment.py",
+    "run_h6_vix_ddcv_experiment.py",
+    "run_h7_intraday_tsmom_experiment.py",
+    "run_h8_rolladjusted_tsmom_experiment.py",
+    "run_regime_gated_momentum_experiment.py",
+    "run_h11_robustness_experiment.py",
+    "run_h17_vrp_experiment.py",
 )
 
 # The runners named by the H36 handoff (the ones with inline signal code).
@@ -204,6 +228,13 @@ def _market(kind: str, n: int, seed: int) -> dict:
         return {
             "index": index,
             "signal": _weights(index, 3, seed),
+            "vix": _vix(index, seed + 1),
+        }
+    if kind == "hourly_ohlc":
+        index = _hourly_index(n)
+        return {
+            "index": index,
+            "ohlc": _ohlc(index, seed),
             "vix": _vix(index, seed + 1),
         }
     raise AssertionError(f"unknown market kind {kind!r}")
@@ -409,6 +440,293 @@ def _causal_target(prices: pd.DataFrame) -> pd.DataFrame:
     to the exits and not to their input.
     """
     return (prices.pct_change(20).shift(1) > 0).astype(float)
+
+
+# --------------------------------------------------------------------------- #
+# H38: the DDCV / VIX-gated / multi-horizon / roll-adjusted / regime-gated /
+# VRP / robustness / plain futures TSMOM families.  Their signal modifiers
+# take a *base signal* (not raw prices) plus a few parameters, so the probe
+# builds the base signal through the runner's own ``vol_scaled_tsmom_signals``
+# and passes it in.  The base signal is causal by construction (it is the
+# H1/H4/H9 construction, already probed), so any violation the probe finds
+# is in the modifier under test.
+# --------------------------------------------------------------------------- #
+def _base_signal(prices: pd.DataFrame) -> pd.DataFrame:
+    """The shared vol-scaled TSMOM base signal, at the dense lookback."""
+    import run_ddcv_experiment as _ddcv  # noqa: PLC0415
+
+    return _ddcv.vol_scaled_tsmom_signals(
+        prices, lookback=10, skip=2, long_only=True, target_vol=0.15, vol_window=20
+    )
+
+
+def _chained_ddcv(*args, **kwargs):
+    prices = args[0]
+    sig = _base_signal(prices)
+    return run_ddcv_experiment.apply_ddcv(prices, sig, 0.2, 0.5)
+
+
+def _chained_fixed_cut(*args, **kwargs):
+    prices = args[0]
+    sig = _base_signal(prices)
+    return run_ddcv_experiment.apply_fixed_cut(prices, sig, 0.5)
+
+
+def _chained_vix_gate_h5(*args, **kwargs):
+    prices, vix = args
+    sig = _base_signal(prices)
+    return run_ddcv_experiment.apply_vix_gate(prices, sig, vix)
+
+
+def _chained_vix_gate_h6(*args, **kwargs):
+    prices, vix = args
+    sig = _base_signal(prices)
+    return run_h6_vix_ddcv_experiment.apply_vix_gate(sig, vix)
+
+
+def _chained_ddcv_h6(*args, **kwargs):
+    prices = args[0]
+    sig = _base_signal(prices)
+    return run_h6_vix_ddcv_experiment.apply_ddcv(prices, sig, 0.2, 0.5)
+
+
+def _chained_combined_h6(*args, **kwargs):
+    prices, vix = args
+    sig = _base_signal(prices)
+    return run_h6_vix_ddcv_experiment.apply_combined(prices, sig, vix, 0.2, 0.5)
+
+
+def _h7_blend(prices: pd.DataFrame):
+    """The H7 multi-horizon blend + its ATR proxy, at the dense lookback."""
+    blend = run_h7_intraday_tsmom_experiment.multi_horizon_blend_signals(
+        prices,
+        lookback_slow=20,
+        lookback_fast=10,
+        skip=2,
+        target_vol=0.15,
+        vol_window_long=20,
+        vol_window_short=10,
+    )
+    atr = run_h7_intraday_tsmom_experiment.compute_atr(prices, 14)
+    return blend, atr
+
+
+def _chained_path_dependent_exits(*args, **kwargs):
+    prices = args[0]
+    blend, atr = _h7_blend(prices)
+    return run_h7_intraday_tsmom_experiment.apply_path_dependent_exits_daily(
+        blend, prices, atr, trailing_mult=2.0, max_hold_days=3, vol_limit_mult=2.0,
+        vol_window=10, target_vol=0.15,
+    )
+
+
+def _h8_frames(prices: pd.DataFrame):
+    """The H8 roll-detection inputs: opens and volumes alongside prices."""
+    import numpy as np  # noqa: PLC0415
+
+    rng = np.random.default_rng(7)
+    opens = prices * (1.0 + rng.normal(0.0, 0.003, prices.shape))
+    volumes = pd.DataFrame(
+        rng.integers(1_000_000, 5_000_000, prices.shape).astype(float),
+        index=prices.index, columns=prices.columns,
+    )
+    return opens, volumes
+
+
+def _trend_reversal_market(_market_kind: str, n: int, seed: int) -> dict:
+    """A daily market whose momentum flips sign mid-sample.
+
+    The long-only CT exits (H11) only enter when the target is positive, and
+    the vol-scaled TSMOM signal is direction * inv_vol, so a monotonic trend
+    leaves the signal one-signed and the positions flat -- the probe would be
+    vacuous.  A trend reversal makes the signal mixed and the exits fire.
+
+    The drift is strong relative to the noise so that the 20-bar momentum is
+    positive in the first half and negative in the second half (a weak drift
+    lets the noise dominate and the signal comes out one-signed).
+    """
+    index = _daily_index(n)
+    rng = np.random.default_rng(seed)
+    half = n // 2
+    rets = np.concatenate(
+        [
+            rng.normal(0.0020, 0.004, half),
+            rng.normal(-0.0020, 0.004, n - half),
+        ]
+    )
+    prices = pd.DataFrame(
+        {f"S{i}": 100.0 * np.exp(np.cumsum(rets + 0.00001 * i)) for i in range(3)},
+        index=index,
+    )
+    return {
+        "index": index,
+        "prices": prices,
+        "vix": _vix(index, seed + 1),
+        "signal": _weights(index, 3, seed + 2),
+    }
+
+
+def _trend_reversal_ohlc_market(_market_kind: str, n: int, seed: int) -> dict:
+    """A daily OHLC market whose close momentum flips sign mid-sample.
+
+    Same rationale as ``_trend_reversal_market``: the H8 roll-adjusted TSMOM
+    signal is direction * inv_vol, so a monotonic trend leaves it one-signed
+    and the probe vacuous.  The OHLC frame carries the close, open, high, low
+    and volume columns the H8 constructors read.
+    """
+    index = _daily_index(n)
+    rng = np.random.default_rng(seed)
+    half = n // 2
+    rets = np.concatenate(
+        [
+            rng.normal(0.0020, 0.004, half),
+            rng.normal(-0.0020, 0.004, n - half),
+        ]
+    )
+    close = 100.0 * np.exp(np.cumsum(rets))
+    open_ = close * (1.0 + rng.normal(0.0, 0.003, n))
+    high = np.maximum(open_, close) * (1.0 + np.abs(rng.normal(0.0, 0.002, n)))
+    low = np.minimum(open_, close) * (1.0 - np.abs(rng.normal(0.0, 0.002, n)))
+    volume = rng.integers(1_000_000, 5_000_000, n).astype(float)
+    ohlc = pd.DataFrame(
+        {"open": open_, "high": high, "low": low, "close": close, "volume": volume},
+        index=index,
+    )
+    return {
+        "index": index,
+        "ohlc": ohlc,
+        "vix": _vix(index, seed + 1),
+    }
+
+
+def _h8_frames_from_ohlc(ohlc: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """The H8 roll-detection inputs extracted from an OHLC frame.
+
+    The H8 constructors read per-symbol close/open/volume columns, so the
+    probe builds a three-symbol frame from the single OHLC frame: each
+    symbol's close is the frame's close (the roll detection is the same
+    construction for every symbol), the opens are the frame's open, and the
+    volumes the frame's volume.  The perturbation of the OHLC frame therefore
+    perturbs every symbol's inputs identically, which is exactly what the
+    probe needs: a future-only change must leave the pre-cut output identical.
+    """
+    symbols = ["ES=F", "NQ=F", "CL=F"]
+    prices = pd.concat(
+        {sym: ohlc["close"] for sym in symbols}, axis=1
+    )
+    prices.columns = symbols
+    opens = pd.concat(
+        {sym: ohlc["open"] for sym in symbols}, axis=1
+    )
+    opens.columns = symbols
+    volumes = pd.concat(
+        {sym: ohlc["volume"] for sym in symbols}, axis=1
+    )
+    volumes.columns = symbols
+    return prices, opens, volumes
+
+
+def _chained_detect_all_roll_dates(*args, **kwargs):
+    ohlc = args[0]
+    prices, opens, volumes = _h8_frames_from_ohlc(ohlc)
+    return run_h8_rolladjusted_tsmom_experiment.detect_all_roll_dates(prices, opens, volumes)
+
+
+def _chained_detect_roll_dates_symbol(*args, **kwargs):
+    ohlc = args[0]
+    prices, opens, volumes = _h8_frames_from_ohlc(ohlc)
+    return run_h8_rolladjusted_tsmom_experiment.detect_roll_dates_symbol(
+        "ES=F", prices["ES=F"], opens["ES=F"], volumes["ES=F"]
+    )
+
+
+def _chained_compute_roll_carry(*args, **kwargs):
+    ohlc = args[0]
+    prices, opens, volumes = _h8_frames_from_ohlc(ohlc)
+    masks = run_h8_rolladjusted_tsmom_experiment.detect_all_roll_dates(prices, opens, volumes)
+    return run_h8_rolladjusted_tsmom_experiment.compute_roll_carry(prices, opens, masks)
+
+
+def _chained_build_roll_adjusted_returns(*args, **kwargs):
+    ohlc = args[0]
+    prices, opens, volumes = _h8_frames_from_ohlc(ohlc)
+    masks = run_h8_rolladjusted_tsmom_experiment.detect_all_roll_dates(prices, opens, volumes)
+    roll_carry = run_h8_rolladjusted_tsmom_experiment.compute_roll_carry(prices, opens, masks)
+    return run_h8_rolladjusted_tsmom_experiment.build_roll_adjusted_returns(prices, roll_carry, 0.5)
+
+
+def _chained_build_roll_adjusted_prices(*args, **kwargs):
+    ohlc = args[0]
+    prices, opens, volumes = _h8_frames_from_ohlc(ohlc)
+    masks = run_h8_rolladjusted_tsmom_experiment.detect_all_roll_dates(prices, opens, volumes)
+    roll_carry = run_h8_rolladjusted_tsmom_experiment.compute_roll_carry(prices, opens, masks)
+    roll_returns = run_h8_rolladjusted_tsmom_experiment.build_roll_adjusted_returns(prices, roll_carry, 0.5)
+    return run_h8_rolladjusted_tsmom_experiment.build_roll_adjusted_prices(prices, roll_returns)
+
+
+def _chained_build_tsmom_signals(*args, **kwargs):
+    ohlc = args[0]
+    prices, opens, volumes = _h8_frames_from_ohlc(ohlc)
+    masks = run_h8_rolladjusted_tsmom_experiment.detect_all_roll_dates(prices, opens, volumes)
+    roll_carry = run_h8_rolladjusted_tsmom_experiment.compute_roll_carry(prices, opens, masks)
+    roll_returns = run_h8_rolladjusted_tsmom_experiment.build_roll_adjusted_returns(prices, roll_carry, 0.5)
+    prices_adj = run_h8_rolladjusted_tsmom_experiment.build_roll_adjusted_prices(prices, roll_returns)
+    return run_h8_rolladjusted_tsmom_experiment.build_tsmom_signals(prices_adj)
+
+
+def _chained_regime_gated_signals(*args, **kwargs):
+    prices, vix = args
+    sig = _base_signal(prices)
+    return run_regime_gated_momentum_experiment.regime_gated_signals(
+        prices, vix, 10, 2, True, (1.0, 0.5, 0.25), 0.0
+    )
+
+
+def _chained_build_positions(*args, **kwargs):
+    prices = args[0]
+    vix = args[1]
+    from run_h10_intraday_tsmom_pfopt_experiment import (  # noqa: PLC0415
+        build_hourly_target,
+        apply_exits_hourly,
+        vol_scaled_tsmom_hourly,
+    )
+
+    # The dense sweep shortens the lookbacks so every bar of the reduced
+    # sample is a cut point; the sparse sweep uses the runner's real
+    # configuration.  The trend-reversal market makes the signal mixed so the
+    # long-only CT exits actually fire (a monotonic trend leaves the signal
+    # one-signed and the positions flat, which would make the probe vacuous).
+    n = len(prices)
+    lookback = 20 if n == DENSE_BARS else 252
+    fast = 10 if n == DENSE_BARS else 63
+    vol_long = 20 if n == DENSE_BARS else 252
+    vol_short = 10 if n == DENSE_BARS else 63
+    base_signal = vol_scaled_tsmom_hourly(
+        prices,
+        lookback=lookback,
+        fast_lookback=fast,
+        vol_window_long=vol_long,
+        vol_window_short=vol_short,
+    )
+    hourly_target = build_hourly_target(base_signal, None, vol_long, False, vix, prices.index)
+    atr, vol_exit = run_h11_robustness_experiment._build_exit_inputs(prices)
+    return run_h11_robustness_experiment.build_positions(
+        prices, atr, vol_exit, vix, vol_long, None, False, 0, 2.0, 20, 2.0, 0.25
+    )
+
+
+def _chained_build_targets(*args, **kwargs):
+    prices = args[0]
+    vix = args[1]
+    import numpy as np  # noqa: PLC0415
+
+    rng = np.random.default_rng(11)
+    svxy = pd.Series(
+        100.0 * np.exp(np.cumsum(rng.normal(0.0002, 0.01, len(prices)))),
+        index=prices.index,
+    )
+    vix3m = pd.Series(26.0, index=prices.index)
+    return run_h17_vrp_experiment.build_targets(svxy, vix, vix3m, 0.02, 21, 0.15, 1.0)
 
 
 # The multi-contract runners read their (frozen) configuration from the
@@ -1354,6 +1672,311 @@ CASES: dict[str, Case] = {
         "sparse": lambda m: ((m["vix"],), {}),
         "expect": "clean",
     },
+    # H38: the remaining signal-building runners (DDCV / VIX-gated /
+    # multi-horizon / roll-adjusted / regime-gated / VRP / robustness /
+    # plain futures TSMOM families).  Their signal modifiers take a base
+    # signal (not raw prices) plus a few parameters, so the chained cases
+    # build the base signal through the runner's own vol_scaled_tsmom_signals
+    # and pass it in; the base signal is causal by construction.
+    "h3_regime_gated_momentum.vol_scaled_tsmom_signals": {
+        "id": "h3_regime_gated_momentum.vol_scaled_tsmom_signals",
+        "runner": "run_regime_gated_momentum_experiment.py",
+        "func": "vol_scaled_tsmom_signals",
+        "market": "daily",
+        "dense": lambda m: ((m["prices"],), {"lookback": 10, "skip": 2, "long_only": True, "target_vol": 0.15, "vol_window": 20}),
+        "sparse": lambda m: ((m["prices"],), {"lookback": 252, "skip": 21, "long_only": True, "target_vol": 0.15, "vol_window": 63}),
+        "expect": "clean",
+    },
+    "h3_regime_gated_momentum.regime_factor_series": {
+        "id": "h3_regime_gated_momentum.regime_factor_series",
+        "runner": "run_regime_gated_momentum_experiment.py",
+        "func": "regime_factor_series",
+        "market": "daily",
+        "dense": lambda m: ((m["vix"],), {"triple": (1.0, 0.5, 0.25)}),
+        "sparse": lambda m: ((m["vix"],), {"triple": (1.0, 0.5, 0.25)}),
+        "expect": "clean",
+    },
+    "h3_regime_gated_momentum.regime_gated_signals": {
+        "id": "h3_regime_gated_momentum.regime_gated_signals",
+        "runner": "run_regime_gated_momentum_experiment.py",
+        "func": "regime_gated_signals",
+        "market": "daily",
+        "call": lambda *args, **kwargs: _chained_regime_gated_signals(*args, **kwargs),
+        "dense": lambda m: ((m["prices"], m["vix"]), {}),
+        "sparse": lambda m: ((m["prices"], m["vix"]), {}),
+        "expect": "clean",
+    },
+    "h3_regime_gated_momentum.regime_labels": {
+        "id": "h3_regime_gated_momentum.regime_labels",
+        "runner": "run_regime_gated_momentum_experiment.py",
+        "func": "regime_labels",
+        "market": "daily",
+        "dense": lambda m: ((m["vix"],), {}),
+        "sparse": lambda m: ((m["vix"],), {}),
+        "expect": "clean",
+    },
+    "h4_futures_tsmom.vol_scaled_tsmom_signals": {
+        "id": "h4_futures_tsmom.vol_scaled_tsmom_signals",
+        "runner": "run_futures_tsmom_experiment.py",
+        "func": "vol_scaled_tsmom_signals",
+        "market": "daily",
+        "dense": lambda m: ((m["prices"],), {"lookback": 10, "skip": 2, "long_only": True, "target_vol": 0.15, "vol_window": 20}),
+        "sparse": lambda m: ((m["prices"],), {"lookback": 252, "skip": 21, "long_only": True, "target_vol": 0.15, "vol_window": 63}),
+        "expect": "clean",
+    },
+    "h4_futures_tsmom.regime_labels": {
+        "id": "h4_futures_tsmom.regime_labels",
+        "runner": "run_futures_tsmom_experiment.py",
+        "func": "regime_labels",
+        "market": "daily",
+        "dense": lambda m: ((m["vix"],), {}),
+        "sparse": lambda m: ((m["vix"],), {}),
+        "expect": "clean",
+    },
+    "h5_ddcv.ddcv_scale_factors": {
+        "id": "h5_ddcv.ddcv_scale_factors",
+        "runner": "run_ddcv_experiment.py",
+        "func": "ddcv_scale_factors",
+        "market": "daily",
+        "dense": lambda m: ((m["prices"],), {"peak_window": 20}),
+        "sparse": lambda m: ((m["prices"],), {"peak_window": 252}),
+        "expect": "clean",
+    },
+    "h5_ddcv.apply_ddcv": {
+        "id": "h5_ddcv.apply_ddcv",
+        "runner": "run_ddcv_experiment.py",
+        "func": "apply_ddcv",
+        "market": "daily",
+        "call": lambda *args, **kwargs: _chained_ddcv(*args, **kwargs),
+        "dense": lambda m: ((m["prices"],), {}),
+        "sparse": lambda m: ((m["prices"],), {}),
+        "expect": "clean",
+    },
+    "h5_ddcv.apply_fixed_cut": {
+        "id": "h5_ddcv.apply_fixed_cut",
+        "runner": "run_ddcv_experiment.py",
+        "func": "apply_fixed_cut",
+        "market": "daily",
+        "call": lambda *args, **kwargs: _chained_fixed_cut(*args, **kwargs),
+        "dense": lambda m: ((m["prices"],), {}),
+        "sparse": lambda m: ((m["prices"],), {}),
+        "expect": "clean",
+    },
+    "h5_ddcv.apply_vix_gate": {
+        "id": "h5_ddcv.apply_vix_gate",
+        "runner": "run_ddcv_experiment.py",
+        "func": "apply_vix_gate",
+        "market": "daily",
+        "call": lambda *args, **kwargs: _chained_vix_gate_h5(*args, **kwargs),
+        "dense": lambda m: ((m["prices"], m["vix"]), {}),
+        "sparse": lambda m: ((m["prices"], m["vix"]), {}),
+        "expect": "clean",
+    },
+    "h5_ddcv.regime_labels": {
+        "id": "h5_ddcv.regime_labels",
+        "runner": "run_ddcv_experiment.py",
+        "func": "regime_labels",
+        "market": "daily",
+        "dense": lambda m: ((m["vix"],), {}),
+        "sparse": lambda m: ((m["vix"],), {}),
+        "expect": "clean",
+    },
+    "h6_vix_ddcv.regime_labels": {
+        "id": "h6_vix_ddcv.regime_labels",
+        "runner": "run_h6_vix_ddcv_experiment.py",
+        "func": "regime_labels",
+        "market": "daily",
+        "dense": lambda m: ((m["vix"],), {}),
+        "sparse": lambda m: ((m["vix"],), {}),
+        "expect": "clean",
+    },
+    "h6_vix_ddcv.ddcv_drawdown": {
+        "id": "h6_vix_ddcv.ddcv_drawdown",
+        "runner": "run_h6_vix_ddcv_experiment.py",
+        "func": "ddcv_drawdown",
+        "market": "daily",
+        "dense": lambda m: ((m["prices"],), {"peak_window": 20}),
+        "sparse": lambda m: ((m["prices"],), {"peak_window": 252}),
+        "expect": "clean",
+    },
+    "h6_vix_ddcv.apply_vix_gate": {
+        "id": "h6_vix_ddcv.apply_vix_gate",
+        "runner": "run_h6_vix_ddcv_experiment.py",
+        "func": "apply_vix_gate",
+        "market": "daily",
+        "call": lambda *args, **kwargs: _chained_vix_gate_h6(*args, **kwargs),
+        "dense": lambda m: ((m["prices"], m["vix"]), {}),
+        "sparse": lambda m: ((m["prices"], m["vix"]), {}),
+        "expect": "clean",
+    },
+    "h6_vix_ddcv.apply_ddcv": {
+        "id": "h6_vix_ddcv.apply_ddcv",
+        "runner": "run_h6_vix_ddcv_experiment.py",
+        "func": "apply_ddcv",
+        "market": "daily",
+        "call": lambda *args, **kwargs: _chained_ddcv_h6(*args, **kwargs),
+        "dense": lambda m: ((m["prices"],), {}),
+        "sparse": lambda m: ((m["prices"],), {}),
+        "expect": "clean",
+    },
+    "h6_vix_ddcv.apply_combined": {
+        "id": "h6_vix_ddcv.apply_combined",
+        "runner": "run_h6_vix_ddcv_experiment.py",
+        "func": "apply_combined",
+        "market": "daily",
+        "call": lambda *args, **kwargs: _chained_combined_h6(*args, **kwargs),
+        "dense": lambda m: ((m["prices"], m["vix"]), {}),
+        "sparse": lambda m: ((m["prices"], m["vix"]), {}),
+        "expect": "clean",
+    },
+    "h7_intraday_tsmom.compute_atr": {
+        "id": "h7_intraday_tsmom.compute_atr",
+        "runner": "run_h7_intraday_tsmom_experiment.py",
+        "func": "compute_atr",
+        "market": "daily",
+        "dense": lambda m: ((m["prices"],), {"window": 14}),
+        "sparse": lambda m: ((m["prices"],), {"window": 14}),
+        "expect": "clean",
+    },
+    "h7_intraday_tsmom.multi_horizon_blend_signals": {
+        "id": "h7_intraday_tsmom.multi_horizon_blend_signals",
+        "runner": "run_h7_intraday_tsmom_experiment.py",
+        "func": "multi_horizon_blend_signals",
+        "market": "daily",
+        "dense": lambda m: ((m["prices"],), {"lookback_slow": 20, "lookback_fast": 10, "skip": 2, "target_vol": 0.15, "vol_window_long": 20, "vol_window_short": 10}),
+        "sparse": lambda m: ((m["prices"],), {"lookback_slow": 252, "lookback_fast": 63, "skip": 1, "target_vol": 0.15, "vol_window_long": 63, "vol_window_short": 21}),
+        "expect": "clean",
+    },
+    "h7_intraday_tsmom.apply_path_dependent_exits_daily": {
+        "id": "h7_intraday_tsmom.apply_path_dependent_exits_daily",
+        "runner": "run_h7_intraday_tsmom_experiment.py",
+        "func": "apply_path_dependent_exits_daily",
+        "market": "daily",
+        "call": lambda *args, **kwargs: _chained_path_dependent_exits(*args, **kwargs),
+        "dense": lambda m: ((m["prices"],), {}),
+        "sparse": lambda m: ((m["prices"],), {}),
+        "expect": "clean",
+    },
+"h8_roll_adjusted_tsmom.detect_all_roll_dates": {
+        "id": "h8_roll_adjusted_tsmom.detect_all_roll_dates",
+        "runner": "run_h8_rolladjusted_tsmom_experiment.py",
+        "func": "detect_all_roll_dates",
+        "market": "daily_ohlc",
+        "market_builder": _trend_reversal_ohlc_market,
+        "call": lambda *args, **kwargs: _chained_detect_all_roll_dates(*args, **kwargs),
+        "dense": lambda m: ((m["ohlc"],), {}),
+        "sparse": lambda m: ((m["ohlc"],), {}),
+        "expect": "clean",
+    },
+    "h8_roll_adjusted_tsmom.detect_roll_dates_symbol": {
+        "id": "h8_roll_adjusted_tsmom.detect_roll_dates_symbol",
+        "runner": "run_h8_rolladjusted_tsmom_experiment.py",
+        "func": "detect_roll_dates_symbol",
+        "market": "daily_ohlc",
+        "market_builder": _trend_reversal_ohlc_market,
+        "call": lambda *args, **kwargs: _chained_detect_roll_dates_symbol(*args, **kwargs),
+        "dense": lambda m: ((m["ohlc"],), {}),
+        "sparse": lambda m: ((m["ohlc"],), {}),
+        "expect": "clean",
+    },
+    "h8_roll_adjusted_tsmom.compute_roll_carry": {
+        "id": "h8_roll_adjusted_tsmom.compute_roll_carry",
+        "runner": "run_h8_rolladjusted_tsmom_experiment.py",
+        "func": "compute_roll_carry",
+        "market": "daily_ohlc",
+        "call": lambda *args, **kwargs: _chained_compute_roll_carry(*args, **kwargs),
+        "dense": lambda m: ((m["ohlc"],), {}),
+        "sparse": lambda m: ((m["ohlc"],), {}),
+        "expect": "clean",
+    },
+    "h8_roll_adjusted_tsmom.build_roll_adjusted_returns": {
+        "id": "h8_roll_adjusted_tsmom.build_roll_adjusted_returns",
+        "runner": "run_h8_rolladjusted_tsmom_experiment.py",
+        "func": "build_roll_adjusted_returns",
+        "market": "daily_ohlc",
+        "call": lambda *args, **kwargs: _chained_build_roll_adjusted_returns(*args, **kwargs),
+        "dense": lambda m: ((m["ohlc"],), {}),
+        "sparse": lambda m: ((m["ohlc"],), {}),
+        "expect": "clean",
+    },
+    "h8_roll_adjusted_tsmom.build_roll_adjusted_prices": {
+        "id": "h8_roll_adjusted_tsmom.build_roll_adjusted_prices",
+        "runner": "run_h8_rolladjusted_tsmom_experiment.py",
+        "func": "build_roll_adjusted_prices",
+        "market": "daily_ohlc",
+        "call": lambda *args, **kwargs: _chained_build_roll_adjusted_prices(*args, **kwargs),
+        "dense": lambda m: ((m["ohlc"],), {}),
+        "sparse": lambda m: ((m["ohlc"],), {}),
+        "expect": "clean",
+    },
+    "h8_roll_adjusted_tsmom.build_tsmom_signals": {
+        "id": "h8_roll_adjusted_tsmom.build_tsmom_signals",
+        "runner": "run_h8_rolladjusted_tsmom_experiment.py",
+        "func": "build_tsmom_signals",
+        "market": "daily_ohlc",
+        "market_builder": _trend_reversal_ohlc_market,
+        "call": lambda *args, **kwargs: _chained_build_tsmom_signals(*args, **kwargs),
+        "patch": {
+            "module": "run_h8_rolladjusted_tsmom_experiment.py",
+            "attr": "LOOKBACK",
+            "dense": 20,
+        },
+        "dense": lambda m: ((m["ohlc"],), {}),
+        "sparse": lambda m: ((m["ohlc"],), {}),
+        "expect": "clean",
+    },
+    "h8_roll_adjusted_tsmom.regime_labels": {
+        "id": "h8_roll_adjusted_tsmom.regime_labels",
+        "runner": "run_h8_rolladjusted_tsmom_experiment.py",
+        "func": "regime_labels",
+        "market": "daily",
+        "dense": lambda m: ((m["vix"],), {}),
+        "sparse": lambda m: ((m["vix"],), {}),
+        "expect": "clean",
+    },
+    "h11_robustness.build_positions": {
+        "id": "h11_robustness.build_positions",
+        "runner": "run_h11_robustness_experiment.py",
+        "func": "build_positions",
+        "market": "daily",
+        "market_builder": _trend_reversal_market,
+        "call": lambda *args, **kwargs: _chained_build_positions(*args, **kwargs),
+        "dense": lambda m: ((m["prices"], m["vix"]), {}),
+        "sparse": lambda m: ((m["prices"], m["vix"]), {}),
+        "patch": [
+            {
+                "module": "run_h9_intraday_tsmom_experiment.py",
+                "attr": "LOOKBACK_H",
+                "dense": 20,
+            },
+            {
+                "module": "run_h9_intraday_tsmom_experiment.py",
+                "attr": "FAST_H",
+                "dense": 10,
+            },
+            {
+                "module": "run_h9_intraday_tsmom_experiment.py",
+                "attr": "VOL_WINDOW_LONG",
+                "dense": 20,
+            },
+            {
+                "module": "run_h9_intraday_tsmom_experiment.py",
+                "attr": "VOL_WINDOW_SHORT",
+                "dense": 10,
+            },
+        ],
+        "expect": "clean",
+    },
+    "h17_vrp.build_targets": {
+        "id": "h17_vrp.build_targets",
+        "runner": "run_h17_vrp_experiment.py",
+        "func": "build_targets",
+        "market": "daily",
+        "call": lambda *args, **kwargs: _chained_build_targets(*args, **kwargs),
+        "dense": lambda m: ((m["prices"], m["vix"]), {}),
+        "sparse": lambda m: ((m["prices"], m["vix"]), {}),
+        "expect": "clean",
+    },
 }
 
 
@@ -1822,6 +2445,290 @@ INVENTORY: dict[str, dict[str, tuple[str, str]]] = {
         "wf_oos_sharpes": ("static", _ARG_METRIC),
         "main": ("static", _ARG_CONFIG),
     },
+    "run_ddcv_experiment.py": {
+        "make_futures_config": ("static", _ARG_CONFIG),
+        "split_returns_by_date": ("static", _ARG_SPLIT),
+        "resample_monthly_signals": (
+            "static",
+            "Resamples signals to month-end and forward-fills: each bar takes the last "
+            "month-end close, which is known at that close, so the hold lag is +1 bar and "
+            "no bar reads data after itself. The single resample collapse site is pinned "
+            "in RESAMPLE_SITES.",
+        ),
+        "ddcv_scale_factors": (
+            "probed",
+            "Drawdown from a rolling peak of the equity series; the peak at bar t uses "
+            "equity up to bar t, so the scale at bar t reads no future data.",
+        ),
+        "apply_ddcv": (
+            "probed",
+            "Scales the base signal by a per-day drawdown factor; the base equity is built "
+            "through the same engine and the drawdown is a trailing measure, so the scale "
+            "at bar t uses data up to bar t.",
+        ),
+        "apply_fixed_cut": (
+            "probed",
+            "A constant scale factor: no time dependence at all, so the output is inert "
+            "under any perturbation.",
+        ),
+        "apply_vix_gate": (
+            "probed",
+            "Scales the base signal by a forward-filled VIX regime factor; ffill reads only "
+            "past values, so the scale at bar t uses VIX up to bar t.",
+        ),
+        "evaluate": ("static", _ARG_GATE),
+        "window_max_drawdown": ("static", _ARG_METRIC),
+        "regime_labels": (
+            "probed",
+            "VIX regime labels from the forward-filled VIX series; ffill reads only past "
+            "values, so the label at bar t uses VIX up to bar t.",
+        ),
+        "main": ("static", _ARG_CONFIG),
+    },
+    "run_h6_vix_ddcv_experiment.py": {
+        "make_futures_config": ("static", _ARG_CONFIG),
+        "split_returns_by_date": ("static", _ARG_SPLIT),
+        "resample_monthly_signals": (
+            "static",
+            "Resamples signals to month-end and forward-fills: each bar takes the last "
+            "month-end close, which is known at that close, so the hold lag is +1 bar and "
+            "no bar reads data after itself. The single resample collapse site is pinned "
+            "in RESAMPLE_SITES.",
+        ),
+        "ddcv_drawdown": (
+            "probed",
+            "Drawdown from a rolling peak of the equity series; the peak at bar t uses "
+            "equity up to bar t, so the drawdown at bar t reads no future data.",
+        ),
+        "apply_vix_gate": (
+            "probed",
+            "Scales the base signal by a forward-filled VIX regime factor; ffill reads only "
+            "past values, so the scale at bar t uses VIX up to bar t.",
+        ),
+        "apply_ddcv": (
+            "probed",
+            "Scales the base signal by a per-day drawdown factor; the base equity is built "
+            "through the same engine and the drawdown is a trailing measure, so the scale "
+            "at bar t uses data up to bar t.",
+        ),
+        "apply_combined": (
+            "probed",
+            "Combines the VIX gate and the DDCV scale; both are trailing measures of data "
+            "up to bar t, so the combined scale at bar t reads no future data.",
+        ),
+        "evaluate": ("static", _ARG_GATE),
+        "window_max_drawdown": ("static", _ARG_METRIC),
+        "regime_labels": (
+            "probed",
+            "VIX regime labels from the forward-filled VIX series; ffill reads only past "
+            "values, so the label at bar t uses VIX up to bar t.",
+        ),
+        "main": ("static", _ARG_CONFIG),
+    },
+    "run_h7_intraday_tsmom_experiment.py": {
+        "make_futures_config": ("static", _ARG_CONFIG),
+        "split_returns_by_date": ("static", _ARG_SPLIT),
+        "resample_monthly_signals": (
+            "static",
+            "Resamples signals to month-end and forward-fills: each bar takes the last "
+            "month-end close, which is known at that close, so the hold lag is +1 bar and "
+            "no bar reads data after itself. The single resample collapse site is pinned "
+            "in RESAMPLE_SITES.",
+        ),
+        "compute_atr": (
+            "probed",
+            "Proxy ATR from close-to-close volatility at the price level; the rolling "
+            "volatility at bar t uses returns up to bar t, so the ATR at bar t reads no "
+            "future data.",
+        ),
+        "multi_horizon_blend_signals": (
+            "probed",
+            "Two-horizon momentum blend with trailing volatility scaling; every term "
+            "(momentum, realised vol, portfolio vol) is computed from data up to bar t, "
+            "and the blend weight uses the lagged weights.",
+        ),
+        "apply_path_dependent_exits_daily": (
+            "probed",
+            "Approximates trailing/time/vol stops on daily bars; the vol-stop mask and "
+            "the scale it applies are computed from trailing realised volatility up to bar "
+            "t, so the modification at bar t reads no future data.",
+        ),
+        "evaluate_split": ("static", _ARG_METRIC),
+        "benchmark_comparison": ("static", _ARG_METRIC),
+        "main": ("static", _ARG_CONFIG),
+    },
+    "run_h8_rolladjusted_tsmom_experiment.py": {
+        "detect_roll_dates_symbol": (
+            "probed",
+            "Roll-date detection from calendar candidates, volume spikes and overnight "
+            "gaps; every signal (last business day of a roll month, volume > 3x the 42-day "
+            "rolling median, |open/prev_close - 1| threshold) is computed from data up to "
+            "bar t, so the mask at bar t reads no future data.",
+        ),
+        "detect_all_roll_dates": (
+            "probed",
+            "Applies detect_roll_dates_symbol per symbol; each symbol's mask is computed "
+            "from its own open/close/volume up to bar t.",
+        ),
+        "compute_roll_carry": (
+            "probed",
+            "Roll carry = open/prev_close - 1 on detected roll dates; the prev_close is the "
+            "close of bar t-1 and the open is the open of bar t, so the carry at bar t reads "
+            "no future data.",
+        ),
+        "build_roll_adjusted_returns": (
+            "probed",
+            "R'_t = R_t + weight * roll_carry_t; both terms are known at bar t (R_t is the "
+            "return of bar t, roll_carry_t is the roll gap of bar t), so the adjusted return "
+            "at bar t reads no future data.",
+        ),
+        "build_roll_adjusted_prices": (
+            "probed",
+            "P'_t = P_0 * cumprod(1 + R'_t); a cumulative product of already-computed "
+            "adjusted returns, so the price at bar t reads no future data.",
+        ),
+        "resample_monthly_signals": (
+            "static",
+            "Resamples signals to month-end and forward-fills: each bar takes the last "
+            "month-end close, which is known at that close, so the hold lag is +1 bar and "
+            "no bar reads data after itself. The single resample collapse site is pinned "
+            "in RESAMPLE_SITES.",
+        ),
+        "build_tsmom_signals": (
+            "probed",
+            "Vol-scaled TSMOM on the roll-adjusted prices; the momentum and volatility "
+            "terms are computed from data up to bar t, so the signal at bar t reads no "
+            "future data.",
+        ),
+        "make_futures_config": ("static", _ARG_CONFIG),
+        "split_returns_by_date": ("static", _ARG_SPLIT),
+        "window_max_drawdown": ("static", _ARG_METRIC),
+        "regime_labels": (
+            "probed",
+            "VIX regime labels from the forward-filled VIX series; ffill reads only past "
+            "values, so the label at bar t uses VIX up to bar t.",
+        ),
+        "compute_gate_metrics": ("static", _ARG_GATE),
+        "main": ("static", _ARG_CONFIG),
+    },
+    "run_regime_gated_momentum_experiment.py": {
+        "split_returns_by_date": ("static", _ARG_SPLIT),
+        "make_config": ("static", _ARG_CONFIG),
+        "resample_monthly_signals": (
+            "static",
+            "Resamples signals to month-end and forward-fills: each bar takes the last "
+            "month-end close, which is known at that close, so the hold lag is +1 bar and "
+            "no bar reads data after itself. The single resample collapse site is pinned "
+            "in RESAMPLE_SITES.",
+        ),
+        "vol_scaled_tsmom_signals": (
+            "probed",
+            "Direction is the sign of pct_change(lookback).shift(skip) with skip >= 1, so "
+            "the signal at bar t uses prices up to bar t-skip (<= t). The vol-targeting "
+            "scale uses portfolio vol estimated from returns up to bar t.",
+        ),
+        "regime_factor_series": (
+            "probed",
+            "VIX regime exposure factor from the forward-filled VIX series; ffill is causal.",
+        ),
+        "regime_gated_signals": (
+            "probed",
+            "Scales the TSMOM book by the regime factor and (optionally) adds a VXX hedge "
+            "leg; both are computed from data up to bar t, so the gated signal at bar t "
+            "reads no future data.",
+        ),
+        "evaluate_combo": ("static", _ARG_GATE),
+        "selection_metric": ("static", _ARG_METRIC),
+        "wf_oos_sharpes": ("static", _ARG_METRIC),
+        "regime_labels": (
+            "probed",
+            "VIX regime labels from the forward-filled VIX series; ffill reads only past "
+            "values, so the label at bar t uses VIX up to bar t.",
+        ),
+        "window_max_drawdown": ("static", _ARG_METRIC),
+        "main": ("static", _ARG_CONFIG),
+    },
+    "run_futures_tsmom_experiment.py": {
+        "make_futures_config": ("static", _ARG_CONFIG),
+        "split_returns_by_date": ("static", _ARG_SPLIT),
+        "resample_monthly_signals": (
+            "static",
+            "Resamples signals to month-end and forward-fills: each bar takes the last "
+            "month-end close, which is known at that close, so the hold lag is +1 bar and "
+            "no bar reads data after itself. The single resample collapse site is pinned "
+            "in RESAMPLE_SITES.",
+        ),
+        "vol_scaled_tsmom_signals": (
+            "probed",
+            "Delegates to qtr.strategies.baselines.vol_scaled_tsmom_signals, which is pinned "
+            "clean by the library probe (H36): direction is the sign of "
+            "pct_change(lookback).shift(skip) with skip >= 1, and the vol-targeting scale "
+            "uses portfolio vol estimated from returns up to bar t.",
+        ),
+        "evaluate_combo": ("static", _ARG_GATE),
+        "selection_metric": ("static", _ARG_METRIC),
+        "wf_oos_sharpes": ("static", _ARG_METRIC),
+        "regime_labels": (
+            "probed",
+            "VIX regime labels from the forward-filled VIX series; ffill reads only past "
+            "values, so the label at bar t uses VIX up to bar t.",
+        ),
+        "window_max_drawdown": ("static", _ARG_METRIC),
+        "main": ("static", _ARG_CONFIG),
+    },
+    "run_h11_robustness_experiment.py": {
+        "_perturbed_value": ("static", _ARG_CONFIG),
+        "perturbation_table": ("static", _ARG_CONFIG),
+        "_build_data": ("static", _ARG_IO),
+        "_build_exit_inputs": (
+            "probed",
+            "Trailing rolling ATR and realised volatility of the prices up to bar t.",
+        ),
+        "_config_with_cost_mult": ("static", _ARG_CONFIG),
+        "_eval_positions": ("static", _ARG_GATE),
+        "_per_symbol_metrics": ("static", _ARG_METRIC),
+        "_fresh_oos_window": ("static", _ARG_SPLIT),
+        "make_cost_stressed_config": ("static", _ARG_CONFIG),
+        "build_positions": (
+            "probed",
+            "Composes the frozen H10 pipeline: vol-scaled TSMOM signal -> daily target "
+            "collapse -> hourly expansion -> (optional VIX regime scaling) -> CT-style "
+            "path-dependent exits. The signal and the exits are probed clean; the daily "
+            "collapse is the published look-ahead (see build_hourly_target in "
+            "run_h10_intraday_tsmom_pfopt_experiment.py).",
+        ),
+        "per_symbol_contributions": ("static", _ARG_METRIC),
+        "bootstrap_sharpe_distribution": ("static", _ARG_METRIC),
+        "_cached_data_end": ("static", _ARG_IO),
+        "probe_live_extension": ("static", _ARG_IO),
+        "main": ("static", _ARG_CONFIG),
+    },
+    "run_h17_vrp_experiment.py": {
+        "regime_labels": (
+            "probed",
+            "VIX regime labels from the forward-filled VIX series; ffill reads only past "
+            "values, so the label at bar t uses VIX up to bar t.",
+        ),
+        "realized_vol_ann": (
+            "probed",
+            "Annualized realised volatility over a rolling window of past returns; the "
+            "volatility at bar t uses returns up to bar t.",
+        ),
+        "build_targets": (
+            "probed",
+            "Term-structure-gated, vol-targeted long SVXY target: contango uses ^VIX3M_t / "
+            "^VIX_t - 1, the gate is 1{contango > gate_thresh}, and the position is "
+            "target_vol / vol_t with vol_t the trailing realised vol. Every term is known "
+            "at bar t, so the target at bar t reads no future data.",
+        ),
+        "_splits": ("static", _ARG_SPLIT),
+        "_count_in": ("static", _ARG_METRIC),
+        "_period_metrics": ("static", _ARG_METRIC),
+        "full_gate_eval": ("static", _ARG_GATE),
+        "perturbation_eval": ("static", _ARG_GATE),
+        "make_config": ("static", _ARG_CONFIG),
+        "main": ("static", _ARG_CONFIG),
+    },
 }
 
 # The probe cases that belong to a *known look-ahead* (the detection is
@@ -1854,6 +2761,10 @@ BACKWARD_FILL_SITES = {
     ("run_h23_crypto_futures_tsmom.py", "main"): 1,
     ("run_h25_futures_tsmom_pfmargin.py", "_build_data"): 1,
     ("run_h25_futures_tsmom_pfmargin.py", "main"): 1,
+    # H38: H11's hourly futures cache is forward/backward-filled to align the
+    # multi-symbol frame; the fill only bridges a pre-inception gap (the cache
+    # starts before the first bar), so it is causal.
+    ("run_h11_robustness_experiment.py", "_build_data"): 1,
 }
 
 RESAMPLE_SITES = {
@@ -1863,6 +2774,16 @@ RESAMPLE_SITES = {
     ("run_h29_lookahead_sweep.py", "probe_collapse"): 1,
     ("run_ts_momentum_experiment.py", "resample_monthly_signals"): 1,
     ("run_cs_momentum_experiment.py", "resample_monthly_signals"): 1,
+    # H38: the remaining signal-building runners each collapse their monthly
+    # signal through resample("ME").last() in their own resample_monthly_signals
+    # (the same construction as the pinned TS/CS sites: month-end close, traded
+    # from the next bar -> hold lag +1, no look-ahead).
+    ("run_ddcv_experiment.py", "resample_monthly_signals"): 1,
+    ("run_futures_tsmom_experiment.py", "resample_monthly_signals"): 1,
+    ("run_h6_vix_ddcv_experiment.py", "resample_monthly_signals"): 1,
+    ("run_h7_intraday_tsmom_experiment.py", "resample_monthly_signals"): 1,
+    ("run_h8_rolladjusted_tsmom_experiment.py", "resample_monthly_signals"): 1,
+    ("run_regime_gated_momentum_experiment.py", "resample_monthly_signals"): 1,
 }
 
 
@@ -2119,15 +3040,23 @@ class TestStaticSweep:
 
 
 def _apply_patch(case: dict, scope: str, monkeypatch) -> None:
-    """Shorten the runner's frozen configuration for the dense sweep."""
-    patch = case.get("patch")
-    if not patch:
+    """Shorten the runner's frozen configuration for the dense sweep.
+
+    A case may carry a single patch dict or a list of them; both are applied
+    in order.  The dense sweep shortens the lookbacks so that every bar of a
+    reduced sample can be a cut point.
+    """
+    patches = case.get("patch")
+    if not patches:
         return
-    value = patch.get(scope)
-    if value is None:
-        return
-    module = importlib.import_module(patch["module"][:-3])
-    monkeypatch.setattr(module, patch["attr"], value)
+    if isinstance(patches, dict):
+        patches = [patches]
+    for patch in patches:
+        value = patch.get(scope)
+        if value is None:
+            continue
+        module = importlib.import_module(patch["module"][:-3])
+        monkeypatch.setattr(module, patch["attr"], value)
 
 
 class TestProbes:
@@ -2136,7 +3065,7 @@ class TestProbes:
         """Every bar of a reduced sample is a cut point."""
         case = CASES[case_id]
         _apply_patch(case, "dense", monkeypatch)
-        market = _market(case["market"], DENSE_BARS, 11)
+        market = case.get("market_builder", _market)(case["market"], DENSE_BARS, 11)
         scope = case.get("scope", "after")
         violations, changed = _probe(case, market, DENSE_CUTS, "dense", scope)
         if case["expect"] == "clean":
@@ -2160,7 +3089,7 @@ class TestProbes:
         """The lookbacks the runners actually use."""
         case = CASES[case_id]
         _apply_patch(case, "sparse", monkeypatch)
-        market = _market(case["market"], N_BARS, 11)
+        market = case.get("market_builder", _market)(case["market"], N_BARS, 11)
         scope = case.get("scope", "after")
         violations, changed = _probe(case, market, SPARSE_CUTS, "sparse", scope)
         if case["expect"] == "clean":
