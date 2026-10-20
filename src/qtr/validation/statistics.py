@@ -165,9 +165,6 @@ def walk_forward_splits(
         end = n_samples if i == n_splits - 1 else (i + 1) * window_size
         window_indices = np.arange(start, end)
 
-        if len(window_indices) == 0:
-            continue
-
         split_point = start + int(len(window_indices) * train_ratio)
         train_idx = np.arange(start, split_point)
         test_idx = np.arange(split_point + gap, end)
