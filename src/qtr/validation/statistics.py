@@ -153,6 +153,8 @@ def walk_forward_splits(
     Returns:
         List of (train_indices, test_indices) tuples
     """
+    if n_splits <= 0:
+        return []
     window_size = n_samples // n_splits
     if window_size == 0:
         return []

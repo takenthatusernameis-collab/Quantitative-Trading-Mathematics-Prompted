@@ -184,6 +184,10 @@ class TestWalkForwardSplits:
     def test_small_n_returns_no_splits(self):
         assert st.walk_forward_splits(3, n_splits=5) == []
 
+    def test_n_splits_zero_returns_empty_list(self):
+        assert st.walk_forward_splits(100, n_splits=0) == []
+        assert st.walk_forward_splits(100, n_splits=-1) == []
+
     def test_gap_zero_abuts_train_and_test(self):
         splits = st.walk_forward_splits(100, n_splits=5, gap=0)
         for train_idx, test_idx in splits:
