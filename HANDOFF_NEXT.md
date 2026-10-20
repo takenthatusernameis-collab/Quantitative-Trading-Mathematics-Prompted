@@ -88,28 +88,20 @@
 
 ## Next agent actions
 
-**One assigned task remains (H34's leftovers, stated in `NEXT_TASK.md`):** close the
-artifact/code disagreement for the three wrong-reason families and re-baseline the report's
-coverage and test-count bullets.
+The assigned task (H34's leftovers, previously in `NEXT_TASK.md`) is **COMPLETE** this session:
+the artifact/code disagreement for H19/H20/H23 is pinned in the artifact-adjacent tests, the
+tally impact (H19 3/9 → 2/9, H20 2/9 → 1/9, H23 2/9 → 1/9) is pinned in
+`tests/test_benchmark_gate_contract.py`, and the `FINAL_REPORT.md` test-count bullet is
+re-baselined to **736/736 passing**. Verified: `python -m pytest -q -W error` → **736 passed**;
+`--cov=qtr` → **100%** (1010 statements, 0 missed); `ruff check` and `ruff format --check`
+clean on `src tests run_*.py`; `bash -n .github/scripts/*.sh` and
+`bash .github/scripts/test_kilo_progress.sh` OK. No published artifact, gate threshold, verdict
+or certified number was modified; no grid was re-run.
 
-The committed artifacts of H19, H20 and H23 record the **pre-H34** gate boolean
-(`passes["p"] = true`) while the current code computes `false`. The artifacts are immutable, so
-the disagreement has to be pinned in the artifact-adjacent tests:
-`tests/test_h20_signed_volume.py:453` and `tests/test_h23_crypto_futures_tsmom.py:542` still
-assert the pre-H34 identity `p["p"] == (benchmark_p_value < max_p_value)`; rewrite them to
-assert the **disclosed** state (the artifact records the pre-H34 rule, the information ratio is
-negative, the published pass is a wrong-reason pass, the direction-aware gate is `False`), extend
-`tests/test_benchmark_gate_contract.py` with the tally-impact pin (H19 3/9 → 2/9, H20 2/9 → 1/9,
-H23 2/9 → 1/9), re-run the suite and update the `FINAL_REPORT.md` §Summary statistics
-test-count bullet (it reads "735/735 passing"; the coverage bullet is already correct — `src/qtr`
-is at 100%). Do **not** re-run any grid and do **not** touch the published rows.
-
-Beyond that there is **no assigned next task**: the pre-registered free-data hypothesis space
-(H1–H30) is exhausted — every family has a committed artifact or a documented reason for the
-gap, every daily/monthly family is `CAUSAL` and REJECTED, every intraday family is
-`CAUSAL_REJECTED` under H28, and the paid-data task (a wider OOS window for the PF bootstrap
-margin) is unjustified for every family in the repo (H28 closed it for the intraday family;
-H29/H30 show the daily families are causal but all REJECT).
+There is **no assigned next task**: the pre-registered free-data hypothesis space (H1–H30) is
+exhausted — every family has a committed artifact or a documented reason for the gap, every
+daily/monthly family is `CAUSAL` and REJECTED, every intraday family is `CAUSAL_REJECTED` under
+H28, and the paid-data task is unjustified for every family in the repo.
 
 If the next agent is given a *new* assignment, verify with:
 `python -m pytest -q`, `python -m pytest -W error -q`,

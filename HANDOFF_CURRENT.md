@@ -92,22 +92,22 @@ certified artifacts at all.
 - The full `run_*.py` sweep found **no** remaining bare p-value comparison against
   `max_p_value` outside the helper and **no** remaining read of `alpha_p_value_one_sided`.
 
-## What remains unresolved
+## What remains resolved (this session)
 
-- **The committed artifacts of H19, H20 and H23 still record the pre-H34 gate boolean**
-  (`passes["p"] = true`) while the current code computes `false`. The artifacts are immutable, so
-  the disagreement must be pinned in the artifact-adjacent tests:
-  `tests/test_h20_signed_volume.py:453` and `tests/test_h23_crypto_futures_tsmom.py:542` still
-  assert the pre-H34 identity `p["p"] == (benchmark_p_value < max_p_value)`. They pass today
-  (they compare the artifact with itself) but they encode the old rule and would fail against a
-  regenerated artifact.
-- **The report's coverage bullet is fixed; the test-count bullet will need one number.** H34
-  re-measured the coverage after the dead-code deletion: `src/qtr` is at **100%** (1010 statements,
-  0 missed), and `FINAL_REPORT.md` now says so. The test-count bullet reads "735/735 passing",
-  which the next agent's test changes will move.
-- **`alpha_p_value_one_sided` is now an unused library output.** It is the informational
-  one-sided view of the comparison (added for H34) and is tested, but no runner reads it. It must
-  not be mistaken for the gate's statistic.
+- The artifact/code disagreement for the three wrong-reason families is now pinned in the
+  artifact-adjacent tests rather than the immutable artifacts:
+  `tests/test_h20_signed_volume.py` and `tests/test_h23_crypto_futures_tsmom.py` assert the
+  disclosed state (artifact records the pre-H34 rule, information ratio negative, published pass
+  is a wrong-reason pass, direction-aware gate `False`), replacing the pre-H34 identity
+  assertions at the former lines 453 and 542. The same shape applies to H19 (its artifact
+  already carries only metric-key assertions; no gate-value assertion existed to rewrite).
+- `tests/test_benchmark_gate_contract.py` now pins the tally impact as a disclosure
+  (`test_h34_tally_impact_is_pinned_as_a_disclosure`: H19 3/9 → 2/9, H20 2/9 → 1/9,
+  H23 2/9 → 1/9).
+- `FINAL_REPORT.md` §Summary statistics test-count bullet re-baselined to **736/736 passing**
+  (10 H34 tests); the coverage bullet was already correct (**100%**, 1010 statements, 0 missed).
+
+Nothing remains unresolved from H34.
 
 ## Approaches that failed / were not taken
 

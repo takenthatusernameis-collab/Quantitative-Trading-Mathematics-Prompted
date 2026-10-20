@@ -34,7 +34,7 @@ sys.path.insert(0, str(ROOT / "tests"))
 from _utils_parquet import read_parquet_safe
 
 import run_h20_signed_volume_experiment as h20
-from qtr.validation.statistics import sharpe_ratio
+from qtr.validation.statistics import benchmark_significance_gate, sharpe_ratio
 
 ART_DIR = ROOT / ".experiments" / "artifacts"
 OOS_START = pd.Timestamp("2015-01-01")  # OOS = Val + Test (2015-01 -> 2026-10-08)
@@ -451,6 +451,14 @@ class TestExecutedOutcome:
             m["worst_regime_sharpe"] >= h20.GATES["min_worst_regime_sharpe"]
         )
         assert p["p"] == (m["benchmark_p_value"] < h20.GATES["max_p_value"])
+        assert m["information_ratio"] < 0.0
+        assert p["p"] is True
+        assert (
+            benchmark_significance_gate(
+                m["benchmark_p_value"], m["information_ratio"], h20.GATES["max_p_value"]
+            )
+            is False
+        )
         assert p["ir"] == (m["information_ratio"] > h20.GATES["min_information_ratio"])
         assert p["perturbation"] == (
             m["perturbation"]["min_perturbed_sharpe_ratio"]

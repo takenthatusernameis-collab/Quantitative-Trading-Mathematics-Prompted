@@ -32,7 +32,7 @@ sys.path.insert(0, str(ROOT / "tests"))
 from _utils_parquet import read_parquet_safe
 
 import run_h23_crypto_futures_tsmom as h23
-from qtr.validation.statistics import sharpe_ratio
+from qtr.validation.statistics import benchmark_significance_gate, sharpe_ratio
 
 ART_DIR = ROOT / ".experiments" / "artifacts"
 
@@ -540,6 +540,14 @@ class TestExecutedOutcome:
             m["worst_regime_sharpe"] >= h23.GATES["min_worst_regime_sharpe"]
         )
         assert p["p"] == (m["benchmark_p_value"] < h23.GATES["max_p_value"])
+        assert m["information_ratio"] < 0.0
+        assert p["p"] is True
+        assert (
+            benchmark_significance_gate(
+                m["benchmark_p_value"], m["information_ratio"], h23.GATES["max_p_value"]
+            )
+            is False
+        )
         assert p["ir"] == (m["information_ratio"] > h23.GATES["min_information_ratio"])
         assert p["perturbation"] == (
             m["perturbation_min_ratio"] >= h23.GATES["min_perturbed_sharpe_ratio"]

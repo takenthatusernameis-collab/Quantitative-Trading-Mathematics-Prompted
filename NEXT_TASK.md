@@ -118,6 +118,29 @@ Evidence and constraints:
   artifacts, which is sufficient and is what the repo's H30/H33 pattern prescribes.
 - Do **not** "fix" the committed artifacts' `passes["p"]` values: they are the historical record.
 
+## Status (this session — COMPLETE)
+
+All three parts of the task are done and verified:
+
+1. `tests/test_h20_signed_volume.py` — `test_h20_passes_reflect_gates` now asserts the disclosed
+   state: the artifact records the pre-H34 rule (`p["p"] == benchmark_p_value < max_p_value`,
+   True), `information_ratio` is negative (−0.7040), the published pass is a wrong-reason pass,
+   and `benchmark_significance_gate(...)` is False.
+2. `tests/test_h23_crypto_futures_tsmom.py` — `test_h23_passes_reflect_gates` asserts the same
+   disclosed state for H23 (IR −3.0739, wrong-reason pass, direction-aware gate False).
+3. `tests/test_benchmark_gate_contract.py` — new
+   `test_h34_tally_impact_is_pinned_as_a_disclosure` pins H19 3/9 → 2/9, H20 2/9 → 1/9,
+   H23 2/9 → 1/9, recomputed offline from the committed artifacts.
+4. `FINAL_REPORT.md` — `Summary statistics` test-count bullet re-baselined to **736/736 passing**
+   (10 H34 tests); coverage bullet unchanged at **100%** (1010 statements, 0 missed).
+
+Verified: `python -m pytest -q -W error` → **736 passed**; `--cov=qtr` → **100%**; `ruff check` and
+`ruff format --check` → clean on `src tests run_*.py`. No published artifact, gate threshold,
+verdict or certified number was modified; no grid was re-run.
+
+No next task is assigned: the pre-registered free-data hypothesis space (H1–H30) is exhausted
+and every family has a committed artifact or a documented reason for the gap.
+
 ## Also carried forward (small, independent)
 
 - `src/qtr/validation/statistics.py:benchmark_significance_gate` is exported but the library's

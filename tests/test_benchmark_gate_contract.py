@@ -519,6 +519,37 @@ def test_the_certified_families_survive_the_direction_aware_gate():
         )
 
 
+def test_h34_tally_impact_is_pinned_as_a_disclosure():
+    """The direction-aware gate removes exactly the wrong-reason p-pass:
+    H19 3/9 -> 2/9, H20 2/9 -> 1/9, H23 2/9 -> 1/9. Recomputed offline from
+    the committed artifacts; no grid is re-run and no artifact is touched."""
+    expected = {
+        "exp_2026-10-13T22-40-41-870350Z": ("H19", 3, 2),
+        "exp_2026-10-13T23-06-33-191710Z": ("H20", 2, 1),
+        "exp_2026-10-14T18-13-09-457781Z": ("H23", 2, 1),
+    }
+    for artifact_id, (family, published_count, recomputed_count) in expected.items():
+        summary = _summary(ARTIFACTS / artifact_id)
+        passes = summary.get("passes") or {}
+        m = summary.get("metrics") or {}
+        published = sum(1 for value in passes.values() if value is True)
+        assert published == published_count, (
+            f"{family}: published tally {published}/9 != {published_count}/9"
+        )
+        # the p pass is wrong-reason: small two-sided p, negative information ratio
+        assert passes.get("p") is True
+        assert m["information_ratio"] < 0.0
+        gate = benchmark_significance_gate(
+            m["benchmark_p_value"], m["information_ratio"], 0.05
+        )
+        assert gate is False
+        # H34 flips only the p gate: True -> False, every other gate unchanged
+        recomputed = published - 1
+        assert recomputed == recomputed_count, (
+            f"{family}: recomputed tally {recomputed}/9 != {recomputed_count}/9"
+        )
+
+
 # --------------------------------------------------------------------------- #
 # 5. the static contract over every benchmark p-gate site
 # --------------------------------------------------------------------------- #
