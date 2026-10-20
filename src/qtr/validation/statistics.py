@@ -390,51 +390,6 @@ def capacity_estimate(
 
     return results
 
-
-def deflated_sharpe_ratio(
-    observed_sr: float,
-    n_trials: int,
-    n_obs: int,
-    var_trials: float,
-    skewness: float = 0.0,
-    kurtosis: float = 3.0,
-    periods_per_year: int = 252,
-) -> tuple[float, float]:
-    """
-    Compute Deflated Sharpe Ratio (DSR) per Bailey & Lopez de Prado (2014).
-
-    Args:
-        observed_sr: Annualized Sharpe ratio of the selected strategy
-        n_trials: Number of trials/strategies tested
-        n_obs: Number of observations
-        var_trials: Variance of Sharpe ratios across trials (annualized scale)
-        skewness: Skewness of returns
-        kurtosis: Kurtosis of returns (fisher=False convention)
-        periods_per_year: Periods per year for annualization
-
-    Returns:
-        Tuple of (dsr_adjusted_sharpe, p_value) where p_value = P(SR_true > 0 | selection)
-    """
-    if n_trials <= 0 or n_obs < 2:
-        return 0.0, 1.0
-    if var_trials <= 0:
-        var_trials = 1e-18
-    emc = 0.5772156649
-    max_z = (1.0 - emc) * stats.norm.ppf(1.0 - 1.0 / n_trials) + emc * stats.norm.ppf(
-        1.0 - 1.0 / (n_trials * np.e)
-    )
-    sr_per_bar = observed_sr / np.sqrt(periods_per_year)
-    var_trials_per_bar = var_trials / periods_per_year
-    sr0_per_bar = np.sqrt(max(1e-18, var_trials_per_bar)) * max_z
-    numerator = (sr_per_bar - sr0_per_bar) * np.sqrt(n_obs - 1.0)
-    skew_term = 1.0 - skewness * sr_per_bar
-    kurt_term = (kurtosis - 1.0) / 4.0 * sr_per_bar**2
-    denom = float(np.sqrt(max(1e-12, skew_term + kurt_term)))
-    dsr_adj = numerator / denom
-    p = float(stats.norm.cdf(dsr_adj))
-    return float(observed_sr * p), float(1.0 - p)
-
-
 def _no_comparison() -> dict[str, float]:
     """The result returned when no comparison can be made.
 
