@@ -323,9 +323,18 @@ class DataFetcher:
         return results
 
     def fetch_sp500_constituents(self, date: str | None = None) -> list[str]:
-        """Fetch S&P 500 constituents as of a given date (approximate via current list)."""
-        # For MVP, return current S&P 500 from Wikipedia
-        # In production, use point-in-time constituents from a vendor
+        """Fetch S&P 500 constituents (current list only).
+
+        Point-in-time constituents are not available from this source; the returned list
+        is the *current* Wikipedia list. Passing ``date`` is not supported and raises
+        ``ValueError`` rather than silently returning the current list for a historical
+        date (which would introduce survivorship bias).
+        """
+        if date is not None:
+            raise ValueError(
+                "fetch_sp500_constituents does not support point-in-time lookup; "
+                "the 'date' argument is not honored. Use a point-in-time vendor source."
+            )
         url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
         try:
             tables = pd.read_html(url)
