@@ -71,7 +71,9 @@ def _parse(path: pathlib.Path) -> ast.AST:
     return ast.parse(path.read_text())
 
 
-def _gates_dict(path: pathlib.Path, _seen: frozenset = frozenset()) -> dict[str, float] | None:
+def _gates_dict(
+    path: pathlib.Path, _seen: frozenset = frozenset()
+) -> dict[str, float] | None:
     """The ``GATES`` dict a runner uses.
 
     ``None`` means the runner has no ``GATES`` literal of its own and does not
@@ -86,9 +88,7 @@ def _gates_dict(path: pathlib.Path, _seen: frozenset = frozenset()) -> dict[str,
         if (
             isinstance(node, ast.Assign)
             and isinstance(node.value, ast.Dict)
-            and any(
-                isinstance(t, ast.Name) and t.id == "GATES" for t in node.targets
-            )
+            and any(isinstance(t, ast.Name) and t.id == "GATES" for t in node.targets)
         ):
             return {
                 key.value: value.value
@@ -171,9 +171,8 @@ def _constant_assigned_names(tree: ast.AST) -> set[str]:
             target = node.targets[0]
             if not isinstance(target, ast.Name):
                 continue
-            if (
-                isinstance(node.value, ast.Constant)
-                and isinstance(node.value.value, (int, float, bool))
+            if isinstance(node.value, ast.Constant) and isinstance(
+                node.value.value, (int, float, bool)
             ):
                 constants.add(target.id)
             else:
@@ -198,15 +197,13 @@ def _gate_expressions(tree: ast.AST) -> list[tuple[str, int, ast.expr]]:
         ):
             continue
         for key, value in zip(node.value.keys, node.value.values):
-            if not (
-                isinstance(key, ast.Constant) and isinstance(key.value, str)
-            ):
+            if not (isinstance(key, ast.Constant) and isinstance(key.value, str)):
                 continue
             if isinstance(value, ast.Dict):
                 for inner_key, inner_value in zip(value.keys, value.values):
-                    if (
-                        isinstance(inner_key, ast.Constant)
-                        and inner_key.value in ("pass", "passes")
+                    if isinstance(inner_key, ast.Constant) and inner_key.value in (
+                        "pass",
+                        "passes",
                     ):
                         found.append((key.value, inner_value.lineno, inner_value))
             else:
@@ -223,9 +220,7 @@ def _non_evaluating_gates(tree: ast.AST) -> list[tuple[str, int]]:
             offenders.append((name, lineno))
             continue
         if isinstance(expr, ast.Compare):
-            loaded = {
-                node.id for node in ast.walk(expr) if isinstance(node, ast.Name)
-            }
+            loaded = {node.id for node in ast.walk(expr) if isinstance(node, ast.Name)}
             if loaded & constants:
                 offenders.append((name, lineno))
     return offenders
@@ -363,9 +358,7 @@ def _published_gates(family: str) -> dict[str, bool]:
     assert recorded, f"{family} artifact carries no {key!r}"
     if key == "gates":
         return {name: _as_bool(value) for name, value in recorded.items()}
-    return {
-        name: _as_bool(value["passes"]) for name, value in recorded.items()
-    }
+    return {name: _as_bool(value["passes"]) for name, value in recorded.items()}
 
 
 @pytest.mark.parametrize("family", sorted(PUBLISHED_ARTIFACTS))
@@ -386,9 +379,7 @@ def test_forcing_the_disclosed_gates_to_false_changes_no_verdict(family):
     assert disclosed, f"{family} owns no disclosed gate"
 
     recomputed_pass = [
-        name
-        for name, passed in gates.items()
-        if passed and name not in disclosed
+        name for name, passed in gates.items() if passed and name not in disclosed
     ]
     assert len(published_pass) > len(recomputed_pass)
     assert recomputed_pass != published_pass
@@ -402,7 +393,7 @@ def test_forcing_the_disclosed_gates_to_false_changes_no_verdict(family):
 def test_the_disclosed_gate_families_are_rejected(family):
     """The families that own a disclosed gate must be REJECT in the published
     record."""
-    artifact_id, key = PUBLISHED_ARTIFACTS[family]
+    artifact_id, _key = PUBLISHED_ARTIFACTS[family]
     with open(ARTIFACTS / artifact_id / "summary.json") as f:
         summary = json.load(f)
     verdict = summary.get("verdict")

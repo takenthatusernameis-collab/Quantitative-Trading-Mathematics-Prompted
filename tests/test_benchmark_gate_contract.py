@@ -161,9 +161,9 @@ def test_the_one_sided_p_value_is_not_the_gate_statistic(rng):
     assert one_sided < 0.05
 
     # the published gate rejects it ...
-    assert benchmark_significance_gate(
-        two_sided, res["information_ratio"], 0.05
-    ) is False
+    assert (
+        benchmark_significance_gate(two_sided, res["information_ratio"], 0.05) is False
+    )
     # ... while the one-sided rule would have accepted it
     assert one_sided < 0.05
 
