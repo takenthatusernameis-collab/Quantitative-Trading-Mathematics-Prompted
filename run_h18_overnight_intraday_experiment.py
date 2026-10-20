@@ -748,7 +748,7 @@ def main() -> None:
         # reading ``p_value`` returned the 1.0 default, so the
         # ``benchmark_p`` gate was always False -- a gate that never tested
         # anything.
-        benchmark_p = float(benchmark_comparison.get("alpha_p_value", 1.0))
+        benchmark_p = float(benchmark_comparison.get("alpha_p_value_one_sided", 1.0))
         information_ratio = float(benchmark_comparison.get("information_ratio", 0.0))
     except Exception as e:  # noqa: BLE001 -- benchmark comparison is advisory; a failure degrades to defaults and continues
         print(f"Warning: Could not compute benchmark comparison: {e}")

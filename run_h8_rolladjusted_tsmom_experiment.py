@@ -397,7 +397,7 @@ def compute_gate_metrics(result, prices, vix, label=""):
     bh_oos = bh_result.returns[bh_result.returns.index > pd.Timestamp(TRAIN_END)]
     if len(oos_ret) > 0 and len(bh_oos) > 0:
         alpha_res = compare_to_benchmark(oos_ret.values[-len(bh_oos) :], bh_oos.values)
-        p_val = float(alpha_res.get("alpha_p_value", 1.0))
+        p_val = float(alpha_res.get("alpha_p_value_one_sided", 1.0))
         ir = float(alpha_res.get("information_ratio", -np.inf))
     else:
         p_val, ir = 1.0, -np.inf

@@ -531,7 +531,7 @@ def main():
             "worst": worst >= GATES["min_worst_regime_sharpe"]
             if worst != np.inf
             else False,
-            "p": bench_cmp.get("alpha_p_value", 1.0) < GATES["max_p_value"],
+            "p": bench_cmp.get("alpha_p_value_one_sided", 1.0) < GATES["max_p_value"],
             "ir": bench_cmp.get("information_ratio", -np.inf)
             > GATES["min_information_ratio"],
         }
@@ -550,7 +550,7 @@ def main():
                 "wf_stability": float(wf_stab),
                 "worst_regime_sharpe": float(worst) if worst != np.inf else 0.0,
                 "regime_sharpes": regime_sharpes,
-                "benchmark_p_value": float(bench_cmp.get("alpha_p_value", 1.0)),
+                "benchmark_p_value": float(bench_cmp.get("alpha_p_value_one_sided", 1.0)),
                 "information_ratio": float(bench_cmp.get("information_ratio", -np.inf)),
                 "ablations": ablations,
             },

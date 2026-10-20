@@ -524,7 +524,7 @@ def main():
             # previous lookup silently returned the 1.0 default and the
             # ``p`` gate below was always False -- a gate that never tested
             # anything. Read the key the library actually returns.
-            p = float(alpha_res.get("alpha_p_value", 1.0))
+            p = float(alpha_res.get("alpha_p_value_one_sided", 1.0))
             ir = float(alpha_res.get("information_ratio", -np.inf))
         else:
             p, ir = 1.0, -np.inf

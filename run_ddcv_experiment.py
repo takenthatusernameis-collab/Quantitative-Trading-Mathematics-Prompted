@@ -438,7 +438,7 @@ def main():
                 bh_result.returns.index > pd.Timestamp(TRAIN_END)
             ]
             alpha_res = compare_to_benchmark(oos_ret.values, bh_oos.values)
-            p = float(alpha_res.get("alpha_p_value", 1.0))
+            p = float(alpha_res.get("alpha_p_value_one_sided", 1.0))
             ir = float(alpha_res.get("information_ratio", -np.inf))
         else:
             p, ir = 1.0, -np.inf
