@@ -173,8 +173,10 @@ class VectorizedBacktester:
         # Portfolio returns before costs
         portfolio_returns = (signals.shift(1) * price_returns).sum(axis=1)
 
-        # Calculate transaction costs
-        costs = self._calculate_costs(position_changes, prices, volumes, adv)
+        # Calculate transaction costs. The per-symbol breakdown is kept so the
+        # trade log can attribute each trade the cost IT incurred.
+        symbol_costs = self._calculate_costs_by_symbol(position_changes, prices, volumes, adv)
+        costs = self._total_costs(symbol_costs)
 
         # Net returns
         net_returns = portfolio_returns - costs
@@ -183,7 +185,7 @@ class VectorizedBacktester:
         equity = (1 + net_returns).cumprod() * self.config.initial_capital
 
         # Extract trades
-        trades = self._extract_trades(position_changes, prices, costs)
+        trades = self._extract_trades(position_changes, prices, symbol_costs)
 
         # Calculate metrics
         metrics = self._calculate_metrics(net_returns, equity, trades)
@@ -205,11 +207,48 @@ class VectorizedBacktester:
         adv: pd.Series | None,
     ) -> pd.Series:
         """Calculate transaction costs for each time step."""
-        costs = pd.Series(0.0, index=position_changes.index)
+        return self._total_costs(
+            self._calculate_costs_by_symbol(position_changes, prices, volumes, adv)
+        )
+
+    def _total_costs(self, symbol_costs: pd.DataFrame) -> pd.Series:
+        """The portfolio cost per bar: the sum of the per-symbol costs.
+
+        The accumulation runs over the symbols in column order and is the
+        *same* series the engine has always charged, so the net returns, the
+        equity curve and every published metric are unchanged by the
+        attribution fix in ``_extract_trades``.
+        """
+        costs = pd.Series(0.0, index=symbol_costs.index)
+        for symbol in symbol_costs.columns:
+            costs += symbol_costs[symbol]
+        return costs
+
+    def _calculate_costs_by_symbol(
+        self,
+        position_changes: pd.DataFrame,
+        prices: pd.DataFrame,
+        volumes: pd.DataFrame,
+        adv: pd.Series | None,
+    ) -> pd.DataFrame:
+        """Calculate the transaction cost of each symbol for each time step.
+
+        Every column of the result is that symbol's own cost, expressed as a
+        fraction of capital; the portfolio cost of a bar is their sum (see
+        ``_total_costs``). Keeping the breakdown is what allows the trade log
+        to record the cost each trade actually incurred: the log used to store
+        the *bar total* on every trade of that bar, so a bar with k
+        simultaneous trades reported k times the cost that was charged, and
+        the trade log no longer reconciled with the P&L. See
+        tests/test_trade_log_cost_reconciliation.py.
+        """
+        per_symbol: dict[str, pd.Series] = {}
 
         for symbol in position_changes.columns:
             changes = position_changes[symbol].abs()
             if changes.sum() == 0:
+                # The symbol never trades: it contributes no cost.
+                per_symbol[symbol] = pd.Series(0.0, index=position_changes.index)
                 continue
 
             price = prices[symbol]
@@ -253,21 +292,31 @@ class VectorizedBacktester:
             else:
                 symbol_costs = pd.Series(0.0, index=position_changes.index)
 
-            costs += symbol_costs.fillna(0)
+            per_symbol[symbol] = symbol_costs.fillna(0)
 
-        return costs
+        return pd.DataFrame(per_symbol, index=position_changes.index)
 
     def _extract_trades(
         self,
         position_changes: pd.DataFrame,
         prices: pd.DataFrame,
-        costs: pd.Series,
+        symbol_costs: pd.DataFrame,
     ) -> pd.DataFrame:
-        """Extract individual trades from position changes."""
+        """Extract individual trades from position changes.
+
+        Each trade records the cost *it* incurred -- its own symbol's share of
+        the transaction cost charged in that bar -- so the trade log reconciles
+        with the engine's charge: the per-trade costs sum to the total cost
+        the backtest deducted from the returns. The log used to record the
+        *bar total* on every trade of that bar, which over-counted the charged
+        cost by the number of simultaneous trades (1.79x on the frozen H10
+        artifact). See tests/test_trade_log_cost_reconciliation.py.
+        """
         trades_list = []
 
         for symbol in position_changes.columns:
             changes = position_changes[symbol]
+            symbol_cost_series = symbol_costs[symbol]
             trade_idx = changes[changes != 0].index
 
             for idx in trade_idx:
@@ -281,7 +330,7 @@ class VectorizedBacktester:
                         "side": "buy" if change > 0 else "sell",
                         "weight_change": change,
                         "price": price,
-                        "cost": costs[idx] if idx in costs.index else 0,
+                        "cost": symbol_cost_series.at[idx],
                     }
                 )
 

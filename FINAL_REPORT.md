@@ -2124,6 +2124,93 @@ declaration and the code are compared** (§H35's vacuous gates, and now the empt
 fix is the same in both cases: make the invariant executable, and check the negative control so
 the check is known to be able to fail.
 
+## H47 — the engine's trade log did not reconcile with the transaction costs it charges (2026-10-21)
+
+**Verdict: the engine's *charge* was never wrong, but the trade log that is supposed to audit it
+recorded the bar's aggregate cost on every trade of that bar. The log now carries each trade's own
+cost, and the reconciliation is pinned by an executable contract.**
+
+### The gap
+
+`VectorizedBacktester._extract_trades` wrote the `cost` column of the trade log from the
+**per-bar portfolio cost** series:
+
+```python
+"cost": costs[idx] if idx in costs.index else 0,     # `costs` is the per-BAR TOTAL
+```
+
+Every trade that happened in a bar therefore carried the **whole bar's** transaction cost. A bar
+with `k` simultaneous trades reported `k` times the cost that was actually deducted from the
+returns, so the trade log no longer reconciled with the P&L it exists to audit, and
+`metrics["avg_trade_cost"]` was an average *per trade-bar* rather than per trade.
+
+The defect is invisible in a single-symbol backtest (there, the bar total **is** the trade's own
+cost), which is why it survived: the runners that exercise the multi-contract path are the
+intraday futures family.
+
+### The evidence (frozen artifacts, read-only)
+
+The certified H10 artifact (`exp_2026-10-11T17-41-18-169363Z`) holds **3,701** trades over
+**2,975** bars with up to **5** simultaneous trades per bar:
+
+| Quantity | Value |
+|---|---|
+| bars whose trades do **not** all record the same number | **0 of 2,975** |
+| the per-bar totals (= the engine's charge) | **0.034907** |
+| the published `cost` column, summed over all trades | **0.062352** |
+| **over-count factor** | **1.786×** |
+
+The charge itself is confirmed correct by the repository's own **H27 `L3` check**, which
+recomputes the per-bar cost *from the trade log* (each trade's own cost, summed per bar) and
+matches the engine's per-bar cost to **~1e-19** for all five audited families (H9, H10, H21, H22,
+H25). The engine already computed the correct per-trade cost; the log simply did not carry it.
+
+### The change
+
+- `src/qtr/backtest/engine.py` — the cost model now keeps the **per-symbol** breakdown
+  (`_calculate_costs_by_symbol`), the per-bar charge is their sum (`_total_costs`), and
+  `_extract_trades` attributes each trade its own share. `_calculate_costs` is retained (it is
+  used by `run_h27_pnl_level_audit.py`) and returns the **same** series as before.
+- `tests/test_trade_log_cost_reconciliation.py` — **new**, 13 tests.
+
+### The contract
+
+1. **Reconciliation** — the per-trade costs sum to the charged cost, bar by bar and in total, for
+   the equity, futures and crypto cost paths.
+2. **Own-share identity** — the cost of a trade is reproduced by an *independent* formula from the
+   trade log and the cost model (`|Δw| · bps / 10⁴` for equity; `|Δw| · C / (p · m)` for futures),
+   so the attribution is checked, not merely re-derived from the engine's internals.
+3. **Strict share** — in a bar with `k > 1` trades, each trade accounts for exactly `1/k` of the
+   bar's charge.
+4. **The charge is unchanged** — the engine's net returns are still exactly the gross returns minus
+   the charged series.
+5. **Negative control** — the pre-fix (aggregate) attribution is reconstructed from the fixed log
+   and is shown to **fail** the reconciliation, so the invariant is known to be able to fail.
+   Against the **pre-fix** engine, **6 of the 13 tests fail**, the first with the exact
+   over-count: `log=0.0016` against `charged=0.0008`.
+6. **Frozen-record disclosure** — the committed H10 trade log still shows the pre-fix aggregate
+   attribution (0 of 2,975 bars disagree; over-count 1.786×), and the H27 `L3` result is pinned as
+   the proof that the bar total is the charge.
+
+### What was not changed
+
+No published artifact, gate threshold, verdict or certified number was modified; no grid was
+re-run; no hypothesis was added. The fix is **attribution-only**: the net returns, the equity
+curve, the positions and every metric except `avg_trade_cost` are **bit-identical** to the pre-fix
+engine (verified by running the pre-fix and post-fix engines side by side over nine
+equity/futures/crypto cases).
+
+Two disclosures follow, and are pinned rather than rewritten:
+
+- The `cost` column of the **committed** trade logs (H10, H11, H16, H21, H22, H25) carries the
+  pre-fix aggregate attribution. The artifact files are frozen and are left untouched. No gate,
+  threshold, verdict or certified number reads that column; the H11 reproduction check compares
+  Sharpe, profit factor, drawdown, the trade *count*, walk-forward stability and worst-regime
+  Sharpe — all unaffected.
+- The `avg_trade_cost` of the three **exploratory** 2026-10-10 MA-crossover summaries
+  (5 symbols, 257/778/5 trades) is on the pre-fix basis. It is an engine-only diagnostic that
+  no gate uses; `FINAL_REPORT.md` and the reports never quoted it.
+
 ## Next task
 
 One task is assigned (stated in full in `NEXT_TASK.md`):
@@ -2136,6 +2223,13 @@ One task is assigned (stated in full in `NEXT_TASK.md`):
 > by an import-level change (a renamed symbol, a moved module, a subpackage that no longer
 > re-exports what the runner expects) would fail at run time, not at test time.
 
+**Superseded (2026-10-21, after H46).** The task above was **completed in H46**: the runners'
+import surface is declared, classified and pinned by `tests/test_runner_import_contract.py`
+(32 runners importable, library imports resolved against `qtr.__all__` / the subpackages' `__all__`,
+third-party imports checked against `pyproject.toml` via `tomllib`, local imports restricted to
+other `run_*.py`). The current assignment is in `NEXT_TASK.md`; the text above is retained as the
+H45-era record.
+
 The state a next session inherits:
 
 - The pre-registered free-data hypothesis space (H1–H30) remains **exhausted**; no new hypothesis
@@ -2147,6 +2241,10 @@ The state a next session inherits:
   `tests/test_runner_causality_inventory.py` after any change in a runner.
 - The package's public API is now declared, complete and non-vacuously pinned (§H45); re-run
   `tests/test_public_api_contract.py` after any change under `src/qtr`.
+- The runners' import surface is declared, classified and non-vacuously pinned (§H46); re-run
+  `tests/test_runner_import_contract.py` after any change in a runner or under `src/qtr`.
+- The engine's trade log now reconciles with the transaction costs it charges (§H47); re-run
+  `tests/test_trade_log_cost_reconciliation.py` after any change under `src/qtr/backtest`.
 
 Previous state, retained for the record: all assigned tasks H35–H43 are complete. All
 metric-agreement sites — library-side (§H39), runner-local helpers (§H40) and runner-inline sites
