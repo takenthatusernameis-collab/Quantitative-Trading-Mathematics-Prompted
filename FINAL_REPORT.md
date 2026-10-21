@@ -485,8 +485,8 @@ control), the verdict rule and the pre-registration itself.
 - **5 certified edges** (H10/H11/H12/H22/H25) — all variants of the same intraday futures TSMOM mechanism (**H27: the edge is a one-day look-ahead; H28: re-certified under a causal collapse and `CAUSAL_REJECTED` — 3/8 to 4/9 gates, OOS Sharpe 0.13–0.39; H29/H30: the daily/monthly families are `CAUSAL` on the committed artifacts, including H7 once its artifact was committed, while H11/H12 inherit H10's look-ahead positions and H23 uses the same collapse — so **no certified edge in this record survives a causal construction**); of these H22 has the strongest Sharpe (9/9 gates, OOS Sharpe 1.372, PF 1.334, DD −11.9%) and H25 the strongest PF margin (9/9 gates, OOS Sharpe 1.324, PF 1.320, DD −11.9% at 26.25% ann vol); both are *qualified* by an i.i.d. bootstrap CI whose lower bound sits below the PF gate, and the pre-registered block-bootstrap sensitivity confirms the PF fragility is not an i.i.d. artifact. (H26: the published Sharpe is a √252-per-bar metric — the annualized values are 2.55×–4.76× higher; the *PF* qualification is unaffected because PF is scale-invariant.)
 - **19 rejected** hypotheses, each with a documented root-cause attribution in `HYPOTHESIS_SPEC.md` and `INEFFICIENCY_RANKING.md`.
 - **Total compute:** ~2.5 CPU-h across all hypotheses (well within the ≤ 2 CPU-h per-hypothesis budget; the largest single run was H12 at 0.652 CPU-h). The H25 Robustness audit added 0.0002 CPU-h; the H26 scale audit added 0.0005 CPU-h; the H27 level/look-ahead audit added 0.0014 CPU-h (5 bit-exact rebuilds, no grid re-run); the **H28 causal re-certification added 1.885 CPU-h** (8 runs: 4 controls + 4 causal, the 13,824-combo H10 grid run twice); the **H29/H30 look-ahead sweep added 0.0002 CPU-h** (8 bit-exact rebuilds of the *selected* configurations, one counterfactual, no grid re-run).
-- **Test suite:** 1230 passing, 1 skipped (including the 17-test H25 Robustness audit — 12 i.i.d. bootstrap + 5 block-bootstrap sensitivity — the 23-test H25 regression set, the 44-test H26 scale-audit set, the 36-test H27 level-audit set, the 47-test H28 re-certification set and the 36-test H29 sweep set, plus the 2 new H31 `compare_to_benchmark` DataFrame/ndarray regression tests, plus the 6 new H32 `deflated_sharpe_ratio` + `purged_kfold_splits`/`combinatorial_purged_cv` regression tests, plus the 12 new H33 benchmark-contract tests, plus the 10 new H34 direction-aware benchmark-gate tests, plus the 11 new H35 gate-vacuity contract tests and the 1 new H35 one-sided-vs-gate non-equivalence test, plus the 30 new H36 point-in-time contract tests, plus the 179 new H37 runner-causality inventory tests, plus the 13 new H38 engine-metric-consistency tests, plus the 49 new H39 cross-module metric-agreement tests, plus the 42-test H40/H41 runner-metric-agreement contract — 33 tests in H40 and 9 in H41, plus the 18 new H43 coverage-gate contract tests — 6 gate pins and 12 branch-closure tests). The single skip is `buy_and_hold`, a constant position that cannot react to a perturbation. **H42 added no tests** (whitespace-only change to the inventory file).
-- **Coverage (corrected by H33, re-measured by H34 and H38, measured and gated by H43):** the H33 baseline of **94%** was caused by the dead `deflated_sharpe_ratio` body (16 uncovered statements in `src/qtr/validation/statistics.py`). H34 **deleted** that dead code (it was not exported, had no caller and duplicated `run_h12_selection_bias_audit.py:deflated_sharpe_ratio` with the same `max_z` formula). **H43 finally measured the claim** (H39–H42 had re-asserted it from a branch argument because `pytest-cov` was not installed): the recorded figure was exactly right — `src/qtr` had **1014 statements, 0 missed** — but it was a **statement**-coverage figure, and statement coverage cannot see a branch that is never taken. The first branch measurement found **11 partial branches** behind the 100% (99% combined). All 11 are now closed by named tests (§H43) and the gate is committed: `pyproject.toml` declares `[tool.coverage.run] branch = true`, `source = ["src/qtr"]` and `[tool.coverage.report] fail_under = 100`, so `python -m pytest -q --cov=qtr --cov-branch` **fails** below full coverage. Measured now: `src/qtr` = **1016 statements, 316 branches, 0 missed, 0 partial, 100.00%** ("Required test coverage of 100.0% reached"). (The H32 handoff's "99%, one uncovered branch" claim was wrong: its named guard — the `walk_forward_splits` empty-window branch at `statistics.py:159-160` — is covered by `tests/test_statistics.py:185`.)
+- **Test suite:** 1263 passing, 1 skipped (including the 17-test H25 Robustness audit — 12 i.i.d. bootstrap + 5 block-bootstrap sensitivity — the 23-test H25 regression set, the 44-test H26 scale-audit set, the 36-test H27 level-audit set, the 47-test H28 re-certification set and the 36-test H29 sweep set, plus the 2 new H31 `compare_to_benchmark` DataFrame/ndarray regression tests, plus the 6 new H32 `deflated_sharpe_ratio` + `purged_kfold_splits`/`combinatorial_purged_cv` regression tests, plus the 12 new H33 benchmark-contract tests, plus the 10 new H34 direction-aware benchmark-gate tests, plus the 11 new H35 gate-vacuity contract tests and the 1 new H35 one-sided-vs-gate non-equivalence test, plus the 30 new H36 point-in-time contract tests, plus the 179 new H37 runner-causality inventory tests, plus the 13 new H38 engine-metric-consistency tests, plus the 49 new H39 cross-module metric-agreement tests, plus the 42-test H40/H41 runner-metric-agreement contract — 33 tests in H40 and 9 in H41, plus the 18 new H43 coverage-gate contract tests — 6 gate pins and 12 branch-closure tests, plus the 33 new H45 public-API contract tests — 4 packaging pins, 22 subpackage-declaration pins and 7 top-level/star-import pins). The single skip is `buy_and_hold`, a constant position that cannot react to a perturbation. **H42 added no tests** (whitespace-only change to the inventory file).
+- **Coverage (corrected by H33, re-measured by H34 and H38, measured and gated by H43):** the H33 baseline of **94%** was caused by the dead `deflated_sharpe_ratio` body (16 uncovered statements in `src/qtr/validation/statistics.py`). H34 **deleted** that dead code (it was not exported, had no caller and duplicated `run_h12_selection_bias_audit.py:deflated_sharpe_ratio` with the same `max_z` formula). **H43 finally measured the claim** (H39–H42 had re-asserted it from a branch argument because `pytest-cov` was not installed): the recorded figure was exactly right — `src/qtr` had **1014 statements, 0 missed** — but it was a **statement**-coverage figure, and statement coverage cannot see a branch that is never taken. The first branch measurement found **11 partial branches** behind the 100% (99% combined). All 11 are now closed by named tests (§H43) and the gate is committed: `pyproject.toml` declares `[tool.coverage.run] branch = true`, `source = ["src/qtr"]` and `[tool.coverage.report] fail_under = 100`, so `python -m pytest -q --cov=qtr --cov-branch` **fails** below full coverage. Measured now: `src/qtr` = **1038 statements, 316 branches, 0 missed, 0 partial, 100.00%** ("Required test coverage of 100.0% reached"). (The 22 statements added by H45 are the package `__init__.py` files, which the coverage gate now measures as part of the package.) (The H32 handoff's "99%, one uncovered branch" claim was wrong: its named guard — the `walk_forward_splits` empty-window branch at `statistics.py:159-160` — is covered by `tests/test_statistics.py:185`.)
 - **Benchmark gates (H33 + H34 + H35):** three published benchmark gates were vacuous (H4's `p`, H18's `benchmark_p`, H7's `max_p_value`/`min_information_ratio`) because the runner read a key the library never returns, passed a boolean mask as `risk_free`, or compared returns against **price levels**. They are repaired and pinned by an executable contract; the recomputed tallies are H4 1/8 (unchanged), H7 5/9 (published 4/9), H18 3/9 (published 2/9); no verdict changes. The pre-registered gate was also *direction-blind* — it is satisfied by a significantly **negative** alpha. **H34 re-specified it** (`p < 0.05` **and** a positive excess return), closed it in the code for all 17 runners and disclosed the impact: four published artifacts (H3, H19, H20, H23) carry a wrong-reason `p` PASS; the certified families (H10, H22, H25) survive; no published row, threshold, verdict or certified number changes. **H35 audited the remaining gate class** — gates that are a constant, or that compare a placeholder, and can therefore never fail — and found three of them: **H7's** `min_perturbed_sharpe_ratio` and `min_worst_regime_sharpe` (hard-coded `True`) and **H18's** `perturbation_ratio` (a placeholder constant). Both families are REJECT, so no published verdict rests on them (H7's published 4/9 is 2/7 on the evaluable gates; H18's published 2/9 is 1/8). Three runners (H4/H5/H6) also read their IR threshold through a permissive default (`GATES.get(..., -1e18)`), which is now a direct subscript so a missing threshold fails loudly. No certified family has a non-evaluating gate.
 - **Structural walls on free data:** (a) yfinance hourly `=F` hard-capped at ~730 days (no bars beyond 2026-10-11); (b) Coinbase/CCXT hourly OHLCV capped at ~12 days; (c) the joint Sharpe ≥ 1.0 ∧ DD ≤ 15% gate met by no long-only free-data equity family; (d) PF ≥ 1.3 is fragile across the entire intraday-futures-carry family (H13/H14 for H10; H21 for the basket; H22 margin +0.034; H25 margin +0.020 — all CI-fragile, P(PF≥1.3)≈0.5–0.62 on the free window). **Corrected by H26:** the *Sharpe* side of (c)/(d) is not a further blocker — the published intraday Sharpe is a √252-per-bar metric, and on the repo's own annualization convention the certified family's Sharpe CI lower bound is 2.25 ≫ 1.0. The binding constraint is the **PF bootstrap margin plus the 730-day sample**, both of which are scale-invariant.
 
@@ -611,7 +611,12 @@ definition is pre-registered and is **not** changed here; it is the next task.
 
 
 ---
-## Next Task (updated 2026-10-21, after H40)
+## Next Task (updated 2026-10-21, after H40 — **superseded**)
+
+> **Superseded.** The task assigned in this section was **completed in H41** (the runner-inline
+> metric sites are pinned by `tests/test_runner_metric_agreement.py`). The current assignment is
+> in the **§H45 "Next task"** section at the end of this report; `NEXT_TASK.md` carries the same
+> statement. The text below is retained as the H40-era record.
 
 **H34 and its follow-up are complete, H35 has closed the last open gate-defect class, H36 has
 closed the point-in-time gap in the shared infrastructure, H37 has closed it in the
@@ -2016,12 +2021,137 @@ not the same claim as "the code is fully exercised", and a verification step tha
 cannot run is not a verification step. Both are now fixed at the source — the tool is installable
 and declared, the gate is committed, and the number is measured.
 
+## H45 — the package's public API is declared, complete and actually exported (2026-10-21)
+
+**Verdict: the convenience-export surface that H44 added was empty, and the check that
+certified it could not fail. Both are now fixed at the source and pinned by an executable
+contract.**
+
+### The gap
+
+H44 added "convenience exports" to the top-level `qtr` package and recorded the verification as:
+
+```
+PYTHONPATH=src python -c "from qtr import *; print('ok')"   ->   ok
+```
+
+That check is **vacuous**: `from qtr import *` succeeds whether it exports zero names or five
+hundred, and `print('ok')` prints `ok` either way. It is the same defect class this record has
+been hunting since §H35 — a check that cannot fail is not a check.
+
+Measuring the surface the check was supposed to certify found three separate defects:
+
+| Defect | Consequence |
+|---|---|
+| `qtr.__all__` was `["__version__"]` | `from qtr import *` exported **exactly one name**. The wildcard re-exports were unreachable through the very mechanism H44 added them for. |
+| `qtr.backtest`, `qtr.data`, `qtr.tracking` had **empty** `__init__.py`; `qtr.utils` had **none at all** | Four of the six subpackages exported nothing. `qtr.run_backtest`, `qtr.get_data_fetcher`, `qtr.create_experiment` and `qtr.get_config` did not exist. |
+| `qtr.utils` was a **namespace package**, not a regular package | `setuptools.find_packages(where="src")` returned `['qtr', 'qtr.strategies', 'qtr.tracking', 'qtr.backtest', 'qtr.data', 'qtr.validation']` — **`qtr.utils` was not among them**. The distribution shipped `qtr/utils/config.py` only because setuptools copies the stray file as package data, and it was importable only by PEP 420 luck. Because `qtr/__init__.py` imports it, the *whole package* was one directory away from failing to import. |
+
+The H44 handoff recorded the outcome as "no assigned task; optionally expand top-level exports
+with explicit symbols if API ergonomics matter; not critical". The surface was in fact
+non-functional, and the *verification* was the reason it went unnoticed.
+
+### The change
+
+- `src/qtr/utils/__init__.py` — **new**. A regular package with explicit re-exports
+  (`get_config`, `load_config`, `save_config`) and an `__all__`. This closes the packaging hole:
+  `qtr.utils` is now a discovered distribution package.
+- `src/qtr/backtest/__init__.py`, `src/qtr/data/__init__.py`, `src/qtr/tracking/__init__.py` —
+  explicit re-exports of each module's public API plus an `__all__`, matching the convention
+  already used by `qtr/strategies/__init__.py` and `qtr/validation/__init__.py`.
+- `src/qtr/__init__.py` — the top level now composes `__all__` **from the subpackages' own
+  `__all__` lists**, so the aggregate cannot drift from what it aggregates. The star import
+  exports **46 names** plus `__version__` (was: 1).
+- `tests/test_public_api_contract.py` — **new**, 33 tests.
+
+### The contract
+
+The new module pins the surface in five layers:
+
+1. **Packaging** (3 tests) — every subpackage is a *regular* package (it has an `__init__.py`),
+   and the build backend discovers every one of them. The `qtr.utils` hole cannot return.
+2. **Declaration** (22 tests) — every subpackage declares an explicit, non-empty, duplicate-free
+   `__all__`; no subpackage uses a star import (so the declaration is checkable); and each
+   subpackage's `__all__` is **exactly** the public API of the module it re-exports, computed from
+   the AST. This cuts both ways: a new public function nobody exports fails the test, and so does
+   an export of a name the module does not define.
+3. **Aggregation** (2 tests) — the top-level `__all__` is the union of the subpackages' `__all__`s
+   plus `__version__`, and every declared name is bound at runtime.
+4. **The star import** (3 tests) — `from qtr import *` exports **exactly** the declared API, the
+   declared API is not a one-name set, and the star import reaches a representative of **every**
+   subpackage (`run_backtest`, `get_data_fetcher`, `momentum_signals`, `create_experiment`,
+   `get_config`, `sharpe_ratio`).
+5. **Version** (1 test) — `qtr.__version__` equals the version the distribution ships.
+
+### Verification
+
+- `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` → **1263 passed,
+  1 skipped**; `src/qtr` = **1038 statements, 316 branches, 0 missed, 0 partial, 100.00%**; the
+  committed gate reports *"Required test coverage of 100.0% reached. Total coverage: 100.00%"*.
+- **Negative control** — the new module was run against the **pre-H45** sources (`git checkout --
+  src/qtr/`, `src/qtr/utils/__init__.py` removed): **15 of the 33 tests fail**, each naming one
+  of the defects above. The contract is not vacuous.
+- `python -m ruff check src tests run_*.py` → *All checks passed!*.
+- `python -m ruff format --check src tests run_*.py` → **88 files already formatted** (87 + the new
+  test module).
+- `setuptools.find_packages(where="src")` → now `['qtr', 'qtr.backtest', 'qtr.data', 'qtr.strategies',
+  'qtr.tracking', 'qtr.utils', 'qtr.validation']` — **`qtr.utils` present**.
+- A wheel was built (`pip wheel --no-deps --no-build-isolation`) and installed into an isolated
+  target: the wheel now contains `qtr/utils/__init__.py`, and from the **installed** package
+  `from qtr import *` exports the same 46 names, with `qtr.utils` a regular package.
+
+### What was not changed
+
+No published artifact, gate threshold, verdict, certified number or published row was modified;
+no grid was re-run; no hypothesis was added; no `run_*.py` was touched. The change is confined to
+the package's import surface and adds no computational behaviour: every re-exported symbol is the
+*same object* the module defines.
+
+One pre-existing, unrelated observation, recorded rather than fixed: the **committed**
+`src/qtr.egg-info/` manifest is stale (it predates eight test modules added since H33).
+Regenerating it with the setuptools available in this session (68.1.2) would *degrade* the
+committed `PKG-INFO` (it emits `Metadata-Version: 2.1` and drops the `Requires-Dist` entries), so
+the generated metadata was left untouched. It is regenerated on every build and does not affect
+the wheel, which was verified directly.
+
+### Why this was worth doing
+
+The public API is the one surface every downstream user touches, and it was the one surface in the
+repository that no test reached. The lessons are the same two the record has already paid for
+twice: **a verification step that cannot fail is not a verification step** (§H43's coverage
+re-assertion, and now H44's `print('ok')`), and **a declared gate is only a gate if the
+declaration and the code are compared** (§H35's vacuous gates, and now the empty `__all__`s). The
+fix is the same in both cases: make the invariant executable, and check the negative control so
+the check is known to be able to fail.
+
 ## Next task
 
-None. All assigned tasks (H35–H43) are complete. All metric-agreement sites — library-side
-(§H39), runner-local helpers (§H40) and runner-inline sites (§H41) — are classified and pinned;
-every gate defect class that has surfaced (§H35) is closed by an executable invariant; the
-point-in-time contract covers every `run_*.py` (§H36–H37); the engine's `total_return` spans
-every bar (§H38); the package's two Sharpe implementations agree (§H39); the lint/format
-gate is reproducible (§H42); and the coverage gate is measured, declared and complete (§H43).
-No further work is assigned.
+One task is assigned (stated in full in `NEXT_TASK.md`):
+
+> **Extend the executable contract from the package's import surface to the runners' import
+> surface.** The `run_*.py` scripts are the other half of the repository's public entry points —
+> they are what the record calls "the runners", and they are imported by the test suite and by
+> each other — but no test pins *which* modules they import, whether those imports are the
+> canonical ones, or whether a runner can still be imported at all. A runner that has been broken
+> by an import-level change (a renamed symbol, a moved module, a subpackage that no longer
+> re-exports what the runner expects) would fail at run time, not at test time.
+
+The state a next session inherits:
+
+- The pre-registered free-data hypothesis space (H1–H30) remains **exhausted**; no new hypothesis
+  is warranted and no grid may be re-run.
+- The certified families (H10, H22, H25) are unchanged. Every published artifact, threshold,
+  verdict and certified number is frozen.
+- The shared library, the engine and every `run_*.py` remain pinned as **point-in-time**; re-run
+  `tests/test_causality_invariant.py` after any change under `src/qtr`, and
+  `tests/test_runner_causality_inventory.py` after any change in a runner.
+- The package's public API is now declared, complete and non-vacuously pinned (§H45); re-run
+  `tests/test_public_api_contract.py` after any change under `src/qtr`.
+
+Previous state, retained for the record: all assigned tasks H35–H43 are complete. All
+metric-agreement sites — library-side (§H39), runner-local helpers (§H40) and runner-inline sites
+(§H41) — are classified and pinned; every gate defect class that has surfaced (§H35) is closed by
+an executable invariant; the point-in-time contract covers every `run_*.py` (§H36–H37); the
+engine's `total_return` spans every bar (§H38); the package's two Sharpe implementations agree
+(§H39); the lint/format gate is reproducible (§H42); and the coverage gate is measured, declared
+and complete (§H43).

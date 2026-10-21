@@ -12,3 +12,7 @@ env/
 .mypy_cache/
 .tox/
 node_modules/
+
+# Python distribution build output (created by `pip wheel` / `python -m build`)
+build/
+dist/
