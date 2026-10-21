@@ -2,48 +2,72 @@
 
 ## State
 
-H35–H46 complete (the coverage gate is measured, declared and complete at 100% statement +
-branch; the package's public API and the runners' import surface are both declared and pinned).
-**H47 is complete**: the engine's trade log now reconciles with the transaction costs the engine
-charges, and the reconciliation is pinned by a non-vacuous executable contract.
+H35–H47 complete (the coverage gate is measured, declared and complete at 100% statement +
+branch; the package's public API and the runners' import surface are both declared and pinned; the
+engine's trade log reconciles with the costs it charges).
+**H48 is complete**: `qtr.validation.statistics.parameter_sensitivity` is now seedable, so its
+confidence intervals are reproducible instead of redrawn from OS entropy on every call, and the
+reproducibility is pinned by a non-vacuous executable contract.
 
-## What changed (H47)
+## What changed (H48)
 
-- `src/qtr/backtest/engine.py` — the cost model now keeps the **per-symbol** breakdown
-  (`_calculate_costs_by_symbol`), the per-bar charge is their sum (`_total_costs`), and
-  `_extract_trades` attributes each trade **its own** cost instead of the bar's aggregate cost.
-  `_calculate_costs` is kept (it is used by `run_h27_pnl_level_audit.py:218`) and returns the same
-  series as before.
-- `tests/test_trade_log_cost_reconciliation.py` — **new**, 13 tests: the reconciliation invariant
-  (per-bar and in total, for the equity/futures/crypto paths), the own-cost identity reproduced by
-  an independent formula, the strict-`1/k` share in a multi-trade bar, the unchanged charge, a
-  **negative control** (the pre-fix aggregate attribution is reconstructed and shown to fail the
-  invariant), and the frozen-artifact disclosure.
+- `src/qtr/validation/statistics.py`
+  - `parameter_sensitivity` takes an **optional** `random_state` (default `None`, so **no existing
+    caller changes behaviour**).
+  - `_bootstrap_seeds` (new) expands an integer seed into **one independent stream per parameter
+    row** (`np.random.SeedSequence(seed).spawn(n)`), so the rows are not resampled with a shared
+    pattern; a row's seed does not depend on how many rows the grid holds, so extending the grid
+    does not perturb the rows already analysed. The unseeded path passes `None` straight through.
+- `tests/test_parameter_sensitivity_reproducibility.py` — **new**, 14 tests: exact reproducibility
+  under a fixed seed, seed isolation from the legacy global `np.random.seed`, different seeds →
+  different bounds, seed-free point estimates, row independence, grid-extension stability,
+  **cross-process** reproducibility, a **negative control** (the unseeded path really moves; the
+  pre-fix call site is reconstructed and shown to fail the invariant), and the published-record
+  disclosure.
+- `FINAL_REPORT.md` — new **§H48** section and an updated "Next task" section.
+- `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_CURRENT.md`, `HANDOFF_CURRENT_SESSION.md`,
+  `HANDOFF_NEXT.md` updated.
 
 ## What was actually verified
 
-- `python -m pytest -q -W error tests/test_trade_log_cost_reconciliation.py` → **13 passed**.
-- `python -m pytest -q -W error` → **1341 passed, 1 skipped** (full suite).
-- `python -m pytest -q -W error --cov=qtr --cov-branch` → `src/qtr` = **1048 statements, 318
-  branches, 0 missed, 0 partial, 100.00%**; the committed gate reports *"Required test coverage of
-  100.0% reached. Total coverage: 100.00%"*.
-- `python -m ruff check src tests run_*.py` → **All checks passed!**.
-- `python -m ruff format --check src tests run_*.py` → **90 files already formatted**.
-- **Negative control** — the new contract run against the **pre-fix** engine: **6 of the 13 tests
-  fail**, the first with the exact over-count (`log=0.0016` against `charged=0.0008`).
-- **Attribution-only** — the pre-fix and post-fix engines were run side by side over nine
-  equity/futures/crypto cases: the net returns, the equity curve, the positions and every metric
-  except `avg_trade_cost` are **bit-identical**.
+- `python -m pytest -q -W error tests/test_parameter_sensitivity_reproducibility.py` → **14 passed**.
+- `python -m pytest -q -W error` → **1355 passed, 1 skipped** (full suite).
+- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → `src/qtr` = **1054
+  statements, 320 branches, 0 missed, 0 partial, 100.00%**; the committed gate reports *"Required
+  test coverage of 100.0% reached. Total coverage: 100.00%"*.
+- `python -m ruff check src tests run_*.py` → *All checks passed!*.
+- `python -m ruff format --check src tests run_*.py` → **91 files already formatted**.
+- **Negative control** — the new contract run against the **pre-fix** implementation: **4 of the 14
+  tests fail**, and every failure is **behavioural** (the bounds move; e.g. `-0.5059` against
+  `-0.7423`), not a `TypeError` for a missing keyword. An earlier draft of the contract failed
+  only with `TypeError: parameter_sensitivity() got an unexpected keyword argument
+  'random_state'`; that measures the *API* rather than the behaviour and was replaced by the
+  `_seeded()` adapter, which drives the pre-fix function down its unseeded path.
+- **Preconditions verified before the change** — no `run_*.py` calls `parameter_sensitivity`
+  (AST scan of all 32 runners), and `validate_strategy` derives its published `param_stability`
+  from the walk-forward fold Sharpes (`src/qtr/validation/statistics.py:714`), **not** from
+  `parameter_sensitivity`; both facts are now pinned by the new contract.
 
 ## What remains unresolved
 
-- The **committed** `src/qtr.egg-info/` manifest is stale (it predates eight test modules added
-  since H33). Regenerating it with the setuptools available here (68.1.2) would *degrade* the
-  committed `PKG-INFO` (`Metadata-Version: 2.1`, core `Requires-Dist` entries dropped), so it
-  was left untouched. Pre-existing, cosmetic: the build regenerates it. The next session that
-  wants to close it should use a **materially different** approach — stop tracking the generated
-  manifest (add `*.egg-info/` to `.gitignore` and `git rm --cached src/qtr.egg-info`) rather than
-  regenerating it with a local setuptools.
+- **The published `validation` blocks are on an older `validate_strategy`** (the new assignment,
+  H49). The five committed exploratory summaries (2026-10-10 / 2026-10-14 MA-crossover runs) carry
+  a `validation` block written by a version with **no `param_stability` gate** and with a
+  **sign-unaware** walk-forward ratio. Re-deriving the block from each artifact's own frozen
+  `equity_curve.parquet` shows `sharpe`, `profit_factor`, `max_drawdown` and `total_return` **do**
+  reproduce from the frozen data (three of the five match to float noise / exactly), but
+  `walkforward_stability` does not: in three of the five the published value is exactly
+  `sharpe(second half) / sharpe(first half)` **with both halves losing** (e.g. `1.8391876…` from
+  `−1.5594 / −0.8479`), a figure the current sign-aware code reports as `0.0`. The published
+  `walkforward_pass` is therefore on the pre-guard basis. No verdict moves (all five are
+  `all_pass: false`), but the drift is real and is currently undocumented.
+- The **committed** `src/qtr.egg-info/` manifest is stale (it predates the test modules added since
+  H33). Regenerating it with the setuptools available here (68.1.2) would *degrade* the committed
+  `PKG-INFO` (`Metadata-Version: 2.1`, core `Requires-Dist` entries dropped), so it was left
+  untouched. Pre-existing, cosmetic: the build regenerates it. A session that wants to close it
+  should use a **materially different** approach — stop tracking the generated manifest (add
+  `*.egg-info/` to `.gitignore` and `git rm --cached src/qtr.egg-info`) rather than regenerating it
+  with a local setuptools. **Two sessions have now hit this.**
 - **Disclosure (H47)** — the `cost` column of the **committed** trade logs (H10, H11, H16, H21,
   H22, H25) and the `avg_trade_cost` of the three exploratory 2026-10-10 MA-crossover summaries
   carry the **pre-fix** aggregate attribution. The artifact files are frozen and were left
@@ -57,15 +81,19 @@ charges, and the reconciliation is pinned by a non-vacuous executable contract.
 
 ## Approaches already tried / failed (and why)
 
-- **Regenerating `src/qtr.egg-info/` with the local setuptools** — rejected as a regression to
-  the committed metadata (see above). Two sessions have now hit this; a materially different
-  approach is required (untrack the manifest), not another regeneration.
+- **A negative control that only asserted the new keyword exists** — rejected: it failed against
+  the pre-fix implementation with `TypeError` (the parameter was *missing*), not because the
+  behaviour was wrong. The contract now goes through the `_seeded()` adapter, so the pre-fix
+  implementation is driven down its unseeded path and the control is **behavioural**.
+- **Regenerating `src/qtr.egg-info/` with the local setuptools** — rejected as a regression to the
+  committed metadata. Two sessions have now hit this; a materially different approach is required
+  (untrack the manifest), not another regeneration.
 - **An explicit top-level `__all__` list** — rejected in favour of composing it from the
   subpackages' `__all__`s, so the aggregate cannot drift from what it aggregates.
 - **Fixing the H10 trade-log cost by changing the charge** — rejected: the charge was never
   wrong. The H27 `L3` check proves it (the per-bar cost recomputed from the trade log matches the
-  engine's per-bar cost to ~1e-19 for all five audited families). Only the *attribution* inside
-  the log was wrong, so the fix moves the log, not the charge.
+  engine's per-bar cost to ~1e-19 for all five audited families). Only the *attribution* inside the
+  log was wrong, so the fix moves the log, not the charge.
 
 ## Constraints carried forward
 
@@ -78,39 +106,63 @@ charges, and the reconciliation is pinned by a non-vacuous executable contract.
 - The engine's trade-log reconciliation (§H47) is pinned by
   `tests/test_trade_log_cost_reconciliation.py`; re-run it after any change under
   `src/qtr/backtest`.
+- The seeded reproducibility of `parameter_sensitivity` (§H48) is pinned by
+  `tests/test_parameter_sensitivity_reproducibility.py`; re-run it after any change under
+  `src/qtr/validation`.
 - Re-run `tests/test_runner_causality_inventory.py` and `tests/test_runner_metric_agreement.py`
   after any change in a runner.
 - The coverage gate (`python -m pytest -q --cov=qtr --cov-branch`) must stay at 100% for
   `src/qtr`; the lint gate (`python -m ruff check src tests run_*.py` and
   `python -m ruff format --check src tests run_*.py`) must stay clean.
 
-## The next task (H48)
+## The next task (H49)
 
-> **Make `qtr.validation.statistics.parameter_sensitivity` reproducible.**
+> **Re-derive the published `validation` blocks from the frozen artifacts, and disclose the
+> `walkforward_stability` basis they were written on.**
 >
-> The function is part of the public API (`qtr.validation.__all__`) but it calls
-> `bootstrap_confidence_interval` **without** a `random_state`, so `np.random.default_rng(None)`
-> draws from OS entropy and two calls on the same input return **different** confidence
-> intervals. Measured on a fixed input: `ci_lower` = `[-0.866, -0.409, -0.631, -1.040]` on the
-> first call and `[-0.801, -0.465, -0.521, -0.972]` on the second (the point estimates,
-> `stability_ratio`, `optimal_param` and `metric_std` are deterministic — only the bootstrap
-> bounds move).
+> The five committed exploratory summaries that carry a `validation` block —
+> `exp_2026-10-10T17-02-22-080026Z`, `exp_2026-10-10T17-03-39-610858Z`,
+> `exp_2026-10-10T17-04-21-400695Z`, `exp_2026-10-10T17-05-58-697503Z` and
+> `exp_2026-10-14T08-26-02-537359Z` — were written by an **earlier** `validate_strategy`: one with
+> **no `param_stability` gate** and with a **sign-unaware** walk-forward ratio (the ratio was taken
+> whatever the sign of the two half-sample Sharpes). The current code has the sign-aware guard
+> (`walkforward_stability = 0.0` unless *both* halves are profitable) and the extra
+> `param_stability` gate.
 >
-> Its siblings already do the right thing: `sharpe_ratio_ci` and `bootstrap_confidence_interval`
-> both accept `random_state`, and all three runners that call the bootstrap directly pass
-> `random_state=SEED` (`run_cs_momentum_experiment.py:386`, `run_ts_momentum_experiment.py:564`,
-> `run_regime_gated_momentum_experiment.py:726`). `parameter_sensitivity` is the **only**
-> bootstrap caller in the package that cannot be seeded.
+> **The evidence (measured in this session, read-only against the frozen artifacts).**
+> Re-deriving the returns from each artifact's own `equity_curve.parquet`
+> (`ret_t = equity_t / equity_{t-1} - 1`, seeded with the first bar) and recomputing:
 >
-> **The work.** Add an optional `random_state` parameter to `parameter_sensitivity` and thread it
-> into its `bootstrap_confidence_interval` call (backwards compatible: the default stays `None`,
-> so no existing caller changes behaviour), then pin the contract in a new test module:
-> two calls with the same seed agree exactly; the same seed on different data may differ; and the
-> default (unseeded) path is explicitly documented as non-reproducible rather than silently
-> relied upon. A negative control must show that the unseeded path really does move.
+> | artifact | `sharpe` | `profit_factor` | `max_drawdown` | `total_return` | `walkforward_stability` |
+> |---|---|---|---|---|---|
+> | `…17-02-22-080026Z` | matches (1e-15) | matches | matches | matches | **1.8391876 vs 0.0** |
+> | `…17-03-39-610858Z` | matches (1e-15) | matches | matches | matches | **1.4344352 vs 0.0** |
+> | `…17-04-21-400695Z` | matches (1e-15) | matches | matches | matches | **1.1619862 vs 0.0** |
+> | `…17-05-58-697503Z` | **0.6597383 vs 0.6848444** | **1.1347296 vs 1.1401357** | matches | **1.7456586 vs 1.8633597** | **1.0277108 vs 0.9331070** |
+> | `exp_2026-10-14T08-26-02-537359Z` | **0.6847308 vs 0.6848444** | **1.1401093 vs 1.1401357** | matches | **1.8627868 vs 1.8633597** | **0.9334875 vs 0.9331070** |
 >
-> **The published record is unaffected.** No runner calls `parameter_sensitivity`, and
-> `validate_strategy` computes its published `param_stability` from the walk-forward fold Sharpes
-> (`src/qtr/validation/statistics.py:714`), **not** from `parameter_sensitivity`. So the
-> `min_param_stability` gate stays deterministic and no published number moves. Verify that
-> claim against the runners before changing anything, and record it as a disclosure.
+> (published vs re-derived; "matches" = float noise or exact)
+>
+> In the first three, the published `walkforward_stability` is **exactly**
+> `sharpe(second half) / sharpe(first half)` with **both halves losing**
+> (`−1.5594 / −0.8479 = 1.8391876…`), i.e. the pre-guard formula: a *sign-unaware* ratio that
+> **passed** the `0.7` gate on a strategy that lost money in both halves. The current code reports
+> `0.0` and would report `walkforward_pass: False`.
+>
+> In the last two the published block does not re-derive at all — and the two artifacts' *derived*
+> numbers are nearly identical to each other (`0.6848444` both) while their *published* numbers
+> differ (`0.6597383` vs `0.6847308`), so the two blocks were written by **different code
+> versions** on the **same** series. The cause is not yet established and must be, not assumed.
+>
+> **The work.** (a) Determine, from the runners' own source and the artifacts' `config` block, why
+> the last two blocks differ from the current code and from each other; (b) publish the finding as
+> a **disclosure** in `FINAL_REPORT.md` (the artifacts are frozen and must not be rewritten — the
+> published `walkforward_pass`/`walkforward_stability` and the absent `param_stability` key are
+> *history*); (c) pin it with a new test module that re-derives the block from the frozen equity
+> curve and asserts the published values — including the pre-guard ratio — so the drift is
+> documented and cannot change silently. The **certified** families are not in scope: they do not
+> carry a `validation` block, and no gate, threshold, verdict or certified number may move.
+>
+> **Constraints.** Read-only against the frozen artifacts; no pipeline re-execution, no network, no
+> grid re-run; the five artifacts' `all_pass` is `false` and stays `false` (adding a gate can only
+> turn `true` into `false`, and all five are already `false`).

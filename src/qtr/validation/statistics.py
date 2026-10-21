@@ -213,11 +213,36 @@ def multiple_testing_correction(
     return rejected, adjusted
 
 
+def _bootstrap_seeds(random_state: int | None, n_streams: int) -> list[int | None]:
+    """The per-parameter seeds handed to :func:`bootstrap_confidence_interval`.
+
+    ``None`` is passed through unchanged: it is the *unseeded* marker, so the
+    default behaviour of the package is untouched and the bootstrap draws from
+    OS entropy. An integer seed is expanded into ``n_streams`` independent
+    child seeds, so each parameter row is resampled with its own pattern
+    instead of every row sharing one. A row's seed does not depend on how
+    many rows are analysed, so extending the grid does not perturb the rows
+    already analysed.
+
+    Args:
+        random_state: The caller's seed, or ``None`` for the unseeded path
+        n_streams: How many independent streams are needed
+
+    Returns:
+        One seed per stream (``None`` for the unseeded path)
+    """
+    if random_state is None:
+        return [None] * n_streams
+    children = np.random.SeedSequence(random_state).spawn(n_streams)
+    return [int(child.generate_state(1, dtype=np.uint32)[0]) for child in children]
+
+
 def parameter_sensitivity(
     returns: np.ndarray,
     param_values: np.ndarray,
     metric_func: callable = sharpe_ratio,
     n_bootstrap: int = 500,
+    random_state: int | None = None,
 ) -> dict[str, Any]:
     """
     Analyze parameter sensitivity using bootstrap.
@@ -227,6 +252,12 @@ def parameter_sensitivity(
         param_values: Parameter values tested
         metric_func: Metric function to evaluate
         n_bootstrap: Bootstrap samples per parameter
+        random_state: Random seed for the bootstrap. Pass an integer to make
+            the confidence bounds exactly reproducible. The default ``None``
+            leaves the bootstrap **unseeded**: the bounds are then drawn from
+            OS entropy and differ from call to call (the point estimates --
+            ``metrics``, ``optimal_param``, ``stability_ratio``,
+            ``metric_std`` -- are deterministic either way).
 
     Returns:
         Dictionary with sensitivity metrics
@@ -236,10 +267,12 @@ def parameter_sensitivity(
     ci_lower = np.zeros(n_params)
     ci_upper = np.zeros(n_params)
 
+    seeds = _bootstrap_seeds(random_state, n_params)
+
     for i in range(n_params):
         metrics[i] = metric_func(returns[i])
         ci_lower[i], ci_upper[i] = bootstrap_confidence_interval(
-            returns[i], metric_func, n_bootstrap=n_bootstrap
+            returns[i], metric_func, n_bootstrap=n_bootstrap, random_state=seeds[i]
         )
 
     # Find optimal parameter

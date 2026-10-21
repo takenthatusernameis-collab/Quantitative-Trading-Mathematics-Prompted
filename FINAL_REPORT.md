@@ -2211,6 +2211,94 @@ Two disclosures follow, and are pinned rather than rewritten:
   (5 symbols, 257/778/5 trades) is on the pre-fix basis. It is an engine-only diagnostic that
   no gate uses; `FINAL_REPORT.md` and the reports never quoted it.
 
+## H48 — `parameter_sensitivity` could not be seeded (2026-10-21)
+
+**Verdict: the published record is unaffected — nothing in it reads `parameter_sensitivity` — but the
+function was the only bootstrap caller in the package that could not be seeded, so its confidence
+intervals changed on every call. It now takes an optional `random_state`, and the reproducibility is
+pinned by an executable contract.**
+
+### The gap
+
+`qtr.validation.statistics.parameter_sensitivity` is part of the package's public API
+(`qtr.validation.__all__`) and it called `bootstrap_confidence_interval` **without** a
+`random_state`:
+
+```python
+ci_lower[i], ci_upper[i] = bootstrap_confidence_interval(
+    returns[i], metric_func, n_bootstrap=n_bootstrap      # no random_state
+)
+```
+
+`bootstrap_confidence_interval` seeds its generator with `np.random.default_rng(random_state)`, so
+with `random_state=None` the generator draws from **OS entropy**. Two calls on the same input
+therefore returned *different* confidence intervals:
+
+| call | `ci_lower` (2 parameter rows, `n_bootstrap=200`) |
+|---|---|
+| 1 | `[-0.7393122, -2.54308907]` |
+| 2 | `[-0.93933284, -3.07895489]` |
+
+The point estimates (`metrics`, `optimal_param`, `optimal_metric`, `stability_ratio`, `metric_std`)
+are deterministic — only the bootstrap bounds move — which is why the defect was invisible in every
+published number.
+
+Its siblings already did the right thing: `sharpe_ratio_ci` and `bootstrap_confidence_interval`
+both accept `random_state`, and **every** runner that calls the bootstrap directly passes one
+(`run_cs_momentum_experiment.py:385`, `run_ts_momentum_experiment.py:563`,
+`run_regime_gated_momentum_experiment.py:725`). `parameter_sensitivity` was the only bootstrap
+caller in the package that could not be seeded.
+
+### The change
+
+- `src/qtr/validation/statistics.py` — `parameter_sensitivity` now takes an optional
+  `random_state`. The default stays `None`, so **no existing caller changes behaviour**; an integer
+  seed is expanded by the new helper `_bootstrap_seeds` into **one independent stream per parameter
+  row** (so the rows are not resampled with a shared pattern), and the call becomes a pure function
+  of the seed. A row's seed does not depend on how many rows the grid holds, so extending the grid
+  does not perturb the rows already analysed.
+- `tests/test_parameter_sensitivity_reproducibility.py` — **new**, 14 tests.
+
+With this change the package's **entire** stochastic surface is seedable: `src/qtr` contains exactly
+two randomness sites, both in `statistics.py` (`bootstrap_confidence_interval` and the new
+`_bootstrap_seeds`), and every stochastic computation reachable from the public API now takes a
+`random_state`.
+
+### The contract
+
+1. **Exact reproducibility** — two calls with the same seed agree bit-for-bit.
+2. **Seed isolation** — the legacy global `np.random.seed` cannot move the result.
+3. **Seed reaches the bootstrap** — two different seeds give different bounds.
+4. **Point estimates are seed-free** — `metrics`, `optimal_param`, `optimal_metric`,
+   `stability_ratio` and `metric_std` do not depend on the seed.
+5. **Row independence** — two *identical* parameter rows get *different* intervals, so the rows are
+   not resampled with a shared pattern.
+6. **Grid stability** — extending the grid does not move the intervals of the rows already analysed.
+7. **Cross-process reproducibility** — a second interpreter, started from a clean OS entropy pool,
+   produces the same bounds.
+8. **Negative control** — the unseeded path really does move, and the pre-fix call site (the seed
+   accepted but never threaded) is reconstructed and shown to **fail** the reproducibility
+   invariant. Against the **pre-fix** implementation, **4 of the 14 tests fail**, and every one of
+   them fails *behaviourally* (the bounds move) — the contract is not satisfied by a missing
+   keyword. (An earlier draft of this contract failed only with `TypeError: unexpected keyword
+   argument 'random_state'`; that measures the *API*, not the behaviour, and was replaced by the
+   adapter in `_seeded()`, which calls the pre-fix function on its unseeded path.)
+9. **Published-record disclosure** — no `run_*.py` calls `parameter_sensitivity` (AST-checked), and
+   `validate_strategy` derives its published `param_stability` from the walk-forward fold Sharpes
+   (AST-checked, and recomputed independently in the test), so the `min_param_stability` gate stays
+   deterministic and no published number moves.
+
+### What was not changed
+
+No published artifact, gate threshold, verdict or certified number was modified; no grid was
+re-run; no hypothesis was added. The default (`random_state=None`) path is **byte-for-byte the
+behaviour it always had** — it is the same unseeded bootstrap, just now *documented* as such. No
+runner calls `parameter_sensitivity`, and `validate_strategy` computes its published
+`param_stability` from the walk-forward fold Sharpes
+(`src/qtr/validation/statistics.py`, `param_stability = mean(fold_sharpes > 0)`), **not** from
+`parameter_sensitivity`; both facts are pinned by the new contract, so the disclosure cannot
+silently lapse.
+
 ## Next task
 
 One task is assigned (stated in full in `NEXT_TASK.md`):
@@ -2230,6 +2318,25 @@ third-party imports checked against `pyproject.toml` via `tomllib`, local import
 other `run_*.py`). The current assignment is in `NEXT_TASK.md`; the text above is retained as the
 H45-era record.
 
+**Superseded (2026-10-21, after H48).** The assignment that followed H47 was **completed in H48**:
+`parameter_sensitivity` now takes an optional `random_state` (§H48) and its reproducibility is
+pinned by `tests/test_parameter_sensitivity_reproducibility.py` (14 tests; 4 of them fail
+behaviourally against the pre-fix implementation).
+
+The current assignment is **H49** (stated in full in `NEXT_TASK.md`):
+
+> **Re-derive the published `validation` blocks from the frozen artifacts, and disclose the
+> `walkforward_stability` basis they were written on.** The five committed exploratory summaries
+> (2026-10-10 / 2026-10-14 MA-crossover runs) carry a `validation` block produced by an **earlier**
+> `validate_strategy` — a version with no `param_stability` gate and with a *sign-unaware*
+> walk-forward ratio. Re-deriving the block from each artifact's own frozen `equity_curve.parquet`
+> shows that `sharpe`, `profit_factor`, `max_drawdown` and `total_return` **do** reproduce from the
+> frozen data, but `walkforward_stability` does not: in three of the five, the published value is
+> exactly `sharpe(second half) / sharpe(first half)` **with both halves losing** (e.g. `1.8391876…`
+> from `−1.5594 / −0.8479`), a figure the current sign-aware code reports as `0.0`. The published
+> `walkforward_pass` is therefore on the pre-guard basis. No verdict moves (all five are
+> `all_pass: false`), but the drift is real and is currently undocumented.
+
 The state a next session inherits:
 
 - The pre-registered free-data hypothesis space (H1–H30) remains **exhausted**; no new hypothesis
@@ -2245,6 +2352,9 @@ The state a next session inherits:
   `tests/test_runner_import_contract.py` after any change in a runner or under `src/qtr`.
 - The engine's trade log now reconciles with the transaction costs it charges (§H47); re-run
   `tests/test_trade_log_cost_reconciliation.py` after any change under `src/qtr/backtest`.
+- The package's stochastic surface is seedable and the reproducibility is pinned (§H48); re-run
+  `tests/test_parameter_sensitivity_reproducibility.py` after any change under
+  `src/qtr/validation`.
 
 Previous state, retained for the record: all assigned tasks H35–H43 are complete. All
 metric-agreement sites — library-side (§H39), runner-local helpers (§H40) and runner-inline sites

@@ -1,55 +1,69 @@
-# HANDOFF_CURRENT_SESSION — H47: the engine's trade log reconciles with the costs it charges
+# HANDOFF_CURRENT_SESSION — H48: the package's stochastic surface is seedable
 
 ## What changed
 
-- `src/qtr/backtest/engine.py` — the trade log now records **each trade's own transaction cost**
-  instead of the bar's aggregate cost:
-  - `_calculate_costs_by_symbol` (new) computes the per-symbol cost of each bar;
-  - `_total_costs` (new) sums that breakdown into the per-bar charge, in the same column order
-    and with the same float arithmetic as before, so the charge is **bit-identical**;
-  - `_calculate_costs` is kept as the wrapper `run_h27_pnl_level_audit.py:218` uses and returns
-    the same series as before;
-  - `_extract_trades` now takes the per-symbol breakdown and writes
-    `cost = symbol_cost_series.at[idx]`.
-- `tests/test_trade_log_cost_reconciliation.py` — **new**, 13 tests: the reconciliation invariant
-  (per-bar and in total, for the equity/futures/crypto paths), the own-cost identity reproduced by
-  an independent formula, the strict-`1/k` share in a multi-trade bar, the unchanged charge, a
-  **negative control** (the pre-fix aggregate attribution is reconstructed and shown to fail the
-  invariant), and the frozen-artifact disclosure.
-- `FINAL_REPORT.md` — new **§H47** section and an updated "Next task" section.
+- `src/qtr/validation/statistics.py`
+  - `parameter_sensitivity` now takes an **optional** `random_state` (default `None`, so **no
+    existing caller changes behaviour**);
+  - `_bootstrap_seeds` (new) expands an integer seed into **one independent stream per parameter
+    row** (`np.random.SeedSequence(seed).spawn(n)`), so the rows are not resampled with a shared
+    pattern; a row's seed does not depend on how many rows the grid holds, so extending the grid
+    does not perturb the rows already analysed; the unseeded path passes `None` straight through.
+- `tests/test_parameter_sensitivity_reproducibility.py` — **new**, 14 tests: exact reproducibility
+  under a fixed seed, seed isolation from the legacy global `np.random.seed`, different seeds →
+  different bounds, seed-free point estimates, row independence, grid-extension stability,
+  **cross-process** reproducibility, a **negative control** (the unseeded path really moves; the
+  pre-fix call site is reconstructed and shown to fail the invariant), and the published-record
+  disclosure.
+- `FINAL_REPORT.md` — new **§H48** section and an updated "Next task" section.
 - `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_CURRENT.md`, `HANDOFF_NEXT.md` updated.
 
 ### The defect and its evidence
 
-`_extract_trades` wrote the trade log's `cost` column from the **per-bar portfolio cost** series,
-so every trade in a bar carried the whole bar's cost: a bar with `k` simultaneous trades reported
-`k` times the cost actually deducted from the returns, the log no longer reconciled with the P&L,
-and `avg_trade_cost` was an average per trade-*bar*. It is invisible in a single-symbol backtest,
-which is why it survived.
+`parameter_sensitivity` is exported in `qtr.validation.__all__` but called
+`bootstrap_confidence_interval` **without** a `random_state`, so `np.random.default_rng(None)` drew
+from OS entropy and two calls on the same input returned **different** confidence intervals
+(measured on a fixed input: `ci_lower` = `[-0.7393122, -2.54308907]` then `[-0.93933284,
+-3.07895489]`). Its siblings `sharpe_ratio_ci` and `bootstrap_confidence_interval`
+both accept `random_state`, and all three runners that call the bootstrap directly pass
+`random_state=SEED` (`run_cs_momentum_experiment.py:385`, `run_ts_momentum_experiment.py:563`,
+`run_regime_gated_momentum_experiment.py:725`); `parameter_sensitivity` was the only bootstrap
+caller in the package that could not be seeded.
 
-On the certified H10 artifact (3,701 trades, 2,975 bars, up to 5 simultaneous trades per bar):
-every trade in a bar records the same number (0 of 2,975 bars disagree), the per-bar totals sum to
-the engine's charge **0.034907**, and the published `cost` column sums to **0.062352** — an
-over-count of **1.786×**. The charge was never wrong: H27's own `L3` check recomputes the per-bar
-cost from the trade log and matches the engine's per-bar cost to ~1e-19 for all five audited
-families.
+The point estimates were always deterministic — only the bounds move — which is why the defect was
+invisible in every published number.
+
+With the fix, `src/qtr` contains exactly **two** randomness sites, both in `statistics.py`, and
+every stochastic computation reachable from the public API now takes a `random_state`.
 
 ## What was actually verified
 
-- `python -m pytest -q -W error tests/test_trade_log_cost_reconciliation.py` → **13 passed**.
-- `python -m pytest -q -W error` → **1341 passed, 1 skipped**; `src/qtr` =
-  **1048 statements, 318 branches, 0 missed, 0 partial, 100.00%**; the committed gate reports
+- `python -m pytest -q -W error tests/test_parameter_sensitivity_reproducibility.py` → **14 passed**.
+- `python -m pytest -q -W error` → **1355 passed, 1 skipped**; `src/qtr` =
+  **1054 statements, 320 branches, 0 missed, 0 partial, 100.00%**; the committed gate reports
   *"Required test coverage of 100.0% reached. Total coverage: 100.00%"*.
 - `python -m ruff check src tests run_*.py` → *All checks passed!*.
-- `python -m ruff format --check src tests run_*.py` → **90 files already formatted**.
-- **Negative control** — the new contract run against the **pre-fix** engine: **6 of the 13 tests
-  fail**, the first with the exact over-count (`log=0.0016` against `charged=0.0008`).
-- **Attribution-only** — pre-fix and post-fix engines side by side over nine
-  equity/futures/crypto cases: the net returns, the equity curve, the positions and every metric
-  except `avg_trade_cost` are bit-identical.
+- `python -m ruff format --check src tests run_*.py` → **91 files already formatted**.
+- **Negative control** — the new contract run against the **pre-fix** implementation: **4 of the 14
+  tests fail**, every one **behaviourally** (the bounds move; e.g. `-0.5059` against `-0.7423`), not
+  with a `TypeError` for a missing keyword.
+- **Preconditions verified before the change** — no `run_*.py` calls `parameter_sensitivity` (AST
+  scan of all 32 runners) and `validate_strategy` derives its published `param_stability` from the
+  walk-forward fold Sharpes (`src/qtr/validation/statistics.py:714`); both are now pinned.
 
 ## What remains unresolved
 
+- **The published `validation` blocks are on an older `validate_strategy`** — the five committed
+  exploratory summaries carry a `validation` block written by a version with **no
+  `param_stability` gate** and a **sign-unaware** walk-forward ratio. Re-deriving the block from
+  each artifact's own frozen `equity_curve.parquet` shows `sharpe`, `profit_factor`,
+  `max_drawdown` and `total_return` reproduce from the frozen data in three of the five, but
+  `walkforward_stability` does not: the published value is exactly
+  `sharpe(second half) / sharpe(first half)` **with both halves losing** (e.g. `1.8391876…` from
+  `−1.5594 / −0.8479`), a figure the current sign-aware code reports as `0.0`. In the other two
+  artifacts the published block does not re-derive at all, and the two blocks were written by
+  *different* code versions on the *same* series. No verdict moves (all five are
+  `all_pass: false`), but the drift is real and is currently undocumented. → **H49**.
 - **Disclosure (H47)** — the committed trade logs' `cost` column (H10, H11, H16, H21, H22, H25)
   and the `avg_trade_cost` of the three exploratory 2026-10-10 MA-crossover summaries carry the
   pre-fix aggregate attribution. The artifacts are frozen and were left untouched; no gate,
@@ -61,25 +75,35 @@ families.
 
 ## Approaches already tried / failed (and why)
 
+- **A negative control that only asserted the new keyword exists** — rejected: it failed against
+  the pre-fix implementation with `TypeError` (the parameter was *missing*), not because the
+  behaviour was wrong. The contract now goes through the `_seeded()` adapter, so the pre-fix
+  implementation is driven down its unseeded path and the control is behavioural. (This is the same
+  lesson H47 learned for the engine.)
+- **One shared seed for every parameter row** — rejected: it would make the rows perfectly
+  correlated (two identical rows would report identical intervals). Each row gets its own spawned
+  stream instead.
 - **Regenerating `src/qtr.egg-info/` with the local setuptools** — rejected as a regression to the
   committed metadata.
-- **Fixing the trade log by changing the charge** — rejected: the charge was never wrong (H27's
-  `L3` check proves it to ~1e-19); only the attribution inside the log was wrong.
-- **A negative control that only asserted the new API exists** — rejected: it failed against the
-  pre-fix engine because the method was *missing*, not because the behaviour was wrong; the spy
-  now hooks both `_total_costs` and `_calculate_costs` so the control is behavioural.
 
 ## Precise next task
 
-**H48 — make `qtr.validation.statistics.parameter_sensitivity` reproducible.** It is exported in
-`qtr.validation.__all__` but calls `bootstrap_confidence_interval` **without** a `random_state`,
-so its confidence intervals change on every call (measured: `ci_lower` = `[-0.866, -0.409,
--0.631, -1.040]` then `[-0.801, -0.465, -0.521, -0.972]` on the same input). Its siblings
-`sharpe_ratio_ci` and `bootstrap_confidence_interval` both accept `random_state`, and all three
-runners that call the bootstrap directly pass `random_state=SEED`; `parameter_sensitivity` is the
-only bootstrap caller in the package that cannot be seeded. Add an optional `random_state`
-parameter, thread it through, and pin the contract with a negative control. **The published record
-is unaffected**: no runner calls `parameter_sensitivity`, and `validate_strategy` derives its
-published `param_stability` from the walk-forward fold Sharpes
-(`src/qtr/validation/statistics.py:714`), not from `parameter_sensitivity` — verify that claim
-before changing anything.
+**H49 — re-derive the published `validation` blocks from the frozen artifacts, and disclose the
+`walkforward_stability` basis they were written on.** The five committed exploratory summaries that
+carry a `validation` block (`exp_2026-10-10T17-02-22-080026Z`, `exp_2026-10-10T17-03-39-610858Z`,
+`exp_2026-10-10T17-04-21-400695Z`, `exp_2026-10-10T17-05-58-697503Z`,
+`exp_2026-10-14T08-26-02-537359Z`) were written by an **earlier** `validate_strategy` — one with
+**no `param_stability` gate** and a **sign-unaware** walk-forward ratio. Re-deriving the block from
+each artifact's own frozen `equity_curve.parquet` shows `sharpe`, `profit_factor`, `max_drawdown`
+and `total_return` reproduce from the frozen data in three of the five, but
+`walkforward_stability` does not: the published value is exactly
+`sharpe(second half) / sharpe(first half)` **with both halves losing** (e.g. `1.8391876…` from
+`−1.5594 / −0.8479`), which *passed* the `0.7` gate on a strategy that lost money in both halves;
+the current sign-aware code reports `0.0`. In the other two artifacts the published block does not
+re-derive at all, and the two blocks were written by *different* code versions on the *same*
+series. Determine the cause (do not assume it), publish the finding as a **disclosure** (the
+artifacts are frozen — the published `walkforward_pass` and the absent `param_stability` key are
+*history*), and pin it with a test module that re-derives the block from the frozen equity curve
+and asserts the published values, so the drift cannot change silently. The **certified** families
+are out of scope: they carry no `validation` block, and no gate, threshold, verdict or certified
+number may move. Full statement, with the measured table, in `NEXT_TASK.md`.
