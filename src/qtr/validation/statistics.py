@@ -569,7 +569,7 @@ def compare_to_benchmark(
         return _no_comparison()
 
     # Information ratio
-    ir = excess.mean() / excess.std() * np.sqrt(periods_per_year) if excess.std() > 0 else 0
+    ir = excess.mean() / excess.std(ddof=0) * np.sqrt(periods_per_year) if excess.std(ddof=0) > 0 else 0
 
     # Alpha / Beta (CAPM). beta is the OLS regression slope of strategy
     # returns on benchmark returns, cov(S, B) / var(B) with a CONSISTENT
@@ -579,7 +579,7 @@ def compare_to_benchmark(
     # With a consistent ddof=1, beta is the OLS slope and alpha reduces to
     # the OLS intercept (mean(S) - beta * mean(B)), net of the risk-free
     # term, which is the standard CAPM alpha.
-    if bench.std() > 0:
+    if np.asarray(bench, dtype=float).std(ddof=0) > 0:
         beta = np.cov(strat, bench, ddof=1)[0, 1] / np.var(bench, ddof=1)
         alpha = (
             strat.mean()
@@ -598,7 +598,7 @@ def compare_to_benchmark(
     # all of alpha in the upper tail when ``t_stat > 0`` and in the lower
     # tail otherwise, so it only passes when the excess return is both
     # significant *and* positive.
-    if excess.std() > 1e-12:
+    if excess.std(ddof=0) > 1e-12:
         t_stat, p_value = stats.ttest_1samp(excess, 0)
         if t_stat > 0:
             alpha_p_value_one_sided = p_value / 2.0
@@ -620,7 +620,7 @@ def compare_to_benchmark(
         "alpha_p_value_one_sided": alpha_p_value_one_sided,
         "win_rate": win_rate,
         "excess_return_annual": excess.mean() * periods_per_year,
-        "excess_vol_annual": excess.std() * np.sqrt(periods_per_year),
+        "excess_vol_annual": excess.std(ddof=0) * np.sqrt(periods_per_year),
     }
 
 
