@@ -531,8 +531,14 @@ def _chained_path_dependent_exits(*args, **kwargs):
     prices = args[0]
     blend, atr = _h7_blend(prices)
     return run_h7_intraday_tsmom_experiment.apply_path_dependent_exits_daily(
-        blend, prices, atr, trailing_mult=2.0, max_hold_days=3, vol_limit_mult=2.0,
-        vol_window=10, target_vol=0.15,
+        blend,
+        prices,
+        atr,
+        trailing_mult=2.0,
+        max_hold_days=3,
+        vol_limit_mult=2.0,
+        vol_window=10,
+        target_vol=0.15,
     )
 
 
@@ -544,7 +550,8 @@ def _h8_frames(prices: pd.DataFrame):
     opens = prices * (1.0 + rng.normal(0.0, 0.003, prices.shape))
     volumes = pd.DataFrame(
         rng.integers(1_000_000, 5_000_000, prices.shape).astype(float),
-        index=prices.index, columns=prices.columns,
+        index=prices.index,
+        columns=prices.columns,
     )
     return opens, volumes
 
@@ -627,17 +634,11 @@ def _h8_frames_from_ohlc(ohlc: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame
     probe needs: a future-only change must leave the pre-cut output identical.
     """
     symbols = ["ES=F", "NQ=F", "CL=F"]
-    prices = pd.concat(
-        {sym: ohlc["close"] for sym in symbols}, axis=1
-    )
+    prices = pd.concat({sym: ohlc["close"] for sym in symbols}, axis=1)
     prices.columns = symbols
-    opens = pd.concat(
-        {sym: ohlc["open"] for sym in symbols}, axis=1
-    )
+    opens = pd.concat({sym: ohlc["open"] for sym in symbols}, axis=1)
     opens.columns = symbols
-    volumes = pd.concat(
-        {sym: ohlc["volume"] for sym in symbols}, axis=1
-    )
+    volumes = pd.concat({sym: ohlc["volume"] for sym in symbols}, axis=1)
     volumes.columns = symbols
     return prices, opens, volumes
 
@@ -676,7 +677,9 @@ def _chained_build_roll_adjusted_prices(*args, **kwargs):
     prices, opens, volumes = _h8_frames_from_ohlc(ohlc)
     masks = run_h8_rolladjusted_tsmom_experiment.detect_all_roll_dates(prices, opens, volumes)
     roll_carry = run_h8_rolladjusted_tsmom_experiment.compute_roll_carry(prices, opens, masks)
-    roll_returns = run_h8_rolladjusted_tsmom_experiment.build_roll_adjusted_returns(prices, roll_carry, 0.5)
+    roll_returns = run_h8_rolladjusted_tsmom_experiment.build_roll_adjusted_returns(
+        prices, roll_carry, 0.5
+    )
     return run_h8_rolladjusted_tsmom_experiment.build_roll_adjusted_prices(prices, roll_returns)
 
 
@@ -685,8 +688,12 @@ def _chained_build_tsmom_signals(*args, **kwargs):
     prices, opens, volumes = _h8_frames_from_ohlc(ohlc)
     masks = run_h8_rolladjusted_tsmom_experiment.detect_all_roll_dates(prices, opens, volumes)
     roll_carry = run_h8_rolladjusted_tsmom_experiment.compute_roll_carry(prices, opens, masks)
-    roll_returns = run_h8_rolladjusted_tsmom_experiment.build_roll_adjusted_returns(prices, roll_carry, 0.5)
-    prices_adj = run_h8_rolladjusted_tsmom_experiment.build_roll_adjusted_prices(prices, roll_returns)
+    roll_returns = run_h8_rolladjusted_tsmom_experiment.build_roll_adjusted_returns(
+        prices, roll_carry, 0.5
+    )
+    prices_adj = run_h8_rolladjusted_tsmom_experiment.build_roll_adjusted_prices(
+        prices, roll_returns
+    )
     return run_h8_rolladjusted_tsmom_experiment.build_tsmom_signals(prices_adj)
 
 
@@ -1699,8 +1706,14 @@ CASES: dict[str, Case] = {
         "runner": "run_regime_gated_momentum_experiment.py",
         "func": "vol_scaled_tsmom_signals",
         "market": "daily",
-        "dense": lambda m: ((m["prices"],), {"lookback": 10, "skip": 2, "long_only": True, "target_vol": 0.15, "vol_window": 20}),
-        "sparse": lambda m: ((m["prices"],), {"lookback": 252, "skip": 21, "long_only": True, "target_vol": 0.15, "vol_window": 63}),
+        "dense": lambda m: (
+            (m["prices"],),
+            {"lookback": 10, "skip": 2, "long_only": True, "target_vol": 0.15, "vol_window": 20},
+        ),
+        "sparse": lambda m: (
+            (m["prices"],),
+            {"lookback": 252, "skip": 21, "long_only": True, "target_vol": 0.15, "vol_window": 63},
+        ),
         "expect": "clean",
     },
     "h3_regime_gated_momentum.regime_factor_series": {
@@ -1736,8 +1749,14 @@ CASES: dict[str, Case] = {
         "runner": "run_futures_tsmom_experiment.py",
         "func": "vol_scaled_tsmom_signals",
         "market": "daily",
-        "dense": lambda m: ((m["prices"],), {"lookback": 10, "skip": 2, "long_only": True, "target_vol": 0.15, "vol_window": 20}),
-        "sparse": lambda m: ((m["prices"],), {"lookback": 252, "skip": 21, "long_only": True, "target_vol": 0.15, "vol_window": 63}),
+        "dense": lambda m: (
+            (m["prices"],),
+            {"lookback": 10, "skip": 2, "long_only": True, "target_vol": 0.15, "vol_window": 20},
+        ),
+        "sparse": lambda m: (
+            (m["prices"],),
+            {"lookback": 252, "skip": 21, "long_only": True, "target_vol": 0.15, "vol_window": 63},
+        ),
         "expect": "clean",
     },
     "h4_futures_tsmom.regime_labels": {
@@ -1859,8 +1878,28 @@ CASES: dict[str, Case] = {
         "runner": "run_h7_intraday_tsmom_experiment.py",
         "func": "multi_horizon_blend_signals",
         "market": "daily",
-        "dense": lambda m: ((m["prices"],), {"lookback_slow": 20, "lookback_fast": 10, "skip": 2, "target_vol": 0.15, "vol_window_long": 20, "vol_window_short": 10}),
-        "sparse": lambda m: ((m["prices"],), {"lookback_slow": 252, "lookback_fast": 63, "skip": 1, "target_vol": 0.15, "vol_window_long": 63, "vol_window_short": 21}),
+        "dense": lambda m: (
+            (m["prices"],),
+            {
+                "lookback_slow": 20,
+                "lookback_fast": 10,
+                "skip": 2,
+                "target_vol": 0.15,
+                "vol_window_long": 20,
+                "vol_window_short": 10,
+            },
+        ),
+        "sparse": lambda m: (
+            (m["prices"],),
+            {
+                "lookback_slow": 252,
+                "lookback_fast": 63,
+                "skip": 1,
+                "target_vol": 0.15,
+                "vol_window_long": 63,
+                "vol_window_short": 21,
+            },
+        ),
         "expect": "clean",
     },
     "h7_intraday_tsmom.apply_path_dependent_exits_daily": {
@@ -1873,7 +1912,7 @@ CASES: dict[str, Case] = {
         "sparse": lambda m: ((m["prices"],), {}),
         "expect": "clean",
     },
-"h8_roll_adjusted_tsmom.detect_all_roll_dates": {
+    "h8_roll_adjusted_tsmom.detect_all_roll_dates": {
         "id": "h8_roll_adjusted_tsmom.detect_all_roll_dates",
         "runner": "run_h8_rolladjusted_tsmom_experiment.py",
         "func": "detect_all_roll_dates",

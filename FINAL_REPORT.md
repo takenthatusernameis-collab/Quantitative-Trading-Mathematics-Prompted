@@ -485,7 +485,7 @@ control), the verdict rule and the pre-registration itself.
 - **5 certified edges** (H10/H11/H12/H22/H25) — all variants of the same intraday futures TSMOM mechanism (**H27: the edge is a one-day look-ahead; H28: re-certified under a causal collapse and `CAUSAL_REJECTED` — 3/8 to 4/9 gates, OOS Sharpe 0.13–0.39; H29/H30: the daily/monthly families are `CAUSAL` on the committed artifacts, including H7 once its artifact was committed, while H11/H12 inherit H10's look-ahead positions and H23 uses the same collapse — so **no certified edge in this record survives a causal construction**); of these H22 has the strongest Sharpe (9/9 gates, OOS Sharpe 1.372, PF 1.334, DD −11.9%) and H25 the strongest PF margin (9/9 gates, OOS Sharpe 1.324, PF 1.320, DD −11.9% at 26.25% ann vol); both are *qualified* by an i.i.d. bootstrap CI whose lower bound sits below the PF gate, and the pre-registered block-bootstrap sensitivity confirms the PF fragility is not an i.i.d. artifact. (H26: the published Sharpe is a √252-per-bar metric — the annualized values are 2.55×–4.76× higher; the *PF* qualification is unaffected because PF is scale-invariant.)
 - **19 rejected** hypotheses, each with a documented root-cause attribution in `HYPOTHESIS_SPEC.md` and `INEFFICIENCY_RANKING.md`.
 - **Total compute:** ~2.5 CPU-h across all hypotheses (well within the ≤ 2 CPU-h per-hypothesis budget; the largest single run was H12 at 0.652 CPU-h). The H25 Robustness audit added 0.0002 CPU-h; the H26 scale audit added 0.0005 CPU-h; the H27 level/look-ahead audit added 0.0014 CPU-h (5 bit-exact rebuilds, no grid re-run); the **H28 causal re-certification added 1.885 CPU-h** (8 runs: 4 controls + 4 causal, the 13,824-combo H10 grid run twice); the **H29/H30 look-ahead sweep added 0.0002 CPU-h** (8 bit-exact rebuilds of the *selected* configurations, one counterfactual, no grid re-run).
-- **Test suite:** 1170 passing, 1 skipped (including the 17-test H25 Robustness audit — 12 i.i.d. bootstrap + 5 block-bootstrap sensitivity — the 23-test H25 regression set, the 44-test H26 scale-audit set, the 36-test H27 level-audit set, the 47-test H28 re-certification set and the 36-test H29 sweep set, plus the 2 new H31 `compare_to_benchmark` DataFrame/ndarray regression tests, plus the 6 new H32 `deflated_sharpe_ratio` + `purged_kfold_splits`/`combinatorial_purged_cv` regression tests, plus the 12 new H33 benchmark-contract tests, plus the 10 new H34 direction-aware benchmark-gate tests, plus the 11 new H35 gate-vacuity contract tests and the 1 new H35 one-sided-vs-gate non-equivalence test, plus the 30 new H36 point-in-time contract tests, plus the 179 new H37 runner-causality inventory tests, plus the 13 new H38 engine-metric-consistency tests, plus the 49 new H39 cross-module metric-agreement tests; the single skip is `buy_and_hold`, a constant position that cannot react to a perturbation).
+- **Test suite:** 1212 passing, 1 skipped (including the 17-test H25 Robustness audit — 12 i.i.d. bootstrap + 5 block-bootstrap sensitivity — the 23-test H25 regression set, the 44-test H26 scale-audit set, the 36-test H27 level-audit set, the 47-test H28 re-certification set and the 36-test H29 sweep set, plus the 2 new H31 `compare_to_benchmark` DataFrame/ndarray regression tests, plus the 6 new H32 `deflated_sharpe_ratio` + `purged_kfold_splits`/`combinatorial_purged_cv` regression tests, plus the 12 new H33 benchmark-contract tests, plus the 10 new H34 direction-aware benchmark-gate tests, plus the 11 new H35 gate-vacuity contract tests and the 1 new H35 one-sided-vs-gate non-equivalence test, plus the 30 new H36 point-in-time contract tests, plus the 179 new H37 runner-causality inventory tests, plus the 13 new H38 engine-metric-consistency tests, plus the 49 new H39 cross-module metric-agreement tests, plus the 42-test H40/H41 runner-metric-agreement contract — 33 tests in H40 and 9 in H41). The single skip is `buy_and_hold`, a constant position that cannot react to a perturbation. **H42 added no tests** (whitespace-only change to the inventory file).
 - **Coverage (corrected by H33, re-measured by H34 and H38):** the H33 baseline of **94%** was caused by the dead `deflated_sharpe_ratio` body (16 uncovered statements in `src/qtr/validation/statistics.py`). H34 **deleted** that dead code (it was not exported, had no caller and duplicated `run_h12_selection_bias_audit.py:deflated_sharpe_ratio` with the same `max_z` formula), and the measured coverage is now **100%** — `src/qtr` has **1014 statements, 0 missed** (`python -m pytest --cov=qtr --cov-report=term-missing`), with H34's new gate helper fully covered and H38's engine change adding no new branch. (The H32 handoff's "99%, one uncovered branch" claim was wrong: its named guard — the `walk_forward_splits` empty-window branch at `statistics.py:159-160` — is covered by `tests/test_statistics.py:185`.) H39's engine change is one condition plus comments: its `> 1e-15` branch is covered by the new degenerate-series tests and the other branch by every other metric test, so no new branch is introduced. *(The coverage tool is not installed in the H39 session's environment, so the 100% figure could not be re-measured there; the branch argument replaces it.)*
 - **Benchmark gates (H33 + H34 + H35):** three published benchmark gates were vacuous (H4's `p`, H18's `benchmark_p`, H7's `max_p_value`/`min_information_ratio`) because the runner read a key the library never returns, passed a boolean mask as `risk_free`, or compared returns against **price levels**. They are repaired and pinned by an executable contract; the recomputed tallies are H4 1/8 (unchanged), H7 5/9 (published 4/9), H18 3/9 (published 2/9); no verdict changes. The pre-registered gate was also *direction-blind* — it is satisfied by a significantly **negative** alpha. **H34 re-specified it** (`p < 0.05` **and** a positive excess return), closed it in the code for all 17 runners and disclosed the impact: four published artifacts (H3, H19, H20, H23) carry a wrong-reason `p` PASS; the certified families (H10, H22, H25) survive; no published row, threshold, verdict or certified number changes. **H35 audited the remaining gate class** — gates that are a constant, or that compare a placeholder, and can therefore never fail — and found three of them: **H7's** `min_perturbed_sharpe_ratio` and `min_worst_regime_sharpe` (hard-coded `True`) and **H18's** `perturbation_ratio` (a placeholder constant). Both families are REJECT, so no published verdict rests on them (H7's published 4/9 is 2/7 on the evaluable gates; H18's published 2/9 is 1/8). Three runners (H4/H5/H6) also read their IR threshold through a permissive default (`GATES.get(..., -1e18)`), which is now a direct subscript so a missing threshold fails loudly. No certified family has a non-evaluating gate.
 - **Structural walls on free data:** (a) yfinance hourly `=F` hard-capped at ~730 days (no bars beyond 2026-10-11); (b) Coinbase/CCXT hourly OHLCV capped at ~12 days; (c) the joint Sharpe ≥ 1.0 ∧ DD ≤ 15% gate met by no long-only free-data equity family; (d) PF ≥ 1.3 is fragile across the entire intraday-futures-carry family (H13/H14 for H10; H21 for the basket; H22 margin +0.034; H25 margin +0.020 — all CI-fragile, P(PF≥1.3)≈0.5–0.62 on the free window). **Corrected by H26:** the *Sharpe* side of (c)/(d) is not a further blocker — the published intraday Sharpe is a √252-per-bar metric, and on the repo's own annualization convention the certified family's Sharpe CI lower bound is 2.25 ≫ 1.0. The binding constraint is the **PF bootstrap margin plus the 730-day sample**, both of which are scale-invariant.
@@ -1823,8 +1823,68 @@ number or published row was modified; no grid was re-run; no hypothesis was adde
 `run_*.py` was touched. The inline sites are classified and pinned, not rewritten (the
 artifacts are frozen, so a rewritten helper would no longer reproduce them).
 
+## H42 — the `ruff` reproducibility gap is closed (2026-10-21)
+
+**Verdict: the lint/format gate is now reproducible from a bare clone.** The last open item in
+`HANDOFF.md` was the `ruff` reproducibility gap: the record quoted `ruff check` and
+`ruff format --check` as verification steps, but ruff was not declared in `pyproject.toml` or
+`requirements.txt`, was not installed in the agent environment, and no ruff configuration was
+committed. On inspection the premise was partly stale — `pyproject.toml` (introduced in H38,
+commit 944cdc3) already declares `[project.optional-dependencies] lint = ["ruff>=0.6.0"]` and a
+`[tool.ruff]` block with `target-version`, `line-length`, a lint `select`/`ignore` set and a format
+`quote-style`/`indent-style`. Ruff 0.17.1 is installed in this environment and `python -m ruff
+check src tests run_*.py` → *All checks passed!*. The residual gap was a single format deviation.
+
+### The deviation
+
+`python -m ruff format --check src tests run_*.py` → `1 file would be reformatted, 84 files
+already formatted`: `tests/test_runner_causality_inventory.py`, introduced in H38 (commit
+944cdc3), carries pre-existing style drift on 8 hunks — all pure line-wrapping that ruff's
+configured `line-length = 100` wants collapsed or split:
+
+- `_chained_path_dependent_exits` (:533-536) — one positional arg per line;
+- `volumes = pd.DataFrame(...)` (:545-548) — `index=` / `columns=` on separate lines;
+- three `pd.concat({...}, axis=1)` blocks (:627-642) — the dict literal pulled up onto the call line;
+- two `build_roll_adjusted_returns` / `build_roll_adjusted_prices` calls (:676, :685) — wrapped;
+- four `"dense"`/`"sparse"` lambda config dicts (:1699, :1736, :1859, :1878) — the nested dict
+  reformatted onto its own block.
+
+The file was not touched by H39, H40 or H41, so the drift predates the sessions that quoted the
+clean result; each of those sessions disclosed it in its own handoff rather than silently
+re-quoting.
+
+### The change
+
+`python -m ruff format tests/test_runner_causality_inventory.py` → `1 file reformatted`. Pure
+whitespace: 61 insertions, 22 deletions across the 8 hunks. No `run_*.py`, no `src/qtr`, no
+published artifact, gate, threshold, verdict or certified number was touched; no grid was re-run;
+no hypothesis was added.
+
+### Verification
+
+- `python -m ruff check src tests run_*.py` → *All checks passed!* (unchanged).
+- `python -m ruff format --check src tests run_*.py` → **85 files already formatted** (was 84 + 1
+  unformatted; the deviation is gone).
+- `python -m pytest -q -W error tests/test_runner_causality_inventory.py` → **321 passed** (the
+  module that owns the formatted file; unchanged — formatting cannot change semantics).
+- `python -m pytest -q -W error` → **1212 passed, 1 skipped** in 275.34 s (identical to the H41
+  baseline: 1212 passed, 1 skipped in 276.17 s; the change is whitespace-only).
+- `src/qtr` coverage is unchanged at 100%: the change is confined to a test file, so no branch is
+  added or removed. (The coverage tool, `pytest-cov`, is still not installed in this
+  environment — `python -m pytest --cov=qtr` → "unrecognized arguments"; the H39/H40/H41 branch
+  argument applies unchanged.)
+
+### Why this was worth doing
+
+The lint/format gate was the only verification step in the record that could not be reproduced
+from the repository. It is now reproducible: ruff is declared, configured and installed, and
+both commands are clean on `src tests run_*.py` from a bare clone with `pip install -e ".[lint]"`.
+
 ## Next task
 
-None. All assigned tasks (H35–H41) are complete. All metric-agreement sites — library-side
-(§H39), runner-local helpers (§H40) and runner-inline sites (§H41) — are classified and pinned.
-No further work is assigned on the metric-agreement axis.
+None. All assigned tasks (H35–H42) are complete. All metric-agreement sites — library-side
+(§H39), runner-local helpers (§H40) and runner-inline sites (§H41) — are classified and pinned;
+every gate defect class that has surfaced (§H35) is closed by an executable invariant; the
+point-in-time contract covers every `run_*.py` (§H36–H37); the engine's `total_return` spans
+every bar (§H38); the package's two Sharpe implementations agree (§H39); and the lint/format
+gate is reproducible (§H42). No further work is assigned.

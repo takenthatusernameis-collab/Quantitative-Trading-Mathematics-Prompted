@@ -1,8 +1,8 @@
-# Next Task — H41 done: all metric-agreement sites are classified and pinned
+# Next Task — H42 done: the lint/format gate is reproducible
 
 ## State
 
-**H35, H36, H37, the remaining-runner extension, H38, H39, H40 and H41 are COMPLETE.**
+**H35, H36, H37, the remaining-runner extension, H38, H39, H40, H41 and H42 are COMPLETE.**
 
 - The engine and `qtr.validation.statistics.validate_strategy` now agree **exactly** on all six
   metrics the package computes twice (`total_return`, `annualized_return`,
@@ -21,34 +21,37 @@
 - **H9 is the one family in the record published on the other convention** (sample std, ddof=1);
   the gap is 1.026e-04 against a margin of 5.6e-02 above its 1.0 Sharpe gate, and its published
   row is a REJECT on the profit factor in any case. Disclosed and pinned.
+- **The lint/format gate is now reproducible from a bare clone.** `pyproject.toml` already
+  declared ruff (`[project.optional-dependencies] lint = ["ruff>=0.6.0"]`) and a `[tool.ruff]`
+  block with `target-version`, `line-length`, a lint `select`/`ignore` set and a format
+  `quote-style`/`indent-style`; ruff 0.17.1 is installed in this environment. The only residual
+  gap was one format deviation on pre-existing lines of
+  `tests/test_runner_causality_inventory.py` (introduced in H38, commit 944cdc3, not touched by
+  H39/H40/H41). `python -m ruff format` closed it; both commands are now clean on
+  `src tests run_*.py` (85 files already formatted).
 
-## What changed this session (H40 + H41)
+## What changed this session (H42)
 
-**`tests/test_runner_metric_agreement.py`** (42 tests total) — the executable cross-runner
-metric-agreement contract:
+- `tests/test_runner_causality_inventory.py` — reformatted by `python -m ruff format`
+  (`1 file reformatted`, 61 insertions / 22 deletions across 8 hunks). Pure whitespace: no
+  `run_*.py`, no `src/qtr`, no published artifact, gate, threshold, verdict or certified number
+  was touched; no grid was re-run; no hypothesis was added.
+- `FINAL_REPORT.md` — new §H42 section, updated `Summary statistics` (test-suite tally) and
+  `Next Task`; this file; the `HANDOFF*` files.
 
-- **H40 (33 tests):** `TestRunnerMetricInventory`, `TestExactAgreement`,
-  `TestBoundedDrawdownVariant`, `TestH26DailySharpeConvention`, `TestContractNegativeControl`,
-  plus the `TestInventoryCompleteness` static sweep. Every runner-local metric helper classified
-  and pinned.
-- **H41 (9 tests):** `TestInlineDrawdownConforming` (4 tests), `TestInlineDrawdownRawVariant`
-  (3 tests), `TestH18TotalReturn` (2 tests). Every inline drawdown and total_return site in the
-  runners is now pinned: library-conforming sites agree within 1e-15; raw drawdown variants are
-  pinned as `differs_convention`; H18's `total_return` copies agree exactly.
+## What was actually verified (this session — H42)
 
-No published artifact, gate threshold, verdict, certified number or published row was modified;
-no grid was re-run; no hypothesis was added; no `run_*.py` was touched.
-
-## What was actually verified (this session — H41)
-
-- `python -m pytest -q -W error` → **1212 passed, 1 skipped** (baseline before this session:
-  1203 passed after H40).
-- `python -m ruff check src tests run_*.py` → *All checks passed!*.
-- `python -m ruff format --check src tests run_*.py` → all format-clean; the only deviation
-  across the repo is on pre-existing lines of `tests/test_runner_causality_inventory.py`
-  (ruff 0.17.1 style drift).
-- `tests/test_engine_metric_agreement.py`, `tests/test_runner_causality_inventory.py` and
-  `tests/test_causality_invariant.py` all pass alongside the updated module.
+- `python -m ruff check src tests run_*.py` → *All checks passed!* (unchanged).
+- `python -m ruff format --check src tests run_*.py` → **85 files already formatted** (was
+  `1 file would be reformatted, 84 files already formatted`; the deviation is gone).
+- `python -m pytest -q -W error tests/test_runner_causality_inventory.py` → **321 passed**
+  (the module that owns the formatted file; unchanged — formatting cannot change semantics).
+- `python -m pytest -q -W error` → **1212 passed, 1 skipped** in 275.34 s (identical to the H41
+  baseline of 1212 passed, 1 skipped in 276.17 s; the change is whitespace-only).
+- `src/qtr` coverage is unchanged at 100%: the change is confined to a test file, so no branch is
+  added or removed. (The coverage tool, `pytest-cov`, is still not installed in this
+  environment — `python -m pytest --cov=qtr` → "unrecognized arguments"; the H39/H40/H41 branch
+  argument applies unchanged.)
 
 ## Constraints carried forward
 
@@ -56,8 +59,9 @@ no grid was re-run; no hypothesis was added; no `run_*.py` was touched.
   may be re-run; no new hypothesis (the H1–H30 space is exhausted; the certified families
   H10/H11/H12/H22/H25 are frozen).
 - `python -m pytest -q -W error` and `ruff check src tests run_*.py` must pass from a bare
-  clone (no install step); keep `src/qtr` at 100% coverage; re-run
-  `tests/test_runner_causality_inventory.py` after any change in a `run_*.py`,
+  clone (no install step); `ruff format --check src tests run_*.py` must now also pass — it is
+  the reproducible gate that H42 closed. Keep `src/qtr` at 100% coverage.
+- Re-run `tests/test_runner_causality_inventory.py` after any change in a `run_*.py`,
   `tests/test_causality_invariant.py` after any change under `src/qtr`,
   `tests/test_engine_metric_agreement.py` after any change to `_calculate_metrics` or to
   `qtr.validation.statistics`, and `tests/test_runner_metric_agreement.py` after any change to
@@ -65,5 +69,9 @@ no grid was re-run; no hypothesis was added; no `run_*.py` was touched.
 
 ## Next task
 
-None. All assigned tasks (H35–H41) are complete. All metric-agreement sites — library-side
-(§H39), runner-local helpers (§H40) and runner-inline sites (§H41) — are classified and pinned.
+None. All assigned tasks (H35–H42) are complete. All metric-agreement sites — library-side
+(§H39), runner-local helpers (§H40) and runner-inline sites (§H41) — are classified and pinned;
+every gate defect class that has surfaced (§H35) is closed by an executable invariant; the
+point-in-time contract covers every `run_*.py` (§H36–H37); the engine's `total_return` spans
+every bar (§H38); the package's two Sharpe implementations agree (§H39); and the lint/format
+gate is reproducible (§H42). No further work is assigned.

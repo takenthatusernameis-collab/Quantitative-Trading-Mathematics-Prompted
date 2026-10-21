@@ -1,51 +1,55 @@
-# HANDOFF_CURRENT_SESSION — H41: the runners' inline metric sites are pinned
+# HANDOFF_CURRENT_SESSION — H42: the lint/format gate is reproducible
 
 ## What changed
 
-**`tests/test_runner_metric_agreement.py`** (+9 tests, now 42 total) — the executable
-cross-runner metric-agreement contract extended to the runners' inline metric sites:
+**`tests/test_runner_causality_inventory.py`** — reformatted by `python -m ruff format`
+(`1 file reformatted`, 61 insertions / 22 deletions across 8 hunks). Pure whitespace; the file
+was introduced in H38 (commit 944cdc3) and was not touched by H39/H40/H41, so the drift
+predates the sessions that quoted the clean result. The 8 hunks:
 
-- `TestInlineDrawdownConforming` — inline drawdowns that use the library's convention
-  (`cum / cummax - 1` at H11 :548,:648; `equity / expanding().max() - 1` at H18 :527,:641)
-  agree with `validate_strategy["max_drawdown"]` within 1e-15 (4 parametrized tests).
-- `TestInlineDrawdownRawVariant` — inline drawdowns that use the raw formula
-  `(equity - expanding().max()).min()` (DDCV :386,:443; futures :467) — a dollar drawdown,
-  not the library's percentage drawdown — are pinned as `differs_convention`
-  (3 parametrized tests).
-- `TestH18TotalReturn` — H18's runner-local `total_return` copies (:526,:637) agree with the
-  library's `total_return` exactly (2 tests).
+- `_chained_path_dependent_exits` (:533-536) — one positional arg per line;
+- `volumes = pd.DataFrame(...)` (:545-548) — `index=` / `columns=` on separate lines;
+- three `pd.concat({...}, axis=1)` blocks (:627-642) — the dict literal pulled up onto the call line;
+- two `build_roll_adjusted_returns` / `build_roll_adjusted_prices` calls (:676, :685) — wrapped;
+- four `"dense"`/`"sparse"` lambda config dicts (:1699, :1736, :1859, :1878) — the nested dict
+  reformatted onto its own block.
 
-No `run_*.py` was touched; no published artifact, gate threshold, verdict, certified number or
-published row was modified; no grid was re-run; no hypothesis was added.
+No `run_*.py` was touched; no `src/qtr` change; no published artifact, gate threshold, verdict,
+certified number or published row was modified; no grid was re-run; no hypothesis was added.
 
 ## What was actually verified
 
-- Baseline before this session (after H40): `python -m pytest -q -W error` → **1203 passed,
-  1 skipped**.
-- After: `python -m pytest -q -W error` → **1212 passed, 1 skipped** in ~4.5 min (1203 + the 9
-  new H41 tests; the skip is the pre-existing `buy_and_hold` skip in H36's module).
-- `python -m ruff check src tests run_*.py` → *All checks passed!*.
-- `python -m ruff format --check src tests run_*.py` → `tests/test_runner_metric_agreement.py`
-  is format-clean; the only deviation is on pre-existing lines of
-  `tests/test_runner_causality_inventory.py` that this session did not touch (ruff 0.17.1
-  style drift).
-- `tests/test_engine_metric_agreement.py`, `tests/test_runner_causality_inventory.py` and
-  `tests/test_causality_invariant.py` all pass alongside the updated module.
+- `python -m ruff check src tests run_*.py` → *All checks passed!* (unchanged).
+- `python -m ruff format --check src tests run_*.py` → **85 files already formatted** (was
+  `1 file would be reformatted, 84 files already formatted`; the deviation is gone).
+- `python -m pytest -q -W error tests/test_runner_causality_inventory.py` → **321 passed**
+  (the module that owns the formatted file; unchanged — formatting cannot change semantics).
+- `python -m pytest -q -W error` → **1212 passed, 1 skipped** in 275.34 s (identical to the H41
+  baseline of 1212 passed, 1 skipped in 276.17 s; the change is whitespace-only).
+- `src/qtr` coverage is unchanged at 100%: the change is confined to a test file, so no branch is
+  added or removed. (The coverage tool, `pytest-cov`, is still not installed in this
+  environment — `python -m pytest --cov=qtr` → "unrecognized arguments"; the H39/H40/H41 branch
+  argument applies unchanged.)
 
 ## What remains unresolved (disclosures, not rewrites)
 
 - H9's published OOS Sharpe is on the sample convention (gap 1.026e-04); disclosed and pinned,
   verdict cannot move (REJECT on the profit factor, 55× margin over its 1.0 gate).
-- **No further task is assigned.** All metric-agreement sites — library-side (§H39),
-  runner-local helpers (§H40) and runner-inline sites (§H41) — are classified and pinned.
+- **No further task is assigned.** All tasks (H35–H42) are complete: gate defects (§H35),
+  point-in-time causality (§H36–H37), metric agreement (§H39–H41) and reproducible lint/format
+  (§H42).
 
 ## Approaches already tried / failed (this session)
 
-- None failed. All 9 new tests pass on first run; all existing suites remain green.
-- The runner-local copies were deliberately **not** rewritten in place (the artifacts are
-  frozen, so a rewritten helper would no longer reproduce them) — classified, probed and pinned
-  instead, exactly as the deliverable required.
+- None failed. Both ruff commands are clean on first run after the format; the affected module's
+  321 tests pass; the full suite is unchanged at 1212 passed, 1 skipped.
+- The premise in `HANDOFF.md` that ruff was undeclared was partly stale: `pyproject.toml`
+  (introduced in H38, commit 944cdc3) already declares `[project.optional-dependencies] lint`
+  and a `[tool.ruff]` block with `target-version`, `line-length`, a lint `select`/`ignore` set and
+  a format `quote-style`/`indent-style`. The residual gap was one format deviation, now closed.
 
 ## Precise next task
 
-None. All assigned tasks (H35–H41) are complete.
+None. All assigned tasks (H35–H42) are complete.
+
+(End of file - total 51 lines)

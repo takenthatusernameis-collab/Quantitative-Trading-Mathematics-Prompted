@@ -1,63 +1,52 @@
-# HANDOFF — H35 complete (session handoff)
+# HANDOFF — H42 complete (session handoff)
 
 ## What changed
-**H35 is complete.** The last open *gate-defect* class is closed: an offline static audit of
-every gate site in every `run_*.py` found the gates that are a **constant** or that compare a
-**placeholder** (and can therefore never fail) — H7's `min_perturbed_sharpe_ratio` and
-`min_worst_regime_sharpe` (hard-coded `True`) and H18's `perturbation_ratio` (a placeholder
-constant) — plus one latent *permissive default* (H4/H5/H6 read their IR threshold as
-`GATES.get("min_information_ratio", -1e18)`).
+**H42 is complete.** The last open reproducibility gap is closed: the lint/format gate that the
+record quoted throughout is now reproducible from a bare clone.
 
-- `run_futures_tsmom_experiment.py:547`, `run_ddcv_experiment.py:457`,
-  `run_h6_vix_ddcv_experiment.py:553` — the IR threshold is now read by direct subscript.
-  Behaviour-preserving: the key exists in all three and its value is unchanged, so no
-  published number, tally, threshold or verdict changes.
-- `src/qtr/validation/statistics.py:compare_to_benchmark` — the docstring now states that
-  `alpha_p_value_one_sided` is an informational view and **not** the gate's statistic (a
-  one-sided 5% test is a two-sided 10% test, so it is strictly looser). This closes the item
-  H34 carried forward.
-- `tests/test_gate_vacuity_contract.py` (new, 11 tests) and one new test in
-  `tests/test_benchmark_gate_contract.py`.
-- `HYPOTHESIS_SPEC.md` §H35, `FINAL_REPORT.md` §H35 + the re-baselined `Summary statistics`
-  and `Next Task` sections, `NEXT_TASK.md`, the `HANDOFF*` files.
+- `tests/test_runner_causality_inventory.py` — reformatted by `python -m ruff format`
+  (`1 file reformatted`, 61 insertions / 22 deletions across 8 hunks). Pure whitespace; the file
+  was introduced in H38 (commit 944cdc3) and was not touched by H39/H40/H41, so the drift
+  predates the sessions that quoted the clean result.
+- `FINAL_REPORT.md` — new §H42 section, updated `Summary statistics` (test-suite tally) and
+  `Next Task`; `NEXT_TASK.md`; the `HANDOFF*` files.
 
 ## What was actually verified
-- `python -m pytest -q -W error` → **748 passed** (736 + 12 new).
-- `python -m pytest --cov=qtr --cov-report=term-missing` → `src/qtr` coverage **100%**
-  (1010 statements, 0 missed).
-- **Negative control:** the new module run against the pre-H35 runner sources
-  (`git checkout` of the three changed runners) fails **1** test and names the three
-  permissive-default sites — the contract really binds the change.
-- The published H18 artifact was cross-checked against its Measure Log: the published row is
-  `exp_2026-10-13T22-14-50-729923Z` (2/9); the two earlier siblings are 3/9 (their
-  `max_drawdown` gate still read `True` against a 22.2% drawdown / 15% limit).
+- `python -m ruff check src tests run_*.py` → **All checks passed!** (unchanged).
+- `python -m ruff format --check src tests run_*.py` → **85 files already formatted** (was
+  `1 file would be reformatted, 84 files already formatted`; the deviation is gone).
+- `python -m pytest -q -W error tests/test_runner_causality_inventory.py` → **321 passed**
+  (the module that owns the formatted file; unchanged — formatting cannot change semantics).
+- `python -m pytest -q -W error` → **1212 passed, 1 skipped** in 275.34 s (identical to the H41
+  baseline of 1212 passed, 1 skipped in 276.17 s; the change is whitespace-only).
+- `src/qtr` coverage is unchanged at 100%: the change is confined to a test file, so no branch is
+  added or removed. (The coverage tool, `pytest-cov`, is still not installed in this
+  environment — `python -m pytest --cov=qtr` → "unrecognized arguments"; the H39/H40/H41 branch
+  argument applies unchanged.)
 
 ## What remains unresolved
-- **None of the gate classes.** H33 (vacuous gates), H34 (direction-blind gate) and H35
-  (non-evaluating gates) between them cover every gate defect that has surfaced in this
-  repository, and each is now pinned by an executable invariant.
-- The `ruff` verification step quoted throughout the record is **not reproducible from the
-  repository**: ruff is not declared in `pyproject.toml`/`requirements.txt`, is not installed
-  in the agent environment, and no ruff configuration is committed (the sources carry
-  `# noqa: BLE001` / `# noqa: UP045` markers that assume a non-default rule selection).
+- **None of the reproducibility classes.** The `ruff` gap described in `HANDOFF.md` is closed:
+  ruff is declared in `pyproject.toml` (`[project.optional-dependencies] lint`), the ruff
+  configuration that makes the quoted commands meaningful is committed, and both commands are
+  clean on `src tests run_*.py` from a bare clone with `pip install -e ".[lint]"`. The premise
+  that ruff was undeclared was partly stale — `pyproject.toml` (introduced in H38, commit
+  944cdc3) already carried the declaration and config; the residual gap was one format deviation,
+  now closed.
 - The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified
   families (H10, H11, H12, H22, H25) are frozen.
 
 ## Approaches already tried / failed (and why)
-- **Making the disclosed gates evaluate for real (H7's perturbation / worst-regime, H18's
-  perturbation) was rejected**: it requires re-running the H7/H18 grids (forbidden by the
-  carried-forward constraints) and would change published tallies. The gates are therefore
-  *disclosed and pinned* rather than silently repaired.
-- **Rewiring H18's hard-coded thresholds to a shared `GATES` dict was rejected** as a
-  structural change to a runner that produced a published artifact; instead the equality of
-  H18's thresholds with the shared set is *pinned by a test*, so a drift becomes visible.
+- **Quoting `ruff format --check` as clean while a deviation remained was disclosed, not
+  silently re-quoted**: H39/H40/H41 each recorded in their own handoff that the only deviation
+  was on pre-existing lines of `tests/test_runner_causality_inventory.py`. H42 closed it rather
+  than carrying the disclosure forward a fourth time.
+- **Reformatting by hand instead of via `ruff format` was not attempted**: the tool is installed
+  and the config is committed, so the canonical command reproduces the result exactly.
 
-## Precise next task (one task), with evidence and constraints
-**None assigned.** If a future session picks one up, the only bounded item left is the
-`ruff` reproducibility gap described in `NEXT_TASK.md`: declare ruff in
-`pyproject.toml` (`[project.optional-dependencies] lint`), commit the ruff configuration
-that makes the quoted commands meaningful, and re-measure `ruff check src tests run_*.py`
-and `ruff format --check src tests run_*.py` **before** quoting them again (ruff is
-currently absent from the environment — `python -m ruff` → "No module named ruff"). Do not
-re-run any grid; do not modify a published artifact, gate threshold, verdict or certified
-number; do not add a hypothesis.
+## Precise next task
+
+**None assigned.** All tasks (H35–H42) are complete. No further work is assigned on any axis:
+gate defects (§H35), point-in-time causality (§H36–H37), metric agreement (§H39–H41) and
+reproducible lint/format (§H42).
+
+(End of file - total 63 lines)
