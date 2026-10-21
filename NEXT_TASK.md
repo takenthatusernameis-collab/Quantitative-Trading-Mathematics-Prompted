@@ -4,52 +4,60 @@
 
 H35–H44 complete (the coverage gate is measured, declared and complete at 100% statement +
 branch). **H45 is complete**: the package's public API is declared, complete, and pinned by a
-non-vacuous executable contract.
+non-vacuous executable contract. **H46 is complete**: the runners' import surface is declared,
+classified and pinned by `tests/test_runner_import_contract.py`.
 
-## Precise next task
+## What changed (H46)
 
-**Extend the executable contract from the package's import surface to the runners' import
-surface.**
+- `tests/test_runner_import_contract.py` — strengthened to enforce the full contract:
+  - every `run_*.py` (32 runners) is importable without executing `main()`;
+  - library imports (`qtr.*`) must resolve to names declared in `qtr.__all__` / the relevant
+    subpackage's `__all__` — a runner cannot reach a symbol through an undeclared path;
+  - third-party imports must be declared in `pyproject.toml` (`[project.dependencies]` or an
+    optional extra under `[project.optional-dependencies]`), parsed via `tomllib`;
+  - local imports are only other `run_*.py` modules in the repository.
+- Removed the loose regex-based dependency extraction and the hardcoded `common_deps`
+  fallback that previously let undeclared packages pass.
 
-The `run_*.py` scripts are the repository's other public entry points — they are what the
-record calls "the runners" — but no test pins *which* modules they import, whether those
-imports are the canonical ones, or whether a runner can still be imported at all. A runner
-broken by an import-level change (a renamed symbol, a moved module, a subpackage that no
-longer re-exports what a runner expects) currently fails at **run** time, not at **test** time.
+## What was actually verified
 
-### Scope
+- `python -m pytest -q -W error tests/test_runner_import_contract.py` → **65 passed**
+  (32 importability + 32 classification + 1 inventory).
+- `python -m pytest -q -W error` → **1328 passed, 1 skipped** (full suite).
+- `python -m ruff check src tests run_*.py` → **All checks passed!**.
+- `python -m ruff format --check src tests run_*.py` → **89 files already formatted**.
 
-1. Inventory the import statements of every `run_*.py` in the repository (there are 40).
-2. Classify each import as one of:
-   - a **library** import (`qtr.*`) — must resolve to a name the package actually exports
-     (`qtr.__all__` / the relevant subpackage's `__all__`), so a runner cannot reach a symbol
-     through a path the public API does not declare;
-   - a **stdlib** import;
-   - a **third-party** import — must be a declared dependency in `pyproject.toml` (or an
-     optional extra), so a runner cannot depend on an undeclared package;
-   - a **local** import — an import of another `run_*.py` in the repository.
-3. Pin each class with an executable test (a new `tests/test_runner_import_contract.py`), so a
-   runner that imports an undeclared package, or reaches a symbol the public API does not
-   declare, fails at test time.
-4. Verify every runner is **importable** (module-level code only — no `main()` execution, no
-   network, no grid re-run). A runner that cannot be imported at all is currently invisible
-   to the test suite.
+## What remains unresolved
 
-### Constraints
+- The **committed** `src/qtr.egg-info/` manifest is stale (it predates eight test modules added
+  since H33). Regenerating it with the setuptools available here (68.1.2) would *degrade* the
+  committed `PKG-INFO` (`Metadata-Version: 2.1`, core `Requires-Dist` entries dropped), so it
+  was left untouched. Pre-existing, cosmetic: the build regenerates it.
+- H9's published OOS Sharpe is on the sample convention (gap 1.026e-04); disclosed and pinned,
+  verdict cannot move (REJECT on the profit factor, 55× margin over its 1.0 gate).
+- The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified
+  families' numbers and verdicts are frozen.
+- No next task is assigned: the H1–H30 hypothesis space is exhausted, all gate-defect classes
+  are closed by executable invariants, and the import contract covers both the package surface
+  (H45) and the runners' surface (H46).
 
-- No published artifact, gate threshold, verdict or certified number may be modified.
-- No grid may be re-run; the H1–H30 hypothesis space remains exhausted.
-- No runner's *behaviour* may change. This is an inspection + pinning task, not a refactor.
-- Do **not** re-run the runners' `main()`: import them, do not execute them.
-- Re-run `tests/test_runner_causality_inventory.py` and `tests/test_runner_metric_agreement.py`
-  after any change in a runner.
+## Approaches already tried / failed (and why)
+
+- **Regenerating `src/qtr.egg-info/` with the local setuptools** — rejected as a regression to
+  the committed metadata (see above).
+- **An explicit top-level `__all__` list** — rejected in favour of composing it from the
+  subpackages' `__all__`s, so the aggregate cannot drift from what it aggregates.
 
 ## Constraints carried forward
 
-- The certified families (H10, H22, H25) are unchanged and frozen.
-- Every recomputed number in `FINAL_REPORT.md` is a **disclosure**, not a rewrite.
-- The package's public API (§H45) is now pinned by `tests/test_public_api_contract.py`; re-run
-  it after any change under `src/qtr`.
+- No published artifact, gate threshold, verdict or certified number may be modified.
+- No grid may be re-run; the H1–H30 hypothesis space remains exhausted.
+- The package's public API (§H45) is pinned by `tests/test_public_api_contract.py`; re-run it
+  after any change under `src/qtr`.
+- The runners' import surface (§H46) is pinned by `tests/test_runner_import_contract.py`; re-run
+  it after any change in a runner or under `src/qtr`.
+- Re-run `tests/test_runner_causality_inventory.py` and `tests/test_runner_metric_agreement.py`
+  after any change in a runner.
 - The coverage gate (`python -m pytest -q --cov=qtr --cov-branch`) must stay at 100% for
   `src/qtr`; the lint gate (`python -m ruff check src tests run_*.py` and
   `python -m ruff format --check src tests run_*.py`) must stay clean.

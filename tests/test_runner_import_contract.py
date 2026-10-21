@@ -12,9 +12,13 @@ This module pins:
 2. imports are classified (library / stdlib / third-party / local) and each
    class is pinned:
    - library imports (``qtr.*``) must resolve to names the package actually
-     exports (``qtr.__all__`` / the relevant subpackage's ``__all__``);
+     exports (``qtr.__all__`` / the relevant subpackage's ``__all__``), so a
+     runner cannot reach a symbol through a path the public API does not
+     declare;
    - third-party imports must be declared dependencies in ``pyproject.toml``
-     (or an optional extra);
+     (``[project.dependencies]`` or an optional extra under
+     ``[project.optional-dependencies]``), so a runner cannot depend on an
+     undeclared package;
    - local imports are only other ``run_*.py`` modules in the repository;
 """
 
@@ -28,6 +32,7 @@ import sys
 from collections import defaultdict
 
 import pytest
+import tomllib
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 # Put repo root first to avoid picking up .experiments copies
@@ -52,21 +57,28 @@ ALL_RUNNERS = _find_repo_runners()
 
 
 def _read_pyproject_deps():
+    """Return the normalized set of declared third-party dependency names.
+
+    Reads ``[project.dependencies]`` and every extra under
+    ``[project.optional-dependencies]`` from ``pyproject.toml`` via ``tomllib``
+    (not a loose regex over the whole file).  Names are lowercased with
+    hyphens and dots mapped to underscores, matching how Python normalizes
+    import top-level packages.
+    """
     try:
-        text = (ROOT / "pyproject.toml").read_text()
+        with open(ROOT / "pyproject.toml", "rb") as fh:
+            data = tomllib.load(fh)
     except Exception:
         return set()
-    deps = set()
-    # Look through all dependency lists
-    # Very simple extraction
-    import re
-
-    # find all strings that look like package names in dependencies arrays
-    # match patterns like "package>=..." or "package==..." etc
-    for m in re.findall(r'["\']([A-Za-z][A-Za-z0-9_.+-]*)', text):
-        name = m.lower().replace("-", "_").replace(".", "_")
-        deps.add(name)
-        # also add without extras
+    deps: set[str] = set()
+    project = data.get("project", {})
+    for dep in project.get("dependencies", []):
+        name = dep.split(" ")[0].split(">")[0].split("<")[0].split("=")[0].split("[")[0]
+        deps.add(name.strip().lower().replace("-", "_").replace(".", "_"))
+    for extra in project.get("optional-dependencies", {}).values():
+        for dep in extra:
+            name = dep.split(" ")[0].split(">")[0].split("<")[0].split("=")[0].split("[")[0]
+            deps.add(name.strip().lower().replace("-", "_").replace(".", "_"))
     return deps
 
 
@@ -147,72 +159,60 @@ def _check_import(mod_name, runner_path, runner_stems, from_node=None):
         return
     top = mod_name.split(".")[0]
 
-    # library import
-    if mod_name.startswith("qtr.") or top == "qtr":
-        if mod_name == "qtr" or mod_name.startswith("qtr."):
-            # Check if it's trying to import specific names from qtr that aren't exported?
-            # For 'from qtr import X' or 'from qtr.submod import X', need to verify
-            if from_node is not None:
-                for alias in from_node.names:
-                    if alias.name == "*":
-                        continue  # star imports from package - qtr does export * properly now
-                    name = alias.name
-                    # Check if it's a submodule name like qtr.data.fetcher style - importing module is fine as long as module exists
-                    # But easier to just verify the name resolves if it's imported from qtr top level or needs to be exported
-                    # The requirement says "library imports (qtr.*) must resolve to a name the package actually exports (qtr.__all__ / the relevant subpackage's __all__)"
-                    if top == "qtr" and len(mod_name.split(".")) == 1:  # from qtr import something
-                        # something must be in qtr.__all__ or be importable as attribute
-                        if hasattr(qtr, name):
-                            # if it's in __all__ or just exists - but better to be strict per contract
-                            pass
-                    elif len(mod_name.split(".")) >= 2:
-                        # importing from qtr.submodule - submodule must exist and be properly exported
-                        try:
-                            __import__(mod_name)
-                        except Exception as e:
-                            raise AssertionError(
-                                f"{runner_path.name}: cannot import library module {mod_name}"
-                            ) from e
-            return  # library imports are ok if they resolve
+    # library import: qtr or qtr.*
+    if top == "qtr":
+        # Verify each imported name is declared in the relevant __all__.
+        if from_node is not None:
+            for alias in from_node.names:
+                if alias.name == "*":
+                    continue  # star imports from qtr are fine; qtr declares __all__
+                name = alias.name
+                parts = mod_name.split(".")
+                if len(parts) == 1:
+                    # ``from qtr import X`` -> X must be in qtr.__all__
+                    if name not in set(qtr.__all__):
+                        raise AssertionError(
+                            f"{runner_path.name}: from qtr import {name!r} is not declared "
+                            f"in qtr.__all__"
+                        )
+                else:
+                    # ``from qtr.<subpackage> import X`` -> X must be in that
+                    # subpackage's __all__
+                    subpkg = parts[1]
+                    try:
+                        mod = getattr(qtr, subpkg)
+                    except AttributeError as e:
+                        raise AssertionError(
+                            f"{runner_path.name}: qtr.{subpkg} is not a subpackage of qtr"
+                        ) from e
+                    declared = set(getattr(mod, "__all__", []))
+                    if name not in declared:
+                        raise AssertionError(
+                            f"{runner_path.name}: from qtr.{subpkg} import {name!r} is not "
+                            f"declared in qtr.{subpkg}.__all__"
+                        )
+        # The module itself must be importable (covers bare ``import qtr`` and
+        # ``import qtr.subpackage``).
+        try:
+            __import__(mod_name)
+        except Exception as e:
+            raise AssertionError(
+                f"{runner_path.name}: cannot import library module {mod_name}"
+            ) from e
+        return
 
-    # local import - another run_*.py
+    # local import: another run_*.py module in the repository
     if top in runner_stems or mod_name in runner_stems:
-        # local run modules
         return
 
     # stdlib
     if top in STDLIB_MODULES or mod_name in STDLIB_MODULES:
         return
 
-    # third-party - must be in pyproject deps
-    # Normalize
+    # third-party: must be a declared dependency in pyproject.toml
     norm = top.lower().replace("-", "_")
-    # Also check common mappings
-    if norm in PYPROJECT_DEPS or top in PYPROJECT_DEPS or mod_name.split(".")[0] in PYPROJECT_DEPS:
+    if norm in PYPROJECT_DEPS:
         return
-    # Some packages might be imported differently
-    # Common ones
-    common_deps = {
-        "numpy",
-        "pandas",
-        "scipy",
-        "sklearn",
-        "yaml",
-        "dotenv",
-        "loguru",
-        "pyarrow",
-        "yfinance",
-        "ccxt",
-        "pytest",
-        "optuna",
-        "ruff",
-    }
-    if norm in common_deps:
-        return
-    # if it's a known common dep by name
-    for d in common_deps:
-        if d in norm or norm in d:
-            return
     raise AssertionError(
-        f"{runner_path.name}: third-party/local import '{mod_name}' not classified as stdlib/local/library and not declared in pyproject.toml"
+        f"{runner_path.name}: third-party import '{mod_name}' is not declared in pyproject.toml"
     )
