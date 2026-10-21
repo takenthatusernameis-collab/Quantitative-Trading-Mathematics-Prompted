@@ -17,7 +17,7 @@ ARTIFACTS = ROOT / ".experiments" / "artifacts"
 
 def _metric_summaries():
     out = []
-    for p in sorted(ARTIFACTS.glob("*/summary.json")):
+    for p in sorted(ARTIFACTS.rglob("summary.json")):
         d = json.loads(p.read_text())
         m = d.get("metrics")
         if isinstance(m, dict) and m:
@@ -27,7 +27,7 @@ def _metric_summaries():
 
 def test_h53_metrics_summary_count_pinned():
     rows = _metric_summaries()
-    assert len(rows) == 29, len(rows)
+    assert len(rows) == 37, len(rows)
 
 
 def test_h53_metrics_keys_union_pinned():
