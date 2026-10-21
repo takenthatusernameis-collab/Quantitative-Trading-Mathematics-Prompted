@@ -30,17 +30,21 @@ as before, so the net returns, the equity curve, the positions and every
 metric except ``avg_trade_cost`` are **bit-identical** to the pre-fix engine.
 
 **What is deliberately not changed.** The frozen artifacts are *history*: the
-``cost`` column of the committed trade logs (H10, H11, H16, H21, H22, H25) and
-the ``avg_trade_cost`` of the three exploratory 2026-10-10 MA-crossover
-summaries still carry the pre-fix aggregate attribution. They are left
-untouched and pinned below. No gate, threshold, verdict or certified number
-uses the trade-log cost column, and no certified number changes.
+``cost`` column of **every** committed trade log (**82** of them) and the
+``avg_trade_cost`` of the five summaries that publish it still carry the
+pre-fix aggregate attribution. They are left untouched and pinned below -- for
+the whole record, not for one artifact. No gate, threshold, verdict or
+certified number uses the trade-log cost column, and no certified number
+changes.
 """
 
 from __future__ import annotations
 
 import json
+import re
+import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -84,6 +88,21 @@ def _simultaneous_signals(prices: pd.DataFrame) -> pd.DataFrame:
     signals = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
     signals.iloc[5:15, :] = 1.0
     signals.iloc[20:28, :] = 0.5
+    return signals
+
+
+def _unequal_signals(prices: pd.DataFrame) -> pd.DataFrame:
+    """The symbols trade on the same bars, but with different sizes.
+
+    Their costs therefore differ, so the per-trade attribution writes
+    different numbers on the two trades of a bar -- which is what makes the
+    classifier able to tell the two attributions apart.
+    """
+    signals = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
+    signals.iloc[5:15, :] = 1.0
+    signals.iloc[20:28, :] = 0.5
+    if signals.shape[1] > 1:
+        signals.iloc[20:28, 1] = 0.25
     return signals
 
 
@@ -397,3 +416,718 @@ class TestFrozenArtifactDisclosure:
 
         # H10 is the family whose trade log this module pins.
         assert families["H10"]["level_checks"]["L3"]["n_trades"] == 3701
+
+
+# --------------------------------------------------------------------------- #
+# the frozen record, in full: every committed trade log (H52)
+# --------------------------------------------------------------------------- #
+#: A trade-log read of the ``cost`` column: ``["cost"]`` or ``.cost``.
+COST_COLUMN_ACCESS = re.compile(r"""\[\s*['"]cost['"]\s*\]|\.\s*cost\b""")
+
+#: The commit that carries the engine's per-trade attribution fix. Every
+#: committed trade log was produced by a run stamped *before* it, so every one
+#: of them was written by the pre-fix engine.
+ATTRIBUTION_FIX_COMMIT = "3fbef17"
+
+#: Every trade log the repository tracks, with the numbers that classify its
+#: cost attribution: ``(trades, bars, bars holding more than one trade)``.
+TRADE_LOG_RECORD: dict[str, tuple[int, int, int]] = {
+    ".experiments/artifacts/exp_2026-10-10T17-02-22-080026Z/trades.parquet": (257, 231, 21),
+    ".experiments/artifacts/exp_2026-10-10T17-03-39-610858Z/trades.parquet": (257, 231, 21),
+    ".experiments/artifacts/exp_2026-10-10T17-04-21-400695Z/trades.parquet": (778, 231, 198),
+    ".experiments/artifacts/exp_2026-10-10T17-05-58-697503Z/trades.parquet": (1, 1, 0),
+    ".experiments/artifacts/exp_2026-10-10T17-07-48-008615Z/best_trades.parquet": (9, 9, 0),
+    ".experiments/artifacts/exp_2026-10-10T17-09-34-333145Z/best_trades.parquet": (1, 1, 0),
+    ".experiments/artifacts/exp_2026-10-10T20-56-30-507309Z/benchmark_trades.parquet": (20, 1, 1),
+    ".experiments/artifacts/exp_2026-10-10T20-56-30-507309Z/selected_trades.parquet": (
+        1471,
+        113,
+        111,
+    ),
+    ".experiments/artifacts/exp_2026-10-10T20-57-26-136503Z/benchmark_trades.parquet": (20, 1, 1),
+    ".experiments/artifacts/exp_2026-10-10T20-57-26-136503Z/selected_trades.parquet": (
+        1471,
+        113,
+        111,
+    ),
+    ".experiments/artifacts/exp_2026-10-10T20-59-28-306148Z/selected_trades.parquet": (
+        714,
+        100,
+        91,
+    ),
+    ".experiments/artifacts/exp_2026-10-10T21-08-54-188263Z/benchmark_trades.parquet": (20, 1, 1),
+    ".experiments/artifacts/exp_2026-10-10T21-08-54-188263Z/selected_trades.parquet": (
+        1471,
+        113,
+        111,
+    ),
+    ".experiments/artifacts/exp_2026-10-10T21-09-06-830199Z/selected_trades.parquet": (
+        714,
+        100,
+        91,
+    ),
+    ".experiments/artifacts/exp_2026-10-10T21-27-13-928282Z/benchmark_trades.parquet": (20, 1, 1),
+    ".experiments/artifacts/exp_2026-10-10T21-27-13-928282Z/selected_trades.parquet": (
+        2379,
+        115,
+        115,
+    ),
+    ".experiments/artifacts/exp_2026-10-10T21-28-20-920399Z/benchmark_trades.parquet": (20, 1, 1),
+    ".experiments/artifacts/exp_2026-10-10T21-28-20-920399Z/selected_trades.parquet": (
+        2379,
+        115,
+        115,
+    ),
+    ".experiments/artifacts/exp_2026-10-10T21-58-28-353634Z/ensemble_trades.parquet": (270, 82, 79),
+    ".experiments/artifacts/exp_2026-10-10T21-59-16-546117Z/ensemble_trades.parquet": (270, 82, 79),
+    ".experiments/artifacts/exp_2026-10-10T22-59-01-182037Z/ensemble_trades.parquet": (356, 82, 80),
+    ".experiments/artifacts/exp_2026-10-11T00-26-35-750834Z/best_ddcv_trades.parquet": (
+        353,
+        104,
+        97,
+    ),
+    ".experiments/artifacts/exp_2026-10-11T00-34-05-381535Z/best_ddcv_trades.parquet": (
+        353,
+        104,
+        97,
+    ),
+    ".experiments/artifacts/exp_2026-10-11T02-44-40-301520Z/best_trades.parquet": (335, 99, 92),
+    ".experiments/artifacts/exp_2026-10-11T02-44-40-301520Z/vix_only_trades.parquet": (285, 82, 77),
+    ".experiments/artifacts/exp_2026-10-11T02-46-37-311994Z/best_trades.parquet": (335, 99, 92),
+    ".experiments/artifacts/exp_2026-10-11T02-46-37-311994Z/vix_only_trades.parquet": (285, 82, 77),
+    ".experiments/artifacts/exp_2026-10-11T07-18-39-160945Z/best_trades.parquet": (335, 99, 92),
+    ".experiments/artifacts/exp_2026-10-11T07-18-39-160945Z/vix_only_trades.parquet": (285, 82, 77),
+    ".experiments/artifacts/exp_2026-10-11T08-02-22-999214Z/best_trades.parquet": (335, 99, 92),
+    ".experiments/artifacts/exp_2026-10-11T08-02-22-999214Z/vix_only_trades.parquet": (285, 82, 77),
+    ".experiments/artifacts/exp_2026-10-11T14-52-29-891596Z/trades.parquet": (441, 176, 100),
+    ".experiments/artifacts/exp_2026-10-11T14-53-13-076438Z/trades.parquet": (441, 176, 100),
+    ".experiments/artifacts/exp_2026-10-11T15-21-31-333870Z/benchmark_trades.parquet": (5, 1, 1),
+    ".experiments/artifacts/exp_2026-10-11T15-21-31-333870Z/best_trades_w0.5.parquet": (
+        374,
+        106,
+        100,
+    ),
+    ".experiments/artifacts/exp_2026-10-11T15-53-31-819888Z/trades.parquet": (31519, 11029, 9216),
+    ".experiments/artifacts/exp_2026-10-11T15-54-17-212022Z/trades.parquet": (31519, 11029, 9216),
+    ".experiments/artifacts/exp_2026-10-11T16-44-06-168529Z/trades.parquet": (2690, 2176, 368),
+    ".experiments/artifacts/exp_2026-10-11T16-46-06-466282Z/trades.parquet": (2690, 2176, 368),
+    ".experiments/artifacts/exp_2026-10-11T16-52-38-694559Z/trades.parquet": (2690, 2176, 368),
+    ".experiments/artifacts/exp_2026-10-11T17-24-14-385352Z/trades.parquet": (2869, 2320, 391),
+    ".experiments/artifacts/exp_2026-10-11T17-41-18-169363Z/trades.parquet": (3701, 2975, 513),
+    ".experiments/artifacts/exp_2026-10-11T18-40-37-427062Z/frozen_trades.parquet": (
+        3701,
+        2975,
+        513,
+    ),
+    ".experiments/artifacts/exp_2026-10-11T20-25-36-443045Z/baseline_trades.parquet": (
+        3701,
+        2975,
+        513,
+    ),
+    ".experiments/artifacts/exp_2026-10-13T21-11-45-843908Z/best_trades.parquet": (413, 129, 129),
+    ".experiments/artifacts/exp_2026-10-13T21-13-09-580962Z/best_trades.parquet": (413, 129, 129),
+    ".experiments/artifacts/exp_2026-10-13T21-18-23-178134Z/best_trades.parquet": (338, 129, 129),
+    ".experiments/artifacts/exp_2026-10-13T21-22-02-751156Z/best_trades.parquet": (338, 129, 129),
+    ".experiments/artifacts/exp_2026-10-13T21-51-45-034237Z/best_trades.parquet": (1467, 1467, 0),
+    ".experiments/artifacts/exp_2026-10-13T22-40-41-870350Z/best_trades.parquet": (1424, 1424, 0),
+    ".experiments/artifacts/exp_2026-10-13T23-06-33-191710Z/best_trades.parquet": (4404, 4404, 0),
+    ".experiments/artifacts/exp_2026-10-13T23-27-52-101656Z/trades.parquet": (12624, 6335, 2897),
+    ".experiments/artifacts/exp_2026-10-14T07-12-35-292010Z/trades.parquet": (4980, 2695, 830),
+    ".experiments/artifacts/exp_2026-10-14T07-12-59-473353Z/trades.parquet": (4980, 2695, 830),
+    ".experiments/artifacts/exp_2026-10-14T07-15-23-322705Z/trades.parquet": (4980, 2695, 830),
+    ".experiments/artifacts/exp_2026-10-14T07-32-43-425839Z/trades.parquet": (4980, 2695, 830),
+    ".experiments/artifacts/exp_2026-10-14T08-20-16-720432Z/trades.parquet": (441, 176, 100),
+    ".experiments/artifacts/exp_2026-10-14T08-20-39-255883Z/trades.parquet": (2715, 2180, 394),
+    ".experiments/artifacts/exp_2026-10-14T08-26-02-537359Z/trades.parquet": (1, 1, 0),
+    ".experiments/artifacts/exp_2026-10-14T08-26-18-385545Z/benchmark_trades.parquet": (20, 1, 1),
+    ".experiments/artifacts/exp_2026-10-14T08-26-18-385545Z/selected_trades.parquet": (
+        1471,
+        113,
+        111,
+    ),
+    ".experiments/artifacts/exp_2026-10-14T08-27-02-650342Z/ensemble_trades.parquet": (356, 82, 80),
+    ".experiments/artifacts/exp_2026-10-14T08-48-49-412372Z/trades.parquet": (0, 0, 0),
+    ".experiments/artifacts/exp_2026-10-14T09-28-59-592390Z/trades.parquet": (0, 0, 0),
+    ".experiments/artifacts/exp_2026-10-14T09-32-25-959733Z/trades.parquet": (0, 0, 0),
+    ".experiments/artifacts/exp_2026-10-14T09-39-07-412533Z/trades.parquet": (0, 0, 0),
+    ".experiments/artifacts/exp_2026-10-14T10-04-52-936640Z/trades.parquet": (0, 0, 0),
+    ".experiments/artifacts/exp_2026-10-14T11-53-37-996139Z/trades.parquet": (107, 60, 42),
+    ".experiments/artifacts/exp_2026-10-14T18-13-09-457781Z/trades.parquet": (107, 60, 42),
+    ".experiments/artifacts/exp_2026-10-14T18-52-08-943792Z/trades.parquet": (4980, 2695, 830),
+    ".experiments/artifacts/exp_2026-10-14T20-02-45-189859Z/trades.parquet": (3056, 1424, 570),
+    ".experiments/artifacts/exp_2026-10-14T20-08-34-613690Z/trades.parquet": (3056, 1424, 570),
+    ".experiments/artifacts/exp_2026-10-19T18-56-08-872500Z/trades.parquet": (441, 176, 100),
+    ".experiments/artifacts/exp_2026-10-19T18-56-58-553612Z/trades.parquet": (441, 176, 100),
+    ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T15-46-16-261803Z/trades.parquet": (
+        3701,
+        2975,
+        513,
+    ),
+    ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T16-41-44-683912Z/trades.parquet": (
+        3820,
+        3090,
+        539,
+    ),
+    ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-38-03-570526Z/trades.parquet": (
+        12624,
+        6335,
+        2897,
+    ),
+    ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-38-21-389139Z/trades.parquet": (
+        12669,
+        6443,
+        2846,
+    ),
+    ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-38-39-157337Z/trades.parquet": (
+        4980,
+        2695,
+        830,
+    ),
+    ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-38-50-887609Z/trades.parquet": (
+        5262,
+        2754,
+        903,
+    ),
+    ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-39-02-719690Z/trades.parquet": (
+        3056,
+        1424,
+        570,
+    ),
+    ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-39-12-729639Z/trades.parquet": (
+        3160,
+        1465,
+        593,
+    ),
+}
+
+#: The logs whose recorded attribution differs from the per-trade attribution:
+#: they hold at least one bar with more than one trade, so the bar's value was
+#: written on every trade of that bar and the recorded column repeats it.
+ATTRIBUTION_CHANGES_A_NUMBER: frozenset[str] = frozenset(
+    {
+        ".experiments/artifacts/exp_2026-10-10T17-02-22-080026Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-10T17-03-39-610858Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-10T17-04-21-400695Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-10T20-56-30-507309Z/benchmark_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-10T20-56-30-507309Z/selected_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-10T20-57-26-136503Z/benchmark_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-10T20-57-26-136503Z/selected_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-10T20-59-28-306148Z/selected_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-10T21-08-54-188263Z/benchmark_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-10T21-08-54-188263Z/selected_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-10T21-09-06-830199Z/selected_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-10T21-27-13-928282Z/benchmark_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-10T21-27-13-928282Z/selected_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-10T21-28-20-920399Z/benchmark_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-10T21-28-20-920399Z/selected_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-10T21-58-28-353634Z/ensemble_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-10T21-59-16-546117Z/ensemble_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-10T22-59-01-182037Z/ensemble_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-11T00-26-35-750834Z/best_ddcv_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-11T00-34-05-381535Z/best_ddcv_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-11T02-44-40-301520Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-11T02-44-40-301520Z/vix_only_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-11T02-46-37-311994Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-11T02-46-37-311994Z/vix_only_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-11T07-18-39-160945Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-11T07-18-39-160945Z/vix_only_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-11T08-02-22-999214Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-11T08-02-22-999214Z/vix_only_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-11T14-52-29-891596Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-11T14-53-13-076438Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-11T15-21-31-333870Z/benchmark_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-11T15-21-31-333870Z/best_trades_w0.5.parquet",
+        ".experiments/artifacts/exp_2026-10-11T15-53-31-819888Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-11T15-54-17-212022Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-11T16-44-06-168529Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-11T16-46-06-466282Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-11T16-52-38-694559Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-11T17-24-14-385352Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-11T17-41-18-169363Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-11T18-40-37-427062Z/frozen_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-11T20-25-36-443045Z/baseline_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-13T21-11-45-843908Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-13T21-13-09-580962Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-13T21-18-23-178134Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-13T21-22-02-751156Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-13T23-27-52-101656Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-14T07-12-35-292010Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-14T07-12-59-473353Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-14T07-15-23-322705Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-14T07-32-43-425839Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-14T08-20-16-720432Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-14T08-20-39-255883Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-14T08-26-18-385545Z/benchmark_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-14T08-26-18-385545Z/selected_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-14T08-27-02-650342Z/ensemble_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-14T11-53-37-996139Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-14T18-13-09-457781Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-14T18-52-08-943792Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-14T20-02-45-189859Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-14T20-08-34-613690Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-19T18-56-08-872500Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-19T18-56-58-553612Z/trades.parquet",
+        ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T15-46-16-261803Z/trades.parquet",
+        ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T16-41-44-683912Z/trades.parquet",
+        ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-38-03-570526Z/trades.parquet",
+        ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-38-21-389139Z/trades.parquet",
+        ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-38-39-157337Z/trades.parquet",
+        ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-38-50-887609Z/trades.parquet",
+        ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-39-02-719690Z/trades.parquet",
+        ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-39-12-729639Z/trades.parquet",
+    }
+)
+
+#: The logs whose recorded attribution coincides with the per-trade one by
+#: construction: every bar holds exactly one trade, so the bar's value *is* that
+#: trade's own cost. The attribution changes no number in them.
+ATTRIBUTION_COINCIDES: frozenset[str] = frozenset(
+    {
+        ".experiments/artifacts/exp_2026-10-10T17-05-58-697503Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-10T17-07-48-008615Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-10T17-09-34-333145Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-13T21-51-45-034237Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-13T22-40-41-870350Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-13T23-06-33-191710Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-14T08-26-02-537359Z/trades.parquet",
+    }
+)
+
+#: The logs that hold no trade at all: they attribute nothing.
+NO_TRADES: frozenset[str] = frozenset(
+    {
+        ".experiments/artifacts/exp_2026-10-14T08-48-49-412372Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-14T09-28-59-592390Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-14T09-32-25-959733Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-14T09-39-07-412533Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-14T10-04-52-936640Z/trades.parquet",
+    }
+)
+
+#: The published numbers that read the trade log's ``cost`` column, with the
+#: factor by which the recorded column repeats the bar's value:
+#: ``(published value, repetition factor)``.
+PUBLISHED_COST_NUMBERS: dict[str, tuple[float, float]] = {
+    ".experiments/artifacts/exp_2026-10-10T17-02-22-080026Z/summary.json": (
+        0.046661483375726044,
+        1.2299534267300314,
+    ),
+    ".experiments/artifacts/exp_2026-10-10T17-03-39-610858Z/summary.json": (
+        0.04106853533924311,
+        1.2471085910700175,
+    ),
+    ".experiments/artifacts/exp_2026-10-10T17-04-21-400695Z/summary.json": (
+        0.021484183909932723,
+        2.8689482110802778,
+    ),
+    ".experiments/artifacts/exp_2026-10-10T17-05-58-697503Z/summary.json": (
+        0.041105949376283715,
+        1.0,
+    ),
+    ".experiments/artifacts/exp_2026-10-14T08-26-02-537359Z/summary.json": (
+        0.00020009711746988646,
+        1.0,
+    ),
+}
+
+#: The tracker-metadata entries that publish the *benchmark's* ``avg_trade_cost``:
+#: ``experiment id -> (published value, benchmark trade count)``.
+BENCHMARK_COST_METADATA: dict[str, tuple[float, int]] = {
+    "exp_2026-10-10T17-02-22-080026Z": (0.021074414724414924, 5),
+    "exp_2026-10-10T17-03-39-610858Z": (0.021074301216455565, 5),
+    "exp_2026-10-10T17-04-21-400695Z": (0.021074301216455565, 5),
+    "exp_2026-10-10T20-56-30-507309Z": (0.0002018306804270815, 20),
+    "exp_2026-10-10T20-57-26-136503Z": (0.0002018306804270815, 20),
+    "exp_2026-10-10T21-08-54-188263Z": (0.0002018306804270815, 20),
+    "exp_2026-10-10T21-27-13-928282Z": (0.0002018306804270815, 20),
+    "exp_2026-10-10T21-28-20-920399Z": (0.0002018306804270815, 20),
+    "exp_2026-10-10T21-58-07-833835Z": (0.00010629059079463798, 5),
+    "exp_2026-10-10T21-58-28-353634Z": (0.00010629059079463798, 5),
+    "exp_2026-10-10T21-59-16-546117Z": (0.00010629059079463798, 5),
+    "exp_2026-10-10T22-59-01-182037Z": (0.00010629059079463798, 5),
+    "exp_2026-10-11T00-25-56-751422Z": (0.00010629059079463798, 5),
+    "exp_2026-10-11T00-26-08-362690Z": (0.00010629059079463798, 5),
+    "exp_2026-10-11T00-26-18-281925Z": (0.00010629059079463798, 5),
+    "exp_2026-10-11T00-26-35-750834Z": (0.00010629059079463798, 5),
+    "exp_2026-10-11T00-34-05-381535Z": (0.00010629059079463798, 5),
+    "exp_2026-10-11T02-44-40-301520Z": (0.00010629059079463798, 5),
+    "exp_2026-10-11T02-46-37-311994Z": (0.00010629059079463798, 5),
+    "exp_2026-10-11T07-18-39-160945Z": (0.00010629059079463798, 5),
+    "exp_2026-10-11T08-02-22-999214Z": (0.00010629059079463798, 5),
+    "exp_2026-10-14T08-26-18-385545Z": (0.0002018306804270815, 20),
+    "exp_2026-10-14T08-27-02-650342Z": (0.00010629059079463798, 5),
+}
+
+#: The benchmark entries whose benchmark trade log was committed: the published
+#: value repeats the bar's value once per benchmark trade (20, for the
+#: 20-symbol benchmark).
+BENCHMARK_COST_OVER_COUNT_VERIFIED: dict[str, float] = {
+    "exp_2026-10-10T20-56-30-507309Z": 20.0,
+    "exp_2026-10-10T20-57-26-136503Z": 20.0,
+    "exp_2026-10-10T21-08-54-188263Z": 20.0,
+    "exp_2026-10-10T21-27-13-928282Z": 20.0,
+    "exp_2026-10-10T21-28-20-920399Z": 20.0,
+    "exp_2026-10-14T08-26-18-385545Z": 20.0,
+}
+
+#: The benchmark entries whose benchmark signals were committed: the benchmark
+#: holds every symbol from the same bar, so its trades share that bar and the
+#: published value repeats the bar's value once per symbol.
+BENCHMARK_COST_ENTRY_BARS_VERIFIED: dict[str, float] = {
+    "exp_2026-10-10T17-02-22-080026Z": 5.0,
+    "exp_2026-10-10T17-03-39-610858Z": 5.0,
+    "exp_2026-10-10T17-04-21-400695Z": 5.0,
+}
+
+#: The families whose trade logs are in the record. §H47 named six of them;
+#: the record holds eleven.
+H47_FAMILIES: frozenset[str] = frozenset({"H10", "H11", "H16", "H21", "H22", "H25"})
+
+#: The ``stats.json`` files that echo the head of a trade log, cost column
+#: included.
+STATS_FILES_ECHOING_A_TRADE_LOG = 40
+
+
+def _committed_trade_logs() -> list[str] | None:
+    """The trade-log parquet files the repository tracks.
+
+    ``None`` when this checkout has no git, in which case the committed record
+    cannot be enumerated and the scope contract cannot be evaluated at all.
+    """
+    try:
+        completed = subprocess.run(
+            ["git", "ls-files", "-z", "--", ".experiments/artifacts/*trades*.parquet"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError:
+        return None
+    if completed.returncode != 0:
+        return None
+    return sorted(path for path in completed.stdout.split("\0") if path)
+
+
+def _load_trade_log(relative: str) -> pd.DataFrame:
+    """Read one committed trade log."""
+    df = pd.DataFrame(read_parquet_safe(ROOT / relative))
+    if len(df) == 0:
+        return df
+    df = df.copy()
+    df["timestamp"] = pd.to_datetime(df["timestamp"])
+    return df
+
+
+def _attribution(trades: pd.DataFrame) -> str:
+    """Which cost attribution does this log record?
+
+    ``"empty"``     the log holds no trade, so it attributes nothing.
+    ``"aggregate"`` every trade of a bar records the bar's whole value: the
+                    pre-fix attribution.
+    ``"per-trade"`` the trades of a bar record different numbers: the
+                    per-trade attribution the engine writes today.
+    """
+    if len(trades) == 0:
+        return "empty"
+    per_bar = trades.groupby("timestamp")["cost"]
+    return "aggregate" if bool((per_bar.nunique() == 1).all()) else "per-trade"
+
+
+def _repetition_factor(trades: pd.DataFrame) -> float:
+    """How many times the log repeats each bar's value.
+
+    An aggregate log writes a bar's value on every one of its trades, so the
+    log repeats it. Under the pre-fix attribution that value *is* the bar's
+    charge, so the factor is also the factor by which the recorded column
+    over-counts the charge. It is 1 exactly when no bar repeats its value.
+    """
+    if len(trades) == 0:
+        return 1.0
+    per_bar = trades.groupby("timestamp")["cost"]
+    total = float(per_bar.first().sum())
+    if total == 0.0:
+        return 1.0
+    return float(trades["cost"].sum()) / total
+
+
+def _run_timestamp(relative: str) -> datetime:
+    """The UTC time the run that produced this log started.
+
+    The tracker stamps the artifact id with the start of the run
+    (``exp_<UTC timestamp>``), so the id carries the run's own clock.
+    """
+    artifact_id = Path(relative).parent.name
+    stamp = artifact_id.removeprefix("exp_")
+    return datetime.strptime(stamp, "%Y-%m-%dT%H-%M-%S-%fZ").replace(tzinfo=timezone.utc)
+
+
+def _commit_timestamp(commit: str) -> datetime:
+    """The UTC time a commit was made."""
+    completed = subprocess.run(
+        ["git", "show", "-s", "--format=%cI", commit],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return datetime.fromisoformat(completed.stdout.strip())
+
+
+class TestFrozenRecordScope:
+    """H52: the disclosure covers every committed trade log, not one artifact.
+
+    §H47 named the families "H10, H11, H16, H21, H22, H25" and pinned the
+    disclosure for **one** artifact. The record is wider on both counts:
+    **82** trade logs are committed (the §H47-era scan used a
+    ``trades.parquet``-only glob and so saw 41 of them), they span **eleven**
+    families plus the exploratory artifacts, and the attribution is pinned here
+    for every one.
+    """
+
+    def test_the_committed_trade_logs_are_exactly_the_pinned_record(self):
+        """A committed trade log that is not named here fails the contract."""
+        committed = _committed_trade_logs()
+        if committed is None:
+            pytest.skip("no git checkout: the committed record cannot be enumerated")
+        assert committed == sorted(TRADE_LOG_RECORD)
+
+    def test_every_committed_trade_log_records_the_aggregate_attribution(self):
+        """None of the 82 logs records a per-trade attribution."""
+        committed = _committed_trade_logs()
+        if committed is None:
+            pytest.skip("no git checkout: the committed record cannot be enumerated")
+        per_trade = [p for p in committed if _attribution(_load_trade_log(p)) == "per-trade"]
+        assert per_trade == [], "a committed trade log no longer carries the pre-fix attribution"
+
+    def test_every_committed_trade_log_precedes_the_attribution_fix(self):
+        """The decisive leg: no committed log was written by the fixed engine.
+
+        The engine's per-trade attribution fix is committed in
+        ``ATTRIBUTION_FIX_COMMIT``; the tracker stamps each artifact id with
+        the UTC start of the run that produced it. Every committed log's stamp
+        precedes that commit, so every one of them was written by the pre-fix
+        engine -- and the pre-fix engine wrote the bar's whole cost on every
+        trade of the bar.
+        """
+        fix = _commit_timestamp(ATTRIBUTION_FIX_COMMIT)
+        for relative in TRADE_LOG_RECORD:
+            assert _run_timestamp(relative) < fix, relative
+
+    def test_the_logs_whose_attribution_changes_a_number_are_pinned(self):
+        measured = {
+            path
+            for path in TRADE_LOG_RECORD
+            if _attribution(_load_trade_log(path)) == "aggregate"
+            and _repetition_factor(_load_trade_log(path)) > 1.0
+        }
+        assert measured == ATTRIBUTION_CHANGES_A_NUMBER
+
+    def test_the_logs_where_the_attribution_cannot_change_a_number_are_pinned(self):
+        measured = {
+            path
+            for path in TRADE_LOG_RECORD
+            if _attribution(_load_trade_log(path)) == "aggregate"
+            and _repetition_factor(_load_trade_log(path)) == 1.0
+        }
+        assert measured == ATTRIBUTION_COINCIDES
+
+    def test_the_logs_without_trades_are_pinned(self):
+        measured = {
+            path for path in TRADE_LOG_RECORD if _attribution(_load_trade_log(path)) == "empty"
+        }
+        assert measured == NO_TRADES
+
+    def test_the_three_pinned_sets_partition_the_record(self):
+        """The split is complete: no committed log is left unclassified."""
+        assert ATTRIBUTION_CHANGES_A_NUMBER | ATTRIBUTION_COINCIDES | NO_TRADES == set(
+            TRADE_LOG_RECORD
+        )
+        assert not ATTRIBUTION_CHANGES_A_NUMBER & ATTRIBUTION_COINCIDES
+        assert not ATTRIBUTION_CHANGES_A_NUMBER & NO_TRADES
+        assert not ATTRIBUTION_COINCIDES & NO_TRADES
+
+    def test_the_measured_structure_of_every_log_is_pinned(self):
+        for relative, (n_trades, n_bars, n_multi) in TRADE_LOG_RECORD.items():
+            trades = _load_trade_log(relative)
+            assert len(trades) == n_trades, relative
+            if n_trades == 0:
+                assert n_bars == 0 and n_multi == 0, relative
+                continue
+            assert trades["timestamp"].nunique() == n_bars, relative
+            sizes = trades.groupby("timestamp").size()
+            assert int((sizes > 1).sum()) == n_multi, relative
+
+    def test_both_kinds_of_log_are_present_in_the_record(self):
+        """The split must discriminate: neither side may be empty."""
+        assert ATTRIBUTION_CHANGES_A_NUMBER
+        assert ATTRIBUTION_COINCIDES
+        assert NO_TRADES
+
+    def test_the_repetition_factor_is_never_below_one(self):
+        """A log can repeat a bar's value; it can never fall below it."""
+        for relative in TRADE_LOG_RECORD:
+            assert _repetition_factor(_load_trade_log(relative)) >= 1.0, relative
+
+    def test_the_families_named_by_h47_are_a_strict_subset_of_the_record(self):
+        """§H47's list was narrower than the truth; the record is the truth."""
+        families: set[str] = set()
+        for relative in TRADE_LOG_RECORD:
+            summary = ROOT / Path(relative).parent / "summary.json"
+            if not summary.exists():
+                continue
+            with open(summary) as f:
+                hypothesis = json.load(f).get("hypothesis")
+            if hypothesis:
+                families.add(str(hypothesis))
+        assert H47_FAMILIES < families, (
+            "the families §H47 named are no longer a strict subset of the record"
+        )
+
+
+class TestPublishedCostColumnNumbers:
+    """The published numbers that read the trade log's ``cost`` column."""
+
+    def test_the_engine_metric_is_the_only_reader_of_the_cost_column(self):
+        """``avg_trade_cost`` is the only number the record derives from it."""
+        readers: list[tuple[str, str]] = []
+        sources = sorted((ROOT / "src" / "qtr").rglob("*.py")) + sorted(ROOT.glob("run_*.py"))
+        for path in sources:
+            for line in path.read_text().splitlines():
+                if COST_COLUMN_ACCESS.search(line):
+                    readers.append((str(path.relative_to(ROOT)), line))
+        assert [name for name, _ in readers] == ["src/qtr/backtest/engine.py"]
+        assert all("avg_trade_cost" in line for _, line in readers)
+
+    def test_the_published_avg_trade_cost_values_are_pinned(self):
+        for relative, (published, factor) in PUBLISHED_COST_NUMBERS.items():
+            with open(ROOT / relative) as f:
+                summary = json.load(f)
+            assert summary["strategy_metrics"]["avg_trade_cost"] == pytest.approx(
+                published, rel=1e-12
+            ), relative
+            log = str(Path(relative).parent / "trades.parquet")
+            assert _repetition_factor(_load_trade_log(log)) == pytest.approx(factor, rel=1e-12), (
+                relative
+            )
+
+    def test_the_published_avg_trade_cost_is_the_recorded_column_mean(self):
+        """The published value is the recorded column's mean: the pre-fix basis."""
+        for relative, (published, _) in PUBLISHED_COST_NUMBERS.items():
+            log = str(Path(relative).parent / "trades.parquet")
+            trades = _load_trade_log(log)
+            assert float(trades["cost"].mean()) == pytest.approx(published, rel=1e-12), relative
+
+    def test_the_pre_fix_attribution_changes_three_of_the_five_published_values(self):
+        changed = {p for p, (_, factor) in PUBLISHED_COST_NUMBERS.items() if factor > 1.0}
+        assert len(PUBLISHED_COST_NUMBERS) == 5
+        assert len(changed) == 3
+        assert changed == {
+            ".experiments/artifacts/exp_2026-10-10T17-02-22-080026Z/summary.json",
+            ".experiments/artifacts/exp_2026-10-10T17-03-39-610858Z/summary.json",
+            ".experiments/artifacts/exp_2026-10-10T17-04-21-400695Z/summary.json",
+        }
+
+    def test_the_per_trade_attribution_would_scale_the_published_values(self):
+        """The over-statement is exactly the repetition factor."""
+        for relative, (published, factor) in PUBLISHED_COST_NUMBERS.items():
+            log = str(Path(relative).parent / "trades.parquet")
+            trades = _load_trade_log(log)
+            bar_total = float(trades.groupby("timestamp")["cost"].first().sum())
+            per_trade = bar_total / len(trades)
+            assert per_trade == pytest.approx(published / factor, rel=1e-12), relative
+
+    def test_the_benchmark_cost_is_published_on_the_same_basis(self):
+        """The tracker metadata publishes the benchmark's cost too."""
+        entries = []
+        with open(ROOT / ".experiments" / "experiments.jsonl") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                record = json.loads(line)
+                metrics = record.get("metrics", {})
+                if "benchmark_avg_trade_cost_step0" in metrics:
+                    entries.append(
+                        (
+                            record["metadata"]["experiment_id"],
+                            float(metrics["benchmark_avg_trade_cost_step0"]),
+                            int(metrics["benchmark_num_trades_step0"]),
+                        )
+                    )
+        assert {eid: (value, n) for eid, value, n in entries} == BENCHMARK_COST_METADATA
+
+    def test_the_verified_benchmark_over_counts_are_pinned(self):
+        """Six benchmarks have a committed trade log: their factor is measured."""
+        for experiment_id, factor in BENCHMARK_COST_OVER_COUNT_VERIFIED.items():
+            log = f".experiments/artifacts/{experiment_id}/benchmark_trades.parquet"
+            trades = _load_trade_log(log)
+            assert _repetition_factor(trades) == pytest.approx(factor, rel=1e-12), experiment_id
+            published, n_trades = BENCHMARK_COST_METADATA[experiment_id]
+            assert n_trades == len(trades)
+            assert float(trades["cost"].mean()) == pytest.approx(published, rel=1e-12)
+
+    def test_the_verified_benchmark_entry_bars_are_pinned(self):
+        """Three benchmarks have committed signals: they enter on one bar."""
+        for experiment_id, factor in BENCHMARK_COST_ENTRY_BARS_VERIFIED.items():
+            signals = pd.DataFrame(
+                read_parquet_safe(
+                    ROOT
+                    / ".experiments"
+                    / "artifacts"
+                    / experiment_id
+                    / "signals_buy_and_hold.parquet"
+                )
+            )
+            active = signals.ne(0)
+            assert bool(active.any().all()), experiment_id
+            first = active.idxmax()
+            assert first.nunique() == 1, experiment_id
+            assert len(first) == int(factor), experiment_id
+
+    def test_the_stats_files_echo_the_cost_column(self):
+        """Forty ``stats.json`` files echo the head of a trade log."""
+        echoes = 0
+        for path in sorted((ROOT / ".experiments" / "artifacts").rglob("stats.json")):
+            with open(path) as f:
+                stats = json.load(f)
+            if "cost" in stats.get("trades", ""):
+                echoes += 1
+        assert echoes == STATS_FILES_ECHOING_A_TRADE_LOG
+
+
+class TestScopeNegativeControl:
+    """The scope contract must be able to fail."""
+
+    def test_a_log_whose_trades_differ_is_not_classified_as_aggregate(self):
+        """The classifier is discriminating, not vacuous."""
+        prices = _prices()
+        signals = _unequal_signals(prices)
+        result, _ = _run_with_charge(prices, signals)
+        assert _attribution(result.trades) == "per-trade"
+
+    def test_the_reconstructed_pre_fix_log_is_classified_as_aggregate(self):
+        prices = _prices()
+        signals = _unequal_signals(prices)
+        result, _ = _run_with_charge(prices, signals)
+        pre_fix = result.trades.copy()
+        pre_fix["cost"] = result.trades.groupby("timestamp")["cost"].transform("sum")
+        assert _attribution(pre_fix) == "aggregate"
+
+    def test_the_repetition_factor_counts_the_repeats(self):
+        """The reconstructed pre-fix log repeats the bar's value once per trade."""
+        prices = _prices()
+        signals = _unequal_signals(prices)
+        result, _ = _run_with_charge(prices, signals)
+        pre_fix = result.trades.copy()
+        pre_fix["cost"] = result.trades.groupby("timestamp")["cost"].transform("sum")
+        sizes = result.trades.groupby("timestamp").size()
+        assert sizes.max() == 2
+        assert _repetition_factor(pre_fix) == pytest.approx(2.0, rel=1e-12)
+
+    def test_a_single_symbol_log_repeats_nothing(self):
+        """With one symbol the two attributions coincide, by construction."""
+        prices = _prices(symbols=("A",))
+        signals = _simultaneous_signals(prices)
+        result, _ = _run_with_charge(prices, signals)
+        assert _attribution(result.trades) == "aggregate"
+        assert _repetition_factor(result.trades) == pytest.approx(1.0, rel=1e-12)

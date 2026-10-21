@@ -2190,7 +2190,8 @@ H25). The engine already computed the correct per-trade cost; the log simply did
    over-count: `log=0.0016` against `charged=0.0008`.
 6. **Frozen-record disclosure** — the committed H10 trade log still shows the pre-fix aggregate
    attribution (0 of 2,975 bars disagree; over-count 1.786×), and the H27 `L3` result is pinned as
-   the proof that the bar total is the charge.
+   the proof that the bar total is the charge. **Scope corrected in §H52**: the disclosure covers
+   **every** committed trade log (**82**), not the six families named below.
 
 ### What was not changed
 
@@ -2200,16 +2201,23 @@ curve, the positions and every metric except `avg_trade_cost` are **bit-identica
 engine (verified by running the pre-fix and post-fix engines side by side over nine
 equity/futures/crypto cases).
 
-Two disclosures follow, and are pinned rather than rewritten:
+Two disclosures follow, and are pinned rather than rewritten. **Both were measured against the
+whole record in §H52, which corrects the scope stated here:**
 
-- The `cost` column of the **committed** trade logs (H10, H11, H16, H21, H22, H25) carries the
-  pre-fix aggregate attribution. The artifact files are frozen and are left untouched. No gate,
-  threshold, verdict or certified number reads that column; the H11 reproduction check compares
-  Sharpe, profit factor, drawdown, the trade *count*, walk-forward stability and worst-regime
-  Sharpe — all unaffected.
-- The `avg_trade_cost` of the three **exploratory** 2026-10-10 MA-crossover summaries
-  (5 symbols, 257/778/5 trades) is on the pre-fix basis. It is an engine-only diagnostic that
-  no gate uses; `FINAL_REPORT.md` and the reports never quoted it.
+- The `cost` column of **every** committed trade log — **82** of them, spanning **eleven**
+  families (H3, H10, H11, H16, H17, H19, H20, H21, H22, H23, H25) and 44 exploratory artifacts —
+  carries the pre-fix aggregate attribution. (This section originally named six families, "H10,
+  H11, H16, H21, H22, H25"; the list was narrower than the record.) The artifact files are frozen
+  and are left untouched. No gate, threshold, verdict or certified number reads that column; the
+  H11 reproduction check compares Sharpe, profit factor, drawdown, the trade *count*,
+  walk-forward stability and worst-regime Sharpe — all unaffected.
+- The `avg_trade_cost` of the **five** committed summaries that publish it — the three
+  exploratory 2026-10-10 MA-crossover baselines (257, 257 and 778 trades) and the two
+  single-trade buy-and-hold baselines — is on the pre-fix basis; in the three multi-trade cases it
+  over-states the per-trade average by 1.229953×, 1.247109× and 2.868948×. (This section
+  originally named three of the five.) The tracker metadata publishes the **benchmark's**
+  `avg_trade_cost` in **23** further entries, on the same basis. All of these are engine-only
+  diagnostics that no gate uses; `FINAL_REPORT.md` and the reports never quoted them.
 
 ## H48 — `parameter_sensitivity` could not be seeded (2026-10-21)
 
@@ -2352,15 +2360,28 @@ families that log both return series); the 22 that move move by **+4.371e-05** (
 **+1.671e-03** (H23, n = 300), no sign changes, so no gate outcome can move. Full statement with the
 measured table in **§H51** above.
 
+**H52 is complete** (2026-10-21): §H47's cost-attribution disclosure now covers **the whole
+committed record**, not one artifact. The §H47-era scan used the pathspec
+`".experiments/artifacts/*/trades.parquet"`, which sees only the **41** logs literally named
+`trades.parquet`; the record is **82** (`".experiments/artifacts/*trades*.parquet"`), spanning
+**eleven** families plus 44 exploratory trade logs. **All 82** carry the pre-fix aggregate
+attribution: **70** of them have bars with more than one trade, so the attribution changes a
+number there (repetition factor 1.229953× … 20.677528×); **7** have only single-trade bars, where
+the two attributions coincide by construction; **5** hold no trade at all. The published numbers
+that read the column are disclosed too: **5** summaries publish `avg_trade_cost` (3 of them
+over-stated) and **23** tracker-metadata entries publish the **benchmark's** `avg_trade_cost` (9
+of them measured at 20× or 5×). The pin now names every log, pins the two sub-sets separately and
+carries a behavioural negative control. Full statement with the measured 82-row table in **§H52**
+above.
+
 The state a next session inherits:
 
-- **One task is assigned (H52)** — stated in full in `NEXT_TASK.md`: extend the **H47
-  cost-attribution disclosure** from the single artifact it is pinned for to **every** committed
-  trade log, and state which artifacts the pre-fix attribution actually changes (those with bars
-  holding more than one trade). The scan behind the task: `git ls-files
-  ".experiments/artifacts/*/trades.parquet"` → **41** trade logs, and in **all 41**
-  `groupby("timestamp")["cost"].nunique() == 1` — every bar records one aggregate cost for all of
-  its trades.
+- **One task is assigned (H53)** — stated in full in `NEXT_TASK.md`: audit the **remaining**
+  committed `summary.json` files for keys that no longer re-derive from the artifacts that
+  published them — the §H49/§H51 methodology generalised to **every** published block, with the
+  per-key convention of each publisher recorded. The measurement behind the task: **80** committed
+  `summary.json` files, of which the §H49 pass covered **5** and the §H51 pass covered the **48**
+  that publish an `information_ratio`.
 - The pre-registered free-data hypothesis space (H1–H30) remains **exhausted**; no new hypothesis
   is warranted and no grid may be re-run.
 - The certified families (H10, H22, H25) are unchanged. Every published artifact, threshold,
@@ -2372,8 +2393,10 @@ The state a next session inherits:
   `tests/test_public_api_contract.py` after any change under `src/qtr`.
 - The runners' import surface is declared, classified and non-vacuously pinned (§H46); re-run
   `tests/test_runner_import_contract.py` after any change in a runner or under `src/qtr`.
-- The engine's trade log now reconciles with the transaction costs it charges (§H47); re-run
-  `tests/test_trade_log_cost_reconciliation.py` after any change under `src/qtr/backtest`.
+- The engine's trade log now reconciles with the transaction costs it charges (§H47), and the
+  **whole frozen record** is pinned (§H52); re-run
+  `tests/test_trade_log_cost_reconciliation.py` after any change under `src/qtr/backtest` **or after
+  a new artifact is committed**.
 - The package's stochastic surface is seedable and the reproducibility is pinned (§H48); re-run
   `tests/test_parameter_sensitivity_reproducibility.py` after any change under
   `src/qtr/validation`.
@@ -2589,9 +2612,10 @@ re-run; no hypothesis was added; **no module under `src/qtr` and no runner was t
   re-derive from the library, which now enforces the population convention. They are **disclosed**,
   not rewritten (§H51): the move is `+4.371e-05` at `n = 11441` and `+1.671e-03` at `n = 300`, no
   sign changes and no gate outcome moves.
-- The **H47 cost-attribution disclosure** (the `cost` column of the committed trade logs) covers
-  less than the record does — all 41 committed trade logs carry the pre-fix attribution, and the
-  disclosure is pinned for one of them. The runner-up task (H52).
+- The **H47 cost-attribution disclosure** (the `cost` column of the committed trade logs) covered
+  less than the record does — all 41 trade logs the §H47-era scan saw carry the pre-fix
+  attribution, and the disclosure was pinned for one of them. **Resolved in §H52**: the record is
+  **82** trade logs, all of them carry the attribution, and all of them are pinned.
 - **H9's published OOS Sharpe** is on the sample convention; disclosed and pinned, verdict frozen.
 - The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified
   families' numbers and verdicts are frozen.
@@ -2748,9 +2772,244 @@ which is the OLS slope) is untouched. The only change under `src/qtr` is in
 - **The 22 published `information_ratio` values on the `ddof=1` convention no longer re-derive from
   the library.** They are disclosed in the table above (moves of +4.371e-05 and +1.671e-03), not
   rewritten; the artifacts are frozen. The gate's outcome is unaffected in every case.
-- The **H47 cost-attribution disclosure** (the `cost` column of the committed trade logs) covers
-  less than the record does — all 41 committed trade logs carry the pre-fix attribution, and the
-  disclosure is pinned for one of them. This is the assigned task (H52).
+- The **H47 cost-attribution disclosure** (the `cost` column of the committed trade logs) covered
+  less than the record does — all 41 trade logs the §H47-era scan saw carry the pre-fix
+  attribution, and the disclosure was pinned for one of them. **Resolved in §H52**: the record is
+  **82** trade logs, all of them carry the attribution, and all of them are pinned.
 - **H9's published OOS Sharpe** is on the sample convention; disclosed and pinned, verdict frozen.
 - The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified families'
   numbers and verdicts are frozen.
+
+## H52 — the cost-attribution disclosure now covers the whole committed record (2026-10-21)
+
+**Verdict: the engine's per-trade attribution (§H47) is unchanged and the published record is
+unaffected, but §H47's *disclosure* was narrower than the record it describes. The committed trade
+logs are **82**, not the six families §H47 named; the pre-fix attribution is pinned for **every**
+one of them, and the set of logs where that attribution actually changes a number is pinned
+separately.**
+
+### What changed
+
+- `tests/test_trade_log_cost_reconciliation.py` — the frozen-record section is extended from one
+  artifact to the whole record: **24 new tests** (13 → 37). Every committed trade log is named,
+  classified and pinned with its measured structure; the two sub-sets — the logs where the
+  pre-fix attribution *changes a number* (**70**) and the logs where it *cannot* (**7**) — are
+  pinned separately, as are the **5** logs that hold no trade at all.
+- `FINAL_REPORT.md` — this section, §H47's two disclosure bullets corrected, and the "Next task"
+  section updated.
+- **Nothing under `src/qtr` changed.** No artifact, gate threshold, verdict or certified number
+  was modified; no grid was re-run; no hypothesis was added.
+
+### The gap in §H47's disclosure (measured, not estimated)
+
+Three things were wrong with the scope §H47 published.
+
+1. **The scan missed half the record.** The pathspec `".experiments/artifacts/*/trades.parquet"`
+   matches only the logs literally named `trades.parquet` — **41** of the **82** committed trade
+   logs. The other **41** are named `best_trades`, `benchmark_trades`, `selected_trades`,
+   `ensemble_trades`, `frozen_trades`, `baseline_trades`, `vix_only_trades`, `best_ddcv_trades` and
+   `best_trades_w0.5`. The pathspec that sees the whole record is
+   `".experiments/artifacts/*trades*.parquet"` → **82**.
+2. **The family list was narrow.** The record spans **eleven** families — H3, H10, H11, H16, H17,
+   H19, H20, H21, H22, H23 and H25 — across 36 artifact directories, plus **44** trade logs in 35
+   exploratory artifacts that carry no `hypothesis`. §H47 named six families.
+3. **The published numbers were under-counted.** §H47 disclosed the `avg_trade_cost` of "the
+   three exploratory 2026-10-10 MA-crossover summaries". **Five** committed summaries publish it,
+   and the tracker metadata publishes the **benchmark's** `avg_trade_cost` in **23** further
+   entries — a number §H47 did not mention at all.
+
+### The measured record
+
+Every one of the **82** committed trade logs shares one schema
+(`timestamp, symbol, side, weight_change, price, cost`) and every one records the **aggregate**
+attribution: all the trades of a bar carry the bar's whole value.
+
+| class | logs | meaning |
+|---|---:|---|
+| **aggregate, changes a number** | **70** | at least one bar holds more than one trade, so the bar's value was written on each of its trades |
+| **aggregate, coincides** | **7** | every bar holds exactly one trade, so the bar's value *is* that trade's own cost |
+| **empty** | **5** | the log holds no trade at all (the empty H23 crypto logs) |
+
+The **repetition factor** — the recorded column's total over the total of the per-bar values — is
+the factor by which the column repeats each bar's value. It is **1** exactly when no bar repeats
+its value, and it runs from **1.229953** to **20.677528** over the 70 logs where the attribution
+changes a number.
+
+### Why "uniform per bar" is the *pre-fix* attribution here — three legs
+
+1. **Provenance (decisive).** The tracker stamps every artifact id with the UTC **start** of the
+   run that produced it (`exp_<UTC timestamp>`, `src/qtr/tracking/experiment.py`). Every committed
+   trade log's stamp precedes **2026-10-19T18:56:58Z**, while the engine's per-trade attribution
+   fix is committed in `3fbef17` (2026-10-21 11:33:35Z). No committed log was written by the
+   fixed engine — and the pre-fix `_extract_trades` wrote the per-bar total, `costs[idx]`, on
+   every trade of the bar.
+2. **The charge anchor.** The repository's own H27 `L3` check recomputes the per-bar cost from the
+   trades' `weight_change` and `price` — **never** from the `cost` column — and matches the
+   engine's per-bar charge to **~1e-19** for H9, H10, H21, H22 and H25. For those families the
+   per-bar recorded value *is* the charge, so the recorded column repeats the charge.
+3. **The engine's own definition.** The pre-fix `_extract_trades` wrote the per-bar total on every
+   trade of that bar (§H47, "The gap").
+
+**The honest caveat.** Uniformity alone does not separate an aggregate log from a per-trade log
+whose trades happen to share the same cost — a two-symbol backtest with identical signals records
+the same number either way. That is precisely why the single-symbol case is the *coincides* bucket
+and why leg 1 is needed; the contract's negative control shows the classifier does recognise a
+per-trade log when the trades' costs differ.
+
+### The published numbers that read the column
+
+Exactly one place in the whole package reads the trade log's `cost` column:
+`src/qtr/backtest/engine.py` → `metrics["avg_trade_cost"] = trades["cost"].mean()`. **No runner
+reads it** (checked statically over `src/qtr` and every `run_*.py`).
+
+| published number | where | count | over-stated by the pre-fix attribution |
+|---|---|---:|---|
+| `strategy_metrics.avg_trade_cost` | 5 artifact `summary.json` | 5 | **3** — by 1.229953×, 1.247109× and 2.868948×. The other 2 hold a single trade, so their value is exact. |
+| `benchmark_avg_trade_cost_step0` | tracker metadata (`.experiments/experiments.jsonl`) | 23 | **9 verified** — 6 × **20.0×** (measured against the committed benchmark trade log) and 3 × **5×** (measured against the committed `signals_buy_and_hold.parquet`: all five symbols enter on one bar). The other **14** use a 5-contract futures benchmark whose trade log and signals were never committed, so their factor is **not measurable from the record**; they are disclosed as being on the pre-fix basis. |
+
+One further place carries the column without publishing a number: **40** `stats.json` files echo the
+head of a trade log (its first row, cost column included) as text.
+
+**No gate, threshold, verdict or certified number reads the column.** The certified families
+(H10, H22, H25) publish no `avg_trade_cost` at all, and the H11 reproduction check compares
+Sharpe, profit factor, drawdown, the trade *count*, walk-forward stability and worst-regime
+Sharpe — none of them is derived from the trade log's cost column.
+
+### The contract (24 new tests)
+
+1. **The whole record is named** — the committed trade logs (`git ls-files
+   ".experiments/artifacts/*trades*.parquet"`) are exactly the **82** paths pinned here. A
+   committed trade log that is not named fails the contract.
+2. **The split is complete and exact** — the three pinned sets (70 / 7 / 5) partition the record;
+   each is asserted to be *exactly* the measured set, so a log that moves between classes fails.
+3. **The structure is pinned** — every log's trade count, bar count and multi-trade-bar count.
+4. **The provenance holds** — every committed log's run stamp precedes the attribution fix's
+   commit.
+5. **The published numbers are pinned** — the five `avg_trade_cost` values with their repetition
+   factors, the 23 benchmark entries, the verified benchmark factors and entry bars, and the fact
+   that the engine metric is the *only* reader of the column.
+6. **Negative control** — the classifier recognises a per-trade log (the fixed engine over two
+   symbols of *different* sizes) as `"per-trade"`, the reconstructed pre-fix log as `"aggregate"`,
+   and the single-symbol log as `"aggregate"` with a repetition factor of exactly **1**.
+
+### The record, in full
+
+| artifact | trade log | trades | bars | bars with >1 trade | repetition factor | attribution |
+|---|---|---:|---:|---:|---:|---|
+| `exp_2026-10-10T17-02-22-080026Z` | `trades.parquet` | 257 | 231 | 21 | 1.229953 | changes a number |
+| `exp_2026-10-10T17-03-39-610858Z` | `trades.parquet` | 257 | 231 | 21 | 1.247109 | changes a number |
+| `exp_2026-10-10T17-04-21-400695Z` | `trades.parquet` | 778 | 231 | 198 | 2.868948 | changes a number |
+| `exp_2026-10-10T17-05-58-697503Z` | `trades.parquet` | 1 | 1 | 0 | 1.000000 | coincides |
+| `exp_2026-10-10T17-07-48-008615Z` | `best_trades.parquet` | 9 | 9 | 0 | 1.000000 | coincides |
+| `exp_2026-10-10T17-09-34-333145Z` | `best_trades.parquet` | 1 | 1 | 0 | 1.000000 | coincides |
+| `exp_2026-10-10T20-56-30-507309Z` | `benchmark_trades.parquet` | 20 | 1 | 1 | 20.000000 | changes a number |
+| `exp_2026-10-10T20-56-30-507309Z` | `selected_trades.parquet` | 1471 | 113 | 111 | 12.353926 | changes a number |
+| `exp_2026-10-10T20-57-26-136503Z` | `benchmark_trades.parquet` | 20 | 1 | 1 | 20.000000 | changes a number |
+| `exp_2026-10-10T20-57-26-136503Z` | `selected_trades.parquet` | 1471 | 113 | 111 | 12.353926 | changes a number |
+| `exp_2026-10-10T20-59-28-306148Z` | `selected_trades.parquet` | 714 | 100 | 91 | 6.741312 | changes a number |
+| `exp_2026-10-10T21-08-54-188263Z` | `benchmark_trades.parquet` | 20 | 1 | 1 | 20.000000 | changes a number |
+| `exp_2026-10-10T21-08-54-188263Z` | `selected_trades.parquet` | 1471 | 113 | 111 | 12.353926 | changes a number |
+| `exp_2026-10-10T21-09-06-830199Z` | `selected_trades.parquet` | 714 | 100 | 91 | 6.741312 | changes a number |
+| `exp_2026-10-10T21-27-13-928282Z` | `benchmark_trades.parquet` | 20 | 1 | 1 | 20.000000 | changes a number |
+| `exp_2026-10-10T21-27-13-928282Z` | `selected_trades.parquet` | 2379 | 115 | 115 | 20.677528 | changes a number |
+| `exp_2026-10-10T21-28-20-920399Z` | `benchmark_trades.parquet` | 20 | 1 | 1 | 20.000000 | changes a number |
+| `exp_2026-10-10T21-28-20-920399Z` | `selected_trades.parquet` | 2379 | 115 | 115 | 20.677528 | changes a number |
+| `exp_2026-10-10T21-58-28-353634Z` | `ensemble_trades.parquet` | 270 | 82 | 79 | 3.492741 | changes a number |
+| `exp_2026-10-10T21-59-16-546117Z` | `ensemble_trades.parquet` | 270 | 82 | 79 | 3.492741 | changes a number |
+| `exp_2026-10-10T22-59-01-182037Z` | `ensemble_trades.parquet` | 356 | 82 | 80 | 4.536664 | changes a number |
+| `exp_2026-10-11T00-26-35-750834Z` | `best_ddcv_trades.parquet` | 353 | 104 | 97 | 3.567370 | changes a number |
+| `exp_2026-10-11T00-34-05-381535Z` | `best_ddcv_trades.parquet` | 353 | 104 | 97 | 3.567370 | changes a number |
+| `exp_2026-10-11T02-44-40-301520Z` | `best_trades.parquet` | 335 | 99 | 92 | 3.627306 | changes a number |
+| `exp_2026-10-11T02-44-40-301520Z` | `vix_only_trades.parquet` | 285 | 82 | 77 | 3.621090 | changes a number |
+| `exp_2026-10-11T02-46-37-311994Z` | `best_trades.parquet` | 335 | 99 | 92 | 3.627306 | changes a number |
+| `exp_2026-10-11T02-46-37-311994Z` | `vix_only_trades.parquet` | 285 | 82 | 77 | 3.621090 | changes a number |
+| `exp_2026-10-11T07-18-39-160945Z` | `best_trades.parquet` | 335 | 99 | 92 | 3.627306 | changes a number |
+| `exp_2026-10-11T07-18-39-160945Z` | `vix_only_trades.parquet` | 285 | 82 | 77 | 3.621090 | changes a number |
+| `exp_2026-10-11T08-02-22-999214Z` | `best_trades.parquet` | 335 | 99 | 92 | 3.627306 | changes a number |
+| `exp_2026-10-11T08-02-22-999214Z` | `vix_only_trades.parquet` | 285 | 82 | 77 | 3.621090 | changes a number |
+| `exp_2026-10-11T14-52-29-891596Z` | `trades.parquet` | 441 | 176 | 100 | 3.489164 | changes a number |
+| `exp_2026-10-11T14-53-13-076438Z` | `trades.parquet` | 441 | 176 | 100 | 3.489164 | changes a number |
+| `exp_2026-10-11T15-21-31-333870Z` | `benchmark_trades.parquet` | 5 | 1 | 1 | 5.000000 | changes a number |
+| `exp_2026-10-11T15-21-31-333870Z` | `best_trades_w0.5.parquet` | 374 | 106 | 100 | 3.648485 | changes a number |
+| `exp_2026-10-11T15-53-31-819888Z` | `trades.parquet` | 31519 | 11029 | 9216 | 3.509347 | changes a number |
+| `exp_2026-10-11T15-54-17-212022Z` | `trades.parquet` | 31519 | 11029 | 9216 | 3.509347 | changes a number |
+| `exp_2026-10-11T16-44-06-168529Z` | `trades.parquet` | 2690 | 2176 | 368 | 1.788554 | changes a number |
+| `exp_2026-10-11T16-46-06-466282Z` | `trades.parquet` | 2690 | 2176 | 368 | 1.788554 | changes a number |
+| `exp_2026-10-11T16-52-38-694559Z` | `trades.parquet` | 2690 | 2176 | 368 | 1.788554 | changes a number |
+| `exp_2026-10-11T17-24-14-385352Z` | `trades.parquet` | 2869 | 2320 | 391 | 1.719419 | changes a number |
+| `exp_2026-10-11T17-41-18-169363Z` | `trades.parquet` | 3701 | 2975 | 513 | 1.786237 | changes a number |
+| `exp_2026-10-11T18-40-37-427062Z` | `frozen_trades.parquet` | 3701 | 2975 | 513 | 1.786237 | changes a number |
+| `exp_2026-10-11T20-25-36-443045Z` | `baseline_trades.parquet` | 3701 | 2975 | 513 | 1.786237 | changes a number |
+| `exp_2026-10-13T21-11-45-843908Z` | `best_trades.parquet` | 413 | 129 | 129 | 3.691748 | changes a number |
+| `exp_2026-10-13T21-13-09-580962Z` | `best_trades.parquet` | 413 | 129 | 129 | 3.691748 | changes a number |
+| `exp_2026-10-13T21-18-23-178134Z` | `best_trades.parquet` | 338 | 129 | 129 | 2.899811 | changes a number |
+| `exp_2026-10-13T21-22-02-751156Z` | `best_trades.parquet` | 338 | 129 | 129 | 2.899811 | changes a number |
+| `exp_2026-10-13T21-51-45-034237Z` | `best_trades.parquet` | 1467 | 1467 | 0 | 1.000000 | coincides |
+| `exp_2026-10-13T22-40-41-870350Z` | `best_trades.parquet` | 1424 | 1424 | 0 | 1.000000 | coincides |
+| `exp_2026-10-13T23-06-33-191710Z` | `best_trades.parquet` | 4404 | 4404 | 0 | 1.000000 | coincides |
+| `exp_2026-10-13T23-27-52-101656Z` | `trades.parquet` | 12624 | 6335 | 2897 | 2.863843 | changes a number |
+| `exp_2026-10-14T07-12-35-292010Z` | `trades.parquet` | 4980 | 2695 | 830 | 2.850839 | changes a number |
+| `exp_2026-10-14T07-12-59-473353Z` | `trades.parquet` | 4980 | 2695 | 830 | 2.850839 | changes a number |
+| `exp_2026-10-14T07-15-23-322705Z` | `trades.parquet` | 4980 | 2695 | 830 | 2.850839 | changes a number |
+| `exp_2026-10-14T07-32-43-425839Z` | `trades.parquet` | 4980 | 2695 | 830 | 2.850839 | changes a number |
+| `exp_2026-10-14T08-20-16-720432Z` | `trades.parquet` | 441 | 176 | 100 | 3.489164 | changes a number |
+| `exp_2026-10-14T08-20-39-255883Z` | `trades.parquet` | 2715 | 2180 | 394 | 1.790820 | changes a number |
+| `exp_2026-10-14T08-26-02-537359Z` | `trades.parquet` | 1 | 1 | 0 | 1.000000 | coincides |
+| `exp_2026-10-14T08-26-18-385545Z` | `benchmark_trades.parquet` | 20 | 1 | 1 | 20.000000 | changes a number |
+| `exp_2026-10-14T08-26-18-385545Z` | `selected_trades.parquet` | 1471 | 113 | 111 | 12.353926 | changes a number |
+| `exp_2026-10-14T08-27-02-650342Z` | `ensemble_trades.parquet` | 356 | 82 | 80 | 4.536664 | changes a number |
+| `exp_2026-10-14T08-48-49-412372Z` | `trades.parquet` | 0 | 0 | 0 |  | empty |
+| `exp_2026-10-14T09-28-59-592390Z` | `trades.parquet` | 0 | 0 | 0 |  | empty |
+| `exp_2026-10-14T09-32-25-959733Z` | `trades.parquet` | 0 | 0 | 0 |  | empty |
+| `exp_2026-10-14T09-39-07-412533Z` | `trades.parquet` | 0 | 0 | 0 |  | empty |
+| `exp_2026-10-14T10-04-52-936640Z` | `trades.parquet` | 0 | 0 | 0 |  | empty |
+| `exp_2026-10-14T11-53-37-996139Z` | `trades.parquet` | 107 | 60 | 42 | 1.998340 | changes a number |
+| `exp_2026-10-14T18-13-09-457781Z` | `trades.parquet` | 107 | 60 | 42 | 1.998340 | changes a number |
+| `exp_2026-10-14T18-52-08-943792Z` | `trades.parquet` | 4980 | 2695 | 830 | 2.850839 | changes a number |
+| `exp_2026-10-14T20-02-45-189859Z` | `trades.parquet` | 3056 | 1424 | 570 | 3.038720 | changes a number |
+| `exp_2026-10-14T20-08-34-613690Z` | `trades.parquet` | 3056 | 1424 | 570 | 3.038720 | changes a number |
+| `exp_2026-10-19T18-56-08-872500Z` | `trades.parquet` | 441 | 176 | 100 | 3.489164 | changes a number |
+| `exp_2026-10-19T18-56-58-553612Z` | `trades.parquet` | 441 | 176 | 100 | 3.489164 | changes a number |
+| `exp_2026-10-19T15-46-16-261803Z` | `trades.parquet` | 3701 | 2975 | 513 | 1.786237 | changes a number |
+| `exp_2026-10-19T16-41-44-683912Z` | `trades.parquet` | 3820 | 3090 | 539 | 1.676227 | changes a number |
+| `exp_2026-10-19T17-38-03-570526Z` | `trades.parquet` | 12624 | 6335 | 2897 | 2.863843 | changes a number |
+| `exp_2026-10-19T17-38-21-389139Z` | `trades.parquet` | 12669 | 6443 | 2846 | 2.812987 | changes a number |
+| `exp_2026-10-19T17-38-39-157337Z` | `trades.parquet` | 4980 | 2695 | 830 | 2.850839 | changes a number |
+| `exp_2026-10-19T17-38-50-887609Z` | `trades.parquet` | 5262 | 2754 | 903 | 2.912672 | changes a number |
+| `exp_2026-10-19T17-39-02-719690Z` | `trades.parquet` | 3056 | 1424 | 570 | 3.038720 | changes a number |
+| `exp_2026-10-19T17-39-12-729639Z` | `trades.parquet` | 3160 | 1465 | 593 | 3.048129 | changes a number |
+
+(The **h28** rows are the re-certification runs under
+`.experiments/artifacts/h28_causal_recertification/runs/`; the artifact id is the run's own
+timestamp, so the provenance stamp is read from the last path segment.)
+
+### What was verified
+
+- `python -m pytest -q -W error tests/test_trade_log_cost_reconciliation.py` → **37 passed**
+  (13 before this session; the 24 new tests are the scope, published-number and negative-control
+  sections above).
+- `python -m pytest -q -W error` → **1647 passed, 13 skipped** (full suite, up from 1623 + 13).
+- `python -m ruff check src tests run_*.py` → *All checks passed!*.
+- `python -m ruff format --check src tests run_*.py` → **94 files already formatted**.
+- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → `src/qtr` = **1055
+  statements, 318 branches, 0 missed, 0 partial, 100.00%**; *"Required test coverage of 100.0%
+  reached. Total coverage: 100.00%"* — unchanged, because nothing under `src/qtr` changed.
+- **The measurement is a read of the frozen artifacts** — no pipeline re-execution, no network, no
+  grid re-run. Every number in the table above was measured from the committed parquet files
+  themselves, and every published value was checked against the artifact that published it.
+- **The negative control is behavioural**, not an API check: the classifier is shown to answer
+  `"per-trade"` for a log the fixed engine wrote and `"aggregate"` for the pre-fix reconstruction
+  of the same data.
+
+### What remains unresolved
+
+- **The 14 benchmark `avg_trade_cost` entries** whose benchmark trade log and signals were never
+  committed are on the pre-fix basis (same engine commit) but their over-count factor is **not
+  measurable from the record**. They are disclosed, not quantified.
+- **The three published `avg_trade_cost` values** over-stated by the pre-fix attribution remain
+  published as they are; the artifacts are frozen and no gate reads them.
+- **The 22 published `information_ratio` values** on the `ddof=1` convention no longer re-derive
+  from the library (§H51); disclosed, not rewritten.
+- **H9's published OOS Sharpe** is on the sample convention; disclosed and pinned, verdict frozen.
+- The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified
+  families' numbers and verdicts are frozen.
