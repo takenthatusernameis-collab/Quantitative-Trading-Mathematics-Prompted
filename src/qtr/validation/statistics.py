@@ -558,8 +558,10 @@ def compare_to_benchmark(
         strat = strat[valid]
         bench = bench[valid]
 
-    # Excess returns
-    excess = strat - bench
+    # Excess returns — reduce to a numpy array with an explicit ddof=1 (sample)
+    # so the standard deviation is independent of the caller's container
+    # (pandas.Series.std() defaults to ddof=1, ndarray.std() defaults to 0).
+    excess = np.asarray(strat, dtype=float) - np.asarray(bench, dtype=float)
 
     if len(excess) < 2:
         # Fewer than two paired observations: `np.cov(..., ddof=1)` is
