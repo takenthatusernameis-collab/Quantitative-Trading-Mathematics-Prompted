@@ -1,6 +1,46 @@
-# HANDOFF — H48 complete (session handoff)
+# HANDOFF — H49 complete (session handoff)
 
-## What changed
+## What changed (H49)
+
+**H49:** the published `validation` blocks in all five exploratory summaries re-derive from their
+own frozen `equity_curve.parquet`, and the `walkforward_stability` basis they were written on is
+disclosed and pinned.
+
+- `tests/test_h49_validation_block_disclosure.py` — **new**, 11 tests: re-derives each published
+  `validation` block from its own frozen equity curve and asserts the published values — including
+  the pre-guard `walkforward_stability` ratio, the `walkforward_folds`, the absence of the
+  `param_stability` key, the fact that the two buy-and-hold blocks differ by cost model, and that
+  `all_pass` stays `false`.
+- `FINAL_REPORT.md` — new **§H49** section (rewritten from the H48-era draft) and an updated
+  "Next task" section.
+- `HANDOFF.md`, `HANDOFF_CURRENT.md`, `HANDOFF_CURRENT_SESSION.md`, `HANDOFF_NEXT.md`,
+  `NEXT_TASK.md` updated.
+
+### The corrected finding
+
+The H48-era handoff claimed the last two artifacts "do not re-derive" and that the two buy-and-hold
+blocks were written by *different* code versions on the *same* series. **Both claims were based on
+the wrong return convention.** The engine charges costs per bar and compounds them into the equity
+curve (`equity = (1 + net_returns).cumprod() * initial_capital`), so the equity curve carries the
+full series including the opening bar; `equity.pct_change()` alone drops that bar. Including the
+first bar's return — `equity[0] / initial_capital - 1`, the cost of the very first position change
+charged on the opening bar — reproduces the published block for **all five** artifacts to float
+noise (< 1e-9).
+
+The published `walkforward_stability` is exactly `sharpe(second half) / sharpe(first half)`, taken
+**unconditionally** (the pre-guard formula). In three ma_crossover artifacts both halves are losing,
+so the sign-unaware ratio **passed** the `0.7` gate on a strategy that lost money in both halves;
+the current sign-aware code reports `0.0`. In the two buy-and-hold artifacts both halves are
+profitable, so the published value and the current code agree. All five published blocks report
+`walkforward_pass: True` and `all_pass: false`; the current code would report
+`walkforward_pass: False` for the three ma_crossover artifacts. **No verdict moves.**
+
+The two buy-and-hold blocks differ because they charged **different costs** baked into their own
+frozen equity curves (real cost model, `avg_trade_cost = 0.041106`, vs a fixed `0.0002` per trade),
+on the **same** SPY price series. Each block re-derives exactly from **its own** frozen equity
+curve; they do not re-derive from each other's. Disclosed, not reconciled.
+
+## What changed (H48)
 
 **H48:** `qtr.validation.statistics.parameter_sensitivity` is now seedable, so its bootstrap
 confidence intervals are reproducible instead of redrawn from OS entropy on every call.
@@ -58,18 +98,13 @@ public API now takes a `random_state`.
 
 ## What remains unresolved
 
-- **The published `validation` blocks are on an older `validate_strategy`** (the new assignment,
-  H49). The five committed exploratory summaries (2026-10-10 / 2026-10-14 MA-crossover runs) carry
-  a `validation` block written by a version with **no `param_stability` gate** and with a
-  **sign-unaware** walk-forward ratio. Re-deriving the block from each artifact's own frozen
-  `equity_curve.parquet` shows `sharpe`, `profit_factor`, `max_drawdown` and `total_return` **do**
-  reproduce from the frozen data in three of the five, but `walkforward_stability` does not: there
-  the published value is exactly `sharpe(second half) / sharpe(first half)` **with both halves
-  losing** (e.g. `1.8391876…` from `−1.5594 / −0.8479`), a figure the current sign-aware code
-  reports as `0.0`. The published `walkforward_pass` is therefore on the pre-guard basis. In the
-  other two artifacts the published block does not re-derive at all, and the two blocks were
-  written by *different* code versions on the *same* series. No verdict moves (all five are
-  `all_pass: false`), but the drift is real and is currently undocumented.
+- **H49 is COMPLETE** (2026-10-21): the published `validation` blocks in all five exploratory
+  summaries re-derive from their own frozen `equity_curve.parquet` under the engine's full return
+  convention (including the opening bar), and the `walkforward_stability` basis — the
+  sign-unaware `sharpe(2nd half) / sharpe(1st half)` — is disclosed and pinned by
+  `tests/test_h49_validation_block_disclosure.py` (11 tests). The two buy-and-hold blocks differ
+  from each other because they charged different costs baked into their own frozen equity curves.
+  Full statement with the measured table in `FINAL_REPORT.md` §H49.
 - **Disclosure (H47)** — the `cost` column of the **committed** trade logs (H10, H11, H16, H21,
   H22, H25) and the `avg_trade_cost` of the three exploratory 2026-10-10 MA-crossover summaries
   carry the pre-fix aggregate attribution. The artifact files are frozen and were left untouched.
@@ -103,22 +138,5 @@ public API now takes a `random_state`.
 
 ## Precise next task
 
-**H49 — re-derive the published `validation` blocks from the frozen artifacts, and disclose the
-`walkforward_stability` basis they were written on.** The five committed exploratory summaries that
-carry a `validation` block (`exp_2026-10-10T17-02-22-080026Z`, `exp_2026-10-10T17-03-39-610858Z`,
-`exp_2026-10-10T17-04-21-400695Z`, `exp_2026-10-10T17-05-58-697503Z`,
-`exp_2026-10-14T08-26-02-537359Z`) were written by an **earlier** `validate_strategy` — one with
-**no `param_stability` gate** and a **sign-unaware** walk-forward ratio. Re-deriving the block from
-each artifact's own frozen `equity_curve.parquet` shows `sharpe`, `profit_factor`, `max_drawdown`
-and `total_return` reproduce from the frozen data in three of the five, but `walkforward_stability`
-does not: the published value is exactly `sharpe(second half) / sharpe(first half)` **with both
-halves losing** (e.g. `1.8391876…` from `−1.5594 / −0.8479`), which *passed* the `0.7` gate on a
-strategy that lost money in both halves; the current sign-aware code reports `0.0`. In the other
-two artifacts the published block does not re-derive at all, and the two blocks were written by
-different code versions on the same series. Determine the cause (do not assume it), publish the
-finding as a **disclosure** (the artifacts are frozen — the published `walkforward_pass` and the
-absent `param_stability` key are *history*), and pin it with a test module that re-derives the
-block from the frozen equity curve and asserts the published values, so the drift cannot change
-silently. The **certified** families are out of scope: they carry no `validation` block, and no
-gate, threshold, verdict or certified number may move. Full statement, with the measured table, in
-`NEXT_TASK.md`.
+**H49 is complete** (2026-10-21). No further task is assigned; the record of what was done is in
+`FINAL_REPORT.md` §H49 and `HANDOFF_CURRENT.md`.
