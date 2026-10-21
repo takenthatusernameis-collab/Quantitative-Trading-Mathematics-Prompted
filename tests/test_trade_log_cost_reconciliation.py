@@ -779,6 +779,30 @@ BENCHMARK_COST_ENTRY_BARS_VERIFIED: dict[str, float] = {
     "exp_2026-10-10T17-04-21-400695Z": 5.0,
 }
 
+#: The 14 benchmark entries whose benchmark trade log and signals were
+#: never committed. They are on the pre-fix engine basis (same commit window)
+#: but the over-count factor is **not measurable from the record**: they use
+#: a 5-contract futures benchmark whose trade log and signals are absent.
+#: Disclosed, not quantified -- and the only remaining item of that kind.
+BENCHMARK_COST_NOT_MEASURABLE: frozenset[str] = frozenset(
+    [
+        "exp_2026-10-10T21-58-07-833835Z",
+        "exp_2026-10-10T21-58-28-353634Z",
+        "exp_2026-10-10T21-59-16-546117Z",
+        "exp_2026-10-10T22-59-01-182037Z",
+        "exp_2026-10-11T00-25-56-751422Z",
+        "exp_2026-10-11T00-26-08-362690Z",
+        "exp_2026-10-11T00-26-18-281925Z",
+        "exp_2026-10-11T00-26-35-750834Z",
+        "exp_2026-10-11T00-34-05-381535Z",
+        "exp_2026-10-11T02-44-40-301520Z",
+        "exp_2026-10-11T02-46-37-311994Z",
+        "exp_2026-10-11T07-18-39-160945Z",
+        "exp_2026-10-11T08-02-22-999214Z",
+        "exp_2026-10-14T08-27-02-650342Z",
+    ]
+)
+
 #: The families whose trade logs are in the record. §H47 named six of them;
 #: the record holds eleven.
 H47_FAMILIES: frozenset[str] = frozenset({"H10", "H11", "H16", "H21", "H22", "H25"})
@@ -1093,6 +1117,26 @@ class TestPublishedCostColumnNumbers:
             if "cost" in stats.get("trades", ""):
                 echoes += 1
         assert echoes == STATS_FILES_ECHOING_A_TRADE_LOG
+
+    def test_the_unverified_benchmark_entries_are_pinned_as_not_measurable(self):
+        """The 14 benchmark entries have no committed trade log or signals."""
+        for experiment_id in sorted(BENCHMARK_COST_NOT_MEASURABLE):
+            assert experiment_id in BENCHMARK_COST_METADATA
+            exp_dir = ROOT / ".experiments" / "artifacts" / experiment_id
+            assert not (exp_dir / "benchmark_trades.parquet").exists()
+            assert not (exp_dir / "signals_buy_and_hold.parquet").exists()
+            # on pre-fix basis but factor not measurable
+            assert (exp_dir / "benchmark_equity.parquet").exists()
+
+    def test_every_benchmark_entry_is_classified(self):
+        """Every benchmark in metadata is either verified or not measurable."""
+        all_bench = set(BENCHMARK_COST_METADATA)
+        classified = (
+            set(BENCHMARK_COST_OVER_COUNT_VERIFIED)
+            | set(BENCHMARK_COST_ENTRY_BARS_VERIFIED)
+            | BENCHMARK_COST_NOT_MEASURABLE
+        )
+        assert classified == all_bench
 
 
 class TestScopeNegativeControl:

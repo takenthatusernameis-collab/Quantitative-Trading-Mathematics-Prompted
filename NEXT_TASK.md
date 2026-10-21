@@ -2,7 +2,7 @@
 
 ## State
 
-H35–H53 complete (the coverage gate is measured, declared and complete at 100% statement + branch;
+H35–H54 complete (the coverage gate is measured, declared and complete at 100% statement + branch;
 the package's public API and the runners' import surface are both declared and pinned; the engine's
 trade log reconciles with the costs it charges; the package's stochastic surface is seedable; the
 published validation blocks re-derive from the frozen artifacts; the package's metadata has exactly
@@ -172,6 +172,12 @@ published under the convention that replaced it:
 - The published `metrics` blocks (§H53) are pinned by
   `tests/test_h53_published_metrics_disclosure.py`; re-run it after any change under
   `src/qtr/validation` **or after a new artifact is committed**.
+- The trade-log cost reconciliation and the benchmark classification (§H52/H54) are pinned by
+  `tests/test_trade_log_cost_reconciliation.py`; re-run it after any change under
+  `src/qtr/backtest` **or after a new artifact is committed**.
+- The `stats.json` echo conventions (§H54) are pinned by
+  `tests/test_h54_stats_json_echo_conventions.py`; re-run it after any change that affects
+  `stats.json` publication.
 - Re-run `tests/test_runner_causality_inventory.py`, `tests/test_runner_metric_agreement.py` and
   `tests/test_benchmark_gate_contract.py` after any change in a runner or under
   `src/qtr/validation`.
