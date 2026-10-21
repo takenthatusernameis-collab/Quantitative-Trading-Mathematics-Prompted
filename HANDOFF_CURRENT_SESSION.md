@@ -1,76 +1,98 @@
-# HANDOFF_CURRENT_SESSION — H49: the published validation blocks re-derive from the frozen artifacts
+# HANDOFF_CURRENT_SESSION — H50: the package's metadata has one source of truth
 
 ## What changed
 
-- `tests/test_h49_validation_block_disclosure.py` — **new**, 11 tests: re-derives each published
-  `validation` block from its own frozen `equity_curve.parquet` and asserts the published values,
-  so the drift cannot change silently.
-- `FINAL_REPORT.md` — new **§H49** section (rewritten from the H48-era draft) and an updated
-  "Next task" section.
+- `.gitignore` — `*.egg-info/` added: the setuptools-generated metadata is ignored.
+- `src/qtr.egg-info/` — **untracked** (`git rm -r --cached`); the files stay on disk (the editable
+  install resolves to them) but they are no longer part of the repository.
+- `tests/test_generated_manifest_contract.py` — **new**, 11 tests.
+- `FINAL_REPORT.md` — new **§H50** section and an updated "Next task" section.
 
-### The corrected finding
+### The gap
 
-The earlier handoff claimed the last two artifacts "do not re-derive" and that the two buy-and-hold
-blocks were written by *different* code versions on the *same* series. **Both claims were based on
-the wrong return convention.** Re-deriving with the engine's actual convention reproduces the
-published block for **all five** artifacts to float noise (< 1e-9).
+`src/qtr.egg-info/` is a **build artifact**, not a source file: setuptools rewrites it on every
+build and every install, so the committed copy could only ever be a stale snapshot of the tree —
+and it was. The tracked `SOURCES.txt` held **61** entries where the current tree produces **64**
+(the three test modules added between H33 and H49 were missing). Nothing noticed, because a tracked
+manifest has no invariant.
 
-**The missing first bar.** The engine charges costs per bar and compounds them into the equity
-curve (`equity = (1 + net_returns).cumprod() * initial_capital`), so the equity curve carries the
-full series including the opening bar. `equity.pct_change()` alone drops that bar: for
-`exp_2026-10-14T08-26-02-537359Z` it yields Sharpe `0.6849808` against the published `0.6847308`
-(a 2.5e-4 gap). Including the first bar's return — `equity[0] / initial_capital - 1`, the cost of
-the very first position change, charged on the opening bar — reproduces the published block exactly.
+### Why "regenerate and commit" is not the fix — measured
 
-| artifact | sharpe | profit_factor | max_drawdown | total_return | walkforward_stability |
-|---|---|---|---|---|---|
-| `…17-02-22-080026Z` | matches (4e-16) | matches | matches | matches | matches (4e-16) |
-| `…17-03-39-610858Z` | matches (2e-15) | matches | matches | matches | matches (2e-16) |
-| `…17-04-21-400695Z` | matches (9e-16) | matches | matches | matches | matches (4e-15) |
-| `…17-05-58-697503Z` | matches (8e-16) | matches | matches | matches | matches (5e-15) |
-| `…08-26-02-537359Z` | matches (3e-15) | matches | matches | matches | matches (4e-15) |
+The conclusion of the two earlier sessions was right; the stated mechanism was not quite right.
+Building the same tree with the **local setuptools 68.1.2** (no build isolation):
 
-### The `walkforward_stability` basis
+```
+Metadata-Version: 2.1
+Requires-Dist: numpy >=1.24.0
+Requires-Dist: yfinance >=0.2.0 ; extra == 'data'
+```
 
-Every published `walkforward_stability` is exactly `sharpe(second half) / sharpe(first half)`,
-taken **unconditionally** — the pre-guard formula. The published `walkforward_folds` also
-re-derive from the frozen equity curve under the same convention.
+against the committed file, built under pip's build isolation (a newer setuptools):
 
-* Three ma_crossover artifacts: **both halves losing** (`−1.5594 / −0.8479 = 1.8391876…`), so the
-  sign-unaware ratio **passed** the `0.7` gate on a strategy that lost money in both halves. The
-  current sign-aware code reports `0.0` and would report `walkforward_pass: False`.
-* Two buy-and-hold artifacts: **both halves profitable**, so the published value and the current
-  sign-aware code agree (`1.0277108` and `0.9334875`).
+```
+Metadata-Version: 2.4
+Requires-Dist: numpy>=1.24.0
+Requires-Dist: yfinance>=0.2.0; extra == "data"
+```
 
-All five published blocks report `walkforward_pass: True` and `all_pass: false`; the current code
-would report `walkforward_pass: False` for the three ma_crossover artifacts. **No verdict moves.**
+The **same** package, two serialisations: the metadata version drops `2.4 → 2.1`, the requirement
+markers are re-spaced and re-quoted, the entries are reordered. **A correction to the earlier
+record:** the `Requires-Dist` entries are *not* dropped — every base requirement and every extra's
+requirement is present in both builds; they are reformatted. What is environment-dependent is the
+**serialisation**, which is enough to make "regenerate and commit" irreproducible: the committed
+bytes would freeze whichever setuptools happened to build them last.
 
-### Why the two buy-and-hold blocks differ from each other
+Reproduction (no network): `from setuptools import build_meta;
+build_meta.prepare_metadata_for_build_wheel("<tmp>")`.
 
-`exp_2026-10-10T17-05-58-697503Z` and `exp_2026-10-14T08-26-02-537359Z` run the **same** SPY
-buy-and-hold series (price series byte-identical, equity curves proportional), but their published
-blocks differ because they charged **different costs**, baked into their own frozen equity curves:
-`…17-05-58` charged the real cost model (`avg_trade_cost = 0.041105949376283715`) while
-`…08-26-02` charged a fixed `0.0002` per trade (`avg_trade_cost = 0.00020009711746988646`).
-Each block re-derives exactly from **its own** frozen equity curve; they do not re-derive from each
-other's. Disclosed, not reconciled.
+### The contract now pinned (11 tests)
+
+1. **Ignored** — `.gitignore` declares the rule and `git check-ignore` agrees.
+2. **Not tracked** — no tracked path lives inside a `*.egg-info/` directory.
+3. **Only one declaration** — no tracked `setup.py` / `setup.cfg` / `PKG-INFO` / `requires.txt` /
+   `top_level.txt`.
+4. **No dependency** — no module under `src/qtr` references the generated manifest (the package
+   imports from a bare clone with no install step).
+5. **The build agrees with the declaration** — the generated `PKG-INFO` *and* the installed
+   distribution's metadata reproduce the declared version, python floor, base requirements and every
+   extra's requirements. The comparison is normalisation-based, so it does not depend on which
+   setuptools built the metadata.
+6. **No staleness** — a generated `SOURCES.txt` that exists must list the tree's current modules.
+
+Two facts found while writing it:
+
+- **`importlib.metadata` resolves the distribution to the source tree** whenever `src` is on the
+  import path (the test suite puts it there): `distribution("qtr")._path` is `src/qtr.egg-info`, not
+  the installed `dist-info` — so a developer's tooling reads the *generated* manifest as the
+  package's metadata, which is why invariant 5 checks it.
+- **A git command that ran and failed is a verdict, not an absence.** The first draft returned
+  `None` for any non-zero exit, so `check-ignore` exiting 1 (nothing matched) was silently
+  *skipped* instead of failing the contract. Now only a missing git executable or a checkout
+  without a repository skips.
 
 ## What was actually verified
 
-- `python -m pytest -q -W error tests/test_h49_validation_block_disclosure.py` → **11 passed**.
-- `python -m pytest -q -W error` → **1366 passed, 1 skipped** (full suite, up from 1355).
+- `python -m pytest -q -W error tests/test_generated_manifest_contract.py` → **11 passed**.
+- `python -m pytest -q -W error` → **1377 passed, 1 skipped** (full suite, up from 1366).
 - `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → `src/qtr` =
-  **1054 statements, 320 branches, 0 missed, 0 partial, 100.00%**; the committed gate reports
-  *"Required test coverage of 100.0% reached. Total coverage: 100.00%"*.
+  **1054 statements, 320 branches, 0 missed, 0 partial, 100.00%** (unchanged — nothing under
+  `src/qtr` was touched).
 - `python -m ruff check src tests run_*.py` → *All checks passed!*.
-- `python -m ruff format --check src tests run_*.py` → **92 files already formatted**.
-- The re-derivation is read-only against the frozen artifacts (no pipeline re-execution, no
-  network, no grid re-run).
-- The published blocks carry **no `param_stability` key** (they pre-date that gate); pinned.
-- The published `all_pass` is `false` for all five and stays `false`.
+- `python -m ruff format --check src tests run_*.py` → **93 files already formatted**.
+- **Negative control** — the contract run against the **pre-fix** state (the manifest re-added to
+  the index with `git add -f`): **3 of the 11 tests fail**, every failure behavioural — the
+  detector names the offending paths, `check-ignore` exits 1 against a tracked path, and the
+  "only one declaration" invariant lists the duplicate metadata files. No failure is an error, a
+  skip, or a missing keyword.
+- The change is additive to the repository's history: the manifest files remain on disk, the
+  editable install still resolves (`import qtr` → `src/qtr/__init__.py`), and the working tree is
+  clean after `pip install -e .` — where it previously was not, because the tracked copy was
+  rewritten by the install.
 
 ## What remains unresolved
 
-- The **certified** families are out of scope: they carry no `validation` block, and no gate,
-  threshold, verdict or certified number may move.
-- The H47 cost-attribution disclosure and the stale `src/qtr.egg-info/` manifest are unchanged.
+- The **H47 cost-attribution disclosure** (the `cost` column of the committed trade logs) is
+  unchanged — the artifact files are frozen.
+- **H9's published OOS Sharpe** is on the sample convention; disclosed and pinned, verdict frozen.
+- The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified
+  families' numbers and verdicts are frozen.

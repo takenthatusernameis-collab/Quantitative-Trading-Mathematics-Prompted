@@ -2331,6 +2331,14 @@ convention (including the opening bar), and the `walkforward_stability` basis �
 each other because they charged different costs baked into their own frozen equity curves. Full
 statement with the measured table in **§H49** above.
 
+**H50 is complete** (2026-10-21): the setuptools-generated metadata directory is **untracked** and
+ignored, and `pyproject.toml` is now the only declared source of the package's metadata. The
+"regenerate and commit" route is closed by measurement — the generated metadata's serialisation
+depends on which setuptools built it (`Metadata-Version: 2.1` locally, `2.4` under pip's build
+isolation) — and the arrangement is pinned by `tests/test_generated_manifest_contract.py`
+(11 tests; 3 of them fail behaviourally against the pre-fix state). Full statement in **§H50**
+above.
+
 The state a next session inherits:
 
 - The pre-registered free-data hypothesis space (H1–H30) remains **exhausted**; no new hypothesis
@@ -2349,6 +2357,9 @@ The state a next session inherits:
 - The package's stochastic surface is seedable and the reproducibility is pinned (§H48); re-run
   `tests/test_parameter_sensitivity_reproducibility.py` after any change under
   `src/qtr/validation`.
+- The package's metadata has exactly one declared source of truth (§H50); re-run
+  `tests/test_generated_manifest_contract.py` after any change to `pyproject.toml`, `.gitignore`
+  or the packaging layout.
 
 Previous state, retained for the record: all assigned tasks H35–H43 are complete. All
 metric-agreement sites — library-side (§H39), runner-local helpers (§H40) and runner-inline sites
@@ -2431,3 +2442,129 @@ other's. This is disclosed, not reconciled: the artifacts are frozen.
 - The **certified** families are out of scope: they carry no `validation` block, and no gate,
   threshold, verdict or certified number may move.
 - The H47 cost-attribution disclosure and the stale `src/qtr.egg-info/` manifest are unchanged.
+
+## H50 — the package's metadata has exactly one source of truth (2026-10-21)
+
+**What changed.** The setuptools-generated metadata directory `src/qtr.egg-info/` is **no longer
+tracked**; `*.egg-info/` is now in `.gitignore`, and `tests/test_generated_manifest_contract.py`
+(11 tests) makes the arrangement structural rather than advisory: `pyproject.toml` is the only
+declared source of the package's metadata, and nothing in the package depends on the build
+artifact.
+
+- `.gitignore` — `*.egg-info/` added.
+- `src/qtr.egg-info/` — **untracked** (`git rm -r --cached`). The files stay on disk (the editable
+  install resolves to them) but they are no longer part of the repository.
+- `tests/test_generated_manifest_contract.py` — **new**, 11 tests.
+- `FINAL_REPORT.md` — new **§H50** section and an updated "Next task" section.
+
+### The gap
+
+`src/qtr.egg-info/` is a **build artifact**, not a source file. setuptools rewrites it on every
+build and every install, so the copy in the repository could only ever be a stale snapshot of the
+tree — and it was. The tracked `SOURCES.txt` held **61** entries where the current tree produces
+**64**: the three test modules added between H33 and H49 (`test_h49_validation_block_disclosure.py`,
+`test_parameter_sensitivity_reproducibility.py`, `test_trade_log_cost_reconciliation.py`) were
+missing from it. Nothing in the suite noticed, because a tracked manifest has no invariant: the
+drift was invisible for sixteen sessions.
+
+### Why "regenerate and commit" is not the fix — measured
+
+Two earlier sessions rejected regeneration and asked for a materially different route. The
+conclusion was right; the stated mechanism was not quite right, and the measurement is worth
+recording because it is the argument for untracking.
+
+Building the same tree with the **local setuptools 68.1.2** (no build isolation) against the
+committed `PKG-INFO`:
+
+```python
+from setuptools import build_meta
+build_meta.prepare_metadata_for_build_wheel("<tmp>")
+```
+
+```
+Metadata-Version: 2.1          <- local setuptools 68.1.2
+Requires-Dist: numpy >=1.24.0
+Requires-Dist: yfinance >=0.2.0 ; extra == 'data'
+```
+
+against the committed file, which was built under pip's build isolation (a newer setuptools):
+
+```
+Metadata-Version: 2.4          <- committed
+Requires-Dist: numpy>=1.24.0
+Requires-Dist: yfinance>=0.2.0; extra == "data"
+```
+
+The **same** package, two different serialisations: the metadata version drops `2.4 → 2.1`, the
+requirement markers are re-spaced and re-quoted, and the entries are reordered. A **correction to
+the earlier record**: the `Requires-Dist` entries are *not* dropped — every base requirement and
+every extra's requirement is present in both builds; they are reformatted. What is actually
+environment-dependent is the **serialisation**, which is enough to make "regenerate and commit"
+irreproducible: the committed bytes would freeze whichever setuptools happened to build them last.
+
+A build artifact is therefore the wrong thing to version. The answer is to **untrack** it and to
+make `pyproject.toml` the single declared source of truth — the route the H48 and H49 handoffs
+prescribed.
+
+### The contract now pinned
+
+`tests/test_generated_manifest_contract.py` (11 tests) holds six invariants:
+
+1. **Ignored** — `.gitignore` declares the rule, and `git check-ignore` agrees (the textual rule
+   and git's matcher can disagree, and git refuses to report a *tracked* path as ignored, so the
+   check is made with git).
+2. **Not tracked** — no tracked path lives inside a `*.egg-info/` directory.
+3. **Only one declaration** — no tracked `setup.py`, `setup.cfg`, `PKG-INFO`, `requires.txt` or
+   `top_level.txt`: `pyproject.toml` is the only place the package's metadata is declared.
+4. **No dependency** — no module under `src/qtr` references the generated manifest. The package is
+   importable from a bare clone with no install step (`pythonpath = ["src"]`), so a module that
+   read `src/qtr.egg-info/...` would work in a developer's checkout and fail in a fresh clone.
+5. **The build agrees with the declaration** — the generated `PKG-INFO` *and* the installed
+   distribution's metadata must reproduce the declared version, python floor, base requirements and
+   every extra's requirements. The comparison is normalisation-based (`numpy >=1.24.0` and
+   `numpy>=1.24.0` are the same requirement), so it does not depend on which setuptools built it.
+6. **No staleness** — a generated `SOURCES.txt` that exists must list the tree's current modules.
+
+Two facts worth recording, both found while writing the contract:
+
+- **`importlib.metadata` resolves the distribution to the source tree** whenever `src` is on the
+  import path (which the test suite puts there): `importlib.metadata.distribution("qtr")._path` is
+  `src/qtr.egg-info`, not the installed `dist-info`. A developer's tooling therefore reads the
+  *generated* manifest as the package's metadata — which is precisely why invariant 5 checks it.
+- **The git-backed checks skip cleanly** when the checkout carries no git metadata (a source
+  tarball), so the suite still runs from a bare clone; but a git command that *ran and failed*
+  (`check-ignore` exiting 1 because nothing matched) is a verdict, not an absence, and now fails
+  the contract instead of being silently skipped.
+
+### What was verified
+
+- `python -m pytest -q -W error tests/test_generated_manifest_contract.py` → **11 passed**.
+- `python -m pytest -q -W error` → **1377 passed, 1 skipped** (full suite, up from 1366).
+- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → `src/qtr` =
+  **1054 statements, 320 branches, 0 missed, 0 partial, 100.00%** (unchanged — no module under
+  `src/qtr` was touched).
+- `python -m ruff check src tests run_*.py` → *All checks passed!*.
+- `python -m ruff format --check src tests run_*.py` → **93 files already formatted**.
+- **Negative control** — the contract run against the **pre-fix** state (the manifest re-added to
+  the index with `git add -f`): **3 of the 11 tests fail**, and every failure is *behavioural* — the
+  detector names the offending paths (`src/qtr.egg-info/PKG-INFO`, `…/requires.txt`,
+  `…/top_level.txt`), `check-ignore` exits 1 against a tracked path, and the "only one declaration"
+  invariant lists the duplicate metadata files. No failure is an error, a skip, or a missing
+  keyword.
+- The change is **additive to the repository's history**: the manifest files remain on disk, the
+  editable install still resolves (`import qtr` → `src/qtr/__init__.py`), and the working tree is
+  clean after `pip install -e .` — where it previously was not, because the tracked copy was
+  rewritten by the install.
+
+### What was not changed
+
+No published artifact, gate threshold, verdict or certified number was modified; no grid was
+re-run; no hypothesis was added; **no module under `src/qtr` and no runner was touched**.
+
+### What remains unresolved
+
+- The **H47 cost-attribution disclosure** (the `cost` column of the committed trade logs) is
+  unchanged — the artifact files are frozen.
+- **H9's published OOS Sharpe** is on the sample convention; disclosed and pinned, verdict frozen.
+- The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified
+  families' numbers and verdicts are frozen.

@@ -2,100 +2,99 @@
 
 ## State
 
-H35–H48 complete (the coverage gate is measured, declared and complete at 100% statement +
+H35–H50 complete (the coverage gate is measured, declared and complete at 100% statement +
 branch; the package's public API and the runners' import surface are both declared and pinned; the
 engine's trade log reconciles with the costs it charges; the package's stochastic surface is
-seedable).
-**H49 is complete**: the published `validation` blocks in all five exploratory summaries re-derive
-from their own frozen `equity_curve.parquet` under the engine's full return convention, and the
-`walkforward_stability` basis — the sign-unaware `sharpe(2nd half) / sharpe(1st half)` — is
-disclosed and pinned by `tests/test_h49_validation_block_disclosure.py` (11 tests).
+seedable; the published validation blocks re-derive from the frozen artifacts; the package's
+metadata has exactly one declared source of truth).
+**H50 is complete**: the setuptools-generated metadata directory `src/qtr.egg-info/` is **untracked**
+and ignored, `pyproject.toml` is the only declared source of the package's metadata, and the
+arrangement is pinned by `tests/test_generated_manifest_contract.py` (11 tests).
 
-## What changed (H48)
+## What changed (H50)
 
-- `src/qtr/validation/statistics.py`
-  - `parameter_sensitivity` takes an **optional** `random_state` (default `None`, so **no existing
-    caller changes behaviour**).
-  - `_bootstrap_seeds` (new) expands an integer seed into **one independent stream per parameter
-    row** (`np.random.SeedSequence(seed).spawn(n)`), so the rows are not resampled with a shared
-    pattern; a row's seed does not depend on how many rows the grid holds, so extending the grid
-    does not perturb the rows already analysed. The unseeded path passes `None` straight through.
-- `tests/test_parameter_sensitivity_reproducibility.py` — **new**, 14 tests: exact reproducibility
-  under a fixed seed, seed isolation from the legacy global `np.random.seed`, different seeds →
-  different bounds, seed-free point estimates, row independence, grid-extension stability,
-  **cross-process** reproducibility, a **negative control** (the unseeded path really moves; the
-  pre-fix call site is reconstructed and shown to fail the invariant), and the published-record
-  disclosure.
-- `FINAL_REPORT.md` — new **§H48** section and an updated "Next task" section.
+- `.gitignore` — `*.egg-info/` added.
+- `src/qtr.egg-info/` — **untracked** (`git rm -r --cached`); the files stay on disk (the editable
+  install resolves to them) but they are no longer part of the repository.
+- `tests/test_generated_manifest_contract.py` — **new**, 11 tests.
+- `FINAL_REPORT.md` — new **§H50** section and an updated "Next task" section.
 - `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_CURRENT.md`, `HANDOFF_CURRENT_SESSION.md`,
   `HANDOFF_NEXT.md` updated.
 
 ## What was actually verified
 
-- `python -m pytest -q -W error tests/test_parameter_sensitivity_reproducibility.py` → **14 passed**.
-- `python -m pytest -q -W error` → **1355 passed, 1 skipped** (full suite).
+- `python -m pytest -q -W error tests/test_generated_manifest_contract.py` → **11 passed**.
+- `python -m pytest -q -W error` → **1377 passed, 1 skipped** (full suite, up from 1366).
 - `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → `src/qtr` = **1054
-  statements, 320 branches, 0 missed, 0 partial, 100.00%**; the committed gate reports *"Required
-  test coverage of 100.0% reached. Total coverage: 100.00%"*.
+  statements, 320 branches, 0 missed, 0 partial, 100.00%** (unchanged — nothing under `src/qtr`
+  was touched); the committed gate reports *"Required test coverage of 100.0% reached. Total
+  coverage: 100.00%"*.
 - `python -m ruff check src tests run_*.py` → *All checks passed!*.
-- `python -m ruff format --check src tests run_*.py` → **91 files already formatted**.
-- **Negative control** — the new contract run against the **pre-fix** implementation: **4 of the 14
-  tests fail**, and every failure is **behavioural** (the bounds move; e.g. `-0.5059` against
-  `-0.7423`), not a `TypeError` for a missing keyword. An earlier draft of the contract failed
-  only with `TypeError: parameter_sensitivity() got an unexpected keyword argument
-  'random_state'`; that measures the *API* rather than the behaviour and was replaced by the
-  `_seeded()` adapter, which drives the pre-fix function down its unseeded path.
-- **Preconditions verified before the change** — no `run_*.py` calls `parameter_sensitivity`
-  (AST scan of all 32 runners), and `validate_strategy` derives its published `param_stability`
-  from the walk-forward fold Sharpes (`src/qtr/validation/statistics.py:714`), **not** from
-  `parameter_sensitivity`; both facts are now pinned by the new contract.
+- `python -m ruff format --check src tests run_*.py` → **93 files already formatted**.
+- **Negative control** — the contract run against the **pre-fix** state (the manifest re-added to
+  the index with `git add -f`): **3 of the 11 tests fail**, every failure behavioural — the
+  detector names the offending paths, `git check-ignore` exits 1 against a tracked path, and the
+  "only one declaration" invariant lists the duplicate metadata files.
+- The manifest files remain on disk and the editable install still resolves (`import qtr` →
+  `src/qtr/__init__.py`); the working tree is clean after `pip install -e .`, where it previously
+  was not.
+
+## The corrected finding
+
+The tracked manifest was stale (61 of 64 entries; the three test modules added between H33 and H49
+were missing), and the earlier reason for rejecting regeneration was **not quite right**: building
+the same tree with the local setuptools 68.1.2 writes `Metadata-Version: 2.1` with re-spaced,
+re-quoted requirement markers, where the committed file was built under pip's build isolation as
+`2.4`. The `Requires-Dist` entries are **not dropped** — every base requirement and every extra's
+requirement is present in both builds; they are reformatted and reordered. What is
+environment-dependent is the **serialisation**, which is enough to make "regenerate and commit"
+irreproducible. Untracking is therefore the right fix, and it is now pinned.
 
 ## What remains unresolved
 
-- **The published `validation` blocks are on an older `validate_strategy`** (the new assignment,
-  H49). The five committed exploratory summaries (2026-10-10 / 2026-10-14 MA-crossover runs) carry
-  a `validation` block written by a version with **no `param_stability` gate** and with a
-  **sign-unaware** walk-forward ratio. Re-deriving the block from each artifact's own frozen
-  `equity_curve.parquet` shows `sharpe`, `profit_factor`, `max_drawdown` and `total_return` **do**
-  reproduce from the frozen data (three of the five match to float noise / exactly), but
-  `walkforward_stability` does not: in three of the five the published value is exactly
-  `sharpe(second half) / sharpe(first half)` **with both halves losing** (e.g. `1.8391876…` from
-  `−1.5594 / −0.8479`), a figure the current sign-aware code reports as `0.0`. The published
-  `walkforward_pass` is therefore on the pre-guard basis. No verdict moves (all five are
-  `all_pass: false`), but the drift is real and is currently undocumented.
-- The **committed** `src/qtr.egg-info/` manifest is stale (it predates the test modules added since
-  H33). Regenerating it with the setuptools available here (68.1.2) would *degrade* the committed
-  `PKG-INFO` (`Metadata-Version: 2.1`, core `Requires-Dist` entries dropped), so it was left
-  untouched. Pre-existing, cosmetic: the build regenerates it. A session that wants to close it
-  should use a **materially different** approach — stop tracking the generated manifest (add
-  `*.egg-info/` to `.gitignore` and `git rm --cached src/qtr.egg-info`) rather than regenerating it
-  with a local setuptools. **Two sessions have now hit this.**
-- **Disclosure (H47)** — the `cost` column of the **committed** trade logs (H10, H11, H16, H21,
-  H22, H25) and the `avg_trade_cost` of the three exploratory 2026-10-10 MA-crossover summaries
-  carry the **pre-fix** aggregate attribution. The artifact files are frozen and were left
-  untouched. No gate, threshold, verdict or certified number reads them; the H11 reproduction
-  check compares Sharpe, profit factor, drawdown, the trade *count*, walk-forward stability and
-  worst-regime Sharpe — all unaffected.
-- H9's published OOS Sharpe is on the sample convention (gap 1.026e-04); disclosed and pinned,
+- **The H47 cost-attribution disclosure covers less than the record does.** §H47 publishes that the
+  `cost` column of "the committed trade logs (H10, H11, H16, H21, H22, H25)" carries the pre-fix
+  aggregate attribution, and `tests/test_trade_log_cost_reconciliation.py` pins that disclosure for
+  **one** artifact (H10). A read-only scan of the repository's committed artifacts
+  (`git ls-files ".experiments/artifacts/*/trades.parquet"` → **41** trade logs) shows that
+  **every** one of them carries the pre-fix attribution: in each, all trades of a bar record the
+  same number (`groupby("timestamp")["cost"].nunique() == 1` holds for all 41). The published list
+  is therefore **narrower than the truth**, and the disclosure is pinned for one of them. The
+  measured scope, from the same scan:
+
+  | artifact | trades | bars | bars with >1 trade | pre-fix attribution |
+  |---|---|---|---|---|
+  | `exp_2026-10-10T17-02-22-080026Z` | 257 | 231 | 21 | yes |
+  | `exp_2026-10-11T15-53-31-819888Z` | 31,519 | 11,029 | 9,216 | yes |
+  | `exp_2026-10-11T17-41-18-169363Z` (H10) | 3,701 | 2,975 | 513 | yes |
+  | `exp_2026-10-13T23-27-52-101656Z` | 12,624 | 6,335 | 2,897 | yes |
+  | `exp_2026-10-14T07-12-35-292010Z` | 4,980 | 2,695 | 830 | yes |
+  | `exp_2026-10-10T17-05-58-697503Z` | 1 | 1 | 0 | n/a (single trade: the attributions coincide) |
+
+  (excerpt; the full set is 41 logs and 80 committed `summary.json` files.)
+- **H9's published OOS Sharpe** is on the sample convention (gap 1.026e-04); disclosed and pinned,
   verdict cannot move (REJECT on the profit factor, 55× margin over its 1.0 gate).
 - The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified
   families' numbers and verdicts are frozen.
 
 ## Approaches already tried / failed (and why)
 
-- **A negative control that only asserted the new keyword exists** — rejected: it failed against
-  the pre-fix implementation with `TypeError` (the parameter was *missing*), not because the
-  behaviour was wrong. The contract now goes through the `_seeded()` adapter, so the pre-fix
-  implementation is driven down its unseeded path and the control is **behavioural**.
-- **Regenerating `src/qtr.egg-info/` with the local setuptools** — rejected as a regression to the
-  committed metadata. Two sessions have now hit this; a materially different approach is required
-  (untrack the manifest), not another regeneration.
-- **An explicit top-level `__all__` list** — rejected in favour of composing it from the
-  subpackages' `__all__`s, so the aggregate cannot drift from what it aggregates.
-- **Fixing the H10 trade-log cost by changing the charge** — rejected: the charge was never
-  wrong. The H27 `L3` check proves it (the per-bar cost recomputed from the trade log matches the
+- **Regenerating `src/qtr.egg-info/` with the local setuptools** — rejected, and the stated reason
+  was corrected in H50: setuptools 68.1.2 writes `Metadata-Version: 2.1` with re-spaced, re-quoted
+  markers, but it does **not** drop the `Requires-Dist` entries. The real problem is that the
+  *serialisation* is a function of the build environment, so "regenerate and commit" cannot be
+  reproduced. The manifest was **untracked** instead (§H50).
+- **Regenerating the manifest with pip's build isolation** — rejected: the resulting bytes depend
+  on whichever setuptools pip resolves, which is the same irreproducibility by another route.
+- **A git helper that returns "no result" for any non-zero exit code** — rejected inside H50
+  itself: it made `git check-ignore` exiting 1 (nothing matched) a *skip* instead of a failure.
+  Only a missing git executable or a checkout without a repository may skip.
+- **Fixing the H10 trade-log cost by changing the charge** — rejected: the charge was never wrong.
+  The H27 `L3` check proves it (the per-bar cost recomputed from the trade log matches the
   engine's per-bar cost to ~1e-19 for all five audited families). Only the *attribution* inside the
   log was wrong, so the fix moves the log, not the charge.
+- **A negative control that only asserted the new API exists** — rejected for the same reason in
+  H47/H48: the control must be behavioural, not a missing-keyword error.
 
 ## Constraints carried forward
 
@@ -111,67 +110,45 @@ disclosed and pinned by `tests/test_h49_validation_block_disclosure.py` (11 test
 - The seeded reproducibility of `parameter_sensitivity` (§H48) is pinned by
   `tests/test_parameter_sensitivity_reproducibility.py`; re-run it after any change under
   `src/qtr/validation`.
+- The published validation blocks (§H49) are pinned by
+  `tests/test_h49_validation_block_disclosure.py`; re-run it after any change under
+  `src/qtr/validation`.
+- The metadata source of truth (§H50) is pinned by
+  `tests/test_generated_manifest_contract.py`; re-run it after any change to `pyproject.toml`,
+  `.gitignore` or the packaging layout.
 - Re-run `tests/test_runner_causality_inventory.py` and `tests/test_runner_metric_agreement.py`
   after any change in a runner.
 - The coverage gate (`python -m pytest -q --cov=qtr --cov-branch`) must stay at 100% for
   `src/qtr`; the lint gate (`python -m ruff check src tests run_*.py` and
   `python -m ruff format --check src tests run_*.py`) must stay clean.
 
-## The next task (H49) — COMPLETE (2026-10-21)
+## The next task (H51)
 
-> **Re-derive the published `validation` blocks from the frozen artifacts, and disclose the
-> `walkforward_stability` basis they were written on.**
+> **Extend the H47 cost-attribution disclosure from the one artifact it is pinned for to every
+> committed trade log, and state which artifacts the pre-fix attribution actually changes.**
 
-**The corrected finding.** The H48-era handoff claimed the last two artifacts "do not re-derive"
-and that the two buy-and-hold blocks were written by *different* code versions on the *same* series.
-**Both claims were based on the wrong return convention.** The engine charges costs per bar and
-compounds them into the equity curve (`equity = (1 + net_returns).cumprod() * initial_capital`), so
-the equity curve carries the full series including the opening bar; `equity.pct_change()` alone
-drops that bar. Including the first bar's return — `equity[0] / initial_capital - 1`, the cost of
-the very first position change charged on the opening bar — reproduces the published block for
-**all five** artifacts to float noise (< 1e-9).
+**Why.** §H47 discloses that the `cost` column of the committed trade logs carries the pre-fix
+aggregate attribution, and lists six families. A read-only scan of the committed artifacts shows
+that **all 41** tracked trade logs carry it, and that the disclosure is pinned for only **one** of
+them (H10). A disclosure that names six of forty-one affected artifacts and is executable for one
+is weaker than the record it describes — the drift is invisible in the other forty.
 
-| artifact | `sharpe` | `profit_factor` | `max_drawdown` | `total_return` | `walkforward_stability` |
-|---|---|---|---|---|---|
-| `…17-02-22-080026Z` | matches (4e-16) | matches | matches | matches | matches (4e-16) |
-| `…17-03-39-610858Z` | matches (2e-15) | matches | matches | matches | matches (2e-16) |
-| `…17-04-21-400695Z` | matches (9e-16) | matches | matches | matches | matches (4e-15) |
-| `…17-05-58-697503Z` | matches (8e-16) | matches | matches | matches | matches (5e-15) |
-| `…08-26-02-537359Z` | matches (3e-15) | matches | matches | matches | matches (4e-15) |
+**The work.**
 
-(published vs re-derived; "matches" = |diff| < 1e-9)
+1. **Measure the scope, read-only.** For every `git ls-files ".experiments/artifacts/*/trades.parquet"`
+   log, compute the number of trades, the number of bars, the number of bars holding more than one
+   trade, the over-count factor (`sum(cost) / sum(bar totals)`) and whether every trade in a bar
+   records the same number. Separate the artifacts where the two attributions **coincide** (no bar
+   holds more than one trade) from the ones where they differ.
+2. **Publish the corrected scope** in `FINAL_REPORT.md` §H51, replacing the six-family list with the
+   measured one, and state the over-count factor per family. The artifacts stay **frozen**; this is
+   a disclosure, not a rewrite.
+3. **Pin it** with `tests/test_h51_cost_attribution_disclosure.py`: assert the measured scope
+   (which artifact is affected, by how much) and assert that the H27 `L3` check still proves the
+   *charge* was never wrong for every audited family. A negative control must show that the
+   detector distinguishes the affected artifacts from the coinciding ones.
 
-**The `walkforward_stability` basis.** Every published `walkforward_stability` is exactly
-`sharpe(second half) / sharpe(first half)`, taken **unconditionally** — the pre-guard formula. The
-published `walkforward_folds` also re-derive from the frozen equity curve under the same convention.
-
-* Three ma_crossover artifacts: **both halves losing** (`−1.5594 / −0.8479 = 1.8391876…`), so the
-  sign-unaware ratio **passed** the `0.7` gate on a strategy that lost money in both halves. The
-  current sign-aware code reports `0.0` and would report `walkforward_pass: False`.
-* Two buy-and-hold artifacts: **both halves profitable**, so the published value and the current
-  sign-aware code agree (`1.0277108` and `0.9334875`).
-
-All five published blocks report `walkforward_pass: True` and `all_pass: false`; the current code
-would report `walkforward_pass: False` for the three ma_crossover artifacts. **No verdict moves.**
-
-**Why the two buy-and-hold blocks differ from each other.** `exp_2026-10-10T17-05-58-697503Z`
-and `exp_2026-10-14T08-26-02-537359Z` run the **same** SPY buy-and-hold series (price series
-byte-identical, equity curves proportional), but their published blocks differ because they charged
-**different costs**, baked into their own frozen equity curves: `…17-05-58` charged the real cost
-model (`avg_trade_cost = 0.041105949376283715`) while `…08-26-02` charged a fixed `0.0002` per
-trade (`avg_trade_cost = 0.00020009711746988646`). Each block re-derives exactly from **its own**
-frozen equity curve; they do not re-derive from each other's. Disclosed, not reconciled.
-
-**The work.** (a) Determine the return convention from the engine's source and the artifacts'
-`config` block (done — the opening bar is included); (b) publish the finding as a **disclosure** in
-`FINAL_REPORT.md` §H49 (the artifacts are frozen — the published `walkforward_pass` and the absent
-`param_stability` key are *history*); (c) pin it with `tests/test_h49_validation_block_disclosure.py`
-(11 tests) that re-derives the block from the frozen equity curve and asserts the published values
-— including the pre-guard ratio — so the drift cannot change silently.
-
-**What was verified.** `python -m pytest -q -W error` → **1366 passed, 1 skipped** (up from 1355);
-`python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` **1054 statements, 320 branches, 0 missed,
-0 partial, 100.00%**; `python -m ruff check src tests run_*.py` → *All checks passed!*; `python -m
-ruff format --check src tests run_*.py` → **92 files already formatted**. The re-derivation is
-read-only against the frozen artifacts; no pipeline re-execution, no network, no grid re-run; the
-five artifacts' `all_pass` is `false` and stays `false`.
+**Constraints.** No artifact may be rewritten; the charge is not in question; the H11 reproduction
+check (Sharpe, profit factor, drawdown, trade count, walk-forward stability, worst-regime Sharpe)
+is unaffected. If the measurement contradicts the published six-family list, the *list* moves —
+not a number.

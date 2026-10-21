@@ -1,4 +1,46 @@
-# HANDOFF — H49 complete (session handoff)
+# HANDOFF — H50 complete (session handoff)
+
+## What changed (H50)
+
+**H50:** the setuptools-generated metadata directory is **untracked** and ignored, and
+`pyproject.toml` is the only declared source of the package's metadata.
+
+- `.gitignore` — `*.egg-info/` added.
+- `src/qtr.egg-info/` — **untracked** (`git rm -r --cached`); the files stay on disk (the editable
+  install resolves to them) but they are no longer part of the repository.
+- `tests/test_generated_manifest_contract.py` — **new**, 11 tests.
+- `FINAL_REPORT.md` — new **§H50** section and an updated "Next task" section.
+
+### The corrected finding
+
+The tracked manifest was stale (61 of 64 entries; the three test modules added between H33 and H49
+were missing), and the two earlier sessions' reason for rejecting regeneration was **not quite
+right**: building the same tree with the local setuptools 68.1.2 writes `Metadata-Version: 2.1`
+with re-spaced, re-quoted requirement markers (`numpy >=1.24.0`,
+`yfinance >=0.2.0 ; extra == 'data'`), where the committed file was built under pip's build
+isolation as `2.4` (`numpy>=1.24.0`, `yfinance>=0.2.0; extra == "data"`). The `Requires-Dist`
+entries are **not dropped** — every base requirement and every extra's requirement is present in
+both builds. What is environment-dependent is the **serialisation**, which is enough to make
+"regenerate and commit" irreproducible: the committed bytes would freeze whichever setuptools
+happened to build them last.
+
+Reproduction (no network): `from setuptools import build_meta;
+build_meta.prepare_metadata_for_build_wheel("<tmp>")`.
+
+### The contract now pinned
+
+`tests/test_generated_manifest_contract.py` (11 tests) holds six invariants: the generated
+manifest is **ignored** (and `git check-ignore` agrees); it is **not tracked**; `pyproject.toml` is
+the **only** declared source of package metadata; **no module under `src/qtr` depends on it**; the
+generated `PKG-INFO` and the installed distribution's metadata both **agree with the declaration**
+(comparison is normalisation-based, so it does not depend on the setuptools version); and a
+generated `SOURCES.txt` that exists is **not stale**.
+
+Two facts worth recording: **`importlib.metadata` resolves the distribution to the source tree**
+whenever `src` is on the import path (the test suite puts it there), so a developer's tooling
+reads the *generated* manifest as the package's metadata — which is why the agreement invariant
+checks it; and **a git command that ran and failed is a verdict, not an absence** — the first draft
+masked a failing `check-ignore` as a skip.
 
 ## What changed (H49)
 
@@ -105,16 +147,16 @@ public API now takes a `random_state`.
   `tests/test_h49_validation_block_disclosure.py` (11 tests). The two buy-and-hold blocks differ
   from each other because they charged different costs baked into their own frozen equity curves.
   Full statement with the measured table in `FINAL_REPORT.md` §H49.
+- **H50 is COMPLETE** (2026-10-21): the setuptools-generated metadata directory is untracked and
+  ignored, `pyproject.toml` is the only declared source of the package's metadata, and the
+  arrangement is pinned by `tests/test_generated_manifest_contract.py` (11 tests; 3 of them fail
+  behaviourally against the pre-fix state). The "regenerate and commit" route is closed by
+  measurement — the generated metadata's serialisation depends on which setuptools built it.
+  Full statement in `FINAL_REPORT.md` §H50.
 - **Disclosure (H47)** — the `cost` column of the **committed** trade logs (H10, H11, H16, H21,
   H22, H25) and the `avg_trade_cost` of the three exploratory 2026-10-10 MA-crossover summaries
   carry the pre-fix aggregate attribution. The artifact files are frozen and were left untouched.
   No gate, threshold, verdict or certified number reads them.
-- The **committed** `src/qtr.egg-info/` manifest is stale (it predates the test modules added
-  since H33). Regenerating it with the setuptools available here (68.1.2) would *degrade* the
-  committed `PKG-INFO` (`Metadata-Version: 2.1`, core `Requires-Dist` entries dropped), so it
-  was left untouched. Pre-existing, cosmetic: the build regenerates it. **Two sessions have now
-  hit this** — the next attempt must use a materially different approach (untrack the manifest:
-  `*.egg-info/` in `.gitignore` + `git rm --cached src/qtr.egg-info`), not another regeneration.
 - H9's published OOS Sharpe is on the sample convention (gap 1.026e-04); disclosed and pinned,
   verdict cannot move (REJECT on the profit factor, 55× margin over its 1.0 gate).
 - The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified
@@ -126,9 +168,14 @@ public API now takes a `random_state`.
   the pre-fix implementation with `TypeError` (the parameter was *missing*), not because the
   behaviour was wrong. The contract now goes through the `_seeded()` adapter, so the pre-fix
   implementation is driven down its unseeded path and the control is **behavioural**.
-- **Regenerating `src/qtr.egg-info/` with the local setuptools** — rejected: setuptools 68.1.2
-  writes `Metadata-Version: 2.1` and drops the core `Requires-Dist` entries, which is a
-  *regression* in the committed metadata. The stale manifest is pre-existing and cosmetic.
+- **Regenerating `src/qtr.egg-info/` with the local setuptools** — rejected, and the stated reason
+  was corrected in H50: setuptools 68.1.2 writes `Metadata-Version: 2.1` with re-spaced, re-quoted
+  requirement markers, but it does **not** drop the `Requires-Dist` entries. The real problem is
+  that the *serialisation* is a function of the build environment, so "regenerate and commit"
+  cannot be reproduced. The manifest was **untracked** instead (§H50).
+- **Regenerating the manifest with pip's build isolation** — rejected: the resulting bytes depend
+  on whichever setuptools pip happens to resolve, which is the same irreproducibility by another
+  route.
 - **Fixing the trade log by changing the charge** — rejected: the charge was never wrong (H27's
   `L3` check proves it to ~1e-19). Only the attribution inside the log was wrong, so the fix moves
   the log, not the charge.
@@ -138,5 +185,16 @@ public API now takes a `random_state`.
 
 ## Precise next task
 
-**H49 is complete** (2026-10-21). No further task is assigned; the record of what was done is in
-`FINAL_REPORT.md` §H49 and `HANDOFF_CURRENT.md`.
+**H51 — publish the H47 cost-attribution disclosure and pin it.** The `cost` column of the
+**committed** trade logs (H10, H11, H16, H21, H22, H25) and the `avg_trade_cost` of the three
+exploratory 2026-10-10 MA-crossover summaries carry the **pre-fix** aggregate attribution: the
+per-trade cost was attributed as a whole-order figure rather than split across the fills the engine
+actually charges. The artifacts are frozen and no gate, threshold, verdict or certified number
+reads the column, so the drift is currently invisible. The task is to (a) state it in
+`FINAL_REPORT.md` §H51 with the measured difference, (b) show that re-deriving the attribution from
+each committed trade log under the post-fix rule reproduces the engine's per-bar cost (the H27 `L3`
+check already proves the *charge* was never wrong) while the published column does not, and (c) pin
+the disclosure with a test so it cannot lapse silently. The full statement is in `NEXT_TASK.md`.
+
+**H50 is complete** (2026-10-21). The record of what was done is in `FINAL_REPORT.md` §H50 and
+`HANDOFF_CURRENT.md`.
