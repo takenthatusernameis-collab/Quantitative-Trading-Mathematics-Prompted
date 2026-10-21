@@ -185,16 +185,23 @@ public API now takes a `random_state`.
 
 ## Precise next task
 
-**H51 — publish the H47 cost-attribution disclosure and pin it.** The `cost` column of the
-**committed** trade logs (H10, H11, H16, H21, H22, H25) and the `avg_trade_cost` of the three
-exploratory 2026-10-10 MA-crossover summaries carry the **pre-fix** aggregate attribution: the
-per-trade cost was attributed as a whole-order figure rather than split across the fills the engine
-actually charges. The artifacts are frozen and no gate, threshold, verdict or certified number
-reads the column, so the drift is currently invisible. The task is to (a) state it in
-`FINAL_REPORT.md` §H51 with the measured difference, (b) show that re-deriving the attribution from
-each committed trade log under the post-fix rule reproduces the engine's per-bar cost (the H27 `L3`
-check already proves the *charge* was never wrong) while the published column does not, and (c) pin
-the disclosure with a test so it cannot lapse silently. The full statement is in `NEXT_TASK.md`.
+**H51 — make `compare_to_benchmark` container-independent, and disclose which published
+`information_ratio` numbers are on which convention.** The excess return is computed as
+`excess = strat - bench`, so `excess.std()` uses **ddof=1** for a `pandas.Series` and **ddof=0**
+for an `ndarray`: the information ratio and `excess_vol_annual` are a function of the caller's
+container, not of the data (the ratio between the two is exactly `sqrt(n/(n-1))`). The published
+record contains **both** conventions — verified on two families:
+
+| artifact | runner | call site | published IR | re-derives under |
+|---|---|---|---|---|
+| `exp_2026-10-11T15-54-17-212022Z` | `run_h9_intraday_tsmom_experiment.py` | Series | `-0.23532720855889727` | **ddof=1** (1.2e-14) |
+| `exp_2026-10-10T22-59-01-182037Z` | `run_cs_momentum_experiment.py` | ndarray | `0.33150832181222434` | **ddof=0** (1.7e-16) |
+
+Five runners pass a Series (h7, h9, h10, h18, h23) and ten pass ndarrays (h6, h8, h16, h17, h19,
+h20, cs_momentum, ts_momentum, ddcv, regime_gated). **No verdict can move** — the gate is
+`p_value < max_p_value AND information_ratio > 0.0` and the IR's *sign* is invariant under ddof;
+only the magnitude of the published numbers moves. The full statement, the fix sketch and the
+constraints are in `NEXT_TASK.md`.
 
 **H50 is complete** (2026-10-21). The record of what was done is in `FINAL_REPORT.md` §H50 and
 `HANDOFF_CURRENT.md`.

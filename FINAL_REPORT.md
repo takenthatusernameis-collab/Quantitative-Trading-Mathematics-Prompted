@@ -2341,6 +2341,17 @@ above.
 
 The state a next session inherits:
 
+- **One task is assigned (H51)** — stated in full in `NEXT_TASK.md`: make `compare_to_benchmark`
+  **container-independent** and disclose which published `information_ratio` /
+  `excess_vol_annual` numbers are on which convention. The defect is verified: the excess series is
+  computed as `excess = strat - bench`, so `excess.std()` uses **ddof=1** for a `pandas.Series` and
+  **ddof=0** for an `ndarray`; the information ratio and the excess volatility are therefore a
+  function of the caller's container, differing by exactly `sqrt(n/(n-1))`. The published record
+  contains **both** conventions — `exp_2026-10-11T15-54-17-212022Z` (H9, a Series call site)
+  re-derives under ddof=1 to 1.2e-14, and `exp_2026-10-10T22-59-01-182037Z` (cs_momentum, an
+  ndarray call site) under ddof=0 to 1.7e-16. **No verdict can move**: the gate is
+  `p_value < max_p_value AND information_ratio > 0.0`, and the IR's *sign* is invariant under
+  ddof.
 - The pre-registered free-data hypothesis space (H1–H30) remains **exhausted**; no new hypothesis
   is warranted and no grid may be re-run.
 - The certified families (H10, H22, H25) are unchanged. Every published artifact, threshold,
@@ -2523,7 +2534,9 @@ prescribed.
    distribution's metadata must reproduce the declared version, python floor, base requirements and
    every extra's requirements. The comparison is normalisation-based (`numpy >=1.24.0` and
    `numpy>=1.24.0` are the same requirement), so it does not depend on which setuptools built it.
-6. **No staleness** — a generated `SOURCES.txt` that exists must list the tree's current modules.
+6. **No staleness** — a generated `SOURCES.txt` that exists must list the package's current
+   modules (the modules the distribution ships; a test module is not part of it, so its absence
+   from the manifest says nothing about what would be installed).
 
 Two facts worth recording, both found while writing the contract:
 
@@ -2563,8 +2576,13 @@ re-run; no hypothesis was added; **no module under `src/qtr` and no runner was t
 
 ### What remains unresolved
 
-- The **H47 cost-attribution disclosure** (the `cost` column of the committed trade logs) is
-  unchanged — the artifact files are frozen.
+- **`compare_to_benchmark` is container-dependent** — found while auditing for this session and
+  assigned as H51. `excess.std()` uses ddof=1 for a Series and ddof=0 for an ndarray, so the
+  information ratio and `excess_vol_annual` depend on the caller's container; the published record
+  contains both conventions. **No verdict can move** (the gate reads the IR's sign).
+- The **H47 cost-attribution disclosure** (the `cost` column of the committed trade logs) covers
+  less than the record does — all 41 committed trade logs carry the pre-fix attribution, and the
+  disclosure is pinned for one of them. The runner-up task (H52).
 - **H9's published OOS Sharpe** is on the sample convention; disclosed and pinned, verdict frozen.
 - The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified
   families' numbers and verdicts are frozen.

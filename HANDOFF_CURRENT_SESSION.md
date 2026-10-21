@@ -57,7 +57,8 @@ build_meta.prepare_metadata_for_build_wheel("<tmp>")`.
    distribution's metadata reproduce the declared version, python floor, base requirements and every
    extra's requirements. The comparison is normalisation-based, so it does not depend on which
    setuptools built the metadata.
-6. **No staleness** — a generated `SOURCES.txt` that exists must list the tree's current modules.
+6. **No staleness** — a generated `SOURCES.txt` that exists must list the package's current
+   modules (the modules the distribution ships; a test module is not part of it).
 
 Two facts found while writing it:
 

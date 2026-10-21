@@ -52,6 +52,10 @@ irreproducible. Untracking is therefore the right fix, and it is now pinned.
 
 ## What remains unresolved
 
+- **`compare_to_benchmark` publishes two different numbers for the same statistic, depending on the
+  container its caller happens to pass** (verified below). The information ratio and the excess
+  volatility are computed with `excess.std()`, which uses **ddof=1** for a `pandas.Series` and
+  **ddof=0** for an `ndarray`. The published record contains **both** conventions.
 - **The H47 cost-attribution disclosure covers less than the record does.** §H47 publishes that the
   `cost` column of "the committed trade logs (H10, H11, H16, H21, H22, H25)" carries the pre-fix
   aggregate attribution, and `tests/test_trade_log_cost_reconciliation.py` pins that disclosure for
@@ -76,6 +80,7 @@ irreproducible. Untracking is therefore the right fix, and it is now pinned.
   verdict cannot move (REJECT on the profit factor, 55× margin over its 1.0 gate).
 - The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified
   families' numbers and verdicts are frozen.
+
 
 ## Approaches already tried / failed (and why)
 
@@ -124,31 +129,94 @@ irreproducible. Untracking is therefore the right fix, and it is now pinned.
 
 ## The next task (H51)
 
-> **Extend the H47 cost-attribution disclosure from the one artifact it is pinned for to every
-> committed trade log, and state which artifacts the pre-fix attribution actually changes.**
+> **Make `compare_to_benchmark`'s output independent of the container it is given, and disclose
+> which published `information_ratio` / `excess_vol_annual` numbers are on which convention.**
 
-**Why.** §H47 discloses that the `cost` column of the committed trade logs carries the pre-fix
-aggregate attribution, and lists six families. A read-only scan of the committed artifacts shows
-that **all 41** tracked trade logs carry it, and that the disclosure is pinned for only **one** of
-them (H10). A disclosure that names six of forty-one affected artifacts and is executable for one
-is weaker than the record it describes — the drift is invisible in the other forty.
+### The defect (verified)
 
-**The work.**
+`compare_to_benchmark` computes the excess return as `excess = strat - bench`. When the caller
+passes a `pandas.Series`, `excess` is a Series and `excess.std()` uses **ddof=1** (sample); when
+the caller passes an `ndarray`, `excess.std()` uses **ddof=0** (population). The information ratio
+and `excess_vol_annual` are therefore a function of the *caller's container*, not of the data.
+Every other key is container-independent (`beta` uses `np.cov(..., ddof=1)` explicitly, `alpha`
+comes from the OLS slope, and `alpha_p_value` comes from `scipy.stats.ttest_1samp`, which always
+uses ddof=1).
 
-1. **Measure the scope, read-only.** For every `git ls-files ".experiments/artifacts/*/trades.parquet"`
-   log, compute the number of trades, the number of bars, the number of bars holding more than one
-   trade, the over-count factor (`sum(cost) / sum(bar totals)`) and whether every trade in a bar
-   records the same number. Separate the artifacts where the two attributions **coincide** (no bar
-   holds more than one trade) from the ones where they differ.
-2. **Publish the corrected scope** in `FINAL_REPORT.md` §H51, replacing the six-family list with the
-   measured one, and state the over-count factor per family. The artifacts stay **frozen**; this is
-   a disclosure, not a rewrite.
-3. **Pin it** with `tests/test_h51_cost_attribution_disclosure.py`: assert the measured scope
-   (which artifact is affected, by how much) and assert that the H27 `L3` check still proves the
-   *charge* was never wrong for every audited family. A negative control must show that the
-   detector distinguishes the affected artifacts from the coinciding ones.
+```python
+rng = np.random.default_rng(1)
+s = rng.normal(0.001, 0.01, 400); b = rng.normal(0.0005, 0.01, 400)
+st.compare_to_benchmark(s, b)["information_ratio"]              # 0.2650139223426122
+st.compare_to_benchmark(pd.Series(s), pd.Series(b))["information_ratio"]  # 0.2646824476383493
+```
 
-**Constraints.** No artifact may be rewritten; the charge is not in question; the H11 reproduction
-check (Sharpe, profit factor, drawdown, trade count, walk-forward stability, worst-regime Sharpe)
-is unaffected. If the measurement contradicts the published six-family list, the *list* moves —
-not a number.
+The ratio between the two is exactly `sqrt(n/(n-1))` (`1.0012523486435179` for `n = 400`), and
+`excess_vol_annual` differs by the same factor. `alpha_annualized`, `beta`,
+`alpha_p_value`, `alpha_p_value_one_sided` and `win_rate` are identical.
+
+### The published record contains both conventions (verified, two families)
+
+The runners are split — **5 pass a Series**, the rest pass `.values`/ndarrays:
+
+| artifact | runner | call site | published `information_ratio` | re-derives under |
+|---|---|---|---|---|
+| `exp_2026-10-11T15-54-17-212022Z` | `run_h9_intraday_tsmom_experiment.py` | `compare_to_benchmark(result.returns, bh_result.returns)` → Series | `-0.23532720855889727` | **ddof=1** (matches to 1.2e-14) |
+| `exp_2026-10-10T22-59-01-182037Z` | `run_cs_momentum_experiment.py` | `compare_to_benchmark(oos_arr, bench_arr)` → ndarray | `0.33150832181222434` | **ddof=0** (matches to 1.7e-16) |
+
+Neither re-derives under the other convention. The Series call sites are `run_h9_intraday_tsmom`
+(:498), `run_h10_intraday_tsmom_pfopt` (:315), `run_h23_crypto_futures_tsmom` (:317),
+`run_h7_intraday_tsmom` (:315) and `run_h18_overnight_intraday` (:703); the ndarray call sites are
+`run_h6_vix_ddcv`, `run_h8_rolladjusted_tsmom`, `run_h16_factor_timing`, `run_h17_vrp`,
+`run_h19_volume_predictive`, `run_h20_signed_volume`, `run_cs_momentum`, `run_ts_momentum`,
+`run_ddcv` and `run_regime_gated_momentum`.
+
+The repository's own record already asserts the *intended* convention, but only for the ndarray
+path: `tests/test_runner_metric_agreement.py` states that `run_cs_momentum`'s local IR "computes
+information_ratio = e.mean() / e.std() * sqrt(252) with numpy ddof=0, **the same convention as
+compare_to_benchmark's information_ratio**; the two agree exactly". That agreement holds only
+because the test passes `.values` — it is not a property of the library.
+
+### No verdict can move
+
+The gate is `p_value < max_p_value AND information_ratio > 0.0` (`benchmark_significance_gate`,
+`src/qtr/validation/statistics.py:480`), and the information ratio carries the **sign** of the mean
+excess return, which ddof does not change. `alpha_p_value` is computed by `scipy.stats.ttest_1samp`
+(ddof=1 in both paths). So **no pass/fail can flip**; what moves is the *magnitude* of the
+published `information_ratio` and `excess_vol_annual` (by `sqrt(n/(n-1))` ≈ 0.08% at n=1258 and
+0.2% at n=252).
+
+### The work
+
+1. **Choose one convention and make the library enforce it** — the excess series must be reduced to
+   a numpy array and the standard deviation taken with an explicit `ddof`, so that all nine keys
+   are container-independent. The `beta`/`alpha` path is already explicit and must not move.
+2. **Decide which side moves** — the published numbers are frozen, so whichever convention is
+   chosen, the families on the *other* convention have a published number that no longer
+   re-derives. Quantify the change per family and state it in `FINAL_REPORT.md` §H51. Prefer the
+   convention that keeps the larger set of published numbers unchanged, and say why.
+3. **Re-derive and disclose** — for every family that publishes an `information_ratio` or an
+   `excess_vol_annual`, re-derive it from the frozen artifact (the H9 method above is the
+   template: strategy returns from the artifact's own equity/returns, the benchmark from
+   `benchmark_returns.parquet` or `benchmark_equity.parquet`, the OOS window from the runner's
+   own `TRAIN_END`) and record which convention the published value is on.
+4. **Pin it** with `tests/test_h51_benchmark_container_invariance.py`: assert that
+   `compare_to_benchmark` returns identical values for ndarray and Series inputs **for all nine
+   keys**, assert the per-family published values still re-derive under the convention they were
+   published on, and include a **negative control** that reconstructs the pre-fix
+   container-dependent behaviour and shows it fails the invariance.
+
+### Constraints
+
+- No published artifact, gate threshold, verdict or certified number may be modified; the artifacts
+  are frozen. A published number that no longer re-derives is **disclosed**, not rewritten.
+- The gate's `information_ratio > 0` sign test and `alpha_p_value` must not move.
+- `tests/test_runner_metric_agreement.py` and `tests/test_benchmark_gate_contract.py` must be
+  re-run after any change under `src/qtr/validation` — the first asserts an exact agreement
+  between `run_cs_momentum`'s local IR and the library's, and the second pins the library's key
+  set and the runners' call sites.
+
+### The runner-up (H52, if H51 is closed)
+
+Extend the H47 cost-attribution disclosure from the one artifact it is pinned for to every
+committed trade log (41 of them carry the pre-fix attribution), and state which artifacts the
+pre-fix attribution actually changes (those with bars holding more than one trade).
+

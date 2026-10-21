@@ -39,7 +39,7 @@ class cannot come back:
    no second copy of the version, the requirements or the package list.
 5. The metadata the build produces -- generated manifest and installed
    distribution alike -- **agrees** with ``pyproject.toml``.
-6. A generated manifest that *does* exist is not **stale** against the tree.
+6. A generated manifest that *does* exist is not **stale** against the package's own modules.
 
 The git-backed checks are skipped when the checkout carries no git metadata
 (a source tarball), so the suite still runs from a bare clone.
@@ -125,14 +125,15 @@ def _manifest_paths(paths: Iterable[str]) -> list[str]:
 
 
 def _tracked_modules(tracked: Iterable[str]) -> list[str]:
-    """Return the tracked Python modules of the package and the test suite."""
-    selected = []
-    for path in tracked:
-        if not path.endswith(".py"):
-            continue
-        if path.startswith("src/qtr/") or path.startswith("tests/test_"):
-            selected.append(path)
-    return sorted(selected)
+    """Return the tracked modules **of the package**.
+
+    Only the package's own modules matter here: they are what the built
+    distribution ships. A test module is not part of the distribution, so
+    its absence from the manifest is not staleness -- it would only mean the
+    developer has not rebuilt since adding a test, which is a local state
+    the next build resolves and not a property of the repository.
+    """
+    return sorted(path for path in tracked if path.endswith(".py") and path.startswith("src/qtr/"))
 
 
 def _manifest_sources() -> pathlib.Path | None:
@@ -333,13 +334,17 @@ def test_installed_distribution_metadata_agrees_with_pyproject():
 # --------------------------------------------------------------------------- #
 # 5. a manifest that exists is not stale
 # --------------------------------------------------------------------------- #
-def test_generated_manifest_is_not_stale_against_the_tree():
-    """A generated ``SOURCES.txt`` must list the tree's current modules.
+def test_generated_manifest_is_not_stale_against_the_package():
+    """A generated ``SOURCES.txt`` must list the package's current modules.
 
     The manifest is no longer tracked, so it cannot go stale in the
     repository; it can still go stale in a working tree, where a build
-    skipped a module and the generated metadata therefore describes a
-    different package than the one on disk.
+    skipped a module of the package -- so the *installed* distribution
+    describes a different package than the one on disk.
+
+    Only the package's own modules are checked: a test module is not part
+    of the built distribution, so its absence from the manifest says
+    nothing about what would be installed.
     """
     manifest = _manifest_sources()
     if manifest is None:
@@ -370,10 +375,10 @@ def test_control_the_detector_flags_the_pre_fix_state():
 
 def test_control_the_staleness_detector_flags_a_stale_manifest():
     """The staleness check must reject a manifest that omits a module."""
-    tracked = ["src/qtr/validation/statistics.py", "tests/test_statistics.py"]
-    listed = {"src/qtr/validation/statistics.py"}  # `tests/test_statistics.py` missing
+    tracked = ["src/qtr/validation/statistics.py", "src/qtr/backtest/engine.py"]
+    listed = {"src/qtr/validation/statistics.py"}  # `src/qtr/backtest/engine.py` missing
     missing = [module for module in _tracked_modules(tracked) if module not in listed]
-    assert missing == ["tests/test_statistics.py"]
+    assert missing == ["src/qtr/backtest/engine.py"]
 
 
 def test_control_the_requirement_normalisation_sees_both_serialisations():

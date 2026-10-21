@@ -53,7 +53,8 @@ build_meta.prepare_metadata_for_build_wheel("<tmp>")`.
 5. **The build agrees with the declaration** — the generated `PKG-INFO` *and* the installed
    distribution's metadata reproduce the declared version, python floor, base requirements and every
    extra's requirements (normalisation-based, so it does not depend on the setuptools version).
-6. **No staleness** — a generated `SOURCES.txt` that exists must list the tree's current modules.
+6. **No staleness** — a generated `SOURCES.txt` that exists must list the package's current
+   modules (the modules the distribution ships; a test module is not part of it).
 
 Two facts found while writing it:
 
@@ -91,8 +92,15 @@ re-run; no hypothesis was added. No module under `src/qtr` and no runner was tou
 
 ## What a next session inherits
 
-- **One task is assigned (H51)** — stated in full in `NEXT_TASK.md`: publish the **H47
-  cost-attribution disclosure** and pin it.
+- **One task is assigned (H51)** — stated in full in `NEXT_TASK.md`: make `compare_to_benchmark`
+  **container-independent** and disclose which published `information_ratio` /
+  `excess_vol_annual` numbers are on which convention. The defect is verified: `excess.std()`
+  uses ddof=1 for a Series and ddof=0 for an ndarray, so the IR differs by exactly
+  `sqrt(n/(n-1))`; the published record contains **both** conventions (H9's artifact re-derives
+  under ddof=1, cs_momentum's under ddof=0). **No verdict can move** — the gate reads the IR's
+  sign.
+- The runner-up (H52) is to extend the H47 cost-attribution disclosure to all **41** committed
+  trade logs, of which every one carries the pre-fix attribution.
 - The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified families
   are frozen.
 - **H9's published OOS Sharpe** is on the sample convention (gap 1.026e-04); disclosed and pinned,

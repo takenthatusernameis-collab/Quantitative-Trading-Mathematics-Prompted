@@ -54,9 +54,16 @@ pinned.
 
 ## What remains unresolved
 
-- The **H47 cost-attribution disclosure** (the `cost` column of the committed trade logs and the
-  `avg_trade_cost` of the three exploratory 2026-10-10 summaries) is unchanged: the artifact files
-  are frozen and no gate, threshold, verdict or certified number reads them.
+- **`compare_to_benchmark` publishes two different numbers for the same statistic, depending on the
+  container its caller passes** (verified): `excess.std()` uses ddof=1 for a Series and ddof=0 for
+  an ndarray, so the information ratio and `excess_vol_annual` differ by exactly `sqrt(n/(n-1))`.
+  The published record contains **both** conventions — `exp_2026-10-11T15-54-17-212022Z` (H9,
+  Series call site) re-derives under ddof=1, `exp_2026-10-10T22-59-01-182037Z` (cs_momentum,
+  ndarray call site) under ddof=0. **No verdict can move** (the gate reads the IR's *sign*). This
+  is the assigned task (H51).
+- The **H47 cost-attribution disclosure** covers less than the record does: all **41** committed
+  trade logs carry the pre-fix aggregate attribution, and the disclosure is pinned for one of them
+  (H10). The runner-up task (H52).
 - **H9's published OOS Sharpe** is on the sample convention (gap 1.026e-04); disclosed and pinned,
   verdict frozen.
 - The pre-registered free-data hypothesis space (H1–H30) remains exhausted.
