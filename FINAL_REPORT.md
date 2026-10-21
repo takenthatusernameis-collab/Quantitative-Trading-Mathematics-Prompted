@@ -485,8 +485,8 @@ control), the verdict rule and the pre-registration itself.
 - **5 certified edges** (H10/H11/H12/H22/H25) — all variants of the same intraday futures TSMOM mechanism (**H27: the edge is a one-day look-ahead; H28: re-certified under a causal collapse and `CAUSAL_REJECTED` — 3/8 to 4/9 gates, OOS Sharpe 0.13–0.39; H29/H30: the daily/monthly families are `CAUSAL` on the committed artifacts, including H7 once its artifact was committed, while H11/H12 inherit H10's look-ahead positions and H23 uses the same collapse — so **no certified edge in this record survives a causal construction**); of these H22 has the strongest Sharpe (9/9 gates, OOS Sharpe 1.372, PF 1.334, DD −11.9%) and H25 the strongest PF margin (9/9 gates, OOS Sharpe 1.324, PF 1.320, DD −11.9% at 26.25% ann vol); both are *qualified* by an i.i.d. bootstrap CI whose lower bound sits below the PF gate, and the pre-registered block-bootstrap sensitivity confirms the PF fragility is not an i.i.d. artifact. (H26: the published Sharpe is a √252-per-bar metric — the annualized values are 2.55×–4.76× higher; the *PF* qualification is unaffected because PF is scale-invariant.)
 - **19 rejected** hypotheses, each with a documented root-cause attribution in `HYPOTHESIS_SPEC.md` and `INEFFICIENCY_RANKING.md`.
 - **Total compute:** ~2.5 CPU-h across all hypotheses (well within the ≤ 2 CPU-h per-hypothesis budget; the largest single run was H12 at 0.652 CPU-h). The H25 Robustness audit added 0.0002 CPU-h; the H26 scale audit added 0.0005 CPU-h; the H27 level/look-ahead audit added 0.0014 CPU-h (5 bit-exact rebuilds, no grid re-run); the **H28 causal re-certification added 1.885 CPU-h** (8 runs: 4 controls + 4 causal, the 13,824-combo H10 grid run twice); the **H29/H30 look-ahead sweep added 0.0002 CPU-h** (8 bit-exact rebuilds of the *selected* configurations, one counterfactual, no grid re-run).
-- **Test suite:** 1212 passing, 1 skipped (including the 17-test H25 Robustness audit — 12 i.i.d. bootstrap + 5 block-bootstrap sensitivity — the 23-test H25 regression set, the 44-test H26 scale-audit set, the 36-test H27 level-audit set, the 47-test H28 re-certification set and the 36-test H29 sweep set, plus the 2 new H31 `compare_to_benchmark` DataFrame/ndarray regression tests, plus the 6 new H32 `deflated_sharpe_ratio` + `purged_kfold_splits`/`combinatorial_purged_cv` regression tests, plus the 12 new H33 benchmark-contract tests, plus the 10 new H34 direction-aware benchmark-gate tests, plus the 11 new H35 gate-vacuity contract tests and the 1 new H35 one-sided-vs-gate non-equivalence test, plus the 30 new H36 point-in-time contract tests, plus the 179 new H37 runner-causality inventory tests, plus the 13 new H38 engine-metric-consistency tests, plus the 49 new H39 cross-module metric-agreement tests, plus the 42-test H40/H41 runner-metric-agreement contract — 33 tests in H40 and 9 in H41). The single skip is `buy_and_hold`, a constant position that cannot react to a perturbation. **H42 added no tests** (whitespace-only change to the inventory file).
-- **Coverage (corrected by H33, re-measured by H34 and H38):** the H33 baseline of **94%** was caused by the dead `deflated_sharpe_ratio` body (16 uncovered statements in `src/qtr/validation/statistics.py`). H34 **deleted** that dead code (it was not exported, had no caller and duplicated `run_h12_selection_bias_audit.py:deflated_sharpe_ratio` with the same `max_z` formula), and the measured coverage is now **100%** — `src/qtr` has **1014 statements, 0 missed** (`python -m pytest --cov=qtr --cov-report=term-missing`), with H34's new gate helper fully covered and H38's engine change adding no new branch. (The H32 handoff's "99%, one uncovered branch" claim was wrong: its named guard — the `walk_forward_splits` empty-window branch at `statistics.py:159-160` — is covered by `tests/test_statistics.py:185`.) H39's engine change is one condition plus comments: its `> 1e-15` branch is covered by the new degenerate-series tests and the other branch by every other metric test, so no new branch is introduced. *(The coverage tool is not installed in the H39 session's environment, so the 100% figure could not be re-measured there; the branch argument replaces it.)*
+- **Test suite:** 1230 passing, 1 skipped (including the 17-test H25 Robustness audit — 12 i.i.d. bootstrap + 5 block-bootstrap sensitivity — the 23-test H25 regression set, the 44-test H26 scale-audit set, the 36-test H27 level-audit set, the 47-test H28 re-certification set and the 36-test H29 sweep set, plus the 2 new H31 `compare_to_benchmark` DataFrame/ndarray regression tests, plus the 6 new H32 `deflated_sharpe_ratio` + `purged_kfold_splits`/`combinatorial_purged_cv` regression tests, plus the 12 new H33 benchmark-contract tests, plus the 10 new H34 direction-aware benchmark-gate tests, plus the 11 new H35 gate-vacuity contract tests and the 1 new H35 one-sided-vs-gate non-equivalence test, plus the 30 new H36 point-in-time contract tests, plus the 179 new H37 runner-causality inventory tests, plus the 13 new H38 engine-metric-consistency tests, plus the 49 new H39 cross-module metric-agreement tests, plus the 42-test H40/H41 runner-metric-agreement contract — 33 tests in H40 and 9 in H41, plus the 18 new H43 coverage-gate contract tests — 6 gate pins and 12 branch-closure tests). The single skip is `buy_and_hold`, a constant position that cannot react to a perturbation. **H42 added no tests** (whitespace-only change to the inventory file).
+- **Coverage (corrected by H33, re-measured by H34 and H38, measured and gated by H43):** the H33 baseline of **94%** was caused by the dead `deflated_sharpe_ratio` body (16 uncovered statements in `src/qtr/validation/statistics.py`). H34 **deleted** that dead code (it was not exported, had no caller and duplicated `run_h12_selection_bias_audit.py:deflated_sharpe_ratio` with the same `max_z` formula). **H43 finally measured the claim** (H39–H42 had re-asserted it from a branch argument because `pytest-cov` was not installed): the recorded figure was exactly right — `src/qtr` had **1014 statements, 0 missed** — but it was a **statement**-coverage figure, and statement coverage cannot see a branch that is never taken. The first branch measurement found **11 partial branches** behind the 100% (99% combined). All 11 are now closed by named tests (§H43) and the gate is committed: `pyproject.toml` declares `[tool.coverage.run] branch = true`, `source = ["src/qtr"]` and `[tool.coverage.report] fail_under = 100`, so `python -m pytest -q --cov=qtr --cov-branch` **fails** below full coverage. Measured now: `src/qtr` = **1016 statements, 316 branches, 0 missed, 0 partial, 100.00%** ("Required test coverage of 100.0% reached"). (The H32 handoff's "99%, one uncovered branch" claim was wrong: its named guard — the `walk_forward_splits` empty-window branch at `statistics.py:159-160` — is covered by `tests/test_statistics.py:185`.)
 - **Benchmark gates (H33 + H34 + H35):** three published benchmark gates were vacuous (H4's `p`, H18's `benchmark_p`, H7's `max_p_value`/`min_information_ratio`) because the runner read a key the library never returns, passed a boolean mask as `risk_free`, or compared returns against **price levels**. They are repaired and pinned by an executable contract; the recomputed tallies are H4 1/8 (unchanged), H7 5/9 (published 4/9), H18 3/9 (published 2/9); no verdict changes. The pre-registered gate was also *direction-blind* — it is satisfied by a significantly **negative** alpha. **H34 re-specified it** (`p < 0.05` **and** a positive excess return), closed it in the code for all 17 runners and disclosed the impact: four published artifacts (H3, H19, H20, H23) carry a wrong-reason `p` PASS; the certified families (H10, H22, H25) survive; no published row, threshold, verdict or certified number changes. **H35 audited the remaining gate class** — gates that are a constant, or that compare a placeholder, and can therefore never fail — and found three of them: **H7's** `min_perturbed_sharpe_ratio` and `min_worst_regime_sharpe` (hard-coded `True`) and **H18's** `perturbation_ratio` (a placeholder constant). Both families are REJECT, so no published verdict rests on them (H7's published 4/9 is 2/7 on the evaluable gates; H18's published 2/9 is 1/8). Three runners (H4/H5/H6) also read their IR threshold through a permissive default (`GATES.get(..., -1e18)`), which is now a direct subscript so a missing threshold fails loudly. No certified family has a non-evaluating gate.
 - **Structural walls on free data:** (a) yfinance hourly `=F` hard-capped at ~730 days (no bars beyond 2026-10-11); (b) Coinbase/CCXT hourly OHLCV capped at ~12 days; (c) the joint Sharpe ≥ 1.0 ∧ DD ≤ 15% gate met by no long-only free-data equity family; (d) PF ≥ 1.3 is fragile across the entire intraday-futures-carry family (H13/H14 for H10; H21 for the basket; H22 margin +0.034; H25 margin +0.020 — all CI-fragile, P(PF≥1.3)≈0.5–0.62 on the free window). **Corrected by H26:** the *Sharpe* side of (c)/(d) is not a further blocker — the published intraday Sharpe is a √252-per-bar metric, and on the repo's own annualization convention the certified family's Sharpe CI lower bound is 2.25 ≫ 1.0. The binding constraint is the **PF bootstrap margin plus the 730-day sample**, both of which are scale-invariant.
 
@@ -1880,11 +1880,148 @@ The lint/format gate was the only verification step in the record that could not
 from the repository. It is now reproducible: ruff is declared, configured and installed, and
 both commands are clean on `src tests run_*.py` from a bare clone with `pip install -e ".[lint]"`.
 
+## H43 — the coverage gate is measured, declared and complete (2026-10-21)
+
+**Verdict: the coverage claim in this record is now a measurement, and the gate it describes is
+committed, reproducible and complete.**
+
+### The gap
+
+H39, H40, H41 and H42 each recorded "src/qtr coverage is unchanged at 100%" and each recorded, in
+the same breath, that **the coverage tool was not installed** in the session environment
+(`python -m pytest --cov=qtr` → "unrecognized arguments"). The figure was therefore never
+re-measured in four consecutive sessions: it was re-asserted from an argument — "the change is one
+expression, so no new branch is introduced" — and each session added a parenthetical saying that
+the measurement could not be repeated here.
+
+Installing `pytest-cov` (already declared in `pyproject.toml` as
+`test = ["pytest>=7.4.0", "pytest-cov>=4.1.0"]`) and running the measurement for the first time
+since H38 produced two results:
+
+- **The claim's substance was correct.** `src/qtr` had **1014 statements, 0 missed** — exactly the
+  recorded number.
+- **The claim was narrower than it read.** The quoted command
+  (`--cov=qtr --cov-report=term-missing`) measures **statement** coverage. Statement coverage cannot
+  see a branch that is never taken, and the first **branch** measurement found **11 partial
+  branches** hiding behind the 100%:
+
+  ```
+  src/qtr/data/fetcher.py           165      0     54      3    99%   215->173, 284->293, 290->284
+  src/qtr/strategies/baselines.py    148      0     70      2    99%   155->131, 267->272
+  src/qtr/tracking/experiment.py     197      0     38      3    99%   89->95, 150->155, 326->exit
+  src/qtr/validation/statistics.py   272      0     94      3    99%   172->161, 779->766, 816->803
+  TOTAL                               1014      0    316     11    99%
+  ```
+
+  Every one of the eleven is a **defensive guard that no test had ever executed**: a guard nobody
+  has seen work is a guard nobody can vouch for.
+
+### What each partial branch was
+
+| Arc | The untested guard | Closed by |
+|---|---|---|
+| `fetcher.py:215->173` | `fetch_futures` with `use_cache=False`: the *successful* download path never returned to the loop head, so a download with the cache disabled was never once exercised end-to-end | `test_fetch_futures_with_the_cache_disabled_leaves_the_cache_untouched` |
+| `fetcher.py:284->293` | the CCXT pagination loop never ended on its `while` condition — only on an empty or short page, i.e. the normal end of a well-formed download was untested | `test_fetch_ccxt_paginates_until_the_window_is_exhausted` |
+| `fetcher.py:290->284` | a full 1000-row page never continued the pagination loop | (same test) |
+| `baselines.py:155->131` | `momentum_signals` never saw a bar on which *no* symbol had negative momentum, so the "no short leg to build" path was untested | `test_momentum_without_negative_symbols_leaves_the_short_leg_empty` |
+| `baselines.py:267->272` | `time_series_momentum_signals`'s `if vol > 0` guard — **provably unreachable** (see below) | `_vol_scale` extraction + `test_vol_scale_leaves_a_position_unscaled_when_the_volatility_is_not_positive` |
+| `experiment.py:89->95` | `start_experiment` never received explicit seeds, so the default was never *overridden* | `test_start_experiment_uses_the_caller_supplied_seeds` |
+| `experiment.py:150->155` | `log_artifact` was never called without metadata, so the "no sidecar" path was untested | `test_log_artifact_without_metadata_writes_no_sidecar` |
+| `experiment.py:326->exit` | `Experiment.__init__` never met an existing `metadata.json`, so "re-opening must not truncate the metadata" was untested | `test_experiment_constructor_preserves_existing_metadata` |
+| `statistics.py:172->161` | `walk_forward_splits` never dropped a fold | `test_walk_forward_drops_a_fold_with_an_empty_test_side`, `test_walk_forward_drops_a_fold_with_an_empty_train_side` |
+| `statistics.py:779->766` | `purged_kfold_splits` never dropped a fold | `test_purged_kfold_drops_a_fold_with_no_training_data` |
+| `statistics.py:816->803` | `combinatorial_purged_cv` never dropped a fold | `test_combinatorial_purged_cv_drops_a_fold_with_no_training_data` |
+
+The eleven guards are not cosmetic. Three of them decide whether a *leak* can occur
+(`purged_kfold_splits` / `combinatorial_purged_cv` emitting a split with an empty training set),
+one decides whether a *stale frame* can be served (`use_cache=False` still writing the cache), and
+one decides whether a *previous run's* metadata can be truncated.
+
+### The one unreachable branch
+
+`time_series_momentum_signals` computed its realized volatility as
+`returns.rolling(63).std() * sqrt(252)` and then sanitized it with
+`.replace(0, np.nan).ffill().fillna(0.15)` — a chain that makes the series **strictly positive by
+construction** (zeros become NaN, NaN is forward-filled, the leading NaNs become 0.15). The inline
+`if vol > 0:` guard could therefore never fire: the false arm was dead code that no test could ever
+reach. A 200-trial property check over random and constant price series confirmed the minimum
+observed value is 0.15.
+
+The guard was moved into a module-level helper, `_vol_scale(vol, target_vol)`, which returns the
+unscaled multiplier `1.0` for a non-positive volatility and `min(target_vol / vol, 2.0)` otherwise.
+The behavior is **identical** (the old code simply skipped the scaling, which is what a multiplier of
+1.0 does), but the defensive path is now reachable and is covered by a test.
+`time_series_momentum_signals` is not called by any `run_*.py` — only `vol_scaled_tsmom_signals`
+is — so no published artifact, gate, threshold, verdict or certified number can be affected.
+
+### The gate
+
+`pyproject.toml` now declares the gate the record has been quoting:
+
+```toml
+[tool.coverage.run]
+branch = true
+source = ["src/qtr"]
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
+```
+
+`fail_under = 100` is what turns the claim into a gate: `python -m pytest -q --cov=qtr --cov-branch`
+now **exits non-zero** if `src/qtr` is not fully covered. The configuration is additionally read
+back through the coverage API by `tests/test_coverage_gate_contract.py`, so a section that the
+coverage tool would ignore cannot pass for a committed gate. `pytest-cov` was already declared
+under `[project.optional-dependencies] test`, so the gate is installable from a bare clone with
+`pip install -e ".[test]"`; the package itself is still not required to be installed for
+`python -m pytest` to pass.
+
+### The change
+
+- `src/qtr/strategies/baselines.py` — the unreachable inline `if vol > 0:` guard replaced by the
+  `_vol_scale` helper (behavior-preserving; +2 statements).
+- `pyproject.toml` — the `[tool.coverage.run]` / `[tool.coverage.report]` gate.
+- `tests/test_coverage_gate_contract.py` — **new**, 18 tests: 6 gate pins + 12 branch-closure
+  tests.
+- `FINAL_REPORT.md`, `NEXT_TASK.md` and the `HANDOFF*` files.
+
+No published artifact, gate threshold, verdict, certified number or published row was modified; no
+grid was re-run; no hypothesis was added; no `run_*.py` was touched.
+
+### Verification
+
+- `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` → **1230 passed,
+  1 skipped**; `src/qtr` = **1016 statements, 316 branches, 0 missed, 0 partial, 100.00%**; the
+  committed gate reports *"Required test coverage of 100.0% reached. Total coverage: 100.00%"*.
+- `python -m pytest -q -W error` → **1230 passed, 1 skipped** in 271.26 s (the bare-clone path: no
+  install step, no coverage plugin, no network).
+- `python -m pytest -q -W error tests/test_coverage_gate_contract.py` → **18 passed**.
+- The bare-clone path was re-checked with the coverage tool *absent* (a shim module raising
+  `ModuleNotFoundError` on `import coverage`): **17 passed, 1 skipped** — the gate's tool-dependent
+  test skips cleanly and the rest of the module still runs.
+- `python -m ruff check src tests run_*.py` → *All checks passed!*.
+- `python -m ruff format --check src tests run_*.py` → **86 files already formatted** (85 + the new
+  test module).
+
+### Why this was worth doing
+
+Three things changed. The record's coverage claim is now backed by a measurement instead of an
+argument — and the measurement *confirmed* the claim, which is the strongest form of that result.
+The gate is now declared and **fails closed** instead of being a sentence in a report. And the
+eleven guards it was hiding are no longer untested: each is now exercised by a named test that
+asserts the property it exists to protect.
+
+The generalisable lesson for this record: a coverage figure quoted as a *statement* percentage is
+not the same claim as "the code is fully exercised", and a verification step that the environment
+cannot run is not a verification step. Both are now fixed at the source — the tool is installable
+and declared, the gate is committed, and the number is measured.
+
 ## Next task
 
-None. All assigned tasks (H35–H42) are complete. All metric-agreement sites — library-side
+None. All assigned tasks (H35–H43) are complete. All metric-agreement sites — library-side
 (§H39), runner-local helpers (§H40) and runner-inline sites (§H41) — are classified and pinned;
 every gate defect class that has surfaced (§H35) is closed by an executable invariant; the
 point-in-time contract covers every `run_*.py` (§H36–H37); the engine's `total_return` spans
-every bar (§H38); the package's two Sharpe implementations agree (§H39); and the lint/format
-gate is reproducible (§H42). No further work is assigned.
+every bar (§H38); the package's two Sharpe implementations agree (§H39); the lint/format
+gate is reproducible (§H42); and the coverage gate is measured, declared and complete (§H43).
+No further work is assigned.

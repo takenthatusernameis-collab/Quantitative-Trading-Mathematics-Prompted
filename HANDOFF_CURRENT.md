@@ -1,12 +1,12 @@
-# HANDOFF_CURRENT — session complete (H42)
+# HANDOFF_CURRENT — session complete (H43)
 
 ## State
 
-- **H42 is COMPLETE** as recorded in `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_NEXT.md` and
-  `HANDOFF_CURRENT_SESSION.md`: the lint/format gate is now reproducible from a bare clone.
-  `python -m ruff format --check src tests run_*.py` → **85 files already formatted** (the last
-  deviation, on pre-existing lines of `tests/test_runner_causality_inventory.py`, is closed).
-- **H35, H36, H37, the remaining-runner extension, H38, H39, H40 and H41 are COMPLETE** as
+- **H43 is COMPLETE** as recorded in `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_NEXT.md` and
+  `HANDOFF_CURRENT_SESSION.md`: the coverage gate is now **measured**, **declared** and
+  **complete**. `python -m pytest -q --cov=qtr --cov-branch` reports
+  *"Required test coverage of 100.0% reached. Total coverage: 100.00%"* and **fails** below that.
+- **H35, H36, H37, the remaining-runner extension, H38, H39, H40, H41 and H42 are COMPLETE** as
   recorded in `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_NEXT.md` and `HANDOFF_CURRENT_SESSION.md`:
   every gate defect class that has surfaced is closed by an executable invariant, the
   point-in-time invariant covers every `run_*.py` in the repository, the engine's
@@ -14,29 +14,29 @@
 - No published artifact, gate threshold, verdict, certified number or published row was
   modified; no grid was re-run; no hypothesis was added.
 
-## What changed (this session — H42)
+## What changed (this session — H43)
 
-- `tests/test_runner_causality_inventory.py` — reformatted by `python -m ruff format`
-  (`1 file reformatted`, 61 insertions / 22 deletions across 8 hunks). Pure whitespace; the file
-  was introduced in H38 (commit 944cdc3) and was not touched by H39/H40/H41, so the drift
-  predates the sessions that quoted the clean result.
-- `FINAL_REPORT.md` — new §H42 section, updated `Summary statistics` (test-suite tally) and
-  `Next Task`; `NEXT_TASK.md`; `HANDOFF.md`; `HANDOFF_NEXT.md`; this file;
-  `HANDOFF_CURRENT_SESSION.md`.
+- `src/qtr/strategies/baselines.py` — the provably unreachable inline `if vol > 0:` guard in
+  `time_series_momentum_signals` moved into a module-level `_vol_scale(vol, target_vol)` helper.
+  Behavior-identical; the defensive path is now reachable and covered. (+2 statements.)
+- `pyproject.toml` — the coverage gate (`branch = true`, `source = ["src/qtr"]`,
+  `fail_under = 100`, `show_missing = true`).
+- `tests/test_coverage_gate_contract.py` — **new**, 18 tests (6 gate pins + 12 branch-closure
+  tests).
+- `FINAL_REPORT.md` — new §H43 section, updated `Summary statistics` and `Next Task`;
+  `NEXT_TASK.md`; `HANDOFF.md`; `HANDOFF_NEXT.md`; this file; `HANDOFF_CURRENT_SESSION.md`.
 
 ## What was actually verified
 
-- `python -m ruff check src tests run_*.py` → *All checks passed!* (unchanged).
-- `python -m ruff format --check src tests run_*.py` → **85 files already formatted** (was
-  `1 file would be reformatted, 84 files already formatted`; the deviation is gone).
-- `python -m pytest -q -W error tests/test_runner_causality_inventory.py` → **321 passed**
-  (the module that owns the formatted file; unchanged — formatting cannot change semantics).
-- `python -m pytest -q -W error` → **1212 passed, 1 skipped** in 275.34 s (identical to the H41
-  baseline of 1212 passed, 1 skipped in 276.17 s; the change is whitespace-only).
-- `src/qtr` coverage is unchanged at 100%: the change is confined to a test file, so no branch is
-  added or removed. (The coverage tool, `pytest-cov`, is still not installed in this
-  environment — `python -m pytest --cov=qtr` → "unrecognized arguments"; the H39/H40/H41 branch
-  argument applies unchanged.)
+- `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` → **1230 passed,
+  1 skipped**; `src/qtr` = **1016 statements, 316 branches, 0 missed, 0 partial, 100.00%**; the
+  committed gate reports *"Required test coverage of 100.0% reached. Total coverage: 100.00%"*.
+- `python -m pytest -q -W error` → **1230 passed, 1 skipped** in 271.26 s (the bare-clone path:
+  no install step, no coverage plugin, no network).
+- `python -m pytest -q -W error tests/test_coverage_gate_contract.py` → **18 passed**.
+- Bare-clone path with the coverage tool **absent** → **17 passed, 1 skipped**.
+- `python -m ruff check src tests run_*.py` → *All checks passed!*.
+- `python -m ruff format --check src tests run_*.py` → **86 files already formatted**.
 
 ## What remains unresolved
 
@@ -44,20 +44,24 @@
   verdict cannot move (REJECT on the profit factor, 55× margin over its 1.0 gate).
 - The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified
   families' numbers and verdicts are frozen.
-- **No further task is assigned.** All tasks (H35–H42) are complete: gate defects (§H35),
-  point-in-time causality (§H36–H37), metric agreement (§H39–H41) and reproducible lint/format
-  (§H42).
+- **No further task is assigned.** All tasks (H35–H43) are complete: gate defects (§H35),
+  point-in-time causality (§H36–H37), metric agreement (§H39–H41), reproducible lint/format
+  (§H42) and the coverage gate (§H43).
 
 ## Approaches already tried / failed (and why)
 
-- **Reformatting by hand instead of via `ruff format` was not attempted**: the tool is installed
-  and the config is committed, so the canonical command reproduces the result exactly.
-- **Carrying the format disclosure forward a fourth time was rejected**: H39/H40/H41 each
-  recorded that the only deviation was on pre-existing lines of
-  `tests/test_runner_causality_inventory.py`. H42 closed it rather than repeating the disclosure.
+- **Re-asserting the coverage figure from a branch argument** was the status quo for four
+  sessions (H39–H42, each noting that `pytest-cov` was not installed). H43 installed the tool
+  and measured; the recorded figure was confirmed and 11 partial branches were found and closed.
+- **Suppressing the unreachable branch with `pragma: no cover`** was rejected in favour of
+  resolving it: the guard was moved into a helper whose non-positive arm is reachable and
+  testable.
+- **Relaxing `fail_under` to make the gate pass** was rejected. The first run with
+  `fail_under = 100` failed the suite ("total of 99 is less than fail-under=100"); it was made
+  green by closing the 11 arcs.
 
 ## Precise next task
 
-None. All assigned tasks (H35–H42) are complete.
+None. All assigned tasks (H35–H43) are complete.
 
-(End of file - total 66 lines)
+(End of file - total 67 lines)

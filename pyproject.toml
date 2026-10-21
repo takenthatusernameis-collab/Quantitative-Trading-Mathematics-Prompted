@@ -37,6 +37,21 @@ addopts = "-ra"
 # collection with ModuleNotFoundError unless `pip install -e .` was run.
 pythonpath = ["src"]
 
+[tool.coverage.run]
+# The coverage gate measures the package, with BRANCH coverage enabled.
+# Statement coverage alone cannot see a guard that is never taken, and
+# every defect the first real branch measurement found was exactly that:
+# a defensive branch that no test had ever executed.
+branch = true
+source = ["src/qtr"]
+
+[tool.coverage.report]
+# The gate fails below full coverage of src/qtr. Measured with:
+#   python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing
+# (pytest-cov is declared under [project.optional-dependencies] test).
+fail_under = 100
+show_missing = true
+
 [tool.ruff]
 target-version = "py310"
 line-length = 100

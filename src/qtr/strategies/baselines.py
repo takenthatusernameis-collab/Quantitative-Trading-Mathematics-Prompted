@@ -209,6 +209,26 @@ def mean_reversion_signals(
     return signals.ffill().fillna(0)
 
 
+def _vol_scale(vol: float, target_vol: float) -> float:
+    """Leverage multiplier that scales a position to a target volatility.
+
+    The multiplier is ``target_vol / vol``, capped at 2x so that no single
+    asset is ever levered more than double. A non-positive ``vol`` carries
+    no information about the risk of the position, so the position is left
+    unscaled (multiplier 1.0) rather than being amplified.
+
+    This is a separate function so that the non-positive branch is
+    reachable and testable. Inside :func:`time_series_momentum_signals` the
+    realized-volatility series is sanitized to be strictly positive by
+    construction (zeros -> NaN -> forward fill -> 0.15), so an inline
+    ``if vol > 0`` guard could never fire and was therefore never executed
+    by any test. See tests/test_coverage_gate_contract.py.
+    """
+    if vol <= 0:
+        return 1.0
+    return min(target_vol / vol, 2.0)
+
+
 def time_series_momentum_signals(
     prices: pd.DataFrame,
     lookback: int = 252,
@@ -264,10 +284,8 @@ def time_series_momentum_signals(
             # Volatility scaling
             if volatility_scale and realized_vol is not None and symbol in realized_vol.columns:
                 vol = realized_vol.loc[date, symbol]
-                if vol > 0:
-                    # Scale to target volatility
-                    scale = min(target_vol / vol, 2.0)  # cap leverage
-                    weight = weight * scale
+                # Scale to target volatility (leverage capped at 2x).
+                weight = weight * _vol_scale(vol, target_vol)
 
             signals.loc[date, symbol] = weight
 
