@@ -334,8 +334,8 @@ class VectorizedBacktester:
         risk_free = 0.0  # Assume 0 for simplicity
         excess_returns = returns - risk_free / ann_factor
 
-        if returns.std() > 0:
-            metrics["sharpe"] = excess_returns.mean() / returns.std() * np.sqrt(ann_factor)
+        if returns.std(ddof=0) > 0:
+            metrics["sharpe"] = excess_returns.mean() / returns.std(ddof=0) * np.sqrt(ann_factor)
         else:
             metrics["sharpe"] = 0.0
 
