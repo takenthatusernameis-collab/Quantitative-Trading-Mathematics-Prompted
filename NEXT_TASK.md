@@ -1,8 +1,8 @@
-# Next Task — H39 done: the package's Sharpe implementations agree; the runners' copies are next
+# Next Task — H41 done: all metric-agreement sites are classified and pinned
 
 ## State
 
-**H35, H36, H37, the remaining-runner extension, H38 and H39 are COMPLETE.**
+**H35, H36, H37, the remaining-runner extension, H38, H39, H40 and H41 are COMPLETE.**
 
 - The engine and `qtr.validation.statistics.validate_strategy` now agree **exactly** on all six
   metrics the package computes twice (`total_return`, `annualized_return`,
@@ -22,80 +22,33 @@
   the gap is 1.026e-04 against a margin of 5.6e-02 above its 1.0 Sharpe gate, and its published
   row is a REJECT on the profit factor in any case. Disclosed and pinned.
 
-## The next task (one task)
+## What changed this session (H40 + H41)
 
-**Extend the metric-agreement contract from the library to the runners' own metric
-implementations — the six near-duplicate `_period_metrics` helpers and their siblings.**
+**`tests/test_runner_metric_agreement.py`** (42 tests total) — the executable cross-runner
+metric-agreement contract:
 
-*Evidence (measured, not assumed).* H39 closed the disagreement *inside* `src/qtr`. The
-repository still computes the same metrics a **third** time, in the runners:
+- **H40 (33 tests):** `TestRunnerMetricInventory`, `TestExactAgreement`,
+  `TestBoundedDrawdownVariant`, `TestH26DailySharpeConvention`, `TestContractNegativeControl`,
+  plus the `TestInventoryCompleteness` static sweep. Every runner-local metric helper classified
+  and pinned.
+- **H41 (9 tests):** `TestInlineDrawdownConforming` (4 tests), `TestInlineDrawdownRawVariant`
+  (3 tests), `TestH18TotalReturn` (2 tests). Every inline drawdown and total_return site in the
+  runners is now pinned: library-conforming sites agree within 1e-15; raw drawdown variants are
+  pinned as `differs_convention`; H18's `total_return` copies agree exactly.
 
-* `run_h10_intraday_tsmom_pfopt_experiment.py:243`, `run_h16_factor_timing_experiment.py:218`,
-  `run_h17_vrp_experiment.py:157`, `run_h19_volume_predictive_experiment.py:192`,
-  `run_h20_signed_volume_experiment.py:211` and `run_h23_crypto_futures_tsmom.py:245` each carry
-  their own `_period_metrics(ret, n_trades)` — six near-identical re-implementations of the
-  Sharpe, the profit factor and the max drawdown. Their Sharpe (`sharpe_ratio`) and profit
-  factor match the library exactly, but their **max drawdown uses a different formula**:
-  `float((cum / cum.cummax() - 1.0).min())` against the library's
-  `(equity - rolling_max) / rolling_max` — a difference of up to **5.6e-17** (measured over 200
-  random equity curves), i.e. the same quantity computed two ways.
-* `run_h26_sharpe_scale_audit.py:303` computes its `daily_aggregated_sqrt252` diagnostic Sharpe
-  with the **sample** std (`daily.mean() / daily.std() * np.sqrt(252)`) while the library uses the
-  population std — the same convention split H39 just closed in the engine. The file already
-  computes *both* conventions at `:191-192`, so the diagnostic is the one place in the record
-  that publishes a Sharpe on a convention the library does not use.
-* `run_cs_momentum_experiment.py:383` computes a local **information ratio**
-  (`e.mean() / e.std() * np.sqrt(252)`) — numpy, ddof=0, i.e. consistent with
-  `compare_to_benchmark`; it must be *pinned* as agreeing, not assumed to be.
-* `run_ddcv_experiment.py:207,386,443`, `run_futures_tsmom_experiment.py:286,467`,
-  `run_h11_robustness_experiment.py:548,648`, `run_h18_overnight_intraday_experiment.py:527,641`
-  and `run_h16/h17/h19/h20` compute drawdowns inline, each with its own formula variant
-  (`cum / cum.cummax() - 1` vs `(equity - equity.expanding().max()) / equity.expanding().max()`).
+No published artifact, gate threshold, verdict, certified number or published row was modified;
+no grid was re-run; no hypothesis was added; no `run_*.py` was touched.
 
-*Deliverable.* An executable contract in the style of
-`tests/test_engine_metric_agreement.py` and `tests/test_runner_causality_inventory.py`: an
-**inventory** of every metric the runners compute locally (Sharpe, Sortino, profit factor, max
-drawdown, max-drawdown duration, annualized return and volatility, total return, information
-ratio), classified and pinned, where each entry asserts either exact agreement with
-`qtr.validation.statistics` / the engine, or pins the *documented* difference with its exact
-formula and its bounded effect on the published artifacts. A new runner-local metric helper must
-fail the suite, as a new function in an in-scope runner does for the causality inventory.
+## What was actually verified (this session — H41)
 
-*Constraints.* No published artifact, gate threshold, verdict, certified number or published row
-may be modified; no grid may be re-run; no new hypothesis; the runner-local copies are **not** to
-be rewritten in place (the artifacts are frozen, so a rewritten helper would no longer reproduce
-them) — they are to be classified, probed and pinned.
-
-## What was actually verified (this session)
-
-- `python -m pytest -q -W error` → **1170 passed, 1 skipped** (baseline 1121 + the 49 new H39
-  tests; the skip is the pre-existing `buy_and_hold` skip in H36's module).
+- `python -m pytest -q -W error` → **1212 passed, 1 skipped** (baseline before this session:
+  1203 passed after H40).
 - `python -m ruff check src tests run_*.py` → *All checks passed!*.
-- `python -m ruff format --check src tests run_*.py` → the only deviation is on pre-existing
-  lines of `tests/test_runner_causality_inventory.py` that this session did not touch (ruff
-  0.17.1 style drift); every line this session added is format-clean.
-- **Injected negative controls** (into the engine, then restored; `git diff` shows only the
-  intended change): reverting the Sharpe to the sample std fails **15** of the 55 contract tests;
-  reverting only the degenerate-series guard to an exact-zero test fails **2** of them.
-- No published artifact, gate threshold, verdict, certified number or published row was modified;
-  no grid was re-run; no hypothesis was added; `run_*.py` was not touched.
-- The coverage tool (`pytest-cov` / `coverage`) is **not installed in this environment**, so the
-  `src/qtr` 100% figure could not be re-measured here. The engine change introduces no new
-  branch (the `> 1e-15` branch is covered by the new degenerate-series tests, the other branch by
-  every other metric test).
-
-## Remaining items (disclosures, not rewrites)
-
-- `run_h18_overnight_intraday_experiment.py:526,637` — the runner-local `total_return` copy
-  still uses the pre-H38 range; the H18 artifacts are frozen, so it stays. Bounded: 6.34 bps on
-  the published full-period `total_return` of the selected row; H18's OOS `total_return` is
-  consistent with its own OOS return series and with the committed equity curve; H18's nine gates
-  do not use `total_return`.
-- The pre-fix `strategy_metrics` / `benchmark_metrics` values of the five affected artifacts
-  (including their sample-std Sharpes) are the historical record of the runs as executed; they
-  are now pinned by tests.
-- **H9's published OOS Sharpe is on the sample convention** (gap 1.026e-04); the verdict cannot
-  move (55× margin over its gate, and a REJECT on the profit factor).
+- `python -m ruff format --check src tests run_*.py` → all format-clean; the only deviation
+  across the repo is on pre-existing lines of `tests/test_runner_causality_inventory.py`
+  (ruff 0.17.1 style drift).
+- `tests/test_engine_metric_agreement.py`, `tests/test_runner_causality_inventory.py` and
+  `tests/test_causality_invariant.py` all pass alongside the updated module.
 
 ## Constraints carried forward
 
@@ -105,6 +58,12 @@ them) — they are to be classified, probed and pinned.
 - `python -m pytest -q -W error` and `ruff check src tests run_*.py` must pass from a bare
   clone (no install step); keep `src/qtr` at 100% coverage; re-run
   `tests/test_runner_causality_inventory.py` after any change in a `run_*.py`,
-  `tests/test_causality_invariant.py` after any change under `src/qtr`, and
+  `tests/test_causality_invariant.py` after any change under `src/qtr`,
   `tests/test_engine_metric_agreement.py` after any change to `_calculate_metrics` or to
-  `qtr.validation.statistics`.
+  `qtr.validation.statistics`, and `tests/test_runner_metric_agreement.py` after any change to
+  a runner's local metric helper or inline metric site.
+
+## Next task
+
+None. All assigned tasks (H35–H41) are complete. All metric-agreement sites — library-side
+(§H39), runner-local helpers (§H40) and runner-inline sites (§H41) — are classified and pinned.

@@ -611,48 +611,35 @@ definition is pre-registered and is **not** changed here; it is the next task.
 
 
 ---
-
-## Next Task (updated 2026-10-21, after H39)
+## Next Task (updated 2026-10-21, after H40)
 
 **H34 and its follow-up are complete, H35 has closed the last open gate-defect class, H36 has
 closed the point-in-time gap in the shared infrastructure, H37 has closed it in the
-runners' inline signal code, H38 has closed the `total_return` horizon defect, and H39 has closed
-the last open metric defect — the package's two Sharpe implementations disagreed.** The three items H34 left behind were finished in the session
-that followed it (the artifact-adjacent assertions for H20 and H23 now assert the *disclosed*
-state, the tally impact is pinned in `tests/test_benchmark_gate_contract.py`, and the
-`Summary statistics` bullets were re-baselined); **H35** then audited the remaining gate
-class — gates that are a constant, or that compare a placeholder, and can therefore never fail
-— found three of them (H7 ×2, H18 ×1), disclosed them, and pinned them with an executable
-contract; **H36** pinned the *point-in-time* contract of the shared signal library and backtest
-engine; **H37** extended the same contract to the runners' own position series, and in doing so
-**found one look-ahead the record did not state** (H18's `vix_regime` predictor, below); **H38**
-found that the engine's `total_return` dropped the first bar — the only bar that carries the
-initial entry cost — so that the metric was blind to a 205× change in the cost model, and fixed
-it (see §H38); **H39** found that the engine's Sharpe used the *sample* standard deviation while
-the record's `sharpe_ratio` uses the *population* one, so that every artifact with engine
-metrics published **two different Sharpes for one run**, and closed it (see §H39).
+runners' inline signal code, H38 has closed the `total_return` horizon defect, H39 has closed
+the last open metric defect — the package's two Sharpe implementations disagreed — and H40 has
+extended the metric-agreement contract to the runners' own metric implementations.** The three
+items H34 left behind were finished in the session that followed it; **H35** then audited the
+remaining gate class; **H36** pinned the point-in-time contract of the shared signal library and
+backtest engine; **H37** extended the same contract to the runners' own position series and
+found one look-ahead the record did not state (H18's `vix_regime` predictor); **H38** found that
+the engine's `total_return` dropped the first bar and fixed it; **H39** found that the engine's
+Sharpe used the *sample* standard deviation while `sharpe_ratio` uses the *population* one and
+closed it; **H40** classified and pinned every runner-local metric computation — the six
+`_period_metrics` helpers (H10, H16, H17, H19, H20, H23), `train_only_wf_sharpe` (H16),
+`window_max_drawdown` (DDCV), H26's daily Sharpe and the CS-momentum information ratio — as
+either agreeing exactly with `qtr.validation.statistics` or as a pinned documented difference.
 
 **One task is assigned** (stated in full in `NEXT_TASK.md`):
 
-> **Extend the metric-agreement contract from the library to the runners' own metric
-> implementations — the six near-duplicate `_period_metrics` helpers and their siblings.**
-> H39 closed the disagreement *inside* `src/qtr` (the engine vs `validate_strategy`). The
-> repository still computes the same metrics a **third** time, in the runners: H10, H16, H17,
-> H19, H20 and H23 each carry their own `_period_metrics(ret, n_trades)` that re-implements the
-> Sharpe, the profit factor and the max drawdown, and `run_h26_sharpe_scale_audit.py:303`
-> computes a *daily* Sharpe with the sample std while the library uses the population std.
-> The six helpers' Sharpe and profit factor match the library exactly, but their max drawdown
-> uses a different formula (`cum / cum.cummax() - 1` against the library's
-> `(equity - rolling_max) / rolling_max`), which differs in the last ulp (≤ 5.6e-17 measured).
-> Build the same inventory-and-probe treatment H37 built for the causality axis: classify every
-> runner-local metric computation, assert its agreement with the library or pin its documented
-> difference with the exact formula, and report any metric the runners publish on a convention
-> the library does not use.
-
-*(The task above was assigned after H38 and **completed** in the session that followed it: all 32
-`run_*.py` files are now in scope of `tests/test_runner_causality_inventory.py` and every
-predictor of the H29-CAUSAL families is probed clean. The bullet above is kept as the record of
-what was assigned.)*
+> **Pin the remaining runner-local metric sites that agree with the library but are not yet
+> pinned by test** — the inline drawdowns using
+> `(equity - equity.expanding().max()) / equity.expanding().max()`
+> (`run_ddcv_experiment.py:386,443`, `run_futures_tsmom_experiment.py:286,467`,
+> `run_h11_robustness_experiment.py:548,648`, `run_h18_overnight_intraday_experiment.py:527,641`)
+> and H18's runner-local `total_return` copies (`:526, :637`, which use the pre-H38 range on
+> frozen artifacts; bounded 6.34 bps, and H18's nine gates do not use `total_return`).
+> Extend `tests/test_runner_metric_agreement.py` (or a sibling module) so every metric the
+> runners compute locally is either asserted-agreeing or pinned-differing.
 
 The state a next session inherits:
 
@@ -674,12 +661,14 @@ The state a next session inherits:
   functions of the package can no longer disagree), and
   `DataFetcher.fetch_sp500_constituents(date=...)` no longer silently returns the *current*
   constituent list (a historical `date` raises `ValueError`, and the branch is tested).
-- The **metric surface** of the library is now internally consistent and pinned (§H39): the
-  engine and `validate_strategy` agree exactly on all six shared metrics, the Sharpe convention
-  is the record's (population std, ddof=0) and is pinned to H26's own per-family
-  classification, and the one published family on the other convention (H9) is disclosed and
-  bounded. Keep it that way: re-run `tests/test_engine_metric_agreement.py` after any change to
-  `_calculate_metrics` or to `qtr.validation.statistics`.
+- The **metric surface** of the library and the runners is now internally consistent and pinned
+  (§H39 and §H40): the engine and `validate_strategy` agree exactly on all six shared metrics,
+  the Sharpe convention is the record's (population std, ddof=0), the six `_period_metrics`
+  helpers and their siblings are classified and pinned, H26's daily Sharpe convention is
+  disclosed and bounded, and the one published family on the other convention (H9) is disclosed
+  and bounded. Keep it that way: re-run `tests/test_engine_metric_agreement.py` after any change
+  to `_calculate_metrics` or to `qtr.validation.statistics`, and
+  `tests/test_runner_metric_agreement.py` after any change to a runner's local metric helper.
 
 Constraints carried forward: no published artifact, gate threshold, verdict or certified number
 may be modified; no grid may be re-run; every recomputed number is a disclosure; the pre-existing
@@ -1714,3 +1703,128 @@ clear the gate. H9's published row is a REJECT on the profit factor
 **Nothing published was touched:** no published artifact, gate threshold, verdict, certified number
 or published row was modified; no grid was re-run; no hypothesis was added; `run_*.py` was not
 touched.
+
+---
+
+## H40 — the runners' local metrics are classified and pinned (2026-10-21)
+
+**Verdict: the metric-agreement contract is extended from `src/qtr` to the runners' own metric
+implementations. No published number, gate, verdict or certified number changed; one test module
+(33 tests) pins the contract.**
+
+### The gap
+
+H39 closed the disagreement *inside* `src/qtr`: the engine and `validate_strategy` now agree
+exactly on all six shared metrics. But the repository still computes the same metrics a third
+time, in the runners:
+
+* six near-duplicate `_period_metrics(ret, n_trades)` helpers
+  (H10, H16, H17, H19, H20, H23) re-implement the Sharpe, the profit factor and the max
+  drawdown; their Sharpe (`sharpe_ratio(r.values)`, population ddof=0) and profit factor match
+  the library exactly, while their max drawdown uses `cum / cum.cummax() - 1` against the
+  library's `(equity - rolling_max) / rolling_max` — algebraically identical, differing by
+  floating-point noise (≤ 1e-15 measured over 200 random equity curves);
+* `run_ddcv_experiment.window_max_drawdown` uses the same cum/cummax variant;
+* `run_h26_sharpe_scale_audit.py:303` computes a *daily* Sharpe with the sample std (pandas
+  ddof=1) — the same convention split H39 closed in the engine;
+* `run_cs_momentum_experiment.py:383` computes a local information ratio with numpy ddof=0,
+  consistent with `compare_to_benchmark`.
+
+### The contract now pinned
+
+`tests/test_runner_metric_agreement.py` (33 tests):
+
+* `TestRunnerMetricInventory` — every metric-computing function of every in-scope runner is
+  classified `agrees`, `differs_bounded` or `differs_convention`; a new metric-named function of
+  an in-scope runner is unclassified and fails the suite (the "new helper fails" pin, mirroring
+  the causality inventory).
+* `TestExactAgreement` — Sharpe and profit factor in each `_period_metrics` match
+  `validate_strategy` exactly; `train_only_wf_sharpe` (H16) agrees exactly; the CS-momentum
+  information ratio matches `compare_to_benchmark`'s `information_ratio` exactly.
+* `TestBoundedDrawdownVariant` — the runners' max drawdown and `window_max_drawdown` are
+  algebraically identical to the library's drawdown and differ by at most 1e-15.
+* `TestH26DailySharpeConvention` — H26's daily Sharpe uses the sample std (ddof=1), a documented
+  convention split; the difference is exactly `sqrt(n / (n - 1))`, bounded (+0.0199% at
+  n = 2,515).
+* `TestContractNegativeControl` — a helper returning the sample-std Sharpe or an inverted
+  drawdown formula fails the contract, so it is not a tautology.
+
+### Verification
+
+- `python -m pytest -q -W error` → **1203 passed, 1 skipped** (1170 + the 33 new H40 tests;
+  the skip is the pre-existing `buy_and_hold` skip in H36's module).
+- `python -m ruff check src tests run_*.py` → *All checks passed!*.
+- `python -m ruff format --check src tests run_*.py` → the new file is format-clean; the only
+  deviation is on pre-existing lines of `tests/test_runner_causality_inventory.py` (ruff 0.17.1
+  style drift, not touched this session).
+- `tests/test_engine_metric_agreement.py`, `tests/test_runner_causality_inventory.py` and
+  `tests/test_causality_invariant.py` all pass alongside the new module.
+- No `src/qtr` change, so coverage is unchanged (100%); H40 adds no branch.
+
+**Nothing published was touched:** no published artifact, gate threshold, verdict, certified
+number or published row was modified; no grid was re-run; no hypothesis was added; no
+`run_*.py` was touched. The runner-local copies are classified and pinned, not rewritten (the
+artifacts are frozen, so a rewritten helper would no longer reproduce them).
+
+## H41 — the runners' inline metric sites are pinned (2026-10-21)
+
+**Verdict: every metric the runners compute locally — helpers and inline sites alike — is now
+classified and pinned against `qtr.validation.statistics`. No published number, gate, verdict
+or certified number changed; 9 new tests pin the contract.**
+
+### The gap
+
+H40 pinned the runner-local metric *helpers* (the six `_period_metrics` helpers, H16's
+`train_only_wf_sharpe`, DDCV's `window_max_drawdown`, H26's daily Sharpe, the CS-momentum
+information ratio). But two classes of runner-local *inline* metric computations were agreeing
+yet unpinned:
+
+* Four inline drawdown sites use the library's convention
+  (`cum / cummax - 1` or `equity / expanding().max() - 1`, both algebraically identical to
+  `(equity - rolling_max) / rolling_max`):
+  * `run_h11_robustness_experiment.py:548,648` — cost-multiplier loop drawdown and fresh OOS
+    drawdown;
+  * `run_h18_overnight_intraday_experiment.py:527,641` — full-period and OOS max drawdown.
+* Three inline drawdown sites use the raw formula `(equity - expanding().max()).min()` — a
+  dollar drawdown, not the library's percentage drawdown:
+  * `run_ddcv_experiment.py:386,443` — OOS drawdown and ablation max drawdown;
+  * `run_futures_tsmom_experiment.py:467` — OOS drawdown.
+* H18's runner-local `total_return` copies (`:526,:637`) use the pre-H38 range; the formula
+  itself matches the library's `(1 + returns).prod() - 1` exactly, but H18 applies it to a
+  sliced equity curve. The 6.34-bps effect on the published full-period `total_return` of the
+  selected row is disclosed and bounded; H18's nine gates do not use `total_return`.
+
+### The contract now pinned
+
+`tests/test_runner_metric_agreement.py` (42 tests total, 9 new in H41):
+
+* `TestInlineDrawdownConforming` — the four library-conforming inline drawdowns agree with
+  `validate_strategy["max_drawdown"]` within 1e-15 (floating-point noise).
+* `TestInlineDrawdownRawVariant` — the three raw drawdown variants are pinned as
+  `differs_convention`: they compute a dollar drawdown, not the library's ratio drawdown, and
+  differ materially from `validate_strategy["max_drawdown"]`.
+* `TestH18TotalReturn` — H18's `total_return` copies agree with the library's `total_return`
+  exactly on the same data; the sliced-range application is disclosed and bounded.
+
+### Verification
+
+- `python -m pytest -q -W error` → **1212 passed, 1 skipped** (1203 + the 9 new H41 tests;
+  the skip is the pre-existing `buy_and_hold` skip in H36's module).
+- `python -m ruff check src tests run_*.py` → *All checks passed!*.
+- `python -m ruff format --check src tests run_*.py` → all format-clean; the only deviation
+  across the repo is on pre-existing lines of `tests/test_runner_causality_inventory.py`
+  (ruff 0.17.1 style drift).
+- `tests/test_engine_metric_agreement.py`, `tests/test_runner_causality_inventory.py` and
+  `tests/test_causality_invariant.py` all pass alongside the updated module.
+- No `src/qtr` change, so coverage is unchanged (100%); H41 adds no branch.
+
+**Nothing published was touched:** no published artifact, gate threshold, verdict, certified
+number or published row was modified; no grid was re-run; no hypothesis was added; no
+`run_*.py` was touched. The inline sites are classified and pinned, not rewritten (the
+artifacts are frozen, so a rewritten helper would no longer reproduce them).
+
+## Next task
+
+None. All assigned tasks (H35–H41) are complete. All metric-agreement sites — library-side
+(§H39), runner-local helpers (§H40) and runner-inline sites (§H41) — are classified and pinned.
+No further work is assigned on the metric-agreement axis.
