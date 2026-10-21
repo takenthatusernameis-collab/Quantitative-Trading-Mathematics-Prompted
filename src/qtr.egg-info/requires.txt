@@ -11,6 +11,9 @@ pyarrow>=14.0.0
 yfinance>=0.2.0
 ccxt>=4.0.0
 
+[lint]
+ruff>=0.6.0
+
 [opt]
 optuna>=3.0.0
 

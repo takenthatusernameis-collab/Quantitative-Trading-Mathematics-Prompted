@@ -19,3 +19,5 @@ Requires-Dist: pytest>=7.4.0; extra == "test"
 Requires-Dist: pytest-cov>=4.1.0; extra == "test"
 Provides-Extra: opt
 Requires-Dist: optuna>=3.0.0; extra == "opt"
+Provides-Extra: lint
+Requires-Dist: ruff>=0.6.0; extra == "lint"
