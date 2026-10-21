@@ -2,27 +2,27 @@
 
 ## State
 
-H35–H52 complete (the coverage gate is measured, declared and complete at 100% statement + branch;
+H35–H53 complete (the coverage gate is measured, declared and complete at 100% statement + branch;
 the package's public API and the runners' import surface are both declared and pinned; the engine's
-trade log reconciles with the costs it charges; the package's stochastic surface is seedable; the
-published validation blocks re-derive from the frozen artifacts; the package's metadata has exactly
+trade log reconciles with the costs it charges; the package's stochastic surface is seedable;
+the published validation blocks re-derive from the frozen artifacts; the package's metadata has exactly
 one declared source of truth; `compare_to_benchmark` is container-independent and the published
 convention split is disclosed; **the H47 cost-attribution disclosure now covers the whole committed
-record**).
-**H52 is complete**: the pre-fix aggregate attribution of the committed trade logs is disclosed and
-pinned for **every one of them** — **82** logs, not the 41 the §H47-era scan saw — and the set of
-logs where that attribution actually *changes* a number (**70**) is pinned separately from the logs
-where it cannot (**7**) and the logs that hold no trade (**5**). The arrangement is pinned by
-`tests/test_trade_log_cost_reconciliation.py` (37 tests).
+record**; **the published `metrics` block now re-derives from its own frozen artifact, key by key**).
+**H53 is complete**: every published value in the **37** `metrics` blocks has been re-derived from
+the artifact that published it — **441** of **450** values re-derive exactly (residuals 0 … 5.2e-14)
+and the remaining **9** are the H9 family's regime block, whose VIX input was never committed. The
+**ten** convention profiles the **nineteen** producer tags used are now recorded and pinned, and
+four behavioural negative controls prove the checks fire.
 
-## What changed (H52)
+## What changed (H53)
 
-- `tests/test_trade_log_cost_reconciliation.py` — the frozen-record section is extended from one
-  artifact to the whole record: **24 new tests** (13 → 37). Every committed trade log is named,
-  classified and pinned with its measured structure; the two sub-sets are pinned separately; the
-  published numbers that read the column are pinned; and the **negative control** is behavioural.
-- `FINAL_REPORT.md` — new **§H52** section, §H47's two disclosure bullets **corrected**, and the
-  "Next task" and "What remains unresolved" sections updated.
+- `tests/test_h53_published_metrics_disclosure.py` — the module that previously only enumerated the
+  `metrics` summaries is replaced by the full re-derivation contract: **19 tests** (3 → 19). It
+  re-derives every published value from the artifact that published it, pins the convention each
+  producer used for each key, and carries four behavioural negative controls.
+- `FINAL_REPORT.md` — new **§H53** section (with the 450-row disclosure table), the "Next task"
+  section updated.
 - `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_CURRENT.md`, `HANDOFF_CURRENT_SESSION.md`,
   `HANDOFF_NEXT.md` updated.
 - **Nothing under `src/qtr` changed.** No artifact, gate threshold, verdict or certified number was
@@ -30,98 +30,109 @@ where it cannot (**7**) and the logs that hold no trade (**5**). The arrangement
 
 ### The gap, measured
 
-§H47's disclosure was narrower than the record on **three** counts.
+The committed record holds **80** `summary.json` files. Four passes have audited parts of it, and
+they are disjoint:
 
-1. **The scan missed half the record.** The pathspec `".experiments/artifacts/*/trades.parquet"`
-   matches only the logs literally named `trades.parquet` — **41** of the **82** committed trade
-   logs. The other **41** are named `best_trades`, `benchmark_trades`, `selected_trades`,
-   `ensemble_trades`, `frozen_trades`, `baseline_trades`, `vix_only_trades`, `best_ddcv_trades` and
-   `best_trades_w0.5`. The pathspec that sees the whole record is
-   `".experiments/artifacts/*trades*.parquet"` → **82**.
-2. **The family list was narrow.** The record spans **eleven** families — H3, H10, H11, H16, H17,
-   H19, H20, H21, H22, H23 and H25 — across 36 artifact directories, plus **44** trade logs in 35
-   exploratory artifacts that carry no `hypothesis`. §H47 named six families.
-3. **The published numbers were under-counted.** §H47 disclosed the `avg_trade_cost` of "the three
-   exploratory 2026-10-10 MA-crossover summaries". **Five** committed summaries publish it, and the
-   tracker metadata publishes the **benchmark's** `avg_trade_cost` in **23** further entries — a
-   number §H47 did not mention at all.
+| pass | what it covered | how many |
+|---|---|---:|
+| §H49 | the `validation` blocks of the exploratory summaries | **5** summaries |
+| §H51 | the `information_ratio` inside the metric blocks | **48** artifacts |
+| §H52 | the `avg_trade_cost` (strategy and benchmark) | **5** summaries + **23** tracker entries |
+| §H53 | the rest of the `metrics` block — the **13** scalar keys that carry the certified numbers | **37** summaries, **450** values |
 
-### The measured record
+What §H53 closed: **441 of 450** published values re-derive from their own frozen artifact. The
+**9** that do not are the H9 regime block (`regime_sharpes` ×4, `worst_regime_sharpe` ×5) — the
+producer fetched its VIX series from Yahoo at run time and never committed it, so the regime
+labels are a function of an input the record does not hold.
 
-| class | logs | meaning |
-|---|---:|---|
-| aggregate, **changes a number** | **70** | at least one bar holds more than one trade, so the bar's value was written on each of its trades |
-| aggregate, **coincides** | **7** | every bar holds exactly one trade, so the bar's value *is* that trade's own cost |
-| empty | **5** | the log holds no trade at all (the empty H23 crypto logs) |
+### The conventions, per producer family
 
-The **repetition factor** (the recorded column's total over the total of the per-bar values) is the
-factor by which the column repeats each bar's value; it is **1** exactly when no bar repeats its
-value, and it runs from **1.229953** to **20.677528** over the 70 logs where the attribution
-changes a number.
+| producer | summaries | Sharpe std | profit factor | trades | WF folds | regime Sharpes | benchmark | `val_sharpe` holds |
+|---|---:|---|---|---|---|---|---|---|
+| `h9_intraday_tsmom_ctexits_v1` | 1 | **sample** (`ddof=1`) | **full sample** | **full sample** | pre-fix | full | full | val window |
+| `h9_intraday_tsmom_ctexits_v2` | 4 | **sample** (`ddof=1`) | **full sample** | **full sample** | pre-fix | full | full | val window |
+| `h10_intraday_tsmom_pfopt` | 2 | population | OOS | OOS | pre-fix | full | full | **`null`** |
+| `h16_factor_timing` | 4 | population | OOS | OOS | pre-fix | OOS | OOS | val window (**3 publish train+val**) |
+| `h17_vrp` | 1 | population | OOS | OOS | pre-fix | OOS | OOS | val window |
+| `h19_volume_predictive` | 1 | population | OOS | OOS | pre-fix | OOS | OOS | val window |
+| `h20_signed_volume` | 1 | population | OOS | OOS | pre-fix | OOS | OOS | val window |
+| `h21_futures_tsmom_multicontract` | 1 | population | OOS | OOS | pre-fix | full | full | **the OOS Sharpe** |
+| `h22_futures_tsmom_voltarget` | 5 | population | OOS | OOS | pre-fix | full | full | val window |
+| `h23_crypto_futures_tsmom` | 7 | population | OOS | OOS | pre-fix | full | full | val window |
+| `h25_futures_tsmom_pfmargin` | 2 | population | OOS | OOS | pre-fix | full | full | val window |
+| `h28_h{10,21,22,25}_{control,causal}` | 8 | *as the parent* | OOS | OOS | **post-fix** | full | full | *as the parent* |
 
-### Why "uniform per bar" is the *pre-fix* attribution here — three legs
+### The six findings
 
-1. **Provenance (decisive).** The tracker stamps every artifact id with the UTC **start** of the
-   run that produced it (`exp_<UTC timestamp>`, `src/qtr/tracking/experiment.py`). Every committed
-   trade log's stamp precedes **2026-10-19T18:56:58Z**, while the engine's per-trade attribution
-   fix is committed in `3fbef17` (2026-10-21 11:33:35Z). No committed log was written by the fixed
-   engine — and the pre-fix `_extract_trades` wrote the per-bar total on every trade of the bar.
-2. **The charge anchor.** The H27 `L3` check recomputes the per-bar cost from the trades'
-   `weight_change` and `price` — **never** from the `cost` column — and matches the engine's
-   per-bar charge to **~1e-19** for H9, H10, H21, H22 and H25. For those families the per-bar
-   recorded value *is* the charge, so the recorded column repeats the charge.
-3. **The engine's own definition.** The pre-fix `_extract_trades` wrote the per-bar total on every
-   trade of that bar (§H47).
-
-**The honest caveat.** Uniformity alone does not separate an aggregate log from a per-trade log
-whose trades happen to share the same cost — a two-symbol backtest with identical signals records
-the same number either way. That is exactly why the single-symbol case is the *coincides* bucket
-and why leg 1 is needed; the contract's negative control shows the classifier does recognise a
-per-trade log when the trades' costs differ.
-
-### The published numbers that read the column
-
-Exactly one place in the package reads the trade log's `cost` column:
-`src/qtr/backtest/engine.py` → `metrics["avg_trade_cost"] = trades["cost"].mean()`. **No runner
-reads it** (checked statically over `src/qtr` and every `run_*.py`).
-
-| published number | where | count | over-stated by the pre-fix attribution |
-|---|---|---:|---|
-| `strategy_metrics.avg_trade_cost` | 5 artifact `summary.json` | 5 | **3** — by 1.229953×, 1.247109× and 2.868948×. The other 2 hold a single trade, so their value is exact. |
-| `benchmark_avg_trade_cost_step0` | tracker metadata (`.experiments/experiments.jsonl`) | 23 | **9 verified** — 6 × **20.0×** (measured against the committed benchmark trade log) and 3 × **5×** (measured against the committed `signals_buy_and_hold.parquet`: all five symbols enter on one bar). The other **14** use a 5-contract futures benchmark whose trade log and signals were never committed, so their factor is **not measurable from the record**. |
-
-**40** `stats.json` files also echo the head of a trade log (its first row, cost column included) as
-text. **No gate, threshold, verdict or certified number reads the column**, and the certified
-families publish no `avg_trade_cost` at all.
+1. **The walk-forward stability gate was published on the PRE-FIX fold convention.** The library's
+   `walk_forward_splits` used to end its last window at `n_splits * window_size`, silently dropping
+   the tail of the return series; it was later changed so the last window absorbs it. **29** of the
+   **37** published `wf_stability` values are pre-fix and **8** are post-fix. The split follows the
+   production date: every post-fix summary is an H28 causal re-certification run of **2026-10-19**.
+   All **8** post-fix summaries and **21** of the pre-fix ones are *discriminated* by
+   the data (**29** of the 37); the other **8** — the H23 summaries, whose series length is an
+   exact multiple of the fold count — coincide, because the tail is empty.
+2. **`benchmark_alpha_annual` was published on the PRE-H51 beta convention** —
+   `np.cov(strat, bench, ddof=1)[0, 1] / np.var(bench)`, a mixed ddof that inflates beta by
+   `n / (n - 1)`. All **7** published alphas (H16 ×4, H17, H19, H20) are pre-fix; they differ from
+   the library's current alpha by **2.7e-05 … 3.7e-05**.
+3. **The H9 family publishes the SAMPLE standard deviation** (`ddof=1`) because it passed a
+   `pandas.Series` to `sharpe_ratio`; every other family passes an `ndarray` and publishes the
+   POPULATION standard deviation (`ddof=0`). The two differ by `sqrt(n / (n - 1))`. The same
+   container split decides the information ratio's excess volatility — §H51's disclosure, extended
+   here to the **8** H28 runs it did not cover.
+4. **The H9 family publishes a whole-sample profit factor and trade count**, not the OOS-window ones
+   every other family publishes.
+5. **Three of the four H16 summaries publish the TRAIN+VAL window Sharpe under the key
+   `val_sharpe`** (n = 2769 bars) while the fourth publishes the val-window Sharpe (n = 756 bars).
+   The published `param_grid_results.parquet` carries the *val-window* value in all four cases, so
+   the summaries and their own grids disagree in three of them. **No gate reads the key.**
+6. **`val_sharpe` holds three different things across the record**: `null` (H10), the OOS Sharpe
+   (H21), and the val-window Sharpe (everybody else, except the three H16 summaries above).
 
 ## What was actually verified
 
-- `python -m pytest -q -W error tests/test_trade_log_cost_reconciliation.py` → **37 passed** (13
+- `python -m pytest -q -W error tests/test_h53_published_metrics_disclosure.py` → **19 passed** (3
   before this session).
-- `python -m pytest -q -W error` → **1647 passed, 13 skipped** (full suite, up from 1623 + 13).
+- `python -m pytest -q -W error` → **1666 passed, 13 skipped** (full suite, up from 1650 + 13).
 - `python -m ruff check src tests run_*.py` → *All checks passed!*.
-- `python -m ruff format --check src tests run_*.py` → **94 files already formatted**.
+- `python -m ruff format --check src tests run_*.py` → **95 files already formatted**.
 - `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → `src/qtr` = **1055
   statements, 318 branches, 0 missed, 0 partial, 100.00%**; *"Required test coverage of 100.0%
   reached. Total coverage: 100.00%"* — unchanged, because nothing under `src/qtr` changed.
-- **Every number is a read of the frozen artifacts** — no pipeline re-execution, no network, no grid
-  re-run. The 82-row table in `FINAL_REPORT.md` §H52 was measured from the committed parquet files,
-  and every published value was checked against the artifact that published it.
-- **Negative control** — the classifier is shown to answer `"per-trade"` for a log the fixed engine
-  wrote (two symbols of *different* sizes) and `"aggregate"` for the reconstructed pre-fix log of
-  the same data; the single-symbol log is `"aggregate"` with a repetition factor of exactly **1**.
-- **The provenance leg was checked, not assumed** — every committed log's artifact-id stamp parses
-  and precedes the fix commit's date.
+- **Every number is a read of the frozen artifacts** — no pipeline re-execution, no network, no
+  grid re-run. The 450-row table in `FINAL_REPORT.md` §H53 was measured from the committed parquet
+  files, and every published value was checked against the artifact that published it.
+- **The conventions were measured, not assumed** — each was identified by reconstructing it and
+  matching the published value to ≤ 1e-09 relative, and the reconstruction is now part of the
+  contract. The fold convention is additionally anchored to the library's own
+  `walk_forward_splits`, and the beta convention to the exact expression the library replaced.
+- **Four behavioural negative controls** — the *current* library fold convention breaks the
+  re-derivation of all **21** discriminable pre-fix summaries; the *current* library beta breaks all
+  **7** published alphas; the val-only window breaks the three H16 summaries; and a published value
+  nudged by one part in a thousand fails the residual check. None of them is an API check.
+- **The blast radius is empty** — no published `passes` block reads `train_sharpe` or
+  `val_sharpe`, and every gate key is computed from values that do re-derive.
 
 ## What remains unresolved
 
-- **The 14 benchmark `avg_trade_cost` entries** whose benchmark trade log and signals were never
-  committed are on the pre-fix basis (same engine commit) but their over-count factor is **not
-  measurable from the record**. Disclosed, not quantified.
-- **The three published `avg_trade_cost` values** over-stated by the pre-fix attribution remain
-  published as they are; the artifacts are frozen and no gate reads them.
-- **The 22 published `information_ratio` values** on the sample (`ddof=1`) convention no longer
-  re-derive from the library (§H51); disclosed, not rewritten.
+- **The nine H9 regime values** cannot be re-derived: the producer's VIX series was never
+  committed. Disclosed, not quantified.
+- **The 29 pre-fix `wf_stability` values** no longer re-derive from the library's current
+  `walk_forward_splits`. Published on the convention in force when they were produced; disclosed,
+  not rewritten. The certified families (H10, H22, H25) are among them.
+- **The 7 published `benchmark_alpha_annual` values** are on the pre-H51 mixed-ddof beta;
+  disclosed, not rewritten; no gate reads the key.
+- **Three of the four H16 `val_sharpe` values** publish the train+val window under a key named for
+  the val window, and disagree with their own grid artifact. Disclosed, not rewritten.
+- **The four nested `metrics` keys** — `ablations` (35 summaries), `perturbation` (7),
+  `perturbation_min_ratio` (7), `cross_validation` (2) — are pinned in the key union but not
+  re-derived. The **28** ablation blocks whose equity files were committed are re-derivable; the
+  **7** H16/H17/H19/H20 ablation blocks, all **14** perturbation blocks and both
+  `cross_validation` blocks have no committed input and are not.
+- **The 22 published `information_ratio` values** on the `ddof=1` convention no longer re-derive
+  from the library (§H51); disclosed, not rewritten. H53 extends that disclosure to the **8** H28
+  runs §H51 did not cover.
 - **H9's published OOS Sharpe** is on the sample convention (gap 1.026e-04); disclosed and pinned,
   verdict cannot move.
 - The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified families'
@@ -129,27 +140,18 @@ families publish no `avg_trade_cost` at all.
 
 ## Approaches already tried / failed (and why)
 
-- **Fixing the trade log by changing the charge** — rejected: the charge was never wrong (H27's
-  `L3` check proves it to ~1e-19). Only the *attribution* inside the log was wrong, so the fix
-  moves the log, not the charge.
+- **Treating a value that does not re-derive as a defect** — rejected: §H53 measured that every
+  non-re-deriving value is a *convention* difference (a ddof, a window, a fold rule) or a missing
+  input (the VIX series), never an arithmetic error. The contract therefore records the convention
+  rather than "fixing" the published number.
+- **Assuming one convention for the whole record** — rejected after measurement: ten distinct
+  profiles across nineteen producer tags, including two that publish the *same key* with three
+  different meanings (`val_sharpe`).
 - **A negative control that only asserted the new API exists** — rejected for the same reason in
   H47/H48/H50/H51: the control must be behavioural, not a missing-keyword error.
-- **Using the per-bar *first* recorded value as the bar total for every log** — rejected after
-  measurement: that is only the bar total for an *aggregate* log. For a per-trade log the first
-  value is one trade's own share, so the "over-count" computed from it is meaningless. The contract
-  therefore classifies the recorded form first and only computes the repetition factor on an
-  aggregate log.
-- **Deriving the attribution from the log alone** — rejected: a per-trade log whose trades happen to
-  share the same cost is indistinguishable from an aggregate log by the `cost` column alone (a
-  two-symbol backtest with identical signals records the same number either way). The disclosure
-  therefore rests on the **provenance** leg (the artifact id's run stamp vs the fix's commit),
-  which is measured, and the negative control shows the classifier can still recognise a per-trade
-  log when the costs differ.
-- **Re-deriving every artifact's cost model to decide each log independently** — rejected as
-  disproportionate: it needs each runner's cost model, ADV and volume inputs, and the published
-  record does not carry all of them (two buy-and-hold artifacts used a fixed `0.0002` per trade).
-  The provenance leg plus the H27 charge anchor covers the same ground with facts the record
-  actually holds.
+- **Re-deriving the H9 regime block from the published Sharpe alone** — rejected: the regime labels
+  are a function of a VIX series that was never committed, so the block is not a function of the
+  record at all. Disclosed as indeterminable rather than approximated.
 
 ## Constraints carried forward
 
@@ -168,12 +170,14 @@ families publish no `avg_trade_cost` at all.
 - The published validation blocks (§H49) are pinned by
   `tests/test_h49_validation_block_disclosure.py`; re-run it after any change under
   `src/qtr/validation`.
-- The metadata source of truth (§H50) is pinned by
-  `tests/test_generated_manifest_contract.py`; re-run it after any change to `pyproject.toml`,
-  `.gitignore` or the packaging layout.
+- The metadata source of truth (§H50) is pinned by `tests/test_generated_manifest_contract.py`;
+  re-run it after any change to `pyproject.toml`, `.gitignore` or the packaging layout.
 - The container-independence of `compare_to_benchmark` and the published convention split (§H51)
   are pinned by `tests/test_h51_benchmark_container_invariance.py`; re-run it after any change under
   `src/qtr/validation`.
+- The published `metrics` block and its per-producer conventions (§H53) are pinned by
+  `tests/test_h53_published_metrics_disclosure.py`; re-run it after any change under
+  `src/qtr/validation`, `src/qtr/backtest` **or after a new artifact is committed**.
 - Re-run `tests/test_runner_causality_inventory.py`, `tests/test_runner_metric_agreement.py` and
   `tests/test_benchmark_gate_contract.py` after any change in a runner or under
   `src/qtr/validation`.
@@ -181,52 +185,63 @@ families publish no `avg_trade_cost` at all.
   `src/qtr`; the lint gate (`python -m ruff check src tests run_*.py` and
   `python -m ruff format --check src tests run_*.py`) must stay clean.
 
-## The next task (H53)
+## The next task (H54)
 
-> **Re-derive the published `metrics` block of every summary that publishes one from its own
-> frozen artifact, and record the convention each publisher used for every key in it.**
+> **Re-derive the published blocks of the summaries that publish no `metrics` block, and record the
+> convention each publisher used for every key in them.**
 
 ### The gap (measured)
 
-The committed record holds **80** `summary.json` files. Three of them have been audited so far, and
-they are disjoint:
+§H53 closed the `metrics` block. The record's other **43** summaries publish **no** `metrics`
+block at all — they carry a different shape:
 
-| pass | what it covered | how many |
-|---|---|---:|
-| §H49 | the `validation` blocks of the exploratory summaries | **5** summaries |
-| §H51 | the `information_ratio` inside the metric blocks | **48** summaries |
-| §H52 | the `avg_trade_cost` (strategy and benchmark) | **5** summaries + **23** tracker entries |
+| measured | value |
+|---|---:|
+| summaries with no `metrics` block | **43** |
+| distinct top-level keys they publish | **164** |
+| distinct block shapes | **24** |
+| leaf values they publish | **7 785** |
+| summaries that publish no parquet artifact at all | **3** |
 
-What is **not** covered is the rest of the **`metrics` block** — the block that carries the
-*certified* numbers. `metrics` appears in **37** summaries and carries `oos_sharpe`, `oos_pf`,
-`oos_max_dd`, `oos_trades`, `profit_factor`, `max_drawdown`, `test_sharpe`, `val_sharpe`,
-`train_sharpe`, `wf_stability`, `worst_regime_sharpe` and `regime_sharpes` beside the
-`information_ratio` that §H51 re-derived. **None of those keys has ever been re-derived from the
-artifact that published it.** The published `passes` / `all_pass` / `verdict` blocks (49 / 57 / 52
-summaries) rest on them.
+The shapes, by how many summaries publish them:
 
-The measurement behind the task: the 80 summaries publish about 190 distinct top-level keys. The
-`metrics` block is the one that reaches the certified families' published verdicts.
+| shape | n | keys |
+|---|---:|---|
+| H23-style "all_pass" | 4 | `ablations`, `all_pass`, `alpha_vs_benchmark`, `best_combo`, `data_available`, `ddcv_only_grid`, `grid`, `oos_max_dd`, `oos_pf`, `oos_sharpe`, `oos_trades`, `passes`, `train_sharpe`, `wf_stability`, `worst_regime_sharpe` |
+| H21-style "gates/verdict" | 4 | `all_pass`, `benchmark`, `experiment_id`, `gates`, `overall`, `splits`, `verdict` |
+| H25-style "strategy/validation" | 3 | `benchmark_metrics`, `config`, `experiment_id`, `strategy_metrics`, `validation` |
+| H16-style "gates/perturbations" | 4 | `all_gates_pass`, `benchmark_comparison`, `experiment_id`, `gates`, `gates_spec`, `oos_metrics`, `param_grid_summary`, `perturbations`, `regime_metrics`, `selected_params`, `split_metrics` |
+| H22/H23-style "ablation" | 3 | `ablation`, `all_pass`, `alpha_vs_benchmark`, `data_available`, `ensemble_k`, `experiment_id`, `oos_max_dd`, `oos_pf`, `oos_sharpe`, `oos_trades`, `passes`, `top_k`, `train_sharpe`, `wf_stability`, `worst_regime_sharpe` |
+| H25-style "grid" | 3 | `all_combo_results`, `gate_metrics`, `hypothesis`, `oos_metrics`, `selected_config` |
+| plus 15 more shapes, 1–2 summaries each | 24 | — |
+
+None of these **164** keys has ever been re-derived from the artifact that published it, and the
+published `all_pass` / `verdict` / `gates` blocks (20, 15 and 15 summaries) rest on them.
 
 ### The work
 
-1. **Enumerate** the summaries that publish a `metrics` block (37) and, for each, the keys it
-   publishes and the artifact files it published them from (`equity_curve.parquet`,
-   `returns.parquet`, `best_equity.parquet`, `selected_equity.parquet`, `ensemble_equity.parquet`,
-   `best_ddcv_equity.parquet`, `benchmark_equity.parquet`, …).
-2. **Re-derive** each published metric from that summary's own frozen artifact, using the engine's
-   own conventions (the full return series including the opening bar, as §H49 established).
-3. **Record the convention each publisher used** for each key — the annualisation factor, the
-   risk-free rate, the OOS window, the drawdown definition, the trade-count definition, the
-   Sharpe's deviation convention — because a value that does not re-derive is usually a *convention*
-   difference, not a defect (as §H51 showed for `ddof`).
+1. **Enumerate** the 43 summaries, their 24 shapes, their 164 top-level keys and the artifact files
+   each published them from (`equity_curve.parquet`, `benchmark_equity.parquet`,
+   `param_grid_results.parquet`, `selected_equity.parquet`, `ablations.parquet`,
+   `perturbation_results.parquet`, …).
+2. **Re-derive** each published value from that summary's own frozen artifact, using the engine's
+   own conventions, under the §H53 method: reconstruct the convention, match the published value
+   to ≤ 1e-09 relative, and record the convention per producer.
+3. **Separate the three classes** that the shapes fall into:
+   - **certified-family blocks** (`gates`, `verdict`, `all_pass`, `splits`, `overall`) — the
+     published verdicts of H10/H21/H22/H25; these are the ones that must not move;
+   - **exploratory blocks** (`ablation`, `ablations`, `grid`, `all_results`, `all_combo_results`,
+     `param_grid_summary`) — grid and ablation results published as nested tables;
+   - **audit blocks** (`h26_sharpe_scale`, `h27_pnl_level`, `h28_causal_recertification`,
+     `h29_lookahead_sweep`, `pf_robustness`) — summaries that publish a *verdict about the record*
+     rather than metrics, and therefore read other artifacts instead of their own.
 4. **Publish** a table: per summary and per key, the published value, the re-derived value, the
    residual, and whether it re-derives.
 5. **Pin** the result with a new contract module (e.g.
-   `tests/test_h53_published_metrics_disclosure.py`), including a **behavioural negative control**
+   `tests/test_h54_non_metrics_block_disclosure.py`), including a **behavioural negative control**
    that reconstructs a pre-fix convention and shows the contract failing against it.
 6. **Correct** any published wording that enumerates the covered scope, exactly as §H52 corrected
-   §H47's.
+   §H47's and §H53 corrected §H49/§H51's.
 
 ### Constraints
 
@@ -238,12 +253,15 @@ The measurement behind the task: the 80 summaries publish about 190 distinct top
   verdicts are frozen — but they are **in** scope for measurement.
 - The coverage gate, the lint gate and every pinned contract listed above must stay green.
 
-### The runner-up (H54, if H53 is closed)
+### The runner-up (H55, if H54 is closed)
 
-- The **`stats.json`** echoes: 40 files publish the head of a trade log as text (H52 pinned the
+- **The four nested `metrics` keys** H53 left open: `ablations` (**28** re-derivable from their
+  committed equity files, **7** not), `perturbation` / `perturbation_min_ratio` (**14**, none
+  re-derivable) and `cross_validation` (**2**, none re-derivable).
+- **The `stats.json` echoes**: 40 files publish the head of a trade log as text (H52 pinned the
   count). Their `returns` field is a pandas `to_string()` of a return series, so the published
   numbers are rounded to the display precision and the series is truncated — the conventions of that
   publisher are unrecorded.
-- The **14 benchmark `avg_trade_cost` entries** whose benchmark trade log and signals were never
+- **The 14 benchmark `avg_trade_cost` entries** whose benchmark trade log and signals were never
   committed: their over-count factor is not measurable from the record, and the H27-style
   independent recomputation could not be applied to them.

@@ -2376,12 +2376,15 @@ above.
 
 The state a next session inherits:
 
-- **One task is assigned (H53)** — stated in full in `NEXT_TASK.md`: audit the **remaining**
-  committed `summary.json` files for keys that no longer re-derive from the artifacts that
-  published them — the §H49/§H51 methodology generalised to **every** published block, with the
-  per-key convention of each publisher recorded. The measurement behind the task: **80** committed
-  `summary.json` files, of which the §H49 pass covered **5** and the §H51 pass covered the **48**
-  that publish an `information_ratio`.
+- **One task is assigned (H54)** — stated in full in `NEXT_TASK.md`: extend the §H49/§H51/§H53
+  re-derivation methodology to the **43** committed `summary.json` files that publish **no**
+  `metrics` block. Those carry a different shape — `gates`, `passes`, `oos_metrics`,
+  `split_metrics`, `benchmark_comparison`, `strategy_metrics`, `validation`, … — over **160**
+  distinct top-level keys, and none of them has ever been re-derived from the artifact that
+  published it. The measurement behind the task: **80** committed `summary.json` files, of which
+  §H49 covered **5** (the `validation` blocks), §H51 the **48** that publish an
+  `information_ratio`, §H52 the `avg_trade_cost`, and §H53 the **37** `metrics` blocks
+  (**450** values, **441** of which re-derive).
 - The pre-registered free-data hypothesis space (H1–H30) remains **exhausted**; no new hypothesis
   is warranted and no grid may be re-run.
 - The certified families (H10, H22, H25) are unchanged. Every published artifact, threshold,
@@ -3011,5 +3014,689 @@ timestamp, so the provenance stamp is read from the last path segment.)
 - **The 22 published `information_ratio` values** on the `ddof=1` convention no longer re-derive
   from the library (§H51); disclosed, not rewritten.
 - **H9's published OOS Sharpe** is on the sample convention; disclosed and pinned, verdict frozen.
+- The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified
+  families' numbers and verdicts are frozen.
+
+## H53 — the published `metrics` block re-derives from its own frozen artifact (2026-10-21)
+
+**Verdict: 441 of the 450 published values in the 37 `metrics` blocks re-derive from the frozen
+record. The nine that do not are the H9 family's regime block, whose VIX input was never
+committed. The conventions are not uniform — nineteen producer tags published the same thirteen
+keys under ten different convention profiles — and every one of them is now recorded and pinned.
+No published artifact, gate threshold, verdict or certified number moved.**
+
+### What changed
+
+- `tests/test_h53_published_metrics_disclosure.py` — the module that previously enumerated the
+  `metrics` summaries is replaced by the full re-derivation contract: **19 tests** (3 → 19). It
+  re-derives every published value from the artifact that published it, pins the convention each
+  producer used for each key, and carries four behavioural negative controls.
+- `FINAL_REPORT.md` — this section, the "Next task" section updated.
+- **Nothing under `src/qtr` changed.** No artifact, gate threshold, verdict or certified number
+  was modified; no grid was re-run; no hypothesis was added.
+
+### The gap (measured, not estimated)
+
+The committed record holds **80** `summary.json` files. Three passes had audited parts of it
+before H53, and they are disjoint:
+
+| pass | what it covered | how many |
+|---|---|---:|
+| §H49 | the `validation` blocks of the exploratory summaries | **5** summaries |
+| §H51 | the `information_ratio` inside the metric blocks | **48** artifacts |
+| §H52 | the `avg_trade_cost` (strategy and benchmark) | **5** summaries + **23** tracker entries |
+
+What was **not** covered is the rest of the `metrics` block — the block that carries the
+*certified* numbers and that the published `passes` / `all_pass` / `verdict` blocks rest on.
+**37** summaries publish one, and they publish **450** values over **13** distinct keys
+(`train_sharpe`, `val_sharpe`, `test_sharpe`, `oos_sharpe`, `profit_factor`, `max_drawdown`,
+`trades`, `wf_stability`, `worst_regime_sharpe`, `regime_sharpes`, `benchmark_p_value`,
+`information_ratio`, `benchmark_alpha_annual`). **None** of those keys had ever been re-derived
+from the artifact that published it. (The block publishes four more nested keys — `ablations`,
+`perturbation`, `perturbation_min_ratio`, `cross_validation` — which are disclosed separately
+below.)
+
+The conventions are **not** uniform. The **37** summaries were produced by **19** producer tags
+(eleven base families plus the eight H28 causal re-certification tags) and they published the
+same thirteen keys under **ten** distinct convention profiles. Every one of them is now
+recorded and pinned.
+
+The other **43** summaries publish no `metrics` block at all; they carry a different shape
+altogether (`gates`, `passes`, `oos_metrics`, `split_metrics`, `benchmark_comparison`,
+`strategy_metrics`, `validation`, …) over **164** distinct top-level keys. Those are the natural
+subject of the next pass and are **not** touched here.
+
+### The conventions, per producer family
+
+Each row below is a *measured* fact, read off the runner that produced the artifact (and, for the
+H9 v1 artifact, off the copy of the runner the artifact itself carries). The producer is the tag
+the tracker metadata records — the record's own statement of who produced the artifact.
+
+| producer | summaries | Sharpe std | profit factor | max drawdown | trades | WF folds | regime Sharpes | benchmark | `val_sharpe` holds |
+|---|---:|---|---|---|---|---|---|---|---|
+| `h9_intraday_tsmom_ctexits_v1` | 1 | **sample** (`ddof=1`) | **full sample** | OOS | **full sample** | pre-fix | full | full | val window |
+| `h9_intraday_tsmom_ctexits_v2` | 4 | **sample** (`ddof=1`) | **full sample** | OOS | **full sample** | pre-fix | full | full | val window |
+| `h10_intraday_tsmom_pfopt` | 2 | population (`ddof=0`) | OOS | OOS | OOS | pre-fix | full | full | **`null`** |
+| `h16_factor_timing` | 4 | population | OOS | OOS | OOS | pre-fix | OOS | OOS | val window (**3 publish train+val**) |
+| `h17_vrp` | 1 | population | OOS | OOS | OOS | pre-fix | OOS | OOS | val window |
+| `h19_volume_predictive` | 1 | population | OOS | OOS | OOS | pre-fix | OOS | OOS | val window |
+| `h20_signed_volume` | 1 | population | OOS | OOS | OOS | pre-fix | OOS | OOS | val window |
+| `h21_futures_tsmom_multicontract` | 1 | population | OOS | OOS | OOS | pre-fix | full | full | **the OOS Sharpe** |
+| `h22_futures_tsmom_voltarget` | 5 | population | OOS | OOS | OOS | pre-fix | full | full | val window |
+| `h23_crypto_futures_tsmom` | 7 | population | OOS | OOS | OOS | pre-fix | full | full | val window |
+| `h25_futures_tsmom_pfmargin` | 2 | population | OOS | OOS | OOS | pre-fix | full | full | val window |
+| `h28_h{10,21,22,25}_{control,causal}` | 8 | *as the parent family* | OOS | OOS | OOS | **post-fix** | full | full | *as the parent family* |
+
+Two windows appear throughout: **OOS** (the protected Val+Test window) and **full** (the whole
+series). The H9 family publishes the engine's *whole-sample* profit factor and trade count while
+publishing an *OOS-window* drawdown — the only family that mixes the two.
+
+### The six findings
+
+1. **The walk-forward stability gate was published on the PRE-FIX fold convention.** The
+   library's `walk_forward_splits` used to end its last window at `n_splits * window_size`, so
+   the trailing samples of the return series were silently dropped; it was later changed so the
+   last window absorbs them. **29** of the **37** published `wf_stability` values are on the
+   pre-fix convention and **8** are on the post-fix one. The split follows the production date
+   exactly: the **8** post-fix summaries are the H28 causal re-certification runs of
+   **2026-10-19** — the first runs produced with the fixed folds — and every one of the **29**
+   pre-fix summaries is from **2026-10-14** or earlier. **29** of the 37 values discriminate the
+   two conventions (all 8 post-fix ones and 21 of the pre-fix ones: the pre-fix form does not
+   reproduce them); the other **8** coincide, because those summaries' series length is an exact
+   multiple of the fold count and the tail is empty. The contract checks the **21** pre-fix ones
+   that the data can discriminate.
+2. **`benchmark_alpha_annual` was published on the PRE-H51 beta convention.** The published alpha
+   used `np.cov(strat, bench, ddof=1)[0, 1] / np.var(bench)` — `np.cov` on the sample, `np.var` on
+   the population — a mixed ddof that inflates beta by `n / (n - 1)` relative to the OLS slope.
+   The library now uses a consistent `ddof=1` on both terms. All **7** published alphas (H16 ×4,
+   H17, H19, H20) are on the pre-fix convention; they differ from the current library's alpha by
+   **2.7e-05 … 3.7e-05** in absolute terms.
+3. **The H9 family publishes the SAMPLE standard deviation** (`ddof=1`) for its train/val/test/OOS
+   Sharpes, because it passed a `pandas.Series` to `sharpe_ratio`; every other family passes an
+   `ndarray` and publishes the POPULATION standard deviation (`ddof=0`). The two differ by
+   `sqrt(n / (n - 1))`. The same container split decides the information ratio's excess
+   volatility — which is §H51's disclosure, extended here to the **8** H28 runs it did not cover.
+4. **The H9 family publishes a whole-sample profit factor and trade count**, not the OOS-window
+   ones every other family publishes. (For the H9 family the published profit factor is the
+   engine's `metrics["profit_factor"]`, computed over the *entire* return series, and the
+   published trade count is `len(result.trades)` over the entire series.)
+5. **Three of the four H16 summaries publish the TRAIN+VAL window Sharpe under the key
+   `val_sharpe`** — everything up to the val end (n = 2769 bars) — while the fourth publishes the
+   val-window Sharpe (n = 756 bars). The two loggings of the same configuration are four minutes
+   apart and disagree on the window; the fourth (`exp_2026-10-13T21-22-02-751156Z`) matches the
+   runner's source today, the other three do not. The published grid artifact
+   (`param_grid_results.parquet`) carries the *val-window* value in all four cases, so the
+   summaries and their own grids disagree in three of them. **No gate reads the key**: the H16
+   gates read the OOS window.
+6. **`val_sharpe` holds three different things across the record**: `null` (H10), the OOS Sharpe
+   (H21 — its own source says "val component of OOS"), and the val-window Sharpe (everybody
+   else, except the three H16 summaries above).
+
+### The nine values that cannot be re-derived
+
+The H9 family fetched its VIX series from Yahoo at run time and **never committed it**: the five
+H9 artifact directories hold no VIX file at all. The regime labels are a function of that series
+(`bull < 20`, `sideways 20–30`, `bear > 30`), so the regime block cannot be reconstructed from
+the record at all — the *values* are not in doubt, the *inputs* are missing.
+
+The record does show that the fetch **succeeded**: the H9 v1 artifact carries a copy of its own
+runner, whose fallback path (no VIX → a constant `20.0`, i.e. every bar "sideways") would have
+published `bull = 0.0` and `bear = 0.0`. The published blocks carry three *distinct, non-zero*
+regime Sharpes instead — for `exp_2026-10-11T16-44-06-168529Z`, `bull 1.1277289303651965`,
+`sideways 0.9736648915046462`, `bear 0.7579339228051176` — so a real, varying VIX series was used
+and only the file was lost.
+
+| summary | keys | published `worst_regime_sharpe` | why |
+|---|---|---|---|
+| `exp_2026-10-11T15-54-17-212022Z` | `worst_regime_sharpe` | -1.1224881735076757 | no committed VIX |
+| `exp_2026-10-11T16-44-06-168529Z` | `regime_sharpes`, `worst_regime_sharpe` | 0.7579339228051176 | no committed VIX |
+| `exp_2026-10-11T16-46-06-466282Z` | `regime_sharpes`, `worst_regime_sharpe` | 0.7579339228051176 | no committed VIX |
+| `exp_2026-10-11T16-52-38-694559Z` | `regime_sharpes`, `worst_regime_sharpe` | 0.7579339228051176 | no committed VIX |
+| `exp_2026-10-14T08-20-39-255883Z` | `regime_sharpes`, `worst_regime_sharpe` | -0.040536639117071976 | no committed VIX |
+
+The H9 v1 summary publishes `worst_regime_sharpe` but not `regime_sharpes`; the four H9 v2
+summaries publish both. Disclosed, not quantified — and the same VIX gap is what keeps the H9
+family's regime block out of the certified families' gate path.
+
+### The four keys the block also publishes, and are not re-derived
+
+The `metrics` block publishes **four** keys besides the thirteen re-derived above:
+`ablations` (**35** summaries), `perturbation` (**7**), `perturbation_min_ratio` (**7**) and
+`cross_validation` (**2**). All four are pinned in the contract's 17-key union; none is
+re-derived, because all four are nested gate-result blocks rather than certified scalars.
+
+| key | summaries | re-derivable from the record? |
+|---|---:|---|
+| `ablations` | **35** | **28** of them committed their `ablations__*_equity.parquet` files (H9 ×3, H10 ×2, H21 ×1, H22 ×5, H23 ×7, H25 ×2, H28 ×8) and could be re-derived; the **7** H16/H17/H19/H20 summaries committed **no** ablation equity file, so their published ablation numbers cannot be reconstructed at all |
+| `perturbation`, `perturbation_min_ratio` | **14** (H16 ×4, H17, H19, H20, H23 ×7) | **no** — none of those directories holds a perturbation equity file |
+| `cross_validation` | **2** (H19, H20) | **no** — no cross-validation equity file was committed |
+
+Disclosed, not quantified. This is the one part of the `metrics` block the contract does not
+close, and it is the natural continuation for the next pass: the **28** ablation blocks whose
+equity files *are* committed are re-derivable, and the **7** that are not are not, for the
+same reason as the H9 regime block — the input was never written down.
+
+### The contract (19 tests)
+
+1. **The record is named** — the 37 summaries that publish a `metrics` block, the 17-key union of
+   what they publish, and the 450 published values are all pinned.
+2. **Every published value re-derives** from its own frozen artifact under the recorded
+   convention (residual ≤ 1e-09 relative; the measured residuals are 0 … 5.2e-14).
+3. **The nine exceptions are exactly the H9 regime block**, and the reason is checked against
+   the artifact directories' own file lists rather than asserted.
+4. **The conventions are pinned** — the fold convention (29 pre-fix / 8 post-fix, split by
+   production date), the beta convention (7 pre-H51), the H9 sample-vs-population split, the
+   H9 whole-sample profit factor and trade count, and the three meanings of `val_sharpe`.
+5. **The library's fold convention has since moved** — the contract compares the pre-fix and
+   post-fix splits against `qtr.validation.statistics.walk_forward_splits` itself, so the
+   disclosure is anchored to the library and not only to the record.
+6. **Four behavioural negative controls** — reconstructing the *current* library fold convention
+   breaks the re-derivation of all **21** discriminable pre-fix summaries; reconstructing the
+   *current* library beta breaks all **7** published alphas; reconstructing the val-only window
+   breaks the three H16 summaries; and a published value nudged by one part in a thousand fails
+   the residual check. None of them is an API check — each re-runs the same re-derivation with the
+   other convention and shows the check firing.
+7. **The blast radius is empty** — no published `passes` block reads `val_sharpe` or
+   `train_sharpe`, and every gate key (`sharpe`, `trades`, `pf`, `dd`, `stab`, `worst`, `p`, `ir`,
+   `perturbation`, `cross_validation`) is computed from values that do re-derive.
+
+### The record, in full
+
+450 rows: one per published value. `residual` is the absolute difference between the published
+value and the re-derived one; `not derivable` marks the nine values whose input was never
+committed.
+
+| summary | key | published | re-derived | residual | re-derives |
+|---|---|---|---|---|---|
+| `exp_2026-10-11T15-54-17-212022Z` | `train_sharpe` | -0.00314632516069123 | -0.00314632516069123 | 0.0e+00 | yes |
+| `exp_2026-10-11T15-54-17-212022Z` | `val_sharpe` | 0.0943607192746908 | 0.0943607192746908 | 0.0e+00 | yes |
+| `exp_2026-10-11T15-54-17-212022Z` | `test_sharpe` | -0.492597825077205 | -0.492597825077205 | 0.0e+00 | yes |
+| `exp_2026-10-11T15-54-17-212022Z` | `oos_sharpe` | -0.137011463952911 | -0.137011463952911 | 0.0e+00 | yes |
+| `exp_2026-10-11T15-54-17-212022Z` | `profit_factor` | 0.987680808908799 | 0.987680808908799 | 0.0e+00 | yes |
+| `exp_2026-10-11T15-54-17-212022Z` | `max_drawdown` | -0.247508101220643 | -0.247508101220643 | 0.0e+00 | yes |
+| `exp_2026-10-11T15-54-17-212022Z` | `trades` | 31519 | 31519 | 0.0e+00 | yes |
+| `exp_2026-10-11T15-54-17-212022Z` | `wf_stability` | 2.06995606067198 | 2.06995606067198 | 0.0e+00 | yes |
+| `exp_2026-10-11T15-54-17-212022Z` | `worst_regime_sharpe` | -1.12248817350768 | null | n/a | **no** |
+| `exp_2026-10-11T15-54-17-212022Z` | `benchmark_p_value` | 0.112849238750755 | 0.112849238750737 | 1.9e-14 | yes |
+| `exp_2026-10-11T15-54-17-212022Z` | `information_ratio` | -0.235327208558897 | -0.235327208558909 | 1.2e-14 | yes |
+| `exp_2026-10-11T16-44-06-168529Z` | `train_sharpe` | 1.11583473128913 | 1.11583473128913 | 0.0e+00 | yes |
+| `exp_2026-10-11T16-44-06-168529Z` | `val_sharpe` | 1.1073270025654 | 1.1073270025654 | 0.0e+00 | yes |
+| `exp_2026-10-11T16-44-06-168529Z` | `test_sharpe` | 0.993447926584509 | 0.993447926584509 | 0.0e+00 | yes |
+| `exp_2026-10-11T16-44-06-168529Z` | `oos_sharpe` | 1.05638289642748 | 1.05638289642748 | 0.0e+00 | yes |
+| `exp_2026-10-11T16-44-06-168529Z` | `profit_factor` | 1.25221831331688 | 1.25221831331688 | 0.0e+00 | yes |
+| `exp_2026-10-11T16-44-06-168529Z` | `max_drawdown` | -0.061967704518483 | -0.061967704518483 | 0.0e+00 | yes |
+| `exp_2026-10-11T16-44-06-168529Z` | `trades` | 2690 | 2690 | 0.0e+00 | yes |
+| `exp_2026-10-11T16-44-06-168529Z` | `wf_stability` | 0.792501323327126 | 0.792501323327126 | 0.0e+00 | yes |
+| `exp_2026-10-11T16-44-06-168529Z` | `worst_regime_sharpe` | 0.757933922805118 | null | n/a | **no** |
+| `exp_2026-10-11T16-44-06-168529Z` | `regime_sharpes` | bull=1.12772893; sideways=0.9736648915; bear=0.7579339228 | null | n/a | **no** |
+| `exp_2026-10-11T16-44-06-168529Z` | `benchmark_p_value` | 6.32946543864418e-12 | 6.32946543864741e-12 | 3.2e-24 | yes |
+| `exp_2026-10-11T16-44-06-168529Z` | `information_ratio` | 1.02096576542838 | 1.02096576542837 | 1.1e-14 | yes |
+| `exp_2026-10-11T16-46-06-466282Z` | `train_sharpe` | 1.11583473128913 | 1.11583473128913 | 0.0e+00 | yes |
+| `exp_2026-10-11T16-46-06-466282Z` | `val_sharpe` | 1.1073270025654 | 1.1073270025654 | 0.0e+00 | yes |
+| `exp_2026-10-11T16-46-06-466282Z` | `test_sharpe` | 0.993447926584509 | 0.993447926584509 | 0.0e+00 | yes |
+| `exp_2026-10-11T16-46-06-466282Z` | `oos_sharpe` | 1.05638289642748 | 1.05638289642748 | 0.0e+00 | yes |
+| `exp_2026-10-11T16-46-06-466282Z` | `profit_factor` | 1.25221831331688 | 1.25221831331688 | 0.0e+00 | yes |
+| `exp_2026-10-11T16-46-06-466282Z` | `max_drawdown` | -0.061967704518483 | -0.061967704518483 | 0.0e+00 | yes |
+| `exp_2026-10-11T16-46-06-466282Z` | `trades` | 2690 | 2690 | 0.0e+00 | yes |
+| `exp_2026-10-11T16-46-06-466282Z` | `wf_stability` | 0.792501323327126 | 0.792501323327126 | 0.0e+00 | yes |
+| `exp_2026-10-11T16-46-06-466282Z` | `worst_regime_sharpe` | 0.757933922805118 | null | n/a | **no** |
+| `exp_2026-10-11T16-46-06-466282Z` | `regime_sharpes` | bull=1.12772893; sideways=0.9736648915; bear=0.7579339228 | null | n/a | **no** |
+| `exp_2026-10-11T16-46-06-466282Z` | `benchmark_p_value` | 6.32946543864418e-12 | 6.32946543864741e-12 | 3.2e-24 | yes |
+| `exp_2026-10-11T16-46-06-466282Z` | `information_ratio` | 1.02096576542838 | 1.02096576542837 | 1.1e-14 | yes |
+| `exp_2026-10-11T16-52-38-694559Z` | `train_sharpe` | 1.11583473128913 | 1.11583473128913 | 0.0e+00 | yes |
+| `exp_2026-10-11T16-52-38-694559Z` | `val_sharpe` | 1.1073270025654 | 1.1073270025654 | 0.0e+00 | yes |
+| `exp_2026-10-11T16-52-38-694559Z` | `test_sharpe` | 0.993447926584509 | 0.993447926584509 | 0.0e+00 | yes |
+| `exp_2026-10-11T16-52-38-694559Z` | `oos_sharpe` | 1.05638289642748 | 1.05638289642748 | 0.0e+00 | yes |
+| `exp_2026-10-11T16-52-38-694559Z` | `profit_factor` | 1.25221831331688 | 1.25221831331688 | 0.0e+00 | yes |
+| `exp_2026-10-11T16-52-38-694559Z` | `max_drawdown` | -0.061967704518483 | -0.061967704518483 | 0.0e+00 | yes |
+| `exp_2026-10-11T16-52-38-694559Z` | `trades` | 2690 | 2690 | 0.0e+00 | yes |
+| `exp_2026-10-11T16-52-38-694559Z` | `wf_stability` | 0.792501323327126 | 0.792501323327126 | 0.0e+00 | yes |
+| `exp_2026-10-11T16-52-38-694559Z` | `worst_regime_sharpe` | 0.757933922805118 | null | n/a | **no** |
+| `exp_2026-10-11T16-52-38-694559Z` | `regime_sharpes` | bull=1.12772893; sideways=0.9736648915; bear=0.7579339228 | null | n/a | **no** |
+| `exp_2026-10-11T16-52-38-694559Z` | `benchmark_p_value` | 6.32946543864418e-12 | 6.32946543864741e-12 | 3.2e-24 | yes |
+| `exp_2026-10-11T16-52-38-694559Z` | `information_ratio` | 1.02096576542838 | 1.02096576542837 | 1.1e-14 | yes |
+| `exp_2026-10-11T17-24-14-385352Z` | `train_sharpe` | 1.11292905790843 | 1.11292905790843 | 0.0e+00 | yes |
+| `exp_2026-10-11T17-24-14-385352Z` | `val_sharpe` | null | null | 0 | yes |
+| `exp_2026-10-11T17-24-14-385352Z` | `test_sharpe` | 1.05062985591467 | 1.05062985591467 | 0.0e+00 | yes |
+| `exp_2026-10-11T17-24-14-385352Z` | `oos_sharpe` | 1.07229780480838 | 1.07229780480838 | 0.0e+00 | yes |
+| `exp_2026-10-11T17-24-14-385352Z` | `profit_factor` | 1.25417277893342 | 1.25417277893342 | 0.0e+00 | yes |
+| `exp_2026-10-11T17-24-14-385352Z` | `max_drawdown` | -0.0620429446851762 | -0.0620429446851762 | 0.0e+00 | yes |
+| `exp_2026-10-11T17-24-14-385352Z` | `trades` | 1830 | 1830 | 0.0e+00 | yes |
+| `exp_2026-10-11T17-24-14-385352Z` | `wf_stability` | 0.80842207071463 | 0.80842207071463 | 0.0e+00 | yes |
+| `exp_2026-10-11T17-24-14-385352Z` | `worst_regime_sharpe` | 0.765947791105412 | 0.765947791105412 | 0.0e+00 | yes |
+| `exp_2026-10-11T17-24-14-385352Z` | `regime_sharpes` | bull=1.172466221; sideways=0.7659477911; bear=1.258804387 | bull=1.172466221; sideways=0.7659477911; bear=1.258804387 | 0 | yes |
+| `exp_2026-10-11T17-24-14-385352Z` | `benchmark_p_value` | 7.53953414052519e-12 | 7.53953414052849e-12 | 3.3e-24 | yes |
+| `exp_2026-10-11T17-24-14-385352Z` | `information_ratio` | 1.01724494212222 | 1.01724494212221 | 9.3e-15 | yes |
+| `exp_2026-10-11T17-41-18-169363Z` | `train_sharpe` | 0.958893431366601 | 0.958893431366601 | 0.0e+00 | yes |
+| `exp_2026-10-11T17-41-18-169363Z` | `val_sharpe` | null | null | 0 | yes |
+| `exp_2026-10-11T17-41-18-169363Z` | `test_sharpe` | 1.09307425008902 | 1.09307425008902 | 0.0e+00 | yes |
+| `exp_2026-10-11T17-41-18-169363Z` | `oos_sharpe` | 1.27575906809905 | 1.27575906809905 | 0.0e+00 | yes |
+| `exp_2026-10-11T17-41-18-169363Z` | `profit_factor` | 1.30416451694341 | 1.30416451694341 | 0.0e+00 | yes |
+| `exp_2026-10-11T17-41-18-169363Z` | `max_drawdown` | -0.0584284720448762 | -0.0584284720448762 | 0.0e+00 | yes |
+| `exp_2026-10-11T17-41-18-169363Z` | `trades` | 2416 | 2416 | 0.0e+00 | yes |
+| `exp_2026-10-11T17-41-18-169363Z` | `wf_stability` | 0.780570926531398 | 0.780570926531398 | 0.0e+00 | yes |
+| `exp_2026-10-11T17-41-18-169363Z` | `worst_regime_sharpe` | 1.04571765101774 | 1.04571765101774 | 0.0e+00 | yes |
+| `exp_2026-10-11T17-41-18-169363Z` | `regime_sharpes` | bull=1.045717651; sideways=1.169788399; bear=1.753042031 | bull=1.045717651; sideways=1.169788399; bear=1.753042031 | 0 | yes |
+| `exp_2026-10-11T17-41-18-169363Z` | `benchmark_p_value` | 4.7903055567233e-10 | 4.79030555672518e-10 | 1.9e-22 | yes |
+| `exp_2026-10-11T17-41-18-169363Z` | `information_ratio` | 0.924788916980381 | 0.924788916980371 | 9.2e-15 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `train_sharpe` | 0.845700882652381 | 0.845700882652383 | 2.9e-15 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `val_sharpe` | 0.732124663443336 | 0.732124663443337 | 8.9e-16 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `test_sharpe` | 0.522769171808517 | 0.522769171808514 | 2.7e-15 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `oos_sharpe` | 0.508284552403699 | 0.508284552403696 | 3.0e-15 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `profit_factor` | 1.09328710157864 | 1.09328710157864 | 8.9e-16 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `max_drawdown` | -0.21990472318691 | -0.21990472318691 | 2.2e-16 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `trades` | 237 | 237 | 0.0e+00 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `wf_stability` | 0.315923609843919 | 0.315923609843925 | 5.9e-15 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `worst_regime_sharpe` | -3.21705637652541 | -3.21705637652542 | 7.1e-15 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `regime_sharpes` | bull=2.917588099; sideways=-2.086595419; bear=-3.217056377 | bull=2.917588099; sideways=-2.086595419; bear=-3.217056377 | 0 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `benchmark_p_value` | 0.208355651319266 | 0.208355651319263 | 3.1e-15 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `information_ratio` | -0.476367266589165 | -0.476367266589168 | 3.2e-15 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `benchmark_alpha_annual` | -5.04837570768925e-06 | -5.04837570801712e-06 | 3.3e-16 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `train_sharpe` | 0.845700882652381 | 0.845700882652383 | 2.9e-15 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `val_sharpe` | 0.732124663443336 | 0.732124663443337 | 8.9e-16 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `test_sharpe` | 0.522769171808517 | 0.522769171808514 | 2.7e-15 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `oos_sharpe` | 0.508284552403699 | 0.508284552403696 | 3.0e-15 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `profit_factor` | 1.09328710157864 | 1.09328710157864 | 8.9e-16 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `max_drawdown` | -0.21990472318691 | -0.21990472318691 | 2.2e-16 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `trades` | 237 | 237 | 0.0e+00 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `wf_stability` | 0.315923609843919 | 0.315923609843925 | 5.9e-15 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `worst_regime_sharpe` | -3.21705637652541 | -3.21705637652542 | 7.1e-15 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `regime_sharpes` | bull=2.917588099; sideways=-2.086595419; bear=-3.217056377 | bull=2.917588099; sideways=-2.086595419; bear=-3.217056377 | 0 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `benchmark_p_value` | 0.208355651319266 | 0.208355651319263 | 3.1e-15 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `information_ratio` | -0.476367266589165 | -0.476367266589168 | 3.2e-15 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `benchmark_alpha_annual` | -5.04837570768925e-06 | -5.04837570801712e-06 | 3.3e-16 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `train_sharpe` | 0.806412062621099 | 0.806412062621098 | 8.9e-16 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `val_sharpe` | 0.709332442030756 | 0.709332442030758 | 1.9e-15 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `test_sharpe` | 0.649115036993299 | 0.649115036993292 | 6.7e-15 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `oos_sharpe` | 0.578666344346509 | 0.578666344346509 | 2.2e-16 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `profit_factor` | 1.10616685760619 | 1.10616685760619 | 0.0e+00 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `max_drawdown` | -0.199471171152286 | -0.199471171152288 | 1.9e-15 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `trades` | 184 | 184 | 0.0e+00 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `wf_stability` | 0.352555772868814 | 0.352555772868818 | 4.2e-15 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `worst_regime_sharpe` | -3.68021268729528 | -3.68021268729527 | 3.6e-15 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `regime_sharpes` | bull=2.801240724; sideways=-1.928855094; bear=-3.680212687 | bull=2.801240724; sideways=-1.928855094; bear=-3.680212687 | 0 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `benchmark_p_value` | 0.351029707610935 | 0.351029707610936 | 5.0e-16 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `information_ratio` | -0.353081792980807 | -0.353081792980807 | 4.4e-16 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `benchmark_alpha_annual` | 0.012416037500525 | 0.012416037500525 | 2.8e-17 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `train_sharpe` | 0.806412062621099 | 0.806412062621098 | 8.9e-16 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `val_sharpe` | 0.494798142181882 | 0.49479814218189 | 8.3e-15 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `test_sharpe` | 0.649115036993299 | 0.649115036993292 | 6.7e-15 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `oos_sharpe` | 0.578666344346509 | 0.578666344346509 | 2.2e-16 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `profit_factor` | 1.10616685760619 | 1.10616685760619 | 0.0e+00 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `max_drawdown` | -0.199471171152286 | -0.199471171152288 | 1.9e-15 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `trades` | 184 | 184 | 0.0e+00 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `wf_stability` | 0.352555772868814 | 0.352555772868818 | 4.2e-15 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `worst_regime_sharpe` | -3.68021268729528 | -3.68021268729527 | 3.6e-15 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `regime_sharpes` | bull=2.801240724; sideways=-1.928855094; bear=-3.680212687 | bull=2.801240724; sideways=-1.928855094; bear=-3.680212687 | 0 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `benchmark_p_value` | 0.351029707610935 | 0.351029707610936 | 5.0e-16 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `information_ratio` | -0.353081792980807 | -0.353081792980807 | 4.4e-16 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `benchmark_alpha_annual` | 0.012416037500525 | 0.012416037500525 | 2.8e-17 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `train_sharpe` | 0.795199359486046 | 0.795199359486046 | 1.1e-16 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `val_sharpe` | 0.784247537170103 | 0.784247537170103 | 4.4e-16 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `test_sharpe` | 0.724165558689871 | 0.724165558689869 | 1.8e-15 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `oos_sharpe` | 0.741583063628946 | 0.741583063628945 | 1.0e-15 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `profit_factor` | 1.14713428683363 | 1.14713428683363 | 6.7e-16 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `max_drawdown` | -0.165492101449171 | -0.165492101449171 | 1.1e-16 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `trades` | 238 | 238 | 0.0e+00 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `wf_stability` | 1.9112862770243 | 1.9112862770243 | 3.6e-15 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `worst_regime_sharpe` | -4.13027071167936 | -4.13027071167936 | 1.8e-15 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `regime_sharpes` | bull=3.748853695; sideways=-1.274735568; bear=-4.130270712 | bull=3.748853695; sideways=-1.274735568; bear=-4.130270712 | 0 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `benchmark_p_value` | 0.533891291618511 | 0.53389129161851 | 1.2e-15 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `information_ratio` | -0.23962730807882 | -0.23962730807882 | 6.9e-16 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `benchmark_alpha_annual` | 0.0540801325664145 | 0.0540801325664143 | 1.6e-16 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `train_sharpe` | 0.62892485452047 | 0.628924854520481 | 1.1e-14 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `val_sharpe` | 0.54149368871496 | 0.541493688714972 | 1.2e-14 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `test_sharpe` | 0.0920428714541089 | 0.0920428714541216 | 1.3e-14 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `oos_sharpe` | 0.241912471067653 | 0.241912471067666 | 1.3e-14 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `profit_factor` | 1.06617539678747 | 1.06617539678748 | 3.6e-15 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `max_drawdown` | -0.347532960522673 | -0.347532960522674 | 4.4e-16 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `trades` | 940 | 940 | 0.0e+00 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `wf_stability` | -0.143583826636008 | -0.143583826635991 | 1.6e-14 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `worst_regime_sharpe` | -2.86744830546007 | -2.86744830546006 | 5.8e-15 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `regime_sharpes` | bull=2.789747029; sideways=-1.525595806; bear=-2.867448305 | bull=2.789747029; sideways=-1.525595806; bear=-2.867448305 | 0 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `benchmark_p_value` | 0.00260219548931756 | 0.00260219548931803 | 4.7e-16 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `information_ratio` | -0.879799327783499 | -0.879799327783483 | 1.6e-14 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `benchmark_alpha_annual` | -0.0463512453564043 | -0.0463512453564026 | 1.7e-15 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `train_sharpe` | -0.256172188111949 | -0.256172188111966 | 1.6e-14 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `val_sharpe` | 0.170158060049915 | 0.170158060049912 | 2.1e-15 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `test_sharpe` | -0.397797640642266 | -0.397797640642263 | 2.7e-15 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `oos_sharpe` | -0.156419702610527 | -0.156419702610526 | 6.4e-16 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `profit_factor` | 0.972632376741392 | 0.972632376741392 | 1.1e-16 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `max_drawdown` | -0.221330845240744 | -0.221330845240746 | 1.8e-15 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `trades` | 2958 | 2958 | 0.0e+00 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `wf_stability` | -0.480304194116052 | -0.480304194116036 | 1.6e-14 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `worst_regime_sharpe` | -0.627383739225074 | -0.627383739225086 | 1.2e-14 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `regime_sharpes` | bull=-0.6273837392; sideways=0.4596697635; bear=0.7583740349 | bull=-0.6273837392; sideways=0.4596697635; bear=0.7583740349 | 0 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `benchmark_p_value` | 0.0159482384799777 | 0.0159482384799778 | 5.6e-17 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `information_ratio` | -0.703978440369163 | -0.703978440369163 | 3.3e-16 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `benchmark_alpha_annual` | -8.86554719751457e-05 | -8.86554719751098e-05 | 3.6e-17 | yes |
+| `exp_2026-10-13T23-27-52-101656Z` | `train_sharpe` | 0.953443954227077 | 0.953443954227077 | 0.0e+00 | yes |
+| `exp_2026-10-13T23-27-52-101656Z` | `val_sharpe` | 0.839359858020129 | 0.839359858020129 | 0.0e+00 | yes |
+| `exp_2026-10-13T23-27-52-101656Z` | `test_sharpe` | 0.765381529146769 | 0.765381529146769 | 0.0e+00 | yes |
+| `exp_2026-10-13T23-27-52-101656Z` | `oos_sharpe` | 0.839359858020129 | 0.839359858020129 | 0.0e+00 | yes |
+| `exp_2026-10-13T23-27-52-101656Z` | `profit_factor` | 1.20588982286409 | 1.20588982286409 | 0.0e+00 | yes |
+| `exp_2026-10-13T23-27-52-101656Z` | `max_drawdown` | -0.0860348719594701 | -0.0860348719594701 | 0.0e+00 | yes |
+| `exp_2026-10-13T23-27-52-101656Z` | `trades` | 5920 | 5920 | 0.0e+00 | yes |
+| `exp_2026-10-13T23-27-52-101656Z` | `wf_stability` | 0.988311112262569 | 0.988311112262569 | 0.0e+00 | yes |
+| `exp_2026-10-13T23-27-52-101656Z` | `worst_regime_sharpe` | 0.778046361224839 | 0.778046361224839 | 0.0e+00 | yes |
+| `exp_2026-10-13T23-27-52-101656Z` | `regime_sharpes` | bull=0.9362003735; sideways=0.7780463612; bear=0.9750550885 | bull=0.9362003735; sideways=0.7780463612; bear=0.9750550885 | 0 | yes |
+| `exp_2026-10-13T23-27-52-101656Z` | `benchmark_p_value` | 1.91479534761625e-10 | 1.91479534761625e-10 | 0.0e+00 | yes |
+| `exp_2026-10-13T23-27-52-101656Z` | `information_ratio` | 0.945948342282998 | 0.945948342282998 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-12-35-292010Z` | `train_sharpe` | 1.12878797439889 | 1.12878797439889 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-12-35-292010Z` | `val_sharpe` | 1.47444770454306 | 1.47444770454306 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-12-35-292010Z` | `test_sharpe` | 1.23386837174535 | 1.23386837174535 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-12-35-292010Z` | `oos_sharpe` | 1.37247508321472 | 1.37247508321472 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-12-35-292010Z` | `profit_factor` | 1.334150203649 | 1.334150203649 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-12-35-292010Z` | `max_drawdown` | -0.119142528546165 | -0.119142528546165 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-12-35-292010Z` | `trades` | 3045 | 3045 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-12-35-292010Z` | `wf_stability` | 0.759124793561885 | 0.759124793561885 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-12-35-292010Z` | `worst_regime_sharpe` | 1.12927984678636 | 1.12927984678636 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-12-35-292010Z` | `regime_sharpes` | bull=1.245038555; sideways=1.129279847; bear=2.004105338 | bull=1.245038555; sideways=1.129279847; bear=2.004105338 | 0 | yes |
+| `exp_2026-10-14T07-12-35-292010Z` | `benchmark_p_value` | 1.33408125486519e-19 | 1.33408125486519e-19 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-12-35-292010Z` | `information_ratio` | 1.34669056965428 | 1.34669056965428 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-12-59-473353Z` | `train_sharpe` | 1.12878797439889 | 1.12878797439889 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-12-59-473353Z` | `val_sharpe` | 1.47444770454306 | 1.47444770454306 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-12-59-473353Z` | `test_sharpe` | 1.23386837174535 | 1.23386837174535 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-12-59-473353Z` | `oos_sharpe` | 1.37247508321472 | 1.37247508321472 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-12-59-473353Z` | `profit_factor` | 1.334150203649 | 1.334150203649 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-12-59-473353Z` | `max_drawdown` | -0.119142528546165 | -0.119142528546165 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-12-59-473353Z` | `trades` | 3045 | 3045 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-12-59-473353Z` | `wf_stability` | 0.759124793561885 | 0.759124793561885 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-12-59-473353Z` | `worst_regime_sharpe` | 1.12927984678636 | 1.12927984678636 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-12-59-473353Z` | `regime_sharpes` | bull=1.245038555; sideways=1.129279847; bear=2.004105338 | bull=1.245038555; sideways=1.129279847; bear=2.004105338 | 0 | yes |
+| `exp_2026-10-14T07-12-59-473353Z` | `benchmark_p_value` | 1.33408125486519e-19 | 1.33408125486519e-19 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-12-59-473353Z` | `information_ratio` | 1.34669056965428 | 1.34669056965428 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-15-23-322705Z` | `train_sharpe` | 1.12878797439889 | 1.12878797439889 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-15-23-322705Z` | `val_sharpe` | 1.47444770454306 | 1.47444770454306 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-15-23-322705Z` | `test_sharpe` | 1.23386837174535 | 1.23386837174535 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-15-23-322705Z` | `oos_sharpe` | 1.37247508321472 | 1.37247508321472 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-15-23-322705Z` | `profit_factor` | 1.334150203649 | 1.334150203649 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-15-23-322705Z` | `max_drawdown` | -0.119142528546165 | -0.119142528546165 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-15-23-322705Z` | `trades` | 3045 | 3045 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-15-23-322705Z` | `wf_stability` | 0.759124793561885 | 0.759124793561885 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-15-23-322705Z` | `worst_regime_sharpe` | 1.12927984678636 | 1.12927984678636 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-15-23-322705Z` | `regime_sharpes` | bull=1.245038555; sideways=1.129279847; bear=2.004105338 | bull=1.245038555; sideways=1.129279847; bear=2.004105338 | 0 | yes |
+| `exp_2026-10-14T07-15-23-322705Z` | `benchmark_p_value` | 1.33408125486519e-19 | 1.33408125486519e-19 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-15-23-322705Z` | `information_ratio` | 1.34669056965428 | 1.34669056965428 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-32-43-425839Z` | `train_sharpe` | 1.12878797439889 | 1.12878797439889 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-32-43-425839Z` | `val_sharpe` | 1.47444770454306 | 1.47444770454306 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-32-43-425839Z` | `test_sharpe` | 1.23386837174535 | 1.23386837174535 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-32-43-425839Z` | `oos_sharpe` | 1.37247508321472 | 1.37247508321472 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-32-43-425839Z` | `profit_factor` | 1.334150203649 | 1.334150203649 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-32-43-425839Z` | `max_drawdown` | -0.119142528546165 | -0.119142528546165 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-32-43-425839Z` | `trades` | 3045 | 3045 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-32-43-425839Z` | `wf_stability` | 0.759124793561885 | 0.759124793561885 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-32-43-425839Z` | `worst_regime_sharpe` | 1.12927984678636 | 1.12927984678636 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-32-43-425839Z` | `regime_sharpes` | bull=1.245038555; sideways=1.129279847; bear=2.004105338 | bull=1.245038555; sideways=1.129279847; bear=2.004105338 | 0 | yes |
+| `exp_2026-10-14T07-32-43-425839Z` | `benchmark_p_value` | 1.33408125486519e-19 | 1.33408125486519e-19 | 0.0e+00 | yes |
+| `exp_2026-10-14T07-32-43-425839Z` | `information_ratio` | 1.34669056965428 | 1.34669056965428 | 0.0e+00 | yes |
+| `exp_2026-10-14T08-20-39-255883Z` | `train_sharpe` | 1.16708926141238 | 1.16708926141238 | 0.0e+00 | yes |
+| `exp_2026-10-14T08-20-39-255883Z` | `val_sharpe` | 1.11402941074818 | 1.11402941074818 | 0.0e+00 | yes |
+| `exp_2026-10-14T08-20-39-255883Z` | `test_sharpe` | 0.927383968523418 | 0.927383968523418 | 0.0e+00 | yes |
+| `exp_2026-10-14T08-20-39-255883Z` | `oos_sharpe` | 1.03448000970095 | 1.03448000970095 | 0.0e+00 | yes |
+| `exp_2026-10-14T08-20-39-255883Z` | `profit_factor` | 1.25819624475575 | 1.25819624475575 | 0.0e+00 | yes |
+| `exp_2026-10-14T08-20-39-255883Z` | `max_drawdown` | -0.0535048209988606 | -0.0535048209988606 | 0.0e+00 | yes |
+| `exp_2026-10-14T08-20-39-255883Z` | `trades` | 2715 | 2715 | 0.0e+00 | yes |
+| `exp_2026-10-14T08-20-39-255883Z` | `wf_stability` | 0.779323448847141 | 0.779323448847141 | 0.0e+00 | yes |
+| `exp_2026-10-14T08-20-39-255883Z` | `worst_regime_sharpe` | -0.040536639117072 | null | n/a | **no** |
+| `exp_2026-10-14T08-20-39-255883Z` | `regime_sharpes` | bull=1.135931271; sideways=1.125492303; bear=-0.04053663912 | null | n/a | **no** |
+| `exp_2026-10-14T08-20-39-255883Z` | `benchmark_p_value` | 3.26020857882587e-12 | 3.26020857882678e-12 | 9.0e-25 | yes |
+| `exp_2026-10-14T08-20-39-255883Z` | `information_ratio` | 1.03387374422165 | 1.03387374422165 | 5.6e-15 | yes |
+| `exp_2026-10-14T08-48-49-412372Z` | `train_sharpe` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T08-48-49-412372Z` | `val_sharpe` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T08-48-49-412372Z` | `test_sharpe` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T08-48-49-412372Z` | `oos_sharpe` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T08-48-49-412372Z` | `profit_factor` | inf | inf | nan | yes |
+| `exp_2026-10-14T08-48-49-412372Z` | `max_drawdown` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T08-48-49-412372Z` | `trades` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T08-48-49-412372Z` | `wf_stability` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T08-48-49-412372Z` | `worst_regime_sharpe` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T08-48-49-412372Z` | `regime_sharpes` | bull=0; sideways=0; bear=0 | bull=0; sideways=0; bear=0 | 0 | yes |
+| `exp_2026-10-14T08-48-49-412372Z` | `benchmark_p_value` | 0.383357196634418 | 0.383357196634418 | 2.2e-16 | yes |
+| `exp_2026-10-14T08-48-49-412372Z` | `information_ratio` | 0.800128545299796 | 0.800128545299796 | 4.4e-16 | yes |
+| `exp_2026-10-14T09-28-59-592390Z` | `train_sharpe` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-28-59-592390Z` | `val_sharpe` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-28-59-592390Z` | `test_sharpe` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-28-59-592390Z` | `oos_sharpe` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-28-59-592390Z` | `profit_factor` | inf | inf | nan | yes |
+| `exp_2026-10-14T09-28-59-592390Z` | `max_drawdown` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-28-59-592390Z` | `trades` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-28-59-592390Z` | `wf_stability` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-28-59-592390Z` | `worst_regime_sharpe` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-28-59-592390Z` | `regime_sharpes` | bull=0; sideways=0; bear=0 | bull=0; sideways=0; bear=0 | 0 | yes |
+| `exp_2026-10-14T09-28-59-592390Z` | `benchmark_p_value` | 0.383357196634418 | 0.383357196634418 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-28-59-592390Z` | `information_ratio` | 0.800128545299796 | 0.800128545299796 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-32-25-959733Z` | `train_sharpe` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-32-25-959733Z` | `val_sharpe` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-32-25-959733Z` | `test_sharpe` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-32-25-959733Z` | `oos_sharpe` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-32-25-959733Z` | `profit_factor` | inf | inf | nan | yes |
+| `exp_2026-10-14T09-32-25-959733Z` | `max_drawdown` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-32-25-959733Z` | `trades` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-32-25-959733Z` | `wf_stability` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-32-25-959733Z` | `worst_regime_sharpe` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-32-25-959733Z` | `regime_sharpes` | bull=0; sideways=0; bear=0 | bull=0; sideways=0; bear=0 | 0 | yes |
+| `exp_2026-10-14T09-32-25-959733Z` | `benchmark_p_value` | 0.383357196634418 | 0.383357196634418 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-32-25-959733Z` | `information_ratio` | 0.800128545299796 | 0.800128545299796 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-39-07-412533Z` | `train_sharpe` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-39-07-412533Z` | `val_sharpe` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-39-07-412533Z` | `test_sharpe` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-39-07-412533Z` | `oos_sharpe` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-39-07-412533Z` | `profit_factor` | inf | inf | nan | yes |
+| `exp_2026-10-14T09-39-07-412533Z` | `max_drawdown` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-39-07-412533Z` | `trades` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-39-07-412533Z` | `wf_stability` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-39-07-412533Z` | `worst_regime_sharpe` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-39-07-412533Z` | `regime_sharpes` | bull=0; sideways=0; bear=0 | bull=0; sideways=0; bear=0 | 0 | yes |
+| `exp_2026-10-14T09-39-07-412533Z` | `benchmark_p_value` | 0.383357196634418 | 0.383357196634418 | 0.0e+00 | yes |
+| `exp_2026-10-14T09-39-07-412533Z` | `information_ratio` | 0.800128545299796 | 0.800128545299796 | 0.0e+00 | yes |
+| `exp_2026-10-14T10-04-52-936640Z` | `train_sharpe` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T10-04-52-936640Z` | `val_sharpe` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T10-04-52-936640Z` | `test_sharpe` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T10-04-52-936640Z` | `oos_sharpe` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T10-04-52-936640Z` | `profit_factor` | inf | inf | nan | yes |
+| `exp_2026-10-14T10-04-52-936640Z` | `max_drawdown` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T10-04-52-936640Z` | `trades` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T10-04-52-936640Z` | `wf_stability` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T10-04-52-936640Z` | `worst_regime_sharpe` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T10-04-52-936640Z` | `regime_sharpes` | bull=0; sideways=0; bear=0 | bull=0; sideways=0; bear=0 | 0 | yes |
+| `exp_2026-10-14T10-04-52-936640Z` | `benchmark_p_value` | 0.383357196634418 | 0.383357196634418 | 0.0e+00 | yes |
+| `exp_2026-10-14T10-04-52-936640Z` | `information_ratio` | 0.800128545299796 | 0.800128545299796 | 0.0e+00 | yes |
+| `exp_2026-10-14T11-53-37-996139Z` | `train_sharpe` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T11-53-37-996139Z` | `val_sharpe` | -1.84537405568774 | -1.84537405568774 | 0.0e+00 | yes |
+| `exp_2026-10-14T11-53-37-996139Z` | `test_sharpe` | -12.1807980519081 | -12.1807980519081 | 0.0e+00 | yes |
+| `exp_2026-10-14T11-53-37-996139Z` | `oos_sharpe` | -7.18708945611617 | -7.18708945611617 | 0.0e+00 | yes |
+| `exp_2026-10-14T11-53-37-996139Z` | `profit_factor` | 0.00186669126900105 | 0.00186669126900105 | 0.0e+00 | yes |
+| `exp_2026-10-14T11-53-37-996139Z` | `max_drawdown` | -0.975617951664608 | -0.975617951664608 | 0.0e+00 | yes |
+| `exp_2026-10-14T11-53-37-996139Z` | `trades` | 107 | 107 | 0.0e+00 | yes |
+| `exp_2026-10-14T11-53-37-996139Z` | `wf_stability` | 0.77637525817875 | 0.77637525817875 | 0.0e+00 | yes |
+| `exp_2026-10-14T11-53-37-996139Z` | `worst_regime_sharpe` | -4.55213541851022 | -4.55213541851022 | 0.0e+00 | yes |
+| `exp_2026-10-14T11-53-37-996139Z` | `regime_sharpes` | bull=0; sideways=-4.552135419; bear=0 | bull=0; sideways=-4.552135419; bear=0 | 0 | yes |
+| `exp_2026-10-14T11-53-37-996139Z` | `benchmark_p_value` | 0.000899591071980324 | 0.000899591071980324 | 0.0e+00 | yes |
+| `exp_2026-10-14T11-53-37-996139Z` | `information_ratio` | -3.07386888885765 | -3.07386888885765 | 0.0e+00 | yes |
+| `exp_2026-10-14T18-13-09-457781Z` | `train_sharpe` | 0 | 0 | 0.0e+00 | yes |
+| `exp_2026-10-14T18-13-09-457781Z` | `val_sharpe` | -1.84537405568774 | -1.84537405568774 | 0.0e+00 | yes |
+| `exp_2026-10-14T18-13-09-457781Z` | `test_sharpe` | -12.1807980519081 | -12.1807980519081 | 0.0e+00 | yes |
+| `exp_2026-10-14T18-13-09-457781Z` | `oos_sharpe` | -7.18708945611617 | -7.18708945611617 | 0.0e+00 | yes |
+| `exp_2026-10-14T18-13-09-457781Z` | `profit_factor` | 0.00186669126900105 | 0.00186669126900105 | 0.0e+00 | yes |
+| `exp_2026-10-14T18-13-09-457781Z` | `max_drawdown` | -0.975617951664608 | -0.975617951664608 | 0.0e+00 | yes |
+| `exp_2026-10-14T18-13-09-457781Z` | `trades` | 107 | 107 | 0.0e+00 | yes |
+| `exp_2026-10-14T18-13-09-457781Z` | `wf_stability` | 0.77637525817875 | 0.77637525817875 | 0.0e+00 | yes |
+| `exp_2026-10-14T18-13-09-457781Z` | `worst_regime_sharpe` | -4.55213541851022 | -4.55213541851022 | 0.0e+00 | yes |
+| `exp_2026-10-14T18-13-09-457781Z` | `regime_sharpes` | bull=0; sideways=-4.552135419; bear=0 | bull=0; sideways=-4.552135419; bear=0 | 0 | yes |
+| `exp_2026-10-14T18-13-09-457781Z` | `benchmark_p_value` | 0.000899591071980324 | 0.000899591071980324 | 0.0e+00 | yes |
+| `exp_2026-10-14T18-13-09-457781Z` | `information_ratio` | -3.07386888885765 | -3.07386888885765 | 0.0e+00 | yes |
+| `exp_2026-10-14T18-52-08-943792Z` | `train_sharpe` | 1.12878797439889 | 1.12878797439889 | 0.0e+00 | yes |
+| `exp_2026-10-14T18-52-08-943792Z` | `val_sharpe` | 1.47444770454306 | 1.47444770454306 | 0.0e+00 | yes |
+| `exp_2026-10-14T18-52-08-943792Z` | `test_sharpe` | 1.23386837174535 | 1.23386837174535 | 0.0e+00 | yes |
+| `exp_2026-10-14T18-52-08-943792Z` | `oos_sharpe` | 1.37247508321472 | 1.37247508321472 | 0.0e+00 | yes |
+| `exp_2026-10-14T18-52-08-943792Z` | `profit_factor` | 1.334150203649 | 1.334150203649 | 0.0e+00 | yes |
+| `exp_2026-10-14T18-52-08-943792Z` | `max_drawdown` | -0.119142528546165 | -0.119142528546165 | 0.0e+00 | yes |
+| `exp_2026-10-14T18-52-08-943792Z` | `trades` | 3045 | 3045 | 0.0e+00 | yes |
+| `exp_2026-10-14T18-52-08-943792Z` | `wf_stability` | 0.759124793561885 | 0.759124793561885 | 0.0e+00 | yes |
+| `exp_2026-10-14T18-52-08-943792Z` | `worst_regime_sharpe` | 1.12927984678636 | 1.12927984678636 | 0.0e+00 | yes |
+| `exp_2026-10-14T18-52-08-943792Z` | `regime_sharpes` | bull=1.245038555; sideways=1.129279847; bear=2.004105338 | bull=1.245038555; sideways=1.129279847; bear=2.004105338 | 0 | yes |
+| `exp_2026-10-14T18-52-08-943792Z` | `benchmark_p_value` | 1.33408125486519e-19 | 1.33408125486519e-19 | 0.0e+00 | yes |
+| `exp_2026-10-14T18-52-08-943792Z` | `information_ratio` | 1.34669056965428 | 1.34669056965428 | 0.0e+00 | yes |
+| `exp_2026-10-14T20-02-45-189859Z` | `train_sharpe` | 1.17097909930305 | 1.17097909930305 | 0.0e+00 | yes |
+| `exp_2026-10-14T20-02-45-189859Z` | `val_sharpe` | 1.43568220879959 | 1.43568220879959 | 0.0e+00 | yes |
+| `exp_2026-10-14T20-02-45-189859Z` | `test_sharpe` | 1.1702372994749 | 1.1702372994749 | 0.0e+00 | yes |
+| `exp_2026-10-14T20-02-45-189859Z` | `oos_sharpe` | 1.3236288879256 | 1.3236288879256 | 0.0e+00 | yes |
+| `exp_2026-10-14T20-02-45-189859Z` | `profit_factor` | 1.32013168864227 | 1.32013168864227 | 0.0e+00 | yes |
+| `exp_2026-10-14T20-02-45-189859Z` | `max_drawdown` | -0.119142528546164 | -0.119142528546164 | 0.0e+00 | yes |
+| `exp_2026-10-14T20-02-45-189859Z` | `trades` | 1712 | 1712 | 0.0e+00 | yes |
+| `exp_2026-10-14T20-02-45-189859Z` | `wf_stability` | 0.872691997545787 | 0.872691997545787 | 0.0e+00 | yes |
+| `exp_2026-10-14T20-02-45-189859Z` | `worst_regime_sharpe` | 1.18809235421847 | 1.18809235421847 | 0.0e+00 | yes |
+| `exp_2026-10-14T20-02-45-189859Z` | `regime_sharpes` | bull=1.232431044; sideways=1.188092354; bear=2.143794177 | bull=1.232431044; sideways=1.188092354; bear=2.143794177 | 0 | yes |
+| `exp_2026-10-14T20-02-45-189859Z` | `benchmark_p_value` | 1.40288538050826e-19 | 1.40288538050826e-19 | 0.0e+00 | yes |
+| `exp_2026-10-14T20-02-45-189859Z` | `information_ratio` | 1.34587162500169 | 1.34587162500169 | 0.0e+00 | yes |
+| `exp_2026-10-14T20-08-34-613690Z` | `train_sharpe` | 1.17097909930305 | 1.17097909930305 | 0.0e+00 | yes |
+| `exp_2026-10-14T20-08-34-613690Z` | `val_sharpe` | 1.43568220879959 | 1.43568220879959 | 0.0e+00 | yes |
+| `exp_2026-10-14T20-08-34-613690Z` | `test_sharpe` | 1.1702372994749 | 1.1702372994749 | 0.0e+00 | yes |
+| `exp_2026-10-14T20-08-34-613690Z` | `oos_sharpe` | 1.3236288879256 | 1.3236288879256 | 0.0e+00 | yes |
+| `exp_2026-10-14T20-08-34-613690Z` | `profit_factor` | 1.32013168864227 | 1.32013168864227 | 0.0e+00 | yes |
+| `exp_2026-10-14T20-08-34-613690Z` | `max_drawdown` | -0.119142528546164 | -0.119142528546164 | 0.0e+00 | yes |
+| `exp_2026-10-14T20-08-34-613690Z` | `trades` | 1712 | 1712 | 0.0e+00 | yes |
+| `exp_2026-10-14T20-08-34-613690Z` | `wf_stability` | 0.872691997545787 | 0.872691997545787 | 0.0e+00 | yes |
+| `exp_2026-10-14T20-08-34-613690Z` | `worst_regime_sharpe` | 1.18809235421847 | 1.18809235421847 | 0.0e+00 | yes |
+| `exp_2026-10-14T20-08-34-613690Z` | `regime_sharpes` | bull=1.232431044; sideways=1.188092354; bear=2.143794177 | bull=1.232431044; sideways=1.188092354; bear=2.143794177 | 0 | yes |
+| `exp_2026-10-14T20-08-34-613690Z` | `benchmark_p_value` | 1.40288538050826e-19 | 1.40288538050826e-19 | 0.0e+00 | yes |
+| `exp_2026-10-14T20-08-34-613690Z` | `information_ratio` | 1.34587162500169 | 1.34587162500169 | 0.0e+00 | yes |
+| `exp_2026-10-19T15-46-16-261803Z` | `train_sharpe` | 0.958893431366601 | 0.958893431366601 | 0.0e+00 | yes |
+| `exp_2026-10-19T15-46-16-261803Z` | `val_sharpe` | null | null | 0 | yes |
+| `exp_2026-10-19T15-46-16-261803Z` | `test_sharpe` | 1.09307425008902 | 1.09307425008902 | 0.0e+00 | yes |
+| `exp_2026-10-19T15-46-16-261803Z` | `oos_sharpe` | 1.27575906809905 | 1.27575906809905 | 0.0e+00 | yes |
+| `exp_2026-10-19T15-46-16-261803Z` | `profit_factor` | 1.30416451694341 | 1.30416451694341 | 0.0e+00 | yes |
+| `exp_2026-10-19T15-46-16-261803Z` | `max_drawdown` | -0.0584284720448762 | -0.0584284720448762 | 0.0e+00 | yes |
+| `exp_2026-10-19T15-46-16-261803Z` | `trades` | 2416 | 2416 | 0.0e+00 | yes |
+| `exp_2026-10-19T15-46-16-261803Z` | `wf_stability` | 0.77940803641491 | 0.77940803641491 | 0.0e+00 | yes |
+| `exp_2026-10-19T15-46-16-261803Z` | `worst_regime_sharpe` | 1.04571765101774 | 1.04571765101774 | 0.0e+00 | yes |
+| `exp_2026-10-19T15-46-16-261803Z` | `regime_sharpes` | bull=1.045717651; sideways=1.169788399; bear=1.753042031 | bull=1.045717651; sideways=1.169788399; bear=1.753042031 | 0 | yes |
+| `exp_2026-10-19T15-46-16-261803Z` | `benchmark_p_value` | 4.7903055567233e-10 | 4.79030555672518e-10 | 1.9e-22 | yes |
+| `exp_2026-10-19T15-46-16-261803Z` | `information_ratio` | 0.924788916980381 | 0.924788916980371 | 9.2e-15 | yes |
+| `exp_2026-10-19T16-41-44-683912Z` | `train_sharpe` | 0.06610406822434 | 0.06610406822434 | 0.0e+00 | yes |
+| `exp_2026-10-19T16-41-44-683912Z` | `val_sharpe` | null | null | 0 | yes |
+| `exp_2026-10-19T16-41-44-683912Z` | `test_sharpe` | 0.0684591045517713 | 0.0684591045517713 | 0.0e+00 | yes |
+| `exp_2026-10-19T16-41-44-683912Z` | `oos_sharpe` | 0.390911372110916 | 0.390911372110916 | 0.0e+00 | yes |
+| `exp_2026-10-19T16-41-44-683912Z` | `profit_factor` | 1.08654983754263 | 1.08654983754263 | 0.0e+00 | yes |
+| `exp_2026-10-19T16-41-44-683912Z` | `max_drawdown` | -0.101396300250968 | -0.101396300250968 | 0.0e+00 | yes |
+| `exp_2026-10-19T16-41-44-683912Z` | `trades` | 2524 | 2524 | 0.0e+00 | yes |
+| `exp_2026-10-19T16-41-44-683912Z` | `wf_stability` | 1.36150438828276 | 1.36150438828276 | 0.0e+00 | yes |
+| `exp_2026-10-19T16-41-44-683912Z` | `worst_regime_sharpe` | -0.369215356356156 | -0.369215356356156 | 0.0e+00 | yes |
+| `exp_2026-10-19T16-41-44-683912Z` | `regime_sharpes` | bull=0.2599189401; sideways=-0.3692153564; bear=-0.1269297111 | bull=0.2599189401; sideways=-0.3692153564; bear=-0.1269297111 | 0 | yes |
+| `exp_2026-10-19T16-41-44-683912Z` | `benchmark_p_value` | 0.985498479162622 | 0.98549847916257 | 5.2e-14 | yes |
+| `exp_2026-10-19T16-41-44-683912Z` | `information_ratio` | -0.00269758521738861 | -0.00269758521739832 | 9.7e-15 | yes |
+| `exp_2026-10-19T17-38-03-570526Z` | `train_sharpe` | 0.953443954227077 | 0.953443954227077 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-03-570526Z` | `val_sharpe` | 0.839359858020129 | 0.839359858020129 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-03-570526Z` | `test_sharpe` | 0.765381529146769 | 0.765381529146769 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-03-570526Z` | `oos_sharpe` | 0.839359858020129 | 0.839359858020129 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-03-570526Z` | `profit_factor` | 1.20588982286409 | 1.20588982286409 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-03-570526Z` | `max_drawdown` | -0.0860348719594701 | -0.0860348719594701 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-03-570526Z` | `trades` | 5920 | 5920 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-03-570526Z` | `wf_stability` | 0.987413906438289 | 0.987413906438289 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-03-570526Z` | `worst_regime_sharpe` | 0.778046361224839 | 0.778046361224839 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-03-570526Z` | `regime_sharpes` | bull=0.9362003735; sideways=0.7780463612; bear=0.9750550885 | bull=0.9362003735; sideways=0.7780463612; bear=0.9750550885 | 0 | yes |
+| `exp_2026-10-19T17-38-03-570526Z` | `benchmark_p_value` | 1.91479534761625e-10 | 1.91479534761625e-10 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-03-570526Z` | `information_ratio` | 0.945948342282998 | 0.945948342282998 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-21-389139Z` | `train_sharpe` | 0.0925300566651902 | 0.0925300566651902 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-21-389139Z` | `val_sharpe` | 0.131709664609272 | 0.131709664609272 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-21-389139Z` | `test_sharpe` | -0.0554421524260829 | -0.0554421524260829 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-21-389139Z` | `oos_sharpe` | 0.131709664609272 | 0.131709664609272 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-21-389139Z` | `profit_factor` | 1.02964243589197 | 1.02964243589197 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-21-389139Z` | `max_drawdown` | -0.26124008938125 | -0.26124008938125 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-21-389139Z` | `trades` | 5927 | 5927 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-21-389139Z` | `wf_stability` | 58.212225721943 | 58.212225721943 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-21-389139Z` | `worst_regime_sharpe` | -0.610644578627777 | -0.610644578627777 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-21-389139Z` | `regime_sharpes` | bull=0.2661308513; sideways=-0.6106445786; bear=0.1714090448 | bull=0.2661308513; sideways=-0.6106445786; bear=0.1714090448 | 0 | yes |
+| `exp_2026-10-19T17-38-21-389139Z` | `benchmark_p_value` | 0.733212387748877 | 0.733212387748877 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-21-389139Z` | `information_ratio` | 0.0505881900350448 | 0.0505881900350448 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-39-157337Z` | `train_sharpe` | 1.12878797439889 | 1.12878797439889 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-39-157337Z` | `val_sharpe` | 1.47444770454306 | 1.47444770454306 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-39-157337Z` | `test_sharpe` | 1.23386837174535 | 1.23386837174535 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-39-157337Z` | `oos_sharpe` | 1.37247508321472 | 1.37247508321472 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-39-157337Z` | `profit_factor` | 1.334150203649 | 1.334150203649 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-39-157337Z` | `max_drawdown` | -0.119142528546165 | -0.119142528546165 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-39-157337Z` | `trades` | 3045 | 3045 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-39-157337Z` | `wf_stability` | 0.758012697085602 | 0.758012697085602 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-39-157337Z` | `worst_regime_sharpe` | 1.12927984678636 | 1.12927984678636 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-39-157337Z` | `regime_sharpes` | bull=1.245038555; sideways=1.129279847; bear=2.004105338 | bull=1.245038555; sideways=1.129279847; bear=2.004105338 | 0 | yes |
+| `exp_2026-10-19T17-38-39-157337Z` | `benchmark_p_value` | 1.33408125486519e-19 | 1.33408125486519e-19 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-39-157337Z` | `information_ratio` | 1.34669056965428 | 1.34669056965428 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-50-887609Z` | `train_sharpe` | 0.0966239136431282 | 0.0966239136431282 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-50-887609Z` | `val_sharpe` | 0.517452600218497 | 0.517452600218497 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-50-887609Z` | `test_sharpe` | 0.143855946268267 | 0.143855946268267 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-50-887609Z` | `oos_sharpe` | 0.360473229551189 | 0.360473229551189 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-50-887609Z` | `profit_factor` | 1.07733542840191 | 1.07733542840191 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-50-887609Z` | `max_drawdown` | -0.227604446832346 | -0.227604446832346 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-50-887609Z` | `trades` | 3288 | 3288 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-50-887609Z` | `wf_stability` | 2.34992706841616 | 2.34992706841616 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-50-887609Z` | `worst_regime_sharpe` | -0.497528693502194 | -0.497528693502194 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-50-887609Z` | `regime_sharpes` | bull=0.3934294913; sideways=-0.4975286935; bear=-0.3996779768 | bull=0.3934294913; sideways=-0.4975286935; bear=-0.3996779768 | 0 | yes |
+| `exp_2026-10-19T17-38-50-887609Z` | `benchmark_p_value` | 0.228305489064781 | 0.228305489064781 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-38-50-887609Z` | `information_ratio` | 0.178806455177715 | 0.178806455177715 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-39-02-719690Z` | `train_sharpe` | 1.17097909930305 | 1.17097909930305 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-39-02-719690Z` | `val_sharpe` | 1.43568220879959 | 1.43568220879959 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-39-02-719690Z` | `test_sharpe` | 1.1702372994749 | 1.1702372994749 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-39-02-719690Z` | `oos_sharpe` | 1.3236288879256 | 1.3236288879256 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-39-02-719690Z` | `profit_factor` | 1.32013168864227 | 1.32013168864227 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-39-02-719690Z` | `max_drawdown` | -0.119142528546164 | -0.119142528546164 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-39-02-719690Z` | `trades` | 1712 | 1712 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-39-02-719690Z` | `wf_stability` | 0.871595642610397 | 0.871595642610397 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-39-02-719690Z` | `worst_regime_sharpe` | 1.18809235421847 | 1.18809235421847 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-39-02-719690Z` | `regime_sharpes` | bull=1.232431044; sideways=1.188092354; bear=2.143794177 | bull=1.232431044; sideways=1.188092354; bear=2.143794177 | 0 | yes |
+| `exp_2026-10-19T17-39-02-719690Z` | `benchmark_p_value` | 1.40288538050826e-19 | 1.40288538050826e-19 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-39-02-719690Z` | `information_ratio` | 1.34587162500169 | 1.34587162500169 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-39-12-729639Z` | `train_sharpe` | 0.142290369495091 | 0.142290369495091 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-39-12-729639Z` | `val_sharpe` | 0.466698428146102 | 0.466698428146102 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-39-12-729639Z` | `test_sharpe` | 0.122633483211705 | 0.122633483211705 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-39-12-729639Z` | `oos_sharpe` | 0.323143902684948 | 0.323143902684948 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-39-12-729639Z` | `profit_factor` | 1.06928040837179 | 1.06928040837179 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-39-12-729639Z` | `max_drawdown` | -0.26191129643718 | -0.26191129643718 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-39-12-729639Z` | `trades` | 1786 | 1786 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-39-12-729639Z` | `wf_stability` | 3.44202957390231 | 3.44202957390231 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-39-12-729639Z` | `worst_regime_sharpe` | -0.3564723526707 | -0.3564723526707 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-39-12-729639Z` | `regime_sharpes` | bull=0.374157344; sideways=-0.3564723527; bear=-0.198558955 | bull=0.374157344; sideways=-0.3564723527; bear=-0.198558955 | 0 | yes |
+| `exp_2026-10-19T17-39-12-729639Z` | `benchmark_p_value` | 0.188850400971261 | 0.188850400971261 | 0.0e+00 | yes |
+| `exp_2026-10-19T17-39-12-729639Z` | `information_ratio` | 0.195022805113778 | 0.195022805113778 | 0.0e+00 | yes |
+
+### What was verified
+
+- `python -m pytest -q -W error tests/test_h53_published_metrics_disclosure.py` → **19 passed**
+  (3 before this session; the 16 new tests are the re-derivation, the convention pins and the
+  negative controls above).
+- `python -m pytest -q -W error` → **1666 passed, 13 skipped** (full suite, up from 1650 + 13).
+- `python -m ruff check src tests run_*.py` → *All checks passed!*.
+- `python -m ruff format --check src tests run_*.py` → **95 files already formatted**.
+- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → `src/qtr` = **1055
+  statements, 318 branches, 0 missed, 0 partial, 100.00%**; *"Required test coverage of 100.0%
+  reached. Total coverage: 100.00%"* — unchanged, because nothing under `src/qtr` changed.
+- **Every number is a read of the frozen artifacts** — no pipeline re-execution, no network, no
+  grid re-run. The 450-row table was measured from the committed parquet files, and every
+  published value was checked against the artifact that published it.
+- **The conventions were measured, not assumed.** Each was identified by reconstructing it and
+  matching the published value to ≤ 1e-09 relative, and the reconstruction is now part of the
+  contract. The fold convention is additionally anchored to the library's own
+  `walk_forward_splits`, and the beta convention to the exact expression the current library
+  replaced.
+
+### What remains unresolved
+
+- **The nine H9 regime values** cannot be re-derived: the producer's VIX series was never
+  committed. Disclosed, not quantified; no gate reads them beyond the reported
+  `worst_regime_sharpe`, which is itself computed from the same missing input.
+- **The 29 pre-fix `wf_stability` values** no longer re-derive from the library's current
+  `walk_forward_splits` (the tail of the series is now covered). The published values are on the
+  convention in force when they were produced; disclosed, not rewritten. The certified families
+  (H10, H22, H25) are among them.
+- **The 7 published `benchmark_alpha_annual` values** are on the pre-H51 mixed-ddof beta; the
+  library's alpha is now the OLS-slope one. Disclosed, not rewritten; no gate reads the key.
+- **Three of the four H16 `val_sharpe` values** publish the train+val window under a key named
+  for the val window, and disagree with their own grid artifact. Disclosed, not rewritten; no
+  gate reads the key.
+- **The 22 published `information_ratio` values** on the `ddof=1` convention no longer re-derive
+  from the library (§H51); disclosed, not rewritten. H53 extends that disclosure to the **8** H28
+  runs §H51 did not cover.
+- **H9's published OOS Sharpe** is on the sample convention (gap 1.026e-04); disclosed and pinned,
+  verdict cannot move.
 - The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified
   families' numbers and verdicts are frozen.
