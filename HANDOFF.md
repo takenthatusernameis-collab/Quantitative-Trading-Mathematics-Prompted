@@ -1,4 +1,53 @@
-# HANDOFF — H50 complete (session handoff)
+# HANDOFF — H51 complete (session handoff)
+
+## What changed (H51)
+
+**H51:** `compare_to_benchmark` is now **container-independent**, and the convention split in the
+published record is disclosed and pinned.
+
+- `src/qtr/validation/statistics.py` — `compare_to_benchmark` reduces **both** sides to plain float
+  numpy arrays *before* any statistic is computed, and every standard deviation carries an explicit
+  `ddof`. The excess volatility (and the information ratio) is taken on **`ddof=0`** (population).
+  The docstring states the convention and the container-independence contract.
+- `tests/test_h51_benchmark_container_invariance.py` — **new**, 246 tests (12 skipped for documented
+  reasons): the invariance for all nine keys, the enforced convention, the per-family disclosure,
+  and the negative control.
+- `FINAL_REPORT.md` — new **§H51** section, an updated "Next task" section and an updated "What
+  remains unresolved".
+
+### The defect (measured)
+
+`excess = strat - bench` kept the *caller's* container, so `excess.std()` used `ddof=1` for a
+`pandas.Series` and `ddof=0` for an `ndarray`: the same data compared as an array and as a Series
+gave `0.2650139223426122` and `0.2646824476383493` — a ratio of exactly `sqrt(n / (n - 1))`. Two
+further container dependencies were found in the same function: `alpha_annualized` used
+`Series.mean()` (a different reduction from `ndarray.mean()` whenever pandas has bottleneck), and
+`Series - Series` aligns on the **index** while `ndarray - ndarray` subtracts **positionally**,
+although the function has always aligned by *length*. All three are closed by reducing both sides to
+numpy arrays once, up front.
+
+### The convention: `ddof=0`, on measured grounds
+
+Of the **48** committed artifacts that publish an `information_ratio`, **26** were produced on
+`ddof=0` and **22** on `ddof=1` — every one re-derived from its own frozen artifact (bit-exact for
+the families that log both return series). Enforcing `ddof=0` therefore keeps the larger set
+unchanged; it is also this package's own convention (`sharpe_ratio` uses `ddof=0`) and it preserves
+the existing `tests/test_runner_metric_agreement.py` pin that the library's IR and
+`run_cs_momentum`'s local IR agree exactly. The 22 that move move by exactly `sqrt(n / (n - 1))`:
+**+4.371e-05** at `n = 11441`, **+1.671e-03** at `n = 300` (H23). **No sign changes**, so no gate
+outcome moves. The published values are **disclosed**, not rewritten.
+
+### The contract now pinned
+
+`tests/test_h51_benchmark_container_invariance.py` holds: the nine keys are **bit-identical** for an
+array and a Series (and for mixed containers, and for a `DataFrame` benchmark against its row-mean
+series, and with a NaN row); the enforced convention is the population deviation and is *not* the
+sample one; every published IR re-derives from its own artifact **under the convention it was
+published on** (and the other convention does not reproduce it); the 26/22 split is pinned; the move
+is bounded and never flips a sign; the runners' call sites are checked **statically** (an expression
+that reaches a `.values` attribute hands the library an array); and the **negative control**
+reconstructs the pre-H51 implementation, shows it was container-dependent, and shows it reproduces
+each artifact's published IR *only* under the container its runner passed.
 
 ## What changed (H50)
 
@@ -124,6 +173,13 @@ public API now takes a `random_state`.
 
 ## What was actually verified
 
+- **H51**: `python -m pytest -q -W error tests/test_h51_benchmark_container_invariance.py` → **246
+  passed, 12 skipped**; `python -m pytest -q -W error` → **1623 passed, 13 skipped** (full suite, up
+  from 1377 + 1); `python -m ruff check src tests run_*.py` → *All checks passed!*;
+  `python -m ruff format --check src tests run_*.py` → **94 files already formatted**. The
+  re-derivations are exact (residual 0.0e+00 for H21/H22/H25, ~1e-15 … ~1e-14 elsewhere), and the
+  negative control is behavioural.
+
 - `python -m pytest -q -W error tests/test_parameter_sensitivity_reproducibility.py` → **14 passed**.
 - `python -m pytest -q -W error` → **1355 passed, 1 skipped**; `src/qtr` =
   **1054 statements, 320 branches, 0 missed, 0 partial, 100.00%**; the committed gate reports
@@ -153,10 +209,19 @@ public API now takes a `random_state`.
   behaviourally against the pre-fix state). The "regenerate and commit" route is closed by
   measurement — the generated metadata's serialisation depends on which setuptools built it.
   Full statement in `FINAL_REPORT.md` §H50.
+- **H51 is COMPLETE** (2026-10-21): `compare_to_benchmark` is container-independent (both sides
+  reduced to float numpy arrays up front, every standard deviation explicit), the enforced
+  convention is the **population** one (`ddof=0`), and the published convention split is disclosed
+  and pinned by `tests/test_h51_benchmark_container_invariance.py` (246 tests). **26** of the **48**
+  published `information_ratio` values keep re-deriving unchanged; the **22** on the sample
+  convention move by `+4.371e-05` (n = 11441) and `+1.671e-03` (H23, n = 300), with no sign change
+  and no gate outcome moving. Full statement with the measured table in `FINAL_REPORT.md` §H51.
 - **Disclosure (H47)** — the `cost` column of the **committed** trade logs (H10, H11, H16, H21,
   H22, H25) and the `avg_trade_cost` of the three exploratory 2026-10-10 MA-crossover summaries
   carry the pre-fix aggregate attribution. The artifact files are frozen and were left untouched.
-  No gate, threshold, verdict or certified number reads them.
+  No gate, threshold, verdict or certified number reads them. **All 41** committed trade logs carry
+  the pre-fix attribution, so the published list is narrower than the record — the assigned task
+  (H52).
 - H9's published OOS Sharpe is on the sample convention (gap 1.026e-04); disclosed and pinned,
   verdict cannot move (REJECT on the profit factor, 55× margin over its 1.0 gate).
 - The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified
@@ -185,23 +250,27 @@ public API now takes a `random_state`.
 
 ## Precise next task
 
-**H51 — make `compare_to_benchmark` container-independent, and disclose which published
-`information_ratio` numbers are on which convention.** The excess return is computed as
-`excess = strat - bench`, so `excess.std()` uses **ddof=1** for a `pandas.Series` and **ddof=0**
-for an `ndarray`: the information ratio and `excess_vol_annual` are a function of the caller's
-container, not of the data (the ratio between the two is exactly `sqrt(n/(n-1))`). The published
-record contains **both** conventions — verified on two families:
+**H52 — extend the H47 cost-attribution disclosure from the one artifact it is pinned for to every
+committed trade log, and state which artifacts the pre-fix attribution actually changes.** The engine
+charges a transaction cost **per bar** and, since H47, attributes it **per trade**; the committed
+trade logs were written before that change, so in each of them every trade of a bar records the bar's
+whole cost. A read-only scan finds **41** committed trade logs
+(`git ls-files ".experiments/artifacts/*/trades.parquet"`), and in **all 41**
+`groupby("timestamp")["cost"].nunique() == 1`. §H47 discloses this for "H10, H11, H16, H21, H22,
+H25" and pins it for **one** artifact (H10), so the published list is narrower than the record.
 
-| artifact | runner | call site | published IR | re-derives under |
-|---|---|---|---|---|
-| `exp_2026-10-11T15-54-17-212022Z` | `run_h9_intraday_tsmom_experiment.py` | Series | `-0.23532720855889727` | **ddof=1** (1.2e-14) |
-| `exp_2026-10-10T22-59-01-182037Z` | `run_cs_momentum_experiment.py` | ndarray | `0.33150832181222434` | **ddof=0** (1.7e-16) |
+The scope is not uniform, and that is the point: a bar holding a single trade cannot be
+mis-attributed, so the pre-fix attribution only *changes* anything for the logs with **multi-trade
+bars** (measured excerpt: `exp_2026-10-11T15-53-31-819888Z` — 31,519 trades over 11,029 bars, 9,216
+of them multi-trade; `exp_2026-10-11T17-41-18-169363Z` (H10) — 3,701 trades over 2,975 bars, 513
+multi-trade; `exp_2026-10-10T17-05-58-697503Z` — a single trade, so the attributions coincide).
 
-Five runners pass a Series (h7, h9, h10, h18, h23) and ten pass ndarrays (h6, h8, h16, h17, h19,
-h20, cs_momentum, ts_momentum, ddcv, regime_gated). **No verdict can move** — the gate is
-`p_value < max_p_value AND information_ratio > 0.0` and the IR's *sign* is invariant under ddof;
-only the magnitude of the published numbers moves. The full statement, the fix sketch and the
-constraints are in `NEXT_TASK.md`.
+The work: measure the whole record (per artifact: trades, bars, multi-trade bars, whether the log
+carries the pre-fix attribution), publish the corrected scope in `FINAL_REPORT.md`, extend
+`tests/test_trade_log_cost_reconciliation.py` to pin the whole set — separating "carries the pre-fix
+attribution" from "the pre-fix attribution changes a number in this log" — and correct the §H47
+wording that enumerates the six families. The engine's per-bar charge must not move (H27's `L3`
+check must keep passing). The full statement and the constraints are in `NEXT_TASK.md`.
 
-**H50 is complete** (2026-10-21). The record of what was done is in `FINAL_REPORT.md` §H50 and
+**H51 is complete** (2026-10-21). The record of what was done is in `FINAL_REPORT.md` §H51 and
 `HANDOFF_CURRENT.md`.

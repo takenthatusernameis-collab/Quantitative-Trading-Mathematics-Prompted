@@ -2339,19 +2339,28 @@ isolation) — and the arrangement is pinned by `tests/test_generated_manifest_c
 (11 tests; 3 of them fail behaviourally against the pre-fix state). Full statement in **§H50**
 above.
 
+**H51 is complete** (2026-10-21): `compare_to_benchmark` is now **container-independent** — both
+sides are reduced to float numpy arrays before any statistic is computed, every standard deviation
+carries an explicit `ddof`, and the excess volatility (and the information ratio) is taken on the
+**population** standard deviation (`ddof=0`). The convention was chosen on measured grounds: **26**
+of the **48** committed artifacts that publish an `information_ratio` are on `ddof=0` and **22** on
+`ddof=1`, so enforcing `ddof=0` keeps the larger set unchanged; it is also this package's own
+convention (`sharpe_ratio` uses `ddof=0`) and it preserves the existing
+`tests/test_runner_metric_agreement.py` pin that the library's IR and `run_cs_momentum`'s local IR
+agree exactly. Every published value was re-derived from its own artifact (bit-exact for the
+families that log both return series); the 22 that move move by **+4.371e-05** (n = 11441) and
+**+1.671e-03** (H23, n = 300), no sign changes, so no gate outcome can move. Full statement with the
+measured table in **§H51** above.
+
 The state a next session inherits:
 
-- **One task is assigned (H51)** — stated in full in `NEXT_TASK.md`: make `compare_to_benchmark`
-  **container-independent** and disclose which published `information_ratio` /
-  `excess_vol_annual` numbers are on which convention. The defect is verified: the excess series is
-  computed as `excess = strat - bench`, so `excess.std()` uses **ddof=1** for a `pandas.Series` and
-  **ddof=0** for an `ndarray`; the information ratio and the excess volatility are therefore a
-  function of the caller's container, differing by exactly `sqrt(n/(n-1))`. The published record
-  contains **both** conventions — `exp_2026-10-11T15-54-17-212022Z` (H9, a Series call site)
-  re-derives under ddof=1 to 1.2e-14, and `exp_2026-10-10T22-59-01-182037Z` (cs_momentum, an
-  ndarray call site) under ddof=0 to 1.7e-16. **No verdict can move**: the gate is
-  `p_value < max_p_value AND information_ratio > 0.0`, and the IR's *sign* is invariant under
-  ddof.
+- **One task is assigned (H52)** — stated in full in `NEXT_TASK.md`: extend the **H47
+  cost-attribution disclosure** from the single artifact it is pinned for to **every** committed
+  trade log, and state which artifacts the pre-fix attribution actually changes (those with bars
+  holding more than one trade). The scan behind the task: `git ls-files
+  ".experiments/artifacts/*/trades.parquet"` → **41** trade logs, and in **all 41**
+  `groupby("timestamp")["cost"].nunique() == 1` — every bar records one aggregate cost for all of
+  its trades.
 - The pre-registered free-data hypothesis space (H1–H30) remains **exhausted**; no new hypothesis
   is warranted and no grid may be re-run.
 - The certified families (H10, H22, H25) are unchanged. Every published artifact, threshold,
@@ -2576,13 +2585,172 @@ re-run; no hypothesis was added; **no module under `src/qtr` and no runner was t
 
 ### What remains unresolved
 
-- **`compare_to_benchmark` is container-dependent** — found while auditing for this session and
-  assigned as H51. `excess.std()` uses ddof=1 for a Series and ddof=0 for an ndarray, so the
-  information ratio and `excess_vol_annual` depend on the caller's container; the published record
-  contains both conventions. **No verdict can move** (the gate reads the IR's sign).
+- The **22 published `information_ratio` values on the sample (`ddof=1`) convention** no longer
+  re-derive from the library, which now enforces the population convention. They are **disclosed**,
+  not rewritten (§H51): the move is `+4.371e-05` at `n = 11441` and `+1.671e-03` at `n = 300`, no
+  sign changes and no gate outcome moves.
 - The **H47 cost-attribution disclosure** (the `cost` column of the committed trade logs) covers
   less than the record does — all 41 committed trade logs carry the pre-fix attribution, and the
   disclosure is pinned for one of them. The runner-up task (H52).
 - **H9's published OOS Sharpe** is on the sample convention; disclosed and pinned, verdict frozen.
 - The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified
   families' numbers and verdicts are frozen.
+
+## H51 — `compare_to_benchmark` is container-independent, and the published convention split is disclosed (2026-10-21)
+
+**What changed.**
+
+- `src/qtr/validation/statistics.py` — `compare_to_benchmark` now reduces **both** sides to plain
+  float numpy arrays *before* any statistic is computed, and every standard deviation carries an
+  explicit `ddof`. The excess volatility (and with it the information ratio) is taken with
+  **`ddof=0` (population)**.
+- `tests/test_h51_benchmark_container_invariance.py` — **new**, 246 tests (12 skipped for documented
+  reasons): the container invariance for all nine keys, the enforced convention, the per-family
+  disclosure, and the negative control.
+- `FINAL_REPORT.md` — this section, an updated "Next task" section and an updated "What remains
+  unresolved".
+- `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_CURRENT_SESSION.md`, `HANDOFF_NEXT.md` — updated.
+
+### The defect (measured, not assumed)
+
+`compare_to_benchmark` built the excess series with the *caller's* container: `excess = strat - bench`
+stayed a `pandas.Series` when the caller passed a Series and became an `ndarray` when the caller
+passed an array, and `excess.std()` then used `pandas.Series.std()`'s default **`ddof=1`** in the
+first case and `numpy.ndarray.std()`'s default **`ddof=0`** in the second. The information ratio and
+`excess_vol_annual` were therefore a function of *how the caller stored its data*, not of the data:
+the same strategy and benchmark compared as an array and as a Series produced two different
+information ratios, differing by exactly `sqrt(n / (n - 1))` (0.2650139223426122 against
+0.2646824476383493 at `n = 400`).
+
+Two further container dependencies were found in the same function and closed by the same change:
+
+- **`alpha_annualized`** used `strat.mean()` / `bench.mean()`, and `pandas.Series.mean()` is a
+  *different reduction* from `numpy.ndarray.mean()` whenever pandas is built with bottleneck
+  (bottleneck's `nansum` is not numpy's pairwise sum). The value was environment-dependent.
+- **the excess series itself**: `pandas.Series - pandas.Series` aligns on the **INDEX**, while
+  `ndarray - ndarray` subtracts **POSITIONALLY**. The function has always aligned the two sides by
+  *length* (`min_len`, tail alignment), so the index alignment was never what its contract meant —
+  and for a mismatched index the old subtraction silently introduced NaNs that the `valid` mask (built
+  before it) could not see.
+
+### The fix
+
+Both sides are reduced to float numpy arrays once, up front; the tail alignment, the pair-wise NaN
+mask, the CAPM `beta`/`alpha` path (already explicit at `ddof=1`) and the `scipy` t-test are
+unchanged. The result is that a `pandas.Series` and an `ndarray` holding the same numbers produce
+**bit-identical** values for **all nine keys** — asserted in the new contract for the array/Series
+pair, for mixed containers, for a `DataFrame` benchmark against its row-mean series, and with a NaN
+row in the data.
+
+### The convention: `ddof=0` (population) — and why
+
+`ddof=0` is enforced. Four independent reasons, in decreasing order of how much they constrain the
+choice:
+
+1. **It keeps the larger set of published numbers unchanged.** Measured, not estimated: of the **48**
+   committed artifacts that publish an `information_ratio`, **26** were produced on `ddof=0` and
+   **22** on `ddof=1`. The other choice would have moved 26 published numbers instead of 22.
+2. **It is this package's own convention.** `sharpe_ratio` in the same module takes
+   `returns.std(ddof=0)`, and the engine's Sharpe does the same (`returns.std(ddof=0)`). A library
+   whose information ratio and Sharpe ratio use different deviation conventions is a defect waiting
+   to happen.
+3. **It preserves an existing, deliberate contract.** `tests/test_runner_metric_agreement.py` states
+   that `run_cs_momentum`'s local IR "computes `information_ratio = e.mean() / e.std() * sqrt(252)`
+   with numpy `ddof=0`, **the same convention as `compare_to_benchmark`'s information_ratio**; the
+   two agree exactly". That agreement held only because the test passes `.values` — it was never a
+   property of the library. Enforcing `ddof=0` makes the *library* true the statement; enforcing
+   `ddof=1` would have required weakening that pin.
+4. **It is numpy's default**, and it is the convention under which a re-run of any runner would now
+   reproduce its published IR.
+
+### The disclosure — every published `information_ratio`, re-derived from its own artifact
+
+Each of the 48 published values was re-derived from the artifact that published it: the strategy
+series from the artifact's own `returns.parquet` / `best_equity.parquet` / `selected_equity.parquet` /
+`ensemble_equity.parquet`, the benchmark from its `benchmark_returns.parquet` /
+`benchmark_equity.parquet`, and the OOS window from the runner's own `TRAIN_END`. An equity curve is
+inverted to a return series the way the engine builds it (`equity = (1 + r).cumprod() * capital`), so
+the first bar's return is recovered rather than lost.
+
+| Family | Artifacts | Call-site container | Published convention | n | Published IR | IR under the enforced convention | Relative change |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| H1/H2 ts_momentum | 4 | ndarray | ddof=0 | 1257 | -0.1241 | -0.1241 | +0.000e+00 |
+| H3/H4 cs_momentum | 2 | ndarray | ddof=0 | 1257 | -0.2523 | -0.2523 | +0.000e+00 |
+| H5 regime_gated | 2 | ndarray | ddof=0 | 1257 | -0.8932 | -0.8932 | +0.000e+00 |
+| H4 futures_tsmom | 4 | ndarray | ddof=0 | 1258 | -0.6399266589647274 | -0.6399266589647274 | +0.000e+00 |
+| H4 ddcv | 2 | ndarray | ddof=0 | 1258 | 0.3943394550648367 | 0.3943394550648367 | +0.000e+00 |
+| H6 vix_ddcv | 4 | ndarray | ddof=0 | 1258 | 0.35981069144282585 | 0.35981069144282585 | +0.000e+00 |
+| H8 roll_adjusted | 1 | ndarray | ddof=0 | 1258 | 0.5248619387848141 | 0.5248619387848141 | +0.000e+00 |
+| H9 v1 intraday | 1 | Series | ddof=1 | 11441 | -0.23532720855889727 | -0.2353374936142357 | +4.371e-05 |
+| H9 v2 intraday | 4 | Series | ddof=1 | 11441 | 1.02096576542838 | 1.0210103870828855 | +4.371e-05 |
+| H10 pfopt | 2 | Series | ddof=1 | 11441 | 1.0172449421222174 | 1.0172894011568805 | +4.371e-05 |
+| H16 factor_timing | 4 | ndarray | ddof=0 | 1760 | -0.47636726658916473 | -0.47636726658916473 | +0.000e+00 |
+| H17 vrp | 1 | ndarray | ddof=0 | 1700 | -0.23962730807881957 | -0.23962730807881957 | +0.000e+00 |
+| H19 volume_predictive | 1 | ndarray | ddof=0 | 2958 | -0.8797993277834989 | -0.8797993277834989 | +0.000e+00 |
+| H20 signed_volume | 1 | ndarray | ddof=0 | 2958 | -0.7039784403691635 | -0.7039784403691635 | +0.000e+00 |
+| H21 multicontract | 1 | Series | ddof=1 | 11441 | 0.9459483422829976 | 0.9459896852756217 | +4.371e-05 |
+| H22 voltarget | 5 | Series | ddof=1 | 11441 | 1.3466905696542812 | 1.3467494272216551 | +4.371e-05 |
+| H23 crypto | 7 | Series | ddof=1 | 300 | 0.8001285452997962 | 0.8014654360320734 | +1.671e-03 |
+| H25 pfmargin | 2 | Series | ddof=1 | 11441 | 1.3458716250016904 | 1.3459304467768110 | +4.371e-05 |
+
+Reading of the table:
+
+- **26 published numbers are unchanged** (`ddof=0` families) and **22 move** (`ddof=1` families), each
+  by exactly `sqrt(n / (n - 1))`: **+4.371e-05** at `n = 11441` and **+1.671e-03** at `n = 300` (H23,
+  the only short sample in the record). The largest movement anywhere in the published record is
+  **0.17%**.
+- **No sign changes**, so **no gate outcome can move**: the direction-aware gate reads
+  `information_ratio > 0.0`, and `alpha_p_value` comes from `scipy.stats.ttest_1samp`, which always
+  uses `ddof=1` on both paths.
+- The three families whose runner published **`round(information_ratio, 4)`** (ts_momentum,
+  cs_momentum, regime_gated) cannot be discriminated by the data — the two conventions differ by
+  ~2e-4 relative at `n = 1257` and the published value carries only four decimals. Their convention is
+  therefore pinned by the runner's **call site**, which the contract now checks statically: an
+  expression that reaches a `.values` attribute hands the library an array.
+- **No artifact publishes an `excess_vol_annual`** — the key is in the library's return dict but no
+  committed `summary.json` carries it, so there is nothing to disclose on that side.
+
+### What was verified
+
+- `python -m pytest -q -W error tests/test_h51_benchmark_container_invariance.py` → **246 passed,
+  12 skipped** (the 12 skips are explicit: 4 artifacts whose runner published a default `p_value`
+  instead of a t-test p-value, and 8 whose IR was published rounded to four decimals).
+- `python -m pytest -q -W error` → **1623 passed, 13 skipped** (full suite, up from 1377 + 1).
+- `python -m ruff check src tests run_*.py` → *All checks passed!*.
+- `python -m ruff format --check src tests run_*.py` → **94 files already formatted**.
+- **The re-derivation is exact, not approximate.** For the families whose artifacts log both return
+  series, the published value is reproduced to the last bit: H21 `0.9459483422829976` (residual
+  0.0e+00), H22 `1.3466905696542812` (0.0e+00), H25 `1.3458716250016904` (0.0e+00), H23
+  `0.8001285452997962` (4.4e-16), H16 `-0.47636726658916473` (3.2e-15), H19 `-0.8797993277834989`
+  (1.6e-14), futures_tsmom `0.33150832181222434` (1.7e-16). For the families whose benchmark is only
+  available as an equity curve, the residual is the float round-trip of the equity inversion and
+  stays at ~1e-14 (H9 v1: 1.2e-14; H10: 9.2e-15). The published `alpha_p_value` re-derives with the
+  same residual.
+- **Negative control** — the contract's control reconstructs the **pre-H51 implementation** and shows
+  it was container-dependent: the same data gives `0.2646824476383493` as a Series and
+  `0.2650139223426122` as an array, a ratio of exactly `sqrt(n / (n - 1))`, and the pre-fix code run
+  on each artifact's own data reproduces its published IR *only* under the container its runner
+  passed. The fixed library returns one answer for both containers.
+- The library's own call sites are unchanged, so `tests/test_runner_metric_agreement.py` and
+  `tests/test_benchmark_gate_contract.py` still pass untouched — the former's "the same convention as
+  `compare_to_benchmark`'s information_ratio" is now true of the library itself, not only of the
+  `.values` path the test happens to exercise.
+
+### What was not changed
+
+No published artifact, gate threshold, verdict or certified number was modified; no grid was re-run;
+no runner was touched. The `beta`/`alpha` path (`np.cov(..., ddof=1)` over `np.var(..., ddof=1)`,
+which is the OLS slope) is untouched. The only change under `src/qtr` is in
+`src/qtr/validation/statistics.py`, and it is confined to `compare_to_benchmark`.
+
+### What remains unresolved
+
+- **The 22 published `information_ratio` values on the `ddof=1` convention no longer re-derive from
+  the library.** They are disclosed in the table above (moves of +4.371e-05 and +1.671e-03), not
+  rewritten; the artifacts are frozen. The gate's outcome is unaffected in every case.
+- The **H47 cost-attribution disclosure** (the `cost` column of the committed trade logs) covers
+  less than the record does — all 41 committed trade logs carry the pre-fix attribution, and the
+  disclosure is pinned for one of them. This is the assigned task (H52).
+- **H9's published OOS Sharpe** is on the sample convention; disclosed and pinned, verdict frozen.
+- The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified families'
+  numbers and verdicts are frozen.

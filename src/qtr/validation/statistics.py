@@ -502,6 +502,16 @@ def compare_to_benchmark(
     passes the gate rejects. It is kept because it is a useful diagnostic, and
     it must never be substituted for the gate.
 
+    **The result does not depend on the container the caller passes.** A
+    ``pandas.Series`` and a ``numpy.ndarray`` holding the same numbers
+    produce bit-identical values for all nine keys: both sides are reduced
+    to float numpy arrays before any statistic is computed. The excess
+    volatility is taken with an explicit ``ddof=0`` (the population standard
+    deviation), so the information ratio is a property of the data and not
+    of the caller's container -- ``pandas.Series.std()`` defaults to
+    ``ddof=1`` while ``numpy.ndarray.std()`` defaults to ``ddof=0``, and the
+    two differ by exactly ``sqrt(n / (n - 1))``.
+
     Args:
         strategy_returns: Strategy return series
         benchmark_returns: Benchmark return series
@@ -534,17 +544,37 @@ def compare_to_benchmark(
         arr = np.asarray(benchmark_returns, dtype=float)
         benchmark_returns = arr.mean(axis=1) if arr.ndim > 1 else arr
 
-    if not isinstance(strategy_returns, pd.Series):
-        strategy_returns = np.asarray(strategy_returns, dtype=float)
+    # Both sides are reduced to plain float numpy arrays ONCE, here. Every
+    # statistic below is then a function of the data alone and not of the
+    # container the caller happened to pass:
+    #
+    # * `pandas.Series.std()` defaults to ddof=1 (sample) while
+    #   `numpy.ndarray.std()` defaults to ddof=0 (population), so the
+    #   excess volatility -- and with it the information ratio -- used to
+    #   depend on the caller's container;
+    # * `pandas.Series.mean()` is a *different reduction* from
+    #   `numpy.ndarray.mean()` whenever pandas is built with bottleneck
+    #   (bottleneck's nansum is not numpy's pairwise sum), so
+    #   `alpha_annualized` was container-dependent too;
+    # * `pandas.Series - pandas.Series` aligns on the INDEX, while
+    #   `ndarray - ndarray` subtracts POSITIONALLY, so the excess series
+    #   used to be built differently depending on the container.
+    #
+    # The function has always aligned the two sides by LENGTH (tail
+    # alignment, `min_len` below), so the positional subtraction is the
+    # consistent reading of its contract; the index alignment was never
+    # what the length alignment meant.
+    strat = np.asarray(strategy_returns, dtype=float)
+    bench = np.asarray(benchmark_returns, dtype=float)
 
     # Align
-    min_len = min(len(strategy_returns), len(benchmark_returns))
+    min_len = min(len(strat), len(bench))
     if min_len == 0:
         # `x[-0:]` is the whole array, so an empty side must be handled
         # before the tail alignment below.
         return _no_comparison()
-    strat = strategy_returns[-min_len:]
-    bench = benchmark_returns[-min_len:]
+    strat = strat[-min_len:]
+    bench = bench[-min_len:]
 
     # Drop the aligned rows where either side is NaN. `np.cov`/`np.var` do
     # not skip NaN, so a single NaN leaves `alpha_annualized`, `beta` and
@@ -553,23 +583,27 @@ def compare_to_benchmark(
     # gate reading those fields. The mask is pair-wise (a row is dropped if
     # EITHER side is NaN) and is applied to the tail-aligned inputs, so for
     # a NaN-free input the computation is bit-identical to before.
-    valid = ~(np.isnan(np.asarray(strat, dtype=float)) | np.isnan(np.asarray(bench, dtype=float)))
+    valid = ~(np.isnan(strat) | np.isnan(bench))
     if not valid.all():
         strat = strat[valid]
         bench = bench[valid]
 
-    # Excess returns — reduce to a numpy array with an explicit ddof=1 (sample)
-    # so the standard deviation is independent of the caller's container
-    # (pandas.Series.std() defaults to ddof=1, ndarray.std() defaults to 0).
-    excess = np.asarray(strat, dtype=float) - np.asarray(bench, dtype=float)
+    # Excess returns -- a numpy array with an EXPLICIT ddof on every
+    # standard deviation below, so the convention is the library's and not
+    # the container's.
+    excess = strat - bench
 
     if len(excess) < 2:
         # Fewer than two paired observations: `np.cov(..., ddof=1)` is
         # undefined and `stats.ttest_1samp` is degenerate.
         return _no_comparison()
 
-    # Information ratio
-    ir = excess.mean() / excess.std(ddof=0) * np.sqrt(periods_per_year) if excess.std(ddof=0) > 0 else 0
+    # Information ratio. The excess volatility is the POPULATION standard
+    # deviation of the excess returns (ddof=0), the same convention as
+    # `numpy.ndarray.std()` and as this module's `sharpe_ratio`; it is
+    # stated explicitly so it cannot drift with the caller's container.
+    excess_std = excess.std(ddof=0)
+    ir = excess.mean() / excess_std * np.sqrt(periods_per_year) if excess_std > 0 else 0
 
     # Alpha / Beta (CAPM). beta is the OLS regression slope of strategy
     # returns on benchmark returns, cov(S, B) / var(B) with a CONSISTENT
@@ -579,7 +613,7 @@ def compare_to_benchmark(
     # With a consistent ddof=1, beta is the OLS slope and alpha reduces to
     # the OLS intercept (mean(S) - beta * mean(B)), net of the risk-free
     # term, which is the standard CAPM alpha.
-    if np.asarray(bench, dtype=float).std(ddof=0) > 0:
+    if bench.std(ddof=0) > 0:
         beta = np.cov(strat, bench, ddof=1)[0, 1] / np.var(bench, ddof=1)
         alpha = (
             strat.mean()
