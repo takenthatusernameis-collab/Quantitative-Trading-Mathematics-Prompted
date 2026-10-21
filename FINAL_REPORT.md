@@ -2374,14 +2374,33 @@ of them measured at 20× or 5×). The pin now names every log, pins the two sub-
 carries a behavioural negative control. Full statement with the measured 82-row table in **§H52**
 above.
 
+**H53 is complete** (2026-10-21): every published `metrics` block re-derives from its own frozen
+artifact. The **37** summaries that publish one carry **12 scalars** and **5 structural keys**; all
+**522** published scalars and regime Sharpes re-derive under the convention their publisher used,
+to a worst relative residual of **6.494e-11**. The conventions were *measured*, not assumed, and
+the alternatives are asserted **not** to reproduce the published numbers. Six differences from the
+library's current behaviour are pinned as version or call-site artefacts: the Sharpe's deviation
+convention was the caller's *container* until commit `9fb26b8` (H9 published on the sample
+deviation, H10+ on the population one); the walk-forward split *dropped the tail* until commit
+`26c6aa6` (only the 8 H28 runs use the fixed split); the published alpha uses the **pre-H51**
+mixed-`ddof` beta; the published information ratio follows the same container rule; three H16
+artifacts published a `val_sharpe` that **leaks the training period** (and H21 published the OOS
+Sharpe under that key — no published gate reads it); and the H9 summary published **two** Sharpe
+conventions in one block, because its main block took a Series and its ablation block an ndarray.
+The negative control executes the library's *own* historical source (`git show 9fb26b8^`,
+`26c6aa6^`, `85ad85b^`): it reproduces the numbers of its era and fails on the numbers of the next
+one. Full statement with the per-summary, per-key table in **§H53** above.
+
 The state a next session inherits:
 
-- **One task is assigned (H53)** — stated in full in `NEXT_TASK.md`: audit the **remaining**
-  committed `summary.json` files for keys that no longer re-derive from the artifacts that
-  published them — the §H49/§H51 methodology generalised to **every** published block, with the
-  per-key convention of each publisher recorded. The measurement behind the task: **80** committed
-  `summary.json` files, of which the §H49 pass covered **5** and the §H51 pass covered the **48**
-  that publish an `information_ratio`.
+- **One task is assigned (H54 — the H53 runner-up)** — stated in full in `NEXT_TASK.md`: record the
+  conventions of the **`stats.json` echoes** (40 files publish the head of a trade log, and a
+  return series, as text), and close the **14** benchmark `avg_trade_cost` entries whose benchmark
+  trade log and signals were never committed and whose over-count factor is therefore not
+  measurable from the record. The measurement behind the task: **80** committed `summary.json`
+  files, of which §H49 covered the **5** `validation` blocks, §H51 the **48**
+  `information_ratio` values, §H52 the `avg_trade_cost` values and §H53 the **37** `metrics`
+  blocks — and the `stats.json` echoes, which no pass has covered.
 - The pre-registered free-data hypothesis space (H1–H30) remains **exhausted**; no new hypothesis
   is warranted and no grid may be re-run.
 - The certified families (H10, H22, H25) are unchanged. Every published artifact, threshold,
@@ -2403,6 +2422,9 @@ The state a next session inherits:
 - The package's metadata has exactly one declared source of truth (§H50); re-run
   `tests/test_generated_manifest_contract.py` after any change to `pyproject.toml`, `.gitignore`
   or the packaging layout.
+- The published `metrics` blocks (§H53) are pinned by
+  `tests/test_h53_published_metrics_disclosure.py`; re-run it after any change under
+  `src/qtr/validation` **or after a new artifact is committed**.
 
 Previous state, retained for the record: all assigned tasks H35–H43 are complete. All
 metric-agreement sites — library-side (§H39), runner-local helpers (§H40) and runner-inline sites
@@ -2611,12 +2633,16 @@ re-run; no hypothesis was added; **no module under `src/qtr` and no runner was t
 - The **22 published `information_ratio` values on the sample (`ddof=1`) convention** no longer
   re-derive from the library, which now enforces the population convention. They are **disclosed**,
   not rewritten (§H51): the move is `+4.371e-05` at `n = 11441` and `+1.671e-03` at `n = 300`, no
-  sign changes and no gate outcome moves.
+  sign changes and no gate outcome moves. **Extended in §H53**: the convention of every published
+  information ratio is now re-measured *per family* from the artifact that published it, and the
+  container rule that produced the split is pinned.
 - The **H47 cost-attribution disclosure** (the `cost` column of the committed trade logs) covered
   less than the record does — all 41 trade logs the §H47-era scan saw carry the pre-fix
   attribution, and the disclosure was pinned for one of them. **Resolved in §H52**: the record is
   **82** trade logs, all of them carry the attribution, and all of them are pinned.
 - **H9's published OOS Sharpe** is on the sample convention; disclosed and pinned, verdict frozen.
+  **Measured in §H53**: the population convention misses it by `9.7e-05` relative (`1.0e-04`
+  absolute on the `1.056` run), and the convention is pinned per publisher.
 - The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified
   families' numbers and verdicts are frozen.
 
@@ -2772,11 +2798,13 @@ which is the OLS slope) is untouched. The only change under `src/qtr` is in
 - **The 22 published `information_ratio` values on the `ddof=1` convention no longer re-derive from
   the library.** They are disclosed in the table above (moves of +4.371e-05 and +1.671e-03), not
   rewritten; the artifacts are frozen. The gate's outcome is unaffected in every case.
+  **Re-measured per family in §H53**, which pins the container rule that produced the split.
 - The **H47 cost-attribution disclosure** (the `cost` column of the committed trade logs) covered
   less than the record does — all 41 trade logs the §H47-era scan saw carry the pre-fix
   attribution, and the disclosure was pinned for one of them. **Resolved in §H52**: the record is
   **82** trade logs, all of them carry the attribution, and all of them are pinned.
 - **H9's published OOS Sharpe** is on the sample convention; disclosed and pinned, verdict frozen.
+  **Measured in §H53**: the population convention misses it by `9.7e-05` relative.
 - The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified families'
   numbers and verdicts are frozen.
 
@@ -3009,7 +3037,1322 @@ timestamp, so the provenance stamp is read from the last path segment.)
 - **The three published `avg_trade_cost` values** over-stated by the pre-fix attribution remain
   published as they are; the artifacts are frozen and no gate reads them.
 - **The 22 published `information_ratio` values** on the `ddof=1` convention no longer re-derive
-  from the library (§H51); disclosed, not rewritten.
+  from the library (§H51); disclosed, not rewritten. **Re-measured per family in §H53.**
 - **H9's published OOS Sharpe** is on the sample convention; disclosed and pinned, verdict frozen.
+  **Measured in §H53**: the population convention misses it by `9.7e-05` relative.
 - The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified
   families' numbers and verdicts are frozen.
+
+## H53 — every published `metrics` block re-derives from its own frozen artifact (2026-10-21)
+
+**Verdict: the committed record is sound. All 37 summaries that publish a `metrics` block re-derive
+from the artifact that published it, under the convention that publisher used. The 522 published
+scalars and regime Sharpes reproduce to a worst relative residual of **6.494e-11**, and the six
+places where the publisher's convention differs from the library's current behaviour are pinned as
+*version* or *call-site* differences — not defects in the published numbers. Nothing was rewritten.**
+
+### What changed
+
+- `tests/test_h53_published_metrics_disclosure.py` — **new**, **974 passed, 69 skipped**: the record
+  of the 37 publishers, the per-family convention and the per-artifact overrides, the re-derivation
+  of every published scalar, the *discriminating* control (the alternative convention does **not**
+  reproduce the published number), the walk-forward split's date-dependence, the pre-H51 alpha, the
+  three `val_sharpe` anomalies, the structural blocks, the committed ablation curves, the H9 VIX leg
+  recovered from the content-addressed cache, and the **behavioural negative control** that executes
+  the library's *own* historical source.
+- `FINAL_REPORT.md` — this section (with the full per-summary, per-key table), the "Next task"
+  section updated, and the §H50 / §H51 / §H52 "What remains unresolved" bullets corrected where
+  they enumerated the covered scope.
+- `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_CURRENT.md`, `HANDOFF_CURRENT_SESSION.md`,
+  `HANDOFF_NEXT.md` updated.
+- **Nothing under `src/qtr` changed.** No artifact, gate threshold, verdict or certified number was
+  modified; no grid was re-run; no hypothesis was added.
+
+### The gap
+
+§H49 re-derived the `validation` blocks of five exploratory summaries, §H51 the
+`information_ratio` of 48 artifacts and §H52 the `avg_trade_cost` values. The rest of the
+**`metrics` block** — the block that carries the *certified* numbers and that the published
+`passes` / `all_pass` / `verdict` blocks rest on — had never been re-derived from the artifact
+that published it.
+
+### The record
+
+**37** of the committed summaries publish a non-empty `metrics` block. Their key union is **12
+scalars** and **5 structural keys**:
+
+| key | publishers | re-derived from the artifact? |
+|---|---:|---|
+| `train_sharpe`, `val_sharpe`, `test_sharpe`, `oos_sharpe` | 37 each | **yes** |
+| `profit_factor`, `max_drawdown`, `trades` | 37 each | **yes** |
+| `wf_stability`, `worst_regime_sharpe` | 37 each | **yes** |
+| `information_ratio`, `benchmark_p_value` | 37 each | **yes** |
+| `benchmark_alpha_annual` | 7 | **yes** (on the pre-H51 beta) |
+| `regime_sharpes` | 36 | **yes** (three regimes each) |
+| `ablations` | 35 (157 entries, 19 distinct blocks) | **28** publishers yes, **7** no |
+| `perturbation` | 7 | **no** — the perturbed curves were never committed |
+| `perturbation_min_ratio` | 7 | **no** — as above |
+| `cross_validation` | 2 | **no** — the cross-validated curves were never committed |
+
+That is **522** published scalars and regime Sharpes, and they are the numbers the published gates
+read: the `passes` block of all 37 publishers keys on `sharpe`, `trades`, `pf`, `dd`, `stab`,
+`worst`, `p` and `ir` (plus `perturbation` in 25). **No published gate reads `val_sharpe` or
+`benchmark_alpha_annual`** — the two keys whose values are anomalous (§ findings 3 and 5 below).
+
+### The convention, per family (measured, not assumed)
+
+Each convention was **measured** by re-deriving the published value under every candidate and
+keeping the one that reproduces it; the alternatives are then asserted **not** to reproduce it, so
+the convention is pinned by the data and not by this report's own reconstruction.
+
+| family | summaries | Sharpe | fold Sharpe | regime Sharpe | profit factor | trades | walk-forward | regimes | IR | beta | `val_sharpe` |
+|---|---:|---|---|---|---|---|---|---|---|---|---|
+| **H9** | 5 | `ddof=1` (Series) | `ddof=0` | `ddof=0` | full sample | all | tail-dropping | `^VIX` daily, from the cache | `ddof=1` | — | Val window |
+| **H10** (H10, H21, H22, H25, H28) | 18 | `ddof=0` | `ddof=0` | `ddof=0` | OOS window | OOS window | tail-dropping (the 8 H28 runs: tail-absorbing) | `vix_hourly.parquet` | `ddof=1` | — | Val, except 3 OOS and 4 `null` |
+| **H16** (H16, H17, H19, H20) | 7 | `ddof=0` | `ddof=0` | `ddof=0` | OOS window | OOS window | tail-dropping | `vix_close.parquet`, OOS only | `ddof=0` | pre-H51 (mixed `ddof`) | Val, except 3 leaky |
+| **H23** | 7 | `ddof=0` | `ddof=0` | `ddof=0` | OOS window | OOS window | tail-dropping | `vix_hourly.parquet` | `ddof=1` | — | Val window |
+
+The per-artifact overrides are pinned in the contract: the 8 H28 runs (2026-10-19) use the
+tail-absorbing split; the 3 H16 artifacts named `21-11-45`, `21-13-09` and `21-18-23` published a
+leaky `val_sharpe`; `21-22-02` and the whole H17/H19/H20 family published the proper one; the H21
+run and two H28 runs published the *OOS* Sharpe under the key `val_sharpe`; and four summaries (two
+H10, two H28) published it as JSON `null`.
+
+### The six findings
+
+1. **The Sharpe's standard-deviation convention was the caller's container.**
+   `qtr.validation.statistics.sharpe_ratio` only became container-independent on 2026-10-17 (commit
+   `9fb26b8`); before that it called `returns.std()` on whatever it was handed, so a
+   `pandas.Series` gave the *sample* deviation (`ddof=1`) and an `ndarray` the *population* one
+   (`ddof=0`). The H9 family passed a Series, the H10+ families passed `.values`, so the two
+   families published Sharpes on different conventions. H26 recorded the same fact.
+2. **The walk-forward split dropped the tail of the series** until 2026-10-18 (commit `26c6aa6`).
+   Every `wf_stability` published before that commit is the ratio of the fold Sharpes of the
+   *tail-dropping* split; the eight H28 artifacts (2026-10-19) use the tail-absorbing one. This is
+   the **only** key whose convention is decided by the publication date.
+3. **The published `benchmark_alpha_annual` uses the pre-H51 beta.** §H51 made the CAPM beta's two
+   terms use a consistent `ddof`; the published values use the *mixed* convention
+   (`np.cov(S, B, ddof=1)[0, 1] / np.var(B, ddof=0)`), which inflates beta by `n / (n - 1)`. The
+   seven published alphas re-derive exactly under the mixed convention and not under the library's
+   current one.
+4. **The published `information_ratio` follows the same container rule.** The families that
+   published a *Series* information ratio (H9, H10, H21, H22, H25, H23) published the *sample*
+   deviation; the families that published an *ndarray* one (H16, H17, H19, H20) published the
+   *population* deviation. §H51 disclosed this for the 48 artifacts that publish an IR; here it is
+   re-measured from the same artifacts.
+5. **Three artifacts published a `val_sharpe` that leaks the training period.** The three H16
+   artifacts named above publish the Sharpe of `(data start, VAL_END]` — a window that *includes*
+   the training period — where the runner's `val_mask` is `(TRAIN_END, VAL_END]`. They were published
+   on 2026-10-13 at 21:11, 21:13 and 21:18, before the runner's first committed version
+   (`dcf5f8b`, 21:23:15) bounded the mask; the fourth H16 artifact (`21-22-02`, 21:22) was published
+   after the fix and is clean. H21 and two H28 runs publish the *OOS* Sharpe under the key
+   `val_sharpe`, and four summaries publish it as `null`. **No published gate reads the key.**
+6. **One summary published two Sharpe conventions at once.** The H9 runner computed its *main*
+   block from a Series (`sharpe_ratio(oos_ret)` — the sample deviation) and its *ablation* block
+   from an ndarray (`sharpe_ratio(oos_no.values)` — the population deviation). Both live in the same
+   `metrics` block, so the convention is per *call site*, not per family. Measured: the H9
+   ablation's `oos_sharpe` re-derives on `ddof=0` to **2.5e-15** and misses `ddof=1` by **9.7e-05**.
+
+### The negative control — the library's *own* historical source
+
+The control is not a hand-written reconstruction of a superseded convention: it is the library's
+own `src/qtr/validation/statistics.py` at the commit that changed the convention, **executed as it
+was written** (`git show 9fb26b8^`, `git show 26c6aa6^`, `git show 85ad85b^`). It is run in both
+directions — the historical implementation must **reproduce** the numbers published under the
+convention it implemented, and must **fail** on the numbers published under the convention that
+replaced it:
+
+| control | reproduces | fails |
+|---|---|---|
+| the pre-`9fb26b8` `sharpe_ratio` | the H9 family's published Sharpe through the **Series** path (residual **0.0**), the H10 family's through the **ndarray** path (residual **0.0**) | the H9 value through the array path (**9.7e-05** off) and the H10 value through the Series path (**9.7e-05** off) |
+| the pre-`26c6aa6` `walk_forward_splits` | every pre-fix `wf_stability` (residual **0.0**) | the eight H28 values (**1.5e-03** off); the library's *current* splitter likewise fails the pre-fix values (**1.8e-03** off) |
+| the pre-`85ad85b` `compare_to_benchmark` | the seven published alphas (residual **< 1e-10**), their p-values and their information ratios | the library's current consistent-`ddof` beta |
+
+Two further results fall out of the same control. The pre-`9fb26b8` `sharpe_ratio` is shown to be
+**container dependent** — one series, two answers — which is *why* the H9 and H10 families
+disagree; and the pre-H51 `compare_to_benchmark` reproduces the daily family's published
+information ratio, p-value and alpha **verbatim**, so that family's benchmark leg is *one library
+call*, while the intraday families' information ratio does **not** come from that function (they
+computed their own, on the sample deviation, and are off by `sqrt(n / (n - 1))`).
+
+### The contract (974 passed, 69 skipped)
+
+1. **The record is complete and pinned** — the set of summaries that publish a `metrics` block is
+   exactly the 37 in `RECORD`, the key union is exactly the 17 keys above, and the family counts
+   are pinned (H9 = 5, H10 = 18, H16 = 7, H23 = 7).
+2. **Every published scalar re-derives** — from the summary's *own* frozen artifact, under the
+   recorded convention, to a worst relative residual of **6.494e-11** (the alphas, where the
+   near-cancellation of the CAPM terms amplifies a ~3e-13 absolute difference; every other key is
+   at **5.1e-13** or better). The tolerance is pinned by its own test, so it cannot be loosened
+   silently.
+3. **The conventions are discriminating** — for every publisher, the *alternative* convention is
+   asserted **not** to reproduce the published number, and the cases where the data cannot
+   discriminate (a degenerate series, an artifact whose trades all fall inside the OOS window, a
+   series length that is a multiple of five) are **skipped with the reason recorded**, not
+   silently passed.
+4. **The walk-forward split's date-dependence is pinned** — the 8 post-fix artifacts and the 29
+   pre-fix artifacts are named, and each is re-derived on its own split.
+5. **The alpha and the two `val_sharpe` anomalies are pinned** — the pre-H51 beta reproduces all
+   seven published alphas and the library's beta reproduces none of them; the three leaky
+   `val_sharpe` values are shown to cover the training period and to differ from the proper
+   validation window; the OOS-valued and `null`-valued ones are named.
+6. **The structural blocks are pinned** — the key counts (35 / 7 / 2 / 7 / 36), the two flat
+   ablation shapes and the nested one, the perturbation ratio's two disjoint forms (no artifact
+   publishes both), and the fact that the ratio's variants are not quantifiable.
+7. **The committed ablation curves re-derive** — the 28 publishers that commit an ablation equity
+   curve (25 under the double-underscore name, 3 under the H9 single-underscore name) have their
+   blocks' OOS Sharpe, profit factor, drawdown and test Sharpe re-derived from that curve; the 7
+   daily-family publishers commit none, so their nested `oos_metrics` block is disclosed, not
+   quantified. The ablation's own **trade count** is not quantifiable anywhere: the ablation's
+   trade log was never committed.
+8. **The H9 VIX leg is recovered, not guessed** — the run fetched `^VIX` with
+   `start = now - 729 days`, and the fetcher's cache key is
+   `sha256(f"yahoo:^VIX:{start}:{end}:1d")[:16]`, so the exact series the run read is addressable
+   in the committed content-addressed cache; the key is checked against `DataCache._cache_key`
+   itself.
+9. **The negative control is behavioural** — the library's own historical source is executed and
+   must reproduce the numbers of its own era and fail on the numbers of the next one.
+
+### The record, in full — the scalars
+
+Per summary and per key: the published value, the re-derived value, the relative residual and
+whether it re-derives. The tolerance is `rel = 1e-9`, `abs = 1e-12`. The **residual** column is
+relative (`|published - re-derived| / |published|`, and absolute when the published value is zero);
+the **worst** relative residual over the 522 rows is **6.494e-11** (the alphas, where the CAPM terms
+nearly cancel and a ~3e-13 absolute difference shows up as a large relative one), and every other
+key is at **5.1e-13** or better. The four rows marked `null` are the summaries that publish
+`val_sharpe` as JSON `null` (finding 5): there is no number to re-derive, and the contract pins
+that the key is published as `null`.
+
+| artifact | key | published | re-derived | residual | re-derives |
+|---|---|---:|---:|---:|:---:|
+| `exp_2026-10-11T15-54-17-212022Z` | `train_sharpe` | -0.00314632516069 | -0.00314632516069 | 0.000e+00 | yes |
+| `exp_2026-10-11T15-54-17-212022Z` | `val_sharpe` | 0.0943607192747 | 0.0943607192747 | 0.000e+00 | yes |
+| `exp_2026-10-11T15-54-17-212022Z` | `test_sharpe` | -0.492597825077 | -0.492597825077 | 0.000e+00 | yes |
+| `exp_2026-10-11T15-54-17-212022Z` | `oos_sharpe` | -0.137011463953 | -0.137011463953 | 0.000e+00 | yes |
+| `exp_2026-10-11T15-54-17-212022Z` | `profit_factor` | 0.987680808909 | 0.987680808909 | 0.000e+00 | yes |
+| `exp_2026-10-11T15-54-17-212022Z` | `max_drawdown` | -0.247508101221 | -0.247508101221 | 0.000e+00 | yes |
+| `exp_2026-10-11T15-54-17-212022Z` | `trades` | 31519 | 31519 | 0.000e+00 | yes |
+| `exp_2026-10-11T15-54-17-212022Z` | `wf_stability` | 2.06995606067 | 2.06995606067 | 0.000e+00 | yes |
+| `exp_2026-10-11T15-54-17-212022Z` | `worst_regime_sharpe` | -1.12248817351 | -1.12248817351 | 0.000e+00 | yes |
+| `exp_2026-10-11T15-54-17-212022Z` | `information_ratio` | -0.235327208559 | -0.235327208559 | 5.119e-14 | yes |
+| `exp_2026-10-11T15-54-17-212022Z` | `benchmark_p_value` | 0.112849238751 | 0.112849238751 | 1.645e-13 | yes |
+| `exp_2026-10-11T16-44-06-168529Z` | `train_sharpe` | 1.11583473129 | 1.11583473129 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-44-06-168529Z` | `val_sharpe` | 1.10732700257 | 1.10732700257 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-44-06-168529Z` | `test_sharpe` | 0.993447926585 | 0.993447926585 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-44-06-168529Z` | `oos_sharpe` | 1.05638289643 | 1.05638289643 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-44-06-168529Z` | `profit_factor` | 1.25221831332 | 1.25221831332 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-44-06-168529Z` | `max_drawdown` | -0.0619677045185 | -0.0619677045185 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-44-06-168529Z` | `trades` | 2690 | 2690 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-44-06-168529Z` | `wf_stability` | 0.792501323327 | 0.792501323327 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-44-06-168529Z` | `worst_regime_sharpe` | 0.757933922805 | 0.757933922805 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-44-06-168529Z` | `information_ratio` | 1.02096576543 | 1.02096576543 | 1.087e-14 | yes |
+| `exp_2026-10-11T16-44-06-168529Z` | `benchmark_p_value` | 6.32946543864e-12 | 6.32946543865e-12 | 5.109e-13 | yes |
+| `exp_2026-10-11T16-44-06-168529Z` | `regime_sharpes.bull` | 1.12772893037 | 1.12772893037 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-44-06-168529Z` | `regime_sharpes.sideways` | 0.973664891505 | 0.973664891505 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-44-06-168529Z` | `regime_sharpes.bear` | 0.757933922805 | 0.757933922805 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-46-06-466282Z` | `train_sharpe` | 1.11583473129 | 1.11583473129 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-46-06-466282Z` | `val_sharpe` | 1.10732700257 | 1.10732700257 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-46-06-466282Z` | `test_sharpe` | 0.993447926585 | 0.993447926585 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-46-06-466282Z` | `oos_sharpe` | 1.05638289643 | 1.05638289643 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-46-06-466282Z` | `profit_factor` | 1.25221831332 | 1.25221831332 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-46-06-466282Z` | `max_drawdown` | -0.0619677045185 | -0.0619677045185 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-46-06-466282Z` | `trades` | 2690 | 2690 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-46-06-466282Z` | `wf_stability` | 0.792501323327 | 0.792501323327 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-46-06-466282Z` | `worst_regime_sharpe` | 0.757933922805 | 0.757933922805 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-46-06-466282Z` | `information_ratio` | 1.02096576543 | 1.02096576543 | 1.087e-14 | yes |
+| `exp_2026-10-11T16-46-06-466282Z` | `benchmark_p_value` | 6.32946543864e-12 | 6.32946543865e-12 | 5.109e-13 | yes |
+| `exp_2026-10-11T16-46-06-466282Z` | `regime_sharpes.bull` | 1.12772893037 | 1.12772893037 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-46-06-466282Z` | `regime_sharpes.sideways` | 0.973664891505 | 0.973664891505 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-46-06-466282Z` | `regime_sharpes.bear` | 0.757933922805 | 0.757933922805 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-52-38-694559Z` | `train_sharpe` | 1.11583473129 | 1.11583473129 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-52-38-694559Z` | `val_sharpe` | 1.10732700257 | 1.10732700257 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-52-38-694559Z` | `test_sharpe` | 0.993447926585 | 0.993447926585 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-52-38-694559Z` | `oos_sharpe` | 1.05638289643 | 1.05638289643 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-52-38-694559Z` | `profit_factor` | 1.25221831332 | 1.25221831332 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-52-38-694559Z` | `max_drawdown` | -0.0619677045185 | -0.0619677045185 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-52-38-694559Z` | `trades` | 2690 | 2690 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-52-38-694559Z` | `wf_stability` | 0.792501323327 | 0.792501323327 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-52-38-694559Z` | `worst_regime_sharpe` | 0.757933922805 | 0.757933922805 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-52-38-694559Z` | `information_ratio` | 1.02096576543 | 1.02096576543 | 1.087e-14 | yes |
+| `exp_2026-10-11T16-52-38-694559Z` | `benchmark_p_value` | 6.32946543864e-12 | 6.32946543865e-12 | 5.109e-13 | yes |
+| `exp_2026-10-11T16-52-38-694559Z` | `regime_sharpes.bull` | 1.12772893037 | 1.12772893037 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-52-38-694559Z` | `regime_sharpes.sideways` | 0.973664891505 | 0.973664891505 | 0.000e+00 | yes |
+| `exp_2026-10-11T16-52-38-694559Z` | `regime_sharpes.bear` | 0.757933922805 | 0.757933922805 | 0.000e+00 | yes |
+| `exp_2026-10-11T17-24-14-385352Z` | `train_sharpe` | 1.11292905791 | 1.11292905791 | 0.000e+00 | yes |
+| `exp_2026-10-11T17-24-14-385352Z` | `val_sharpe` | null | null (published as null) | — | null |
+| `exp_2026-10-11T17-24-14-385352Z` | `test_sharpe` | 1.05062985591 | 1.05062985591 | 0.000e+00 | yes |
+| `exp_2026-10-11T17-24-14-385352Z` | `oos_sharpe` | 1.07229780481 | 1.07229780481 | 0.000e+00 | yes |
+| `exp_2026-10-11T17-24-14-385352Z` | `profit_factor` | 1.25417277893 | 1.25417277893 | 0.000e+00 | yes |
+| `exp_2026-10-11T17-24-14-385352Z` | `max_drawdown` | -0.0620429446852 | -0.0620429446852 | 0.000e+00 | yes |
+| `exp_2026-10-11T17-24-14-385352Z` | `trades` | 1830 | 1830 | 0.000e+00 | yes |
+| `exp_2026-10-11T17-24-14-385352Z` | `wf_stability` | 0.808422070715 | 0.808422070715 | 0.000e+00 | yes |
+| `exp_2026-10-11T17-24-14-385352Z` | `worst_regime_sharpe` | 0.765947791105 | 0.765947791105 | 0.000e+00 | yes |
+| `exp_2026-10-11T17-24-14-385352Z` | `information_ratio` | 1.01724494212 | 1.01724494212 | 9.168e-15 | yes |
+| `exp_2026-10-11T17-24-14-385352Z` | `benchmark_p_value` | 7.53953414053e-12 | 7.53953414053e-12 | 4.386e-13 | yes |
+| `exp_2026-10-11T17-24-14-385352Z` | `regime_sharpes.bull` | 1.17246622126 | 1.17246622126 | 0.000e+00 | yes |
+| `exp_2026-10-11T17-24-14-385352Z` | `regime_sharpes.sideways` | 0.765947791105 | 0.765947791105 | 0.000e+00 | yes |
+| `exp_2026-10-11T17-24-14-385352Z` | `regime_sharpes.bear` | 1.25880438658 | 1.25880438658 | 0.000e+00 | yes |
+| `exp_2026-10-11T17-41-18-169363Z` | `train_sharpe` | 0.958893431367 | 0.958893431367 | 0.000e+00 | yes |
+| `exp_2026-10-11T17-41-18-169363Z` | `val_sharpe` | null | null (published as null) | — | null |
+| `exp_2026-10-11T17-41-18-169363Z` | `test_sharpe` | 1.09307425009 | 1.09307425009 | 0.000e+00 | yes |
+| `exp_2026-10-11T17-41-18-169363Z` | `oos_sharpe` | 1.2757590681 | 1.2757590681 | 0.000e+00 | yes |
+| `exp_2026-10-11T17-41-18-169363Z` | `profit_factor` | 1.30416451694 | 1.30416451694 | 0.000e+00 | yes |
+| `exp_2026-10-11T17-41-18-169363Z` | `max_drawdown` | -0.0584284720449 | -0.0584284720449 | 0.000e+00 | yes |
+| `exp_2026-10-11T17-41-18-169363Z` | `trades` | 2416 | 2416 | 0.000e+00 | yes |
+| `exp_2026-10-11T17-41-18-169363Z` | `wf_stability` | 0.780570926531 | 0.780570926531 | 0.000e+00 | yes |
+| `exp_2026-10-11T17-41-18-169363Z` | `worst_regime_sharpe` | 1.04571765102 | 1.04571765102 | 0.000e+00 | yes |
+| `exp_2026-10-11T17-41-18-169363Z` | `information_ratio` | 0.92478891698 | 0.92478891698 | 9.964e-15 | yes |
+| `exp_2026-10-11T17-41-18-169363Z` | `benchmark_p_value` | 4.79030555672e-10 | 4.79030555673e-10 | 3.924e-13 | yes |
+| `exp_2026-10-11T17-41-18-169363Z` | `regime_sharpes.bull` | 1.04571765102 | 1.04571765102 | 0.000e+00 | yes |
+| `exp_2026-10-11T17-41-18-169363Z` | `regime_sharpes.sideways` | 1.16978839857 | 1.16978839857 | 0.000e+00 | yes |
+| `exp_2026-10-11T17-41-18-169363Z` | `regime_sharpes.bear` | 1.75304203133 | 1.75304203133 | 0.000e+00 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `train_sharpe` | 0.845700882652 | 0.845700882652 | 3.413e-15 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `val_sharpe` | 0.732124663443 | 0.732124663443 | 1.213e-15 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `test_sharpe` | 0.522769171809 | 0.522769171809 | 5.097e-15 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `oos_sharpe` | 0.508284552404 | 0.508284552404 | 5.897e-15 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `profit_factor` | 1.09328710158 | 1.09328710158 | 8.124e-16 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `max_drawdown` | -0.219904723187 | -0.219904723187 | 1.010e-15 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `trades` | 237 | 237 | 0.000e+00 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `wf_stability` | 0.315923609844 | 0.315923609844 | 1.863e-14 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `worst_regime_sharpe` | -3.21705637653 | -3.21705637653 | 2.209e-15 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `information_ratio` | -0.476367266589 | -0.476367266589 | 6.642e-15 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `benchmark_p_value` | 0.208355651319 | 0.208355651319 | 1.465e-14 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `benchmark_alpha_annual` | -5.04837570769e-06 | -5.04837570802e-06 | 6.494e-11 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `regime_sharpes.bull` | 2.91758809897 | 2.91758809897 | 6.088e-16 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `regime_sharpes.sideways` | -2.08659541939 | -2.08659541939 | 2.128e-15 | yes |
+| `exp_2026-10-13T21-11-45-843908Z` | `regime_sharpes.bear` | -3.21705637653 | -3.21705637653 | 2.209e-15 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `train_sharpe` | 0.845700882652 | 0.845700882652 | 3.413e-15 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `val_sharpe` | 0.732124663443 | 0.732124663443 | 1.213e-15 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `test_sharpe` | 0.522769171809 | 0.522769171809 | 5.097e-15 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `oos_sharpe` | 0.508284552404 | 0.508284552404 | 5.897e-15 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `profit_factor` | 1.09328710158 | 1.09328710158 | 8.124e-16 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `max_drawdown` | -0.219904723187 | -0.219904723187 | 1.010e-15 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `trades` | 237 | 237 | 0.000e+00 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `wf_stability` | 0.315923609844 | 0.315923609844 | 1.863e-14 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `worst_regime_sharpe` | -3.21705637653 | -3.21705637653 | 2.209e-15 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `information_ratio` | -0.476367266589 | -0.476367266589 | 6.642e-15 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `benchmark_p_value` | 0.208355651319 | 0.208355651319 | 1.465e-14 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `benchmark_alpha_annual` | -5.04837570769e-06 | -5.04837570802e-06 | 6.494e-11 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `regime_sharpes.bull` | 2.91758809897 | 2.91758809897 | 6.088e-16 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `regime_sharpes.sideways` | -2.08659541939 | -2.08659541939 | 2.128e-15 | yes |
+| `exp_2026-10-13T21-13-09-580962Z` | `regime_sharpes.bear` | -3.21705637653 | -3.21705637653 | 2.209e-15 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `train_sharpe` | 0.806412062621 | 0.806412062621 | 1.101e-15 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `val_sharpe` | 0.709332442031 | 0.709332442031 | 2.661e-15 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `test_sharpe` | 0.649115036993 | 0.649115036993 | 1.026e-14 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `oos_sharpe` | 0.578666344347 | 0.578666344347 | 3.837e-16 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `profit_factor` | 1.10616685761 | 1.10616685761 | 0.000e+00 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `max_drawdown` | -0.199471171152 | -0.199471171152 | 9.462e-15 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `trades` | 184 | 184 | 0.000e+00 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `wf_stability` | 0.352555772869 | 0.352555772869 | 1.181e-14 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `worst_regime_sharpe` | -3.6802126873 | -3.6802126873 | 9.654e-16 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `information_ratio` | -0.353081792981 | -0.353081792981 | 1.258e-15 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `benchmark_p_value` | 0.351029707611 | 0.351029707611 | 1.423e-15 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `benchmark_alpha_annual` | 0.0124160375005 | 0.0124160375005 | 2.235e-15 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `regime_sharpes.bull` | 2.80124072382 | 2.80124072382 | 4.756e-16 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `regime_sharpes.sideways` | -1.92885509437 | -1.92885509437 | 3.108e-15 | yes |
+| `exp_2026-10-13T21-18-23-178134Z` | `regime_sharpes.bear` | -3.6802126873 | -3.6802126873 | 9.654e-16 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `train_sharpe` | 0.806412062621 | 0.806412062621 | 1.101e-15 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `val_sharpe` | 0.494798142182 | 0.494798142182 | 1.672e-14 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `test_sharpe` | 0.649115036993 | 0.649115036993 | 1.026e-14 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `oos_sharpe` | 0.578666344347 | 0.578666344347 | 3.837e-16 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `profit_factor` | 1.10616685761 | 1.10616685761 | 0.000e+00 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `max_drawdown` | -0.199471171152 | -0.199471171152 | 9.462e-15 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `trades` | 184 | 184 | 0.000e+00 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `wf_stability` | 0.352555772869 | 0.352555772869 | 1.181e-14 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `worst_regime_sharpe` | -3.6802126873 | -3.6802126873 | 9.654e-16 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `information_ratio` | -0.353081792981 | -0.353081792981 | 1.258e-15 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `benchmark_p_value` | 0.351029707611 | 0.351029707611 | 1.423e-15 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `benchmark_alpha_annual` | 0.0124160375005 | 0.0124160375005 | 2.235e-15 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `regime_sharpes.bull` | 2.80124072382 | 2.80124072382 | 4.756e-16 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `regime_sharpes.sideways` | -1.92885509437 | -1.92885509437 | 3.108e-15 | yes |
+| `exp_2026-10-13T21-22-02-751156Z` | `regime_sharpes.bear` | -3.6802126873 | -3.6802126873 | 9.654e-16 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `train_sharpe` | 0.795199359486 | 0.795199359486 | 1.396e-16 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `val_sharpe` | 0.78424753717 | 0.78424753717 | 5.663e-16 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `test_sharpe` | 0.72416555869 | 0.72416555869 | 2.453e-15 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `oos_sharpe` | 0.741583063629 | 0.741583063629 | 1.347e-15 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `profit_factor` | 1.14713428683 | 1.14713428683 | 5.807e-16 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `max_drawdown` | -0.165492101449 | -0.165492101449 | 6.709e-16 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `trades` | 238 | 238 | 0.000e+00 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `wf_stability` | 1.91128627702 | 1.91128627702 | 1.859e-15 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `worst_regime_sharpe` | -4.13027071168 | -4.13027071168 | 4.301e-16 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `information_ratio` | -0.239627308079 | -0.239627308079 | 2.896e-15 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `benchmark_p_value` | 0.533891291619 | 0.533891291619 | 2.287e-15 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `benchmark_alpha_annual` | 0.0540801325664 | 0.0540801325664 | 2.951e-15 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `regime_sharpes.bull` | 3.74885369452 | 3.74885369452 | 7.108e-16 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `regime_sharpes.sideways` | -1.27473556816 | -1.27473556816 | 1.568e-15 | yes |
+| `exp_2026-10-13T21-51-45-034237Z` | `regime_sharpes.bear` | -4.13027071168 | -4.13027071168 | 4.301e-16 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `train_sharpe` | 0.62892485452 | 0.62892485452 | 1.801e-14 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `val_sharpe` | 0.541493688715 | 0.541493688715 | 2.276e-14 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `test_sharpe` | 0.0920428714541 | 0.0920428714541 | 1.377e-13 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `oos_sharpe` | 0.241912471068 | 0.241912471068 | 5.175e-14 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `profit_factor` | 1.06617539679 | 1.06617539679 | 3.332e-15 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `max_drawdown` | -0.347532960523 | -0.347532960523 | 1.278e-15 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `trades` | 940 | 940 | 0.000e+00 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `wf_stability` | -0.143583826636 | -0.143583826636 | 1.131e-13 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `worst_regime_sharpe` | -2.86744830546 | -2.86744830546 | 2.013e-15 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `information_ratio` | -0.879799327783 | -0.879799327783 | 1.817e-14 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `benchmark_p_value` | 0.00260219548932 | 0.00260219548932 | 1.798e-13 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `benchmark_alpha_annual` | -0.0463512453564 | -0.0463512453564 | 3.683e-14 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `regime_sharpes.bull` | 2.78974702863 | 2.78974702863 | 8.596e-15 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `regime_sharpes.sideways` | -1.52559580569 | -1.52559580569 | 5.967e-15 | yes |
+| `exp_2026-10-13T22-40-41-870350Z` | `regime_sharpes.bear` | -2.86744830546 | -2.86744830546 | 2.013e-15 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `train_sharpe` | -0.256172188112 | -0.256172188112 | 6.414e-14 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `val_sharpe` | 0.17015806005 | 0.17015806005 | 1.223e-14 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `test_sharpe` | -0.397797640642 | -0.397797640642 | 6.838e-15 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `oos_sharpe` | -0.156419702611 | -0.156419702611 | 4.081e-15 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `profit_factor` | 0.972632376741 | 0.972632376741 | 1.141e-16 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `max_drawdown` | -0.221330845241 | -0.221330845241 | 8.026e-15 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `trades` | 2958 | 2958 | 0.000e+00 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `wf_stability` | -0.480304194116 | -0.480304194116 | 3.259e-14 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `worst_regime_sharpe` | -0.627383739225 | -0.627383739225 | 1.911e-14 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `information_ratio` | -0.703978440369 | -0.703978440369 | 4.731e-16 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `benchmark_p_value` | 0.01594823848 | 0.01594823848 | 3.481e-15 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `benchmark_alpha_annual` | -8.86554719751e-05 | -8.86554719751e-05 | 4.045e-13 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `regime_sharpes.bull` | -0.627383739225 | -0.627383739225 | 1.911e-14 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `regime_sharpes.sideways` | 0.459669763537 | 0.459669763537 | 4.915e-14 | yes |
+| `exp_2026-10-13T23-06-33-191710Z` | `regime_sharpes.bear` | 0.758374034898 | 0.758374034898 | 1.508e-14 | yes |
+| `exp_2026-10-13T23-27-52-101656Z` | `train_sharpe` | 0.953443954227 | 0.953443954227 | 0.000e+00 | yes |
+| `exp_2026-10-13T23-27-52-101656Z` | `val_sharpe` | 0.83935985802 | 0.83935985802 | 0.000e+00 | yes |
+| `exp_2026-10-13T23-27-52-101656Z` | `test_sharpe` | 0.765381529147 | 0.765381529147 | 0.000e+00 | yes |
+| `exp_2026-10-13T23-27-52-101656Z` | `oos_sharpe` | 0.83935985802 | 0.83935985802 | 0.000e+00 | yes |
+| `exp_2026-10-13T23-27-52-101656Z` | `profit_factor` | 1.20588982286 | 1.20588982286 | 0.000e+00 | yes |
+| `exp_2026-10-13T23-27-52-101656Z` | `max_drawdown` | -0.0860348719595 | -0.0860348719595 | 0.000e+00 | yes |
+| `exp_2026-10-13T23-27-52-101656Z` | `trades` | 5920 | 5920 | 0.000e+00 | yes |
+| `exp_2026-10-13T23-27-52-101656Z` | `wf_stability` | 0.988311112263 | 0.988311112263 | 0.000e+00 | yes |
+| `exp_2026-10-13T23-27-52-101656Z` | `worst_regime_sharpe` | 0.778046361225 | 0.778046361225 | 0.000e+00 | yes |
+| `exp_2026-10-13T23-27-52-101656Z` | `information_ratio` | 0.945948342283 | 0.945948342283 | 0.000e+00 | yes |
+| `exp_2026-10-13T23-27-52-101656Z` | `benchmark_p_value` | 1.91479534762e-10 | 1.91479534762e-10 | 0.000e+00 | yes |
+| `exp_2026-10-13T23-27-52-101656Z` | `regime_sharpes.bull` | 0.936200373482 | 0.936200373482 | 0.000e+00 | yes |
+| `exp_2026-10-13T23-27-52-101656Z` | `regime_sharpes.sideways` | 0.778046361225 | 0.778046361225 | 0.000e+00 | yes |
+| `exp_2026-10-13T23-27-52-101656Z` | `regime_sharpes.bear` | 0.975055088528 | 0.975055088528 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-35-292010Z` | `train_sharpe` | 1.1287879744 | 1.1287879744 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-35-292010Z` | `val_sharpe` | 1.47444770454 | 1.47444770454 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-35-292010Z` | `test_sharpe` | 1.23386837175 | 1.23386837175 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-35-292010Z` | `oos_sharpe` | 1.37247508321 | 1.37247508321 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-35-292010Z` | `profit_factor` | 1.33415020365 | 1.33415020365 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-35-292010Z` | `max_drawdown` | -0.119142528546 | -0.119142528546 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-35-292010Z` | `trades` | 3045 | 3045 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-35-292010Z` | `wf_stability` | 0.759124793562 | 0.759124793562 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-35-292010Z` | `worst_regime_sharpe` | 1.12927984679 | 1.12927984679 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-35-292010Z` | `information_ratio` | 1.34669056965 | 1.34669056965 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-35-292010Z` | `benchmark_p_value` | 1.33408125487e-19 | 1.33408125487e-19 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-35-292010Z` | `regime_sharpes.bull` | 1.24503855466 | 1.24503855466 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-35-292010Z` | `regime_sharpes.sideways` | 1.12927984679 | 1.12927984679 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-35-292010Z` | `regime_sharpes.bear` | 2.00410533802 | 2.00410533802 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-59-473353Z` | `train_sharpe` | 1.1287879744 | 1.1287879744 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-59-473353Z` | `val_sharpe` | 1.47444770454 | 1.47444770454 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-59-473353Z` | `test_sharpe` | 1.23386837175 | 1.23386837175 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-59-473353Z` | `oos_sharpe` | 1.37247508321 | 1.37247508321 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-59-473353Z` | `profit_factor` | 1.33415020365 | 1.33415020365 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-59-473353Z` | `max_drawdown` | -0.119142528546 | -0.119142528546 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-59-473353Z` | `trades` | 3045 | 3045 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-59-473353Z` | `wf_stability` | 0.759124793562 | 0.759124793562 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-59-473353Z` | `worst_regime_sharpe` | 1.12927984679 | 1.12927984679 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-59-473353Z` | `information_ratio` | 1.34669056965 | 1.34669056965 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-59-473353Z` | `benchmark_p_value` | 1.33408125487e-19 | 1.33408125487e-19 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-59-473353Z` | `regime_sharpes.bull` | 1.24503855466 | 1.24503855466 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-59-473353Z` | `regime_sharpes.sideways` | 1.12927984679 | 1.12927984679 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-12-59-473353Z` | `regime_sharpes.bear` | 2.00410533802 | 2.00410533802 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-15-23-322705Z` | `train_sharpe` | 1.1287879744 | 1.1287879744 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-15-23-322705Z` | `val_sharpe` | 1.47444770454 | 1.47444770454 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-15-23-322705Z` | `test_sharpe` | 1.23386837175 | 1.23386837175 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-15-23-322705Z` | `oos_sharpe` | 1.37247508321 | 1.37247508321 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-15-23-322705Z` | `profit_factor` | 1.33415020365 | 1.33415020365 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-15-23-322705Z` | `max_drawdown` | -0.119142528546 | -0.119142528546 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-15-23-322705Z` | `trades` | 3045 | 3045 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-15-23-322705Z` | `wf_stability` | 0.759124793562 | 0.759124793562 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-15-23-322705Z` | `worst_regime_sharpe` | 1.12927984679 | 1.12927984679 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-15-23-322705Z` | `information_ratio` | 1.34669056965 | 1.34669056965 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-15-23-322705Z` | `benchmark_p_value` | 1.33408125487e-19 | 1.33408125487e-19 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-15-23-322705Z` | `regime_sharpes.bull` | 1.24503855466 | 1.24503855466 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-15-23-322705Z` | `regime_sharpes.sideways` | 1.12927984679 | 1.12927984679 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-15-23-322705Z` | `regime_sharpes.bear` | 2.00410533802 | 2.00410533802 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-32-43-425839Z` | `train_sharpe` | 1.1287879744 | 1.1287879744 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-32-43-425839Z` | `val_sharpe` | 1.47444770454 | 1.47444770454 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-32-43-425839Z` | `test_sharpe` | 1.23386837175 | 1.23386837175 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-32-43-425839Z` | `oos_sharpe` | 1.37247508321 | 1.37247508321 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-32-43-425839Z` | `profit_factor` | 1.33415020365 | 1.33415020365 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-32-43-425839Z` | `max_drawdown` | -0.119142528546 | -0.119142528546 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-32-43-425839Z` | `trades` | 3045 | 3045 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-32-43-425839Z` | `wf_stability` | 0.759124793562 | 0.759124793562 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-32-43-425839Z` | `worst_regime_sharpe` | 1.12927984679 | 1.12927984679 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-32-43-425839Z` | `information_ratio` | 1.34669056965 | 1.34669056965 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-32-43-425839Z` | `benchmark_p_value` | 1.33408125487e-19 | 1.33408125487e-19 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-32-43-425839Z` | `regime_sharpes.bull` | 1.24503855466 | 1.24503855466 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-32-43-425839Z` | `regime_sharpes.sideways` | 1.12927984679 | 1.12927984679 | 0.000e+00 | yes |
+| `exp_2026-10-14T07-32-43-425839Z` | `regime_sharpes.bear` | 2.00410533802 | 2.00410533802 | 0.000e+00 | yes |
+| `exp_2026-10-14T08-20-39-255883Z` | `train_sharpe` | 1.16708926141 | 1.16708926141 | 0.000e+00 | yes |
+| `exp_2026-10-14T08-20-39-255883Z` | `val_sharpe` | 1.11402941075 | 1.11402941075 | 0.000e+00 | yes |
+| `exp_2026-10-14T08-20-39-255883Z` | `test_sharpe` | 0.927383968523 | 0.927383968523 | 0.000e+00 | yes |
+| `exp_2026-10-14T08-20-39-255883Z` | `oos_sharpe` | 1.0344800097 | 1.0344800097 | 0.000e+00 | yes |
+| `exp_2026-10-14T08-20-39-255883Z` | `profit_factor` | 1.25819624476 | 1.25819624476 | 0.000e+00 | yes |
+| `exp_2026-10-14T08-20-39-255883Z` | `max_drawdown` | -0.0535048209989 | -0.0535048209989 | 0.000e+00 | yes |
+| `exp_2026-10-14T08-20-39-255883Z` | `trades` | 2715 | 2715 | 0.000e+00 | yes |
+| `exp_2026-10-14T08-20-39-255883Z` | `wf_stability` | 0.779323448847 | 0.779323448847 | 0.000e+00 | yes |
+| `exp_2026-10-14T08-20-39-255883Z` | `worst_regime_sharpe` | -0.0405366391171 | -0.0405366391171 | 0.000e+00 | yes |
+| `exp_2026-10-14T08-20-39-255883Z` | `information_ratio` | 1.03387374422 | 1.03387374422 | 5.369e-15 | yes |
+| `exp_2026-10-14T08-20-39-255883Z` | `benchmark_p_value` | 3.26020857883e-12 | 3.26020857883e-12 | 2.765e-13 | yes |
+| `exp_2026-10-14T08-20-39-255883Z` | `regime_sharpes.bull` | 1.13593127123 | 1.13593127123 | 0.000e+00 | yes |
+| `exp_2026-10-14T08-20-39-255883Z` | `regime_sharpes.sideways` | 1.1254923029 | 1.1254923029 | 0.000e+00 | yes |
+| `exp_2026-10-14T08-20-39-255883Z` | `regime_sharpes.bear` | -0.0405366391171 | -0.0405366391171 | 0.000e+00 | yes |
+| `exp_2026-10-14T08-48-49-412372Z` | `train_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T08-48-49-412372Z` | `val_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T08-48-49-412372Z` | `test_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T08-48-49-412372Z` | `oos_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T08-48-49-412372Z` | `profit_factor` | +inf | +inf | 0 | yes |
+| `exp_2026-10-14T08-48-49-412372Z` | `max_drawdown` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T08-48-49-412372Z` | `trades` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T08-48-49-412372Z` | `wf_stability` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T08-48-49-412372Z` | `worst_regime_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T08-48-49-412372Z` | `information_ratio` | 0.8001285453 | 0.8001285453 | 5.550e-16 | yes |
+| `exp_2026-10-14T08-48-49-412372Z` | `benchmark_p_value` | 0.383357196634 | 0.383357196634 | 5.792e-16 | yes |
+| `exp_2026-10-14T08-48-49-412372Z` | `regime_sharpes.bull` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T08-48-49-412372Z` | `regime_sharpes.sideways` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T08-48-49-412372Z` | `regime_sharpes.bear` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-28-59-592390Z` | `train_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-28-59-592390Z` | `val_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-28-59-592390Z` | `test_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-28-59-592390Z` | `oos_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-28-59-592390Z` | `profit_factor` | +inf | +inf | 0 | yes |
+| `exp_2026-10-14T09-28-59-592390Z` | `max_drawdown` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-28-59-592390Z` | `trades` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-28-59-592390Z` | `wf_stability` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-28-59-592390Z` | `worst_regime_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-28-59-592390Z` | `information_ratio` | 0.8001285453 | 0.8001285453 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-28-59-592390Z` | `benchmark_p_value` | 0.383357196634 | 0.383357196634 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-28-59-592390Z` | `regime_sharpes.bull` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-28-59-592390Z` | `regime_sharpes.sideways` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-28-59-592390Z` | `regime_sharpes.bear` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-32-25-959733Z` | `train_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-32-25-959733Z` | `val_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-32-25-959733Z` | `test_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-32-25-959733Z` | `oos_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-32-25-959733Z` | `profit_factor` | +inf | +inf | 0 | yes |
+| `exp_2026-10-14T09-32-25-959733Z` | `max_drawdown` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-32-25-959733Z` | `trades` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-32-25-959733Z` | `wf_stability` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-32-25-959733Z` | `worst_regime_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-32-25-959733Z` | `information_ratio` | 0.8001285453 | 0.8001285453 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-32-25-959733Z` | `benchmark_p_value` | 0.383357196634 | 0.383357196634 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-32-25-959733Z` | `regime_sharpes.bull` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-32-25-959733Z` | `regime_sharpes.sideways` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-32-25-959733Z` | `regime_sharpes.bear` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-39-07-412533Z` | `train_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-39-07-412533Z` | `val_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-39-07-412533Z` | `test_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-39-07-412533Z` | `oos_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-39-07-412533Z` | `profit_factor` | +inf | +inf | 0 | yes |
+| `exp_2026-10-14T09-39-07-412533Z` | `max_drawdown` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-39-07-412533Z` | `trades` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-39-07-412533Z` | `wf_stability` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-39-07-412533Z` | `worst_regime_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-39-07-412533Z` | `information_ratio` | 0.8001285453 | 0.8001285453 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-39-07-412533Z` | `benchmark_p_value` | 0.383357196634 | 0.383357196634 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-39-07-412533Z` | `regime_sharpes.bull` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-39-07-412533Z` | `regime_sharpes.sideways` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T09-39-07-412533Z` | `regime_sharpes.bear` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T10-04-52-936640Z` | `train_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T10-04-52-936640Z` | `val_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T10-04-52-936640Z` | `test_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T10-04-52-936640Z` | `oos_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T10-04-52-936640Z` | `profit_factor` | +inf | +inf | 0 | yes |
+| `exp_2026-10-14T10-04-52-936640Z` | `max_drawdown` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T10-04-52-936640Z` | `trades` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T10-04-52-936640Z` | `wf_stability` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T10-04-52-936640Z` | `worst_regime_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T10-04-52-936640Z` | `information_ratio` | 0.8001285453 | 0.8001285453 | 0.000e+00 | yes |
+| `exp_2026-10-14T10-04-52-936640Z` | `benchmark_p_value` | 0.383357196634 | 0.383357196634 | 0.000e+00 | yes |
+| `exp_2026-10-14T10-04-52-936640Z` | `regime_sharpes.bull` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T10-04-52-936640Z` | `regime_sharpes.sideways` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T10-04-52-936640Z` | `regime_sharpes.bear` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T11-53-37-996139Z` | `train_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T11-53-37-996139Z` | `val_sharpe` | -1.84537405569 | -1.84537405569 | 0.000e+00 | yes |
+| `exp_2026-10-14T11-53-37-996139Z` | `test_sharpe` | -12.1807980519 | -12.1807980519 | 0.000e+00 | yes |
+| `exp_2026-10-14T11-53-37-996139Z` | `oos_sharpe` | -7.18708945612 | -7.18708945612 | 0.000e+00 | yes |
+| `exp_2026-10-14T11-53-37-996139Z` | `profit_factor` | 0.001866691269 | 0.001866691269 | 0.000e+00 | yes |
+| `exp_2026-10-14T11-53-37-996139Z` | `max_drawdown` | -0.975617951665 | -0.975617951665 | 0.000e+00 | yes |
+| `exp_2026-10-14T11-53-37-996139Z` | `trades` | 107 | 107 | 0.000e+00 | yes |
+| `exp_2026-10-14T11-53-37-996139Z` | `wf_stability` | 0.776375258179 | 0.776375258179 | 0.000e+00 | yes |
+| `exp_2026-10-14T11-53-37-996139Z` | `worst_regime_sharpe` | -4.55213541851 | -4.55213541851 | 0.000e+00 | yes |
+| `exp_2026-10-14T11-53-37-996139Z` | `information_ratio` | -3.07386888886 | -3.07386888886 | 0.000e+00 | yes |
+| `exp_2026-10-14T11-53-37-996139Z` | `benchmark_p_value` | 0.00089959107198 | 0.00089959107198 | 0.000e+00 | yes |
+| `exp_2026-10-14T11-53-37-996139Z` | `regime_sharpes.bull` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T11-53-37-996139Z` | `regime_sharpes.sideways` | -4.55213541851 | -4.55213541851 | 0.000e+00 | yes |
+| `exp_2026-10-14T11-53-37-996139Z` | `regime_sharpes.bear` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-13-09-457781Z` | `train_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-13-09-457781Z` | `val_sharpe` | -1.84537405569 | -1.84537405569 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-13-09-457781Z` | `test_sharpe` | -12.1807980519 | -12.1807980519 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-13-09-457781Z` | `oos_sharpe` | -7.18708945612 | -7.18708945612 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-13-09-457781Z` | `profit_factor` | 0.001866691269 | 0.001866691269 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-13-09-457781Z` | `max_drawdown` | -0.975617951665 | -0.975617951665 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-13-09-457781Z` | `trades` | 107 | 107 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-13-09-457781Z` | `wf_stability` | 0.776375258179 | 0.776375258179 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-13-09-457781Z` | `worst_regime_sharpe` | -4.55213541851 | -4.55213541851 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-13-09-457781Z` | `information_ratio` | -3.07386888886 | -3.07386888886 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-13-09-457781Z` | `benchmark_p_value` | 0.00089959107198 | 0.00089959107198 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-13-09-457781Z` | `regime_sharpes.bull` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-13-09-457781Z` | `regime_sharpes.sideways` | -4.55213541851 | -4.55213541851 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-13-09-457781Z` | `regime_sharpes.bear` | 0 | 0 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-52-08-943792Z` | `train_sharpe` | 1.1287879744 | 1.1287879744 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-52-08-943792Z` | `val_sharpe` | 1.47444770454 | 1.47444770454 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-52-08-943792Z` | `test_sharpe` | 1.23386837175 | 1.23386837175 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-52-08-943792Z` | `oos_sharpe` | 1.37247508321 | 1.37247508321 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-52-08-943792Z` | `profit_factor` | 1.33415020365 | 1.33415020365 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-52-08-943792Z` | `max_drawdown` | -0.119142528546 | -0.119142528546 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-52-08-943792Z` | `trades` | 3045 | 3045 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-52-08-943792Z` | `wf_stability` | 0.759124793562 | 0.759124793562 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-52-08-943792Z` | `worst_regime_sharpe` | 1.12927984679 | 1.12927984679 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-52-08-943792Z` | `information_ratio` | 1.34669056965 | 1.34669056965 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-52-08-943792Z` | `benchmark_p_value` | 1.33408125487e-19 | 1.33408125487e-19 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-52-08-943792Z` | `regime_sharpes.bull` | 1.24503855466 | 1.24503855466 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-52-08-943792Z` | `regime_sharpes.sideways` | 1.12927984679 | 1.12927984679 | 0.000e+00 | yes |
+| `exp_2026-10-14T18-52-08-943792Z` | `regime_sharpes.bear` | 2.00410533802 | 2.00410533802 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-02-45-189859Z` | `train_sharpe` | 1.1709790993 | 1.1709790993 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-02-45-189859Z` | `val_sharpe` | 1.4356822088 | 1.4356822088 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-02-45-189859Z` | `test_sharpe` | 1.17023729947 | 1.17023729947 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-02-45-189859Z` | `oos_sharpe` | 1.32362888793 | 1.32362888793 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-02-45-189859Z` | `profit_factor` | 1.32013168864 | 1.32013168864 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-02-45-189859Z` | `max_drawdown` | -0.119142528546 | -0.119142528546 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-02-45-189859Z` | `trades` | 1712 | 1712 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-02-45-189859Z` | `wf_stability` | 0.872691997546 | 0.872691997546 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-02-45-189859Z` | `worst_regime_sharpe` | 1.18809235422 | 1.18809235422 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-02-45-189859Z` | `information_ratio` | 1.345871625 | 1.345871625 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-02-45-189859Z` | `benchmark_p_value` | 1.40288538051e-19 | 1.40288538051e-19 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-02-45-189859Z` | `regime_sharpes.bull` | 1.2324310438 | 1.2324310438 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-02-45-189859Z` | `regime_sharpes.sideways` | 1.18809235422 | 1.18809235422 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-02-45-189859Z` | `regime_sharpes.bear` | 2.14379417731 | 2.14379417731 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-08-34-613690Z` | `train_sharpe` | 1.1709790993 | 1.1709790993 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-08-34-613690Z` | `val_sharpe` | 1.4356822088 | 1.4356822088 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-08-34-613690Z` | `test_sharpe` | 1.17023729947 | 1.17023729947 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-08-34-613690Z` | `oos_sharpe` | 1.32362888793 | 1.32362888793 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-08-34-613690Z` | `profit_factor` | 1.32013168864 | 1.32013168864 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-08-34-613690Z` | `max_drawdown` | -0.119142528546 | -0.119142528546 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-08-34-613690Z` | `trades` | 1712 | 1712 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-08-34-613690Z` | `wf_stability` | 0.872691997546 | 0.872691997546 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-08-34-613690Z` | `worst_regime_sharpe` | 1.18809235422 | 1.18809235422 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-08-34-613690Z` | `information_ratio` | 1.345871625 | 1.345871625 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-08-34-613690Z` | `benchmark_p_value` | 1.40288538051e-19 | 1.40288538051e-19 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-08-34-613690Z` | `regime_sharpes.bull` | 1.2324310438 | 1.2324310438 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-08-34-613690Z` | `regime_sharpes.sideways` | 1.18809235422 | 1.18809235422 | 0.000e+00 | yes |
+| `exp_2026-10-14T20-08-34-613690Z` | `regime_sharpes.bear` | 2.14379417731 | 2.14379417731 | 0.000e+00 | yes |
+| `exp_2026-10-19T15-46-16-261803Z` | `train_sharpe` | 0.958893431367 | 0.958893431367 | 0.000e+00 | yes |
+| `exp_2026-10-19T15-46-16-261803Z` | `val_sharpe` | null | null (published as null) | — | null |
+| `exp_2026-10-19T15-46-16-261803Z` | `test_sharpe` | 1.09307425009 | 1.09307425009 | 0.000e+00 | yes |
+| `exp_2026-10-19T15-46-16-261803Z` | `oos_sharpe` | 1.2757590681 | 1.2757590681 | 0.000e+00 | yes |
+| `exp_2026-10-19T15-46-16-261803Z` | `profit_factor` | 1.30416451694 | 1.30416451694 | 0.000e+00 | yes |
+| `exp_2026-10-19T15-46-16-261803Z` | `max_drawdown` | -0.0584284720449 | -0.0584284720449 | 0.000e+00 | yes |
+| `exp_2026-10-19T15-46-16-261803Z` | `trades` | 2416 | 2416 | 0.000e+00 | yes |
+| `exp_2026-10-19T15-46-16-261803Z` | `wf_stability` | 0.779408036415 | 0.779408036415 | 0.000e+00 | yes |
+| `exp_2026-10-19T15-46-16-261803Z` | `worst_regime_sharpe` | 1.04571765102 | 1.04571765102 | 0.000e+00 | yes |
+| `exp_2026-10-19T15-46-16-261803Z` | `information_ratio` | 0.92478891698 | 0.92478891698 | 9.964e-15 | yes |
+| `exp_2026-10-19T15-46-16-261803Z` | `benchmark_p_value` | 4.79030555672e-10 | 4.79030555673e-10 | 3.924e-13 | yes |
+| `exp_2026-10-19T15-46-16-261803Z` | `regime_sharpes.bull` | 1.04571765102 | 1.04571765102 | 0.000e+00 | yes |
+| `exp_2026-10-19T15-46-16-261803Z` | `regime_sharpes.sideways` | 1.16978839857 | 1.16978839857 | 0.000e+00 | yes |
+| `exp_2026-10-19T15-46-16-261803Z` | `regime_sharpes.bear` | 1.75304203133 | 1.75304203133 | 0.000e+00 | yes |
+| `exp_2026-10-19T16-41-44-683912Z` | `train_sharpe` | 0.0661040682243 | 0.0661040682243 | 0.000e+00 | yes |
+| `exp_2026-10-19T16-41-44-683912Z` | `val_sharpe` | null | null (published as null) | — | null |
+| `exp_2026-10-19T16-41-44-683912Z` | `test_sharpe` | 0.0684591045518 | 0.0684591045518 | 0.000e+00 | yes |
+| `exp_2026-10-19T16-41-44-683912Z` | `oos_sharpe` | 0.390911372111 | 0.390911372111 | 0.000e+00 | yes |
+| `exp_2026-10-19T16-41-44-683912Z` | `profit_factor` | 1.08654983754 | 1.08654983754 | 0.000e+00 | yes |
+| `exp_2026-10-19T16-41-44-683912Z` | `max_drawdown` | -0.101396300251 | -0.101396300251 | 0.000e+00 | yes |
+| `exp_2026-10-19T16-41-44-683912Z` | `trades` | 2524 | 2524 | 0.000e+00 | yes |
+| `exp_2026-10-19T16-41-44-683912Z` | `wf_stability` | 1.36150438828 | 1.36150438828 | 0.000e+00 | yes |
+| `exp_2026-10-19T16-41-44-683912Z` | `worst_regime_sharpe` | -0.369215356356 | -0.369215356356 | 0.000e+00 | yes |
+| `exp_2026-10-19T16-41-44-683912Z` | `information_ratio` | -0.00269758521739 | -0.0026975852174 | 3.601e-12 | yes |
+| `exp_2026-10-19T16-41-44-683912Z` | `benchmark_p_value` | 0.985498479163 | 0.985498479163 | 5.306e-14 | yes |
+| `exp_2026-10-19T16-41-44-683912Z` | `regime_sharpes.bull` | 0.259918940138 | 0.259918940138 | 0.000e+00 | yes |
+| `exp_2026-10-19T16-41-44-683912Z` | `regime_sharpes.sideways` | -0.369215356356 | -0.369215356356 | 0.000e+00 | yes |
+| `exp_2026-10-19T16-41-44-683912Z` | `regime_sharpes.bear` | -0.126929711138 | -0.126929711138 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-03-570526Z` | `train_sharpe` | 0.953443954227 | 0.953443954227 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-03-570526Z` | `val_sharpe` | 0.83935985802 | 0.83935985802 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-03-570526Z` | `test_sharpe` | 0.765381529147 | 0.765381529147 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-03-570526Z` | `oos_sharpe` | 0.83935985802 | 0.83935985802 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-03-570526Z` | `profit_factor` | 1.20588982286 | 1.20588982286 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-03-570526Z` | `max_drawdown` | -0.0860348719595 | -0.0860348719595 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-03-570526Z` | `trades` | 5920 | 5920 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-03-570526Z` | `wf_stability` | 0.987413906438 | 0.987413906438 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-03-570526Z` | `worst_regime_sharpe` | 0.778046361225 | 0.778046361225 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-03-570526Z` | `information_ratio` | 0.945948342283 | 0.945948342283 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-03-570526Z` | `benchmark_p_value` | 1.91479534762e-10 | 1.91479534762e-10 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-03-570526Z` | `regime_sharpes.bull` | 0.936200373482 | 0.936200373482 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-03-570526Z` | `regime_sharpes.sideways` | 0.778046361225 | 0.778046361225 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-03-570526Z` | `regime_sharpes.bear` | 0.975055088528 | 0.975055088528 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-21-389139Z` | `train_sharpe` | 0.0925300566652 | 0.0925300566652 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-21-389139Z` | `val_sharpe` | 0.131709664609 | 0.131709664609 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-21-389139Z` | `test_sharpe` | -0.0554421524261 | -0.0554421524261 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-21-389139Z` | `oos_sharpe` | 0.131709664609 | 0.131709664609 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-21-389139Z` | `profit_factor` | 1.02964243589 | 1.02964243589 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-21-389139Z` | `max_drawdown` | -0.261240089381 | -0.261240089381 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-21-389139Z` | `trades` | 5927 | 5927 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-21-389139Z` | `wf_stability` | 58.2122257219 | 58.2122257219 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-21-389139Z` | `worst_regime_sharpe` | -0.610644578628 | -0.610644578628 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-21-389139Z` | `information_ratio` | 0.050588190035 | 0.050588190035 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-21-389139Z` | `benchmark_p_value` | 0.733212387749 | 0.733212387749 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-21-389139Z` | `regime_sharpes.bull` | 0.26613085125 | 0.26613085125 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-21-389139Z` | `regime_sharpes.sideways` | -0.610644578628 | -0.610644578628 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-21-389139Z` | `regime_sharpes.bear` | 0.171409044756 | 0.171409044756 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-39-157337Z` | `train_sharpe` | 1.1287879744 | 1.1287879744 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-39-157337Z` | `val_sharpe` | 1.47444770454 | 1.47444770454 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-39-157337Z` | `test_sharpe` | 1.23386837175 | 1.23386837175 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-39-157337Z` | `oos_sharpe` | 1.37247508321 | 1.37247508321 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-39-157337Z` | `profit_factor` | 1.33415020365 | 1.33415020365 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-39-157337Z` | `max_drawdown` | -0.119142528546 | -0.119142528546 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-39-157337Z` | `trades` | 3045 | 3045 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-39-157337Z` | `wf_stability` | 0.758012697086 | 0.758012697086 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-39-157337Z` | `worst_regime_sharpe` | 1.12927984679 | 1.12927984679 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-39-157337Z` | `information_ratio` | 1.34669056965 | 1.34669056965 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-39-157337Z` | `benchmark_p_value` | 1.33408125487e-19 | 1.33408125487e-19 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-39-157337Z` | `regime_sharpes.bull` | 1.24503855466 | 1.24503855466 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-39-157337Z` | `regime_sharpes.sideways` | 1.12927984679 | 1.12927984679 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-39-157337Z` | `regime_sharpes.bear` | 2.00410533802 | 2.00410533802 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-50-887609Z` | `train_sharpe` | 0.0966239136431 | 0.0966239136431 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-50-887609Z` | `val_sharpe` | 0.517452600218 | 0.517452600218 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-50-887609Z` | `test_sharpe` | 0.143855946268 | 0.143855946268 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-50-887609Z` | `oos_sharpe` | 0.360473229551 | 0.360473229551 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-50-887609Z` | `profit_factor` | 1.0773354284 | 1.0773354284 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-50-887609Z` | `max_drawdown` | -0.227604446832 | -0.227604446832 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-50-887609Z` | `trades` | 3288 | 3288 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-50-887609Z` | `wf_stability` | 2.34992706842 | 2.34992706842 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-50-887609Z` | `worst_regime_sharpe` | -0.497528693502 | -0.497528693502 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-50-887609Z` | `information_ratio` | 0.178806455178 | 0.178806455178 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-50-887609Z` | `benchmark_p_value` | 0.228305489065 | 0.228305489065 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-50-887609Z` | `regime_sharpes.bull` | 0.393429491343 | 0.393429491343 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-50-887609Z` | `regime_sharpes.sideways` | -0.497528693502 | -0.497528693502 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-38-50-887609Z` | `regime_sharpes.bear` | -0.399677976776 | -0.399677976776 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-02-719690Z` | `train_sharpe` | 1.1709790993 | 1.1709790993 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-02-719690Z` | `val_sharpe` | 1.4356822088 | 1.4356822088 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-02-719690Z` | `test_sharpe` | 1.17023729947 | 1.17023729947 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-02-719690Z` | `oos_sharpe` | 1.32362888793 | 1.32362888793 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-02-719690Z` | `profit_factor` | 1.32013168864 | 1.32013168864 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-02-719690Z` | `max_drawdown` | -0.119142528546 | -0.119142528546 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-02-719690Z` | `trades` | 1712 | 1712 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-02-719690Z` | `wf_stability` | 0.87159564261 | 0.87159564261 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-02-719690Z` | `worst_regime_sharpe` | 1.18809235422 | 1.18809235422 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-02-719690Z` | `information_ratio` | 1.345871625 | 1.345871625 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-02-719690Z` | `benchmark_p_value` | 1.40288538051e-19 | 1.40288538051e-19 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-02-719690Z` | `regime_sharpes.bull` | 1.2324310438 | 1.2324310438 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-02-719690Z` | `regime_sharpes.sideways` | 1.18809235422 | 1.18809235422 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-02-719690Z` | `regime_sharpes.bear` | 2.14379417731 | 2.14379417731 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-12-729639Z` | `train_sharpe` | 0.142290369495 | 0.142290369495 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-12-729639Z` | `val_sharpe` | 0.466698428146 | 0.466698428146 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-12-729639Z` | `test_sharpe` | 0.122633483212 | 0.122633483212 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-12-729639Z` | `oos_sharpe` | 0.323143902685 | 0.323143902685 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-12-729639Z` | `profit_factor` | 1.06928040837 | 1.06928040837 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-12-729639Z` | `max_drawdown` | -0.261911296437 | -0.261911296437 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-12-729639Z` | `trades` | 1786 | 1786 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-12-729639Z` | `wf_stability` | 3.4420295739 | 3.4420295739 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-12-729639Z` | `worst_regime_sharpe` | -0.356472352671 | -0.356472352671 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-12-729639Z` | `information_ratio` | 0.195022805114 | 0.195022805114 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-12-729639Z` | `benchmark_p_value` | 0.188850400971 | 0.188850400971 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-12-729639Z` | `regime_sharpes.bull` | 0.374157343989 | 0.374157343989 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-12-729639Z` | `regime_sharpes.sideways` | -0.356472352671 | -0.356472352671 | 0.000e+00 | yes |
+| `exp_2026-10-19T17-39-12-729639Z` | `regime_sharpes.bear` | -0.19855895503 | -0.19855895503 | 0.000e+00 | yes |
+
+### The record, in full — the ablation blocks
+
+The 35 summaries that publish an ablation block carry **19 distinct blocks** (**157** entries).
+Each block is listed once below; the summary count is the number of summaries that publish it. The
+H9 family logs its ablation curves under a *single* underscore (`ablations_<name>_equity`) and the
+H10 family under a *double* one (`ablations__<name>__equity`); the daily family logs none.
+
+| block | summaries | ablation | key | published | re-derived | residual | re-derives |
+|---|---|---|---|---:|---:|---:|:---:|
+The 35 summaries that publish an ablation block carry **19 distinct blocks**. Each block below is listed once, with the number of summaries that publish it:
+
+| block | summaries |
+|---|---|
+| `ef034487` | `exp_2026-10-11T16-46-06-466282Z`, `exp_2026-10-11T16-52-38-694559Z` |
+| `96842135` | `exp_2026-10-11T17-24-14-385352Z` |
+| `e2332ebb` | `exp_2026-10-11T17-41-18-169363Z`, `exp_2026-10-19T15-46-16-261803Z` |
+| `d4dcd23d` | `exp_2026-10-13T21-11-45-843908Z` |
+| `d641c143` | `exp_2026-10-13T21-13-09-580962Z` |
+| `26fefd4c` | `exp_2026-10-13T21-18-23-178134Z`, `exp_2026-10-13T21-22-02-751156Z` |
+| `f0ce71e4` | `exp_2026-10-13T21-51-45-034237Z` |
+| `f280e30c` | `exp_2026-10-13T22-40-41-870350Z` |
+| `4dd2b41f` | `exp_2026-10-13T23-06-33-191710Z` |
+| `aed24d21` | `exp_2026-10-13T23-27-52-101656Z`, `exp_2026-10-19T17-38-03-570526Z` |
+| `f7bb4ac3` | `exp_2026-10-14T07-12-35-292010Z`, `exp_2026-10-14T07-12-59-473353Z`, `exp_2026-10-14T07-15-23-322705Z`, `exp_2026-10-14T07-32-43-425839Z`, `exp_2026-10-14T18-52-08-943792Z`, `exp_2026-10-19T17-38-39-157337Z` |
+| `fd4fd5cf` | `exp_2026-10-14T08-20-39-255883Z` |
+| `15bd9c73` | `exp_2026-10-14T08-48-49-412372Z`, `exp_2026-10-14T09-28-59-592390Z`, `exp_2026-10-14T09-32-25-959733Z`, `exp_2026-10-14T09-39-07-412533Z`, `exp_2026-10-14T10-04-52-936640Z`, `exp_2026-10-14T11-53-37-996139Z` |
+| `7a15aa17` | `exp_2026-10-14T18-13-09-457781Z` |
+| `8442c4e3` | `exp_2026-10-14T20-02-45-189859Z`, `exp_2026-10-14T20-08-34-613690Z`, `exp_2026-10-19T17-39-02-719690Z` |
+| `8ac05f8a` | `exp_2026-10-19T16-41-44-683912Z` |
+| `6ee49260` | `exp_2026-10-19T17-38-21-389139Z` |
+| `199b58b4` | `exp_2026-10-19T17-38-50-887609Z` |
+| `23275b89` | `exp_2026-10-19T17-39-12-729639Z` |
+
+| block | summaries | ablation | key | published | re-derived | residual | re-derives |
+|---|---|---|---|---:|---:|---:|:---:|
+| `ef034487` | 2 | `daily_target_no_exits` | `oos_sharpe` | 1.16213999305 | 1.16213999305 | 2.484e-15 | yes |
+| `ef034487` | 2 | `daily_target_no_exits` | `max_drawdown` | -0.0617232023361 | -0.0617232023361 | 7.195e-15 | yes |
+| `ef034487` | 2 | `daily_target_no_exits` | `profit_factor` | 1.26079278086 | 1.26079278086 | 2.113e-15 | yes |
+| `ef034487` | 2 | `daily_target_no_exits` | `trades` | 1819 | — | — | not quantifiable |
+| `ef034487` | 2 | `raw_hourly_no_exits` | `oos_sharpe` | -0.141175705542 | -0.141175705542 | 1.494e-14 | yes |
+| `ef034487` | 2 | `raw_hourly_no_exits` | `max_drawdown` | -0.252652605054 | -0.252652605054 | 4.834e-15 | yes |
+| `ef034487` | 2 | `raw_hourly_no_exits` | `profit_factor` | 0.98793396883 | 0.98793396883 | 1.236e-15 | yes |
+| `ef034487` | 2 | `raw_hourly_no_exits` | `trades` | 31492 | — | — | not quantifiable |
+| `96842135` | 1 | `h9_baseline` | `oos_sharpe` | 1.06579266434 | 1.06579266434 | 1.563e-14 | yes |
+| `96842135` | 1 | `h9_baseline` | `oos_profit_factor` | 1.25321807514 | 1.25321807514 | 3.012e-15 | yes |
+| `96842135` | 1 | `h9_baseline` | `oos_max_drawdown` | -0.0619677084656 | -0.0619677084656 | 8.958e-15 | yes |
+| `96842135` | 1 | `h9_baseline` | `oos_trades` | 1795 | — | — | not quantifiable |
+| `96842135` | 1 | `h9_baseline` | `test_sharpe` | 1.05093518679 | 1.05093518679 | 7.606e-15 | yes |
+| `96842135` | 1 | `signal_smoothing_only(span=None)` | `oos_sharpe` | 1.06579266434 | 1.06579266434 | 1.563e-14 | yes |
+| `96842135` | 1 | `signal_smoothing_only(span=None)` | `oos_profit_factor` | 1.25321807514 | 1.25321807514 | 3.012e-15 | yes |
+| `96842135` | 1 | `signal_smoothing_only(span=None)` | `oos_max_drawdown` | -0.0619677084656 | -0.0619677084656 | 8.958e-15 | yes |
+| `96842135` | 1 | `signal_smoothing_only(span=None)` | `oos_trades` | 1795 | — | — | not quantifiable |
+| `96842135` | 1 | `signal_smoothing_only(span=None)` | `test_sharpe` | 1.05093518679 | 1.05093518679 | 7.606e-15 | yes |
+| `96842135` | 1 | `longer_vol_window_only(vw=252)` | `oos_sharpe` | 1.06579266434 | 1.06579266434 | 1.563e-14 | yes |
+| `96842135` | 1 | `longer_vol_window_only(vw=252)` | `oos_profit_factor` | 1.25321807514 | 1.25321807514 | 3.012e-15 | yes |
+| `96842135` | 1 | `longer_vol_window_only(vw=252)` | `oos_max_drawdown` | -0.0619677084656 | -0.0619677084656 | 8.958e-15 | yes |
+| `96842135` | 1 | `longer_vol_window_only(vw=252)` | `oos_trades` | 1795 | — | — | not quantifiable |
+| `96842135` | 1 | `longer_vol_window_only(vw=252)` | `test_sharpe` | 1.05093518679 | 1.05093518679 | 7.606e-15 | yes |
+| `96842135` | 1 | `regime_scaling_only` | `oos_sharpe` | 1.02122427164 | 1.02122427164 | 6.523e-16 | yes |
+| `96842135` | 1 | `regime_scaling_only` | `oos_profit_factor` | 1.24855891787 | 1.24855891787 | 1.778e-16 | yes |
+| `96842135` | 1 | `regime_scaling_only` | `oos_max_drawdown` | -0.0619677084656 | -0.0619677084656 | 1.612e-14 | yes |
+| `96842135` | 1 | `regime_scaling_only` | `oos_trades` | 1830 | — | — | not quantifiable |
+| `96842135` | 1 | `regime_scaling_only` | `test_sharpe` | 1.04975232957 | 1.04975232957 | 6.134e-15 | yes |
+| `96842135` | 1 | `min_trade_interval_only(mi=0)` | `oos_sharpe` | 1.06579266434 | 1.06579266434 | 1.563e-14 | yes |
+| `96842135` | 1 | `min_trade_interval_only(mi=0)` | `oos_profit_factor` | 1.25321807514 | 1.25321807514 | 3.012e-15 | yes |
+| `96842135` | 1 | `min_trade_interval_only(mi=0)` | `oos_max_drawdown` | -0.0619677084656 | -0.0619677084656 | 8.958e-15 | yes |
+| `96842135` | 1 | `min_trade_interval_only(mi=0)` | `oos_trades` | 1795 | — | — | not quantifiable |
+| `96842135` | 1 | `min_trade_interval_only(mi=0)` | `test_sharpe` | 1.05093518679 | 1.05093518679 | 7.606e-15 | yes |
+| `96842135` | 1 | `exit_grid_best` | `oos_sharpe` | 1.07229780481 | 1.07229780481 | 1.450e-15 | yes |
+| `96842135` | 1 | `exit_grid_best` | `oos_profit_factor` | 1.25417277893 | 1.25417277893 | 7.082e-16 | yes |
+| `96842135` | 1 | `exit_grid_best` | `oos_max_drawdown` | -0.0620429446852 | -0.0620429446852 | 5.368e-15 | yes |
+| `96842135` | 1 | `exit_grid_best` | `oos_trades` | 1830 | — | — | not quantifiable |
+| `96842135` | 1 | `exit_grid_best` | `test_sharpe` | 1.05062985591 | 1.05062985591 | 9.933e-15 | yes |
+| `e2332ebb` | 2 | `h9_baseline` | `oos_sharpe` | 1.06579266434 | 1.06579266434 | 1.563e-14 | yes |
+| `e2332ebb` | 2 | `h9_baseline` | `oos_profit_factor` | 1.25321807514 | 1.25321807514 | 3.012e-15 | yes |
+| `e2332ebb` | 2 | `h9_baseline` | `oos_max_drawdown` | -0.0619677084656 | -0.0619677084656 | 8.958e-15 | yes |
+| `e2332ebb` | 2 | `h9_baseline` | `oos_trades` | 1795 | — | — | not quantifiable |
+| `e2332ebb` | 2 | `h9_baseline` | `test_sharpe` | 1.05093518679 | 1.05093518679 | 7.606e-15 | yes |
+| `e2332ebb` | 2 | `signal_smoothing_only(span=None)` | `oos_sharpe` | 1.06579266434 | 1.06579266434 | 1.563e-14 | yes |
+| `e2332ebb` | 2 | `signal_smoothing_only(span=None)` | `oos_profit_factor` | 1.25321807514 | 1.25321807514 | 3.012e-15 | yes |
+| `e2332ebb` | 2 | `signal_smoothing_only(span=None)` | `oos_max_drawdown` | -0.0619677084656 | -0.0619677084656 | 8.958e-15 | yes |
+| `e2332ebb` | 2 | `signal_smoothing_only(span=None)` | `oos_trades` | 1795 | — | — | not quantifiable |
+| `e2332ebb` | 2 | `signal_smoothing_only(span=None)` | `test_sharpe` | 1.05093518679 | 1.05093518679 | 7.606e-15 | yes |
+| `e2332ebb` | 2 | `longer_vol_window_only(vw=1008)` | `oos_sharpe` | 1.14188568052 | 1.14188568052 | 6.028e-15 | yes |
+| `e2332ebb` | 2 | `longer_vol_window_only(vw=1008)` | `oos_profit_factor` | 1.2734949808 | 1.2734949808 | 1.744e-15 | yes |
+| `e2332ebb` | 2 | `longer_vol_window_only(vw=1008)` | `oos_max_drawdown` | -0.0584284720449 | -0.0584284720449 | 0.000e+00 | yes |
+| `e2332ebb` | 2 | `longer_vol_window_only(vw=1008)` | `oos_trades` | 1721 | — | — | not quantifiable |
+| `e2332ebb` | 2 | `longer_vol_window_only(vw=1008)` | `test_sharpe` | 1.04244574898 | 1.04244574898 | 1.512e-14 | yes |
+| `e2332ebb` | 2 | `regime_scaling_only` | `oos_sharpe` | 1.02122427164 | 1.02122427164 | 6.523e-16 | yes |
+| `e2332ebb` | 2 | `regime_scaling_only` | `oos_profit_factor` | 1.24855891787 | 1.24855891787 | 1.778e-16 | yes |
+| `e2332ebb` | 2 | `regime_scaling_only` | `oos_max_drawdown` | -0.0619677084656 | -0.0619677084656 | 1.612e-14 | yes |
+| `e2332ebb` | 2 | `regime_scaling_only` | `oos_trades` | 1830 | — | — | not quantifiable |
+| `e2332ebb` | 2 | `regime_scaling_only` | `test_sharpe` | 1.04975232957 | 1.04975232957 | 6.134e-15 | yes |
+| `e2332ebb` | 2 | `min_trade_interval_only(mi=8)` | `oos_sharpe` | 1.08704441049 | 1.08704441049 | 0.000e+00 | yes |
+| `e2332ebb` | 2 | `min_trade_interval_only(mi=8)` | `oos_profit_factor` | 1.25386613027 | 1.25386613027 | 1.771e-16 | yes |
+| `e2332ebb` | 2 | `min_trade_interval_only(mi=8)` | `oos_max_drawdown` | -0.0631963826173 | -0.0631963826173 | 5.270e-15 | yes |
+| `e2332ebb` | 2 | `min_trade_interval_only(mi=8)` | `oos_trades` | 809 | — | — | not quantifiable |
+| `e2332ebb` | 2 | `min_trade_interval_only(mi=8)` | `test_sharpe` | 1.04647292421 | 1.04647292421 | 8.275e-15 | yes |
+| `e2332ebb` | 2 | `exit_grid_best` | `oos_sharpe` | 1.2757590681 | 1.2757590681 | 3.655e-15 | yes |
+| `e2332ebb` | 2 | `exit_grid_best` | `oos_profit_factor` | 1.30416451694 | 1.30416451694 | 6.810e-16 | yes |
+| `e2332ebb` | 2 | `exit_grid_best` | `oos_max_drawdown` | -0.0584284720449 | -0.0584284720449 | 2.280e-14 | yes |
+| `e2332ebb` | 2 | `exit_grid_best` | `oos_trades` | 2416 | — | — | not quantifiable |
+| `e2332ebb` | 2 | `exit_grid_best` | `test_sharpe` | 1.09307425009 | 1.09307425009 | 0.000e+00 | yes |
+| `d4dcd23d` | `ungated_full_exposure` | `oos_metrics.sharpe` | 0.621485089062 | — | — | not quantifiable |
+| `d4dcd23d` | `ungated_full_exposure` | `oos_metrics.max_drawdown` | -0.331366790962 | — | — | not quantifiable |
+| `d4dcd23d` | `ungated_full_exposure` | `oos_metrics.profit_factor` | 1.12249406014 | — | — | not quantifiable |
+| `d4dcd23d` | `ungated_full_exposure` | `oos_metrics.trades` | 186 | — | — | not quantifiable |
+| `d4dcd23d` | `ungated_full_exposure` | `oos_metrics.gross_profit` | 7.77191804121 | — | — | not quantifiable |
+| `d4dcd23d` | `ungated_full_exposure` | `oos_metrics.gross_loss` | 6.92379435865 | — | — | not quantifiable |
+| `d4dcd23d` | `ungated_full_exposure` | `oos_metrics.n_periods` | 1760 | — | — | not quantifiable |
+| `d4dcd23d` | 1 | `ungated_full_exposure` | `worst_regime_sharpe` | -2.49283239954 | — | — | not quantifiable |
+| `d4dcd23d` | 1 | `ungated_full_exposure` | `regime_sharpes` | {3 entries} | — | — | not quantifiable |
+| `d4dcd23d` | `ew_benchmark` | `oos_metrics.sharpe` | 0.606021157945 | — | — | not quantifiable |
+| `d4dcd23d` | `ew_benchmark` | `oos_metrics.max_drawdown` | -0.349313982009 | — | — | not quantifiable |
+| `d4dcd23d` | `ew_benchmark` | `oos_metrics.profit_factor` | 1.12065241639 | — | — | not quantifiable |
+| `d4dcd23d` | `ew_benchmark` | `oos_metrics.trades` | 0 | — | — | not quantifiable |
+| `d4dcd23d` | `ew_benchmark` | `oos_metrics.gross_profit` | 7.75728529973 | — | — | not quantifiable |
+| `d4dcd23d` | `ew_benchmark` | `oos_metrics.gross_loss` | 6.92211535557 | — | — | not quantifiable |
+| `d4dcd23d` | `ew_benchmark` | `oos_metrics.n_periods` | 1760 | — | — | not quantifiable |
+| `d4dcd23d` | 1 | `ew_benchmark` | `train_sharpe` | 0.900363247936 | — | — | not quantifiable |
+| `d4dcd23d` | `family_value` | `oos_metrics.sharpe` | 0.533463839664 | — | — | not quantifiable |
+| `d4dcd23d` | `family_value` | `oos_metrics.max_drawdown` | -0.279074711061 | — | — | not quantifiable |
+| `d4dcd23d` | `family_value` | `oos_metrics.profit_factor` | 1.0982804356 | — | — | not quantifiable |
+| `d4dcd23d` | `family_value` | `oos_metrics.trades` | 96 | — | — | not quantifiable |
+| `d4dcd23d` | `family_value` | `oos_metrics.gross_profit` | 6.44388876595 | — | — | not quantifiable |
+| `d4dcd23d` | `family_value` | `oos_metrics.gross_loss` | 5.86725262241 | — | — | not quantifiable |
+| `d4dcd23d` | `family_value` | `oos_metrics.n_periods` | 1760 | — | — | not quantifiable |
+| `d4dcd23d` | `family_momentum` | `oos_metrics.sharpe` | 0.533463839664 | — | — | not quantifiable |
+| `d4dcd23d` | `family_momentum` | `oos_metrics.max_drawdown` | -0.279074711061 | — | — | not quantifiable |
+| `d4dcd23d` | `family_momentum` | `oos_metrics.profit_factor` | 1.0982804356 | — | — | not quantifiable |
+| `d4dcd23d` | `family_momentum` | `oos_metrics.trades` | 96 | — | — | not quantifiable |
+| `d4dcd23d` | `family_momentum` | `oos_metrics.gross_profit` | 6.44388876595 | — | — | not quantifiable |
+| `d4dcd23d` | `family_momentum` | `oos_metrics.gross_loss` | 5.86725262241 | — | — | not quantifiable |
+| `d4dcd23d` | `family_momentum` | `oos_metrics.n_periods` | 1760 | — | — | not quantifiable |
+| `d4dcd23d` | `family_quality` | `oos_metrics.sharpe` | 0.533463839664 | — | — | not quantifiable |
+| `d4dcd23d` | `family_quality` | `oos_metrics.max_drawdown` | -0.279074711061 | — | — | not quantifiable |
+| `d4dcd23d` | `family_quality` | `oos_metrics.profit_factor` | 1.0982804356 | — | — | not quantifiable |
+| `d4dcd23d` | `family_quality` | `oos_metrics.trades` | 96 | — | — | not quantifiable |
+| `d4dcd23d` | `family_quality` | `oos_metrics.gross_profit` | 6.44388876595 | — | — | not quantifiable |
+| `d4dcd23d` | `family_quality` | `oos_metrics.gross_loss` | 5.86725262241 | — | — | not quantifiable |
+| `d4dcd23d` | `family_quality` | `oos_metrics.n_periods` | 1760 | — | — | not quantifiable |
+| `d641c143` | `ungated_full_exposure` | `oos_metrics.sharpe` | 0.621485089062 | — | — | not quantifiable |
+| `d641c143` | `ungated_full_exposure` | `oos_metrics.max_drawdown` | -0.331366790962 | — | — | not quantifiable |
+| `d641c143` | `ungated_full_exposure` | `oos_metrics.profit_factor` | 1.12249406014 | — | — | not quantifiable |
+| `d641c143` | `ungated_full_exposure` | `oos_metrics.trades` | 186 | — | — | not quantifiable |
+| `d641c143` | `ungated_full_exposure` | `oos_metrics.gross_profit` | 7.77191804121 | — | — | not quantifiable |
+| `d641c143` | `ungated_full_exposure` | `oos_metrics.gross_loss` | 6.92379435865 | — | — | not quantifiable |
+| `d641c143` | `ungated_full_exposure` | `oos_metrics.n_periods` | 1760 | — | — | not quantifiable |
+| `d641c143` | 1 | `ungated_full_exposure` | `worst_regime_sharpe` | -2.49283239954 | — | — | not quantifiable |
+| `d641c143` | 1 | `ungated_full_exposure` | `regime_sharpes` | {3 entries} | — | — | not quantifiable |
+| `d641c143` | `ew_benchmark` | `oos_metrics.sharpe` | 0.606021157945 | — | — | not quantifiable |
+| `d641c143` | `ew_benchmark` | `oos_metrics.max_drawdown` | -0.349313982009 | — | — | not quantifiable |
+| `d641c143` | `ew_benchmark` | `oos_metrics.profit_factor` | 1.12065241639 | — | — | not quantifiable |
+| `d641c143` | `ew_benchmark` | `oos_metrics.trades` | 0 | — | — | not quantifiable |
+| `d641c143` | `ew_benchmark` | `oos_metrics.gross_profit` | 7.75728529973 | — | — | not quantifiable |
+| `d641c143` | `ew_benchmark` | `oos_metrics.gross_loss` | 6.92211535557 | — | — | not quantifiable |
+| `d641c143` | `ew_benchmark` | `oos_metrics.n_periods` | 1760 | — | — | not quantifiable |
+| `d641c143` | 1 | `ew_benchmark` | `train_sharpe` | 0.900363247936 | — | — | not quantifiable |
+| `d641c143` | `family_value` | `oos_metrics.sharpe` | -0.054693334283 | — | — | not quantifiable |
+| `d641c143` | `family_value` | `oos_metrics.max_drawdown` | -0.332474416272 | — | — | not quantifiable |
+| `d641c143` | `family_value` | `oos_metrics.profit_factor` | 0.990431885997 | — | — | not quantifiable |
+| `d641c143` | `family_value` | `oos_metrics.trades` | 80 | — | — | not quantifiable |
+| `d641c143` | `family_value` | `oos_metrics.gross_profit` | 5.69276125022 | — | — | not quantifiable |
+| `d641c143` | `family_value` | `oos_metrics.gross_loss` | 5.74775643909 | — | — | not quantifiable |
+| `d641c143` | `family_value` | `oos_metrics.n_periods` | 1760 | — | — | not quantifiable |
+| `d641c143` | `family_momentum` | `oos_metrics.sharpe` | 0.839659302858 | — | — | not quantifiable |
+| `d641c143` | `family_momentum` | `oos_metrics.max_drawdown` | -0.246153119436 | — | — | not quantifiable |
+| `d641c143` | `family_momentum` | `oos_metrics.profit_factor` | 1.15858401301 | — | — | not quantifiable |
+| `d641c143` | `family_momentum` | `oos_metrics.trades` | 71 | — | — | not quantifiable |
+| `d641c143` | `family_momentum` | `oos_metrics.gross_profit` | 6.7130856089 | — | — | not quantifiable |
+| `d641c143` | `family_momentum` | `oos_metrics.gross_loss` | 5.79421564039 | — | — | not quantifiable |
+| `d641c143` | `family_momentum` | `oos_metrics.n_periods` | 1760 | — | — | not quantifiable |
+| `d641c143` | `family_quality` | `oos_metrics.sharpe` | 0.605329721141 | — | — | not quantifiable |
+| `d641c143` | `family_quality` | `oos_metrics.max_drawdown` | -0.223752659546 | — | — | not quantifiable |
+| `d641c143` | `family_quality` | `oos_metrics.profit_factor` | 1.11226809191 | — | — | not quantifiable |
+| `d641c143` | `family_quality` | `oos_metrics.trades` | 86 | — | — | not quantifiable |
+| `d641c143` | `family_quality` | `oos_metrics.gross_profit` | 5.0251624465 | — | — | not quantifiable |
+| `d641c143` | `family_quality` | `oos_metrics.gross_loss` | 4.51794174719 | — | — | not quantifiable |
+| `d641c143` | `family_quality` | `oos_metrics.n_periods` | 1760 | — | — | not quantifiable |
+| `26fefd4c` | `ungated_full_exposure` | `oos_metrics.sharpe` | 0.758269623669 | — | — | not quantifiable |
+| `26fefd4c` | `ungated_full_exposure` | `oos_metrics.max_drawdown` | -0.309489859221 | — | — | not quantifiable |
+| `26fefd4c` | `ungated_full_exposure` | `oos_metrics.profit_factor` | 1.14923841287 | — | — | not quantifiable |
+| `26fefd4c` | `ungated_full_exposure` | `oos_metrics.trades` | 154 | — | — | not quantifiable |
+| `26fefd4c` | `ungated_full_exposure` | `oos_metrics.gross_profit` | 8.05601962842 | — | — | not quantifiable |
+| `26fefd4c` | `ungated_full_exposure` | `oos_metrics.gross_loss` | 7.00987674809 | — | — | not quantifiable |
+| `26fefd4c` | `ungated_full_exposure` | `oos_metrics.n_periods` | 1760 | — | — | not quantifiable |
+| `26fefd4c` | 2 | `ungated_full_exposure` | `worst_regime_sharpe` | -2.16303608095 | — | — | not quantifiable |
+| `26fefd4c` | 2 | `ungated_full_exposure` | `regime_sharpes` | {3 entries} | — | — | not quantifiable |
+| `26fefd4c` | `ew_benchmark` | `oos_metrics.sharpe` | 0.606021157945 | — | — | not quantifiable |
+| `26fefd4c` | `ew_benchmark` | `oos_metrics.max_drawdown` | -0.349313982009 | — | — | not quantifiable |
+| `26fefd4c` | `ew_benchmark` | `oos_metrics.profit_factor` | 1.12065241639 | — | — | not quantifiable |
+| `26fefd4c` | `ew_benchmark` | `oos_metrics.trades` | 0 | — | — | not quantifiable |
+| `26fefd4c` | `ew_benchmark` | `oos_metrics.gross_profit` | 7.75728529973 | — | — | not quantifiable |
+| `26fefd4c` | `ew_benchmark` | `oos_metrics.gross_loss` | 6.92211535557 | — | — | not quantifiable |
+| `26fefd4c` | `ew_benchmark` | `oos_metrics.n_periods` | 1760 | — | — | not quantifiable |
+| `26fefd4c` | 2 | `ew_benchmark` | `train_sharpe` | 0.900363247936 | — | — | not quantifiable |
+| `26fefd4c` | `family_value` | `oos_metrics.sharpe` | -0.0280195810559 | — | — | not quantifiable |
+| `26fefd4c` | `family_value` | `oos_metrics.max_drawdown` | -0.301636106614 | — | — | not quantifiable |
+| `26fefd4c` | `family_value` | `oos_metrics.profit_factor` | 0.995090674249 | — | — | not quantifiable |
+| `26fefd4c` | `family_value` | `oos_metrics.trades` | 78 | — | — | not quantifiable |
+| `26fefd4c` | `family_value` | `oos_metrics.gross_profit` | 5.68546121281 | — | — | not quantifiable |
+| `26fefd4c` | `family_value` | `oos_metrics.gross_loss` | 5.71351069801 | — | — | not quantifiable |
+| `26fefd4c` | `family_value` | `oos_metrics.n_periods` | 1760 | — | — | not quantifiable |
+| `26fefd4c` | `family_momentum` | `oos_metrics.sharpe` | 0.818501533324 | — | — | not quantifiable |
+| `26fefd4c` | `family_momentum` | `oos_metrics.max_drawdown` | -0.240655817913 | — | — | not quantifiable |
+| `26fefd4c` | `family_momentum` | `oos_metrics.profit_factor` | 1.15354609294 | — | — | not quantifiable |
+| `26fefd4c` | `family_momentum` | `oos_metrics.trades` | 71 | — | — | not quantifiable |
+| `26fefd4c` | `family_momentum` | `oos_metrics.gross_profit` | 6.68528545087 | — | — | not quantifiable |
+| `26fefd4c` | `family_momentum` | `oos_metrics.gross_loss` | 5.79542117282 | — | — | not quantifiable |
+| `26fefd4c` | `family_momentum` | `oos_metrics.n_periods` | 1760 | — | — | not quantifiable |
+| `26fefd4c` | `family_quality` | `oos_metrics.sharpe` | 0.55495045191 | — | — | not quantifiable |
+| `26fefd4c` | `family_quality` | `oos_metrics.max_drawdown` | -0.217013014506 | — | — | not quantifiable |
+| `26fefd4c` | `family_quality` | `oos_metrics.profit_factor` | 1.1017849318 | — | — | not quantifiable |
+| `26fefd4c` | `family_quality` | `oos_metrics.trades` | 84 | — | — | not quantifiable |
+| `26fefd4c` | `family_quality` | `oos_metrics.gross_profit` | 4.98362697721 | — | — | not quantifiable |
+| `26fefd4c` | `family_quality` | `oos_metrics.gross_loss` | 4.52323029058 | — | — | not quantifiable |
+| `26fefd4c` | `family_quality` | `oos_metrics.n_periods` | 1760 | — | — | not quantifiable |
+| `f0ce71e4` | `bh_svxy` | `oos_metrics.sharpe` | 0.466334433372 | — | — | not quantifiable |
+| `f0ce71e4` | `bh_svxy` | `oos_metrics.max_drawdown` | -0.621851158829 | — | — | not quantifiable |
+| `f0ce71e4` | `bh_svxy` | `oos_metrics.profit_factor` | 1.09199807991 | — | — | not quantifiable |
+| `f0ce71e4` | `bh_svxy` | `oos_metrics.trades` | 0 | — | — | not quantifiable |
+| `f0ce71e4` | `bh_svxy` | `oos_metrics.gross_profit` | 14.1431692711 | — | — | not quantifiable |
+| `f0ce71e4` | `bh_svxy` | `oos_metrics.gross_loss` | 12.9516429848 | — | — | not quantifiable |
+| `f0ce71e4` | `bh_svxy` | `oos_metrics.n_periods` | 1700 | — | — | not quantifiable |
+| `f0ce71e4` | `ungated_vol_target` | `oos_metrics.sharpe` | 0.460217511914 | — | — | not quantifiable |
+| `f0ce71e4` | `ungated_vol_target` | `oos_metrics.max_drawdown` | -0.358526626117 | — | — | not quantifiable |
+| `f0ce71e4` | `ungated_vol_target` | `oos_metrics.profit_factor` | 1.09017448176 | — | — | not quantifiable |
+| `f0ce71e4` | `ungated_vol_target` | `oos_metrics.trades` | 229 | — | — | not quantifiable |
+| `f0ce71e4` | `ungated_vol_target` | `oos_metrics.gross_profit` | 6.80313040284 | — | — | not quantifiable |
+| `f0ce71e4` | `ungated_vol_target` | `oos_metrics.gross_loss` | 6.2404051064 | — | — | not quantifiable |
+| `f0ce71e4` | `ungated_vol_target` | `oos_metrics.n_periods` | 1700 | — | — | not quantifiable |
+| `f0ce71e4` | `gate_only_no_vol_target` | `oos_metrics.sharpe` | 0.721311661623 | — | — | not quantifiable |
+| `f0ce71e4` | `gate_only_no_vol_target` | `oos_metrics.max_drawdown` | -0.330308727248 | — | — | not quantifiable |
+| `f0ce71e4` | `gate_only_no_vol_target` | `oos_metrics.profit_factor` | 1.14384738513 | — | — | not quantifiable |
+| `f0ce71e4` | `gate_only_no_vol_target` | `oos_metrics.trades` | 85 | — | — | not quantifiable |
+| `f0ce71e4` | `gate_only_no_vol_target` | `oos_metrics.gross_profit` | 12.143978113 | — | — | not quantifiable |
+| `f0ce71e4` | `gate_only_no_vol_target` | `oos_metrics.gross_loss` | 10.616781811 | — | — | not quantifiable |
+| `f0ce71e4` | `gate_only_no_vol_target` | `oos_metrics.n_periods` | 1700 | — | — | not quantifiable |
+| `f0ce71e4` | `bh_spy` | `oos_metrics.sharpe` | 0.751863759425 | — | — | not quantifiable |
+| `f0ce71e4` | `bh_spy` | `oos_metrics.max_drawdown` | -0.341047468932 | — | — | not quantifiable |
+| `f0ce71e4` | `bh_spy` | `oos_metrics.profit_factor` | 1.15465899526 | — | — | not quantifiable |
+| `f0ce71e4` | `bh_spy` | `oos_metrics.trades` | 0 | — | — | not quantifiable |
+| `f0ce71e4` | `bh_spy` | `oos_metrics.gross_profit` | 7.60129554608 | — | — | not quantifiable |
+| `f0ce71e4` | `bh_spy` | `oos_metrics.gross_loss` | 6.58315188922 | — | — | not quantifiable |
+| `f0ce71e4` | `bh_spy` | `oos_metrics.n_periods` | 1700 | — | — | not quantifiable |
+| `f280e30c` | `bh_spy` | `oos_metrics.sharpe` | 0.732815152568 | — | — | not quantifiable |
+| `f280e30c` | `bh_spy` | `oos_metrics.max_drawdown` | -0.341047468932 | — | — | not quantifiable |
+| `f280e30c` | `bh_spy` | `oos_metrics.profit_factor` | 1.15098644005 | — | — | not quantifiable |
+| `f280e30c` | `bh_spy` | `oos_metrics.trades` | 0 | — | — | not quantifiable |
+| `f280e30c` | `bh_spy` | `oos_metrics.gross_profit` | 11.5283760735 | — | — | not quantifiable |
+| `f280e30c` | `bh_spy` | `oos_metrics.gross_loss` | 10.0160833111 | — | — | not quantifiable |
+| `f280e30c` | `bh_spy` | `oos_metrics.n_periods` | 2958 | — | — | not quantifiable |
+| `f280e30c` | `random_volume_signal` | `oos_metrics.sharpe` | 0.20667025171 | — | — | not quantifiable |
+| `f280e30c` | `random_volume_signal` | `oos_metrics.max_drawdown` | -0.338268479142 | — | — | not quantifiable |
+| `f280e30c` | `random_volume_signal` | `oos_metrics.profit_factor` | 1.05630911389 | — | — | not quantifiable |
+| `f280e30c` | `random_volume_signal` | `oos_metrics.trades` | 1418 | — | — | not quantifiable |
+| `f280e30c` | `random_volume_signal` | `oos_metrics.gross_profit` | 5.97804380178 | — | — | not quantifiable |
+| `f280e30c` | `random_volume_signal` | `oos_metrics.gross_loss` | 5.65936970833 | — | — | not quantifiable |
+| `f280e30c` | `random_volume_signal` | `oos_metrics.n_periods` | 2958 | — | — | not quantifiable |
+| `f280e30c` | `constant_0.5_position` | `oos_metrics.sharpe` | 0.732815152568 | — | — | not quantifiable |
+| `f280e30c` | `constant_0.5_position` | `oos_metrics.max_drawdown` | -0.182063567304 | — | — | not quantifiable |
+| `f280e30c` | `constant_0.5_position` | `oos_metrics.profit_factor` | 1.15098644005 | — | — | not quantifiable |
+| `f280e30c` | `constant_0.5_position` | `oos_metrics.trades` | 0 | — | — | not quantifiable |
+| `f280e30c` | `constant_0.5_position` | `oos_metrics.gross_profit` | 5.76418803675 | — | — | not quantifiable |
+| `f280e30c` | `constant_0.5_position` | `oos_metrics.gross_loss` | 5.00804165554 | — | — | not quantifiable |
+| `f280e30c` | `constant_0.5_position` | `oos_metrics.n_periods` | 2958 | — | — | not quantifiable |
+| `4dd2b41f` | `bh_spy` | `oos_metrics.sharpe` | 0.732815152568 | — | — | not quantifiable |
+| `4dd2b41f` | `bh_spy` | `oos_metrics.max_drawdown` | -0.341047468932 | — | — | not quantifiable |
+| `4dd2b41f` | `bh_spy` | `oos_metrics.profit_factor` | 1.15098644005 | — | — | not quantifiable |
+| `4dd2b41f` | `bh_spy` | `oos_metrics.trades` | 0 | — | — | not quantifiable |
+| `4dd2b41f` | `bh_spy` | `oos_metrics.gross_profit` | 11.5283760735 | — | — | not quantifiable |
+| `4dd2b41f` | `bh_spy` | `oos_metrics.gross_loss` | 10.0160833111 | — | — | not quantifiable |
+| `4dd2b41f` | `bh_spy` | `oos_metrics.n_periods` | 2958 | — | — | not quantifiable |
+| `4dd2b41f` | `random_signed_volume` | `oos_metrics.sharpe` | -0.080085147225 | — | — | not quantifiable |
+| `4dd2b41f` | `random_signed_volume` | `oos_metrics.max_drawdown` | -0.13248371323 | — | — | not quantifiable |
+| `4dd2b41f` | `random_signed_volume` | `oos_metrics.profit_factor` | 0.985795287709 | — | — | not quantifiable |
+| `4dd2b41f` | `random_signed_volume` | `oos_metrics.trades` | 2958 | — | — | not quantifiable |
+| `4dd2b41f` | `random_signed_volume` | `oos_metrics.gross_profit` | 3.6237636597 | — | — | not quantifiable |
+| `4dd2b41f` | `random_signed_volume` | `oos_metrics.gross_loss` | 3.67597989651 | — | — | not quantifiable |
+| `4dd2b41f` | `random_signed_volume` | `oos_metrics.n_periods` | 2958 | — | — | not quantifiable |
+| `4dd2b41f` | `constant_0_5_position` | `oos_metrics.sharpe` | 0.732815152568 | — | — | not quantifiable |
+| `4dd2b41f` | `constant_0_5_position` | `oos_metrics.max_drawdown` | -0.182063567304 | — | — | not quantifiable |
+| `4dd2b41f` | `constant_0_5_position` | `oos_metrics.profit_factor` | 1.15098644005 | — | — | not quantifiable |
+| `4dd2b41f` | `constant_0_5_position` | `oos_metrics.trades` | 0 | — | — | not quantifiable |
+| `4dd2b41f` | `constant_0_5_position` | `oos_metrics.gross_profit` | 5.76418803675 | — | — | not quantifiable |
+| `4dd2b41f` | `constant_0_5_position` | `oos_metrics.gross_loss` | 5.00804165554 | — | — | not quantifiable |
+| `4dd2b41f` | `constant_0_5_position` | `oos_metrics.n_periods` | 2958 | — | — | not quantifiable |
+| `4dd2b41f` | `total_volume_only` | `oos_metrics.sharpe` | 0.241912471068 | — | — | not quantifiable |
+| `4dd2b41f` | `total_volume_only` | `oos_metrics.max_drawdown` | -0.347532960523 | — | — | not quantifiable |
+| `4dd2b41f` | `total_volume_only` | `oos_metrics.profit_factor` | 1.06617539679 | — | — | not quantifiable |
+| `4dd2b41f` | `total_volume_only` | `oos_metrics.trades` | 940 | — | — | not quantifiable |
+| `4dd2b41f` | `total_volume_only` | `oos_metrics.gross_profit` | 6.3266249076 | — | — | not quantifiable |
+| `4dd2b41f` | `total_volume_only` | `oos_metrics.gross_loss` | 5.93394382075 | — | — | not quantifiable |
+| `4dd2b41f` | `total_volume_only` | `oos_metrics.n_periods` | 2958 | — | — | not quantifiable |
+| `aed24d21` | 2 | `es_only_h10` | `oos_sharpe` | 0.608441732844 | 0.608441732844 | 4.379e-15 | yes |
+| `aed24d21` | 2 | `es_only_h10` | `oos_profit_factor` | 1.17399314911 | 1.17399314911 | 3.783e-16 | yes |
+| `aed24d21` | 2 | `es_only_h10` | `oos_max_drawdown` | -0.0541520908738 | -0.0541520908738 | 3.280e-14 | yes |
+| `aed24d21` | 2 | `es_only_h10` | `oos_trades` | 224 | — | — | not quantifiable |
+| `aed24d21` | 2 | `es_only_h10` | `test_sharpe` | 0.608368166287 | 0.608368166287 | 6.752e-15 | yes |
+| `aed24d21` | 2 | `random_sign_shuffled` | `oos_sharpe` | -0.470364120176 | -0.470364120176 | 7.081e-16 | yes |
+| `aed24d21` | 2 | `random_sign_shuffled` | `oos_profit_factor` | 0.903545042551 | 0.903545042551 | 0.000e+00 | yes |
+| `aed24d21` | 2 | `random_sign_shuffled` | `oos_max_drawdown` | -0.702032095664 | -0.702032095664 | 2.056e-15 | yes |
+| `aed24d21` | 2 | `random_sign_shuffled` | `oos_trades` | 19241 | — | — | not quantifiable |
+| `aed24d21` | 2 | `random_sign_shuffled` | `test_sharpe` | -0.715489211323 | -0.715489211323 | 2.793e-15 | yes |
+| `aed24d21` | 2 | `constant_0.5` | `oos_sharpe` | 0.331733552942 | 0.331733552942 | 6.911e-14 | yes |
+| `aed24d21` | 2 | `constant_0.5` | `oos_profit_factor` | 1.06677281616 | 1.06677281616 | 4.579e-15 | yes |
+| `aed24d21` | 2 | `constant_0.5` | `oos_max_drawdown` | -0.0505748742559 | -0.0505748742559 | 5.708e-14 | yes |
+| `aed24d21` | 2 | `constant_0.5` | `oos_trades` | 0 | — | — | not quantifiable |
+| `aed24d21` | 2 | `constant_0.5` | `test_sharpe` | -0.0340831483741 | -0.034083148374 | 2.538e-12 | yes |
+| `aed24d21` | 2 | `daily_tsmom` | `oos_sharpe` | 0.513758076671 | 0.513758076671 | 8.644e-16 | yes |
+| `aed24d21` | 2 | `daily_tsmom` | `oos_profit_factor` | 1.11537784668 | 1.11537784668 | 0.000e+00 | yes |
+| `aed24d21` | 2 | `daily_tsmom` | `oos_max_drawdown` | -0.236878428762 | -0.236878428762 | 1.875e-15 | yes |
+| `aed24d21` | 2 | `daily_tsmom` | `oos_trades` | 1262 | — | — | not quantifiable |
+| `aed24d21` | 2 | `daily_tsmom` | `test_sharpe` | 0.184528442498 | 0.184528442498 | 7.972e-15 | yes |
+| `f7bb4ac3` | 6 | `es_only_h10` | `oos_sharpe` | 0.850924272646 | 0.850924272646 | 1.018e-14 | yes |
+| `f7bb4ac3` | 6 | `es_only_h10` | `oos_profit_factor` | 1.25009122617 | 1.25009122617 | 2.309e-15 | yes |
+| `f7bb4ac3` | 6 | `es_only_h10` | `oos_max_drawdown` | -0.0514785623802 | -0.0514785623802 | 2.372e-14 | yes |
+| `f7bb4ac3` | 6 | `es_only_h10` | `oos_trades` | 114 | — | — | not quantifiable |
+| `f7bb4ac3` | 6 | `es_only_h10` | `test_sharpe` | 0.645870351189 | 0.645870351189 | 9.798e-15 | yes |
+| `f7bb4ac3` | 6 | `random_sign_shuffled` | `oos_sharpe` | -0.184511437293 | -0.184511437293 | 1.925e-14 | yes |
+| `f7bb4ac3` | 6 | `random_sign_shuffled` | `oos_profit_factor` | 0.963267480651 | 0.963267480651 | 6.915e-16 | yes |
+| `f7bb4ac3` | 6 | `random_sign_shuffled` | `oos_max_drawdown` | -0.531111013109 | -0.531111013109 | 4.390e-15 | yes |
+| `f7bb4ac3` | 6 | `random_sign_shuffled` | `oos_trades` | 19411 | — | — | not quantifiable |
+| `f7bb4ac3` | 6 | `random_sign_shuffled` | `test_sharpe` | -0.333634134973 | -0.333634134973 | 9.650e-15 | yes |
+| `f7bb4ac3` | 6 | `constant_0.5` | `oos_sharpe` | 0.331733552942 | 0.331733552942 | 6.911e-14 | yes |
+| `f7bb4ac3` | 6 | `constant_0.5` | `oos_profit_factor` | 1.06677281616 | 1.06677281616 | 4.579e-15 | yes |
+| `f7bb4ac3` | 6 | `constant_0.5` | `oos_max_drawdown` | -0.0505748742559 | -0.0505748742559 | 5.708e-14 | yes |
+| `f7bb4ac3` | 6 | `constant_0.5` | `oos_trades` | 0 | — | — | not quantifiable |
+| `f7bb4ac3` | 6 | `constant_0.5` | `test_sharpe` | -0.0340831483741 | -0.034083148374 | 2.538e-12 | yes |
+| `f7bb4ac3` | 6 | `daily_tsmom` | `oos_sharpe` | 0.513758076671 | 0.513758076671 | 8.644e-16 | yes |
+| `f7bb4ac3` | 6 | `daily_tsmom` | `oos_profit_factor` | 1.11537784668 | 1.11537784668 | 0.000e+00 | yes |
+| `f7bb4ac3` | 6 | `daily_tsmom` | `oos_max_drawdown` | -0.236878428762 | -0.236878428762 | 1.875e-15 | yes |
+| `f7bb4ac3` | 6 | `daily_tsmom` | `oos_trades` | 1262 | — | — | not quantifiable |
+| `f7bb4ac3` | 6 | `daily_tsmom` | `test_sharpe` | 0.184528442498 | 0.184528442498 | 7.972e-15 | yes |
+| `f7bb4ac3` | 6 | `h21_baseline_tv05` | `oos_sharpe` | 0.83935985802 | 0.83935985802 | 2.910e-15 | yes |
+| `f7bb4ac3` | 6 | `h21_baseline_tv05` | `oos_profit_factor` | 1.20588982286 | 1.20588982286 | 5.524e-16 | yes |
+| `f7bb4ac3` | 6 | `h21_baseline_tv05` | `oos_max_drawdown` | -0.0860348719595 | -0.0860348719595 | 0.000e+00 | yes |
+| `f7bb4ac3` | 6 | `h21_baseline_tv05` | `oos_trades` | 5920 | — | — | not quantifiable |
+| `f7bb4ac3` | 6 | `h21_baseline_tv05` | `test_sharpe` | 0.765381529147 | 0.765381529147 | 1.160e-15 | yes |
+| `fd4fd5cf` | 1 | `daily_target_no_exits` | `oos_sharpe` | 1.14106902036 | 1.14106902036 | 1.751e-15 | yes |
+| `fd4fd5cf` | 1 | `daily_target_no_exits` | `max_drawdown` | -0.0527305400651 | -0.0527305400651 | 2.105e-15 | yes |
+| `fd4fd5cf` | 1 | `daily_target_no_exits` | `profit_factor` | 1.26595500239 | 1.26595500239 | 1.052e-15 | yes |
+| `fd4fd5cf` | 1 | `daily_target_no_exits` | `trades` | 1797 | — | — | not quantifiable |
+| `fd4fd5cf` | 1 | `raw_hourly_no_exits` | `oos_sharpe` | -0.117779616612 | -0.117779616612 | 3.052e-14 | yes |
+| `fd4fd5cf` | 1 | `raw_hourly_no_exits` | `max_drawdown` | -0.252652605054 | -0.252652605054 | 3.515e-15 | yes |
+| `fd4fd5cf` | 1 | `raw_hourly_no_exits` | `profit_factor` | 0.985523848046 | 0.985523848046 | 1.802e-15 | yes |
+| `fd4fd5cf` | 1 | `raw_hourly_no_exits` | `trades` | 31590 | — | — | not quantifiable |
+| `15bd9c73` | 6 | `h9_baseline` | `oos_sharpe` | -6.95753981692 | -6.95753981692 | 1.277e-16 | yes |
+| `15bd9c73` | 6 | `h9_baseline` | `oos_profit_factor` | 0.00291772428122 | 0.00291772428122 | 2.408e-14 | yes |
+| `15bd9c73` | 6 | `h9_baseline` | `oos_max_drawdown` | -0.972254423052 | -0.972254423052 | 0.000e+00 | yes |
+| `15bd9c73` | 6 | `h9_baseline` | `oos_trades` | 74 | — | — | not quantifiable |
+| `15bd9c73` | 6 | `h9_baseline` | `test_sharpe` | -12.5030743401 | -12.5030743401 | 2.841e-16 | yes |
+| `15bd9c73` | 6 | `signal_smoothing_only(span=16)` | `oos_sharpe` | -6.90404044179 | -6.90404044179 | 2.573e-16 | yes |
+| `15bd9c73` | 6 | `signal_smoothing_only(span=16)` | `oos_profit_factor` | 0.00380164469249 | 0.00380164469249 | 2.418e-14 | yes |
+| `15bd9c73` | 6 | `signal_smoothing_only(span=16)` | `oos_max_drawdown` | -0.929086857007 | -0.929086857007 | 0.000e+00 | yes |
+| `15bd9c73` | 6 | `signal_smoothing_only(span=16)` | `oos_trades` | 74 | — | — | not quantifiable |
+| `15bd9c73` | 6 | `signal_smoothing_only(span=16)` | `test_sharpe` | -11.6916272514 | -11.6916272514 | 1.519e-16 | yes |
+| `15bd9c73` | 6 | `longer_vol_window_only(vw=1008)` | `oos_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `15bd9c73` | 6 | `longer_vol_window_only(vw=1008)` | `oos_profit_factor` | +inf | +inf | 0 | yes |
+| `15bd9c73` | 6 | `longer_vol_window_only(vw=1008)` | `oos_max_drawdown` | 0 | 0 | 0.000e+00 | yes |
+| `15bd9c73` | 6 | `longer_vol_window_only(vw=1008)` | `oos_trades` | 0 | — | — | not quantifiable |
+| `15bd9c73` | 6 | `longer_vol_window_only(vw=1008)` | `test_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `15bd9c73` | 6 | `min_trade_interval_only(mi=24)` | `oos_sharpe` | -2.1436652721 | -2.1436652721 | 1.243e-15 | yes |
+| `15bd9c73` | 6 | `min_trade_interval_only(mi=24)` | `oos_profit_factor` | 0.117029874149 | 0.117029874149 | 4.980e-15 | yes |
+| `15bd9c73` | 6 | `min_trade_interval_only(mi=24)` | `oos_max_drawdown` | -0.502259937231 | -0.502259937231 | 4.421e-16 | yes |
+| `15bd9c73` | 6 | `min_trade_interval_only(mi=24)` | `oos_trades` | 11 | — | — | not quantifiable |
+| `15bd9c73` | 6 | `min_trade_interval_only(mi=24)` | `test_sharpe` | -2.97610938357 | -2.97610938357 | 2.984e-15 | yes |
+| `7a15aa17` | 1 | `h9_baseline` | `oos_sharpe` | -6.95753981692 | -6.95753981692 | 1.277e-16 | yes |
+| `7a15aa17` | 1 | `h9_baseline` | `oos_profit_factor` | 0.00291772428122 | 0.00291772428122 | 2.408e-14 | yes |
+| `7a15aa17` | 1 | `h9_baseline` | `oos_max_drawdown` | -0.972254423052 | -0.972254423052 | 0.000e+00 | yes |
+| `7a15aa17` | 1 | `h9_baseline` | `oos_trades` | 74 | — | — | not quantifiable |
+| `7a15aa17` | 1 | `h9_baseline` | `test_sharpe` | -12.5030743401 | -12.5030743401 | 2.841e-16 | yes |
+| `7a15aa17` | 1 | `signal_smoothing_only(span=16)` | `oos_sharpe` | -6.90404044179 | -6.90404044179 | 2.573e-16 | yes |
+| `7a15aa17` | 1 | `signal_smoothing_only(span=16)` | `oos_profit_factor` | 0.00380164469249 | 0.00380164469249 | 2.418e-14 | yes |
+| `7a15aa17` | 1 | `signal_smoothing_only(span=16)` | `oos_max_drawdown` | -0.929086857007 | -0.929086857007 | 0.000e+00 | yes |
+| `7a15aa17` | 1 | `signal_smoothing_only(span=16)` | `oos_trades` | 74 | — | — | not quantifiable |
+| `7a15aa17` | 1 | `signal_smoothing_only(span=16)` | `test_sharpe` | -11.6916272514 | -11.6916272514 | 1.519e-16 | yes |
+| `7a15aa17` | 1 | `longer_vol_window_only(vw=1008)` | `oos_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `7a15aa17` | 1 | `longer_vol_window_only(vw=1008)` | `oos_profit_factor` | +inf | +inf | 0 | yes |
+| `7a15aa17` | 1 | `longer_vol_window_only(vw=1008)` | `oos_max_drawdown` | 0 | 0 | 0.000e+00 | yes |
+| `7a15aa17` | 1 | `longer_vol_window_only(vw=1008)` | `oos_trades` | 0 | — | — | not quantifiable |
+| `7a15aa17` | 1 | `longer_vol_window_only(vw=1008)` | `test_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `7a15aa17` | 1 | `min_trade_interval_only(mi=24)` | `oos_sharpe` | -2.1436652721 | -2.1436652721 | 1.243e-15 | yes |
+| `7a15aa17` | 1 | `min_trade_interval_only(mi=24)` | `oos_profit_factor` | 0.117029874149 | 0.117029874149 | 4.980e-15 | yes |
+| `7a15aa17` | 1 | `min_trade_interval_only(mi=24)` | `oos_max_drawdown` | -0.502259937231 | -0.502259937231 | 4.421e-16 | yes |
+| `7a15aa17` | 1 | `min_trade_interval_only(mi=24)` | `oos_trades` | 11 | — | — | not quantifiable |
+| `7a15aa17` | 1 | `min_trade_interval_only(mi=24)` | `test_sharpe` | -2.97610938357 | -2.97610938357 | 2.984e-15 | yes |
+| `7a15aa17` | 1 | `sideways_regime_filter` | `oos_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `7a15aa17` | 1 | `sideways_regime_filter` | `oos_profit_factor` | +inf | +inf | 0 | yes |
+| `7a15aa17` | 1 | `sideways_regime_filter` | `oos_max_drawdown` | 0 | 0 | 0.000e+00 | yes |
+| `7a15aa17` | 1 | `sideways_regime_filter` | `oos_trades` | 0 | — | — | not quantifiable |
+| `7a15aa17` | 1 | `sideways_regime_filter` | `test_sharpe` | 0 | 0 | 0.000e+00 | yes |
+| `8442c4e3` | 3 | `es_only_h10` | `oos_sharpe` | 0.82544056136 | 0.82544056136 | 9.012e-15 | yes |
+| `8442c4e3` | 3 | `es_only_h10` | `oos_profit_factor` | 1.24111410628 | 1.24111410628 | 1.610e-15 | yes |
+| `8442c4e3` | 3 | `es_only_h10` | `oos_max_drawdown` | -0.0514785623802 | -0.0514785623802 | 2.588e-14 | yes |
+| `8442c4e3` | 3 | `es_only_h10` | `oos_trades` | 103 | — | — | not quantifiable |
+| `8442c4e3` | 3 | `es_only_h10` | `test_sharpe` | 0.645870351189 | 0.645870351189 | 6.360e-15 | yes |
+| `8442c4e3` | 3 | `random_sign_shuffled` | `oos_sharpe` | -0.141819824488 | -0.141819824488 | 3.914e-16 | yes |
+| `8442c4e3` | 3 | `random_sign_shuffled` | `oos_profit_factor` | 0.971694695538 | 0.971694695538 | 3.428e-16 | yes |
+| `8442c4e3` | 3 | `random_sign_shuffled` | `oos_max_drawdown` | -0.517335600141 | -0.517335600141 | 3.648e-15 | yes |
+| `8442c4e3` | 3 | `random_sign_shuffled` | `oos_trades` | 19436 | — | — | not quantifiable |
+| `8442c4e3` | 3 | `random_sign_shuffled` | `test_sharpe` | -0.320733827421 | -0.320733827421 | 2.769e-15 | yes |
+| `8442c4e3` | 3 | `constant_0.5` | `oos_sharpe` | 0.331733552942 | 0.331733552942 | 6.911e-14 | yes |
+| `8442c4e3` | 3 | `constant_0.5` | `oos_profit_factor` | 1.06677281616 | 1.06677281616 | 4.579e-15 | yes |
+| `8442c4e3` | 3 | `constant_0.5` | `oos_max_drawdown` | -0.0505748742559 | -0.0505748742559 | 5.708e-14 | yes |
+| `8442c4e3` | 3 | `constant_0.5` | `oos_trades` | 0 | — | — | not quantifiable |
+| `8442c4e3` | 3 | `constant_0.5` | `test_sharpe` | -0.0340831483741 | -0.034083148374 | 2.538e-12 | yes |
+| `8442c4e3` | 3 | `daily_tsmom` | `oos_sharpe` | 0.513758076671 | 0.513758076671 | 8.644e-16 | yes |
+| `8442c4e3` | 3 | `daily_tsmom` | `oos_profit_factor` | 1.11537784668 | 1.11537784668 | 0.000e+00 | yes |
+| `8442c4e3` | 3 | `daily_tsmom` | `oos_max_drawdown` | -0.236878428762 | -0.236878428762 | 1.875e-15 | yes |
+| `8442c4e3` | 3 | `daily_tsmom` | `oos_trades` | 1262 | — | — | not quantifiable |
+| `8442c4e3` | 3 | `daily_tsmom` | `test_sharpe` | 0.184528442498 | 0.184528442498 | 7.972e-15 | yes |
+| `8442c4e3` | 3 | `h21_baseline_tv05` | `oos_sharpe` | 0.83935985802 | 0.83935985802 | 2.910e-15 | yes |
+| `8442c4e3` | 3 | `h21_baseline_tv05` | `oos_profit_factor` | 1.20588982286 | 1.20588982286 | 5.524e-16 | yes |
+| `8442c4e3` | 3 | `h21_baseline_tv05` | `oos_max_drawdown` | -0.0860348719595 | -0.0860348719595 | 0.000e+00 | yes |
+| `8442c4e3` | 3 | `h21_baseline_tv05` | `oos_trades` | 5920 | — | — | not quantifiable |
+| `8442c4e3` | 3 | `h21_baseline_tv05` | `test_sharpe` | 0.765381529147 | 0.765381529147 | 1.160e-15 | yes |
+| `8ac05f8a` | 1 | `h9_baseline` | `oos_sharpe` | 0.156498070039 | 0.156498070039 | 3.405e-14 | yes |
+| `8ac05f8a` | 1 | `h9_baseline` | `oos_profit_factor` | 1.03435290482 | 1.03435290482 | 1.288e-15 | yes |
+| `8ac05f8a` | 1 | `h9_baseline` | `oos_max_drawdown` | -0.164458772534 | -0.164458772534 | 2.700e-15 | yes |
+| `8ac05f8a` | 1 | `h9_baseline` | `oos_trades` | 1879 | — | — | not quantifiable |
+| `8ac05f8a` | 1 | `h9_baseline` | `test_sharpe` | -0.129016508234 | -0.129016508234 | 7.616e-14 | yes |
+| `8ac05f8a` | 1 | `signal_smoothing_only(span=4)` | `oos_sharpe` | 0.163028419562 | 0.163028419562 | 3.950e-14 | yes |
+| `8ac05f8a` | 1 | `signal_smoothing_only(span=4)` | `oos_profit_factor` | 1.0360746911 | 1.0360746911 | 1.286e-15 | yes |
+| `8ac05f8a` | 1 | `signal_smoothing_only(span=4)` | `oos_max_drawdown` | -0.158192668624 | -0.158192668624 | 8.422e-15 | yes |
+| `8ac05f8a` | 1 | `signal_smoothing_only(span=4)` | `oos_trades` | 1888 | — | — | not quantifiable |
+| `8ac05f8a` | 1 | `signal_smoothing_only(span=4)` | `test_sharpe` | -0.108419178854 | -0.108419178854 | 1.224e-13 | yes |
+| `8ac05f8a` | 1 | `longer_vol_window_only(vw=504)` | `oos_sharpe` | 0.202403677212 | 0.202403677212 | 4.388e-15 | yes |
+| `8ac05f8a` | 1 | `longer_vol_window_only(vw=504)` | `oos_profit_factor` | 1.04414132412 | 1.04414132412 | 2.127e-16 | yes |
+| `8ac05f8a` | 1 | `longer_vol_window_only(vw=504)` | `oos_max_drawdown` | -0.153011839002 | -0.153011839002 | 2.757e-14 | yes |
+| `8ac05f8a` | 1 | `longer_vol_window_only(vw=504)` | `oos_trades` | 1799 | — | — | not quantifiable |
+| `8ac05f8a` | 1 | `longer_vol_window_only(vw=504)` | `test_sharpe` | -0.0116752677616 | -0.0116752677616 | 1.529e-12 | yes |
+| `8ac05f8a` | 1 | `regime_scaling_only` | `oos_sharpe` | 0.223521341097 | 0.223521341097 | 6.767e-14 | yes |
+| `8ac05f8a` | 1 | `regime_scaling_only` | `oos_profit_factor` | 1.05054446 | 1.05054446 | 3.382e-15 | yes |
+| `8ac05f8a` | 1 | `regime_scaling_only` | `oos_max_drawdown` | -0.140811116359 | -0.140811116359 | 2.050e-14 | yes |
+| `8ac05f8a` | 1 | `regime_scaling_only` | `oos_trades` | 1914 | — | — | not quantifiable |
+| `8ac05f8a` | 1 | `regime_scaling_only` | `test_sharpe` | -0.0474069306622 | -0.0474069306623 | 4.940e-13 | yes |
+| `8ac05f8a` | 1 | `min_trade_interval_only(mi=24)` | `oos_sharpe` | 0.218433725728 | 0.218433725728 | 2.529e-14 | yes |
+| `8ac05f8a` | 1 | `min_trade_interval_only(mi=24)` | `oos_profit_factor` | 1.04685322852 | 1.04685322852 | 1.061e-15 | yes |
+| `8ac05f8a` | 1 | `min_trade_interval_only(mi=24)` | `oos_max_drawdown` | -0.140051315614 | -0.140051315614 | 6.342e-15 | yes |
+| `8ac05f8a` | 1 | `min_trade_interval_only(mi=24)` | `oos_trades` | 661 | — | — | not quantifiable |
+| `8ac05f8a` | 1 | `min_trade_interval_only(mi=24)` | `test_sharpe` | -0.0453569644022 | -0.0453569644022 | 2.842e-13 | yes |
+| `8ac05f8a` | 1 | `exit_grid_best` | `oos_sharpe` | 0.390911372111 | 0.390911372111 | 6.532e-15 | yes |
+| `8ac05f8a` | 1 | `exit_grid_best` | `oos_profit_factor` | 1.08654983754 | 1.08654983754 | 0.000e+00 | yes |
+| `8ac05f8a` | 1 | `exit_grid_best` | `oos_max_drawdown` | -0.101396300251 | -0.101396300251 | 6.570e-15 | yes |
+| `8ac05f8a` | 1 | `exit_grid_best` | `oos_trades` | 2524 | — | — | not quantifiable |
+| `8ac05f8a` | 1 | `exit_grid_best` | `test_sharpe` | 0.0684591045518 | 0.0684591045518 | 1.622e-15 | yes |
+| `6ee49260` | 1 | `es_only_h10` | `oos_sharpe` | 0.141716369129 | 0.141716369129 | 9.793e-16 | yes |
+| `6ee49260` | 1 | `es_only_h10` | `oos_profit_factor` | 1.03865383841 | 1.03865383841 | 2.138e-16 | yes |
+| `6ee49260` | 1 | `es_only_h10` | `oos_max_drawdown` | -0.100705518414 | -0.100705518414 | 1.543e-14 | yes |
+| `6ee49260` | 1 | `es_only_h10` | `oos_trades` | 167 | — | — | not quantifiable |
+| `6ee49260` | 1 | `es_only_h10` | `test_sharpe` | 0.129836328864 | 0.129836328864 | 4.147e-14 | yes |
+| `6ee49260` | 1 | `random_sign_shuffled` | `oos_sharpe` | -0.440740469242 | -0.440740469242 | 5.668e-15 | yes |
+| `6ee49260` | 1 | `random_sign_shuffled` | `oos_profit_factor` | 0.911580031949 | 0.911580031949 | 2.436e-16 | yes |
+| `6ee49260` | 1 | `random_sign_shuffled` | `oos_max_drawdown` | -0.654858265998 | -0.654858265998 | 6.781e-16 | yes |
+| `6ee49260` | 1 | `random_sign_shuffled` | `oos_trades` | 19160 | — | — | not quantifiable |
+| `6ee49260` | 1 | `random_sign_shuffled` | `test_sharpe` | -0.599075960076 | -0.599075960076 | 7.228e-15 | yes |
+| `6ee49260` | 1 | `constant_0.5` | `oos_sharpe` | 0.331733552942 | 0.331733552942 | 6.911e-14 | yes |
+| `6ee49260` | 1 | `constant_0.5` | `oos_profit_factor` | 1.06677281616 | 1.06677281616 | 4.579e-15 | yes |
+| `6ee49260` | 1 | `constant_0.5` | `oos_max_drawdown` | -0.0505748742559 | -0.0505748742559 | 5.708e-14 | yes |
+| `6ee49260` | 1 | `constant_0.5` | `oos_trades` | 0 | — | — | not quantifiable |
+| `6ee49260` | 1 | `constant_0.5` | `test_sharpe` | -0.0340831483741 | -0.034083148374 | 2.538e-12 | yes |
+| `6ee49260` | 1 | `daily_tsmom` | `oos_sharpe` | 0.513758076671 | 0.513758076671 | 8.644e-16 | yes |
+| `6ee49260` | 1 | `daily_tsmom` | `oos_profit_factor` | 1.11537784668 | 1.11537784668 | 0.000e+00 | yes |
+| `6ee49260` | 1 | `daily_tsmom` | `oos_max_drawdown` | -0.236878428762 | -0.236878428762 | 1.875e-15 | yes |
+| `6ee49260` | 1 | `daily_tsmom` | `oos_trades` | 1262 | — | — | not quantifiable |
+| `6ee49260` | 1 | `daily_tsmom` | `test_sharpe` | 0.184528442498 | 0.184528442498 | 7.972e-15 | yes |
+| `199b58b4` | 1 | `es_only_h10` | `oos_sharpe` | 0.162006991327 | 0.162006991326 | 4.643e-14 | yes |
+| `199b58b4` | 1 | `es_only_h10` | `oos_profit_factor` | 1.04367709042 | 1.04367709042 | 1.702e-15 | yes |
+| `199b58b4` | 1 | `es_only_h10` | `oos_max_drawdown` | -0.106334931949 | -0.106334931949 | 1.879e-14 | yes |
+| `199b58b4` | 1 | `es_only_h10` | `oos_trades` | 111 | — | — | not quantifiable |
+| `199b58b4` | 1 | `es_only_h10` | `test_sharpe` | 0.0887135944628 | 0.0887135944628 | 1.475e-13 | yes |
+| `199b58b4` | 1 | `random_sign_shuffled` | `oos_sharpe` | -0.153708062982 | -0.153708062982 | 1.481e-14 | yes |
+| `199b58b4` | 1 | `random_sign_shuffled` | `oos_profit_factor` | 0.970135434123 | 0.970135434123 | 4.578e-16 | yes |
+| `199b58b4` | 1 | `random_sign_shuffled` | `oos_max_drawdown` | -0.483230807586 | -0.483230807586 | 4.595e-16 | yes |
+| `199b58b4` | 1 | `random_sign_shuffled` | `oos_trades` | 19325 | — | — | not quantifiable |
+| `199b58b4` | 1 | `random_sign_shuffled` | `test_sharpe` | -0.219649633606 | -0.219649633606 | 3.462e-14 | yes |
+| `199b58b4` | 1 | `constant_0.5` | `oos_sharpe` | 0.331733552942 | 0.331733552942 | 6.911e-14 | yes |
+| `199b58b4` | 1 | `constant_0.5` | `oos_profit_factor` | 1.06677281616 | 1.06677281616 | 4.579e-15 | yes |
+| `199b58b4` | 1 | `constant_0.5` | `oos_max_drawdown` | -0.0505748742559 | -0.0505748742559 | 5.708e-14 | yes |
+| `199b58b4` | 1 | `constant_0.5` | `oos_trades` | 0 | — | — | not quantifiable |
+| `199b58b4` | 1 | `constant_0.5` | `test_sharpe` | -0.0340831483741 | -0.034083148374 | 2.538e-12 | yes |
+| `199b58b4` | 1 | `daily_tsmom` | `oos_sharpe` | 0.513758076671 | 0.513758076671 | 8.644e-16 | yes |
+| `199b58b4` | 1 | `daily_tsmom` | `oos_profit_factor` | 1.11537784668 | 1.11537784668 | 0.000e+00 | yes |
+| `199b58b4` | 1 | `daily_tsmom` | `oos_max_drawdown` | -0.236878428762 | -0.236878428762 | 1.875e-15 | yes |
+| `199b58b4` | 1 | `daily_tsmom` | `oos_trades` | 1262 | — | — | not quantifiable |
+| `199b58b4` | 1 | `daily_tsmom` | `test_sharpe` | 0.184528442498 | 0.184528442498 | 7.972e-15 | yes |
+| `199b58b4` | 1 | `h21_baseline_tv05` | `oos_sharpe` | 0.131709664609 | 0.131709664609 | 1.096e-14 | yes |
+| `199b58b4` | 1 | `h21_baseline_tv05` | `oos_profit_factor` | 1.02964243589 | 1.02964243589 | 4.313e-16 | yes |
+| `199b58b4` | 1 | `h21_baseline_tv05` | `oos_max_drawdown` | -0.261240089381 | -0.261240089381 | 6.800e-15 | yes |
+| `199b58b4` | 1 | `h21_baseline_tv05` | `oos_trades` | 5927 | — | — | not quantifiable |
+| `199b58b4` | 1 | `h21_baseline_tv05` | `test_sharpe` | -0.0554421524261 | -0.0554421524261 | 4.105e-14 | yes |
+| `23275b89` | 1 | `es_only_h10` | `oos_sharpe` | 0.162138054075 | 0.162138054075 | 1.096e-14 | yes |
+| `23275b89` | 1 | `es_only_h10` | `oos_profit_factor` | 1.04359995278 | 1.04359995278 | 2.128e-16 | yes |
+| `23275b89` | 1 | `es_only_h10` | `oos_max_drawdown` | -0.106334931949 | -0.106334931949 | 2.088e-15 | yes |
+| `23275b89` | 1 | `es_only_h10` | `oos_trades` | 103 | — | — | not quantifiable |
+| `23275b89` | 1 | `es_only_h10` | `test_sharpe` | 0.0887135944628 | 0.0887135944628 | 1.557e-13 | yes |
+| `23275b89` | 1 | `random_sign_shuffled` | `oos_sharpe` | -0.133787541467 | -0.133787541467 | 1.909e-14 | yes |
+| `23275b89` | 1 | `random_sign_shuffled` | `oos_profit_factor` | 0.974190236111 | 0.974190236111 | 6.838e-16 | yes |
+| `23275b89` | 1 | `random_sign_shuffled` | `oos_max_drawdown` | -0.467155046629 | -0.467155046629 | 4.278e-15 | yes |
+| `23275b89` | 1 | `random_sign_shuffled` | `oos_trades` | 19349 | — | — | not quantifiable |
+| `23275b89` | 1 | `random_sign_shuffled` | `test_sharpe` | -0.229148126782 | -0.229148126782 | 4.603e-15 | yes |
+| `23275b89` | 1 | `constant_0.5` | `oos_sharpe` | 0.331733552942 | 0.331733552942 | 6.911e-14 | yes |
+| `23275b89` | 1 | `constant_0.5` | `oos_profit_factor` | 1.06677281616 | 1.06677281616 | 4.579e-15 | yes |
+| `23275b89` | 1 | `constant_0.5` | `oos_max_drawdown` | -0.0505748742559 | -0.0505748742559 | 5.708e-14 | yes |
+| `23275b89` | 1 | `constant_0.5` | `oos_trades` | 0 | — | — | not quantifiable |
+| `23275b89` | 1 | `constant_0.5` | `test_sharpe` | -0.0340831483741 | -0.034083148374 | 2.538e-12 | yes |
+| `23275b89` | 1 | `daily_tsmom` | `oos_sharpe` | 0.513758076671 | 0.513758076671 | 8.644e-16 | yes |
+| `23275b89` | 1 | `daily_tsmom` | `oos_profit_factor` | 1.11537784668 | 1.11537784668 | 0.000e+00 | yes |
+| `23275b89` | 1 | `daily_tsmom` | `oos_max_drawdown` | -0.236878428762 | -0.236878428762 | 1.875e-15 | yes |
+| `23275b89` | 1 | `daily_tsmom` | `oos_trades` | 1262 | — | — | not quantifiable |
+| `23275b89` | 1 | `daily_tsmom` | `test_sharpe` | 0.184528442498 | 0.184528442498 | 7.972e-15 | yes |
+| `23275b89` | 1 | `h21_baseline_tv05` | `oos_sharpe` | 0.131709664609 | 0.131709664609 | 1.096e-14 | yes |
+| `23275b89` | 1 | `h21_baseline_tv05` | `oos_profit_factor` | 1.02964243589 | 1.02964243589 | 4.313e-16 | yes |
+| `23275b89` | 1 | `h21_baseline_tv05` | `oos_max_drawdown` | -0.261240089381 | -0.261240089381 | 6.800e-15 | yes |
+| `23275b89` | 1 | `h21_baseline_tv05` | `oos_trades` | 5927 | — | — | not quantifiable |
+| `23275b89` | 1 | `h21_baseline_tv05` | `test_sharpe` | -0.0554421524261 | -0.0554421524261 | 4.105e-14 | yes |
+
+### The record, in full — the structural blocks
+
+The perturbation and cross-validation blocks carry numbers whose own curves were never committed,
+so they are **disclosed, not quantified**.
+
+| artifact | structural key | published | re-derived | residual | re-derives |
+|---|---|---:|---:|---:|:---:|
+| `exp_2026-10-13T21-11-45-843908Z` | `perturbation.min_perturbed_sharpe_ratio` | 0.850725615487 | — | — | not quantifiable |
+| `exp_2026-10-13T21-11-45-843908Z` | `perturbation.variants` | 4 variants | — | — | not quantifiable |
+| `exp_2026-10-13T21-13-09-580962Z` | `perturbation.min_perturbed_sharpe_ratio` | 0.850725615487 | — | — | not quantifiable |
+| `exp_2026-10-13T21-13-09-580962Z` | `perturbation.variants` | 4 variants | — | — | not quantifiable |
+| `exp_2026-10-13T21-18-23-178134Z` | `perturbation.min_perturbed_sharpe_ratio` | 0.733606354952 | — | — | not quantifiable |
+| `exp_2026-10-13T21-18-23-178134Z` | `perturbation.variants` | 4 variants | — | — | not quantifiable |
+| `exp_2026-10-13T21-22-02-751156Z` | `perturbation.min_perturbed_sharpe_ratio` | 0.733606354952 | — | — | not quantifiable |
+| `exp_2026-10-13T21-22-02-751156Z` | `perturbation.variants` | 4 variants | — | — | not quantifiable |
+| `exp_2026-10-13T21-51-45-034237Z` | `perturbation.min_perturbed_sharpe_ratio` | 0.951926652495 | — | — | not quantifiable |
+| `exp_2026-10-13T21-51-45-034237Z` | `perturbation.variants` | 6 variants | — | — | not quantifiable |
+| `exp_2026-10-13T22-40-41-870350Z` | `perturbation.min_perturbed_sharpe_ratio` | 0.869486447201 | — | — | not quantifiable |
+| `exp_2026-10-13T22-40-41-870350Z` | `perturbation.variants` | 2 variants | — | — | not quantifiable |
+| `exp_2026-10-13T22-40-41-870350Z` | `cross_validation.QQQ.bh_sharpe` | 0.885873156776 | — | — | not quantifiable |
+| `exp_2026-10-13T22-40-41-870350Z` | `cross_validation.QQQ.signal_sharpe` | 0.548047149674 | — | — | not quantifiable |
+| `exp_2026-10-13T22-40-41-870350Z` | `cross_validation.IWM.bh_sharpe` | 0.433857128655 | — | — | not quantifiable |
+| `exp_2026-10-13T22-40-41-870350Z` | `cross_validation.IWM.signal_sharpe` | 0.241742711343 | — | — | not quantifiable |
+| `exp_2026-10-13T23-06-33-191710Z` | `perturbation.min_perturbed_sharpe_ratio` | 0 | — | — | not quantifiable |
+| `exp_2026-10-13T23-06-33-191710Z` | `perturbation.variants` | 4 variants | — | — | not quantifiable |
+| `exp_2026-10-13T23-06-33-191710Z` | `cross_validation.QQQ.bh_sharpe` | 0.885873156776 | — | — | not quantifiable |
+| `exp_2026-10-13T23-06-33-191710Z` | `cross_validation.QQQ.signal_sharpe` | 0.123625858189 | — | — | not quantifiable |
+| `exp_2026-10-13T23-06-33-191710Z` | `cross_validation.IWM.bh_sharpe` | 0.433857128655 | — | — | not quantifiable |
+| `exp_2026-10-13T23-06-33-191710Z` | `cross_validation.IWM.signal_sharpe` | -0.287491837184 | — | — | not quantifiable |
+| `exp_2026-10-14T08-48-49-412372Z` | `perturbation_min_ratio` | 0 | — | — | not quantifiable |
+| `exp_2026-10-14T09-28-59-592390Z` | `perturbation_min_ratio` | 0 | — | — | not quantifiable |
+| `exp_2026-10-14T09-32-25-959733Z` | `perturbation_min_ratio` | 0 | — | — | not quantifiable |
+| `exp_2026-10-14T09-39-07-412533Z` | `perturbation_min_ratio` | 0 | — | — | not quantifiable |
+| `exp_2026-10-14T10-04-52-936640Z` | `perturbation_min_ratio` | 0 | — | — | not quantifiable |
+| `exp_2026-10-14T11-53-37-996139Z` | `perturbation_min_ratio` | 0 | — | — | not quantifiable |
+| `exp_2026-10-14T18-13-09-457781Z` | `perturbation_min_ratio` | 0 | — | — | not quantifiable |
+
+### What was verified
+
+- `python -m pytest -q -W error tests/test_h53_published_metrics_disclosure.py` → **974 passed, 69
+  skipped** (the skips name their reason: a key published as `null`, a degenerate series that
+  cannot discriminate the convention, an artifact whose trades all fall inside the OOS window, a
+  series length that is a multiple of five, and a summary with no ablation block).
+- `python -m pytest -q -W error` → **2616 passed, 87 skipped** (full suite, up from 1647 + 13).
+- `python -m ruff check src tests run_*.py` → *All checks passed!*.
+- `python -m ruff format --check src tests run_*.py` → **95 files already formatted**.
+- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → `src/qtr` = **1055
+  statements, 318 branches, 0 missed, 0 partial, 100.00%**; *"Required test coverage of 100.0%
+  reached. Total coverage: 100.00%"* — unchanged, because nothing under `src/qtr` changed.
+- **The measurement is a read of the frozen artifacts** — no pipeline re-execution, no network, no
+  grid re-run. Every number above was measured from the committed parquet files themselves, and
+  every published value was checked against the artifact that published it.
+- **The negative control is behavioural**, not an API check: the library's own historical source is
+  executed and shown to reproduce the numbers of its era and to fail on the numbers of the next
+  one.
+- **No published verdict moved** — the 37 publishers' verdicts (11 `PASS`, 26 `REJECT`) and their
+  `all_pass` flags are unchanged, and the contract asserts that re-deriving a published number
+  never moves a published verdict.
+
+### What was not changed
+
+- **No published artifact was rewritten.** Every value stays as published. Where a value does not
+  re-derive under the *library's current* behaviour, the convention that explains it is pinned
+  instead — the same discipline §H51 and §H52 used.
+- **No gate threshold, verdict or certified number moved**, and no `passes` key was added, removed
+  or renamed.
+- **Nothing under `src/qtr` changed.** The six convention differences are *disclosed*, not fixed:
+  the library's `sharpe_ratio` is container-independent and population-deviation-based now, its
+  `walk_forward_splits` absorbs the tail, and its CAPM beta uses a consistent `ddof` — each of
+  those is the library's *current, better* behaviour, and the published artifacts are frozen.
+- **No grid was re-run** and no hypothesis was added.
+
+### What remains unresolved
+
+- **The 7 daily-family ablation blocks** (the nested `oos_metrics` shape) are **not quantifiable**
+  from the record: those runners logged no ablation equity curve. Disclosed, not quantified.
+- **The ablation blocks' own trade counts** (`trades` / `oos_trades`) are **not quantifiable**
+  anywhere: an ablation's trade log was never committed. Disclosed, not quantified.
+- **The perturbation and cross-validation blocks** (7 + 7 + 2 summaries) are **not quantifiable**:
+  the perturbed and cross-validated curves were never committed. Disclosed, not quantified.
+- **The 22 published `information_ratio` values** on the sample (`ddof=1`) convention no longer
+  re-derive from the library (§H51); disclosed, not rewritten.
+- **H9's published OOS Sharpe** is on the sample convention (the population convention misses it by
+  **9.7e-05** relative — **1.0e-04** absolute on the `1.056` run); disclosed and pinned, verdict
+  frozen (REJECT on the profit factor).
+- **The three leaky `val_sharpe` values** remain published as they are; the artifacts are frozen
+  and no published gate reads the key.
+- The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified families'
+  numbers and verdicts are frozen.

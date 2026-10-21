@@ -1,7 +1,15 @@
-# HANDOFF_CURRENT — session complete (H52)
+# HANDOFF_CURRENT — session complete (H53)
 
 ## State
 
+- **H53 is COMPLETE** as recorded in `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_NEXT.md` and
+  `HANDOFF_CURRENT_SESSION.md`: every published `metrics` block re-derives from its own frozen
+  artifact, and the convention each publisher used is pinned. The **37** summaries that publish one
+  carry **12 scalars** and **5 structural keys**; all **522** published scalars and regime Sharpes
+  re-derive under the convention their publisher used, to a worst relative residual of
+  **6.494e-11**. The arrangement is pinned by `tests/test_h53_published_metrics_disclosure.py`
+  (974 passed, 69 skipped) — including a **behavioural negative control** that executes the
+  library's *own* historical source.
 - **H52 is COMPLETE** as recorded in `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_NEXT.md` and
   `HANDOFF_CURRENT_SESSION.md`: §H47's cost-attribution disclosure now covers **the whole
   committed record** — **82** trade logs, not the 41 the §H47-era pathspec saw — and every one of
@@ -34,124 +42,95 @@
 - No published artifact, gate threshold, verdict or certified number was modified; no grid was
   re-run; no hypothesis was added.
 
-## What changed (this session — H52)
+## What changed (this session — H53)
 
-- `tests/test_trade_log_cost_reconciliation.py` — the frozen-record section is extended from one
-  artifact to the whole record: **24 new tests** (13 → 37).
-- `FINAL_REPORT.md` — new **§H52** section (with the full 82-row measured table), §H47's two
-  disclosure bullets **corrected**, and the "Next task" and "What remains unresolved" sections
-  updated.
+- `tests/test_h53_published_metrics_disclosure.py` — **new**, **974 passed, 69 skipped**.
+- `FINAL_REPORT.md` — new **§H53** section (with the full per-summary, per-key table), the "Next
+  task" section updated, and the §H50 / §H51 / §H52 "What remains unresolved" bullets corrected
+  where they enumerated the covered scope.
 - `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_CURRENT.md`, `HANDOFF_CURRENT_SESSION.md`,
   `HANDOFF_NEXT.md` updated.
-- **Nothing under `src/qtr` changed.** No artifact, gate threshold, verdict or certified number
-  was modified; no grid was re-run; no hypothesis was added.
+- **Nothing under `src/qtr` changed.** No artifact, gate threshold, verdict or certified number was
+  modified; no grid was re-run; no hypothesis was added.
 
-## What changed (this session — H50)
+## The measured finding (H53)
 
-- `.gitignore` — `*.egg-info/` added.
-- `src/qtr.egg-info/` — **untracked** (`git rm -r --cached`); the files stay on disk (the editable
-  install resolves to them) but they are no longer part of the repository.
-- `tests/test_generated_manifest_contract.py` — **new**, 11 tests.
-- `FINAL_REPORT.md` — new **§H50** section and an updated "Next task" section.
-- `HANDOFF.md`, `HANDOFF_CURRENT.md`, `HANDOFF_CURRENT_SESSION.md`, `HANDOFF_NEXT.md`,
-  `NEXT_TASK.md` updated.
+The `metrics` block is the block that carries the *certified* numbers, and it had never been
+re-derived from the artifact that published it. It re-derives — but only under the convention each
+publisher used, and those conventions are **not** the library's current ones. Six differences were
+measured:
 
-## What changed (this session — H51)
+1. **The Sharpe's deviation convention was the caller's container.** `sharpe_ratio` only became
+   container-independent on 2026-10-17 (commit `9fb26b8`); the H9 family passed a Series (sample
+   deviation) and the H10+ families passed `.values` (population deviation).
+2. **The walk-forward split dropped the tail** until 2026-10-18 (commit `26c6aa6`). Every
+   `wf_stability` published before that commit uses the tail-dropping split; the eight H28 artifacts
+   (2026-10-19) use the tail-absorbing one — the **only** key whose convention is decided by the
+   publication date.
+3. **The published alpha uses the pre-H51 beta** (`np.cov(S, B, ddof=1)[0, 1] / np.var(B, ddof=0)`),
+   which inflates beta by `n / (n - 1)`.
+4. **The published information ratio follows the same container rule.**
+5. **Three H16 artifacts published a `val_sharpe` that leaks the training period** — the Sharpe of
+   `(data start, VAL_END]` instead of `(TRAIN_END, VAL_END]`; they were published before the
+   runner's first committed version bounded the mask. H21 and two H28 runs publish the *OOS* Sharpe
+   under that key and four summaries publish it as `null`. **No published gate reads it.**
+6. **One summary published two Sharpe conventions at once** — the H9 runner computed its *main*
+   block from a Series and its *ablation* block from an ndarray, so the convention is per *call
+   site*, not per family.
 
-- `src/qtr/validation/statistics.py` — `compare_to_benchmark` reduces both sides to plain float
-  numpy arrays once, up front; every standard deviation carries an explicit `ddof`; the excess
-  volatility (and the information ratio) is taken with `ddof=0`. The docstring states the
-  convention and the container-independence contract.
-- `tests/test_h51_benchmark_container_invariance.py` — **new**, 246 tests (12 skipped for documented
-  reasons).
-- `FINAL_REPORT.md` — new **§H51** section, an updated "Next task" section and an updated "What
-  remains unresolved".
-- `HANDOFF.md`, `HANDOFF_CURRENT.md`, `HANDOFF_CURRENT_SESSION.md`, `HANDOFF_NEXT.md`,
-  `NEXT_TASK.md` updated.
+The **negative control** is the library's own historical source, executed: `git show 9fb26b8^`,
+`26c6aa6^` and `85ad85b^`. Each reproduces the numbers of its own era (residual **0.0** for the
+Sharpe and the walk-forward stability) and fails on the numbers of the next one (**9.7e-05** for the
+Sharpe, **1.5e-03** for the H28 walk-forward stability).
 
-## The corrected finding (H52)
-
-§H47's disclosure was narrower than the record on **three** counts. The pathspec
-`".experiments/artifacts/*/trades.parquet"` sees only the logs literally named `trades.parquet`
-(**41** of **82**); the family list named six where the record spans **eleven** plus 44
-exploratory trade logs; and the published numbers were under-counted — **five** summaries publish
-`avg_trade_cost` (not three) and **23** tracker-metadata entries publish the benchmark's (not
-mentioned at all).
-
-All **82** committed trade logs record the **aggregate** attribution. **70** have bars with more
-than one trade, so the attribution changes a number there (repetition factor 1.229953x …
-20.677528x); **7** have only single-trade bars, where the two attributions coincide by
-construction; **5** hold no trade. "Uniform per bar" is the *pre-fix* attribution here on three
-legs: **provenance** (every committed log's run stamp, taken from the artifact id, precedes the
-fix's commit `3fbef17`), the **H27 `L3` charge anchor** (the per-bar charge recomputed from
-`weight_change`/`price`, never from the `cost` column, matches to ~1e-19 for five families), and
-the **engine's own definition**. Uniformity alone is not proof — a per-trade log whose trades
-share a cost looks the same — which is why the provenance leg carries the claim and the negative
-control shows the classifier recognises a per-trade log.
-
-## The corrected finding (H51)
-
-Three container dependencies were in `compare_to_benchmark`, not one: `excess.std()` (`ddof=1` for
-a Series, `ddof=0` for an ndarray), `strat.mean()` / `bench.mean()` (bottleneck's `nansum` is not
-numpy's pairwise sum), and the excess series itself (`Series - Series` aligns on the **index**,
-`ndarray - ndarray` subtracts **positionally**, while the function aligns the two sides by *length*).
-All three are closed by reducing both sides to numpy arrays once, up front.
-
-The enforced convention is **`ddof=0`**, on four measured grounds: it keeps the larger set of
-published numbers unchanged (**26** of **48**), it is this package's own convention
-(`sharpe_ratio` uses `ddof=0`), it preserves the existing `tests/test_runner_metric_agreement.py`
-pin, and it is numpy's default. The **22** published values on the other convention move by
-**+4.371e-05** (n = 11441) and **+1.671e-03** (H23, n = 300) — **disclosed, not rewritten**; no sign
-changes, so no gate outcome moves. No artifact publishes an `excess_vol_annual`.
-
-Two facts worth recording for the next session: an equity curve must be inverted against the
-initial capital (`equity[0] / capital - 1`), because the engine's `equity = (1 + r).cumprod() *
-capital` already carries the first bar's return — `pct_change()` alone loses it; and three families
-published `round(information_ratio, 4)`, whose convention is therefore pinned by the runner's
-**call site** (an expression reaching `.values` hands the library an array) rather than by the data.
+Two facts worth recording for the next session: the H9 family's VIX series is **recoverable** — the
+run's fetch is addressed by the fetcher's own content-addressed cache key
+(`sha256(f"yahoo:^VIX:{start}:{end}:1d")[:16]`), so the exact series it read is in the committed
+cache; and the ablation blocks log their curves under **two different names** (`ablations_<name>_
+equity` for H9, `ablations__<name>__equity` for H10), so a scan that looks for one pattern sees
+only half the record.
 
 ## What was actually verified
 
-- `python -m pytest -q -W error tests/test_trade_log_cost_reconciliation.py` → **37 passed**
-  (13 before this session).
-- `python -m pytest -q -W error` → **1647 passed, 13 skipped** (full suite, up from 1623 + 13).
+- `python -m pytest -q -W error tests/test_h53_published_metrics_disclosure.py` → **974 passed, 69
+  skipped** (the skips name their reason).
+- `python -m pytest -q -W error` → **2616 passed, 87 skipped** (full suite, up from 1647 + 13).
 - `python -m ruff check src tests run_*.py` → *All checks passed!*.
-- `python -m ruff format --check src tests run_*.py` → **94 files already formatted**.
-- **Every H52 number is a read of the frozen artifacts** — no pipeline re-execution, no network,
+- `python -m ruff format --check src tests run_*.py` → **95 files already formatted**.
+- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → `src/qtr` = **1055
+  statements, 318 branches, 0 missed, 0 partial, 100.00%**; *"Required test coverage of 100.0%
+  reached. Total coverage: 100.00%"* — unchanged, because nothing under `src/qtr` changed.
+- **Every H53 number is a read of the frozen artifacts** — no pipeline re-execution, no network,
   no grid re-run — and the negative control is behavioural.
-
-## What was actually verified (H51)
-
-- `python -m pytest -q -W error tests/test_h51_benchmark_container_invariance.py` → **246 passed,
-  12 skipped**.
-- `python -m pytest -q -W error` → **1623 passed, 13 skipped** (full suite, up from 1377 + 1).
-- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → `src/qtr` =
-  **1055 statements, 318 branches, 0 missed, 0 partial, 100.00%**.
-- `python -m ruff check src tests run_*.py` → *All checks passed!*.
-- `python -m ruff format --check src tests run_*.py` → **94 files already formatted**.
-- **The re-derivation is exact** — residual 0.0e+00 for H21/H22/H25, 4.4e-16 for H23, ~1e-15 …
-  ~1e-14 elsewhere; the published `alpha_p_value` re-derives with the same residual.
-- **Negative control** — the reconstructed pre-H51 implementation is container-dependent and
-  reproduces each artifact's published IR *only* under the container its runner passed.
 
 ## What remains unresolved
 
+- **The 7 daily-family ablation blocks** (the nested `oos_metrics` shape) are **not quantifiable**
+  from the record: those runners logged no ablation equity curve. Disclosed, not quantified.
+- **The ablation blocks' own trade counts** (`trades` / `oos_trades`) are **not quantifiable**
+  anywhere: an ablation's trade log was never committed. Disclosed, not quantified.
+- **The perturbation and cross-validation blocks** (7 + 7 + 2 summaries) are **not quantifiable**:
+  the perturbed and cross-validated curves were never committed. Disclosed, not quantified.
 - The **22 published `information_ratio` values on the sample (`ddof=1`) convention** no longer
   re-derive from the library, which now enforces the population convention. They are **disclosed**,
-  not rewritten; the artifacts are frozen and no gate outcome moves.
+  not rewritten; the artifacts are frozen and no gate outcome moves. **Re-measured per family in
+  §H53**, which pins the container rule that produced the split.
 - **The H47 cost-attribution disclosure is RESOLVED (§H52).** The record is **82** trade logs,
   all of them carry the pre-fix attribution, and all of them are pinned; the set where the
-  attribution changes a number (**70**) is pinned separately from the set where it cannot
-  (**7**) and the logs that hold no trade (**5**). The **14** benchmark `avg_trade_cost` entries
+  attribution changes a number (**70**) is pinned separately from the set where it cannot (**7**)
+  and the logs that hold no trade (**5**). The **14** benchmark `avg_trade_cost` entries
   whose benchmark trade log and signals were never committed remain **not quantifiable** from
   the record; they are disclosed, not quantified.
-- **H9's published OOS Sharpe** is on the sample convention (gap 1.026e-04); disclosed and pinned,
-  verdict frozen.
-- **H53 is assigned** — stated in full in `NEXT_TASK.md`: re-derive the published **`metrics` block**
-  of every summary that publishes one from its own frozen artifact, and record the convention each
-  publisher used for every key in it. The measurement behind it: **80** committed `summary.json`
-  files publish about 190 distinct top-level keys; §H49 covered the **5** `validation` blocks, §H51
-  the **48** `information_ratio` values and §H52 the `avg_trade_cost` values — and the rest of the
-  `metrics` block (**37** summaries), which carries the *certified* numbers, has never been
-  re-derived.
+- **H9's published OOS Sharpe** is on the sample convention (gap 1.026e-04 absolute, 9.7e-05
+  relative — re-measured in §H53); disclosed and pinned, verdict frozen.
+- **The three leaky `val_sharpe` values** remain published as they are; the artifacts are frozen and
+  no published gate reads the key.
+- **H54 is assigned** — stated in full in `NEXT_TASK.md`: record the conventions of the
+  **`stats.json` echoes** (**40** files publish the head of a trade log as text, and their
+  `returns` field is a pandas `to_string()` of a return series, so the published numbers are
+  rounded to the display precision and truncated), and close the **14** benchmark `avg_trade_cost`
+  entries whose factor is not measurable from the record. Four passes have now audited disjoint
+  slices of the **80** committed `summary.json` files: §H49 the **5** `validation` blocks, §H51 the
+  **48** `information_ratio` values, §H52 the `avg_trade_cost` values and §H53 the **37**
+  `metrics` blocks.
 - The pre-registered free-data hypothesis space (H1–H30) remains exhausted.
