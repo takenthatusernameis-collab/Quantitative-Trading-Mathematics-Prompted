@@ -322,6 +322,13 @@ class VectorizedBacktester:
         ann_factor = 252  # daily data assumption
 
         # Annualized metrics
+        # The volatility keeps the SAMPLE standard deviation (pandas
+        # `Series.std()`, ddof=1) because that is the convention
+        # qtr.validation.statistics.validate_strategy uses for
+        # `annualized_volatility` and the one every published artifact
+        # records. The Sharpe below uses the POPULATION standard deviation,
+        # exactly as the record does -- the two conventions differ, and
+        # mirroring the record is what makes the two implementations agree.
         gross = 1.0 + total_return
         ann_return = (gross ** (ann_factor / n_periods) - 1) if gross > 0.0 else -1.0
         ann_vol = returns.std() * np.sqrt(ann_factor)
@@ -331,10 +338,31 @@ class VectorizedBacktester:
         metrics["annualized_volatility"] = ann_vol
 
         # Sharpe & Sortino
+        # The Sharpe denominator is the POPULATION standard deviation
+        # (ddof=0), matching qtr.validation.statistics.sharpe_ratio (which
+        # divides by `numpy.ndarray.std()`, ddof=0) and therefore
+        # validate_strategy. The engine used to divide by the SAMPLE standard
+        # deviation (pandas `Series.std()`, ddof=1), so every published
+        # artifact carried TWO Sharpes for one run -- the engine's under
+        # `strategy_metrics` and validate_strategy's under `validation` --
+        # differing by exactly sqrt(n / (n - 1)) (0.02% at n = 2515).
+        # The record's convention is ddof=0: the certified H10-H14 numbers
+        # come from `sharpe_ratio` calls, so the engine is the side that had
+        # to move. The change is a uniform rescaling of every Sharpe
+        # computed from the same number of bars, so it cannot reorder two
+        # strategies compared on the same series, and no certified number,
+        # gate threshold or published verdict depends on it.
+        # See tests/test_engine_metric_agreement.py.
         risk_free = 0.0  # Assume 0 for simplicity
         excess_returns = returns - risk_free / ann_factor
 
-        if returns.std(ddof=0) > 0:
+        # The degenerate-series guard carries the same tolerance as
+        # `sharpe_ratio` (1e-15) instead of testing for an exact zero: a
+        # constant return series has a standard deviation of ~1e-19 from
+        # float noise, not exactly 0.0, so an exact `> 0` test lets it
+        # through and divides by ~1e-19, producing a garbage Sharpe of ~1e16
+        # where validate_strategy reports 0.0.
+        if returns.std(ddof=0) > 1e-15:
             metrics["sharpe"] = excess_returns.mean() / returns.std(ddof=0) * np.sqrt(ann_factor)
         else:
             metrics["sharpe"] = 0.0

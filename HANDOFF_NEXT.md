@@ -1,103 +1,126 @@
-# HANDOFF_NEXT — H38: the engine's `total_return` is fixed; the metric surface is next
+# HANDOFF_NEXT — H39: the package's Sharpe implementations agree; the runners' copies are next
 
 ## What changed (this session)
 
-1. **`src/qtr/backtest/engine.py:312-320`** — `_calculate_metrics` now measures the total
-   return from the **initial capital** (`equity.iloc[-1] / initial_capital - 1`) instead of
-   from `equity.iloc[0]`, which dropped the first bar — the only bar that carries the
-   initial entry cost. The metric now spans every bar of the return series, agrees with
-   `qtr.validation.statistics.validate_strategy` (which computes the same quantity), and
-   makes `annualized_return` the `n`-period annualization of an `n`-period total return.
+1. **`src/qtr/backtest/engine.py:_calculate_metrics`** — two changes, both in the metric
+   surface:
+   - the **Sharpe denominator is now the population standard deviation**
+     (`returns.std(ddof=0)`), matching `qtr.validation.statistics.sharpe_ratio` and therefore
+     `validate_strategy`. The engine used the **sample** std (pandas `Series.std()`, ddof=1), so
+     every artifact with engine metrics published **two different Sharpes for one run**
+     (ratio exactly `sqrt((n-1)/n) = 0.9998011730768697`, n = 2,515);
+   - the **degenerate-series guard** now carries the record's 1e-15 tolerance
+     (`returns.std(ddof=0) > 1e-15`) instead of an exact-zero test. A constant return series has
+     a std of ~2.2e-19 from float noise, so the engine divided by ~1e-19 and reported a garbage
+     Sharpe of **7.3e16** where `validate_strategy` reports 0.0.
 
-2. **`tests/test_engine_total_return_consistency.py`** (new, 13 tests) — the executable
-   contract: the metric against the equity curve and the full return product, the
-   cross-module agreement with `validate_strategy`, the invertibility of the
-   `(total_return, annualized_return)` pair, a negative control that *detects* the pre-fix
-   range, a control that shows the invariant is not over-strict, the published-artifact
-   audit (pre-fix convention, corrected convention and gap, pinned against the five
-   affected artifacts), the "blind to a 205× cost change" pin, and the guard that **no
-   runner reads `metrics["total_return"]`**.
+   `annualized_volatility` is deliberately **unchanged** (sample std, ddof=1): that is the
+   convention `validate_strategy` uses for it and the one every published artifact records.
 
-3. **`FINAL_REPORT.md`** — new §H38 and a rewritten `## Next Task` section; the
-   `Summary statistics` test count is re-baselined (959 → 1115).
+2. **`tests/test_engine_metric_agreement.py`** (55 tests, 6 before this session) — the executable
+   cross-module contract: exact agreement on all six shared metrics across five engine shapes;
+   the engine-only metrics pinned by formula; the convention itself (population-std formula, the
+   exact `sqrt(n/(n-1))` relation, the order-preserving uniform rescaling, the degenerate guard,
+   `annualized_sharpe`'s bar-frequency variant); the published-artifact audit (both conventions,
+   the ratio, the bar count, the reconstruction of each published Sharpe from the artifact's own
+   equity curve, the benchmark block, the bounded +0.0199% effect); the record (H26's per-family
+   convention classification and the H9 disclosure); the certified-numbers guard (the certified
+   runners never read the engine's metric; no runner gates on an engine Sharpe; every engine
+   Sharpe comparison is engine-against-engine); and the negative controls.
 
-4. **`NEXT_TASK.md`**, **`HANDOFF_CURRENT_SESSION.md`**, this file.
+3. **`FINAL_REPORT.md`** — new §H39 and a rewritten `## Next Task` section; the `Summary
+   statistics` test count is re-baselined (1115 → 1170).
 
-No published artifact, gate threshold, verdict, certified number or published row was
-modified; no grid was re-run; no hypothesis was added; `run_*.py` was not touched.
+4. **`NEXT_TASK.md`**, **`HANDOFF_CURRENT_SESSION.md`**, **`HANDOFF_CURRENT.md`**, this file.
+
+No published artifact, gate threshold, verdict, certified number or published row was modified;
+no grid was re-run; no hypothesis was added; `run_*.py` was not touched.
 
 ## What was actually verified
 
-- `python -m pytest -q -W error` → **1115 passed, 1 skipped** (baseline before: 1102
-  passed, 1 skipped).
+- `python -m pytest -q -W error` → **1170 passed, 1 skipped** (baseline before: 1121 passed,
+  1 skipped).
 - `python -m ruff check src tests run_*.py` → *All checks passed!*.
-- `python -m ruff format --check src tests run_*.py` → deviations only on pre-existing
+- `python -m ruff format --check src tests run_*.py` → the only deviation is on pre-existing
   lines of `tests/test_runner_causality_inventory.py` that this session did not touch.
-- `src/qtr` coverage **100%**.
-- **Injected negative control**: re-injecting the pre-fix formula into the engine fails 4
-  of the 13 new tests; the file is restored afterwards.
-- Every number quoted in §H38 is read from the committed artifacts and their committed
-  equity curves — nothing was recomputed by re-running anything.
+- **Injected negative controls**: reverting the Sharpe to the sample std fails **15** of the 55
+  contract tests; reverting only the degenerate-series guard fails **2** of them. The engine is
+  restored afterwards and `git diff` shows only the intended change.
+- Every number quoted in §H39 is read out of the committed artifacts, their committed equity
+  curves and the committed H26 audit — nothing was recomputed by re-running anything.
+- **The direction of the convention change is pinned to the record**: H26's own audit classifies
+  every audited family's published Sharpe as `population_ddof0` with `abs_diff_ddof0 == 0.0`
+  (H10, H21, H22, H23, H25). The engine was the only outlier in the package.
+- The coverage tool (`pytest-cov` / `coverage`) is **not installed in this environment**, so the
+  `src/qtr` 100% figure could not be re-measured here; the engine change adds no new branch (the
+  `> 1e-15` branch is covered by the new degenerate-series tests, the other branch by every other
+  metric test).
 
 ## The finding in one paragraph
 
-The engine's `total_return` dropped the first bar, i.e. the only bar on which the initial
-entry cost is charged, so it measured `n - 1` compounding periods while
-`annualized_return` divided by `n`. The consequence was not cosmetic: one published
-artifact (`exp_2026-10-10T17-05-58-697503Z`) publishes **two different `total_return`
-values for the same run** (1.863359741396068 in `strategy_metrics`, 1.7456586208201519 in
-`validation` — 11.77 pp apart), and the metric was **blind to a 205× change in the cost
-model**: the 2026-10-10 and 2026-10-14 buy-and-hold artifacts publish the *same*
-`total_return` and `annualized_return` to 13 significant digits although the per-trade
-cost fell from 4.11% to 0.02% of capital. The fix aligns the engine with the value the
-artifacts already publish under `validation`; the pre-fix values stay as history and are
-now pinned.
+The engine and `qtr.validation.statistics` divided the mean excess return by *different* standard
+deviations — the engine by the **sample** std (pandas, ddof=1), the library by the **population**
+std (numpy, ddof=0) — so the same run produced two Sharpes, differing by exactly
+`sqrt(n / (n - 1))` (0.02% at n = 2,515). Both were written into the *same* artifact
+(`strategy_metrics` vs `validation`), exactly as H38's `total_return` was. A second,
+independent disagreement sat in the degenerate-series guard: a constant return series has a std
+of ~2.2e-19 from float noise, so the engine's exact-zero test let it through and reported a
+Sharpe of 7.3e16 where the library reported 0.0. Both are fixed; the record's convention
+(population std, already used by every certified family's published Sharpe) is now the only one
+in the package, and no certified number, gate or verdict moves.
 
 ## What remains unresolved (disclosures, not rewrites)
 
+- **H9's published OOS Sharpe is on the sample convention** (1.0563828964274808 vs 1.0564855126690582
+  under the population convention; gap 1.026e-04). H26 excluded H9 from its audit for that
+  reason. The gap cannot move H9's verdict: its margin over its 1.0 Sharpe gate is 5.6e-02 (55×
+  the gap) and its published row is a REJECT on the profit factor.
+- **The runners compute the same metrics a third time** — six near-duplicate `_period_metrics`
+  helpers (H10, H16, H17, H19, H20, H23) whose drawdown uses `cum / cum.cummax() - 1` against
+  the library's `(equity - rolling_max) / rolling_max` (≤ 5.6e-17 apart), plus
+  `run_h26_sharpe_scale_audit.py:303`'s sample-std daily Sharpe. This is the next task.
 - **H18's runner-local `total_return` copy** (`run_h18_overnight_intraday_experiment.py:526`,
-  `:637`) still uses the pre-fix range; the H18 artifacts are frozen, so it stays.
-  Bounded: 6.34 bps on the published full-period `total_return` of the selected row;
-  H18's OOS `total_return` is consistent with its own OOS return series and with the
-  committed equity curve; H18's nine gates do not use `total_return`.
-- **The engine's Sharpe and `statistics.sharpe_ratio` use different conventions**
-  (ddof=1 vs ddof=0) — the next task.
-- The pre-fix `strategy_metrics` / `benchmark_metrics` values of the five affected
-  artifacts are history and are now pinned by tests.
+  `:637`) still uses the pre-H38 range; the H18 artifacts are frozen, so it stays. Bounded: 6.34
+  bps on the published full-period `total_return` of the selected row; H18's OOS `total_return`
+  is consistent with its own OOS return series and with the committed equity curve; H18's nine
+  gates do not use `total_return`.
+- The pre-fix `strategy_metrics` / `benchmark_metrics` values of the five affected artifacts
+  (including their sample-std Sharpes) are history and are now pinned by tests.
 
 ## Approaches already tried / failed (this session)
 
-- **Quantifying the impact by re-running a grid** was not attempted (forbidden, and
-  unnecessary: the committed artifacts *are* the published record).
-- **The "few bps" figure in the previous handoff understated the defect**: the gap is
-  11.77 pp in the pre-cost-fix artifact and 5.73 bps in the current one.
-- **An audit script initially appeared to show H18's OOS block inconsistent with its
-  committed equity curve**; the cause was a slicing mistake in the script (the OOS window
-  is Val **+** Test). With the correct masks every published H18 OOS number reproduces
-  bit-for-bit.
+- **Re-running a grid to quantify the impact was not attempted and is forbidden.** Every number
+  in §H39 is read out of the committed artifacts, their committed equity curves and the committed
+  H26 audit, which is both cheaper and stronger.
+- **"Normalising the volatility convention too" was rejected**: `annualized_volatility` keeps the
+  sample std because that is the convention `validate_strategy` uses for it and the one the
+  published artifacts record; changing it would break the agreement in the other direction and
+  move a published number for no reason.
+- **Rewriting the runners' local metric helpers in place was rejected**: the artifacts are
+  frozen, so a rewritten helper would no longer reproduce them. The copies are to be classified
+  and pinned, not replaced.
 
 ## Precise next task (one task)
 
-**Make the package's two Sharpe implementations agree, and extend the H38 cross-module
-agreement contract to every metric the package computes twice.**
+**Extend the metric-agreement contract from the library to the runners' own metric
+implementations — the six near-duplicate `_period_metrics` helpers and their siblings.**
 
-*Evidence.* Comparing the engine's `metrics` with `validate_strategy`'s output (which the
-H38 fix required) exposed the next discrepancy: the engine computes the Sharpe with the
-**sample** std (pandas, ddof=1) and `qtr.validation.statistics.sharpe_ratio` with the
-**population** std (numpy, ddof=0). The two differ by exactly `sqrt(n / (n - 1))` —
-measured as `strategy_metrics.sharpe / validation.sharpe = 0.999801173` in all five
-artifacts with engine metrics (n = 2,515) — so those artifacts also publish two different
-Sharpes for one run. The record's convention is ddof=0 (the certified H10–H14 numbers come
-from the runners' `sharpe_ratio` calls, and the gates are evaluated on those), so the only
-admissible direction is **engine → ddof=0**: a 0.02% change to reported Sharpes, with no
-certified number moving. Note that 11 runners read `result.metrics["sharpe"]`, two of them
-for a "beats benchmark" comparison — both sides of that comparison come from the engine,
-so a uniform convention change cannot flip it, but the cross-module comparison can and
-must be pinned.
+*Evidence.* The repository computes the Sharpe, the profit factor and the max drawdown a third
+time, in the runners: `run_h10_intraday_tsmom_pfopt_experiment.py:243`,
+`run_h16_factor_timing_experiment.py:218`, `run_h17_vrp_experiment.py:157`,
+`run_h19_volume_predictive_experiment.py:192`, `run_h20_signed_volume_experiment.py:211` and
+`run_h23_crypto_futures_tsmom.py:245` each carry their own `_period_metrics(ret, n_trades)`.
+Their Sharpe and profit factor match the library exactly; their **max drawdown uses a different
+formula** (`cum / cum.cummax() - 1` against the library's
+`(equity - rolling_max) / rolling_max`), a difference of up to 5.6e-17 measured over 200 random
+equity curves. `run_h26_sharpe_scale_audit.py:303` publishes a daily Sharpe on the **sample**
+convention (the same split H39 just closed in the engine), and
+`run_cs_momentum_experiment.py:383` computes a local information ratio on the population
+convention (consistent with `compare_to_benchmark`, but unpinned).
 
-*Deliverable.* An executable contract that, for every metric the package computes twice
-(Sharpe, Sortino, profit factor, max drawdown, annualized return and volatility, total
-return), asserts either exact agreement between the engine and `validate_strategy`, or
-pins the documented difference with its exact formula and its bounded effect on the
-published artifacts; plus the decision on which Sharpe convention the package uses, applied
-in the direction that changes no certified number.
+*Deliverable.* An executable contract in the style of
+`tests/test_engine_metric_agreement.py` and `tests/test_runner_causality_inventory.py`: an
+inventory of every metric the runners compute locally, classified and pinned, where each entry
+asserts exact agreement with the library or pins the documented difference with its exact
+formula and its bounded effect on the published artifacts. A new runner-local metric helper must
+fail the suite.

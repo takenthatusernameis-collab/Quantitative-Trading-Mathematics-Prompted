@@ -1,102 +1,102 @@
-# HANDOFF_CURRENT — session complete (H37)
+# HANDOFF_CURRENT — session complete (H39)
 
 ## State
-- **H37 is COMPLETE** as recorded in `NEXT_TASK.md`, `HANDOFF_NEXT.md` and
-  `HANDOFF_CURRENT_SESSION.md`: the **runners' inline signal code** is now pinned by an
-  executable **point-in-time (no look-ahead) invariant**, and one new look-ahead was found
-  and disclosed.
-- **H36 is COMPLETE** as recorded in `NEXT_TASK.md`, `HANDOFF_NEXT.md` and
-  `HANDOFF_CURRENT_SESSION.md`: the shared research infrastructure (`qtr.strategies` +
-  `qtr.backtest`) is pinned by an executable point-in-time invariant, and the test suite runs
-  from a bare clone with no install step.
-- **H35 is COMPLETE** as recorded in `NEXT_TASK.md`, `HANDOFF.md` and `HANDOFF_NEXT.md`.
-- Every gate defect class that has surfaced in this repository is now closed by an
-  executable invariant: H33 (vacuous benchmark gates), H34 (direction-blind benchmark
-  gate), H35 (non-evaluating gates: a constant, or a comparison against a placeholder).
-- The H35 audit found **three** non-evaluating gates — H7's `min_perturbed_sharpe_ratio`
-  and `min_worst_regime_sharpe` (hard-coded `True`) and H18's `perturbation_ratio` (a
-  placeholder constant) — and **one** latent permissive default (H4/H5/H6 read the IR
-  threshold as `GATES.get("min_information_ratio", -1e18)`), now fixed.
-- **No certified family owns a non-evaluating gate.** The certified families (H9, H10,
-  H11, H12, H21, H22, H25) and every other family evaluate all of their gates.
+- **H39 is COMPLETE** as recorded in `NEXT_TASK.md`, `HANDOFF_NEXT.md` and
+  `HANDOFF_CURRENT_SESSION.md`: the package's **two Sharpe implementations now agree**, and the
+  cross-module agreement contract covers **every metric the package computes twice**.
+- **H38 is COMPLETE** as recorded in `NEXT_TASK.md`, `HANDOFF_NEXT.md` and
+  `HANDOFF_CURRENT_SESSION.md`: the engine's `total_return` spans every bar.
+- **H35, H36, H37 and the remaining-runner extension are COMPLETE**: every gate defect class that
+  has surfaced is closed by an executable invariant, and the point-in-time invariant covers every
+  `run_*.py` in the repository.
 - No published artifact, gate threshold, verdict, certified number or published row was
   modified; no grid was re-run; no hypothesis was added.
 
-## What changed (this session — H37)
-- `tests/test_runner_causality_inventory.py` (new, 179 tests) — the executable
-  **point-in-time invariant for the runners' inline signal code**:
-  - all **137** module-level functions of **13** runners (`run_h9/h10/h12/h16/h18/h19/h20/
-    h21/h22/h23/h25/h27/h29`) classified as `probed` (36) / `lookahead` (7) / `static` (94)
-    and pinned — **a new function in an in-scope runner fails the suite**;
-  - **53 future-perturbation probe cases** (dense per-bar sweep + sparse sweep at the
-    runners' lookbacks, two negative controls, non-vacuity) + 2 day-aligned collapse probes;
-  - an exhaustive, **pinned** AST sweep for negative shifts, backward periods, centred
-    windows, backward fills and same-period collapses;
-  - the known look-aheads are pinned as **detections**, so a disclosure cannot be silently
-    dropped and a defect cannot be silently repaired.
-- `FINAL_REPORT.md` §H37 + the re-baselined `Summary statistics` and `Next Task` sections,
+## What changed (this session — H39)
+- `src/qtr/backtest/engine.py` (`_calculate_metrics`) — the Sharpe denominator is now the
+  **population** standard deviation (`returns.std(ddof=0)`), matching
+  `qtr.validation.statistics.sharpe_ratio` and therefore `validate_strategy`; and the
+  degenerate-series guard now carries the record's **1e-15 tolerance** instead of an exact-zero
+  test. The `annualized_volatility` convention (sample std, ddof=1) is deliberately **unchanged** —
+  it is the convention the record and the published artifacts use.
+- `tests/test_engine_metric_agreement.py` (55 tests; 6 before this session) — the executable
+  **cross-module metric-agreement contract**:
+  - exact agreement between the engine and `validate_strategy` for all six shared metrics, across
+    single/multi-symbol, short, degenerate-flat, two-bar and total-loss (`gross == 0`) cases;
+  - the engine-only metrics (Sortino, Calmar, max-drawdown duration, average trade cost) pinned
+    by their exact formula, with their absence from `validate_strategy` asserted;
+  - the convention itself: the population-std formula, the exact `sqrt(n / (n - 1))` relation to
+    the sample-std formula, the uniform (order-preserving) rescaling, the degenerate-series
+    guard, and `annualized_sharpe`'s bar-frequency variant as a documented difference;
+  - the **published-artifact audit**: both conventions, the ratio, the bar count (2,515), the
+    reconstruction of each published Sharpe from the artifact's own equity curve, the benchmark
+    block, the volatility convention and the bounded effect (+0.0199%);
+  - the **record**: H26's per-family convention classification (every audited family is
+    `population_ddof0`, bit-exactly) and the H9 disclosure;
+  - **negative controls**: the contract rejects the pre-fix Sharpe and the pre-fix
+    `total_return`.
+- `FINAL_REPORT.md` §H39 + the re-baselined `Summary statistics` and `Next Task` sections,
   `NEXT_TASK.md`, `HANDOFF_NEXT.md`, `HANDOFF_CURRENT_SESSION.md`, this file.
-- No `src/qtr` source file was changed; no published artifact, gate threshold, verdict,
-  certified number or published row was modified; no grid was re-run.
+- No `run_*.py` was touched; no published artifact, gate threshold, verdict, certified number or
+  published row was modified; no grid was re-run.
 
 ## What was actually verified
-- Baseline (before this session): `python -m pytest -q` → **780 passed, 1 skipped**.
-- After: `python -m pytest -q` → **959 passed, 1 skipped** in 182 s (780 + the 179 new
-  tests; the skip is the pre-existing `buy_and_hold` skip in H36's module).
+- Baseline (before this session): `python -m pytest -q -W error` → **1121 passed, 1 skipped**.
+- After: `python -m pytest -q -W error` → **1170 passed, 1 skipped** in 268 s (1121 + the 49 new
+  H39 tests; the skip is the pre-existing `buy_and_hold` skip in H36's module).
 - `python -m ruff check src tests run_*.py` → *All checks passed!*.
-  `python -m ruff format --check src tests run_*.py` → *82 files already formatted*.
-- `src/qtr` untouched → its coverage is unchanged at **100%**.
-- **Injected negative controls** (into the runners, then restored; `git diff` on both files
-  is empty): a `shift(-1)` in `run_h19_…:build_targets` → **8 tests fail**; a *non-leak*
-  control (`prices.shift(skip)` → `prices` in `run_h16_…:factor_momentum`, which still only
-  reads `price[t]`) → **all 14 H16 tests still pass**, so the invariant is not over-strict.
-- The published intraday look-ahead is detected **from the runners' own code**
-  (`build_hourly_target` in H10/H23: 76/79 dense cuts, 9/9 sparse cuts), not from a copy.
-- The H18 disclosure is checked against the committed artifact: the published selection was
-  the causal `prior_5d_return_sign_next_intraday` (Val Sharpe 0.9797), the two leaky cells
-  scored 0.4710 / 0.5801, and the published verdict is REJECT — no published number or
-  verdict changes. The selection is pinned by a test.
+  `python -m ruff format --check src tests run_*.py` → the only deviation is on pre-existing
+  lines of `tests/test_runner_causality_inventory.py` that this session did not touch (ruff
+  0.17.1 style drift); every line this session added is format-clean.
+- **Injected negative controls** (into the engine, then restored; `git diff` shows only the
+  intended change): reverting the Sharpe to the sample std fails **15** of the 55 contract tests;
+  reverting only the degenerate-series guard to an exact-zero test fails **2** of them.
+- The **direction of the change is pinned to the committed record**, not to an assertion made
+  here: H26's own audit (`.experiments/artifacts/h26_sharpe_scale/summary.json`) classifies every
+  audited family's published Sharpe as `population_ddof0` with `abs_diff_ddof0 == 0.0`.
+- No published number was recomputed by re-running anything: every figure is read out of the
+  committed artifacts, their committed equity curves and the committed H26 audit.
 
 ## What remains unresolved
-- **The remaining runners are not covered** by a generic causality probe (`run_experiment.py`,
-  `run_baseline.py`, `run_param_sweep.py`, `run_alternatives.py`, the cs/ts/ddcv/futures/h6/
-  h7/h8 runners, `run_h1/h11/h13/h17_*` and the H25–H36 audit runners).
-- **The *predictor timing* class is audited only in H18 so far.** H29 classified the
-  **collapse** constructions of the remaining families as CAUSAL; it did not audit whether a
-  family's *predictor* reads its own bar's close while trading that bar's return — the class
-  H37 found a new instance of in H18. The same defect is plausible elsewhere and is
-  invisible to every test in the repository.
-- The engine's `metrics["total_return"]` excludes the first bar and is therefore inconsistent
-  with its own equity curve and with `annualized_return`'s period count. **Disclosure only**:
-  `metrics` values are in published artifacts and the record is frozen.
-- `DataFetcher.fetch_sp500_constituents(date=...)` silently ignores `date` and returns the
-  *current* constituent list — a latent survivorship-bias footgun; no runner calls it (and,
-  unlike the item above, it **can** be fixed).
-- The pre-registered free-data hypothesis space (H1–H30) remains exhausted and the
-  certified families' numbers and verdicts are frozen.
+- **The runners compute the same metrics a third time.** Six near-duplicate `_period_metrics`
+  helpers (H10, H16, H17, H19, H20, H23) re-implement the Sharpe, the profit factor and the max
+  drawdown; their drawdown uses `cum / cum.cummax() - 1` against the library's
+  `(equity - rolling_max) / rolling_max` (≤ 5.6e-17 apart), and
+  `run_h26_sharpe_scale_audit.py:303` publishes a daily Sharpe on the **sample** convention.
+  This is the next task.
+- **`run_h18_overnight_intraday_experiment.py:526,637`** — the runner-local `total_return` copy
+  still uses the pre-H38 range; the H18 artifacts are frozen, so it stays. Bounded: 6.34 bps on
+  the published full-period `total_return` of the selected row; H18's OOS `total_return` is
+  consistent with its own OOS return series and with the committed equity curve; H18's nine gates
+  do not use `total_return`.
+- **H9's published OOS Sharpe is on the sample convention** (gap 1.026e-04 against a 5.6e-02
+  margin over its 1.0 gate; the published row is a REJECT on the profit factor). Disclosed and
+  pinned; the H9 artifact is frozen.
+- The pre-fix `strategy_metrics` / `benchmark_metrics` values of the five affected artifacts
+  (including their sample-std Sharpes) are the historical record of the runs as executed; they
+  are now pinned by tests.
+- The pre-registered free-data hypothesis space (H1–H30) remains exhausted and the certified
+  families' numbers and verdicts are frozen.
 
 ## Approaches already tried / failed (and why)
-- **Probing `_apply_exits_and_aggregate` (H21/H22/H25) positionally was abandoned**: the exit
-  state machine is *sticky* (it holds the size it entered with), so a positional probe of the
-  position series cannot see a look-ahead in its input target; and `vol_scaled_tsmom_hourly`'s
-  252-bar lookback is not configurable through the frozen `SEL`, so a reduced dense sample
-  would make the probe vacuous. The **call graph** is the pin instead.
-- **A single "collapse" contract was rejected**: the published collapse and H27's causal
-  collapse are correct on their own daily grid; the look-ahead is created by *expanding* the
-  daily value back over the same day, which only a probe on the hourly grid can see.
-- **Quantifying the H18 inflation by re-running the two affected cells was not attempted**: the
-  SPY/QQQ/IWM/^VIX daily bars are not identifiable in the local cache by symbol and
-  re-running a grid is forbidden, so the disclosure stays *structural* and *bounded* by the
-  committed artifact.
-- **Repairing the disclosed gates for real was rejected**: it needs the H7/H18 grids re-run
-  (forbidden) and would change published tallies. They are disclosed and pinned instead.
-- **Re-deriving the intraday Sharpe scale was not attempted**: H26 already audited it and
-  concluded the mis-scaling understates the intraday family and invalidates no verdict.
+- **Re-running a grid to quantify the impact was not attempted and is forbidden.** Every number
+  is read out of the committed artifacts, their committed equity curves and the committed H26
+  audit, which is both cheaper and stronger (the artifacts *are* the published record).
+- **The "fix the volatility convention too" option was rejected**: `annualized_volatility` keeps
+  the sample std (ddof=1) because that is the convention `validate_strategy` uses for it and the
+  one the published artifacts record; changing it would break the agreement in the other
+  direction and move a published number for no reason.
+- **Rewriting the runners' local metric helpers in place was rejected**: the artifacts are
+  frozen, so a rewritten helper would stop reproducing them. The runners' copies are to be
+  classified and pinned, not replaced.
+- **The coverage figure could not be re-measured in this session** (`pytest-cov`/`coverage` are
+  not installed in this environment); the branch argument in §H39 replaces it, and the
+  environment gap is recorded rather than papered over.
 
 ## Precise next task (one task), with evidence and constraints
-- **Extend the point-in-time invariant to the *remaining* runners, and audit the predictor
-  timing (not just the collapse construction) in the families H29 certified as CAUSAL** —
-  see `NEXT_TASK.md` for the full statement, the inventory to build and the constraints. Any
-  follow-up must not modify published artifacts, gates, thresholds, verdicts or certified
-  numbers; must not re-run grids; must follow the "change approach after repeated failure"
-  rule; and must preserve the existing invariants.
+- **Extend the metric-agreement contract from the library to the runners' own metric
+  implementations** — the six `_period_metrics` helpers and the inline drawdown/profit-factor
+  computations — see `NEXT_TASK.md` for the full statement, the inventory to build and the
+  constraints. Any follow-up must not modify published artifacts, gates, thresholds, verdicts or
+  certified numbers; must not re-run grids; must follow the "change approach after repeated
+  failure" rule; and must preserve the existing invariants.

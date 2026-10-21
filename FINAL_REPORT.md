@@ -485,8 +485,8 @@ control), the verdict rule and the pre-registration itself.
 - **5 certified edges** (H10/H11/H12/H22/H25) — all variants of the same intraday futures TSMOM mechanism (**H27: the edge is a one-day look-ahead; H28: re-certified under a causal collapse and `CAUSAL_REJECTED` — 3/8 to 4/9 gates, OOS Sharpe 0.13–0.39; H29/H30: the daily/monthly families are `CAUSAL` on the committed artifacts, including H7 once its artifact was committed, while H11/H12 inherit H10's look-ahead positions and H23 uses the same collapse — so **no certified edge in this record survives a causal construction**); of these H22 has the strongest Sharpe (9/9 gates, OOS Sharpe 1.372, PF 1.334, DD −11.9%) and H25 the strongest PF margin (9/9 gates, OOS Sharpe 1.324, PF 1.320, DD −11.9% at 26.25% ann vol); both are *qualified* by an i.i.d. bootstrap CI whose lower bound sits below the PF gate, and the pre-registered block-bootstrap sensitivity confirms the PF fragility is not an i.i.d. artifact. (H26: the published Sharpe is a √252-per-bar metric — the annualized values are 2.55×–4.76× higher; the *PF* qualification is unaffected because PF is scale-invariant.)
 - **19 rejected** hypotheses, each with a documented root-cause attribution in `HYPOTHESIS_SPEC.md` and `INEFFICIENCY_RANKING.md`.
 - **Total compute:** ~2.5 CPU-h across all hypotheses (well within the ≤ 2 CPU-h per-hypothesis budget; the largest single run was H12 at 0.652 CPU-h). The H25 Robustness audit added 0.0002 CPU-h; the H26 scale audit added 0.0005 CPU-h; the H27 level/look-ahead audit added 0.0014 CPU-h (5 bit-exact rebuilds, no grid re-run); the **H28 causal re-certification added 1.885 CPU-h** (8 runs: 4 controls + 4 causal, the 13,824-combo H10 grid run twice); the **H29/H30 look-ahead sweep added 0.0002 CPU-h** (8 bit-exact rebuilds of the *selected* configurations, one counterfactual, no grid re-run).
-- **Test suite:** 1115 passing, 1 skipped (including the 17-test H25 Robustness audit — 12 i.i.d. bootstrap + 5 block-bootstrap sensitivity — the 23-test H25 regression set, the 44-test H26 scale-audit set, the 36-test H27 level-audit set, the 47-test H28 re-certification set and the 36-test H29 sweep set, plus the 2 new H31 `compare_to_benchmark` DataFrame/ndarray regression tests, plus the 6 new H32 `deflated_sharpe_ratio` + `purged_kfold_splits`/`combinatorial_purged_cv` regression tests, plus the 12 new H33 benchmark-contract tests, plus the 10 new H34 direction-aware benchmark-gate tests, plus the 11 new H35 gate-vacuity contract tests and the 1 new H35 one-sided-vs-gate non-equivalence test, plus the 30 new H36 point-in-time contract tests, plus the 179 new H37 runner-causality inventory tests, plus the 13 new H38 engine-metric-consistency tests; the single skip is `buy_and_hold`, a constant position that cannot react to a perturbation).
-- **Coverage (corrected by H33, re-measured by H34 and H38):** the H33 baseline of **94%** was caused by the dead `deflated_sharpe_ratio` body (16 uncovered statements in `src/qtr/validation/statistics.py`). H34 **deleted** that dead code (it was not exported, had no caller and duplicated `run_h12_selection_bias_audit.py:deflated_sharpe_ratio` with the same `max_z` formula), and the measured coverage is now **100%** — `src/qtr` has **1014 statements, 0 missed** (`python -m pytest --cov=qtr --cov-report=term-missing`), with H34's new gate helper fully covered and H38's engine change adding no new branch. (The H32 handoff's "99%, one uncovered branch" claim was wrong: its named guard — the `walk_forward_splits` empty-window branch at `statistics.py:159-160` — is covered by `tests/test_statistics.py:185`.)
+- **Test suite:** 1170 passing, 1 skipped (including the 17-test H25 Robustness audit — 12 i.i.d. bootstrap + 5 block-bootstrap sensitivity — the 23-test H25 regression set, the 44-test H26 scale-audit set, the 36-test H27 level-audit set, the 47-test H28 re-certification set and the 36-test H29 sweep set, plus the 2 new H31 `compare_to_benchmark` DataFrame/ndarray regression tests, plus the 6 new H32 `deflated_sharpe_ratio` + `purged_kfold_splits`/`combinatorial_purged_cv` regression tests, plus the 12 new H33 benchmark-contract tests, plus the 10 new H34 direction-aware benchmark-gate tests, plus the 11 new H35 gate-vacuity contract tests and the 1 new H35 one-sided-vs-gate non-equivalence test, plus the 30 new H36 point-in-time contract tests, plus the 179 new H37 runner-causality inventory tests, plus the 13 new H38 engine-metric-consistency tests, plus the 49 new H39 cross-module metric-agreement tests; the single skip is `buy_and_hold`, a constant position that cannot react to a perturbation).
+- **Coverage (corrected by H33, re-measured by H34 and H38):** the H33 baseline of **94%** was caused by the dead `deflated_sharpe_ratio` body (16 uncovered statements in `src/qtr/validation/statistics.py`). H34 **deleted** that dead code (it was not exported, had no caller and duplicated `run_h12_selection_bias_audit.py:deflated_sharpe_ratio` with the same `max_z` formula), and the measured coverage is now **100%** — `src/qtr` has **1014 statements, 0 missed** (`python -m pytest --cov=qtr --cov-report=term-missing`), with H34's new gate helper fully covered and H38's engine change adding no new branch. (The H32 handoff's "99%, one uncovered branch" claim was wrong: its named guard — the `walk_forward_splits` empty-window branch at `statistics.py:159-160` — is covered by `tests/test_statistics.py:185`.) H39's engine change is one condition plus comments: its `> 1e-15` branch is covered by the new degenerate-series tests and the other branch by every other metric test, so no new branch is introduced. *(The coverage tool is not installed in the H39 session's environment, so the 100% figure could not be re-measured there; the branch argument replaces it.)*
 - **Benchmark gates (H33 + H34 + H35):** three published benchmark gates were vacuous (H4's `p`, H18's `benchmark_p`, H7's `max_p_value`/`min_information_ratio`) because the runner read a key the library never returns, passed a boolean mask as `risk_free`, or compared returns against **price levels**. They are repaired and pinned by an executable contract; the recomputed tallies are H4 1/8 (unchanged), H7 5/9 (published 4/9), H18 3/9 (published 2/9); no verdict changes. The pre-registered gate was also *direction-blind* — it is satisfied by a significantly **negative** alpha. **H34 re-specified it** (`p < 0.05` **and** a positive excess return), closed it in the code for all 17 runners and disclosed the impact: four published artifacts (H3, H19, H20, H23) carry a wrong-reason `p` PASS; the certified families (H10, H22, H25) survive; no published row, threshold, verdict or certified number changes. **H35 audited the remaining gate class** — gates that are a constant, or that compare a placeholder, and can therefore never fail — and found three of them: **H7's** `min_perturbed_sharpe_ratio` and `min_worst_regime_sharpe` (hard-coded `True`) and **H18's** `perturbation_ratio` (a placeholder constant). Both families are REJECT, so no published verdict rests on them (H7's published 4/9 is 2/7 on the evaluable gates; H18's published 2/9 is 1/8). Three runners (H4/H5/H6) also read their IR threshold through a permissive default (`GATES.get(..., -1e18)`), which is now a direct subscript so a missing threshold fails loudly. No certified family has a non-evaluating gate.
 - **Structural walls on free data:** (a) yfinance hourly `=F` hard-capped at ~730 days (no bars beyond 2026-10-11); (b) Coinbase/CCXT hourly OHLCV capped at ~12 days; (c) the joint Sharpe ≥ 1.0 ∧ DD ≤ 15% gate met by no long-only free-data equity family; (d) PF ≥ 1.3 is fragile across the entire intraday-futures-carry family (H13/H14 for H10; H21 for the basket; H22 margin +0.034; H25 margin +0.020 — all CI-fragile, P(PF≥1.3)≈0.5–0.62 on the free window). **Corrected by H26:** the *Sharpe* side of (c)/(d) is not a further blocker — the published intraday Sharpe is a √252-per-bar metric, and on the repo's own annualization convention the certified family's Sharpe CI lower bound is 2.25 ≫ 1.0. The binding constraint is the **PF bootstrap margin plus the 730-day sample**, both of which are scale-invariant.
 
@@ -612,12 +612,12 @@ definition is pre-registered and is **not** changed here; it is the next task.
 
 ---
 
-## Next Task (updated 2026-10-20, after H38)
+## Next Task (updated 2026-10-21, after H39)
 
 **H34 and its follow-up are complete, H35 has closed the last open gate-defect class, H36 has
 closed the point-in-time gap in the shared infrastructure, H37 has closed it in the
-runners' inline signal code, and H38 has closed the last open metric defect — the engine's
-`total_return`, which measured the wrong horizon.** The three items H34 left behind were finished in the session
+runners' inline signal code, H38 has closed the `total_return` horizon defect, and H39 has closed
+the last open metric defect — the package's two Sharpe implementations disagreed.** The three items H34 left behind were finished in the session
 that followed it (the artifact-adjacent assertions for H20 and H23 now assert the *disclosed*
 state, the tally impact is pinned in `tests/test_benchmark_gate_contract.py`, and the
 `Summary statistics` bullets were re-baselined); **H35** then audited the remaining gate
@@ -628,27 +628,28 @@ engine; **H37** extended the same contract to the runners' own position series, 
 **found one look-ahead the record did not state** (H18's `vix_regime` predictor, below); **H38**
 found that the engine's `total_return` dropped the first bar — the only bar that carries the
 initial entry cost — so that the metric was blind to a 205× change in the cost model, and fixed
-it (see §H38).
+it (see §H38); **H39** found that the engine's Sharpe used the *sample* standard deviation while
+the record's `sharpe_ratio` uses the *population* one, so that every artifact with engine
+metrics published **two different Sharpes for one run**, and closed it (see §H39).
 
 **One task is assigned** (stated in full in `NEXT_TASK.md`):
 
-> **Extend the point-in-time invariant from the eleven audited runners to the remaining
-> runners, and audit the *predictor timing* (not just the collapse construction) in the
-> families H29 certified as CAUSAL.** H37 covered `run_h9/h10/h12/h16/h18/h19/h20/h21/h22/h23/
-> h25/h27/h29`; the remaining runners — `run_experiment.py`, `run_baseline.py`,
-> `run_param_sweep.py`, `run_alternatives.py`, `run_cs_momentum_experiment.py`,
-> `run_ts_momentum_experiment.py`, `run_ddcv_experiment.py`,
-> `run_futures_tsmom_experiment.py`, `run_h6_vix_ddcv_experiment.py`,
-> `run_h7_intraday_tsmom_experiment.py`, `run_h8_rolladjusted_tsmom_experiment.py`,
-> `run_h1_*`, `run_h11_*`, `run_h13_*`, `run_h17_*` and the H25–H36 audit runners — still
-> build position series inline with no generic coverage. H29's sweep classified the
-> *collapse* constructions of the remaining families as CAUSAL; it did **not** audit the
-> *information timing of the predictors themselves*, which is the class H37 found a new
-> instance of in H18. Deliver the same inventory-and-probe treatment for the remaining
-> runners, and report every predictor that reads its own bar's close while trading that
-> bar's return.
+> **Extend the metric-agreement contract from the library to the runners' own metric
+> implementations — the six near-duplicate `_period_metrics` helpers and their siblings.**
+> H39 closed the disagreement *inside* `src/qtr` (the engine vs `validate_strategy`). The
+> repository still computes the same metrics a **third** time, in the runners: H10, H16, H17,
+> H19, H20 and H23 each carry their own `_period_metrics(ret, n_trades)` that re-implements the
+> Sharpe, the profit factor and the max drawdown, and `run_h26_sharpe_scale_audit.py:303`
+> computes a *daily* Sharpe with the sample std while the library uses the population std.
+> The six helpers' Sharpe and profit factor match the library exactly, but their max drawdown
+> uses a different formula (`cum / cum.cummax() - 1` against the library's
+> `(equity - rolling_max) / rolling_max`), which differs in the last ulp (≤ 5.6e-17 measured).
+> Build the same inventory-and-probe treatment H37 built for the causality axis: classify every
+> runner-local metric computation, assert its agreement with the library or pin its documented
+> difference with the exact formula, and report any metric the runners publish on a convention
+> the library does not use.
 
-*(This task was assigned after H37 and **completed** in the session that followed it: all 32
+*(The task above was assigned after H38 and **completed** in the session that followed it: all 32
 `run_*.py` files are now in scope of `tests/test_runner_causality_inventory.py` and every
 predictor of the H29-CAUSAL families is probed clean. The bullet above is kept as the record of
 what was assigned.)*
@@ -673,6 +674,12 @@ The state a next session inherits:
   functions of the package can no longer disagree), and
   `DataFetcher.fetch_sp500_constituents(date=...)` no longer silently returns the *current*
   constituent list (a historical `date` raises `ValueError`, and the branch is tested).
+- The **metric surface** of the library is now internally consistent and pinned (§H39): the
+  engine and `validate_strategy` agree exactly on all six shared metrics, the Sharpe convention
+  is the record's (population std, ddof=0) and is pinned to H26's own per-family
+  classification, and the one published family on the other convention (H9) is disclosed and
+  bounded. Keep it that way: re-run `tests/test_engine_metric_agreement.py` after any change to
+  `_calculate_metrics` or to `qtr.validation.statistics`.
 
 Constraints carried forward: no published artifact, gate threshold, verdict or certified number
 may be modified; no grid may be re-run; every recomputed number is a disclosure; the pre-existing
@@ -1532,3 +1539,178 @@ H18 artifacts are frozen, so the copy stays; the effect is bounded and pinned:
 
 **Nothing published was touched:** no published artifact, gate threshold, verdict, certified number
 or published row was modified; no grid was re-run; no hypothesis was added.
+
+---
+
+## H39 — the package's two Sharpe implementations disagreed (2026-10-21)
+
+**Verdict: a real defect, found and fixed in the library. No published number, gate, verdict or
+certified number changed; one published disclosure (H9's Sharpe convention) is recorded and
+pinned.**
+
+### The gap
+
+H38 closed the last open *metric* defect (the engine's `total_return` horizon) and left exactly
+one task: *"make the package's two Sharpe implementations agree, and extend the H38 cross-module
+agreement contract to every metric the package computes twice"* (`NEXT_TASK.md`).
+
+### The defect
+
+`src/qtr/backtest/engine.py:_calculate_metrics` divided the mean excess return by the **sample**
+standard deviation (pandas `Series.std()`, ddof=1), while
+`qtr.validation.statistics.sharpe_ratio` divides by the **population** standard deviation
+(`numpy.ndarray.std()`, ddof=0). The two differ by exactly `sqrt(n / (n - 1))`, so the same run
+produced two Sharpes — one per implementation.
+
+This is the same class of defect as H38's `total_return`: **one package, one run, two numbers**,
+and the two numbers were written into the *same* artifact.
+
+### The evidence (all of it inside the committed artifacts)
+
+The five artifacts that carry engine-produced metrics publish the engine's Sharpe under
+`strategy_metrics` and `validate_strategy`'s under `validation` (n = 2,515 bars in all five):
+
+| Artifact | `strategy_metrics.sharpe` | `validation.sharpe` | ratio | `sqrt((n-1)/n)` |
+|---|---|---|---|---|
+| `exp_2026-10-10T17-02-22-080026Z` (MA crossover) | −1.2468485134505827 | −1.2470964698045208 | 0.9998011730768694 | 0.9998011730768697 |
+| `exp_2026-10-10T17-03-39-610858Z` | −1.040271567653521 | −1.0404784427808826 | 0.9998011730768697 | " |
+| `exp_2026-10-10T17-04-21-400695Z` | −2.592235014999521 | −2.5927505236085744 | 0.9998011730768697 | " |
+| `exp_2026-10-10T17-05-58-697503Z` (buy & hold) | 0.6596071358231974 | 0.6597383095613587 | 0.9998011730768697 | " |
+| `exp_2026-10-14T08-26-02-537359Z` (buy & hold, re-run) | 0.6845946588741453 | 0.6847308017926383 | 0.9998011730768697 | " |
+
+The ratio is the *same* number in all five, and it is exactly `sqrt((n-1)/n)`. Each artifact
+therefore published **two different Sharpes for one run** — the same defect H38 found for
+`total_return`, and invisible in the same way (the two blocks sit next to each other and are
+read as if they were the same measurement).
+
+**The reconstruction confirms the direction.** Each published Sharpe is reproducible from the
+artifact's *own* equity curve under exactly one convention, and only that one:
+
+| Artifact | published `strategy_metrics.sharpe` | reproduced with **sample** std (ddof=1) | reproduced with **population** std (ddof=0) |
+|---|---|---|---|
+| `exp_2026-10-10T17-02-22-080026Z` | −1.2468485134505827 | −1.2468485134505833 ✔ | −1.2470964698045213 ✘ |
+| `exp_2026-10-10T17-05-58-697503Z` | 0.6596071358231974 | 0.6596071358231966 ✔ | 0.6597383095613579 ✘ |
+| `exp_2026-10-14T08-26-02-537359Z` | 0.6845946588741453 | 0.6845946588741482 ✔ | 0.6847308017926412 ✘ |
+
+The `validation` block reproduces under the population convention in all five. The
+`benchmark_metrics` block of the MA-crossover artifacts carries the **pre-fix** convention too
+(0.49249808266848055 published, sample-std reproduction exact) and, like H38's benchmark row, has
+no `validation` counterpart to expose it.
+
+### The decision and its direction (pinned to the committed record)
+
+The record's convention is **ddof=0**, and this is not an assertion made here — **H26's own
+Sharpe-scale audit already classified it**, per family, in the committed artifact
+`.experiments/artifacts/h26_sharpe_scale/summary.json`:
+
+| family | published OOS Sharpe | `published_convention` | `abs_diff_ddof0` | `abs_diff_ddof1` |
+|---|---|---|---|---|
+| H10 | 1.2757590680990518 | `population_ddof0` | **0.0** | 1.239e-04 |
+| H21 | 0.8393598580201286 | `population_ddof0` | **0.0** | 8.153e-05 |
+| H22 | 1.3724750832147166 | `population_ddof0` | **0.0** | 1.333e-04 |
+| H23 | −7.187089456116173 | `population_ddof0` | **0.0** | 2.687e-02 |
+| H25 | 1.3236288879255962 | `population_ddof0` | **0.0** | 1.286e-04 |
+
+Every audited family's published Sharpe is the **population** convention, bit-exactly. The engine
+was the only implementation in the package that was not. The certified numbers are therefore
+**already** ddof=0, and the only admissible direction is **engine → ddof=0**: the change moves
+*reported* Sharpes by `sqrt(n / (n - 1)) - 1 = +0.0199%` and moves **no** certified number, gate
+threshold or verdict.
+
+`src/qtr/backtest/engine.py` now divides by `returns.std(ddof=0)`, matching
+`qtr.validation.statistics.sharpe_ratio` and therefore `validate_strategy`. The **volatility**
+convention is deliberately *not* changed: `annualized_volatility` keeps the sample std (ddof=1),
+because that is the convention `validate_strategy` uses for it and the one every published
+artifact records (`annualized_volatility` agrees with the `validation` block to the last digit in
+all five artifacts).
+
+### Why no published verdict can move
+
+- **No gate is evaluated on the engine's Sharpe.** An AST sweep of all 32 `run_*.py` finds no
+  comparison of an engine Sharpe against a finite numeric threshold; the only comparisons of
+  engine Sharpes are `best_sharpe > bh_result.metrics['sharpe']` in `run_alternatives.py` and
+  `run_param_sweep.py` — **engine against engine**.
+- **That comparison cannot flip.** The change is a *uniform rescaling*: the multiplier depends
+  only on the number of bars, never on the returns, so two Sharpes computed on the same series
+  are rescaled by the same factor and their order is preserved exactly. Both runners compute
+  every side of the comparison from the same `prices` frame, so the bar counts are equal.
+- **The certified families never read the engine's metric.** H10/H11/H12/H13/H14/H22/H25 compute
+  their Sharpes with `qtr.validation.statistics.sharpe_ratio` (ddof=0).
+
+### A second, independent disagreement: the degenerate-series guard
+
+The engine's guard was `if returns.std(ddof=0) > 0`, while `sharpe_ratio` — whose docstring
+documents exactly this trap — uses `if returns.std() <= 1e-15: return 0.0`. A **constant** return
+series has a standard deviation of ~2.2e-19 from float noise, not exactly 0.0, so the engine's
+exact-zero test let it through and divided by ~1e-19:
+
+| input | engine (pre-fix) | `validate_strategy` |
+|---|---|---|
+| `pd.Series([0.001] * 10)` | **7.320824597683504e+16** | 0.0 |
+
+A garbage Sharpe of 7.3e16, against 0.0 from the same package on the same series. The engine now
+carries the same 1e-15 tolerance, so both implementations agree on the whole domain — including
+the degenerate one. The fix is unreachable from the public `run_backtest` path (the engine always
+charges an entry cost on bar 0, so a returned series is never perfectly constant), which is
+precisely why it survived: it is only visible at the metric surface.
+
+### The contract now pinned
+
+`tests/test_engine_metric_agreement.py` (55 tests) is the executable cross-module contract:
+
+- **exact agreement** between the engine and `validate_strategy` for all six shared metrics
+  (`total_return`, `annualized_return`, `annualized_volatility`, `sharpe`, `max_drawdown`,
+  `profit_factor`) across single- and multi-symbol portfolios, short portfolios, a degenerate
+  flat series, a two-bar series and a total-loss bar (`gross == 0`), plus `num_trades` against
+  the validation counter;
+- **the engine-only metrics** (Sortino, Calmar, max-drawdown duration, average trade cost) pinned
+  by their exact formula, and their **absence** from `validate_strategy` asserted, so a second
+  implementation appearing later is a visible change;
+- **the convention itself**: the population-std formula, the exact `sqrt(n / (n - 1))` relation to
+  the sample-std formula, the uniform-rescaling (order-preserving) property, the degenerate-series
+  guard, and the third Sharpe variant in the package (`annualized_sharpe`, the bar-frequency
+  annualization) as a *documented* difference of exactly `sqrt(bars_per_year / 252)`;
+- **the published-artifact audit**: both conventions, the ratio, the bar count (2,515), the
+  reconstruction of each published Sharpe from the artifact's own equity curve, the benchmark
+  block, the volatility convention, and the bounded effect (+0.0199%, < 0.1%);
+- **the record**: H26's per-family convention classification (every audited family is
+  `population_ddof0`, bit-exactly) and the H9 disclosure below;
+- **negative controls**: the contract itself rejects the pre-fix Sharpe and the pre-fix
+  `total_return`.
+
+### The disclosure: H9 is the one published Sharpe on the sample convention
+
+H26 **excluded** H9 from its audit, and the reason is the convention itself: H9's published OOS
+Sharpe reproduces only under the **sample** (ddof=1) estimator (`abs_diff_ddof1 = 0.0`), because
+that artifact predates the library's switch to numpy; the population convention gives
+1.0564855126690582 against the published 1.0563828964274808 — a gap of **1.026e-04**. H9 is the
+only family in the record published on the other convention.
+
+**The gap cannot move H9's verdict.** H9's pre-registered Sharpe gate is 1.0 and its published
+OOS Sharpe is 1.0564 — a margin of 5.6e-02, **55× the convention gap** — so both conventions
+clear the gate. H9's published row is a REJECT on the profit factor
+(`passes.pf = false`, PF 1.2522) in any case. The disclosure is recorded and pinned by
+`tests/test_engine_metric_agreement.py::test_h9_is_the_one_published_sharpe_on_the_sample_convention`.
+
+### Verification
+
+- Baseline before this session: `python -m pytest -q -W error` → **1121 passed, 1 skipped**.
+- After: `python -m pytest -q -W error` → **1170 passed, 1 skipped** in 268 s (1121 + the 49 new
+  H39 tests; the skip is the pre-existing `buy_and_hold` skip inside H36's module).
+- `python -m ruff check src tests run_*.py` → *All checks passed!*;
+  `python -m ruff format --check src tests run_*.py` → the only deviation is on pre-existing
+  lines of `tests/test_runner_causality_inventory.py` that this session did not touch (ruff
+  0.17.1 style drift); every line this session added is format-clean.
+- `src/qtr` coverage: the engine change is one condition plus comments — the `> 1e-15` branch is
+  covered by the new degenerate-series tests and the `> 0` branch by every other metric test, so
+  no new branch is introduced. *(The coverage tool is not installed in this environment, so the
+  100% figure could not be re-measured here; the branch argument above replaces it.)*
+- **Injected negative controls** (into the engine, then restored; `git diff` shows only the
+  intended change): reverting the Sharpe to the sample std fails **15** of the 55 tests; reverting
+  only the degenerate-series guard to an exact-zero test fails **2** of them.
+- Every number in this section is read out of the **committed artifacts** (summary.json + equity
+  parquet) or the **committed H26 audit**; nothing was recomputed by re-running a grid.
+
+**Nothing published was touched:** no published artifact, gate threshold, verdict, certified number
+or published row was modified; no grid was re-run; no hypothesis was added; `run_*.py` was not
+touched.
