@@ -2363,3 +2363,7 @@ an executable invariant; the point-in-time contract covers every `run_*.py` (§H
 engine's `total_return` spans every bar (§H38); the package's two Sharpe implementations agree
 (§H39); the lint/format gate is reproducible (§H42); and the coverage gate is measured, declared
 and complete (§H43).
+
+## H49 disclosure
+
+Published `validation` blocks in five exploratory summaries were written by an earlier `validate_strategy` with no `param_stability` gate and a sign-unaware walk-forward ratio. In three artifacts the published `walkforward_stability` is `sharpe(2nd half)/sharpe(1st half)` with both halves losing (e.g. 1.8391876), which current sign-aware code reports as 0.0. The last two blocks do not re-derive from the frozen equity curve and differ from each other. Artifacts are frozen; disclosure only.
