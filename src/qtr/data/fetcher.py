@@ -17,8 +17,11 @@ from loguru import logger
 from qtr.utils.config import get_config
 
 
+PRICE_COLUMNS = ("open", "high", "low", "close")
+
+
 def non_positive_prices(panel: pd.DataFrame) -> pd.DataFrame:
-    """Every non-positive close in a price panel.
+    """Every non-positive price in a price panel.
 
     A price of zero or less cannot be the base of a percentage return, and a
     price that *changes sign* cannot be the base of one either: the return
@@ -33,10 +36,17 @@ def non_positive_prices(panel: pd.DataFrame) -> pd.DataFrame:
     splices it in front of the next contract, which makes the one-bar return
     of the *next* bar ``-126.60%`` as well.
 
+    Every price column is screened, not only the close.  The same splice
+    printed ``-14.0`` as the *open* of the next session -- on a session
+    whose close was positive -- and a non-positive open is just as
+    unusable: it is a negative fill price, and a roll gap computed from it
+    inverts the sign of the price move.
+
     Args:
-        panel: A price frame.  A wide frame (one column per symbol) is
-            scanned column by column; a long frame (a ``close`` column) is
-            scanned as a single series.
+        panel: A price frame.  A long frame (the ``open``/``high``/``low``/
+            ``close`` columns of a fetched quote) is screened column by
+            column over its price columns; a wide frame (one column per
+            symbol) is screened column by column over every column.
 
     Returns:
         A DataFrame with columns ``symbol``, ``timestamp`` and ``price``,
@@ -45,8 +55,9 @@ def non_positive_prices(panel: pd.DataFrame) -> pd.DataFrame:
     if panel is None or len(panel) == 0 or len(panel.columns) == 0:
         return pd.DataFrame(columns=["symbol", "timestamp", "price"])
 
-    if "close" in panel.columns:
-        series = {"close": panel["close"]}
+    price_columns = [column for column in PRICE_COLUMNS if column in panel.columns]
+    if price_columns:
+        series = {str(column): panel[column] for column in price_columns}
     else:
         series = {str(col): panel[col] for col in panel.columns}
 
@@ -113,9 +124,9 @@ class DataFetcher:
 
     @staticmethod
     def _reject_non_positive_prices(symbol: str, df: pd.DataFrame) -> None:
-        """Fail loud when a fetched panel carries a non-positive close.
+        """Fail loud when a fetched panel carries a non-positive price.
 
-        The panel is refused rather than repaired: a negative or zero close
+        The panel is refused rather than repaired: a negative or zero price
         is a fact about the *source*, and every repair (dropping the bar,
         clipping the price, flooring it at zero) is a research decision the
         caller has to make and to record.  Silently returning the panel
@@ -127,7 +138,7 @@ class DataFetcher:
             return
         first = bad.iloc[0]
         raise ValueError(
-            f"{symbol}: {len(bad)} non-positive close(s) in the fetched panel; "
+            f"{symbol}: {len(bad)} non-positive price(s) in the fetched panel; "
             f"first is {first['price']!r} on {first['timestamp']}. "
             "A percentage return from a non-positive price base is undefined "
             "(and inverts the sign of the price move when the base is "

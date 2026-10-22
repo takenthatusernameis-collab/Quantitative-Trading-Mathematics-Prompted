@@ -363,7 +363,7 @@ class TestTheFetcherRefuses:
         fake_yf.Ticker = lambda symbol: FakeTicker()
         monkeypatch.setitem(sys.modules, "yfinance", fake_yf)
 
-        with pytest.raises(ValueError, match="non-positive close"):
+        with pytest.raises(ValueError, match="non-positive price"):
             self._fetcher(tmp_path).fetch_futures(
                 ["CL=F"], "2020-04-01", "2020-05-01", use_cache=False
             )
@@ -385,7 +385,7 @@ class TestTheFetcherRefuses:
 
         cache = DataCache(cache_dir=tmp_path)
         cache.set("yahoo_futures", "CL=F", "2020-04-01", "2020-05-01", "1d", frame)
-        with pytest.raises(ValueError, match="non-positive close"):
+        with pytest.raises(ValueError, match="non-positive price"):
             DataFetcher(cache=cache).fetch_futures(
                 ["CL=F"], "2020-04-01", "2020-05-01", use_cache=True
             )
