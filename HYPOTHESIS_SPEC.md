@@ -4873,3 +4873,78 @@ number changes.
 - No published artifact, gate threshold, verdict or certified number was modified; no grid
   was re-run; no hypothesis was added — the pre-registered free-data hypothesis space
   (H1–H30) remains exhausted.
+
+---
+
+## H57: The equity record is on a **price-return** basis — the dividend/distribution gap, the level bars it books as losses, and the benchmark-significance statistics that depend on it (pre-registered 2026-10-22, BEFORE execution)
+
+H57 is a **post-hoc audit of the published record**, not a new hypothesis and not a new
+selection: no strategy is re-run, no grid is re-run, no gate, threshold, verdict or
+certified number is changed, and every recomputed number is a **disclosure**. It is
+pre-registered here before execution.
+
+### The question
+
+Every runner builds its price series from `df["close"]` — the vendor's **raw close** —
+and never from the vendor's **total-return** column `adj_close`, which the fetcher
+commits into the same cache file (`src/qtr/data/fetcher.py:120-129`; the runner call
+sites are listed in `tests/test_h57_total_return_audit.py`). Two consequences follow,
+and neither has been stated anywhere in the record:
+
+1. **Every equity return series in the record is a price return.** Dividends and
+   distributions are excluded from the strategy returns *and* from the benchmark
+   returns. The excluded amount is not negligible (it is 1.9%/yr for SPY over
+   2009–2026 and up to ~6%/yr for the high-yield bond ETFs in the H1–H3 universe).
+2. **A distribution ex-date is booked as a loss.** On the ex-date the raw close drops
+   by the distribution, while the total-return series does not move. A long position
+   that holds the asset through the ex-date books the drop as a realised loss that
+   never happened. The committed PDBC series contains **three** such bars
+   (2021-12-03 −26.56%, 2021-12-20 −12.21%, 2022-12-19 −11.91%), which are real
+   distributions of **$5.39**, **$1.75736** and **$1.92826** per share.
+
+### Why it is decision-relevant
+
+The published **benchmark-significance gate** (`p < 0.05` on the two-sided t-test of
+the excess return) is evaluated against a *dividend-excluded* benchmark. If the
+benchmark's return series is understated while the strategy's is not (or by a
+different amount), the measured excess return — and therefore the p-value and the
+information ratio — is biased, and the gate is evaluated on a biased statistic. Three
+published artifacts carry a `p` **PASS** on this gate: **H3** (p = 0.046364, i.e.
+0.009 below the 0.05 boundary), **H19** (p = 0.0026) and **H20** (p = 0.0159). H33/H34
+already disclosed that these are *wrong-reason* passes (the gate is direction-blind and
+the alpha is **negative**); H57 asks the further question of whether the *magnitude* of
+the excess return — and hence the significance — survives the total-return convention.
+
+### The method (offline, read-only, from the committed record)
+
+For each audited family, on the family's own OOS window:
+
+- **Control.** Rebuild the published comparison from the committed artifacts
+  (`selected_equity`/`best_equity`, `benchmark_equity`/`benchmark_returns`,
+  `prices`, `selected_signals`) and reproduce the published information ratio, alpha
+  and p-value. The control must match the published numbers; a family that cannot
+  reproduce its published comparison is **excluded and reported**, not repaired.
+- **Counterfactual.** Replace each symbol's price series by its **total-return**
+  series (the vendor's `adj_close`, taken from the committed cache and chained by
+  ratios, which are window-independent), rebuild the strategy's and the benchmark's
+  return series on that basis, and recompute the comparison with the unchanged
+  library function `qtr.validation.statistics.compare_to_benchmark`.
+- **Verdict impact.** Report the published gate tally, the recomputed tally and
+  whether any published **verdict** moves. A verdict may not move here: no family
+  that can flip is close enough on its *other* gates.
+
+### What would change a verdict
+
+Nothing may: H57 changes no gate, threshold, verdict or certified number, and no
+artifact is rewritten. The deliverable is a **measured disclosure** plus executable
+pins. If the counterfactual were to move a *gate boolean* of a published artifact,
+the disclosure must say so explicitly and name the artifact.
+
+### Constraints
+
+- No published artifact, gate threshold, verdict or certified number is modified.
+- No grid is re-run and no strategy is re-selected; the published configuration is
+  used as-is.
+- The audit is offline: the committed cache and the committed artifacts only.
+- The pre-registered free-data hypothesis space (H1–H30) remains exhausted; H57 adds
+  no hypothesis.
