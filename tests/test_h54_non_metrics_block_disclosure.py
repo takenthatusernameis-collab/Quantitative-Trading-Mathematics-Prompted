@@ -4,7 +4,7 @@ The gap
 -------
 §H53 closed the `metrics` block: every published value in the **37** summaries
 that carry one re-derives from the artifact that published it. The record's
-other **43** summaries publish **no** `metrics` block at all — they carry a
+other **44** summaries publish **no** `metrics` block at all — they carry a
 different shape, and the published `all_pass` / `verdict` / `gates` blocks
 that rest on them had never been re-derived.
 
@@ -13,16 +13,16 @@ What H54 measures
 ============  ==========================================  =========
 measured      quantity                                   value
 ============  ==========================================  =========
-summaries     with no `metrics` block                      **43**
-shapes        distinct top-level key sets                  **24**
-keys          distinct top-level keys                     **164**
-leaf values   published                                   **7 785**
-summaries     publishing no parquet artifact at all        **3**
+summaries     with no `metrics` block                      **44**
+shapes        distinct top-level key sets                  **25**
+keys          distinct top-level keys                     **171**
+leaf values   published                                   **9 201**
+summaries     publishing no parquet artifact at all        **4**
 ============  ==========================================  =========
 
 The three classes
 -----------------
-The 43 summaries fall into three classes, and the class decides what
+The 44 summaries fall into three classes, and the class decides what
 "re-derives" can even mean:
 
 * **certified-family blocks** — ``gates``, ``verdict``, ``all_pass``,
@@ -33,8 +33,8 @@ The 43 summaries fall into three classes, and the class decides what
   ablation tables published as nested JSON; they echo a committed parquet.
 * **audit blocks** — ``h26_sharpe_scale``, ``h27_pnl_level``,
   ``h28_causal_recertification``, ``h29_lookahead_sweep``,
-  ``pf_robustness``. A verdict *about* the record; it reads other artifacts,
-  and publishes its own committed table.
+  ``pf_robustness``, ``h57_total_return``. A verdict *about* the record; it
+  reads other artifacts, and publishes its own committed table.
 
 The conventions
 ---------------
@@ -95,8 +95,6 @@ if str(ROOT / "tests") not in sys.path:
     sys.path.insert(0, str(ROOT / "tests"))
 
 from _utils_parquet import read_parquet_safe  # noqa: E402
-
-import run_h57_total_return_audit as h57  # noqa: E402
 
 ARTIFACTS = ROOT / ".experiments" / "artifacts"
 INITIAL_CAPITAL = 1_000_000.0
@@ -749,6 +747,7 @@ UNTRACKED_PRODUCERS: dict[str, str] = {
     "H18_Overnight_Intraday_Decomposition": "H18_Overnight_Intraday_Decomposition",
     "h29_lookahead_sweep": "h29_lookahead_sweep",
     "pf_robustness": "h25_pf_robustness",
+    "h57_total_return": "h57_total_return_audit",
 }
 
 
@@ -1844,25 +1843,25 @@ class TestH54NonMetricsBlockDisclosure:
     """H54 — the published blocks of the non-``metrics`` summaries."""
 
     # -- the record --------------------------------------------------------
-    def test_the_record_has_forty_three_summaries(self):
-        assert len(_ENTRIES) == 43, len(_ENTRIES)
+    def test_the_record_has_forty_four_summaries(self):
+        assert len(_ENTRIES) == 44, len(_ENTRIES)
 
-    def test_the_record_has_twenty_four_shapes(self):
+    def test_the_record_has_twenty_five_shapes(self):
         shapes = {tuple(sorted(entry["published"])) for entry in _ENTRIES}
-        assert len(shapes) == 24, len(shapes)
+        assert len(shapes) == 25, len(shapes)
 
-    def test_the_record_has_one_hundred_sixty_four_top_level_keys(self):
-        assert len(_published_key_union()) == 164, len(_published_key_union())
+    def test_the_record_has_one_hundred_seventy_one_top_level_keys(self):
+        assert len(_published_key_union()) == 171, len(_published_key_union())
 
-    def test_the_record_publishes_seven_thousand_seven_hundred_eighty_five_leaves(self):
-        assert _published_leaf_total() == 7785, _published_leaf_total()
+    def test_the_record_publishes_nine_thousand_two_hundred_one_leaves(self):
+        assert _published_leaf_total() == 9201, _published_leaf_total()
 
-    def test_three_summaries_publish_no_parquet_artifact(self):
+    def test_four_summaries_publish_no_parquet_artifact(self):
         empty = [entry["artifact_id"] for entry in _ENTRIES if not entry["files"]]
-        assert len(empty) == 3, empty
+        assert len(empty) == 4, empty
 
     def test_every_published_key_is_classified(self):
-        """Every one of the record's 164 top-level keys is classified.
+        """Every one of the record's 171 top-level keys is classified.
 
         A key is *re-derived* when the reconstruction reaches every one of
         its published leaves, *re-derived and partly disclosed* when it is
@@ -1871,7 +1870,7 @@ class TestH54NonMetricsBlockDisclosure:
         verdict about another artifact.
         """
         classes = _key_classification()
-        assert len(classes) == 164, len(classes)
+        assert len(classes) == 171, len(classes)
         counts = {
             name: 0 for name in ("re-derived", "re-derived, partly disclosed", "not re-derivable")
         }
@@ -1880,7 +1879,7 @@ class TestH54NonMetricsBlockDisclosure:
         assert counts == {
             "re-derived": 52,
             "re-derived, partly disclosed": 4,
-            "not re-derivable": 108,
+            "not re-derivable": 115,
         }, counts
 
     def test_every_summary_has_a_known_producer(self):
@@ -1889,14 +1888,14 @@ class TestH54NonMetricsBlockDisclosure:
 
     # -- the classes -------------------------------------------------------
     def test_the_three_classes_are_separated(self):
-        """The 43 summaries fall into the three classes the gap names."""
+        """The 44 summaries fall into the three classes the gap names."""
         classes = {}
         for entry in _ENTRIES:
             producer = entry["producer"] or ""
             if (
                 producer.startswith("h2")
                 or producer.startswith("h29")
-                or producer in ("h25_pf_robustness",)
+                or producer in ("h25_pf_robustness", "h57_total_return_audit")
             ):
                 klass = "audit"
             elif "metrics" in entry["published"] or "gates" in entry["published"]:
@@ -1904,8 +1903,8 @@ class TestH54NonMetricsBlockDisclosure:
             else:
                 klass = "exploratory"
             classes.setdefault(klass, []).append(entry["artifact_id"])
-        assert len(classes["audit"]) == 5, classes["audit"]
-        assert sum(len(v) for v in classes.values()) == 43
+        assert len(classes["audit"]) == 6, classes["audit"]
+        assert sum(len(v) for v in classes.values()) == 44
 
     # -- the re-derivation -------------------------------------------------
     def test_the_re_derivable_families_re_derive(self):

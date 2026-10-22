@@ -466,9 +466,7 @@ def published_verdict(summary: dict) -> dict:
     }
 
 
-def verdict_impact(
-    published_gate: dict, counterfactual_p: float, counterfactual_ir: float
-) -> dict:
+def verdict_impact(published_gate: dict, counterfactual_p: float, counterfactual_ir: float) -> dict:
     """Does a published gate boolean move under the counterfactual?
 
     The published rule is direction-blind (``p < threshold``): H33/H34 already
@@ -477,7 +475,9 @@ def verdict_impact(
     ``p`` PASS all have a *negative* alpha. Both are reported, so a reader can
     see the gate under either rule.
     """
-    threshold = published_gate["threshold"] if published_gate["threshold"] is not None else GATE_P_VALUE
+    threshold = (
+        published_gate["threshold"] if published_gate["threshold"] is not None else GATE_P_VALUE
+    )
     counter_pass = bool(counterfactual_p < threshold)
     published_pass = published_gate["pass"]
     return {
@@ -490,7 +490,9 @@ def verdict_impact(
         "counterfactual_pass_direction_aware": bool(
             counterfactual_p < threshold and counterfactual_ir > 0
         ),
-        "gate_boolean_moves": bool(published_pass is not None and bool(published_pass) != counter_pass),
+        "gate_boolean_moves": bool(
+            published_pass is not None and bool(published_pass) != counter_pass
+        ),
     }
 
 
@@ -552,10 +554,14 @@ def audit_family(spec: dict, cache_by_symbol: dict[str, list[dict]]) -> dict:
     strategy_returns = strategy_equity.pct_change()
     out["control"] = {
         "strategy_return_from_positions_max_abs_diff": (
-            float(np.nanmax(np.abs((gross - strategy_returns).to_numpy()))) if positions is not None else None
+            float(np.nanmax(np.abs((gross - strategy_returns).to_numpy())))
+            if positions is not None
+            else None
         ),
         "cost_residual_mean_abs": (
-            float(np.nanmean(np.abs((gross - strategy_returns).to_numpy()))) if positions is not None else None
+            float(np.nanmean(np.abs((gross - strategy_returns).to_numpy())))
+            if positions is not None
+            else None
         ),
     }
 
@@ -651,8 +657,12 @@ def audit_family(spec: dict, cache_by_symbol: dict[str, list[dict]]) -> dict:
         "alpha_annualized": float(counter_cmp["alpha_annualized"]),
         "alpha_t_stat": float(counter_cmp["alpha_t_stat"]),
         "win_rate": float(counter_cmp["win_rate"]),
-        "mean_strategy_distribution_per_bar": float(strat_distribution.reindex(oos_index)[mask].mean()),
-        "mean_benchmark_distribution_per_bar": float(bench_distribution.reindex(oos_index)[mask].mean()),
+        "mean_strategy_distribution_per_bar": float(
+            strat_distribution.reindex(oos_index)[mask].mean()
+        ),
+        "mean_benchmark_distribution_per_bar": float(
+            bench_distribution.reindex(oos_index)[mask].mean()
+        ),
     }
 
     # --- does a published gate boolean move? --------------------------------
@@ -750,7 +760,9 @@ def build_report() -> dict:
         "n_gate_booleans_published": sum(
             1 for f in audited if f["verdict_impact"]["published_pass"] is not None
         ),
-        "n_gate_booleans_moved": sum(1 for f in audited if f["verdict_impact"]["gate_boolean_moves"]),
+        "n_gate_booleans_moved": sum(
+            1 for f in audited if f["verdict_impact"]["gate_boolean_moves"]
+        ),
         "n_counterfactuals_informative": sum(
             1 for f in audited if f.get("counterfactual_informative")
         ),

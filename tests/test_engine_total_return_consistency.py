@@ -43,10 +43,21 @@ carries its own copy of the pre-fix convention (``equity.iloc[-1] /
 equity.iloc[0] - 1``) for the runner-local ``total_return`` it publishes. The
 H18 artifacts are frozen, so the copy stays and is disclosed instead (see
 ``TestRemainingDisclosures``); H18's gates do not use ``total_return``.
+
+**The other runner that carries a total return.** ``run_h57_total_return_audit.py``
+audits the *basis* of the record: it measures per-bar **total-return series**
+against the price-return series the record is actually built on, and publishes
+the gap (§H57). A per-bar series is not the engine's total-return *metric* --
+it is never a function of ``metrics["total_return"]`` -- so the runner is
+exempt from the "only H18 computes a total_return of its own" rule. The
+exemption is not taken on trust: the audit does not import the backtest
+engine at all, so the metric is not even reachable from it, and the check
+below is a tripwire on that.
 """
 
 from __future__ import annotations
 
+import ast
 import json
 import sys
 from pathlib import Path
@@ -71,6 +82,30 @@ MA_CROSSOVER_3 = ARTIFACTS / "exp_2026-10-10T17-04-21-400695Z"
 BUY_AND_HOLD = ARTIFACTS / "exp_2026-10-10T17-05-58-697503Z"
 BUY_AND_HOLD_RERUN = ARTIFACTS / "exp_2026-10-14T08-26-02-537359Z"
 H18 = ARTIFACTS / "exp_2026-10-13T22-14-50-729923Z"
+
+#: The runner that carries per-bar total-return *series* rather than a
+#: total-return scalar: the §H57 audit of the price-return basis. It is
+#: exempt from the "only H18 computes a total_return of its own" rule, and
+#: the exemption is justified behaviourally rather than by name.
+TOTAL_RETURN_SERIES_RUNNER = "run_h57_total_return_audit.py"
+
+
+def _imports_the_backtest_engine(source: str) -> bool:
+    """Does the source import the backtest engine?
+
+    The engine's ``metrics["total_return"]`` is produced by
+    ``qtr.backtest.engine``. A runner that does not import that package
+    cannot read the metric, so the metric cannot be load-bearing for
+    anything the runner publishes.
+    """
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Import):
+            if any(alias.name.startswith("qtr.backtest") for alias in node.names):
+                return True
+        elif isinstance(node, ast.ImportFrom):
+            if node.module and node.module.startswith("qtr.backtest"):
+                return True
+    return False
 
 
 def _summary(directory: Path) -> dict:
@@ -305,12 +340,44 @@ class TestRemainingDisclosures:
         offenders = []
         for runner in runners:
             source = runner.read_text()
+            # No runner reads the engine's own metric. The assertion holds
+            # for every runner, not only for the ones that mention a total
+            # return.
+            assert 'metrics["total_return"]' not in source
+            assert "metrics['total_return']" not in source
+            if runner.name == "run_h18_overnight_intraday_experiment.py":
+                # H18 computes a published scalar total return of its own --
+                # the pre-fix convention, on a frozen artifact.
+                continue
+            if runner.name == TOTAL_RETURN_SERIES_RUNNER:
+                # The audit carries per-bar total-return *series*, not the
+                # engine's total-return *metric*: it must not reach the
+                # engine at all, so the metric cannot be load-bearing for
+                # anything it publishes.
+                assert not _imports_the_backtest_engine(source), runner.name
+                continue
             if "total_return" not in source:
                 continue
             # Only H18 computes a total_return of its own; no runner reads
             # the engine's metrics["total_return"].
-            if runner.name != "run_h18_overnight_intraday_experiment.py":
-                offenders.append(runner.name)
-            assert 'metrics["total_return"]' not in source
-            assert "metrics['total_return']" not in source
+            offenders.append(runner.name)
         assert offenders == []
+
+    def test_the_audit_runner_does_not_import_the_engine(self):
+        """The §H57 audit's exemption is pinned, not assumed.
+
+        The audit measures the price-return basis of the record; it must
+        reach the engine neither to read its metric nor to re-run a
+        backtest, or the exemption would no longer hold.
+        """
+        source = (ROOT / TOTAL_RETURN_SERIES_RUNNER).read_text()
+        assert not _imports_the_backtest_engine(source)
+        assert "total_return" in source, "the exemption is about a total-return quantity"
+
+    def test_the_engine_import_check_fires_on_a_runner_that_imports_it(self):
+        """Behavioural negative control: the check is not vacuous."""
+        assert _imports_the_backtest_engine("from qtr.backtest.engine import run_backtest\n")
+        assert _imports_the_backtest_engine("import qtr.backtest.engine\n")
+        assert not _imports_the_backtest_engine(
+            "from qtr.validation.statistics import sharpe_ratio\n"
+        )

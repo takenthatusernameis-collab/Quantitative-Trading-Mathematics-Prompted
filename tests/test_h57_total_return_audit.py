@@ -58,6 +58,10 @@ What this module pins
    families carrying a published ``p`` PASS stay below 0.05.
 6. The **disclosure** itself: the measured gap, the three PDBC level bars
    and the symbols the record carries no adjustment for.
+7. The **independence** of the audit from the engine: with the backtest
+   engine disabled, the audit still rebuilds the committed summary leaf for
+   leaf, so the engine's ``total_return`` metric (§H38) cannot be
+   load-bearing for anything the audit publishes.
 
 Every number is a read of the frozen artifacts. Nothing is written, no grid
 is re-run, no gate, threshold, verdict or certified number is touched, and
@@ -256,6 +260,56 @@ def _agrees(published, rederived) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# 3. The audit is independent of the engine
+# ---------------------------------------------------------------------------
+class TestTheEngineIndependence:
+    """The audit must not be a function of the engine's metric.
+
+    The engine's ``total_return`` was the subject of §H38: it used to span
+    the wrong horizon. If the audit -- or any other runner -- selected on
+    it, a change to the metric would move a published number. The audit
+    reads the committed record and the committed cache, so it must never
+    reach the engine at all; the check below proves that behaviourally
+    rather than by reading the source.
+    """
+
+    def test_the_audit_reproduces_itself_with_the_engine_disabled(self, monkeypatch):
+        """With the engine disabled, the audit still rebuilds the committed
+        summary leaf for leaf: the engine's metric cannot be load-bearing
+        for anything the audit publishes."""
+        import qtr.backtest.engine as engine
+
+        def _explode(*args, **kwargs):
+            raise AssertionError("the audit must not run the backtest engine")
+
+        monkeypatch.setattr(engine, "run_backtest", _explode)
+        monkeypatch.setattr(engine, "BacktestConfig", _explode)
+
+        rebuilt = h57.build_report()
+        committed = {k: v for k, v in _leaves(COMMITTED) if k != "elapsed_sec"}
+        rebuilt_leaves = {k: v for k, v in _leaves(rebuilt) if k != "elapsed_sec"}
+        assert set(committed) == set(rebuilt_leaves)
+        mismatches = [
+            (path, committed[path], rebuilt_leaves[path])
+            for path in committed
+            if not _agrees(committed[path], rebuilt_leaves[path])
+        ]
+        assert mismatches == [], mismatches[:5]
+
+    def test_the_sabotage_is_live(self, monkeypatch):
+        """Negative control: the sabotage above really disables the engine,
+        so the check is not vacuous."""
+        import qtr.backtest.engine as engine
+
+        def _explode(*args, **kwargs):
+            raise AssertionError("the engine is disabled")
+
+        monkeypatch.setattr(engine, "run_backtest", _explode)
+        with pytest.raises(AssertionError):
+            engine.run_backtest(prices=None, signals=None, config=None)
+
+
+# ---------------------------------------------------------------------------
 # 3. The control reproduces the published comparison
 # ---------------------------------------------------------------------------
 class TestTheControl:
@@ -276,9 +330,7 @@ class TestTheControl:
         assert abs(control - published) <= PUBLISHED_ROUNDING_STEP
 
     @pytest.mark.parametrize("hypothesis", ["H16", "H17", "H19", "H20"], ids=lambda h: h)
-    def test_the_full_precision_families_reproduce_their_published_value_exactly(
-        self, hypothesis
-    ):
+    def test_the_full_precision_families_reproduce_their_published_value_exactly(self, hypothesis):
         """Four families publish the comparison at full float precision; the
         control reproduces them to the last bit, not merely to the published
         rounding step."""
@@ -331,7 +383,9 @@ class TestTheControl:
 
         rebuilt = compare_to_benchmark(strat[mask].to_numpy(), bench[mask].to_numpy())
         family = _family("H3")
-        assert abs(rebuilt["information_ratio"] - family["control"]["information_ratio"]) <= TOLERANCE
+        assert (
+            abs(rebuilt["information_ratio"] - family["control"]["information_ratio"]) <= TOLERANCE
+        )
         assert abs(rebuilt["alpha_p_value"] - family["control"]["alpha_p_value"]) <= TOLERANCE
         assert abs(rebuilt["alpha_t_stat"] - family["control"]["alpha_t_stat"]) <= TOLERANCE
 
@@ -353,11 +407,7 @@ class TestTheConvention:
     """The audit's premise: the record is on the raw close."""
 
     def test_no_producer_runner_reads_the_total_return_column(self):
-        runners = [
-            path
-            for path in sorted(ROOT.glob("run_*.py"))
-            if path.name != AUDIT_RUNNER
-        ]
+        runners = [path for path in sorted(ROOT.glob("run_*.py")) if path.name != AUDIT_RUNNER]
         assert runners
         offenders = [path.name for path in runners if _references_adj_close(path.read_text())]
         assert offenders == []
@@ -400,9 +450,7 @@ class TestTheCounterfactual:
         a silent zero would understate the correction without saying so."""
         assert _family(hypothesis)["correction_unreachable_bars"] == 0
 
-    @pytest.mark.parametrize(
-        "hypothesis", ["H1", "H3", "H16", "H19", "H20"], ids=lambda h: h
-    )
+    @pytest.mark.parametrize("hypothesis", ["H1", "H3", "H16", "H19", "H20"], ids=lambda h: h)
     def test_the_correction_bites(self, hypothesis):
         family = _family(hypothesis)
         counterfactual = family["counterfactual_total_return"]
@@ -585,9 +633,9 @@ class TestTheDisclosure:
             "H20": 0.0067395554253963635,
         }
         for hypothesis, value in expected.items():
-            assert _family(hypothesis)["counterfactual_total_return"]["alpha_p_value"] == pytest.approx(
-                value, rel=1e-12
-            )
+            assert _family(hypothesis)["counterfactual_total_return"][
+                "alpha_p_value"
+            ] == pytest.approx(value, rel=1e-12)
 
     def test_the_audit_wrote_nothing_but_its_own_summary(self):
         """The audit's artifact directory holds exactly one file."""
