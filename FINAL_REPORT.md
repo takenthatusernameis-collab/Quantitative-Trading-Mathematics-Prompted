@@ -4150,3 +4150,178 @@ Nothing under `src/qtr`. No artifact, gate threshold, verdict or certified numbe
 ### What remains unresolved
 
 - The dividend/distribution gap remains **omitted** from the published record (price-return basis). **No published gate boolean moved** under total-return, but excess returns are understated for income-paying assets; this is **disclosed**. The 3 PDBC level bars are disclosed. All remaining unresolved items from §H53–§H56 stay disclosed (missing inputs/convention differences) and cannot be resolved without new committed inputs. H1–H30 exhausted; certified families frozen.
+
+
+## H58 — the price panels carry a negative print that reaches the published gates (2026-10-22)
+
+**H58 is COMPLETE.** The record's price panels are the only copy of the market data the published
+numbers were computed from, and until now nothing screened them. The screen found one:
+
+- **CL=F closes at -37.63 on 2020-04-20** in twenty-one committed `prices.parquet` panels (and the
+  H8 `opens.parquet` carries CL=F = -14.0 on 2020-04-21): **twenty-two committed files in twenty-one
+  artifact directories.**
+
+That is the WTI front-month contract that expired into negative territory on 2020-04-20. Yahoo's
+continuous series splices it in front of the next contract, so the panel contains a price that crosses
+zero, and the engine's `prices.pct_change()` turns it into two garbage bars:
+
+- 2020-04-20: `(-37.63 - 18.27) / 18.27 = -305.966%`
+- 2020-04-21: `(10.01 + 37.63) / -37.63 = -126.601%` (the base is negative, which inverts the sign
+  of the price move as well).
+
+### What changed
+
+- `src/qtr/data/fetcher.py` — the **root-cause fix at the data boundary**: `non_positive_prices` is
+  the screen that does it, and `DataFetcher._reject_non_positive_prices` refuses a panel that
+  carries a non-positive price instead of handing it to the engine. Every entry point is covered —
+  `fetch_yahoo`, `fetch_futures` and `fetch_ccxt`, on the live path and on the cached path.
+- `src/qtr/data/__init__.py` — `non_positive_prices` and `PRICE_COLUMNS` are now part of the public
+  data surface.
+- `tests/test_h58_price_pathology_contamination.py` — **new**, the H58 contract: **66 tests**.
+
+### The measured record — the chain from one cell to the published gates
+
+1. The committed price panels carry exactly the disclosed non-positive closes — no more, no fewer.
+2. The committed *benchmark* equity curves carry the corresponding bar: **fifteen** published
+   benchmarks lose **61.657%** on 2020-04-20, which equals the mean of the five panel returns of that
+   bar to **0.0** (the benchmark is the engine's own product of the contaminated panel).
+3. In two families the committed *strategy* equity carries the bar too: a **-130.10%** single-bar
+   loss, and the published equity curve goes **negative** (-463,814.84), which is why the published
+   `oos_max_dd` is **-150.96%**.
+4. The published statistics of **eleven** affected summaries re-derive from the committed equity
+   curves to 1e-15, so the contaminated bars are demonstrably the ones the published numbers were
+   computed from.
+5. Under the counterfactual — *the two zero-crossing sessions contribute no return* — **nine**
+   published `ir` gate booleans flip from **True to False**. Those gates are the only gates that pass
+   in their families, and they pass only because the contaminated benchmark bar hands the strategy a
+   +61.66% excess return.
+
+**Point 5 is the finding that matters:** the contamination did not merely distort numbers that were
+already failing, it **manufactured nine passing gates** in the direction this repository cares about
+most — a failure that looks like a pass.
+
+### The blast radius
+
+Bounded and measured: every affected summary is a **REJECT**, and the certified families (H10, H21,
+H22, H25) are **structurally immune** because their panels cover 2024-10-13..2026-10-09 and never
+contain 2020-04-20. **No certified number, no published verdict and no gate that already failed is
+touched by this audit.**
+
+### The contract
+
+`tests/test_h58_price_pathology_contamination.py` enforces: the screen finds a negative close and a
+zero close and is clean on a clean/empty panel (with a behavioural negative control proving it is not
+vacuous); the fetcher refuses a panel with a negative close on the live path, on the cached path, and
+names the symbol, date and value in the message; the committed panels carry exactly the disclosed
+prints and no other panel does; the print creates the two garbage bars; the benchmark bar equals the
+mean of the panel returns to 1e-15; the fifteen benchmarks and two strategy curves carry exactly the
+disclosed bar; the published `oos_max_dd` is the contaminated one; the published IR, Sharpe, profit
+factor and max drawdown re-derive; the counterfactual moves every published IR and flips nine gates;
+and the blast radius holds (all rejects, certified families immune).
+
+### What was actually verified
+
+- `python -m pytest -q -W error tests/test_h58_price_pathology_contamination.py` → **66 passed**.
+- `python -m pytest -q -W error` → **2 049 passed, 16 skipped** (full suite; the +88 over the §H57
+  baseline are H58's 66 and H59's 22).
+- `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` = **1085 statements, 330 branches, 0 missed,
+  0 partial, 100.00%** (up from 1055/318: the screen is 30 statements and 12 branches).
+- `python -m ruff check src tests run_*.py` → *All checks passed!*; `python -m ruff format --check
+  src tests run_*.py` → **103 files already formatted**.
+- Every number is a read of the committed artifacts — no pipeline re-execution, no network, nothing
+  written outside the test module. **No published artifact, gate threshold, verdict or certified
+  number was modified.**
+
+### What remains unresolved
+
+Nothing under the record. The SVXY unadjusted 1-for-5 reverse split of 2018-02-06 is **disclosed, not
+caught**: the screen catches a *non-positive* price and cannot catch a split, because a split leaves
+every price positive and is only visible as a price-level discontinuity — which is a market move and a
+corporate action at the same time. The record is on a price-return basis (§H57), and choosing between
+the price basis and the split-adjusted basis is a research decision, not a bug fix.
+
+
+## H59 — the full gate blast radius of the H58 price contamination (2026-10-22)
+
+**H59 is COMPLETE.** H58 measured that the `ir` gate of nine published summaries flips from True to
+False when the two zero-crossing sessions are removed. It measured *one* gate. The record publishes
+**eight** gates per summary, and the contamination reaches more than one of them:
+
+- in the **nine** families whose *benchmark* carries the contaminated bar, only the benchmark-fed
+  gates can move, and only the `ir` gate does;
+- in the **two** families whose *strategy* equity carries the contaminated bar — the ones whose
+  published equity curve goes **negative** — the strategy-fed gates move as well, and **two** of them
+  flip:
+
+  | summary | gate | published | counterfactual | threshold |
+  |---|---|---:|---:|---:|
+  | `exp_2026-10-10T21-58-28-353634Z` | `stab` | **False** (-0.5125) | **True** (+0.7149) | >= 0.7 |
+  | `exp_2026-10-10T21-58-28-353634Z` | `worst` | **False** (-1.6784) | **True** (+0.3250) | >= 0.3 |
+  | `exp_2026-10-10T21-59-16-546117Z` | `stab` | **False** (-0.5125) | **True** (+0.7149) | >= 0.7 |
+  | `exp_2026-10-10T21-59-16-546117Z` | `worst` | **False** (-1.6784) | **True** (+0.3250) | >= 0.3 |
+
+So the contamination decides **thirteen** published gate booleans: it manufactures nine passes (H58)
+and it destroys two passes in each of the two strategy-contaminated families. The direction matters: a
+published `False` on `stab` and `worst` is *not* evidence that the family fails those gates — the
+evidence is a single negative print in a Yahoo continuous-contract splice.
+
+### What changed
+
+- `tests/test_h59_contamination_gate_blast_radius.py` — **new**, the H59 contract: **93 tests**.
+- `FINAL_REPORT.md` — new **§H59** section (this section).
+- `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_CURRENT.md`, `HANDOFF_CURRENT_SESSION.md`,
+  `HANDOFF_NEXT.md` updated.
+- **Nothing under `src/qtr` changed** beyond the H58 screen; no artifact, gate threshold, verdict or
+  certified number was modified; no grid was re-run.
+
+### The measured record — the two honest caveats
+
+1. **The two new flips are marginal.** The counterfactual clears the `stab` gate by **0.0149**
+   (2.1 % of the threshold) and the `worst` gate by **0.0250** (8.3 %). The contract pins the margins
+   so that a reader can see that the *direction* is decided by the contamination while the *outcome*
+   sits close to the line. Both flips survive a second, independent counterfactual (dropping the two
+   sessions instead of zeroing them), so the direction is not an artefact of one choice.
+2. **The published `oos_max_dd` of those two families is arithmetically impossible**: -1.5096 is a
+   drawdown of **-150.96 %** of the normalised OOS equity, which can only happen because the equity
+   curve goes negative (the published minimum is -463 814.84 on a long-only strategy). It is a data
+   artifact, not a loss.
+
+### The contract
+
+`tests/test_h59_contamination_gate_blast_radius.py` enforces: the control reproduces every published
+statistic of the eleven affected summaries to 1e-9 and reproduces their published gate booleans; the
+four producer conventions are the measured ones (h7/ddcv/h6 absolute drawdown, no alignment, committed
+VIX; h8 percentage drawdown, tail alignment, reindexed VIX); the pre-H33 h7 families publish the
+default `p_value = 1.0` and are disclosed rather than re-derived; the counterfactual is measured for
+all eleven; the `ir` gate flips in nine summaries, `stab` in two, `worst` in two, **no other gate
+flips**, and the total is thirteen; the two new flips are in the strategy-contaminated families; the
+margins are pinned and thin; the flips survive the second counterfactual; the published max drawdown
+is impossible; no published verdict moves; and the certified families never see the crossing.
+
+### The screen gap H59 closes
+
+The H58 screen screened the *close* of a fetched panel. The committed H8 artifact shows why that is
+not enough: the same WTI splice printed **-14.0** as the **open** of 2020-04-21 — a session whose
+close was positive — so a close-only screen declared that session clean. H59's `non_positive_prices`
+screens **every price column** (`open`, `high`, `low`, `close`), and the contract proves the
+close-only reconstruction misses the -14.0 open while the full screen catches it (four offending
+prices, one per column). A zero volume is not a price.
+
+### What was actually verified
+
+- `python -m pytest -q -W error tests/test_h59_contamination_gate_blast_radius.py` → **93 passed**.
+- `python -m pytest -q -W error` → **2 049 passed, 16 skipped** (full suite).
+- `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` = **1085 statements, 330 branches, 0 missed,
+  0 partial, 100.00%**.
+- `python -m ruff check src tests run_*.py` → *All checks passed!*; `python -m ruff format --check
+  src tests run_*.py` → **103 files already formatted**.
+- Every number is a read of the committed artifacts — no pipeline re-execution, no network, nothing
+  written; no published number moved.
+
+### What remains unresolved
+
+Nothing under the record. Both halves of the H58/H59 finding are **disclosed, not repaired**: the
+thirteen affected gate booleans stay as published (all in REJECT families; no certified verdict moves),
+and the SVXY split stays disclosed as a research decision rather than a bug fix (§H58). All remaining
+unresolved items from §H53–§H57 stay disclosed (missing inputs / convention differences) and cannot be
+resolved without new committed inputs. H1–H30 exhausted; certified families frozen.
