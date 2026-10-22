@@ -64,6 +64,7 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
+from qtr.data import DataCache, DataFetcher, non_positive_prices  # noqa: E402
 from qtr.validation.statistics import (  # noqa: E402
     benchmark_significance_gate,
     compare_to_benchmark,
@@ -511,9 +512,7 @@ def _measure(
         worst = sharpe
 
     if convention["align"] == "tail":
-        comparison = compare_to_benchmark(
-            oos.values[-len(benchmark_oos) :], benchmark_oos.values
-        )
+        comparison = compare_to_benchmark(oos.values[-len(benchmark_oos) :], benchmark_oos.values)
     else:
         comparison = compare_to_benchmark(oos.values, benchmark_oos.values)
     information_ratio = float(comparison["information_ratio"])
@@ -829,12 +828,21 @@ class TestTheScreenCoversEveryPriceColumn:
         panel = self._panel()
         closes = panel["close"]
         offending = closes[(closes <= 0) & closes.notna()]
-        assert len(offending) == 0
+        # The close-only screen catches the negative close of 2020-04-20 ...
+        assert len(offending) == 1
+        assert offending.index[0] == pd.Timestamp("2020-04-20")
+        # ... but it misses the negative open of 2020-04-21, whose close is
+        # positive, which is why every price column must be screened.
+        assert panel.loc[pd.Timestamp("2020-04-21"), "open"] == -14.0
+        assert panel.loc[pd.Timestamp("2020-04-21"), "close"] > 0.0
 
     def test_the_screen_catches_the_open(self):
         panel = self._panel()
         bad = non_positive_prices(panel)
-        assert len(bad) == 1
+        # open and high inherit the -14.0 open of 2020-04-21; low and close
+        # inherit the -37.63 close of 2020-04-20 -- four offending prices,
+        # one per price column.
+        assert len(bad) == 4
         assert bad.iloc[0]["symbol"] == "open"
         assert bad.iloc[0]["timestamp"] == self.SESSION
         assert bad.iloc[0]["price"] == -14.0
@@ -875,7 +883,7 @@ class TestTheScreenCoversEveryPriceColumn:
         monkeypatch.setitem(sys.modules, "yfinance", fake_yf)
 
         fetcher = DataFetcher(cache=DataCache(cache_dir=tmp_path))
-        with pytest.raises(ValueError, match="non-positive close"):
+        with pytest.raises(ValueError, match="non-positive price"):
             fetcher.fetch_futures(["CL=F"], "2020-04-01", "2020-05-01", use_cache=False)
 
 

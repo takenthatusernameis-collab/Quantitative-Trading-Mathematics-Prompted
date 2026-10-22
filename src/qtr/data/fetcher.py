@@ -16,7 +16,6 @@ from loguru import logger
 
 from qtr.utils.config import get_config
 
-
 PRICE_COLUMNS = ("open", "high", "low", "close")
 
 
