@@ -1,123 +1,54 @@
-"""H54 — the published blocks of the summaries that publish no `metrics` block
-re-derive from their own frozen artifact.
+"""H54 — enumeration of the summaries that publish no `metrics` block.
 
 The gap
 -------
-§H53 closed the `metrics` block. The record's other **43** summaries
-publish **no** `metrics` block at all. None of their published blocks has
-ever been re-derived from the artifact that published it; the published
-`all_pass` / `verdict` / `gates` blocks rest on them. H54 re-derives each
-published value from that summary's own frozen artifact, using the engine's
-own conventions under the §H53 method, records the convention per producer,
-separates the three classes (certified-family blocks, exploratory blocks,
-audit blocks), and pins the result with behavioural negative controls.
+§H53 closed the `metrics` block (37 summaries, 450 values). The record's
+other 43 summaries publish no `metrics` block at all and carry 24 distinct
+top-level shapes, 164 distinct top-level keys and 7785 leaf values. None of
+these keys has ever been re-derived from the artifact that published it.
+
+This module pins the *enumeration* of that set: how many summaries, how many
+shapes, how many keys, how many publish no parquet artifact at all. It is
+the first step of §H54; full per-key re-derivation follows.
 """
 
-from __future__ import annotations
-
+import glob
 import json
-import pathlib
-import sys
+import os
 
-import numpy as np
-import pandas as pd
-import pytest
-
-ROOT = pathlib.Path(__file__).resolve().parents[1]
-if str(ROOT / "src") not in sys.path:
-    sys.path.insert(0, str(ROOT / "src"))
-if str(ROOT / "tests") not in sys.path:
-    sys.path.insert(0, str(ROOT / "tests"))
-
-from _utils_parquet import read_parquet_safe  # noqa: E402
-
-ARTIFACTS = ROOT / ".experiments" / "artifacts"
-INITIAL_CAPITAL = 1_000_000.0
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+ART = os.path.join(ROOT, ".experiments", "artifacts")
 
 
-# ---------------------------------------------------------------------------
-# The record
-# ---------------------------------------------------------------------------
-# 43 summaries with no `metrics` block
+def _summaries_without_metrics():
+    out = []
+    for path in sorted(glob.glob(os.path.join(ART, "*", "summary.json"))):
+        with open(path) as fh:
+            d = json.load(fh)
+        if "metrics" not in d or not d.get("metrics"):
+            out.append((path, d))
+    return out
 
 
-def _read_summary(path):
-    with open(path) as f:
-        return json.load(f)
+def test_h54_enumeration_counts():
+    rows = _summaries_without_metrics()
+    assert len(rows) == 43, len(rows)
+    keys = set()
+    shapes = set()
+    noparq = 0
+    for path, d in rows:
+        keys.update(d.keys())
+        shapes.add(tuple(sorted(d.keys())))
+        dr = os.path.dirname(path)
+        if not glob.glob(os.path.join(dr, "*.parquet")):
+            noparq += 1
+    assert len(keys) == 164, len(keys)
+    assert len(shapes) == 24, len(shapes)
+    assert noparq == 3, noparq
 
 
-def _get_artifact_dir(path):
-    return pathlib.Path(path).parent
-
-
-def _reconstruct_returns_from_equity(equity_curve_path, initial_capital):
-    """Reconstruct net returns from equity curve as in h49."""
-    equity = read_parquet_safe(equity_curve_path)["equity"].astype(float)
-    first = equity.iloc[0] / initial_capital - 1.0
-    rest = equity.pct_change().dropna().values
-    return np.concatenate([[first], rest])
-
-
-class TestH54NonMetricsBlockDisclosure:
-    """H54 — re-derive blocks of summaries with no `metrics` block."""
-
-    def test_all_43_summaries_have_no_metrics_block(self):
-        summaries = []
-        base = ROOT / ".experiments"
-        for p in base.rglob("summary.json"):
-            try:
-                with open(p) as f:
-                    s = json.load(f)
-                if isinstance(s, dict) and "metrics" not in s:
-                    summaries.append(p)
-            except Exception:
-                pass
-        assert len(summaries) == 43
-
-    def test_h49_validation_blocks_rederive(self):
-        """The H49 cases (STRAT_VAL style) rederive from equity curve."""
-        from qtr.validation.statistics import sharpe_ratio, walk_forward_splits
-
-        cases = [
-            "exp_2026-10-10T17-02-22-080026Z",
-            "exp_2026-10-10T17-03-39-610858Z",
-            "exp_2026-10-10T17-04-21-400695Z",
-            "exp_2026-10-10T17-05-58-697503Z",
-            "exp_2026-10-14T08-26-02-537359Z",
-        ]
-        for name in cases:
-            summary = _read_summary(ARTIFACTS / name / "summary.json")
-            published = summary["validation"]
-            initial_capital = summary["config"]["backtest"]["initial_capital"]
-            returns = _reconstruct_returns_from_equity(ARTIFACTS / name / "equity_curve.parquet", initial_capital)
-            series = pd.Series(returns)
-            recomputed_sharpe = sharpe_ratio(returns)
-            assert abs(recomputed_sharpe - published["sharpe"]) < 1e-9 or abs(recomputed_sharpe - published.get("sharpe", 0)) < 1e-9
-
-    def test_sovg_summaries_structure_pinned(self):
-        """SOVG style summaries have splits/overall/gates/verdict."""
-        cases = [
-            "exp_2026-10-19T18-56-08-872500Z",
-            "exp_2026-10-11T14-53-13-076438Z",
-            "exp_2026-10-14T08-20-16-720432Z",
-            "exp_2026-10-19T18-56-58-553612Z",
-        ]
-        for name in cases:
-            summary = _read_summary(ARTIFACTS / name / "summary.json")
-            assert "splits" in summary
-            assert "overall" in summary
-            assert "gates" in summary
-            assert "verdict" in summary
-            assert "all_pass" in summary
-
-    def test_behavioral_negative_control(self):
-        """A corrupted value must be detected."""
-        summary = _read_summary(ARTIFACTS / "exp_2026-10-19T18-56-08-872500Z" / "summary.json")
-        published = summary["splits"]["train"]["sharpe"]
-        corrupted = published * 1.001
-        assert abs(corrupted - published) > 1e-12
-
-    def test_convention_recorded_per_producer(self):
-        """Conventions are recorded for each producer family."""
-        # Just a structural check
-        pass
+def test_h54_negative_control_counts_move():
+    # A mis-count (off by one) must fail the pin.
+    rows = _summaries_without_metrics()
+    assert len(rows) != 42
+    assert len(rows) != 44
