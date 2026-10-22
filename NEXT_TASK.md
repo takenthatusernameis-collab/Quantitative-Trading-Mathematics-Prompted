@@ -2,7 +2,7 @@
 
 ## State
 
-H35–H53 complete (the coverage gate is measured, declared and complete at 100% statement + branch;
+H35–H54 complete (the coverage gate is measured, declared and complete at 100% statement + branch;
 the package's public API and the runners' import surface are both declared and pinned; the engine's
 trade log reconciles with the costs it charges; the package's stochastic surface is seedable;
 the published validation blocks re-derive from the frozen artifacts; the package's metadata has exactly
@@ -14,6 +14,47 @@ the artifact that published it — **441** of **450** values re-derive exactly (
 and the remaining **9** are the H9 family's regime block, whose VIX input was never committed. The
 **ten** convention profiles the **nineteen** producer tags used are now recorded and pinned, and
 four behavioural negative controls prove the checks fire.
+
+**H54 is complete**: the **43** summaries that publish no `metrics` block are re-derived from their
+own frozen artifacts under the conventions their producers used. Of the **164** distinct top-level
+keys they publish, **52** re-derive in full, **4** re-derive with a *named* disclosed leaf, and
+**108** are declarations or audit verdicts about other artifacts. The **ten** convention profiles
+are recorded and pinned, and three behavioural negative controls prove the checks fire.
+
+## The next task (H55)
+
+The four nested `metrics` keys H53 left open, and the two text-echo families:
+
+- **The four nested `metrics` keys**: `ablations` (**28** re-derivable from their committed equity
+  files, **7** not), `perturbation` / `perturbation_min_ratio` (**14**, none re-derivable) and
+  `cross_validation` (**2**, none re-derivable).
+- **The `stats.json` echoes**: **40** files publish the head of a trade log as text (H52 pinned the
+  count). Their `returns` field is a pandas `to_string()` of a return series, so the published
+  numbers are rounded to the display precision and the series is truncated — the conventions of that
+  publisher are unrecorded.
+- **The 14 benchmark `avg_trade_cost` entries** whose benchmark trade log and signals were never
+  committed: their over-count factor is not measurable from the record, and the H27-style
+  independent recomputation could not be applied to them.
+
+## What changed (H54)
+
+**H54:** the published blocks of the summaries that publish no `metrics` block now re-derive
+from their own frozen artifacts, and every convention the record carries is recorded. Of the **43**
+non-`metrics` summaries (**24** shapes, **164** distinct top-level keys, **7 785** published leaf
+values), **52** of the keys re-derive in full, **4** re-derive with a *named* disclosed leaf, and
+**108** are declarations or audit verdicts about other artifacts. **Ten** convention profiles are
+recorded and pinned, and three behavioural negative controls prove the checks fire.
+
+- `tests/test_h54_non_metrics_block_disclosure.py` — the H54 contract: **21 tests**. The
+  re-derivation walks the published structure; every reached leaf must agree, every
+  unreached leaf must be *named* in `NOT_REDERIVABLE` with the reason the artifact cannot
+  carry it, and every reconstructed-but-unpublished leaf must be named in `NOT_PUBLISHED`.
+- `FINAL_REPORT.md` — new **§H54** section (the measured record, the classification of the
+  **164** top-level keys, the **ten** conventions and the disclosure list).
+- `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_CURRENT.md`, `HANDOFF_CURRENT_SESSION.md`,
+  `HANDOFF_NEXT.md` updated.
+- **Nothing under `src/qtr` changed.** No artifact, gate threshold, verdict or certified
+  number was modified; no grid was re-run; no hypothesis was added.
 
 ## What changed (H53)
 

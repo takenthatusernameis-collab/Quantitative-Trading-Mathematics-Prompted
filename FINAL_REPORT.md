@@ -3017,6 +3017,130 @@ timestamp, so the provenance stamp is read from the last path segment.)
 - The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified
   families' numbers and verdicts are frozen.
 
+## H54 — the published blocks of the summaries that publish no `metrics` block (2026-10-22)
+
+§H53 closed the `metrics` block. The record's other **43** summaries publish **no** `metrics`
+block at all: they carry a different shape, and the published `all_pass` / `verdict` / `gates`
+blocks that rest on them had never been re-derived.
+
+### The measured record
+
+============  ==========================================  =========
+measured      quantity                                    value
+============  ==========================================  =========
+summaries     with no `metrics` block                      **43**
+shapes        distinct top-level key sets                  **24**
+keys          distinct top-level keys                      **164**
+leaf values   published                                    **7 785**
+summaries     publishing no parquet artifact at all        **3**
+producers     producer families                            **21**
+============  ==========================================  =========
+
+### The classification of the 164 top-level keys
+
+Every distinct top-level key the record publishes is classified. A key is **re-derived** when the
+reconstruction reaches every one of its published leaves; **re-derived, partly disclosed** when it
+is reached everywhere but a *named* leaf has no source in the committed artifact; **not
+re-derivable** when the block is a declaration (`config`, `hypothesis`, a threshold table) or an
+audit verdict *about* another artifact (the H11–H13 and H26–H29 families read other artifacts and
+publish their own committed table).
+
+============  ==========================================  =========
+class         keys                                        value
+============  ==========================================  =========
+re-derived    every published leaf re-derives              **52**
+partly        re-derived, with a named disclosed leaf       **4**
+not           declaration or audit verdict                  **108**
+============  ==========================================  =========
+
+The four partly-disclosed keys are `benchmark_metrics` (the benchmark trade log was never
+committed), `gates` (the perturbation gate's eight-way detail set), `base_metrics` (the base book
+has no committed trade log) and `block_bootstrap` (the switch and the block length are the
+producer's own declarations).
+
+### The conventions the record carries
+
+1. **The numpy-boolean serialisation.** `json.dump(..., default=str)` writes a numpy boolean as the
+   *string* `"True"` / `"False"` and keeps a Python boolean as a JSON `true` / `false`. The mix is
+   not producer-wide: `futures_tsmom_v1` left four of its eight pass gates raw (`sharpe`, `dd`,
+   `stab`, `worst`) and wrapped the other four; `ddcv_futures_tsmom_v1` is the same runner with the
+   same mix, and one of its four summaries was written with the wrapped form throughout. The H7
+   family left three of its ten gates raw. The class of every published gate boolean is pinned per
+   producer, per block and per gate.
+2. **The pre-fix bootstrap seeding.** The published bootstrap intervals were resampled with the
+   legacy MT19937 stream (`numpy.random.RandomState`); the library now uses PCG64
+   (`numpy.random.default_rng`). The published intervals re-derive under the legacy form and do
+   **not** re-derive under the library's.
+3. **The pre-H51 mixed-ddof beta.** The published `beta` divided `np.cov(..., ddof=1)` by
+   `np.var(...)`'s default `ddof=0`. The published betas are on the pre-fix convention — the
+   published `alpha_annualized` of the same block differs by only 6e-06 and its four-decimal
+   precision cannot resolve the two conventions, so the **beta** is the value that discriminates
+   them.
+4. **The pre-fix alpha p-value lookup.** Two families read the alpha p-value under `"p_value"`, a
+   key `compare_to_benchmark` does not return, so the published value is the `1.0` default and the
+   gate it fed was **vacuous**. The DDCV and H6 families read the key the library returns.
+5. **The pre-fix regime-stability sentinel.** One summary of the time-series family publishes
+   `-Infinity` under the regime-stability gate where its five siblings publish the computed
+   minimum (-2.4005). Disclosed, not rewritten.
+6. **The pre-fix engine metric block.** The published `strategy_metrics` and `benchmark_metrics`
+   blocks are on the engine's *pre-fix* conventions: the total return is measured from the first
+   equity row, the Sharpe divides by the SAMPLE standard deviation, and the Sortino divides by the
+   standard deviation of the negative-returns subset. The engine moved afterwards (`ddof=0`, the
+   downside deviation, and a total return that spans every bar).
+7. **The two OOS drawdown forms.** The cross-sectional family publishes the *relative* drawdown
+   (`cum / cummax - 1`); the time-series, regime-gated, futures, DDCV and H6 families publish the
+   *level* difference (`cum - cummax`). The families genuinely differ; each is re-derived in its
+   own form.
+8. **The pre-H34 significance gate.** The regime-gated family's first summary published the
+   direction-unaware gate — it passes on `p = 0.0464` even though the information ratio is
+   -0.8932, i.e. the strategy *underperformed* the benchmark significantly. Its sibling summary,
+   written after the fix, publishes the direction-aware verdict.
+9. **The split-Sharpe ddof split.** The H7 family passes a pandas Series to `sharpe_ratio`, which
+   used the container's standard deviation (`ddof=1`); the two summaries produced before the
+   library's fix publish that convention, the two produced after it publish `ddof=0`. The
+   `overall` block comes from the engine's own metric block, which was published on the pre-fix
+   `ddof=1` in all four summaries.
+10. **The H18 gate/value disagreement.** The overnight/intraday family publishes the drawdown gate
+    as an absolute value (0.2223) against a threshold of 0.15 with the verdict `True` in two of
+    its three summaries and `False` in the third. The verdict contradicts the published value under
+    the producer's own rule; disclosed, not rewritten.
+
+### The disclosure list
+
+- **The `benchmark_metrics` trade count and average trade cost** of the baseline family: the
+  benchmark trade log was never committed (§H52 recorded the same gap for the `metrics` block).
+- **The perturbation gate's eight-way detail set** of the three H16-style families: it needs a grid
+  re-run, and the committed grid table carries only the selected row. The gate's own value,
+  threshold and verdict *do* re-derive — from the summary's own published `perturbations` block.
+- **The base book's trade count** of the roll-adjusted family: no base trade log was committed.
+- **The H18 per-combo profit factor and trade count**: the runner serialised its trade and return
+  tables into `stats.json` as *text*; the artifact keeps no parquet for them, and the regime,
+  benchmark and perturbation gates rest on the VIX series and the benchmark book, which that
+  artifact does not commit either.
+- **The H26–H29 audit verdicts**: they are verdicts *about* other artifacts and are not
+  re-derived here. Their own committed tables (`scale_table`, `level_table`,
+  `recertification_table`, `sweep_table`, `source_inventory`) are the evidence, not the verdict.
+
+### The contract
+
+`tests/test_h54_non_metrics_block_disclosure.py` — **21 tests**. The re-derivation walks the
+*published* structure: every published leaf the reconstruction reaches must agree with it, every
+published leaf it does not reach must be *named* in `NOT_REDERIVABLE` with the reason the artifact
+cannot carry it, and every reconstructed leaf the record does not publish must be named in
+`NOT_PUBLISHED`. Three behavioural negative controls prove the checks fire: the current beta breaks
+the published beta, the library's PCG64 bootstrap breaks the published interval, and a corrupted
+split breaks the published split metrics.
+
+### What did not change
+
+Nothing under `src/qtr` changed. No artifact, gate threshold, verdict or certified number was
+modified; no grid was re-run; no hypothesis was added. The whole suite is **1 683 passed, 16
+skipped, 1 failed** — the single failure is the pre-existing
+`tests/test_trade_log_cost_reconciliation.py::TestFrozenRecordScope::test_every_committed_trade_log_precedes_the_attribution_fix`,
+which runs `git show -s --format=%cI 3fbef17` against a commit that this squashed clone does not
+contain; it fails identically before H54.
+
+
 ## H53 — the published `metrics` block re-derives from its own frozen artifact (2026-10-21)
 
 **Verdict: 441 of the 450 published values in the 37 `metrics` blocks re-derive from the frozen

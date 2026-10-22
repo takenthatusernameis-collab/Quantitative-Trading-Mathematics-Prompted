@@ -1,4 +1,24 @@
-# HANDOFF_NEXT — H53: the published `metrics` block re-derives from its own frozen artifact
+# HANDOFF_NEXT — H54: the published `metrics` block re-derives from its own frozen artifact
+
+## What changed (H54)
+
+**H54:** the published blocks of the summaries that publish no `metrics` block now re-derive
+from their own frozen artifacts, and every convention the record carries is recorded. Of the **43**
+non-`metrics` summaries (**24** shapes, **164** distinct top-level keys, **7 785** published leaf
+values), **52** of the keys re-derive in full, **4** re-derive with a *named* disclosed leaf, and
+**108** are declarations or audit verdicts about other artifacts. **Ten** convention profiles are
+recorded and pinned, and three behavioural negative controls prove the checks fire.
+
+- `tests/test_h54_non_metrics_block_disclosure.py` — the H54 contract: **21 tests**. The
+  re-derivation walks the published structure; every reached leaf must agree, every
+  unreached leaf must be *named* in `NOT_REDERIVABLE` with the reason the artifact cannot
+  carry it, and every reconstructed-but-unpublished leaf must be named in `NOT_PUBLISHED`.
+- `FINAL_REPORT.md` — new **§H54** section (the measured record, the classification of the
+  **164** top-level keys, the **ten** conventions and the disclosure list).
+- `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_CURRENT.md`, `HANDOFF_CURRENT_SESSION.md`,
+  `HANDOFF_NEXT.md` updated.
+- **Nothing under `src/qtr` changed.** No artifact, gate threshold, verdict or certified
+  number was modified; no grid was re-run; no hypothesis was added.
 
 ## What changed (this session)
 
