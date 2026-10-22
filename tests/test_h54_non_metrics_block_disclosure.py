@@ -87,12 +87,16 @@ import pandas as pd
 import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 if str(ROOT / "tests") not in sys.path:
     sys.path.insert(0, str(ROOT / "tests"))
 
 from _utils_parquet import read_parquet_safe  # noqa: E402
+
+import run_h57_total_return_audit as h57  # noqa: E402
 
 ARTIFACTS = ROOT / ".experiments" / "artifacts"
 INITIAL_CAPITAL = 1_000_000.0

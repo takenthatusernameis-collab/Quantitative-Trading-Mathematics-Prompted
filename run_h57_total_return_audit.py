@@ -54,6 +54,8 @@ ART_DIR = ARTIFACTS / "h57_total_return"
 CORPORATE_ACTION_FRAC = 0.01
 # A price move larger than this on a corporate-action bar is a *level* bar.
 LEVEL_BAR_FRAC = 0.10
+# The published benchmark-significance gate's threshold (PROMPT_V2, every family).
+GATE_P_VALUE = 0.05
 
 
 # --------------------------------------------------------------------------- #
@@ -73,7 +75,10 @@ def _runner_tokens() -> tuple[set[str], set[str], set[str]]:
     for path in sorted(ROOT.glob("run_*.py")):
         text = path.read_text(encoding="utf-8")
         for token in re.findall(r'"([^"\n]{1,12})"', text):
-            if re.fullmatch(r"\^?[A-Z]{1,6}(=F)?", token):
+            # A symbol may carry a digit (``^VIX3M``); the equity grammar is
+            # "one leading letter, up to five more letters or digits, an
+            # optional ``=F`` futures suffix".
+            if re.fullmatch(r"\^?[A-Z][A-Z0-9]{0,5}(=F)?", token):
                 symbols.add(token)
             elif re.fullmatch(r"\d{4}-\d{2}-\d{2}", token):
                 dates.add(token)
@@ -91,10 +96,14 @@ def index_cache() -> dict[str, dict]:
     symbols, dates, intervals = _runner_tokens()
     files = {p.stem: p for p in sorted(CACHE_DIR.glob("*.parquet"))}
     index: dict[str, dict] = {}
-    for symbol in symbols:
-        for start in dates:
-            for end in dates:
-                for interval in intervals or {"1d"}:
+    # Every loop is over a *sorted* sequence: the index is read back by
+    # :func:`load_cached`, which breaks ties between equally covering cache
+    # files, and a tie broken by a set's iteration order would make the
+    # audit's numbers depend on the process's hash seed.
+    for symbol in sorted(symbols):
+        for start in sorted(dates):
+            for end in sorted(dates):
+                for interval in sorted(intervals or {"1d"}):
                     for source in ("yahoo", "yahoo_futures", "ccxt"):
                         key = cache_key(source, symbol, start, end, interval)
                         path = files.get(key)
@@ -118,23 +127,53 @@ def symbol_frames(index: dict[str, dict]) -> dict[str, list[dict]]:
     return by_symbol
 
 
-def load_cached(symbol: str, entries: list[dict], index: pd.DatetimeIndex) -> pd.DataFrame | None:
+def cache_coverage(index: dict[str, dict]) -> dict:
+    """How much of the committed cache the index reaches.
+
+    The index is rebuilt from the runners' own source tokens, so a cache file
+    whose request cannot be reconstructed from a literal in a runner stays out
+    of it. The crypto files are in that position: the CCXT path keys its
+    cache on ``ccxt:{exchange_id}:{SYMBOL_PAIR}``, a token the equity
+    grammar does not match. They carry no distribution either -- a crypto
+    spot series has no ex-date -- so they are outside H57's question, but the
+    count is reported rather than left silent.
+    """
+    on_disk = {p.stem for p in CACHE_DIR.glob("*.parquet")}
+    indexed = set(index)
+    return {
+        "n_cache_files_on_disk": len(on_disk),
+        "n_cache_files_indexed": len(indexed),
+        "n_cache_files_not_indexed": len(on_disk - indexed),
+    }
+
+
+def load_cached(
+    symbol: str, entries: list[dict], index: pd.DatetimeIndex
+) -> tuple[pd.DataFrame, dict] | tuple[None, None]:
     """The cached frame for ``symbol`` that best covers ``index``.
 
     Several cache files can exist for one symbol (different windows). The one with
     the largest overlap with the artifact's index is used; its *ratios* are
     window-independent, so the window only has to cover the bars that are used.
+
+    The choice is **deterministic**: the overlap comes first, then the longer
+    frame, then the file name. The last two tie-breaks matter because several
+    windows cover the same index equally well, and the vendor's adjustment
+    factors differ slightly between fetches -- an arbitrary pick would make
+    the audit's numbers depend on the order the files were read in.
     """
     best = None
-    best_overlap = -1
-    for entry in entries:
+    best_entry = None
+    best_key = (-1, -1, "")
+    for entry in sorted(entries, key=lambda e: e["file"]):
         frame = pd.read_parquet(CACHE_DIR / entry["file"])
         overlap = len(index.intersection(frame.index))
-        if overlap > best_overlap:
-            best, best_overlap = frame, overlap
-    if best is None or best_overlap == 0:
-        return None
-    return best
+        key = (overlap, len(frame), entry["file"])
+        if key > best_key:
+            best, best_entry, best_key = frame, entry, key
+    if best is None or best_key[0] <= 0:
+        return None, None
+    return best, best_entry
 
 
 # --------------------------------------------------------------------------- #
@@ -381,6 +420,80 @@ def _period_metrics(returns: pd.Series) -> dict:
     }
 
 
+def published_significance_gate(summary: dict) -> dict:
+    """The published benchmark-significance gate, in the shape the family used.
+
+    Two families publish the gate itself (a ``pass`` boolean and its
+    threshold); the rest publish only the p-value it is built on. The
+    published rule is **direction-blind** (``p < threshold``): H33/H34 already
+    disclosed that the direction-aware rule (``p < threshold AND IR > 0``)
+    is the one the library applies now, and that the three families carrying
+    a ``p`` PASS all have a *negative* alpha.
+    """
+    gates = summary.get("gates") or {}
+    block = gates.get("benchmark_significance")
+    if isinstance(block, dict):
+        return {
+            "gate_block_published": True,
+            "value": block.get("value"),
+            "threshold": block.get("threshold", GATE_P_VALUE),
+            "pass": block.get("pass"),
+            "information_ratio": block.get("information_ratio"),
+        }
+    metrics = summary.get("metrics") or {}
+    if "benchmark_p_value" in metrics:
+        return {
+            "gate_block_published": False,
+            "value": metrics.get("benchmark_p_value"),
+            "threshold": GATE_P_VALUE,
+            "pass": None,
+            "information_ratio": metrics.get("information_ratio"),
+        }
+    return {
+        "gate_block_published": False,
+        "value": None,
+        "threshold": GATE_P_VALUE,
+        "pass": None,
+        "information_ratio": None,
+    }
+
+
+def published_verdict(summary: dict) -> dict:
+    """The family's published verdict, in the shape it published it."""
+    return {
+        "verdict": summary.get("verdict"),
+        "all_pass": summary.get("all_pass", summary.get("all_gates_pass")),
+    }
+
+
+def verdict_impact(
+    published_gate: dict, counterfactual_p: float, counterfactual_ir: float
+) -> dict:
+    """Does a published gate boolean move under the counterfactual?
+
+    The published rule is direction-blind (``p < threshold``): H33/H34 already
+    disclosed that the direction-aware rule (``p < threshold AND IR > 0``) is
+    the one the library applies now, and that the three families carrying a
+    ``p`` PASS all have a *negative* alpha. Both are reported, so a reader can
+    see the gate under either rule.
+    """
+    threshold = published_gate["threshold"] if published_gate["threshold"] is not None else GATE_P_VALUE
+    counter_pass = bool(counterfactual_p < threshold)
+    published_pass = published_gate["pass"]
+    return {
+        "published_gate_block": published_gate["gate_block_published"],
+        "published_pass": published_pass,
+        "published_value": published_gate["value"],
+        "threshold": threshold,
+        "counterfactual_value": float(counterfactual_p),
+        "counterfactual_pass": counter_pass,
+        "counterfactual_pass_direction_aware": bool(
+            counterfactual_p < threshold and counterfactual_ir > 0
+        ),
+        "gate_boolean_moves": bool(published_pass is not None and bool(published_pass) != counter_pass),
+    }
+
+
 def _one_column(frame: pd.DataFrame) -> pd.Series:
     if isinstance(frame, pd.Series):
         return frame.astype(float)
@@ -403,6 +516,8 @@ def audit_family(spec: dict, cache_by_symbol: dict[str, list[dict]]) -> dict:
     summary = json.loads((art / "summary.json").read_text(encoding="utf-8"))
     published = published_comparison(summary)
     out["published"] = published
+    out["published_gate"] = published_significance_gate(summary)
+    out["published_verdict"] = published_verdict(summary)
 
     prices = pd.read_parquet(art / "prices.parquet")
     prices = prices.apply(pd.to_numeric, errors="coerce")
@@ -460,20 +575,40 @@ def audit_family(spec: dict, cache_by_symbol: dict[str, list[dict]]) -> dict:
     out["control"]["alpha_t_stat"] = float(control_cmp["alpha_t_stat"])
 
     # --- the total-return series of every traded symbol ---------------------
+    # The record's total-return column is the vendor's ``adj_close``. It is
+    # committed in the same cache file as the raw ``close`` the runners read,
+    # but for some symbols the two are *equal*: the record carries no
+    # adjustment for them at all. Those symbols are named, because the
+    # counterfactual below corrects the distributions it can measure and
+    # leaves the others at zero.
     tr_returns = pd.DataFrame(np.nan, index=prices.index, columns=prices.columns)
     symbols_without_cache = []
+    symbols_without_adjustment = []
+    adjustment_deviation: dict[str, float] = {}
+    cache_file_used: dict[str, str] = {}
     for symbol in prices.columns:
         entries = cache_by_symbol.get(symbol)
         if not entries:
             symbols_without_cache.append(symbol)
             continue
-        cached = load_cached(symbol, entries, prices.index)
+        cached, entry = load_cached(symbol, entries, prices.index)
         if cached is None or "adj_close" not in cached.columns:
             symbols_without_cache.append(symbol)
             continue
+        cache_file_used[symbol] = entry["file"]
         adj = cached["adj_close"].astype(float).reindex(prices.index)
+        raw = cached["close"].astype(float).reindex(prices.index)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            ratio = (adj / raw).replace([np.inf, -np.inf], np.nan)
+        deviation = float(np.nanmax(np.abs(ratio - 1.0))) if ratio.notna().any() else 0.0
+        adjustment_deviation[symbol] = deviation
+        if deviation <= 0.0:
+            symbols_without_adjustment.append(symbol)
         tr_returns[symbol] = adj.pct_change()
     out["symbols_without_total_return"] = symbols_without_cache
+    out["symbols_without_adjustment"] = symbols_without_adjustment
+    out["max_adjustment_deviation"] = adjustment_deviation
+    out["cache_file_used"] = cache_file_used
 
     if positions is None or symbols_without_cache:
         out["status"] = "insufficient_record"
@@ -483,8 +618,19 @@ def audit_family(spec: dict, cache_by_symbol: dict[str, list[dict]]) -> dict:
     # The distributions the record omitted: per bar, the position held over the
     # ex-date times the difference between the total return and the price return.
     distribution = tr_returns - price_returns
+
+    # A bar on which a symbol's price is known but its distribution is not is
+    # a bar the correction cannot reach. It is counted, never dropped: a
+    # silent zero would understate the correction without saying so.
+    unreachable = price_returns.notna() & distribution.isna()
+    out["correction_unreachable_bars"] = int(unreachable.to_numpy().sum())
+
     strat_distribution = (positions.shift(1) * distribution).sum(axis=1)
 
+    # The benchmark's book is the engine's own: constant target weights
+    # between rebalances, no notional drift, so the benchmark's per-bar
+    # return is the (possibly notional) mean of the symbols' returns and
+    # the mean of their distributions is its exact first-order correction.
     bench_kind = spec["benchmark"]["kind"]
     if bench_kind == "equal_weight":
         bench_distribution = distribution.mean(axis=1)
@@ -508,6 +654,17 @@ def audit_family(spec: dict, cache_by_symbol: dict[str, list[dict]]) -> dict:
         "mean_strategy_distribution_per_bar": float(strat_distribution.reindex(oos_index)[mask].mean()),
         "mean_benchmark_distribution_per_bar": float(bench_distribution.reindex(oos_index)[mask].mean()),
     }
+
+    # --- does a published gate boolean move? --------------------------------
+    gate = out["published_gate"]
+    counter_p = float(counter_cmp["alpha_p_value"])
+    counter_ir = float(counter_cmp["information_ratio"])
+    out["verdict_impact"] = verdict_impact(gate, counter_p, counter_ir)
+    out["verdict_impact"]["published_verdict"] = out["published_verdict"]
+    # A family whose universe carries no adjustment at all cannot be
+    # measured on the total-return question: its counterfactual is the
+    # control by construction, and that is a null result, not a finding.
+    out["counterfactual_informative"] = bool(len(symbols_without_adjustment) < len(prices.columns))
 
     # --- the strategy's own gates that are functions of the return series ----
     out["strategy_metrics"] = {
@@ -534,7 +691,13 @@ def audit_family(spec: dict, cache_by_symbol: dict[str, list[dict]]) -> dict:
 # --------------------------------------------------------------------------- #
 # 4. The audit                                                               #
 # --------------------------------------------------------------------------- #
-def main() -> int:
+def build_report() -> dict:
+    """The whole audit, as a dictionary.
+
+    Nothing is written and nothing is fetched: the report is a function of
+    the committed cache and the committed artifacts alone, so it can be
+    rebuilt and compared against the committed summary.
+    """
     started = time.time()
     index = index_cache()
     cache_by_symbol = symbol_frames(index)
@@ -551,6 +714,7 @@ def main() -> int:
         ),
         "n_cache_files_indexed": len(index),
         "n_symbols_indexed": len(cache_by_symbol),
+        "cache_coverage": cache_coverage(index),
         "symbol_profiles": {},
         "families": [],
     }
@@ -558,7 +722,7 @@ def main() -> int:
     # The per-symbol distribution profile of every cached equity series.
     for symbol, entries in sorted(cache_by_symbol.items()):
         frames = []
-        for entry in entries:
+        for entry in sorted(entries, key=lambda e: e["file"]):
             frame = pd.read_parquet(CACHE_DIR / entry["file"])
             if "adj_close" not in frame.columns or len(frame) < 50:
                 continue
@@ -567,7 +731,7 @@ def main() -> int:
             frames.append((entry, frame))
         if not frames:
             continue
-        entry, frame = max(frames, key=lambda item: len(item[1]))
+        entry, frame = max(frames, key=lambda item: (len(item[1]), item[0]["file"]))
         profile = distribution_profile(frame["close"], frame["adj_close"])
         profile["file"] = entry["file"]
         profile["source"] = entry["source"]
@@ -578,7 +742,29 @@ def main() -> int:
     for spec in FAMILIES:
         report["families"].append(audit_family(spec, cache_by_symbol))
 
+    # The tally the deliverable is judged on: no published gate boolean moves.
+    audited = [f for f in report["families"] if f.get("status") == "audited"]
+    report["verdict_tally"] = {
+        "n_families": len(report["families"]),
+        "n_audited": len(audited),
+        "n_gate_booleans_published": sum(
+            1 for f in audited if f["verdict_impact"]["published_pass"] is not None
+        ),
+        "n_gate_booleans_moved": sum(1 for f in audited if f["verdict_impact"]["gate_boolean_moves"]),
+        "n_counterfactuals_informative": sum(
+            1 for f in audited if f.get("counterfactual_informative")
+        ),
+        "n_counterfactual_unreachable_bars": sum(
+            f.get("correction_unreachable_bars", 0) for f in audited
+        ),
+    }
+
     report["elapsed_sec"] = round(time.time() - started, 3)
+    return report
+
+
+def main() -> int:
+    report = build_report()
 
     ART_DIR.mkdir(parents=True, exist_ok=True)
     (ART_DIR / "summary.json").write_text(
@@ -587,7 +773,12 @@ def main() -> int:
 
     # --- the console report --------------------------------------------------
     print("H57 — price-return vs total-return audit")
-    print(f"cache files indexed: {report['n_cache_files_indexed']}")
+    coverage = report["cache_coverage"]
+    print(
+        f"cache files: {coverage['n_cache_files_on_disk']} on disk, "
+        f"{coverage['n_cache_files_indexed']} indexed, "
+        f"{coverage['n_cache_files_not_indexed']} not indexed (the CCXT crypto files)"
+    )
     print()
     print("annualised total-return excess (the dividend/distribution the record omits):")
     for symbol, profile in sorted(
@@ -619,6 +810,21 @@ def main() -> int:
             f"    total-ret : IR={ctr['information_ratio']:.6f}  p={ctr['alpha_p_value']:.6f}  "
             f"alpha={ctr['alpha_annualized']:.6f}  t={ctr['alpha_t_stat']:.6f}"
         )
+        impact = family["verdict_impact"]
+        print(
+            f"    gate      : published={impact['published_pass']}  "
+            f"counterfactual={impact['counterfactual_pass']}  "
+            f"moves={impact['gate_boolean_moves']}  "
+            f"informative={family.get('counterfactual_informative')}"
+        )
+    print()
+    tally = report["verdict_tally"]
+    print(
+        f"verdict tally: {tally['n_audited']} audited, "
+        f"{tally['n_gate_booleans_published']} published gate booleans, "
+        f"{tally['n_gate_booleans_moved']} moved, "
+        f"{tally['n_counterfactuals_informative']} informative counterfactuals"
+    )
     print()
     print(f"elapsed: {report['elapsed_sec']}s -> {ART_DIR / 'summary.json'}")
     return 0
