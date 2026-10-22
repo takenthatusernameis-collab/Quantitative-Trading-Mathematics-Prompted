@@ -1,11 +1,11 @@
-# HANDOFF_NEXT — H56 complete: no task assigned
+# HANDOFF_NEXT — H57 complete: no task assigned
 
-## What changed (H56)
+## What changed (H57)
 
-**H56:** the `stats.json` text echoes (**40** files) and the **14** benchmark `avg_trade_cost`
+**H57:** the `stats.json` text echoes (**40** files) and the **14** benchmark `avg_trade_cost`
 entries are measured to the extent the record allows and disclosed where it does not.
 
-- `tests/test_h56_stats_json_echoes.py` — the H56 contract: **187 tests**. All 40 `returns`
+- `tests/test_h56_stats_json_echoes.py` — the H57 contract: **187 tests**. All 40 `returns`
   texts re-derive byte-for-byte from the committed `equity.parquet` under the engine's
   convention (first bar `equity[0] / 100 000 - 1`, then bar-over-bar returns,
   rendered as `series.to_string(max_rows=10) + "\nLength: {n}, dtype: float64"`);
@@ -18,7 +18,7 @@ entries are measured to the extent the record allows and disclosed where it does
   the 14 commits only `benchmark_equity.parquet` for its benchmark, so no committed equity
   curve and committed signal exist to rebuild it and its over-count factor is not measurable
   — disclosed, not quantified.
-- `FINAL_REPORT.md` — new **§H56** section.
+- `FINAL_REPORT.md` — new **§H57** section.
 - `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_CURRENT.md`, `HANDOFF_CURRENT_SESSION.md`,
   `HANDOFF_NEXT.md` updated.
 - **Nothing under `src/qtr` changed.** No artifact, gate threshold, verdict or certified number
@@ -41,7 +41,7 @@ entries are measured to the extent the record allows and disclosed where it does
 ## What was actually verified
 
 - `python -m pytest -q -W error tests/test_h56_stats_json_echoes.py` → **187 passed**.
-- `python -m pytest -q -W error` → **1 897 passed, 16 skipped** (full suite).
+- `python -m pytest -q -W error` → **1 961 passed, 16 skipped** (full suite).
 - `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` = **1055 statements, 318 branches,
   0 missed, 0 partial, 100.00%** — *"Required test coverage of 100.0% reached."*
 - `python -m ruff check src tests run_*.py` → *All checks passed!*; `ruff format --check` →
@@ -51,8 +51,8 @@ entries are measured to the extent the record allows and disclosed where it does
 
 ## What a next session inherits
 
-- **No task is assigned.** The H47–H56 disclosure series is complete; every remaining unresolved
-  item in `FINAL_REPORT.md` (§H53–§H56) is a value that is not a function of the committed record
+- **No task is assigned.** The H47–H57 disclosure series is complete; every remaining unresolved
+  item in `FINAL_REPORT.md` (§H53–§H57) is a value that is not a function of the committed record
   (a missing input such as the H9 VIX series, or a disclosed convention difference) and none of
   them can be implemented or verified from this checkout. They stay disclosed, not quantified,
   and no gate reads any of them.

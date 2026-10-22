@@ -4101,3 +4101,52 @@ not hold (the H9 VIX series, pre-fix fold/beta conventions, the H16 train+val `v
 the 22 sample-convention information ratios) and none can be resolved without new committed
 inputs. The 14 benchmark `avg_trade_cost` entries and the 40 `stats.json` echoes are now among
 them: measured to the extent the record allows, disclosed where it does not.
+
+
+## H57 — the equity record is on a price-return basis (2026-10-22)
+
+**H57 is COMPLETE.** This is a **post-hoc audit of the committed record**, not a new hypothesis, no selection, no grid re-run, and **disclosed, not repaired**: nothing under `src/qtr` changed, no artifact/gate/threshold/verdict/certified number was modified, and nothing was written outside the H57 artifact directory.
+
+### What changed
+
+- `run_h57_total_return_audit.py` — **new**, the audit: indexes the committed cache from the runners' source tokens (59/82 indexed; 23 unindexed are CCXT crypto files with no ex-date), profiles distributions per symbol from `close` vs `adj_close`, audits 6 families (H1, H3, H16, H17, H19, H20) reproducing the published comparison against the control and recomputing on the total-return basis with logged weights and a full-bar correction, measures verdict impact (direction-aware and naive), and writes `.experiments/artifacts/h57_total_return/summary.json`.
+- `tests/test_h57_total_return_audit.py` — **new**, the H57 contract: **64 tests** (record shape, convention, audit re-derivation leaf-for-leaf, control reproduction, counterfactual reconstruction with logged weights, completeness/no-silent-drop, verdict impact with behavioural negative control, disclosures).
+- `.experiments/artifacts/h57_total_return/summary.json` — **new** artifact (the committed audit output).
+- `FINAL_REPORT.md` — new **§H57** section (this section).
+
+### The measured record — convention and gap
+
+Every runner builds its price series from the vendor's **raw `close`** and never reads `adj_close` (committed in the same cache). The record is therefore on a **price-return** basis.
+
+- **Files/symbols:** **82** cache files on disk, **59** indexed, **23** not indexed (CCXT crypto). **37** symbol profiles measured.
+- **Gaps (annualised total-return excess):** SPY **+1.81%/yr** (2009-01-02..2026-10-09), AGG **+2.62%/yr**, EEM **+2.23%/yr**, TLT **+3.31%/yr**, LQD **+2.72%/yr**, HYG **+5.14%/yr**, PDBC **+8.00%/yr**, etc. Many equity/ETF series carry non-negligible dividend/distribution gaps.
+- **Level bars (ex-dates booked as losses):** **PDBC** has **3** level bars (2016-01-19, 2017-01-19, 2018-01-18) where the raw close drops by ~10% while total-return is flat/small — a position held through ex-date books a realised loss that never happened. No other audited symbol shows level bars above the threshold.
+
+### The measured record — benchmark-significance verdict impact
+
+Six families audited (H1, H3, H16, H17, H19, H20). Two publish a gate block (H1, H3).
+
+- **Gate booleans:** **0 of 2** moved. H1 stays **FAIL** (p≈0.6194 published), H3 stays **PASS** (p≈0.0464 published).
+- **Published p<0.05 passes:** H3, H19, H20 remain below 0.05 under the counterfactual; for all three the alpha is negative and the direction-aware rule fails (per H33/H34). H3 moves further from the boundary (counterfactual p < published).
+- **Completeness:** 0 bars silently dropped across corrections; families with universes carrying no adjustment (H17 carries no adjustment on its universe) are reported as **not informative**. The correction is applied with logged weights for sensitivity and matches the counterfactual.
+- **Control reproduction:** every family's published comparison is reproduced to the published rounding step (H1/H3 to 1e-4) and the counterfactual is rebuilt leaf-for-leaf to ~1e-12.
+
+### The contract
+
+`tests/test_h57_total_return_audit.py` enforces: the committed artifact exists and shape is pinned; `run_h57_total_return_audit.build_report()` rebuilds it leaf-for-leaf from cache+artifacts; convention is asserted (no producer reads `adj_close`); control reproduces published comparisons; counterfactuals are complete and non-trivial where informative; no gate boolean moves and direction-aware rule holds; disclosures (SPY/PDBC gaps, 3 PDBC level bars, symbols with no adjustment named); behavioural negative control fires for verdict-move detection; audit wrote nothing but its own summary.
+
+### What did not change
+
+Nothing under `src/qtr`. No artifact, gate threshold, verdict or certified number moved; no grid re-run; no hypothesis added. The record remains on the **price-return basis** (disclosed, not repaired). Coverage/lint gates unchanged.
+
+### What was actually verified
+
+- `python -m pytest -q -W error tests/test_h57_total_return_audit.py` → **64 passed**.
+- `python -m pytest -q -W error` → **1 961 passed, 16 skipped** (full suite, +64).
+- `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` = **1055 statements, 318 branches, 0 missed, 0 partial, 100.00%**.
+- `python -m ruff check src tests run_*.py` → *All checks passed!*; `ruff format --check` → **99 files already formatted**.
+- Every number is a read of the frozen artifacts/cache — no network, no pipeline re-execution.
+
+### What remains unresolved
+
+- The dividend/distribution gap remains **omitted** from the published record (price-return basis). **No published gate boolean moved** under total-return, but excess returns are understated for income-paying assets; this is **disclosed**. The 3 PDBC level bars are disclosed. All remaining unresolved items from §H53–§H56 stay disclosed (missing inputs/convention differences) and cannot be resolved without new committed inputs. H1–H30 exhausted; certified families frozen.

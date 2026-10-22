@@ -2,45 +2,19 @@
 
 ## State
 
-H35–H56 complete (the coverage gate is measured, declared and complete at 100% statement + branch;
-the package's public API and the runners' import surface are both declared and pinned; the engine's
-trade log reconciles with the costs it charges; the package's stochastic surface is seedable;
-the published validation blocks re-derive from the frozen artifacts; the package's metadata has exactly
-one declared source of truth; `compare_to_benchmark` is container-independent and the published
-convention split is disclosed; **the H47 cost-attribution disclosure now covers the whole committed
-record**; **the published `metrics` block now re-derives from its own frozen artifact, key by key**;
-**the four nested `metrics` keys and the top-level `perturbation` block re-derive from the frozen
-record**).
-**H53 is complete**: every published value in the **37** `metrics` blocks has been re-derived from
-the artifact that published it — **441** of **450** values re-derive exactly (residuals 0 … 5.2e-14)
-and the remaining **9** are the H9 family's regime block, whose VIX input was never committed. The
-**ten** convention profiles the **nineteen** producer tags used are now recorded and pinned, and
-four behavioural negative controls prove the checks fire.
-**H54 is complete**: the **43** summaries that publish no `metrics` block are re-derived from their
-own frozen artifacts under the conventions their producers used. Of the **164** distinct top-level
-keys they publish, **52** re-derive in full, **4** re-derive with a *named* disclosed leaf, and
-**108** are declarations or audit verdicts about other artifacts. The **ten** convention profiles
-are recorded and pinned, and three behavioural negative controls prove the checks fire.
-**H55 is complete**: the four **nested** `metrics` keys and the top-level `perturbation` block now
-re-derive from the frozen record. Of the **736** published leaf values across **27** summaries,
-**610** re-derive — the worst residual is **2.5e-12**, the median is **0**, and **321** of them are
-exact. The **126** that do not are named with the reason the record cannot carry each one.
-**H56 is complete**: the `stats.json` text echoes (**40** files) and the **14** benchmark
-`avg_trade_cost` entries are measured to the extent the record allows and disclosed where it does
-not (see §H56 of `FINAL_REPORT.md`). The H47–H56 disclosure series is complete.
+H35–H57 complete. **H57 is complete**: equity record on a **price-return** basis (runners read `close` never `adj_close`); distributions measured (SPY +1.81%/yr, PDBC +8.00%/yr), **3** PDBC level bars; under total-return counterfactual **no published gate boolean moved** (H1/H3) — disclosed not repaired (see §H57 of `FINAL_REPORT.md`). H47–H57 disclosure series complete.
 
 ## What remains assigned
 
-Nothing. Every remaining unresolved item in `FINAL_REPORT.md` (§H53–§H56) is a value that is **not
-a function of the committed record** — a missing input (the H9 VIX series, the cross-validation
-QQQ/IWM closes, H20's OHLC panel), a disclosed convention difference (pre-fix fold/beta rules,
-H16's train+val `val_sharpe`, the 22 sample-convention information ratios) or a benchmark whose
-trade log and signals were never committed. None of them can be implemented or verified from this
-checkout; they stay disclosed, not quantified, and no gate reads any of them.
+Nothing. Every remaining unresolved item in `FINAL_REPORT.md` (§H53–§H57) is a value that is **not
+a function of the committed record** — missing inputs, disclosed convention differences, or
+benchmarks/trade logs/signals never committed. None of them can be implemented or verified from this
+checkout; they stay disclosed, not quantified, and no gate reads any of them. The dividend/distribution
+gap remains omitted (price-return basis) and is disclosed by H57.
 
 The next session inherits a green baseline:
 
-- `python -m pytest -q -W error` → **1 897 passed, 16 skipped** (full suite).
+- `python -m pytest -q -W error` → **1 961 passed, 16 skipped** (full suite).
 - `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` = **1055 statements, 318 branches,
   0 missed, 0 partial, 100.00%**.
 - `python -m ruff check src tests run_*.py` → *All checks passed!*; `ruff format --check` → clean.
@@ -48,8 +22,8 @@ The next session inherits a green baseline:
 If the next session wants work, the only honest options are (a) wait for newly committed artifacts
 that make a disclosed value measurable, or (b) after any change under `src/qtr`, re-run the pinned
 contracts listed under "Constraints carried forward" plus `test_h53_published_metrics_disclosure`,
-`test_h54_non_metrics_block_disclosure`, `test_h55_nested_metrics_disclosure` and
-`test_h56_stats_json_echoes`, and confirm the gates stay green.
+`test_h54_non_metrics_block_disclosure`, `test_h55_nested_metrics_disclosure`,
+`test_h56_stats_json_echoes` and `test_h57_total_return_audit`, and confirm the gates stay green.
 
 
 ## What changed (H54)
