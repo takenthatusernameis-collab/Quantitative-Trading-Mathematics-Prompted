@@ -1,4 +1,82 @@
-# HANDOFF — H54 complete (session handoff)
+# HANDOFF — H55 complete (session handoff)
+
+## What changed (H55)
+
+**H55:** the four **nested** blocks of the `metrics` block — and the **top-level** `perturbation`
+block that no earlier pass covered — now re-derive from the frozen record. Of the **736** published
+leaf values across **27** summaries, **610** re-derive (worst residual **2.5e-12**, median **0**,
+**321** exact) and the **126** that do not are named with the reason the record cannot carry each
+one. **Six** conventions the record hides are measured and pinned, and four behavioural negative
+controls prove the checks fire.
+
+- `tests/test_h55_nested_metrics_disclosure.py` — the H55 contract: **26 tests**. Every published
+  leaf the reconstruction reaches must agree with it; every published leaf it does not reach must
+  be *named* with the reason the artifact cannot carry it; and the record's own shape must not
+  move.
+- `tests/h55_rederivation.py` — **new**, the re-derivation helper. It carries the two
+  monthly-rebalance anchors, the per-family-ablaboration convention of the first H16 run, and the
+  per-family re-derivation of H16, H17, H19, H22 and H25. Every re-execution is gated on a
+  **bit-for-bit** match against the committed equity artifact.
+- `FINAL_REPORT.md` — new **§H55** section (the measured record, the three re-derivation routes,
+  the **six** conventions, the disclosure list and the blast radius).
+- `tests/test_trade_log_cost_reconciliation.py` — the **one pre-existing suite failure** is fixed:
+  the attribution-fix commit `3fbef17` is not in this squashed clone, so its recorded UTC time
+  (**2026-10-21 11:33:35Z**) is now pinned in the test and **cross-checked against `git` whenever
+  the commit is present**.
+- `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_CURRENT.md`, `HANDOFF_CURRENT_SESSION.md`,
+  `HANDOFF_NEXT.md` updated.
+- **Nothing under `src/qtr` changed.** No artifact, gate threshold, verdict or certified number was
+  modified; no grid was re-run; no hypothesis was added.
+
+### The measured record
+
+============  ==========================================  =========
+measured      quantity                                    value
+============  ==========================================  =========
+blocks        the four nested `metrics` keys                **4**
+blocks        the top-level `perturbation` block            **1**
+summaries     publishing at least one nested block          **27**
+leaf values   published                                    **736**
+leaf values   re-derived                                   **610**
+leaf values   disclosed                                    **126**
+residual      worst relative residual                      **2.5e-12**
+residual      median relative residual                     **0**
+residual      exact (zero-residual) re-derivations         **321**
+producers     producer families                            **10**
+============  ==========================================  =========
+
+============  ==================================  ==========  ==========
+block         summaries   leaves                   re-derived  disclosed
+============  ==================================  ==========  ==========
+`ablations`   27          661                      **547**     **114**
+`perturbation` 7          35                       **31**      **4**
+`perturbation_min_ratio` 7  7                      **7**       **0**
+`cross_validation` 2      8                        **0**       **8**
+top-level `perturbation` 5  25                     **25**      **0**
+============  ==================================  ==========  ==========
+
+### The six findings
+
+1. **The H9 family's ablation block mixes two windows.** Its `oos_sharpe` and `max_drawdown` are
+   OOS-window values, but its `profit_factor` and `trades` are **whole-sample** values.
+2. **The H9 family's ablation Sharpe is on the POPULATION standard deviation** (`ddof=0`) — the
+   *same* summary's top-level Sharpes are on the SAMPLE standard deviation (`ddof=1`).
+3. **The H16 family was produced under two different monthly-rebalance anchors** (calendar month
+   end for the first two runs, actual last trading day for the last two). The difference moves the
+   published OOS Sharpe by **3 %**; the contract identifies the anchor per summary from the
+   committed equity curve.
+4. **The first H16 summary published its three per-family ablations as the same block** — the
+   unrestricted single-factor result, reproduced here bit-for-bit.
+5. **The H23 family's `perturbation_min_ratio` is a fallback, not a measurement** — `0.0` because
+   the base OOS Sharpe is not positive in all seven summaries.
+6. **Two H22 summaries publish the perturbation gate but not the perturbation values.**
+
+### The blast radius
+
+No published gate reads an `ablations` block or a `cross_validation` block. The published
+**perturbation** gate reads exactly one number — the ratio — and that number re-derives in every
+one of the **19** summaries that publish it. No published number moves.
+
 
 ## What changed (H54)
 

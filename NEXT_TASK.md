@@ -2,7 +2,7 @@
 
 ## State
 
-H35–H54 complete (the coverage gate is measured, declared and complete at 100% statement + branch;
+H35–H55 complete (the coverage gate is measured, declared and complete at 100% statement + branch;
 the package's public API and the runners' import surface are both declared and pinned; the engine's
 trade log reconciles with the costs it charges; the package's stochastic surface is seedable;
 the published validation blocks re-derive from the frozen artifacts; the package's metadata has exactly
@@ -21,20 +21,41 @@ keys they publish, **52** re-derive in full, **4** re-derive with a *named* disc
 **108** are declarations or audit verdicts about other artifacts. The **ten** convention profiles
 are recorded and pinned, and three behavioural negative controls prove the checks fire.
 
-## The next task (H55)
+**H55 is complete**: the four **nested** `metrics` keys and the top-level `perturbation` block now
+re-derive from the frozen record. Of the **736** published leaf values across **27** summaries,
+**610** re-derive — the worst residual is **2.5e-12**, the median is **0**, and **321** of them are
+exact. The **126** that do not are named with the reason the record cannot carry each one: **86**
+ablation trade counts whose trade log was never committed, **32** H20 values whose OHLC panel was
+never committed, and the **8** cross-validation Sharpes whose QQQ/IWM closes were never committed.
+Six conventions the record hides are measured and pinned, including a **monthly-rebalance anchor
+that changed inside the H16 family** and a **perturbation ratio that is a fallback rather than a
+measurement**. The one pre-existing suite failure (the attribution-fix commit is not in this
+squashed clone) is fixed by pinning the commit's recorded timestamp and cross-checking it against
+`git` whenever the commit is present.
 
-The four nested `metrics` keys H53 left open, and the two text-echo families:
+## The next task (H56)
 
-- **The four nested `metrics` keys**: `ablations` (**28** re-derivable from their committed equity
-  files, **7** not), `perturbation` / `perturbation_min_ratio` (**14**, none re-derivable) and
-  `cross_validation` (**2**, none re-derivable).
+The two families §H55 did not touch, both of them text echoes rather than blocks:
+
 - **The `stats.json` echoes**: **40** files publish the head of a trade log as text (H52 pinned the
-  count). Their `returns` field is a pandas `to_string()` of a return series, so the published
-  numbers are rounded to the display precision and the series is truncated — the conventions of that
-  publisher are unrecorded.
+  count). Their `returns` field is a pandas repr of a return series, so the published numbers are
+  rounded to the display precision and the series is truncated. **§H55 already measured that the
+  `returns` text re-derives from the `equity.parquet` committed beside it**, provided the right
+  initial capital is used — the H18 family starts from **100 000**, not the **1 000 000** every
+  other producer uses, so `equity[0] / capital - 1` recovers the first bar's return exactly as it
+  does elsewhere. What is still unmeasured is the **display convention** (how many head and tail
+  rows the repr shows and how the series is truncated) and whether the `trades` text (the head of a
+  trade log that was never committed as parquet) is recoverable at all.
 - **The 14 benchmark `avg_trade_cost` entries** whose benchmark trade log and signals were never
   committed: their over-count factor is not measurable from the record, and the H27-style
-  independent recomputation could not be applied to them.
+  independent recomputation could not be applied to them. §H55 has since shown that the
+  H27-style recomputation *does* work when the strategy's own signals and equity are committed —
+  the H16/H17/H19/H22/H25 reconstructions reproduce their committed `best_equity` **bit-for-bit** —
+  so the question for H56 is whether any of the **14** benchmark books have a committed equity
+  curve and a committed signal that would let the benchmark be rebuilt the same way.
+
+Both are *disclosure* tasks, not verification tasks: neither can move a published number, and both
+are bounded by the record.
 
 ## What changed (H54)
 

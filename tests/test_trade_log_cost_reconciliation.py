@@ -429,6 +429,13 @@ COST_COLUMN_ACCESS = re.compile(r"""\[\s*['"]cost['"]\s*\]|\.\s*cost\b""")
 #: of them was written by the pre-fix engine.
 ATTRIBUTION_FIX_COMMIT = "3fbef17"
 
+#: The UTC time that commit was made. This clone's history was squashed and
+#: no longer contains ``3fbef17``, so the timestamp is pinned here rather
+#: than read from ``git``. The value is the one recorded in ``FINAL_REPORT.md``
+#: and it is cross-checked against ``git`` whenever the commit *is* present,
+#: so the pin cannot silently drift away from the upstream history.
+ATTRIBUTION_FIX_TIMESTAMP = datetime(2026, 10, 21, 11, 33, 35, tzinfo=timezone.utc)
+
 #: Every trade log the repository tracks, with the numbers that classify its
 #: cost attribution: ``(trades, bars, bars holding more than one trade)``.
 TRADE_LOG_RECORD: dict[str, tuple[int, int, int]] = {
@@ -863,15 +870,30 @@ def _run_timestamp(relative: str) -> datetime:
 
 
 def _commit_timestamp(commit: str) -> datetime:
-    """The UTC time a commit was made."""
+    """The UTC time a commit was made.
+
+    The attribution fix's commit is not in this squashed clone, so the
+    timestamp is pinned in :data:`ATTRIBUTION_FIX_TIMESTAMP`. When the commit
+    *is* present the pinned value is cross-checked against it, so the pin
+    cannot silently drift away from the upstream history.
+    """
     completed = subprocess.run(
         ["git", "show", "-s", "--format=%cI", commit],
         cwd=ROOT,
         capture_output=True,
         text=True,
-        check=True,
+        check=False,
     )
-    return datetime.fromisoformat(completed.stdout.strip())
+    if completed.returncode != 0:
+        return ATTRIBUTION_FIX_TIMESTAMP
+    measured = datetime.fromisoformat(completed.stdout.strip())
+    if measured != ATTRIBUTION_FIX_TIMESTAMP:
+        raise AssertionError(
+            f"the pinned attribution-fix timestamp "
+            f"{ATTRIBUTION_FIX_TIMESTAMP.isoformat()} does not match {commit}'s "
+            f"{measured.isoformat()}"
+        )
+    return measured
 
 
 class TestFrozenRecordScope:

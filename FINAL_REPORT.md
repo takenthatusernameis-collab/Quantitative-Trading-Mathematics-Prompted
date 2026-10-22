@@ -492,6 +492,11 @@ control), the verdict rule and the pre-registration itself.
 
 ## Next Task
 
+> **Current assignment (after H55, 2026-10-22): H56** — the `stats.json` text echoes and the 14
+> benchmark `avg_trade_cost` entries. Stated in full in `NEXT_TASK.md`; the measured evidence is in
+> the **§H55** section at the end of this report. The historical assignments below are retained as
+> the record.
+
 FINAL_REPORT.md now reflects H1–H29 (H24 = report consolidation), the H25 Robustness
 bootstrap-CI audit, the H26 Sharpe annualization-scale audit, the H27 P&L level audit +
 look-ahead attribution, the H28 causal re-certification and the H29 look-ahead sweep of the
@@ -3824,3 +3829,189 @@ committed.
   verdict cannot move.
 - The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified
   families' numbers and verdicts are frozen.
+
+
+## H55 — the four nested `metrics` blocks re-derive from the frozen record (2026-10-22)
+
+§H53 closed the thirteen **scalar** keys of the `metrics` block and §H54 closed the **43**
+summaries that publish no `metrics` block at all. Neither pass touched the four **nested** blocks
+that live *inside* the `metrics` block of the summaries that do publish one, and neither touched
+the **top-level** `perturbation` block of the five summaries that publish both. Those blocks hold
+**736** published leaf values, and not one of them had ever been re-derived.
+
+**Verdict: 610 of the 736 published values re-derive from the frozen record. The 126 that do not
+are named, with the reason the record cannot carry each one: 86 ablation trade counts whose trade
+log was never committed, H20's 32 values whose OHLC panel was never committed, and the 8
+cross-validation Sharpes whose QQQ/IWM closes were never committed. Five conventions the record
+hides — including a monthly-rebalance anchor that changed *inside* the H16 family and a
+perturbation ratio that is a fallback rather than a measurement — are now measured and pinned. No
+published artifact, gate threshold, verdict or certified number moved.**
+
+### The measured record
+
+============  ==========================================  =========
+measured      quantity                                    value
+============  ==========================================  =========
+blocks        the four nested `metrics` keys                **4**
+blocks        the top-level `perturbation` block            **1**
+summaries     publishing at least one nested block          **27**
+leaf values   published                                    **736**
+leaf values   re-derived                                   **610**
+leaf values   disclosed                                    **126**
+residual      worst relative residual                      **2.5e-12**
+residual      median relative residual                     **0**
+residual      exact (zero-residual) re-derivations         **321**
+producers     producer families                            **10**
+============  ==========================================  =========
+
+============  ==================================  ==========  ==========
+block         summaries   leaves                   re-derived  disclosed
+============  ==================================  ==========  ==========
+`ablations`   27          661                      **547**     **114**
+`perturbation` 7          35                       **31**      **4**
+`perturbation_min_ratio` 7  7                      **7**       **0**
+`cross_validation` 2      8                        **0**       **8**
+top-level `perturbation` 5  25                     **25**      **0**
+============  ==================================  ==========  ==========
+
+### The three re-derivation routes
+
+The record splits three ways, and the split is a finding rather than a convenience.
+
+**Route 1 — the committed ablation equity curves (20 summaries: H9 x3, H10 x2, H21 x1, H22 x5,
+H23 x7, H25 x2).** The engine computes `equity = (1 + net_returns).cumprod() * capital`, so the
+equity curve *determines* its own return series: the first bar's return is `equity[0] / capital -
+1` and every later bar's return is the ratio of two consecutive equity values. The OOS-window
+Sharpe, profit factor and maximum drawdown and the Test-window Sharpe therefore re-derive from
+the very artifact that published them. The worst residual over the route is **7e-14**. The **86**
+published ablation *trade counts* do not re-derive: the record holds the ablation's equity curve
+but never its trade log.
+
+**Route 2 — the committed strategy inputs (12 summaries: H16 x4, H17, H19, H22 x3, H25 x2, and
+H20).** These families publish no per-ablation artifact at all, but they *do* commit the prices,
+the volumes and the VIX series their strategies were built from, so their blocks re-derive by
+re-running the producers' own signal builders over the frozen inputs. Each such re-derivation is
+**validated bit-for-bit against the committed `best_equity` / `equity` artifact before it is used
+to check any published value** — that is what makes it a re-derivation rather than a guess, and
+it is why the re-executed families land on **exactly zero** residuals. H20 is the exception: its
+signal builder reads the daily OHLC panel and the record only ever committed the close.
+
+**Route 3 — the gate inputs that were never committed.** The QQQ/IWM closes the cross validation
+reads, and the OHLC panel H20's signal reads, were fetched at run time and never written. Those
+values are **not functions of the record**; they are disclosed.
+
+### The conventions the record hides
+
+1. **The H9 family's ablation block mixes two windows.** Its `oos_sharpe` and `max_drawdown` are
+   OOS-window values, but its `profit_factor` and `trades` are **whole-sample** values — the
+   producer read them off the engine's own full-sample metric block. Every other family publishes
+   an OOS-window profit factor under the `oos_` prefix. The contract pins both readings: the
+   published profit factor is the whole-sample one, and the OOS-window profit factor is a
+   *different* number (the negative control).
+2. **The H9 family's ablation Sharpe is on the POPULATION standard deviation** (`ddof=0`), because
+   the producer passed `.values` to `sharpe_ratio` — while the *same* summary's top-level Sharpes
+   are on the SAMPLE standard deviation (`ddof=1`), because there it passed a `pandas.Series`.
+   §H53 recorded the second half of the split; H55 records the first. The sample convention
+   breaks 78 of the 86 nested Sharpes; the remaining 8 are the degenerate ones whose published
+   Sharpe is exactly `0.0`.
+3. **The H16 family was produced under two different monthly-rebalance anchors.** The producers'
+   current `monthly_rebalance` anchors the month-end target on the *actual last trading day* of
+   the month; the run-time code anchored it on the *calendar* month end. The two differ by one
+   trading day on every month boundary, and the difference moves the published OOS Sharpe by
+   **3 %** — enough to break every published perturbation variant. The first two H16 runs used
+   the calendar anchor and the last two used the actual-last-trading-day anchor. The contract does
+   not *assume* the anchor: it identifies it per summary from the committed equity curve, and the
+   negative control shows that the wrong anchor fails the bit-for-bit validation and breaks all
+   four published variants.
+4. **The first H16 summary published its three per-family ablations as the same block.**
+   `exp_2026-10-13T21-11-45-843908Z` publishes identical values under `family_value`,
+   `family_momentum` and `family_quality`; the block is the *unrestricted* single-factor result
+   (all three families, `n_factors=1`), reproduced here bit-for-bit. The three later H16 summaries
+   publish the per-family blocks correctly. The block is exploratory — no gate reads it — so no
+   verdict moves.
+5. **The H23 family's `perturbation_min_ratio` is a fallback, not a measurement.** The producer
+   publishes `gate["perturbation"]["min_perturbed_sharpe_ratio"]`, and the ratio is `0.0`
+   whenever the base OOS Sharpe is not positive — which is the case in all **seven** H23 summaries
+   (five publish an OOS Sharpe of exactly `0.0`, two publish a negative one). The published
+   perturbation gate therefore reports *the fallback branch*, not a robustness measurement.
+6. **Two H22 summaries publish the perturbation gate but not the perturbation values.**
+   `exp_2026-10-14T07-12-35-292010Z` and `exp_2026-10-14T07-12-59-473353Z` publish
+   `passes.perturbation = true` and no perturbation block at all, while the other three H22
+   summaries and both H25 summaries publish the top-level `perturbation` block with its four
+   variant Sharpes and the ratio. The gate's evidence was never published for those two.
+
+### The disclosure list
+
+- **The 86 ablation trade counts** (H9's `trades`, the H10-style `oos_trades`): the record holds
+  each ablation's equity curve but never its trade log. The counts are published; the artifact
+  that could confirm them does not exist.
+- **H20's 32 values** (four ablation blocks of seven leaves each, and the four perturbation
+  variant Sharpes): the daily OHLC panel the signal builder reads was never committed; the record
+  holds the SPY close and volume only. The perturbation *ratio* still re-derives, because it is a
+  function of the published variants and the published base OOS Sharpe.
+- **The 8 cross-validation Sharpes** (H19 and H20, QQQ and IWM): the cross-validation closes were
+  fetched at run time and never committed.
+
+### The contract
+
+- `tests/test_h55_nested_metrics_disclosure.py` — **26 tests**. Every published leaf the
+  reconstruction reaches must agree with it, every published leaf it does not reach must be
+  *named* with the reason the artifact cannot carry it, and the record's own shape (the block
+  counts, the leaf count, the producer families, the re-derived/disclosed split) must not move.
+  Four behavioural negative controls prove the checks fire: the sample standard deviation breaks
+  the nested Sharpes, the current rebalance anchor fails the bit-for-bit validation, the same
+  anchor breaks every published perturbation variant, and a nudged published value fails the
+  residual check.
+- `tests/h55_rederivation.py` — the re-derivation helper. It carries the two monthly-rebalance
+  anchors, the per-family-ablaboration convention of the first H16 run, and the per-family
+  re-derivation of H16, H17, H19, H22 and H25. Every re-execution is gated on a bit-for-bit match
+  against the committed equity artifact.
+
+### The blast radius
+
+No published gate reads an `ablations` block or a `cross_validation` block. The published
+**perturbation** gate reads exactly one number — the ratio — and that number re-derives in every
+one of the **19** summaries that publish it, including the one whose variant Sharpes cannot be
+re-derived. No published number moves.
+
+### What did not change
+
+Nothing under `src/qtr` changed. No artifact, gate threshold, verdict or certified number was
+modified; no grid was re-run; no hypothesis was added.
+
+**One pre-existing failure was fixed.** The whole suite was
+`tests/test_trade_log_cost_reconciliation.py::TestFrozenRecordScope::test_every_committed_trade_log_precedes_the_attribution_fix`,
+which ran `git show -s --format=%cI 3fbef17` against a commit this squashed clone does not
+contain. The commit's UTC time — **2026-10-21 11:33:35Z** — is already recorded in this report,
+so the timestamp is now pinned in the test and **cross-checked against `git` whenever the commit
+is present**, which makes the pin stronger than the shell-out it replaces rather than weaker.
+
+### What was verified
+
+- `python -m pytest -q -W error tests/test_h55_nested_metrics_disclosure.py` → **26 passed**.
+- `python -m pytest -q -W error tests/test_trade_log_cost_reconciliation.py` → **37 passed** (the
+  pre-existing failure is gone).
+- `python -m pytest -q -W error` → **1 710 passed, 16 skipped** (full suite; the only failure
+  before this session is fixed).
+- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → `src/qtr` = **1055
+  statements, 318 branches, 0 missed, 0 partial, 100.00%**; *"Required test coverage of 100.0%
+  reached. Total coverage: 100.00%"* — unchanged, because nothing under `src/qtr` changed.
+- `python -m ruff check src tests run_*.py` → *All checks passed!*.
+- `python -m ruff format --check src tests run_*.py` → **98 files already formatted**.
+- **Every number is a read of the frozen artifacts** — no network, no grid re-run, nothing
+  written. The re-executed families re-run the producers' own signal builders over the committed
+  inputs and are validated bit-for-bit against the committed equity artifact before any published
+  value is checked.
+
+### What remains unresolved
+
+- **The 86 ablation trade counts** and **H20's 32 values** and **the 8 cross-validation Sharpes**
+  are not functions of the record; they are disclosed, not rewritten.
+- **The first H16 summary's per-family ablation block** publishes the unrestricted single-factor
+  result three times. It is reproduced here under the convention that actually produced it, but the
+  published block is wrong and is not rewritten.
+- **The H23 perturbation ratio** is the `oos_sharpe <= 0` fallback in all seven summaries; the
+  robustness measurement it stands for was never published and cannot be recovered from the
+  record.
+- **Two H22 summaries publish a perturbation gate with no perturbation values**; the gate's
+  evidence does not exist in the record.

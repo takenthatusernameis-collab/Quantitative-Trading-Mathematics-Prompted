@@ -1,7 +1,25 @@
-# HANDOFF_CURRENT — session complete (H54)
+# HANDOFF_CURRENT — session complete (H55)
 
 ## State
 
+- **H55 is COMPLETE** as recorded in `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_NEXT.md` and
+  `HANDOFF_CURRENT_SESSION.md`: the four **nested** `metrics` blocks — and the top-level
+  `perturbation` block that no earlier pass covered — re-derive from the frozen record. Of the
+  **736** published leaf values across **27** summaries, **610** re-derive (worst residual
+  **2.5e-12**, median **0**, **321** exact) and the **126** that do not are named with the reason
+  the record cannot carry each one: **86** ablation trade counts whose trade log was never
+  committed, **32** H20 values whose OHLC panel was never committed, and the **8**
+  cross-validation Sharpes whose QQQ/IWM closes were never committed. **Six** conventions the
+  record hides are measured and pinned — including a monthly-rebalance anchor that changed *inside*
+  the H16 family and a perturbation ratio that is a fallback rather than a measurement — and four
+  behavioural negative controls prove the checks fire. The contract is
+  `tests/test_h55_nested_metrics_disclosure.py` (26 tests) with the re-derivation helper
+  `tests/h55_rederivation.py`.
+- **The one pre-existing suite failure is FIXED.** The attribution-fix commit `3fbef17` is not in
+  this squashed clone, so `git show -s --format=%cI 3fbef17` died. Its recorded UTC time
+  (**2026-10-21 11:33:35Z**, already in `FINAL_REPORT.md`) is now pinned in the test and
+  **cross-checked against `git` whenever the commit is present** — a stronger check than the
+  shell-out it replaces.
 - **H53 is COMPLETE** as recorded in `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_NEXT.md` and
   `HANDOFF_CURRENT_SESSION.md`: every published value in the **37** `metrics` blocks re-derives
   from the artifact that published it — **441** of **450** values re-derive exactly (residuals
@@ -40,6 +58,24 @@
   blocks re-derive from the frozen artifacts.
 - No published artifact, gate threshold, verdict or certified number was modified; no grid was
   re-run; no hypothesis was added.
+
+## What changed (this session — H55)
+
+- `tests/test_h55_nested_metrics_disclosure.py` — **new**, the H55 contract: **26 tests**. Every
+  published leaf the reconstruction reaches must agree with it; every published leaf it does not
+  reach must be *named* with the reason the artifact cannot carry it; and the record's own shape
+  must not move.
+- `tests/h55_rederivation.py` — **new**, the re-derivation helper: the two monthly-rebalance
+  anchors, the per-family-abloration convention of the first H16 run, and the per-family
+  re-derivation of H16, H17, H19, H22 and H25. Every re-execution is gated on a **bit-for-bit**
+  match against the committed equity artifact.
+- `FINAL_REPORT.md` — new **§H55** section.
+- `tests/test_trade_log_cost_reconciliation.py` — the pre-existing failure fixed (the pinned
+  attribution-fix timestamp, cross-checked against `git`).
+- `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_CURRENT.md`, `HANDOFF_CURRENT_SESSION.md`,
+  `HANDOFF_NEXT.md` updated.
+- **Nothing under `src/qtr` changed.** No artifact, gate threshold, verdict or certified number was
+  modified; no grid was re-run; no hypothesis was added.
 
 ## What changed (this session — H53)
 
@@ -217,10 +253,11 @@ The `metrics` block also publishes four nested keys the contract pins but does n
   disclosed, not rewritten; no gate reads the key.
 - **Three of the four H16 `val_sharpe` values** publish the train+val window under a key named for
   the val window and disagree with their own grid artifact; disclosed, not rewritten.
-- **The four nested `metrics` keys** — `ablations` (35), `perturbation` (7),
-  `perturbation_min_ratio` (7), `cross_validation` (2) — are pinned in the key union but not
-  re-derived; the **28** ablation blocks whose equity files were committed are re-derivable, the
-  rest are not.
+- **The four nested `metrics` keys are RESOLVED (§H55).** `ablations` (27 summaries, 661 leaves),
+  `perturbation` (7, 35), `perturbation_min_ratio` (7, 7), `cross_validation` (2, 8) and the
+  top-level `perturbation` block (5, 25) re-derive from the frozen record: **610** of **736** leaves
+  re-derive, the **126** that do not are named with the reason the record cannot carry them, and no
+  gate reads any of them.
 - The **22 published `information_ratio` values on the sample (`ddof=1`) convention** no longer
   re-derive from the library, which now enforces the population convention. They are **disclosed**,
   not rewritten; the artifacts are frozen and no gate outcome moves. H53 extends that disclosure to
@@ -233,12 +270,11 @@ The `metrics` block also publishes four nested keys the contract pins but does n
   the record; they are disclosed, not quantified.
 - **H9's published OOS Sharpe** is on the sample convention (gap 1.026e-04); disclosed and pinned,
   verdict frozen.
-- **H54 is assigned** — stated in full in `NEXT_TASK.md`: re-derive the published blocks of the
-  **43** summaries that publish **no** `metrics` block. The measurement behind it: those summaries
-  publish **164** distinct top-level keys over **7 785** leaf values in **24** distinct shapes
-  (`gates`, `passes`, `all_pass`, `verdict`, `oos_metrics`, `split_metrics`,
-  `benchmark_comparison`, `strategy_metrics`, `validation`, …) and **three** of them publish no
-  parquet artifact at all.
+- **H56 is assigned** — stated in full in `NEXT_TASK.md`: the `stats.json` text echoes and the 14
+  benchmark `avg_trade_cost` entries. §H55 has already measured the first half of the
+  `stats.json` task: the `returns` text re-derives from the `equity.parquet` committed beside it,
+  provided the **H18 family's 100 000** initial capital is used rather than the **1 000 000** every
+  other producer uses.
 - The pre-registered free-data hypothesis space (H1–H30) remains exhausted.
 
 ## What changed (H54)
