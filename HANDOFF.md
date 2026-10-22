@@ -1,3 +1,82 @@
+# HANDOFF — H56 complete (session handoff)
+
+## What changed (H56)
+
+**H56:** the `stats.json` text echoes (**40** files) and the **14** benchmark `avg_trade_cost`
+entries are measured to the extent the record allows and disclosed where it does not.
+
+- `tests/test_h56_stats_json_echoes.py` — the H56 contract: **187 tests**. All 40 `returns`
+  texts re-derive byte-for-byte from the committed `equity.parquet` under the engine's
+  convention (first bar `equity[0] / 100 000 - 1`, then bar-over-bar returns, rendered as
+  `series.to_string(max_rows=10) + "\nLength: {n}, dtype: float64"`); the H18 family's
+  **100 000** capital anchor is pinned and a behavioural negative control (the **1 000 000**
+  convention every other producer uses) fails all 40. All 40 publish the identical `trades`
+  dummy head and no trade log was ever committed beside any `stats.json`, so that text is
+  disclosed as unrecoverable. The tracker's **23** `benchmark_avg_trade_cost` entries split
+  **9 measurable** (6 × **20.0×** against committed `benchmark_trades.parquet`, 3 × **5×**
+  against committed `signals_buy_and_hold.parquet`) and **14 not measurable**; each of the 14
+  commits only `benchmark_equity.parquet` for its benchmark, so no committed equity curve and
+  committed signal exist to rebuild it and its over-count factor is not measurable — disclosed,
+  not quantified.
+- `FINAL_REPORT.md` — new **§H56** section (the measured record, the 9/14 split, the
+  disclosure list and the contract).
+- `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_CURRENT.md`, `HANDOFF_CURRENT_SESSION.md`,
+  `HANDOFF_NEXT.md` updated.
+- **Nothing under `src/qtr` changed.** No artifact, gate threshold, verdict or certified
+  number was modified; no grid was re-run; no hypothesis was added.
+
+### The measured record
+
+| measured | quantity | value |
+|---|---|---:|
+| files | `stats.json` text echoes | **40** |
+| files | re-derived `returns` byte for byte | **40** |
+| runs | H18 overnight/intraday experiment dirs | **6** |
+| rows | equity curve per echo | **4468** |
+| capital | H18 initial capital (pinned) | **100 000** |
+| entries | `benchmark_avg_trade_cost_step0` in the tracker | **23** |
+| entries | measurable (§H52: 6 × 20.0×, 3 × 5×) | **9** |
+| entries | not measurable (disclosed) | **14** |
+| value | published by all 14 | **0.00010629059079463798** |
+
+### The disclosure list
+
+- **The 40 `trades` texts**: identical across all 40 (`2009-01-02 SPY buy 1.0 @ 1.0 cost
+  0.0002`); no trade log was ever committed beside any `stats.json` (each directory holds
+  exactly `{equity.parquet, stats.json}`), so the text is not a function of the record.
+- **The 14 benchmark books**: futures_tsmom ×5, ddcv_futures_tsmom ×5,
+  h6_vix_ddcv_futures_tsmom ×4; each commits `benchmark_equity.parquet` for the benchmark but
+  neither `benchmark_trades.parquet` nor any benchmark signals file, so the benchmark cannot be
+  rebuilt (§H55 route 2 unavailable) and the over-count factor is not measurable from the
+  record.
+
+### The blast radius
+
+No published gate reads a `stats.json` echo or a benchmark `avg_trade_cost`; no published
+number moves.
+
+### What was actually verified
+
+- `python -m pytest -q -W error tests/test_h56_stats_json_echoes.py` → **187 passed**.
+- `python -m pytest -q -W error` → **1 897 passed, 16 skipped** (full suite, up from 1 710 +
+  16).
+- `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` = **1055 statements, 318 branches,
+  0 missed, 0 partial, 100.00%** — unchanged, because nothing under `src/qtr` changed.
+- `python -m ruff check src tests run_*.py` → *All checks passed!*; `ruff format --check`
+  → **99 files already formatted**.
+- **Every number is a read of the frozen artifacts** — no network, no grid re-run, nothing
+  written; no published number moved.
+
+### What a next session inherits
+
+- **No task is assigned.** The H47–H56 disclosure series is complete; every remaining
+  unresolved item in `FINAL_REPORT.md` (§H53–§H56) is a value that is not a function of the
+  committed record (a missing input or a disclosed convention) and none of them can be
+  implemented or verified from this checkout. The baseline is green; after any change under
+  `src/qtr`, re-run the pinned contracts and confirm the gates stay green.
+- The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified
+  families are frozen.
+
 # HANDOFF — H55 complete (session handoff)
 
 ## What changed (H55)

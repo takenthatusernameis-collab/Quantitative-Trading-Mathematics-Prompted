@@ -2,60 +2,55 @@
 
 ## State
 
-H35–H55 complete (the coverage gate is measured, declared and complete at 100% statement + branch;
+H35–H56 complete (the coverage gate is measured, declared and complete at 100% statement + branch;
 the package's public API and the runners' import surface are both declared and pinned; the engine's
 trade log reconciles with the costs it charges; the package's stochastic surface is seedable;
 the published validation blocks re-derive from the frozen artifacts; the package's metadata has exactly
 one declared source of truth; `compare_to_benchmark` is container-independent and the published
 convention split is disclosed; **the H47 cost-attribution disclosure now covers the whole committed
-record**; **the published `metrics` block now re-derives from its own frozen artifact, key by key**).
+record**; **the published `metrics` block now re-derives from its own frozen artifact, key by key**;
+**the four nested `metrics` keys and the top-level `perturbation` block re-derive from the frozen
+record**).
 **H53 is complete**: every published value in the **37** `metrics` blocks has been re-derived from
 the artifact that published it — **441** of **450** values re-derive exactly (residuals 0 … 5.2e-14)
 and the remaining **9** are the H9 family's regime block, whose VIX input was never committed. The
 **ten** convention profiles the **nineteen** producer tags used are now recorded and pinned, and
 four behavioural negative controls prove the checks fire.
-
 **H54 is complete**: the **43** summaries that publish no `metrics` block are re-derived from their
 own frozen artifacts under the conventions their producers used. Of the **164** distinct top-level
 keys they publish, **52** re-derive in full, **4** re-derive with a *named* disclosed leaf, and
 **108** are declarations or audit verdicts about other artifacts. The **ten** convention profiles
 are recorded and pinned, and three behavioural negative controls prove the checks fire.
-
 **H55 is complete**: the four **nested** `metrics` keys and the top-level `perturbation` block now
 re-derive from the frozen record. Of the **736** published leaf values across **27** summaries,
 **610** re-derive — the worst residual is **2.5e-12**, the median is **0**, and **321** of them are
-exact. The **126** that do not are named with the reason the record cannot carry each one: **86**
-ablation trade counts whose trade log was never committed, **32** H20 values whose OHLC panel was
-never committed, and the **8** cross-validation Sharpes whose QQQ/IWM closes were never committed.
-Six conventions the record hides are measured and pinned, including a **monthly-rebalance anchor
-that changed inside the H16 family** and a **perturbation ratio that is a fallback rather than a
-measurement**. The one pre-existing suite failure (the attribution-fix commit is not in this
-squashed clone) is fixed by pinning the commit's recorded timestamp and cross-checking it against
-`git` whenever the commit is present.
+exact. The **126** that do not are named with the reason the record cannot carry each one.
+**H56 is complete**: the `stats.json` text echoes (**40** files) and the **14** benchmark
+`avg_trade_cost` entries are measured to the extent the record allows and disclosed where it does
+not (see §H56 of `FINAL_REPORT.md`). The H47–H56 disclosure series is complete.
 
-## The next task (H56)
+## What remains assigned
 
-The two families §H55 did not touch, both of them text echoes rather than blocks:
+Nothing. Every remaining unresolved item in `FINAL_REPORT.md` (§H53–§H56) is a value that is **not
+a function of the committed record** — a missing input (the H9 VIX series, the cross-validation
+QQQ/IWM closes, H20's OHLC panel), a disclosed convention difference (pre-fix fold/beta rules,
+H16's train+val `val_sharpe`, the 22 sample-convention information ratios) or a benchmark whose
+trade log and signals were never committed. None of them can be implemented or verified from this
+checkout; they stay disclosed, not quantified, and no gate reads any of them.
 
-- **The `stats.json` echoes**: **40** files publish the head of a trade log as text (H52 pinned the
-  count). Their `returns` field is a pandas repr of a return series, so the published numbers are
-  rounded to the display precision and the series is truncated. **§H55 already measured that the
-  `returns` text re-derives from the `equity.parquet` committed beside it**, provided the right
-  initial capital is used — the H18 family starts from **100 000**, not the **1 000 000** every
-  other producer uses, so `equity[0] / capital - 1` recovers the first bar's return exactly as it
-  does elsewhere. What is still unmeasured is the **display convention** (how many head and tail
-  rows the repr shows and how the series is truncated) and whether the `trades` text (the head of a
-  trade log that was never committed as parquet) is recoverable at all.
-- **The 14 benchmark `avg_trade_cost` entries** whose benchmark trade log and signals were never
-  committed: their over-count factor is not measurable from the record, and the H27-style
-  independent recomputation could not be applied to them. §H55 has since shown that the
-  H27-style recomputation *does* work when the strategy's own signals and equity are committed —
-  the H16/H17/H19/H22/H25 reconstructions reproduce their committed `best_equity` **bit-for-bit** —
-  so the question for H56 is whether any of the **14** benchmark books have a committed equity
-  curve and a committed signal that would let the benchmark be rebuilt the same way.
+The next session inherits a green baseline:
 
-Both are *disclosure* tasks, not verification tasks: neither can move a published number, and both
-are bounded by the record.
+- `python -m pytest -q -W error` → **1 897 passed, 16 skipped** (full suite).
+- `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` = **1055 statements, 318 branches,
+  0 missed, 0 partial, 100.00%**.
+- `python -m ruff check src tests run_*.py` → *All checks passed!*; `ruff format --check` → clean.
+
+If the next session wants work, the only honest options are (a) wait for newly committed artifacts
+that make a disclosed value measurable, or (b) after any change under `src/qtr`, re-run the pinned
+contracts listed under "Constraints carried forward" plus `test_h53_published_metrics_disclosure`,
+`test_h54_non_metrics_block_disclosure`, `test_h55_nested_metrics_disclosure` and
+`test_h56_stats_json_echoes`, and confirm the gates stay green.
+
 
 ## What changed (H54)
 
@@ -314,16 +309,3 @@ published `all_pass` / `verdict` / `gates` blocks (20, 15 and 15 summaries) rest
 - The certified families (H10, H22, H25) are out of scope for *changes* — their numbers and
   verdicts are frozen — but they are **in** scope for measurement.
 - The coverage gate, the lint gate and every pinned contract listed above must stay green.
-
-### The runner-up (H55, if H54 is closed)
-
-- **The four nested `metrics` keys** H53 left open: `ablations` (**28** re-derivable from their
-  committed equity files, **7** not), `perturbation` / `perturbation_min_ratio` (**14**, none
-  re-derivable) and `cross_validation` (**2**, none re-derivable).
-- **The `stats.json` echoes**: 40 files publish the head of a trade log as text (H52 pinned the
-  count). Their `returns` field is a pandas `to_string()` of a return series, so the published
-  numbers are rounded to the display precision and the series is truncated — the conventions of that
-  publisher are unrecorded.
-- **The 14 benchmark `avg_trade_cost` entries** whose benchmark trade log and signals were never
-  committed: their over-count factor is not measurable from the record, and the H27-style
-  independent recomputation could not be applied to them.

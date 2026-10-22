@@ -15,6 +15,21 @@
   behavioural negative controls prove the checks fire. The contract is
   `tests/test_h55_nested_metrics_disclosure.py` (26 tests) with the re-derivation helper
   `tests/h55_rederivation.py`.
+- **H56 is COMPLETE** as recorded in `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_NEXT.md` and
+  `HANDOFF_CURRENT_SESSION.md`: the `stats.json` text echoes (**40** files) and the **14**
+  benchmark `avg_trade_cost` entries are measured to the extent the record allows and disclosed
+  where it does not. All 40 `returns` texts re-derive byte-for-byte from the committed
+  `equity.parquet` under the engine's convention (first bar `equity[0] / 100 000 - 1`, then
+  bar-over-bar returns) rendered as `series.to_string(max_rows=10) + "\nLength: {n}, dtype:
+  float64"`; the H18 family's **100 000** capital anchor is pinned and a behavioural negative
+  control (the **1 000 000** convention every other producer uses) fails all 40. All 40 publish
+  the identical `trades` dummy head and no trade log was ever committed beside any `stats.json`,
+  so that text is disclosed as unrecoverable. The tracker's **23** `benchmark_avg_trade_cost`
+  entries split **9 measurable** (6 × **20.0×** against committed `benchmark_trades.parquet`,
+  3 × **5×** against committed `signals_buy_and_hold.parquet`) and **14 not measurable**; each of
+  the 14 commits only `benchmark_equity.parquet` for its benchmark, so its over-count factor is
+  not measurable — disclosed, not quantified. The contract is
+  `tests/test_h56_stats_json_echoes.py` (187 tests). The H47–H56 disclosure series is complete.
 - **The one pre-existing suite failure is FIXED.** The attribution-fix commit `3fbef17` is not in
   this squashed clone, so `git show -s --format=%cI 3fbef17` died. Its recorded UTC time
   (**2026-10-21 11:33:35Z**, already in `FINAL_REPORT.md`) is now pinned in the test and
@@ -72,6 +87,21 @@
 - `FINAL_REPORT.md` — new **§H55** section.
 - `tests/test_trade_log_cost_reconciliation.py` — the pre-existing failure fixed (the pinned
   attribution-fix timestamp, cross-checked against `git`).
+- `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_CURRENT.md`, `HANDOFF_CURRENT_SESSION.md`,
+  `HANDOFF_NEXT.md` updated.
+- **Nothing under `src/qtr` changed.** No artifact, gate threshold, verdict or certified number was
+  modified; no grid was re-run; no hypothesis was added.
+
+## What changed (this session — H56)
+
+- `tests/test_h56_stats_json_echoes.py` — **new**, the H56 contract: **187 tests**. All 40 `returns`
+  texts re-derive byte-for-byte from the committed `equity.parquet`; the **100 000** capital anchor
+  is pinned with a behavioural negative control (the **1 000 000** convention fails all 40); all 40
+  publish the identical `trades` dummy head and no trade log was ever committed beside any
+  `stats.json`; the tracker's **23** `benchmark_avg_trade_cost` entries split **9 measurable** /
+  **14 not measurable**, each of the 14 committing only `benchmark_equity.parquet` for its
+  benchmark.
+- `FINAL_REPORT.md` — new **§H56** section.
 - `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_CURRENT.md`, `HANDOFF_CURRENT_SESSION.md`,
   `HANDOFF_NEXT.md` updated.
 - **Nothing under `src/qtr` changed.** No artifact, gate threshold, verdict or certified number was
@@ -270,11 +300,9 @@ The `metrics` block also publishes four nested keys the contract pins but does n
   the record; they are disclosed, not quantified.
 - **H9's published OOS Sharpe** is on the sample convention (gap 1.026e-04); disclosed and pinned,
   verdict frozen.
-- **H56 is assigned** — stated in full in `NEXT_TASK.md`: the `stats.json` text echoes and the 14
-  benchmark `avg_trade_cost` entries. §H55 has already measured the first half of the
-  `stats.json` task: the `returns` text re-derives from the `equity.parquet` committed beside it,
-  provided the **H18 family's 100 000** initial capital is used rather than the **1 000 000** every
-  other producer uses.
+- **H56 is COMPLETE** (§H56 of `FINAL_REPORT.md`): the `stats.json` echoes and the 14 benchmark
+  `avg_trade_cost` entries are measured to the extent the record allows and disclosed where it does
+  not; no further disclosure task remains assigned.
 - The pre-registered free-data hypothesis space (H1–H30) remains exhausted.
 
 ## What changed (H54)

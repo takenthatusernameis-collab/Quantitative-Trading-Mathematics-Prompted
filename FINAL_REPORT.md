@@ -4015,3 +4015,89 @@ is present**, which makes the pin stronger than the shell-out it replaces rather
   record.
 - **Two H22 summaries publish a perturbation gate with no perturbation values**; the gate's
   evidence does not exist in the record.
+
+
+## H56 — the `stats.json` text echoes and the 14 benchmark `avg_trade_cost` entries (2026-10-22)
+
+**H56 is COMPLETE.** Both halves are **disclosure** tasks: neither can move a published number,
+and both are bounded by the frozen record. Nothing under `src/qtr` changed; no artifact, gate
+threshold, verdict or certified number was modified; no grid was re-run; no hypothesis was added.
+
+### What changed
+
+- `tests/test_h56_stats_json_echoes.py` — **new**, the H56 contract: **187 tests**.
+- `FINAL_REPORT.md` — new **§H56** section (this section).
+- `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_CURRENT.md`, `HANDOFF_CURRENT_SESSION.md`,
+  `HANDOFF_NEXT.md` updated.
+
+### The measured record — the `stats.json` text echoes (40 files)
+
+The committed record holds **40** `stats.json` files, one per strategy variant of the six H18
+overnight/intraday runs of 2026-10-13; every directory holds exactly `{equity.parquet,
+stats.json}` and nothing else.
+
+- **`returns`**: re-derives **byte for byte** from the committed `equity.parquet` under the
+  engine's convention — first bar `equity[0] / 100 000 - 1`, then bar-over-bar returns — rendered
+  as `series.to_string(max_rows=10) + "\nLength: {n}, dtype: float64"`. **All 40 exact, residual
+  0.** The H18 family's initial capital is **100 000**, not the **1 000 000** every other producer
+  uses (§H55 measured it; this contract pins it). A behavioural negative control proves the anchor
+  is load-bearing: reproducing with 1 000 000 makes the first bar `-0.900020` instead of
+  `-0.000200` and fails all 40.
+- **Display convention pinned**: five head rows, the `                ...   ` truncation line
+  (16 leading + 3 trailing spaces), five tail rows, then `Length: 4468, dtype: float64`.
+- **`trades`**: all 40 publish the identical dummy head
+  (`0 2009-01-02 SPY buy 1.0 1.0 0.0002`). **No trade log was ever committed beside any
+  `stats.json`**, so the text is not a function of the record: disclosed as unrecoverable, not
+  reconstructed.
+
+### The measured record — the 14 benchmark `avg_trade_cost` entries
+
+The tracker log (`.experiments/experiments.jsonl`) holds **23**
+`benchmark_avg_trade_cost_step0` entries, and they split exactly as §H52 recorded:
+
+- **9 measurable**: 6 × **20.0x** measured against the committed `benchmark_trades.parquet`
+  (20 ETFs entering on one bar) and 3 × **5x** measured against the committed
+  `signals_buy_and_hold.parquet` of the ma_crossover buy-and-hold benchmark (all five symbols
+  entering on one bar).
+- **14 not measurable**: futures_tsmom ×5, ddcv_futures_tsmom ×5 and h6_vix_ddcv_futures_tsmom ×4,
+  all publishing `0.00010629059079463798`. Each commits only `benchmark_equity.parquet` for the
+  benchmark: no `benchmark_trades.parquet` and no benchmark signals file was ever committed. The
+  benchmark's weight changes over time are not a function of the record, so the benchmark cannot
+  be rebuilt (the §H55 route-2 re-derivation is unavailable) and its over-count factor is not
+  measurable from the record. **Disclosed as remaining on the pre-fix basis, exactly as §H52
+  states.** A behavioural negative control confirms none of the 14 has a committed equity curve
+  *and* a committed signal that would let the benchmark be rebuilt.
+
+### The contract
+
+`tests/test_h56_stats_json_echoes.py` holds: the enumeration (40 files, 6 experiments, equity
+curves of 4468 rows each), the byte-for-byte `returns` re-derivation on every file, the pinned
+capital anchor with behavioural negative control, the display-convention shape, the identical
+`trades` head with no committed trade log, the 23-entry tracker split 9 measurable / 14 not
+measurable, and per-entry committed-artifact assertions for the 14.
+
+### What did not change
+
+Nothing under `src/qtr`. No artifact, gate threshold, verdict or certified number moved; no grid
+was re-run; no hypothesis was added. The coverage gate (1055 statements, 318 branches, 100.00%)
+and the lint/format gates are unchanged.
+
+### What was actually verified
+
+- `python -m pytest -q -W error tests/test_h56_stats_json_echoes.py` → **187 passed**.
+- `python -m pytest -q -W error` → **1 897 passed, 16 skipped** (full suite, up from 1 710 +
+  16; the +187 are this module).
+- `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` = **1055 statements, 318 branches,
+  0 missed, 0 partial, 100.00%**.
+- `python -m ruff check src tests run_*.py` → *All checks passed!*; `ruff format --check` →
+  **99 files already formatted**.
+- Every number is a read of the frozen artifacts — no pipeline re-execution, no network, nothing
+  written; no published number moved.
+
+### What remains unresolved (unchanged from §H55)
+
+All remaining items are **disclosed, not quantified** — each depends on an input the record does
+not hold (the H9 VIX series, pre-fix fold/beta conventions, the H16 train+val `val_sharpe`,
+the 22 sample-convention information ratios) and none can be resolved without new committed
+inputs. The 14 benchmark `avg_trade_cost` entries and the 40 `stats.json` echoes are now among
+them: measured to the extent the record allows, disclosed where it does not.
