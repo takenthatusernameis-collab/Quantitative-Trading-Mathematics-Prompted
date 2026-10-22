@@ -1,32 +1,22 @@
-# HANDOFF_CURRENT_SESSION — H57 complete
+# HANDOFF_CURRENT_SESSION — session complete (no new work)
 
-## What changed (H57)
+## State
+- H35–H57 are all COMPLETE per prior handoffs.
+- No code changes made in this session; no artifacts, thresholds, verdicts, or certified numbers modified.
+- Hypothesis space H1–H30 exhausted. No uncommitted changes under src/qtr or to tests related to unfinished work.
 
-**H57:** the equity record is on a **price-return** basis — dividend/distribution gap measured and disclosed; PDBC level bars booked as losses disclosed; benchmark-significance statistics audited with no published gate boolean moved.
+## What changed (this session)
+- None.
 
-- `run_h57_total_return_audit.py` — **new**, the audit.
-- `tests/test_h57_total_return_audit.py` — **new**, the H57 contract: **64 tests**.
-- `.experiments/artifacts/h57_total_return/summary.json` — **new**.
-- `FINAL_REPORT.md` — new **§H57** section.
-- `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_CURRENT.md`, `HANDOFF_CURRENT_SESSION.md`, `HANDOFF_NEXT.md` updated.
-- **Nothing under `src/qtr` changed.** No artifact, gate threshold, verdict or certified number moved; no grid re-run; no hypothesis added; record remains price-return basis (disclosed, not repaired).
-
-## What was actually verified
-
-- `python -m pytest -q -W error tests/test_h57_total_return_audit.py` → **64 passed**.
-- `python -m pytest -q -W error` → **1 961 passed, 16 skipped** (full suite).
-- `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` = **1055 statements, 318 branches,
-  0 missed, 0 partial, 100.00%**.
-- `python -m ruff check src tests run_*.py` → *All checks passed!*; `ruff format --check` →
-  **99 files already formatted**.
-- Every number is a read of the frozen artifacts — no network, no grid re-run, nothing written.
+## What was actually verified (this session)
+- Inspected repository state (git history, NEXT_TASK.md, HANDOFF_CURRENT.md, AGENTS.md). Confirmed "What remains assigned: Nothing" and that remaining unresolved items are non-derivable from committed record (missing inputs, convention disclosures).
+- No tests re-run from scratch in this turn (full suite was reported green in prior handoffs: 1961 passed, 16 skipped; coverage 100% on src/qtr). Baseline remains intact.
 
 ## What remains unresolved
+- None assignable from this checkout. Items listed in FINAL_REPORT.md §H53–§H57 are values not functions of committed record (missing VIX/regime inputs, pre-fix conventions disclosed, uncommitted trade logs/benchmarks/signals). None affect gates.
 
-- **No task is assigned.** The H47–H57 disclosure series is complete. Every remaining unresolved
-  item in `FINAL_REPORT.md` (§H53–§H57) is not a function of the committed record (missing inputs,
-  disclosed convention differences, benchmarks/trade logs/signals never committed); none can be
-  implemented or verified from this checkout. They stay disclosed, not quantified, no gate reads them.
-  Dividend/distribution gap remains omitted (price-return basis) as disclosed by H57.
-- The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified families
-  are frozen.
+## Approaches already tried / failed
+- N/A — no new work attempted.
+
+## One precise next task
+**None.** If new artifacts are committed that make any disclosed non-derivable value measurable, re-run the pinned contracts (test_public_api_contract, test_runner_import_contract, test_trade_log_cost_reconciliation, test_parameter_sensitivity_reproducibility, test_h53_published_metrics_disclosure, test_h54_non_metrics_block_disclosure, test_h55_nested_metrics_disclosure, test_h56_stats_json_echoes, test_h57_total_return_audit) and update FINAL_REPORT/NEXT_TASK/HANDOFF docs accordingly without modifying published numbers or re-running grids.
