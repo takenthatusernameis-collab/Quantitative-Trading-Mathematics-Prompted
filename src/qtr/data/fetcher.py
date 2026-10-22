@@ -17,6 +17,50 @@ from loguru import logger
 from qtr.utils.config import get_config
 
 
+def non_positive_prices(panel: pd.DataFrame) -> pd.DataFrame:
+    """Every non-positive close in a price panel.
+
+    A price of zero or less cannot be the base of a percentage return, and a
+    price that *changes sign* cannot be the base of one either: the return
+    from a negative base inverts the sign of the price move.  Both are
+    silently catastrophic downstream -- ``prices.pct_change()`` turns a
+    ``-37.63`` close into a ``-305.97%`` single-bar return -- so the screen
+    is applied at the point where the data enters the pipeline rather than
+    where it is finally noticed.
+
+    The WTI front-month contract of 2020-04-20 is the canonical case: the
+    expiring contract printed ``-37.63`` and the continuous Yahoo series
+    splices it in front of the next contract, which makes the one-bar return
+    of the *next* bar ``-126.60%`` as well.
+
+    Args:
+        panel: A price frame.  A wide frame (one column per symbol) is
+            scanned column by column; a long frame (a ``close`` column) is
+            scanned as a single series.
+
+    Returns:
+        A DataFrame with columns ``symbol``, ``timestamp`` and ``price``,
+        one row per offending observation.  Empty when the panel is clean.
+    """
+    if panel is None or len(panel) == 0 or len(panel.columns) == 0:
+        return pd.DataFrame(columns=["symbol", "timestamp", "price"])
+
+    if "close" in panel.columns:
+        series = {"close": panel["close"]}
+    else:
+        series = {str(col): panel[col] for col in panel.columns}
+
+    rows = []
+    for name, column in series.items():
+        values = pd.to_numeric(column, errors="coerce")
+        bad = values[(values <= 0) & values.notna()]
+        for timestamp, price in bad.items():
+            rows.append((name, timestamp, float(price)))
+    if not rows:
+        return pd.DataFrame(columns=["symbol", "timestamp", "price"])
+    return pd.DataFrame(rows, columns=["symbol", "timestamp", "price"])
+
+
 class DataCache:
     """File-based cache for downloaded data with content hashing."""
 
@@ -67,6 +111,31 @@ class DataFetcher:
         self.cache = cache or DataCache()
         self._ccxt_exchanges: dict[str, object] = {}
 
+    @staticmethod
+    def _reject_non_positive_prices(symbol: str, df: pd.DataFrame) -> None:
+        """Fail loud when a fetched panel carries a non-positive close.
+
+        The panel is refused rather than repaired: a negative or zero close
+        is a fact about the *source*, and every repair (dropping the bar,
+        clipping the price, flooring it at zero) is a research decision the
+        caller has to make and to record.  Silently returning the panel
+        would let a single negative print become a six-hundred-percent
+        one-bar return inside the engine.
+        """
+        bad = non_positive_prices(df)
+        if len(bad) == 0:
+            return
+        first = bad.iloc[0]
+        raise ValueError(
+            f"{symbol}: {len(bad)} non-positive close(s) in the fetched panel; "
+            f"first is {first['price']!r} on {first['timestamp']}. "
+            "A percentage return from a non-positive price base is undefined "
+            "(and inverts the sign of the price move when the base is "
+            "negative), so this panel is refused rather than passed to the "
+            "engine. Trim the window, select a contract series that does "
+            "not cross zero, or handle the bar explicitly before retrying."
+        )
+
     def fetch_yahoo(
         self,
         symbols: list[str],
@@ -96,6 +165,7 @@ class DataFetcher:
             if use_cache:
                 cached = self.cache.get("yahoo", symbol, start, end, interval)
                 if cached is not None:
+                    self._reject_non_positive_prices(symbol, cached)
                     results[symbol] = cached
                     continue
 
@@ -138,6 +208,8 @@ class DataFetcher:
                 logger.error(f"Failed to fetch {symbol}: {e}")
                 results[symbol] = pd.DataFrame()
 
+            self._reject_non_positive_prices(symbol, results[symbol])
+
         return results
 
     def fetch_futures(
@@ -177,6 +249,7 @@ class DataFetcher:
             if use_cache:
                 cached = self.cache.get("yahoo_futures", symbol, start, end, interval)
                 if cached is not None:
+                    self._reject_non_positive_prices(symbol, cached)
                     results[symbol] = cached
                     continue
 
@@ -218,6 +291,8 @@ class DataFetcher:
             except Exception as e:  # noqa: BLE001 -- per-symbol fetch failure is non-fatal; log and continue
                 logger.error(f"Failed to fetch {symbol}: {e}")
                 results[symbol] = pd.DataFrame()
+
+            self._reject_non_positive_prices(symbol, results[symbol])
 
         return results
 
@@ -274,6 +349,7 @@ class DataFetcher:
                     "ccxt", f"{exchange_id}:{cache_symbol}", start, end, timeframe
                 )
                 if cached is not None:
+                    self._reject_non_positive_prices(symbol, cached)
                     results[symbol] = cached
                     continue
 
@@ -319,6 +395,8 @@ class DataFetcher:
             except Exception as e:  # noqa: BLE001 -- per-symbol fetch failure is non-fatal; log and continue
                 logger.error(f"Failed to fetch {symbol} from {exchange_id}: {e}")
                 results[symbol] = pd.DataFrame()
+
+            self._reject_non_positive_prices(symbol, results[symbol])
 
         return results
 
