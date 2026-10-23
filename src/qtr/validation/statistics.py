@@ -1,5 +1,6 @@
 """Statistical validation utilities for quantitative trading research."""
 
+import warnings
 from typing import Any, Optional
 
 import numpy as np
@@ -57,9 +58,37 @@ def sharpe_ratio(
     # Tolerance guard: a constant return series has std ~1e-19 from float
     # noise, not exactly 0.0, so an exact `== 0` check misses it and
     # divides by a near-zero value, producing a garbage huge Sharpe.
-    if returns.std() <= 1e-15:
+    #
+    # The guard is `np.isfinite(std) and std > 1e-15`, not `std <= 1e-15`:
+    # a non-finite standard deviation (the series carries an `inf`, a `-inf`
+    # or a `nan` -- the H58/H61 input class, reachable whenever a runner builds
+    # a return series from `prices.pct_change()` and a price crosses zero or a
+    # roll gap is unbounded) makes ``std <= 1e-15`` evaluate to ``False``
+    # (NaN compares unordered), so the old guard did NOT fire and the function
+    # proceeded to divide `excess.mean()` (inf or nan) by a nan std, emitting
+    # ``nan``. The engine's own Sharpe guard
+    # (``engine.py:414`` ``returns.std(ddof=0) > 1e-15``) fires on the same
+    # input and reports ``0.0``, so the two implementations disagreed on an
+    # input the record actually contains -- the failure the cross-module
+    # agreement contract (tests/test_engine_metric_agreement.py) exists to
+    # catch. Both now report 0.0 for every non-finite input. For every finite
+    # input the arithmetic is bit-identical to before.
+    #
+    # Computing the std on a non-finite series raises
+    # ``RuntimeWarning: invalid value encountered in subtract`` (numpy's
+    # reduction of an inf/nan) and, under ``pytest -W error``, that warning
+    # becomes an error before the guard can fire. The warning is noise: the
+    # input is deliberately non-finite and the guard's whole job is to short
+    # circuit it, so it is swallowed here and the *result* is what is
+    # measured. See
+    # tests/test_statistics.py::TestSharpeRatio::test_the_contract_rejects_the_pre_fix_non_finite_guard.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        with np.errstate(invalid="ignore", divide="ignore"):
+            std = float(returns.std())
+    if not np.isfinite(std) or std <= 1e-15:
         return 0.0
-    return excess.mean() / returns.std() * np.sqrt(periods_per_year)
+    return excess.mean() / std * np.sqrt(periods_per_year)
 
 
 def bars_per_year(index: pd.DatetimeIndex) -> float:

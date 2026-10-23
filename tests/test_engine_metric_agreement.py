@@ -344,6 +344,52 @@ class TestSharedMetricAgreement:
         validation = validate_strategy(result.returns, result.trades, {})
         assert result.metrics["num_trades"] == validation["n_trades"] == len(result.trades)
 
+    @pytest.mark.parametrize("non_finite", [np.inf, -np.inf, np.nan])
+    def test_agreement_holds_when_the_returns_carry_a_non_finite_bar(self, non_finite):
+        """A return series carrying an `inf`, `-inf` or `nan` bar must not
+        break the agreement contract.
+
+        `sharpe_ratio` used to emit ``nan`` on this input (its std guard was
+        ``std <= 1e-15``, which NaN compares unordered and therefore does NOT
+        fire, so the function divided an inf/nan mean by a nan std). The
+        engine's own guard (``engine.py:414``) fires on the same input and
+        reports ``0.0``, so the two implementations disagreed on an input the
+        record actually contains -- every runner that builds a return series
+        from `prices.pct_change()` can produce one (a price crossing zero,
+        the H58 pathology, or an unbounded roll gap). The input class is the
+        same one H61 found in `compare_to_benchmark`.
+
+        Both now report ``0.0`` for every non-finite input, so the contract
+        holds across the non-finite regime as well as the finite one.
+
+        The bar is injected at the metric surface for the same reason the
+        negative-gross case is: a non-finite *return* needs a non-finite
+        price, which the fetcher now refuses (§H58), so the input reaches
+        these functions only through this contract. The numpy/pandas
+        reductions of a non-finite series raise RuntimeWarnings; they are
+        noise about an input the guard exists to short-circuit and are
+        swallowed here so the *result* is what is measured -- the same
+        convention as the negative control in
+        tests/test_statistics.py.
+        """
+        import warnings
+
+        backtester = VectorizedBacktester(BacktestConfig())
+        empty_trades = pd.DataFrame(
+            columns=["timestamp", "symbol", "side", "weight_change", "price", "cost"]
+        )
+        returns = pd.Series([0.001] * 9 + [non_finite] + [0.001] * 10)
+        equity = (1.0 + returns).cumprod() * 1_000_000.0
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            metrics = backtester._calculate_metrics(returns, equity, empty_trades)
+            validation = validate_strategy(returns, empty_trades, {})
+
+        _assert_shared_metrics_agree(metrics, validation)
+        assert metrics["sharpe"] == 0.0
+        assert validation["sharpe"] == 0.0
+
 
 class TestEngineOnlyMetrics:
     """Metrics the engine computes alone are pinned by their exact formula."""
@@ -856,4 +902,34 @@ class TestContractNegativeControl:
         pre_fix_validation = dict(validation)
         pre_fix_validation["annualized_return"] = float("nan")
         with pytest.raises(AssertionError, match="annualized_return disagrees"):
+            _assert_shared_metrics_agree(metrics, pre_fix_validation)
+
+    def test_the_contract_rejects_a_nan_sharpe_from_a_non_finite_series(self):
+        """Negative control for the Sharpe non-finite guard: the pre-fix
+        ``sharpe_ratio`` emitted ``nan`` for a series carrying an `inf` (its
+        std guard was ``std <= 1e-15``, which a nan std does not satisfy), while
+        the engine reported ``0.0`` -- a disagreement on an input the record
+        contains. The agreement contract must reject the ``nan`` it emitted.
+        """
+        import warnings
+
+        backtester = VectorizedBacktester(BacktestConfig())
+        empty_trades = pd.DataFrame(
+            columns=["timestamp", "symbol", "side", "weight_change", "price", "cost"]
+        )
+        returns = pd.Series([0.001] * 9 + [np.inf] + [0.001] * 10)
+        equity = (1.0 + returns).cumprod() * 1_000_000.0
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            metrics = backtester._calculate_metrics(returns, equity, empty_trades)
+            validation = validate_strategy(returns, empty_trades, {})
+
+        # The corrected implementation agrees with the engine.
+        _assert_shared_metrics_agree(metrics, validation)
+
+        # The pre-fix implementation emits nan, and nan != 0.0.
+        pre_fix_validation = dict(validation)
+        pre_fix_validation["sharpe"] = float("nan")
+        with pytest.raises(AssertionError, match="sharpe disagrees"):
             _assert_shared_metrics_agree(metrics, pre_fix_validation)

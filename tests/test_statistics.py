@@ -137,6 +137,58 @@ class TestSharpeRatio:
         assert st.sharpe_ratio(np.full(252, 0.0005)) == 0.0
         assert st.sharpe_ratio(np.zeros(100)) == 0.0
 
+    @pytest.mark.parametrize("non_finite", [np.inf, -np.inf, np.nan])
+    def test_non_finite_returns_give_zero_sharpe(self, non_finite):
+        """A return series carrying an `inf`, `-inf` or `nan` bar must not
+        propagate through the Sharpe computation.
+
+        The guard used to be ``returns.std() <= 1e-15``. A non-finite standard
+        deviation compares unordered, so ``nan <= 1e-15`` is ``False`` and the
+        guard did NOT fire: the function then divided an inf/nan mean by a nan
+        std and emitted ``nan``. That is the same class of silent-void defect
+        H61 found in `compare_to_benchmark` (an `inf` is not a missing value,
+        it is an impossible return) and the same input class H58 found in the
+        record (a price crossing zero makes `pct_change()` produce an `inf`).
+        The engine's own Sharpe guard fires on the same input and reports
+        ``0.0`` (see tests/test_engine_metric_agreement.py), so this function
+        now matches it.
+
+        Every finite input is bit-identical to before: the guard only fires
+        for a non-finite std.
+        """
+        returns = np.array([0.001] * 9 + [non_finite] + [0.001] * 10)
+        assert st.sharpe_ratio(returns) == 0.0
+
+    def test_the_contract_rejects_the_pre_fix_non_finite_guard(self):
+        """Negative control: the pre-fix ``std <= 1e-15`` guard does not fire
+        on a non-finite series, so the pre-fix Sharpe is ``nan`` while the
+        corrected one is ``0.0``. The invariant "a non-finite series yields a
+        finite Sharpe" that this contract states must reject the pre-fix path.
+        """
+        import warnings
+
+        returns = np.array([0.001] * 9 + [np.inf] + [0.001] * 10)
+
+        # Reconstruct the pre-fix arithmetic exactly: the guard was
+        # ``if returns.std() <= 1e-15: return 0.0`` and the return was
+        # ``excess.mean() / returns.std() * sqrt(periods_per_year)``.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            std = float(returns.std())
+            pre_fix_guard_fires = std <= 1e-15
+            pre_fix = float(returns.mean() / std * np.sqrt(252))
+
+        # The pre-fix guard evaluates to False for a nan std (NaN compares
+        # unordered), so the division runs and emits nan.
+        assert not pre_fix_guard_fires, "the control must not fire"
+        assert np.isnan(std)
+        assert np.isnan(pre_fix), "the pre-fix path must emit nan"
+
+        # The corrected implementation is finite and equals the engine's 0.0.
+        corrected = st.sharpe_ratio(returns)
+        assert corrected == 0.0
+        assert np.isfinite(corrected)
+
     def test_ci_is_reproducible(self, returns):
         a = st.sharpe_ratio_ci(returns, n_bootstrap=500, random_state=42)
         b = st.sharpe_ratio_ci(returns, n_bootstrap=500, random_state=42)

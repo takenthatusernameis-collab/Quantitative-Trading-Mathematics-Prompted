@@ -4495,3 +4495,93 @@ For every finite input the mask is identical, so:
   `nan` alpha and `inf` excess return, which the contract rejects.
 - No published artifact, gate threshold, verdict or certified number was modified; no grid was
   re-run; no hypothesis was added.
+
+## H62 — `sharpe_ratio` let a non-finite standard deviation through its guard (2026-10-23)
+
+**H62 is COMPLETE.** This is a **real defect in `src/qtr`**, found by exercising the package's own
+cross-module agreement contract against the input class the record contains. It is the third change
+under `src/qtr` since §H60 and the same class of defect as H60 and H61: a defensive guard that had
+never been executed against the input that reaches it.
+
+### The defect
+
+`sharpe_ratio` guarded its denominator with
+
+```python
+if returns.std() <= 1e-15:
+    return 0.0
+return excess.mean() / returns.std() * np.sqrt(periods_per_year)
+```
+
+The guard is meant to short-circuit a *constant* return series, whose standard deviation is ~1e-19
+from float noise rather than exactly 0.0. But `<=` is the wrong predicate for a **non-finite**
+standard deviation: an `inf`, `-inf` or `nan` compares unordered, so `nan <= 1e-15` is `False` and
+the guard does **not** fire. The function then divides `excess.mean()` (inf or nan) by a nan std
+and emits `nan`:
+
+```
+sharpe_ratio([0.001]*9 + [inf] + [0.001]*10) = nan
+```
+
+The engine's own Sharpe guard (`engine.py:414`, `returns.std(ddof=0) > 1e-15`) fires on the same
+input and reports `0.0`, so the two implementations disagreed on an input the record actually
+contains -- which is exactly the failure `tests/test_engine_metric_agreement.py` exists to catch,
+and it had never been caught: every test in that module fed it finite series.
+
+### Why the record makes this reachable
+
+The input class is the same one H58 and H61 found: every runner that builds a return series from
+`prices.pct_change()` can produce an `inf` if a price crosses zero (the H58 pathology) or if a roll
+gap is unbounded, and a `nan` if a bar is missing. `sharpe_ratio` is the library's own Sharpe -- the
+one the certified H10–H14/H21/H22/H25 numbers come from -- so a non-finite input would have voided
+a certified measurement rather than failing closed.
+
+### What changed
+
+- `src/qtr/validation/statistics.py` — the guard is now
+  `std = float(returns.std()); if not np.isfinite(std) or std <= 1e-15: return 0.0`, with the
+  docstring recording that the predicate is `isfinite`, not `<=`, and why: a non-finite std is not
+  a near-zero variance, it is an impossible return, and letting it through is the silent-void
+  failure the guard exists to prevent. The `RuntimeWarning` numpy's reduction of a non-finite
+  series raises (and which becomes an error under `pytest -W error`) is swallowed inside the
+  guard, since the input is the guard's whole job to short-circuit. For every finite input the
+  arithmetic is bit-identical to before.
+- `tests/test_statistics.py` — two additions to `TestSharpeRatio`:
+  - `test_non_finite_returns_give_zero_sharpe` (parametrized over `inf`, `-inf`, `nan`) — the
+    function returns `0.0` for every non-finite input.
+  - `test_the_contract_rejects_the_pre_fix_non_finite_guard` — a behavioural negative control
+    that reconstructs the pre-fix `std <= 1e-15` guard, feeds it the same input, and requires the
+    result to be `nan` (the pre-fix path) while the corrected one is finite.
+- `tests/test_engine_metric_agreement.py` — two additions:
+  - `test_agreement_holds_when_the_returns_carry_a_non_finite_bar` (parametrized over `inf`,
+    `-inf`, `nan`) in `TestSharedMetricAgreement` — the cross-module contract now holds across the
+    non-finite regime, not only above it.
+  - `test_the_contract_rejects_a_nan_sharpe_from_a_non_finite_series` in
+    `TestContractNegativeControl` — the contract rejects the `nan` the pre-fix path emitted.
+
+### The blast radius
+
+The change is a one-symbol predicate (`<= 1e-15` → `not isfinite(std) or std <= 1e-15`) that only
+fires for a non-finite std. For every finite input the mask is identical, so:
+
+- every published `sharpe` that re-derives is unchanged -- measured bit-identical on a 2 515-bar
+  finite series (`0.25483355551801323` both ways);
+- no gate, threshold, verdict or certified number reads `sharpe_ratio` on a non-finite series (the
+  certified families' series are finite, and `tests/test_engine_metric_agreement.py`'s
+  `TestCertifiedNumbersUnaffected` still passes);
+- the certified families (H10, H21, H22, H25) are unaffected.
+
+### What was actually verified
+
+- The 8 new tests **fail on the pre-fix code** (reverted guard) with the expected
+  `sharpe disagrees: engine=0.0, validate_strategy=nan` / `nan == 0.0` errors, then pass with the
+  fix restored. The negative controls fire.
+- `python -m pytest -q -W error tests/test_statistics.py tests/test_engine_metric_agreement.py`
+  → **144 passed** (136 before).
+- `python -m pytest -q -W error` → **2 065 passed, 16 skipped** (full suite).
+- `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` = **1 091 statements, 330 branches,
+  0 missed, 0 partial, 100.00%** (up from 1 086 / 330: five statements, no new branches).
+- `python -m ruff check src tests run_*.py` → *All checks passed!*; `ruff format --check` →
+  **103 files already formatted**.
+- No published artifact, gate threshold, verdict or certified number was modified; no grid was
+  re-run; no hypothesis was added.
