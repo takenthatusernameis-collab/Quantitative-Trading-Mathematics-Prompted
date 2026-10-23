@@ -1,4 +1,76 @@
-# HANDOFF — H63 complete (clean-environment verification)
+# HANDOFF — H64 complete (the documented lint/format gates were not runnable from the documented quick start)
+
+## What changed (H64)
+
+The carried-forward task from `HANDOFF_CURRENT.md` / `NEXT_TASK.md` was run end-to-end: verify the
+quick-start surface from a fresh venv with only `pip install -r requirements.txt`. It reproduced
+the prior session's claim (2072 passed, 16 skipped) and **found a third dependency of the same
+class** as the pyarrow and setuptools fixes before it.
+
+- `requirements.txt` — added `ruff>=0.6.0` after `pytest-cov>=4.1.0`, under a comment that names
+  the two documented gates it unblocks.
+
+`AGENTS.md:16-17` documents the lint/format gates as the canonical commands to run:
+
+```
+python -m ruff check src tests run_*.py
+python -m ruff format --check src tests run_*.py
+```
+
+`ruff` is declared in `pyproject.toml:25` only as the optional `lint` extra
+(`lint = ["ruff>=0.6.0"]`), and `pip install -r requirements.txt` does **not** install optional
+extras. So a fresh environment following the documented quick start could not run the documented
+lint/format gates at all — `python: No module named ruff`. The committed configuration
+(`[tool.ruff]`, `[tool.ruff.lint]`, `[tool.ruff.format]`) and the declaration itself were already
+pinned by `tests/test_ruff_reproducibility.py:31` (`test_ruff_is_declared_as_a_lint_dependency`),
+but the pinned *gate* was unreachable from the quick start: the declaration test could pass while
+the gates it exists to make reproducible could not be executed. Same defect class as the two prior
+instances — `requirements.txt` is the documented quick start and must pull in everything the
+pinned contract surface needs to run, not just what `src/qtr` imports at runtime.
+
+No code under `src/qtr` or tests was modified; no published artifact, gate threshold, verdict or
+certified number was changed; no grid was re-run; no hypothesis was added.
+
+## What was actually verified
+
+- Fresh venv, `pip install -r requirements.txt` only: `ruff-0.17.2` installs (alongside the
+  previously fixed `setuptools-84.2.1` and `pyarrow-26.0.0`).
+- From that same clean venv, the documented gates now run and pass:
+  - `python -m ruff check src tests run_*.py` → *All checks passed!*
+  - `python -m ruff format --check src tests run_*.py` → **103 files already formatted**
+  - (Verified with the literal `run_*.py` argument from `AGENTS.md`; a bare `run_*.py` is a shell
+    glob, not a ruff argument — `ruff check run_*.py` errors with E902 "No such file or
+    directory", so the gates are run as the shell expands them.)
+- `python -m pytest -q --cov=qtr --cov-branch` from the clean venv → `src/qtr` **1 091 statements,
+  330 branches, 0 missed, 0 partial, 100.00%** (unchanged).
+- `python -m pytest -q -W error` from the clean venv → **2 072 passed, 16 skipped** (full suite; the
+  16 skips are all intentional and self-declaring, unchanged).
+- System environment re-check after the edit: `ruff check` → *All checks passed!*;
+  `ruff format --check` → **103 files already formatted**; `tests/test_ruff_reproducibility.py`
+  and `tests/test_public_api_contract.py` → **35 passed**.
+
+## What remains unresolved
+
+All remaining items in `FINAL_REPORT.md` §H53–§H61 are **disclosed, not quantified** — each
+depends on an input the record does not hold, and none can be resolved without new committed
+inputs. The thirteen H58/H59 gate booleans stay as published (all in REJECT families; no certified
+verdict moves). H1–H30 exhausted; certified families frozen.
+
+## Precise next task
+
+**None assigned.** The H47–H64 series is complete. If a session wants work, the only honest
+options are (a) wait for newly committed artifacts that make a disclosed value measurable, or
+(b) after any change under `src/qtr`, re-run the pinned contracts -- including
+`test_engine_metric_agreement.py`, `test_h53_published_metrics_disclosure`,
+`test_h54_non_metrics_block_disclosure`, `test_h55_nested_metrics_disclosure`,
+`test_h56_stats_json_echoes`, `test_h57_total_return_audit`, `test_h58_price_pathology_contamination`
+and `test_h59_contamination_gate_blast_radius` -- and confirm the gates stay green. In addition,
+verify the quick-start surface by running the suite from a fresh venv with only
+`pip install -r requirements.txt`, since `requirements.txt` is now the contract that must declare
+every dependency a pinned contract test or a documented gate imports (currently
+`setuptools>=68`, `pyarrow>=14.0.0` and `ruff>=0.6.0`).
+
+---
 
 ## What changed (H63)
 

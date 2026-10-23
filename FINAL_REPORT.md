@@ -4640,3 +4640,62 @@ everything the pinned contract tests need to run, not just what `src/qtr` import
 Adding a build dependency to `requirements.txt` changes nothing under `src/qtr` or `tests/`; no
 published number, gate threshold, verdict or certified number moves; no grid is re-run. The only
 behavioural change is that two tests that previously *skipped* now *run* and pass.
+
+## H64 — the documented lint/format gates were not runnable from the documented quick start (2026-10-23)
+
+**H64 is COMPLETE.** The carried-forward task from `HANDOFF_CURRENT.md` — verify the quick-start
+surface from a fresh venv with only `pip install -r requirements.txt` — was run end-to-end. It
+reproduced the prior session's claim (2 072 passed, 16 skipped) and **found a third dependency of
+the same class** as the pyarrow and setuptools fixes before it.
+
+### The defect
+
+`AGENTS.md:16-17` documents the lint/format gates as the canonical commands to run:
+
+```
+python -m ruff check src tests run_*.py
+python -m ruff format --check src tests run_*.py
+```
+
+`ruff` is declared in `pyproject.toml:25` only as the optional `lint` extra
+(`lint = ["ruff>=0.6.0"]`), and `pip install -r requirements.txt` does **not** install optional
+extras. So a fresh environment following the documented quick start could not run the documented
+lint/format gates at all -- `python: No module named ruff`. The declaration and the committed
+`[tool.ruff]*` configuration were already pinned by `tests/test_ruff_reproducibility.py:31`
+(`test_ruff_is_declared_as_a_lint_dependency`), but the pinned *gate* itself was unreachable from
+the quick start: the declaration test could pass while the gates it exists to make reproducible
+could not be executed. Same defect class as the two prior instances -- `requirements.txt` is the
+documented quick start and must pull in everything the pinned contract surface needs to run, not
+just what `src/qtr` imports at runtime.
+
+### What changed
+
+- `requirements.txt` — added `ruff>=0.6.0` after `pytest-cov>=4.1.0`, under a comment that names
+  the two documented gates it unblocks and records that this is the third dependency of this class.
+- No code under `src/qtr` or tests was modified; no published artifact, gate threshold, verdict or
+  certified number was changed; no grid was re-run; no hypothesis was added.
+
+### What was actually verified
+
+- Fresh venv, `pip install -r requirements.txt` only: `ruff-0.17.2` installs (alongside the
+  previously fixed `setuptools-84.2.1` and `pyarrow-26.0.0`).
+- From that same clean venv, the documented gates now run and pass:
+  - `python -m ruff check src tests run_*.py` → *All checks passed!*
+  - `python -m ruff format --check src tests run_*.py` → **103 files already formatted**
+  - (Verified with the literal `run_*.py` argument from `AGENTS.md`; a bare `run_*.py` is a shell
+    glob, not a ruff argument -- `ruff check run_*.py` errors with E902 "No such file or
+    directory", so the gates are run as the shell expands them.)
+- `python -m pytest -q --cov=qtr --cov-branch` from the clean venv → `src/qtr` **1 091 statements,
+  330 branches, 0 missed, 0 partial, 100.00%** (unchanged).
+- `python -m pytest -q -W error` from the clean venv → **2 072 passed, 16 skipped** (full suite; the
+  16 skips are all intentional and self-declaring, unchanged).
+- System environment re-check after the edit: `ruff check` → *All checks passed!*;
+  `ruff format --check` → **103 files already formatted**; `tests/test_ruff_reproducibility.py`
+  and `tests/test_public_api_contract.py` → **35 passed**.
+
+### The blast radius
+
+Adding a development dependency to `requirements.txt` changes nothing under `src/qtr` or
+`tests/`; no published number, gate threshold, verdict or certified number moves; no grid is
+re-run. The only behavioural change is that two documented gates that previously *could not be
+executed at all* from the documented quick start now *run and pass*.

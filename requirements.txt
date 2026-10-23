@@ -22,5 +22,16 @@ ccxt>=4.0.0
 pytest>=7.4.0
 pytest-cov>=4.1.0
 
+# Lint and format: the documented gates in AGENTS.md
+# (`python -m ruff check src tests run_*.py` and
+# `python -m ruff format --check src tests run_*.py`) are pinned contracts --
+# `tests/test_ruff_reproducibility.py` pins the declaration and the committed
+# `[tool.ruff]*` configuration. `ruff` is declared as the optional `lint` extra
+# in pyproject.toml, and `pip install -r requirements.txt` does NOT install
+# optional extras, so a fresh environment following the documented quick start
+# could not run the documented lint/format gates at all (the third dependency of
+# this class after pyarrow and setuptools; both are above for the same reason).
+ruff>=0.6.0
+
 # Optional: hyperparameter optimization (not required for MVP)
 # optuna>=3.0.0
