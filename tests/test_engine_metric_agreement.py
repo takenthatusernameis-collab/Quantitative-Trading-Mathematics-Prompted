@@ -299,6 +299,42 @@ class TestSharedMetricAgreement:
         assert metrics["total_return"] == pytest.approx(-1.0, rel=1e-12)
         assert metrics["annualized_return"] == pytest.approx(-1.0, rel=1e-12)
 
+    @pytest.mark.parametrize("loss", [-1.5, -2.0, -10.0])
+    def test_agreement_holds_when_the_curve_goes_negative(self, loss):
+        """A strategy that loses MORE than its capital drives the gross value
+        below zero, and the annualized return is then undefined as a real
+        number: ``gross ** (252 / n)`` for ``gross < 0`` is not real and numpy
+        emits it as ``nan``.
+
+        This is the case the H58 contaminated families land in (their published
+        equity curves bottom out at -463,814.84 on a 1,000,000 capital base).
+        The engine's guard reports ``-1.0`` there, and ``validate_strategy``
+        used to report ``nan`` -- the two implementations disagreed on an input
+        the record actually contains, which is the failure this contract exists
+        to catch. Both now report ``-1.0``.
+
+        The bar is injected at the metric surface for the same reason as the
+        gross == 0 case above: a price return below -100% needs a negative
+        price, which the fetcher now refuses (§H58).
+        """
+        backtester = VectorizedBacktester(BacktestConfig())
+        empty_trades = pd.DataFrame(
+            columns=["timestamp", "symbol", "side", "weight_change", "price", "cost"]
+        )
+        returns = pd.Series([0.001] * 9 + [loss] + [0.001] * 10)
+        equity = (1.0 + returns).cumprod() * 1_000_000.0
+
+        metrics = backtester._calculate_metrics(returns, equity, empty_trades)
+        validation = validate_strategy(returns, empty_trades, {})
+
+        _assert_shared_metrics_agree(metrics, validation)
+        # The total return is the compound of the whole series, not the loss
+        # bar alone; it must be below -1 (gross < 0) for the guard to fire.
+        assert metrics["total_return"] == pytest.approx(float((1 + returns).prod() - 1), rel=1e-12)
+        assert metrics["total_return"] < -1.0
+        assert metrics["annualized_return"] == pytest.approx(-1.0, rel=1e-12)
+        assert validation["annualized_return"] == pytest.approx(-1.0, rel=1e-12)
+
     def test_num_trades_agrees_with_the_validation_counter(self):
         """`num_trades` (engine) and `n_trades` (validation) count the same
         rows of the same trades frame."""
@@ -791,3 +827,33 @@ class TestContractNegativeControl:
         )
         with pytest.raises(AssertionError, match="total_return disagrees"):
             _assert_shared_metrics_agree(pre_fix, validation)
+
+    def test_the_contract_rejects_a_nan_annualized_return(self):
+        """Negative control for the negative-gross guard: the pre-fix
+        ``validate_strategy`` emitted ``nan`` for ``gross < 0`` (a fractional
+        power of a non-positive base), which the agreement contract must reject
+        rather than treat as agreement-with-agreement.
+
+        The reconstructed pre-fix implementation is the same one-line change
+        this contract pins: it computes the annualized return without the
+        ``gross > 0`` guard, exactly as the module did before this fix.
+        """
+        backtester = VectorizedBacktester(BacktestConfig())
+        empty_trades = pd.DataFrame(
+            columns=["timestamp", "symbol", "side", "weight_change", "price", "cost"]
+        )
+        # A loss below -100% puts the gross below zero.
+        returns = pd.Series([0.001] * 9 + [-2.0] + [0.001] * 10)
+        equity = (1.0 + returns).cumprod() * 1_000_000.0
+
+        metrics = backtester._calculate_metrics(returns, equity, empty_trades)
+        validation = validate_strategy(returns, empty_trades, {})
+
+        # The corrected implementation agrees with the engine.
+        _assert_shared_metrics_agree(metrics, validation)
+
+        # The pre-fix implementation emits nan, and nan != -1.0.
+        pre_fix_validation = dict(validation)
+        pre_fix_validation["annualized_return"] = float("nan")
+        with pytest.raises(AssertionError, match="annualized_return disagrees"):
+            _assert_shared_metrics_agree(metrics, pre_fix_validation)

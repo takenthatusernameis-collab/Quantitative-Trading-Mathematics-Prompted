@@ -1,62 +1,76 @@
-# HANDOFF_NEXT — H57 complete: no task assigned
+# HANDOFF_NEXT — H60 complete: one real defect fixed under src/qtr
 
-## What changed (H57)
+## What changed (H60)
 
-**H57:** the `stats.json` text echoes (**40** files) and the **14** benchmark `avg_trade_cost`
-entries are measured to the extent the record allows and disclosed where it does not.
+**H60:** a real defect in `src/qtr`, found by exercising the package's own cross-module agreement
+contract against an input the record contains. It is the first change under `src/qtr` since §H58.
 
-- `tests/test_h56_stats_json_echoes.py` — the H57 contract: **187 tests**. All 40 `returns`
-  texts re-derive byte-for-byte from the committed `equity.parquet` under the engine's
-  convention (first bar `equity[0] / 100 000 - 1`, then bar-over-bar returns,
-  rendered as `series.to_string(max_rows=10) + "\nLength: {n}, dtype: float64"`);
-  the H18 family's **100 000** capital anchor is pinned and a behavioural negative control
-  (the **1 000 000** convention every other producer uses) fails all 40. All 40 publish the
-  identical `trades` dummy head and no trade log was ever committed beside any `stats.json`,
-  so that text is disclosed as unrecoverable. The tracker's **23** `benchmark_avg_trade_cost`
-  entries split **9 measurable** (6 × **20.0×** vs committed `benchmark_trades.parquet`,
-  3 × **5×** vs committed `signals_buy_and_hold.parquet`) and **14 not measurable**; each of
-  the 14 commits only `benchmark_equity.parquet` for its benchmark, so no committed equity
-  curve and committed signal exist to rebuild it and its over-count factor is not measurable
-  — disclosed, not quantified.
-- `FINAL_REPORT.md` — new **§H57** section.
-- `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_CURRENT.md`, `HANDOFF_CURRENT_SESSION.md`,
-  `HANDOFF_NEXT.md` updated.
-- **Nothing under `src/qtr` changed.** No artifact, gate threshold, verdict or certified number
-  was modified; no grid was re-run; no hypothesis was added.
+`validate_strategy` annualized the total return with `(1 + total_return) ** (252 / n) - 1` and had no
+guard on the base. The engine's own implementation (`VectorizedBacktester._calculate_metrics`,
+engine.py:381-382) guards the same expression with `if gross > 0.0: ... else: -1.0`, because a
+fractional power of a non-positive base is not a real number. When the gross value
+`1 + total_return` was **zero or negative**, `validate_strategy` emitted **`nan`** with a
+`RuntimeWarning: invalid value encountered in scalar power`, so the two implementations disagreed
+on an input the record actually contains:
 
-## The measured record
+```
+gross = -0.8562   (equity curve goes negative)
+engine annualized_return =  -1.0
+validate annualized_return = nan
+```
 
-| measured | quantity | value |
-|---|---|---:|
-| files | `stats.json` text echoes | **40** |
-| files | `returns` re-derived byte for byte | **40** |
-| runs | H18 experiment directories | **6** |
-| rows | equity rows per echo | **4468** |
-| capital | H18 initial capital (pinned) | **100 000** |
-| entries | `benchmark_avg_trade_cost_step0` in the tracker | **23** |
-| entries | measurable (§H52: 6 × 20.0×, 3 × 5×) | **9** |
-| entries | not measurable (disclosed) | **14** |
-| value | published by all 14 | **0.00010629059079463798** |
+The input class is real. The H58 contaminated families (`exp_2026-10-10T21-58-28-353634Z` and
+`exp_2026-10-10T21-59-16-546117Z`) publish an `ensemble_equity.parquet` whose minimum is
+**-463,814.84** on a 1,000,000 capital base: their equity curve goes negative. Their summaries do not
+publish `annualized_return`, so **no published number moved** -- but `run_baseline.py:192` and
+`run_experiment.py:217` both feed `validate_strategy` the engine's returns, so any future run that
+loses more than its capital would have produced a `nan` annualized return alongside a `-1.0` from
+the engine.
+
+- `src/qtr/validation/statistics.py` — `validate_strategy` now mirrors the engine's guard exactly:
+  `ann_return = (gross ** (252 / len(returns)) - 1) if gross > 0.0 else -1.0`, where
+  `gross = 1.0 + total_return`. The docstring records that the two implementations must agree for
+  every input, including the negative-gross case, and cites the agreement contract.
+- `tests/test_engine_metric_agreement.py` — `test_agreement_holds_when_the_curve_goes_negative`
+  (parametrized over `loss ∈ {-1.5, -2.0, -10.0}`) and the negative control
+  `test_the_contract_rejects_a_nan_annualized_return`, which reconstructs the pre-fix `nan` and
+  shows the contract rejecting it. **59 tests** (up from 56).
+
+## The blast radius
+
+The change is a one-line guard that only fires for `gross <= 0`. For every input with `gross > 0`
+the arithmetic is bit-identical to before, so every published `annualized_return` that re-derives (the
+11 summaries that publish it, all with positive gross) is unchanged; no gate, threshold, verdict or
+certified number reads `validate_strategy`'s `annualized_return`; and the certified families (H10,
+H21, H22, H25) are unaffected -- none of their equity curves goes negative.
 
 ## What was actually verified
 
-- `python -m pytest -q -W error tests/test_h56_stats_json_echoes.py` → **187 passed**.
-- `python -m pytest -q -W error` → **1 961 passed, 16 skipped** (full suite).
-- `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` = **1055 statements, 318 branches,
-  0 missed, 0 partial, 100.00%** — *"Required test coverage of 100.0% reached."*
+- `python -m pytest -q -W error tests/test_engine_metric_agreement.py` → **59 passed**.
+- `python -m pytest -q -W error` → **2 056 passed, 13 skipped** (full suite, up from 2 052 + 13).
+- `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` = **1 086 statements, 330 branches,
+  0 missed, 0 partial, 100.00%** (up from 1 085 / 330: one statement and one branch in the guard).
 - `python -m ruff check src tests run_*.py` → *All checks passed!*; `ruff format --check` →
-  clean (**99 files**).
-- Every number is a read of the frozen artifacts — no network, no grid re-run, nothing written;
-  no published number moved.
+  **103 files already formatted**.
+- The negative control fires: the pre-fix `nan` is rejected by the agreement contract with
+  `assert annualized_return disagrees`.
+- No published artifact, gate threshold, verdict or certified number was modified; no grid was
+  re-run; no hypothesis was added.
 
 ## What a next session inherits
 
-- **No task is assigned.** The H47–H57 disclosure series is complete; every remaining unresolved
-  item in `FINAL_REPORT.md` (§H53–§H57) is a value that is not a function of the committed record
-  (a missing input such as the H9 VIX series, or a disclosed convention difference) and none of
-  them can be implemented or verified from this checkout. They stay disclosed, not quantified,
-  and no gate reads any of them.
+- **No task is assigned.** The H47–H60 series is complete; every remaining unresolved item in
+  `FINAL_REPORT.md` (§H53–§H60) is a value that is not a function of the committed record (a
+  missing input such as the H9 VIX series, or a disclosed convention difference) and none of them
+  can be implemented or verified from this checkout. They stay disclosed, not quantified, and no
+  gate reads any of them.
 - The inherited baseline is green; after any change under `src/qtr`, re-run the pinned contracts
-  — including `test_h56_stats_json_echoes.py` — and confirm the gates stay green.
-- The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified
-  families are frozen.
+  -- including `test_engine_metric_agreement.py`, `test_h53_published_metrics_disclosure`,
+  `test_h54_non_metrics_block_disclosure`, `test_h55_nested_metrics_disclosure`,
+  `test_h56_stats_json_echoes`, `test_h57_total_return_audit`,
+  `test_h58_price_pathology_contamination` and `test_h59_contamination_gate_blast_radius` -- and
+  confirm the gates stay green.
+- The pre-registered free-data hypothesis space (H1–H30) remains exhausted; the certified families
+  are frozen.
+
+(End of file - total 66 lines)

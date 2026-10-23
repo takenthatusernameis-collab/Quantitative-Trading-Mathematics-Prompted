@@ -4325,3 +4325,81 @@ thirteen affected gate booleans stay as published (all in REJECT families; no ce
 and the SVXY split stays disclosed as a research decision rather than a bug fix (§H58). All remaining
 unresolved items from §H53–§H57 stay disclosed (missing inputs / convention differences) and cannot be
 resolved without new committed inputs. H1–H30 exhausted; certified families frozen.
+
+
+## H60 — the annualized return was `nan` when the equity curve went negative (2026-10-23)
+
+**H60 is COMPLETE.** This is a **real defect in `src/qtr`**, found by exercising the package's own
+cross-module agreement contract against an input the record contains. It is the first fix in this
+session and the first change under `src/qtr` since §H58.
+
+### The defect
+
+`validate_strategy` annualized the total return with
+
+```python
+ann_return = (1 + total_return) ** (252 / len(returns)) - 1
+```
+
+The engine's own implementation (`VectorizedBacktester._calculate_metrics`, engine.py:381-382) guards
+the same expression with `if gross > 0.0: ... else: -1.0`, because a fractional power of a
+non-positive base is not a real number. `validate_strategy` had no guard, so when the gross value
+`1 + total_return` was **zero or negative** it emitted `nan`:
+
+```
+gross = -0.8562   (equity curve goes negative)
+engine annualized_return =  -1.0
+validate annualized_return = nan      <-- the two implementations disagreed
+```
+
+with a `RuntimeWarning: invalid value encountered in scalar power` to match. That is exactly the
+failure `tests/test_engine_metric_agreement.py` exists to catch, and it had never been caught: every
+test in that module fed it positive-gross series, and the `gross == 0` boundary case (the
+`-100%` total-loss bar) was the only one that reached the guard at all.
+
+### Why the record makes this reachable
+
+The H58 contaminated families (`exp_2026-10-10T21-58-28-353634Z` and
+`exp_2026-10-10T21-59-16-546117Z`) publish an `ensemble_equity.parquet` whose minimum is
+**-463,814.84** on a 1,000,000 capital base: their equity curve goes negative. Their summaries do not
+publish `annualized_return`, so **no published number moved** -- but the input class is real, and
+`run_baseline.py:192` and `run_experiment.py:217` both feed `validate_strategy` the engine's returns,
+so any future run that loses more than its capital would have produced a `nan` annualized return
+alongside a `-1.0` from the engine.
+
+### What changed
+
+- `src/qtr/validation/statistics.py` — `validate_strategy` now mirrors the engine's guard exactly:
+  `ann_return = (gross ** (252 / len(returns)) - 1) if gross > 0.0 else -1.0`, where
+  `gross = 1.0 + total_return`. The docstring records that the two implementations must agree for
+  every input, including the negative-gross case, and cites the agreement contract.
+- `tests/test_engine_metric_agreement.py` — two additions to `TestSharedMetricAgreement`:
+  - `test_agreement_holds_when_the_curve_goes_negative` (parametrized over `loss ∈ {-1.5, -2.0,
+    -10.0}`) — the contract now holds across the `gross < 0` regime, not only above it.
+  - a negative control in `TestContractNegativeControl` (`test_the_contract_rejects_a_nan_annualized_return`)
+    that reconstructs the pre-fix implementation and shows the contract rejects the `nan` it emitted.
+
+### The blast radius
+
+The change is a one-line guard that only fires for `gross <= 0`. For every input with
+`gross > 0` the arithmetic is bit-identical to before, so:
+
+- every published `annualized_return` that re-derives (the 11 summaries that publish it, all with
+  positive gross) is unchanged;
+- no gate, threshold, verdict or certified number reads `validate_strategy`'s `annualized_return`
+  (`run_baseline.py` and `run_experiment.py` log it but no gate keys it);
+- the certified families (H10, H21, H22, H25) are unaffected -- none of their equity curves goes
+  negative.
+
+### What was actually verified
+
+- `python -m pytest -q -W error tests/test_engine_metric_agreement.py` → **59 passed** (56 before).
+- `python -m pytest -q -W error` → **2 056 passed, 13 skipped** (full suite, up from 2 052 + 13).
+- `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` = **1 086 statements, 330 branches,
+  0 missed, 0 partial, 100.00%** (up from 1 085 / 330: one statement and one branch in the guard).
+- `python -m ruff check src tests run_*.py` → *All checks passed!*.
+- `python -m ruff format --check src tests run_*.py` → **103 files already formatted**.
+- The negative control fires: the pre-fix `nan` is rejected by the agreement contract with
+  `assert annualized_return disagrees`.
+- No published artifact, gate threshold, verdict or certified number was modified; no grid was
+  re-run; no hypothesis was added.

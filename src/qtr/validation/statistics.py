@@ -739,7 +739,20 @@ def validate_strategy(
 
     n_trades = len(trades)
     total_return = (1 + returns).prod() - 1
-    ann_return = (1 + total_return) ** (252 / len(returns)) - 1
+    # The annualized return is the same statistic the engine computes in
+    # ``VectorizedBacktester._calculate_metrics`` (engine.py:381-382), and the
+    # two must agree for every input -- including the case the engine's guard
+    # exists for. When the gross value ``1 + total_return`` is not strictly
+    # positive the strategy has lost at least its entire capital (the equity
+    # curve goes zero or negative, as the H58 contaminated families do), and a
+    # fractional power of a non-positive base is undefined: ``(-0.86) **
+    # (252/2514)`` is not a real number and numpy emits it as ``nan``. The
+    # engine's convention is to report ``-1.0`` (-100% annualized) there, and
+    # this function mirrors it exactly so the cross-module agreement contract
+    # (tests/test_engine_metric_agreement.py) holds on both sides of zero.
+    # See tests/test_engine_metric_agreement.py::TestSharedMetricAgreement.
+    gross = 1.0 + total_return
+    ann_return = (gross ** (252 / len(returns)) - 1) if gross > 0.0 else -1.0
     ann_vol = returns.std() * np.sqrt(252)
     sharpe = sharpe_ratio(returns.values)
 
