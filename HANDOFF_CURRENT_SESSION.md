@@ -2,27 +2,31 @@
 
 ## What changed
 
-None. The repository is clean (no uncommitted changes). No code under `src/qtr`, tests, configs, or published artifacts were modified. No grid was re-run, no hypothesis was added, no gate threshold/verdict/certified number changed.
+`tests/test_runner_import_contract.py` — `test_runner_is_importable` now restores `sys.modules` (the runner module and any `mod_name.*` submodules) to their pre-test objects in a `finally` block after exec'ing a fresh copy to verify importability.
+
+Root cause: the test removed `run_h8_rolladjusted_tsmom_experiment` from `sys.modules` and re-executed it into a *new* module object, leaving that new object registered. The causality probe's `_apply_patch` patches `LOOKBACK` via `importlib.import_module(...)` → the new object, but `_chained_build_tsmom_signals` calls `run_h8_rolladjusted_tsmom_experiment.build_tsmom_signals` via the *old* module object bound at test-module import. With `LOOKBACK` still 252 on the old object and only 80 dense bars, momentum was all-NaN → signal all zeros → `test_dense_sweep[h8_roll_adjusted_tsmom.build_tsmom_signals]` reported "did not react to the perturbation, so the probe is vacuous" whenever `test_runner_import_contract.py` ran first.
+
+No code under `src/qtr`, no published artifact, gate threshold, verdict or certified number was modified; no grid was re-run; no hypothesis was added. The probe is now stricter (it actually exercises the patched `LOOKBACK=20`), not weakened.
 
 ## What was actually verified
 
-- `git status` → clean working tree; branch `main` up to date with `origin/main` (single squashed commit `cb57d15`).
-- Fresh environment: `pip install -r requirements.txt` installs all declared deps including `setuptools>=68` and `pyarrow>=14.0.0` (quick-start contract intact).
-- `python -m pytest -q -W error` → **2 072 passed, 16 skipped** (~5:27). All 16 skips are intentional and self-declaring.
-- `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` **1 091 statements, 330 branches, 0 missed, 0 partial, 100.00%**.
-- `python -m ruff check src tests run_*.py` → **All checks passed!**; `python -m ruff format --check src tests run_*.py` → **103 files already formatted**.
-- Source inspection: no TODOs/FIXMEs/stubs under `src/qtr`; every module (backtest/engine, data/fetcher, strategies/baselines, tracking/experiment, utils/config, validation/statistics) has a corresponding test module; run scripts import only existing symbols.
+- Reproduced the failure: `test_runner_import_contract.py` + `test_dense_sweep[h8_roll_adjusted_tsmom.build_tsmom_signals]` → failed ("probe is vacuous") before the fix; passes after.
+- `python -m pytest -q -W error tests/test_runner_causality_inventory.py` → **321 passed** (dense + sparse sweeps + all classes).
+- Pinned contract group: `test_public_api_contract`, `test_runner_import_contract`, `test_runner_metric_agreement`, `test_runner_causality_inventory`, `test_engine_metric_agreement`, `test_h53_*`, `test_h54_*`, `test_h55_*`, `test_h56_*`, `test_h57_*`, `test_h58_*`, `test_h59_*`, `test_statistics`, `test_generated_manifest_contract`, `test_h51_benchmark_container_invariance`, `test_h49_validation_block_disclosure`, `test_trade_log_cost_reconciliation`, `test_coverage_gate_contract`, `test_gate_vacuity_contract` → **1 321 passed, 15 skipped** (all skips intentional/self-declaring).
+- `python -m ruff check src tests run_*.py` → **All checks passed!**; `ruff format --check` → **103 files already formatted**.
+- Working tree contains only the intended one-file test change; `git status` clean otherwise.
 
 ## What remains unresolved
 
-All remaining items in `FINAL_REPORT.md` (§H53–§H61) are **disclosed, not quantified** — each depends on an input the committed record does not hold (missing series/logs/conventions/benchmarks/trade logs/signals). None can be implemented or verified from this checkout; they remain disclosed. Thirteen H58/H59 gate booleans stay as published (all REJECT families). H1–H30 exhausted; certified families frozen.
+All remaining items in `FINAL_REPORT.md` (§H53–§H61) are **disclosed, not quantified** — each depends on an input the committed record does not hold. None can be implemented or verified from this checkout; they remain disclosed. Thirteen H58/H59 gate booleans stay as published (all REJECT families). H1–H30 exhausted; certified families frozen.
 
 ## Which approaches have already failed and why
 
-None in this session. No fix was attempted because no safe, evidence-based bounded task exists: the baseline is green and frozen, coverage is already 100% (any source change risks dropping below the gate), and the pinned contracts forbid modifying published numbers/gates/thresholds or re-running grids. Making a speculative change merely to "do something" would violate the frozen-record constraint.
+- Treating the causality probe's "vacuous" result as a real look-ahead in `build_tsmom_signals` — rejected: the signal is clean when run in isolation; the failure is test pollution from `sys.modules` clobbering by `test_runner_is_importable`.
+- No source change was considered: coverage is already 100% and the frozen-record constraints forbid it.
 
 ## One precise next task
 
-**None assigned.** H35–H63 complete; H1–H30 exhausted; certified families frozen. The honest options if work is desired: (a) wait for newly committed artifacts that make a disclosed §H53–§H61 value measurable, then re-run the pinned contracts (`test_engine_metric_agreement.py`, `test_h53_*`, `test_h54_*`, `test_h55_*`, `test_h56_*`, `test_h57_*`, `test_h58_*`, `test_h59_*`, `test_public_api_contract`, `test_runner_import_contract`, `test_runner_metric_agreement`, `test_runner_causality_inventory`, `test_coverage_gate_contract`, `test_gate_vacuity_contract`, `test_generated_manifest_contract`, `test_statistics`) and confirm gates stay green at 100% coverage; or (b) maintain baseline hygiene — re-verify lint/format/tests after any change under `src/qtr`, and confirm quick-start from a fresh venv with only `pip install -r requirements.txt` (must keep `setuptools>=68` and `pyarrow>=14.0.0`).
+**None assigned.** H35–H63 complete; H1–H30 exhausted; certified families frozen. Baseline is now green and stable. If work is desired: (a) wait for newly committed artifacts that make a disclosed §H53–§H61 value measurable, then re-run the pinned contracts and confirm gates stay green at 100% coverage; or (b) maintain baseline hygiene — re-verify lint/format/tests after any change under `src/qtr`, and confirm quick-start from a fresh venv with only `pip install -r requirements.txt` (must keep `setuptools>=68` and `pyarrow>=14.0.0`).
 
 Constraints: no published artifact/gate/threshold/verdict/certified number changes; no grid re-runs; 100% coverage on `src/qtr` and clean lint/format required; preserve pinned contracts.

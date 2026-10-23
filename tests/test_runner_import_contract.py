@@ -114,6 +114,7 @@ def test_runner_is_importable(runner_path):
     for k in list(sys.modules.keys()):
         if k == mod_name or k.startswith(mod_name + "."):
             modules_to_remove.append(k)
+    originals = {k: sys.modules[k] for k in modules_to_remove}
     for k in modules_to_remove:
         sys.modules.pop(k)
 
@@ -128,6 +129,10 @@ def test_runner_is_importable(runner_path):
         raise
     except Exception as e:
         raise AssertionError(f"Runner {runner_path} is not importable: {e}") from e
+    finally:
+        for k in modules_to_remove:
+            sys.modules.pop(k, None)
+        sys.modules.update(originals)
 
 
 def test_all_runners_inventory_exists():
