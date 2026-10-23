@@ -1,23 +1,23 @@
-# HANDOFF — session end
+# HANDOFF_SESSION_END — session complete (no new changes)
+
+## State
+- H60 complete (real defect in `validate_strategy` annualized return guard fixed, contract extended). All H1–H60 complete per `NEXT_TASK.md`/`HANDOFF_CURRENT.md`.
+- Working tree clean. No uncommitted changes.
 
 ## What changed
-- No code, tests, or artifact changes were made in this session. Inspected repository state (clean git status), reviewed handoffs/NEXT_TASK, and confirmed baseline health.
+- None.
 
 ## What was actually verified
-- Pinned disclosure contracts (H53–H57): `tests/test_h53_published_metrics_disclosure.py tests/test_h54_non_metrics_block_disclosure.py tests/test_h55_nested_metrics_disclosure.py tests/test_h56_stats_json_echoes.py tests/test_h57_total_return_audit.py` → **319 passed** (14.30s), `-W error`.
-- Repository clean (`git status --short` empty, no staged/unstaged changes). No grid re-runs, no artifacts modified, nothing under `src/qtr` changed.
+- Baseline: `python -m pytest -q -W error` → 2053 passed, 16 skipped (full suite).
+- Coverage: `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` 1086 statements, 330 branches, 0 missed, 100.00%.
+- Lint/format: `ruff check src tests run_*.py` all passed; `ruff format --check` clean (103 files).
 
 ## What remains unresolved
-- All items in `FINAL_REPORT.md` §H53–§H57 remain disclosed (not quantified): 9 H9 regime values (missing VIX), pre-fix `wf_stability` (29 values), pre-H51 alpha convention (7 values), 3 H16 `val_sharpe` convention mismatches, nested/perturbation/CV blocks with missing inputs (H55), `stats.json` `trades` dummy text unrecoverable and 14 benchmark `avg_trade_cost` not measurable from committed artifacts (H57). None computable from current checkout.
-- H1–H30 hypothesis space exhausted. Dividend/distribution gap remains omitted (price-return basis) as disclosed by H57.
+- Nothing actionable from this checkout. Per `NEXT_TASK.md`, remaining unresolved items in `FINAL_REPORT.md` (§H53–§H60) are not functions of the committed record (missing inputs/disclosed convention differences/benchmarks/trade logs/signals never committed). Dividend/distribution gap omitted (price-return basis) per H57. No gate reads them.
 
-## Which approaches have already failed and why
-- Treating convention differences (ddof/window/fold/beta) as defects rejected — they are measurement conventions of record; contracts pin conventions with behavioural negative controls.
-- Re-deriving H9 regime from published Sharpe alone rejected (missing VIX series).
-- Narrow pathspecs missing trade logs/metadata corrected in H52 by scanning whole record.
-- Container-dependent stats fixed in library (H51) but published convention splits remain disclosed.
+## Approaches already tried/failed (relevant)
+- None in this session. Prior sessions exhausted H1–H30; H47–H60 closed with fixes grounded in committed artifacts/contracts.
 
 ## One precise next task
-**If new artifacts appear** supplying missing inputs (H9 VIX series; trade logs for ablations/perturbations/CV; benchmark trades/signals for the 14 tracker entries; OHLC/Q closes for CV) **or** a task explicitly requests changing published conventions/gates: re-derive only from those artifacts with smallest reversible change, extend tests mirroring H53–H57 patterns, run pinned contracts (`test_public_api_contract`, `test_runner_import_contract`, `test_trade_log_cost_reconciliation`, `test_parameter_sensitivity_reproducibility`, plus affected H5x), and do not modify certified numbers/gates unless explicitly required with justification. Otherwise **do nothing** — wait for newly committed artifacts.
-
-Constraints: no changes to published artifacts/gates/certified numbers; no grid re-runs; preserve 100% coverage under `src/qtr` if touching it; follow repo conventions.
+- **Option (a) preferred if nothing new committed:** Wait for newly committed artifacts that make any disclosed unmeasurable value measurable; do not re-run grids (H1–H30 exhausted).
+- **Option (b) if any change under `src/qtr`:** Re-run pinned contracts (`test_public_api_contract`, `test_runner_import_contract`, `test_trade_log_cost_reconciliation` if touching `src/qtr/backtest` or new artifacts, `test_parameter_sensitivity_reproducibility`, `test_h49_validation_block_disclosure`, `test_generated_manifest_contract`, `test_h51_benchmark_container_invariance`, plus `test_engine_metric_agreement`, `test_h53_*`–`test_h59_*` as applicable). Verify gates remain green; do not modify published artifacts/gates/thresholds/verdicts/certified numbers.
