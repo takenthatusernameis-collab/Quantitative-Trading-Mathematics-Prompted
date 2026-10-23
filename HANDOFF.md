@@ -1,63 +1,74 @@
-# HANDOFF — H60 complete (session handoff)
+# HANDOFF — H61 complete (session handoff)
 
-## What changed (H60)
+## What changed (H61)
 
-**H60:** a real defect in `src/qtr`, found by exercising the package's own cross-module agreement
-contract against an input the record contains. It is the first change under `src/qtr` since §H58.
+**H61:** a real defect in `src/qtr`, found by exercising the package's own row-filter contract
+against a non-finite input. It is the second change under `src/qtr` since §H60.
 
-`validate_strategy` annualized the total return with `(1 + total_return) ** (252 / n) - 1` and had no
-guard on the base. The engine's own implementation (`VectorizedBacktester._calculate_metrics`,
-engine.py:381-382) guards the same expression with `if gross > 0.0: ... else: -1.0`, because a
-fractional power of a non-positive base is not a real number. When the gross value
-`1 + total_return` was **zero or negative**, `validate_strategy` emitted `nan`:
+`compare_to_benchmark` drops the aligned rows where either side is non-finite before computing the
+CAPM statistics, because `np.cov`/`np.var` do not skip NaN. The filter was
+`valid = ~(np.isnan(strat) | np.isnan(bench))`, and `isnan` is the wrong predicate: an `inf` or
+`-inf` is **not a missing value, it is an impossible return**, and `isnan` lets it through. With
+an `inf` in the strategy side the result was internally inconsistent:
 
 ```
-gross = -0.8562   (equity curve goes negative)
-engine annualized_return =  -1.0
-validate annualized_return = nan      <-- the two implementations disagreed
+excess.mean()       = inf
+excess.std(ddof=0)  = nan      -> information_ratio = 0 (the `excess_std > 0` guard)
+alpha_annualized    = nan      (np.cov/var of an inf)
+beta                = nan
+alpha_p_value       = 1.0      (the `excess.std() > 1e-12` guard fails)
+win_rate            = 1.0      (finite fraction of the surviving rows)
+excess_return_annual = inf
 ```
 
-with a `RuntimeWarning: invalid value encountered in scalar power`. That is the failure
-`tests/test_engine_metric_agreement.py` exists to catch, and it had never been caught: every test in
-that module fed it positive-gross series, and the `gross == 0` boundary case (the `-100%` total-loss
-bar) was the only one that reached the guard at all.
+A gate reading any of those fields would see a plausible-looking number while the comparison had
+actually broken. The input class is real: every runner that builds a return series from
+`prices.pct_change()` can produce an `inf` if a price crosses zero (the H58 pathology) or if a roll
+gap is unbounded, and `run_h27_pnl_level_audit.py:443` and `run_h26_sharpe_scale_audit.py` both
+call `compare_to_benchmark` on derived series.
 
-The input class is real. The H58 contaminated families (`exp_2026-10-10T21-58-28-353634Z` and
-`exp_2026-10-10T21-59-16-546117Z`) publish an `ensemble_equity.parquet` whose minimum is
-**-463,814.84** on a 1,000,000 capital base: their equity curve goes negative. Their summaries do not
-publish `annualized_return`, so **no published number moved** -- but `run_baseline.py:192` and
-`run_experiment.py:217` both feed `validate_strategy` the engine's returns, so any future run that
-loses more than its capital would have produced a `nan` annualized return alongside a `-1.0` from
-the engine.
-
-- `src/qtr/validation/statistics.py` — `validate_strategy` now mirrors the engine's guard exactly:
-  `ann_return = (gross ** (252 / len(returns)) - 1) if gross > 0.0 else -1.0`, where
-  `gross = 1.0 + total_return`. The docstring records that the two implementations must agree for
-  every input, including the negative-gross case, and cites the agreement contract.
-- `tests/test_engine_metric_agreement.py` — two additions:
-  - `test_agreement_holds_when_the_curve_goes_negative` (parametrized over `loss ∈ {-1.5, -2.0,
-    -10.0}`) — the contract now holds across the `gross < 0` regime, not only above it.
-  - a negative control (`test_the_contract_rejects_a_nan_annualized_return`) that reconstructs the
-    pre-fix implementation and shows the contract rejects the `nan` it emitted.
+- `src/qtr/validation/statistics.py` — the row filter is now `np.isfinite(strat) & np.isfinite(bench)`.
+  The docstring records that the predicate is `isfinite`, not `isnan`, and why. For every finite
+  input the computation is bit-identical to before.
+- `tests/test_statistics.py` — four additions to `TestCompareToBenchmark`:
+  - `test_non_finite_rows_are_dropped` — an `inf` row is dropped and all nine keys come back
+    finite, reproducing the published CAPM formula on the surviving rows (beta = 1.0, alpha
+    annualized = 2.52).
+  - `test_nan_rows_are_still_dropped` — the `isnan` case the mask has always handled still works.
+  - `test_negative_infinity_rows_are_dropped` — symmetric to the positive case.
+  - `test_the_contract_rejects_the_pre_fix_isnan_mask` — a behavioural negative control that
+    reconstructs the pre-fix `isnan` filter, feeds it the same input, and requires the result to
+    be internally inconsistent (a finite `win_rate` alongside `nan` alpha and `inf` excess return).
 
 ### The blast radius
 
-The change is a one-line guard that only fires for `gross <= 0`. For every input with `gross > 0`
-the arithmetic is bit-identical to before, so every published `annualized_return` that re-derives (the
-11 summaries that publish it, all with positive gross) is unchanged; no gate, threshold, verdict or
-certified number reads `validate_strategy`'s `annualized_return`; and the certified families (H10,
-H21, H22, H55) are unaffected -- none of their equity curves goes negative.
+The change is a one-symbol predicate (`isnan` -> `isfinite`) that only fires for a non-finite row.
+For every finite input the mask is identical, so every published `information_ratio`,
+`alpha_p_value`, `alpha_annualized`, `beta`, `win_rate`, `excess_return_annual` and
+`excess_vol_annual` that re-derives is unchanged; no gate, threshold, verdict or certified number
+reads a field of `compare_to_benchmark` that could have been affected; and the certified families
+(H10, H21, H22, H25) are unaffected.
 
 ### What was actually verified
 
-- `python -m pytest -q -W error tests/test_engine_metric_agreement.py` → **59 passed** (56 before).
-- `python -m pytest -q -W error` → **2 056 passed, 13 skipped** (full suite, up from 2 052 + 13).
+- `python -m pytest -q -W error tests/test_statistics.py` → **77 passed** (73 before).
+- `python -m pytest -q -W error` → **2 060 passed, 13 skipped** (full suite).
 - `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` = **1 086 statements, 330 branches,
-  0 missed, 0 partial, 100.00%** (up from 1 085 / 330: one statement and one branch in the guard).
+  0 missed, 0 partial, 100.00%** (unchanged: the predicate swap adds no statement and no branch).
 - `python -m ruff check src tests run_*.py` → *All checks passed!*; `ruff format --check` →
   **103 files already formatted**.
-- The negative control fires: the pre-fix `nan` is rejected by the agreement contract with
-  `assert annualized_return disagrees`.
+- The pinned contracts re-run after the change: `test_engine_metric_agreement.py`,
+  `test_h53_published_metrics_disclosure`, `test_h54_non_metrics_block_disclosure`,
+  `test_h55_nested_metrics_disclosure`, `test_h56_stats_json_echoes`, `test_h57_total_return_audit`,
+  `test_h58_price_pathology_contamination`, `test_h59_contamination_gate_blast_radius`,
+  `test_h51_benchmark_container_invariance`, `test_benchmark_gate_contract`,
+  `test_runner_metric_agreement`, `test_runner_causality_inventory`,
+  `test_parameter_sensitivity_reproducibility`, `test_h49_validation_block_disclosure`,
+  `test_public_api_contract`, `test_runner_import_contract`, `test_trade_log_cost_reconciliation`,
+  `test_generated_manifest_contract`, `test_gate_vacuity_contract`, `test_coverage_gate_contract` →
+  **1 295 passed, 12 skipped**.
+- The negative control fires: the pre-fix `isnan` path produces a finite `win_rate` alongside
+  `nan` alpha and `inf` excess return, which the contract rejects.
 - No published artifact, gate threshold, verdict or certified number was modified; no grid was
   re-run; no hypothesis was added.
 
@@ -72,7 +83,7 @@ moves). H1–H30 exhausted; certified families frozen.
 
 ## Precise next task
 
-**None assigned.** The H47–H60 series is complete. If a session wants work, the only honest
+**None assigned.** The H47–H61 series is complete. If a session wants work, the only honest
 options are (a) wait for newly committed artifacts that make a disclosed value measurable, or
 (b) after any change under `src/qtr`, re-run the pinned contracts -- including
 `test_engine_metric_agreement.py`, `test_h53_published_metrics_disclosure`,

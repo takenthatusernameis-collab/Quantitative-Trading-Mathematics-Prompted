@@ -1,20 +1,23 @@
-# HANDOFF_CURRENT — session complete (H60)
+# HANDOFF_CURRENT — session complete (H61)
 
 ## State
 
-- **H60 is COMPLETE** as recorded in `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_NEXT.md` and
+- **H61 is COMPLETE** as recorded in `NEXT_TASK.md`, `HANDOFF.md`, `HANDOFF_NEXT.md` and
   `HANDOFF_CURRENT_SESSION.md`: a real defect in `src/qtr` was found by exercising the package's
-  own cross-module agreement contract against an input the record contains, and it is fixed.
-  `validate_strategy` annualized the total return with `(1 + total_return) ** (252 / n) - 1` and
-  had no guard on the base; the engine's own implementation guards the same expression with
-  `if gross > 0.0: ... else: -1.0`. When the gross value was **zero or negative** (the equity
-  curve goes negative, as the H58 contaminated families' `ensemble_equity.parquet` does, bottoming
-  out at **-463,814.84** on a 1,000,000 capital base), `validate_strategy` emitted **`nan`** with a
-  `RuntimeWarning`, so the two implementations disagreed on an input the record actually
-  contains. The guard is now mirrored in `validate_strategy`, and the contract is extended to
-  cover the `gross < 0` regime with a behavioural negative control that reconstructs the pre-fix
-  `nan` and shows the contract rejecting it. **No published artifact, gate threshold, verdict or
-  certified number was modified; no grid was re-run; no hypothesis was added.**
+  own row-filter contract against a non-finite input, and it is fixed. `compare_to_benchmark`
+  dropped the aligned rows where either side is non-finite with `valid = ~(np.isnan(strat) |
+  np.isnan(bench))`, and `isnan` is the wrong predicate: an `inf` or `-inf` is not a missing value,
+  it is an impossible return, and `isnan` lets it through. With an `inf` in the strategy side the
+  result was internally inconsistent -- `win_rate` a finite fraction of the surviving rows,
+  `alpha_p_value` the default 1.0, `excess_return_annual` inf, and `alpha_annualized`/`beta` nan
+  -- which silently voids any gate reading those fields. The filter is now
+  `np.isfinite(strat) & np.isfinite(bench)`, and the contract is extended to the non-finite regime
+  with a behavioural negative control that reconstructs the pre-fix `isnan` mask and shows the
+  result it produced is internally inconsistent. **No published artifact, gate threshold, verdict
+  or certified number was modified; no grid was re-run; no hypothesis was added.**
+- **H60 is COMPLETE** (§H60 of `FINAL_REPORT.md`): `validate_strategy`'s annualized return now
+  mirrors the engine's guard for `gross <= 0`, so the cross-module agreement contract holds across
+  the negative-gross regime the H58 contaminated families land in.
 - **H59 is COMPLETE** (§H59 of `FINAL_REPORT.md`): the full gate blast radius of the H58 price
   contamination is measured -- **thirteen** published gate booleans are decided by one negative
   print in a Yahoo continuous-contract splice: it manufactures nine passes (H58) and destroys two
@@ -46,16 +49,24 @@
 - No published artifact, gate threshold, verdict or certified number was modified; no grid was
   re-run; no hypothesis was added.
 
-## What changed (this session — H60)
+## What changed (this session — H61)
 
-- `src/qtr/validation/statistics.py` — `validate_strategy`'s annualized return now mirrors the
-  engine's guard: `ann_return = (gross ** (252 / len(returns)) - 1) if gross > 0.0 else -1.0`,
-  where `gross = 1.0 + total_return`. One statement and one branch added to the package
-  (coverage 1 086 statements, 330 branches, 100.00%).
-- `tests/test_engine_metric_agreement.py` — `test_agreement_holds_when_the_curve_goes_negative`
-  (parametrized over `loss ∈ {-1.5, -2.0, -10.0}`) and the negative control
-  `test_the_contract_rejects_a_nan_annualized_return`. **59 tests** (up from 56).
-- `FINAL_REPORT.md` — new **§H60** section.
+- `src/qtr/validation/statistics.py` — `compare_to_benchmark`'s row filter is now
+  `np.isfinite(strat) & np.isfinite(bench)` instead of `~(np.isnan(strat) | np.isnan(bench))`.
+  The docstring records that the predicate is `isfinite`, not `isnan`, and why: an `inf` is an
+  impossible return, not a missing value, and letting it through is the silent-void failure the
+  filter exists to prevent. For every finite input the computation is bit-identical to before.
+- `tests/test_statistics.py` — four additions to `TestCompareToBenchmark`:
+  - `test_non_finite_rows_are_dropped` — an `inf` row is dropped and all nine keys come back
+    finite, reproducing the published CAPM formula on the surviving rows (beta = 1.0, alpha
+    annualized = 2.52).
+  - `test_nan_rows_are_still_dropped` — the `isnan` case the mask has always handled still works.
+  - `test_negative_infinity_rows_are_dropped` — symmetric to the positive case.
+  - `test_the_contract_rejects_the_pre_fix_isnan_mask` — a behavioural negative control that
+    reconstructs the pre-fix `isnan` filter, feeds it the same input, and requires the result to
+    be internally inconsistent (a finite `win_rate` alongside `nan` alpha and `inf` excess return).
+  **77 tests** (up from 73).
+- `FINAL_REPORT.md` — new **§H61** section.
 - `HANDOFF.md`, `HANDOFF_CURRENT.md`, `HANDOFF_CURRENT_SESSION.md`, `HANDOFF_NEXT.md`,
   `NEXT_TASK.md` updated.
 
@@ -65,4 +76,4 @@ All remaining items are **disclosed, not quantified** -- each depends on an inpu
 not hold and none can be resolved without new committed inputs. H1–H30 exhausted; certified
 families frozen.
 
-(End of file - total 58 lines)
+(End of file — this file is regenerated each session from the session handoff)

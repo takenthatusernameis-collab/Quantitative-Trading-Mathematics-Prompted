@@ -576,14 +576,24 @@ def compare_to_benchmark(
     strat = strat[-min_len:]
     bench = bench[-min_len:]
 
-    # Drop the aligned rows where either side is NaN. `np.cov`/`np.var` do
-    # not skip NaN, so a single NaN leaves `alpha_annualized`, `beta` and
+    # Drop the aligned rows where either side is non-finite. `np.cov`/`np.var`
+    # do not skip NaN, so a single NaN leaves `alpha_annualized`, `beta` and
     # `alpha_p_value` NaN while `information_ratio` and `win_rate` stay
     # finite -- an internally inconsistent result that silently voids any
     # gate reading those fields. The mask is pair-wise (a row is dropped if
-    # EITHER side is NaN) and is applied to the tail-aligned inputs, so for
-    # a NaN-free input the computation is bit-identical to before.
-    valid = ~(np.isnan(strat) | np.isnan(bench))
+    # EITHER side is non-finite) and is applied to the tail-aligned inputs,
+    # so for a finite input the computation is bit-identical to before.
+    #
+    # The mask is `isfinite`, not `isnan`: an `inf` or `-inf` is *not* a
+    # missing value, it is an impossible return, and `isnan` lets it through.
+    # An inf survives the filter, then `excess.mean()` is inf,
+    # `np.cov`/`np.var` turn `alpha_annualized` and `beta` into NaN and
+    # `excess.std()` into NaN, so the result is internally inconsistent --
+    # `win_rate` is a finite fraction of the surviving rows, `excess_return_annual`
+    # is inf, and `alpha_p_value` is the default 1.0 -- which is exactly the
+    # class of silent void this filter exists to prevent. See
+    # tests/test_statistics.py::TestCompareToBenchmark::test_non_finite_rows_are_dropped.
+    valid = np.isfinite(strat) & np.isfinite(bench)
     if not valid.all():
         strat = strat[valid]
         bench = bench[valid]

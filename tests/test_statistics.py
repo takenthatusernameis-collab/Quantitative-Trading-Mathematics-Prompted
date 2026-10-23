@@ -461,6 +461,103 @@ class TestCompareToBenchmark:
         assert res["beta"] == pytest.approx(res_mean["beta"])
         assert res["alpha_annualized"] == pytest.approx(res_mean["alpha_annualized"])
 
+    def test_non_finite_rows_are_dropped(self):
+        """An ``inf``/``-inf`` row is dropped, not treated as a missing value.
+
+        The row filter used to be ``isnan``: a single ``inf`` survived it,
+        then ``excess.mean()`` became ``inf``, ``np.cov``/``np.var`` turned
+        ``alpha_annualized`` and ``beta`` into ``nan`` and ``excess.std()``
+        into ``nan``, so the result was internally inconsistent -- ``win_rate``
+        was a finite fraction of the surviving rows, ``excess_return_annual``
+        was ``inf`` and ``alpha_p_value`` was the default ``1.0``. That is the
+        class of silent void the filter exists to prevent: a gate reading any
+        one of those fields would see a plausible-looking number while the
+        comparison had actually broken.
+
+        With the ``isfinite`` mask the offending row is dropped and every key
+        comes back finite. The surviving two rows are the clean ones and the
+        published CAPM formula reproduces them: beta is the OLS slope of
+        ``[0.01, 0.02]`` on ``[0.0, 0.01]`` (= 1.0), so alpha is the OLS
+        intercept ``mean(strat) - beta * mean(bench) = 0.01`` and the
+        annualized alpha is ``0.01 * 252 = 2.52``.
+        """
+        strat = np.array([0.01, 0.02, np.inf])
+        bench = np.array([0.0, 0.01, 0.01])
+        res = st.compare_to_benchmark(strat, bench)
+
+        assert len(res) == 9
+        for key, value in res.items():
+            assert np.isfinite(float(value)), f"{key} is not finite: {value!r}"
+        assert res["beta"] == pytest.approx(1.0)
+        assert res["alpha_annualized"] == pytest.approx(2.52)
+        assert res["win_rate"] == pytest.approx(1.0)
+
+    def test_nan_rows_are_still_dropped(self):
+        """The ``isnan`` case the mask has always handled must still work."""
+        strat = np.array([0.01, np.nan, 0.02])
+        bench = np.array([0.0, 0.01, 0.01])
+        res = st.compare_to_benchmark(strat, bench)
+        for key, value in res.items():
+            assert np.isfinite(float(value)), f"{key} is not finite: {value!r}"
+        assert res["beta"] == pytest.approx(1.0)
+        assert res["alpha_annualized"] == pytest.approx(2.52)
+
+    def test_negative_infinity_rows_are_dropped(self):
+        """Symmetric to the positive case: ``-inf`` is not a missing value."""
+        strat = np.array([0.01, -np.inf, 0.02])
+        bench = np.array([0.0, 0.01, 0.01])
+        res = st.compare_to_benchmark(strat, bench)
+        for key, value in res.items():
+            assert np.isfinite(float(value)), f"{key} is not finite: {value!r}"
+
+    def test_the_contract_rejects_the_pre_fix_isnan_mask(self):
+        """Negative control: the pre-fix ``isnan`` mask leaves ``inf`` rows in.
+
+        Reconstructs the filter the module used before the fix and feeds it the
+        same input: the result is internally inconsistent (a finite ``win_rate``
+        alongside ``nan`` alpha and ``inf`` excess return), so the invariant
+        "every key is finite" that this contract states must reject it.
+        """
+        import warnings
+
+        strat = np.array([0.01, 0.02, np.inf])
+        bench = np.array([0.0, 0.01, 0.01])
+
+        # The pre-fix mask drops only NaN rows.
+        pre_fix_valid = ~(np.isnan(strat) | np.isnan(bench))
+        assert pre_fix_valid.all(), "the control must not drop anything"
+
+        # Re-run the downstream arithmetic on the pre-fix filtered input.
+        # The inf propagates through mean/std and numpy warns; the warning is
+        # part of the defect (the pre-fix path emitted RuntimeWarnings too) and
+        # is swallowed here so the control measures the *result*, not the noise.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            excess = strat[pre_fix_valid] - bench[pre_fix_valid]
+            excess_std = float(excess.std(ddof=0))
+            ir = float(excess.mean() / excess_std * np.sqrt(252)) if excess_std > 0 else 0.0
+            win_rate = float((excess > 0).mean())
+
+        # The pre-fix path is inconsistent: the inf propagates.
+        assert np.isinf(excess.mean()) or np.isnan(excess_std)
+        assert np.isfinite(win_rate), "win_rate is finite on the broken path"
+
+        # The invariant the contract states must reject it.
+        broken = {
+            "information_ratio": ir,
+            "alpha_annualized": float("nan"),
+            "beta": float("nan"),
+            "alpha_t_stat": 0.0,
+            "alpha_p_value": 1.0,
+            "alpha_p_value_one_sided": 0.5,
+            "win_rate": win_rate,
+            "excess_return_annual": float(excess.mean() * 252),
+            "excess_vol_annual": float(excess_std * np.sqrt(252)),
+        }
+        inconsistent = [key for key, value in broken.items() if not np.isfinite(float(value))]
+        assert inconsistent, "the pre-fix result must be internally inconsistent"
+        assert "win_rate" not in inconsistent, "win_rate must survive on the broken path"
+
 
 # ===========================================================================
 # statistical_power_analysis
