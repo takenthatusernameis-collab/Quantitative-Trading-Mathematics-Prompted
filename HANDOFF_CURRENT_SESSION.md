@@ -6,7 +6,7 @@ None. This session performed verification only (baseline confirmation). No files
 ## What was actually verified
 - `git status` clean, on `main`.
 - `python -m pytest -q -W error` → **2072 passed, 16 skipped** (all skips intentional/self-declaring).
-- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → **src/qtr 1091 statements, 330 branches, 0 missed, 0 partial, 100.00%**.
+- `python -m pytest -q --cov=qtr --cov-branch` → **src/qtr 1091 statements, 330 branches, 0 missed, 0 partial, 100.00%**.
 - `python -m ruff check src tests run_*.py` → **All checks passed!**; `python -m ruff format --check src tests run_*.py` → **103 files already formatted**.
 
 ## What remains unresolved
