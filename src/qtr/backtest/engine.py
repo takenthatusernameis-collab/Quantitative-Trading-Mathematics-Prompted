@@ -426,7 +426,20 @@ class VectorizedBacktester:
         # the Sortino ratio.
         shortfall = np.minimum(0, returns - risk_free / ann_factor)
         downside_dev = np.sqrt(np.mean(shortfall**2))
-        if downside_dev > 0:
+        # The guard is `np.isfinite(downside_dev) and downside_dev > 0`, not
+        # `downside_dev > 0`: a non-finite downside deviation (the series
+        # carries an `inf`, a `-inf` or a `nan` -- the H58/H61/H62 input
+        # class, reachable whenever a runner builds a return series from
+        # `prices.pct_change()` and a price crosses zero or a roll gap is
+        # unbounded) compares unordered, so `inf > 0` is True and the old
+        # guard did NOT fire: the function then divided `excess_returns.mean()`
+        # (inf or nan) by an inf downside deviation and emitted `nan`, while
+        # the engine's own Sharpe guard (``engine.py:414``) fired on the same
+        # input and reported ``0.0`` -- the same silent-void failure H62 found
+        # in `sharpe_ratio`, one guard over in the same metric block. Both now
+        # report 0.0 for every non-finite input. For every finite input the
+        # arithmetic is bit-identical to before.
+        if np.isfinite(downside_dev) and downside_dev > 0:
             metrics["sortino"] = excess_returns.mean() / downside_dev * np.sqrt(ann_factor)
         else:
             metrics["sortino"] = 0.0

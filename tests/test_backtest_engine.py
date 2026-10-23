@@ -22,6 +22,7 @@ from qtr.backtest.engine import (
     BacktestConfig,
     BacktestResult,
     CostModel,
+    VectorizedBacktester,
     run_backtest,
 )
 
@@ -248,6 +249,81 @@ class TestMetrics:
         signals = pd.DataFrame(1.0, index=index, columns=["A"])
         res = run_backtest(prices=prices, signals=signals, config=_make_config())
         assert res.metrics["sortino"] == 0.0
+
+    @pytest.mark.parametrize("non_finite", [np.inf, -np.inf, np.nan])
+    def test_sortino_is_zero_for_a_non_finite_return_series(self, non_finite):
+        """A return series carrying an `inf`, `-inf` or `nan` bar must not
+        break the engine's Sortino.
+
+        The guard was `downside_dev > 0`, the same unordered-comparison
+        defect H62 found in `sharpe_ratio` one guard up: a non-finite
+        downside deviation (the series carries an `inf`, a `-inf` or a
+        `nan` -- the H58/H61/H62 input class, reachable whenever a runner
+        builds a return series from `prices.pct_change()` and a price
+        crosses zero or a roll gap is unbounded) compares unordered, so
+        `inf > 0` is True and the old guard did NOT fire. The function then
+        divided `excess_returns.mean()` (inf or nan) by an inf downside
+        deviation and emitted `nan`, while the engine's own Sharpe guard
+        (``engine.py:414``) fired on the same input and reported ``0.0`` --
+        the same silent-void failure, one guard over in the same metric
+        block. Both now report 0.0 for every non-finite input. For every
+        finite input the arithmetic is bit-identical to before.
+
+        The bar is injected at the metric surface for the same reason the
+        negative-gross case is in the agreement contract: a non-finite
+        *return* needs a non-finite price, which the fetcher now refuses
+        (§H58), so the input reaches the engine only through this test.
+        """
+        import warnings
+
+        backtester = VectorizedBacktester(_make_config())
+        empty_trades = pd.DataFrame(
+            columns=["timestamp", "symbol", "side", "weight_change", "price", "cost"]
+        )
+        returns = pd.Series([0.001] * 9 + [non_finite] + [0.001] * 10)
+        equity = (1.0 + returns).cumprod() * 1_000_000.0
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            metrics = backtester._calculate_metrics(returns, equity, empty_trades)
+
+        assert metrics["sortino"] == 0.0
+
+    def test_the_contract_rejects_the_pre_fix_non_finite_sortino_guard(self):
+        """Behavioural negative control: the pre-fix `downside_dev > 0` guard
+        emits `nan` for a `-inf` return series, which the corrected guard
+        rejects.
+
+        A `-inf` bar is the discriminating input: its shortfall is 0, so
+        the downside deviation is `inf` (not `nan`), and `inf > 0` is True
+        -- the pre-fix guard fires the *wrong* branch and divides an `-inf`
+        mean by an `inf` denominator, emitting `nan`. An `inf` bar is not
+        discriminating (its shortfall is `-inf`, so the downside deviation
+        is `nan` and `nan > 0` is False either way).
+        """
+        import warnings
+
+        backtester = VectorizedBacktester(_make_config())
+        empty_trades = pd.DataFrame(
+            columns=["timestamp", "symbol", "side", "weight_change", "price", "cost"]
+        )
+        returns = pd.Series([0.001] * 9 + [-np.inf] + [0.001] * 10)
+        equity = (1.0 + returns).cumprod() * 1_000_000.0
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            metrics = backtester._calculate_metrics(returns, equity, empty_trades)
+
+        assert metrics["sortino"] == 0.0
+
+        # The pre-fix guard fires the wrong branch and emits nan.
+        shortfall = np.minimum(0, returns)
+        pre_fix_downside_dev = float(np.sqrt(np.mean(shortfall**2)))
+        assert np.isinf(pre_fix_downside_dev)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            pre_fix_sortino = float(returns.mean() / pre_fix_downside_dev * np.sqrt(252))
+        assert np.isnan(pre_fix_sortino)
 
     def test_num_trades_metric(self):
         prices = _make_prices(symbols=("A",))

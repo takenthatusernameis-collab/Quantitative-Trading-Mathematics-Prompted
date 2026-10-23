@@ -425,6 +425,41 @@ class TestEngineOnlyMetrics:
             float(returns.mean() / downside_dev * np.sqrt(252)), rel=1e-12
         )
 
+    @pytest.mark.parametrize("non_finite", [np.inf, -np.inf, np.nan])
+    def test_sortino_is_zero_for_a_non_finite_return_series(self, non_finite):
+        """The engine-only Sortino must also fail closed on a non-finite
+        series, like the shared Sharpe.
+
+        The Sortino guard was `downside_dev > 0`, the same
+        unordered-comparison defect H62 found in `sharpe_ratio`: a non-finite
+        downside deviation compares unordered, so `inf > 0` is True and the
+        old guard did NOT fire, dividing an inf/nan mean by an inf
+        downside deviation and emitting `nan`. The engine's own Sharpe guard
+        (``engine.py:414``) fired on the same input and reported ``0.0``, so
+        the two engine metrics disagreed on an input the record actually
+        contains -- every runner that builds a return series from
+        `prices.pct_change()` can produce one (a price crossing zero, the
+        H58 pathology, or an unbounded roll gap). Both now report 0.0.
+
+        The bar is injected at the metric surface for the same reason the
+        negative-gross case is: a non-finite *return* needs a non-finite
+        price, which the fetcher now refuses (§H58).
+        """
+        import warnings
+
+        backtester = VectorizedBacktester(BacktestConfig())
+        empty_trades = pd.DataFrame(
+            columns=["timestamp", "symbol", "side", "weight_change", "price", "cost"]
+        )
+        returns = pd.Series([0.001] * 9 + [non_finite] + [0.001] * 10)
+        equity = (1.0 + returns).cumprod() * 1_000_000.0
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            metrics = backtester._calculate_metrics(returns, equity, empty_trades)
+
+        assert metrics["sortino"] == 0.0
+
     def test_calmar_is_engine_only_and_pinned_by_its_formula(self):
         prices, signals = _engine_case(n=90, seed=19)
         result = _run(prices, signals)
