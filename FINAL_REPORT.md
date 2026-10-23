@@ -4585,3 +4585,58 @@ fires for a non-finite std. For every finite input the mask is identical, so:
   **103 files already formatted**.
 - No published artifact, gate threshold, verdict or certified number was modified; no grid was
   re-run; no hypothesis was added.
+
+## H63 — the clean-environment quick start skipped two pinned contract tests (2026-10-23)
+
+**H63 is COMPLETE.** The one precise task carried forward from `HANDOFF_NEXT.md` — clean-environment
+verification of the `requirements.txt` pyarrow fix — was run end-to-end in a fresh venv with only
+`pip install -r requirements.txt`. It confirmed the pyarrow fix and **found a second dependency of
+the same class**: `setuptools` was missing from `requirements.txt`, so two pinned contract tests in
+`test_public_api_contract.py` skipped instead of running.
+
+### The defect
+
+`pyproject.toml:2` declares `setuptools>=68` as the build-system requirement, and
+`tests/test_public_api_contract.py:147` and `:157` exercise `setuptools.find_packages(where="src")`
+to pin the package's discovery surface (the `qtr.utils` namespace-package hole, §H45). Both use
+`pytest.importorskip("setuptools")`, so in an environment without setuptools they skip. The system
+runner had setuptools 68.1.2 (apt-installed), which is why the inherited baseline showed 16 skipped
+and this only surfaced in a venv created from `requirements.txt` alone.
+
+This is the same defect class already fixed for `pyarrow` (§HANDOFF.md): `requirements.txt` is the
+documented quick start (`pip install -r requirements.txt` per `AGENTS.md`), and it must pull in
+everything the pinned contract tests need to run, not just what `src/qtr` imports at runtime.
+
+### What changed
+
+- `requirements.txt` — added `setuptools>=68` ahead of `numpy>=1.24.0`, mirroring
+  `pyproject.toml`'s `[build-system] requires`. A comment records that it is required by the build
+  backend and by `test_public_api_contract.py`, so the omission cannot silently return.
+- No code under `src/qtr` or tests was modified; no published artifact, gate threshold, verdict or
+  certified number was changed; no grid was re-run; no hypothesis was added.
+
+### What was actually verified
+
+- Fresh venv, `pip install -r requirements.txt` only (no pre-installed pyarrow or setuptools):
+  `setuptools-84.2.1` and `pyarrow-26.0.0` both install.
+- `python -m pytest -q -W error tests/test_public_api_contract.py` → **33 passed, 0 skipped**
+  (was 31 passed, 2 skipped before the fix).
+- `python -m pytest -q -W error` → **2 072 passed, 16 skipped** (full suite; the two setuptools-driven
+  skips are gone). The remaining 16 skips are all intentional and self-declaring: `buy_and_hold is a
+  constant position by construction`, `no generated manifest in this working tree`, `qtr is not
+  installed as a distribution in this environment`, and the four + eight published-convention skips
+  in `test_h51_benchmark_container_invariance.py` (a runner published a default p-value, not a
+  t-test p-value; `round(information_ratio, 4)` hides the convention).
+- `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` **1 091 statements, 330 branches, 0 missed,
+  0 partial, 100.00%** (unchanged: no source or test code moved).
+- `python -m ruff check src tests run_*.py` → *All checks passed!*; `ruff format --check` →
+  **103 files already formatted** (ruff installed into the clean venv for the check).
+- The two previously-erroring modules from the pyarrow fix still collect and pass:
+  `tests/test_h53_published_metrics_disclosure.py` and `tests/test_h55_nested_metrics_disclosure.py`
+  → 45 passed.
+
+### The blast radius
+
+Adding a build dependency to `requirements.txt` changes nothing under `src/qtr` or `tests/`; no
+published number, gate threshold, verdict or certified number moves; no grid is re-run. The only
+behavioural change is that two tests that previously *skipped* now *run* and pass.

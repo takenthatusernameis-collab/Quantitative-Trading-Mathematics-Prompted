@@ -1,5 +1,10 @@
 # Quantitative Trading Research — runtime dependencies
 # Canonical source of truth: pyproject.toml
+# Build backend: declared in pyproject.toml [build-system] requires and exercised by
+# tests/test_public_api_contract.py (setuptools.find_packages). The documented quick
+# start (`pip install -r requirements.txt`) must pull it in or those two pinned
+# contract tests skip instead of running.
+setuptools>=68
 numpy>=1.24.0
 pandas>=2.0.0
 scipy>=1.10.0

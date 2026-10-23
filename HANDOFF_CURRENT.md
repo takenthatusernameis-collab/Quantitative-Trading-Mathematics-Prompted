@@ -1,59 +1,43 @@
-# HANDOFF_CURRENT — session complete (dependency fix verified from clean state)
+# HANDOFF_CURRENT — session complete (H63 verified from clean state)
 
 ## State
 
-- **H35–H62 are COMPLETE** per prior handoffs; H1–H30 exhausted; certified families frozen. No
+- **H35–H63 are COMPLETE** per prior handoffs; H1–H30 exhausted; certified families frozen. No
   hypothesis work is assigned.
-- **One environment defect fixed and now verified end-to-end:** `requirements.txt` omitted
-  `pyarrow>=14.0.0`, a core dependency declared in `pyproject.toml` and used by `src/qtr`
-  (`data/fetcher.py`, `tracking/experiment.py`). The documented quick start
-  (`pip install -r requirements.txt` per AGENTS.md) could not read/write parquet, so
-  `test_h53_published_metrics_disclosure` and `test_h55_nested_metrics_disclosure` errored at
-  collection. Fixed by adding `pyarrow>=14.0.0` to `requirements.txt`.
-- **One real defect in `src/qtr` fixed this session (H62):** `sharpe_ratio` emitted `nan` for a
-  return series carrying an `inf`, `-inf` or `nan` bar, while the engine reported `0.0` -- the
-  same class of silent-void / cross-module disagreement H60 and H61 found. The guard's predicate
-  was `std <= 1e-15`, which a non-finite std does not satisfy, so the function divided an
-  inf/nan mean by a nan std. Now `np.isfinite(std) and std > 1e-15`, matching the engine.
-- No published artifact, gate threshold, verdict or certified number was modified; no grid was
-  re-run; no hypothesis was added.
+- **One environment defect fixed and now verified end-to-end from a clean state (H63):**
+  `requirements.txt` omitted `setuptools>=68`, the build backend declared in `pyproject.toml:2` and
+  exercised by `tests/test_public_api_contract.py:147`/`:157` (`setuptools.find_packages`). Both
+  tests use `pytest.importorskip("setuptools")`, so a clean environment following the documented
+  quick start skipped them instead of running them. The system runner had setuptools 68.1.2
+  apt-installed, which is why the inherited baseline showed only 16 skipped. Fixed by adding
+  `setuptools>=68` to `requirements.txt`, ahead of `numpy>=1.24.0`.
+- **The previously fixed pyarrow defect (HANDOFF.md) is now also verified from a clean state:**
+  `requirements.txt` declares `pyarrow>=14.0.0`, and a fresh venv with only
+  `pip install -r requirements.txt` installs it and collects the two previously-erroring modules.
+- No code under `src/qtr` or tests was modified; no published artifact, gate threshold, verdict or
+  certified number was changed; no grid was re-run; no hypothesis was added.
 
 ## What changed (this session)
 
-- `src/qtr/validation/statistics.py` — `sharpe_ratio`'s std guard is now
-  `np.isfinite(std) and std > 1e-15` instead of `returns.std() <= 1e-15`. A non-finite standard
-  deviation (the series carries an `inf`, `-inf` or `nan`) compares unordered, so the old guard
-  did not fire and the function divided an inf/nan mean by a nan std, emitting `nan`, while the
-  engine's own guard reported `0.0`. The `RuntimeWarning` the reduction raises under
-  `pytest -W error` is swallowed inside the guard, since the input is the guard's whole job to
-  short-circuit. For every finite input the arithmetic is bit-identical to before.
-- `tests/test_statistics.py` — two additions to `TestSharpeRatio`:
-  - `test_non_finite_returns_give_zero_sharpe` (parametrized over `inf`, `-inf`, `nan`) — the
-    function returns `0.0` for every non-finite input.
-  - `test_the_contract_rejects_the_pre_fix_non_finite_guard` — a behavioural negative control
-    that reconstructs the pre-fix `std <= 1e-15` guard, feeds it the same input, and requires
-    the result to be `nan` (the pre-fix path) while the corrected one is finite.
-- `tests/test_engine_metric_agreement.py` — two additions:
-  - `test_agreement_holds_when_the_returns_carry_a_non_finite_bar` (parametrized over `inf`,
-    `-inf`, `nan`) in `TestSharedMetricAgreement` — the cross-module contract now holds across
-    the non-finite regime, not only above it.
-  - `test_the_contract_rejects_a_nan_sharpe_from_a_non_finite_series` in
-    `TestContractNegativeControl` — the contract rejects the `nan` the pre-fix path emitted.
+- `requirements.txt` — added `setuptools>=68` ahead of `numpy>=1.24.0`, mirroring
+  `pyproject.toml`'s `[build-system] requires`. A comment records that it is required by the build
+  backend and by `test_public_api_contract.py`, so the omission cannot silently return.
 
 ## What was actually verified (this session)
 
-- The 8 new tests **fail on the pre-fix code** (reverted guard) with the expected
-  `sharpe disagrees: engine=0.0, validate_strategy=nan` / `nan == 0.0` errors, then pass with
-  the fix restored. The negative controls fire.
-- `python -m pytest -q -W error tests/test_statistics.py tests/test_engine_metric_agreement.py`
-  → **144 passed** (136 before).
-- `python -m pytest -q -W error` → **2 065 passed, 16 skipped** (full suite).
+- Fresh venv, `pip install -r requirements.txt` only (no pre-installed pyarrow or setuptools):
+  `setuptools-84.2.1` and `pyarrow-26.0.0` both install.
+- `python -m pytest -q -W error tests/test_public_api_contract.py` → **33 passed, 0 skipped**
+  (was 31 passed, 2 skipped before the fix).
+- `python -m pytest -q -W error` → **2 072 passed, 16 skipped** (full suite). The remaining 16 skips
+  are all intentional and self-declaring.
 - `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` **1 091 statements, 330 branches,
-  0 missed, 0 partial, 100.00%** (up from 1 086 / 330: five statements and no new branches).
+  0 missed, 0 partial, 100.00%** (unchanged: no source or test code moved).
 - `python -m ruff check src tests run_*.py` → *All checks passed!*; `ruff format --check` →
   **103 files already formatted**.
-- Finite-input bit-identity confirmed: `sharpe_ratio` on a 2 515-bar finite series is identical
-  to the pre-fix formula (`0.25483355551801323` both ways).
+- The two previously-erroring modules from the pyarrow fix still collect and pass:
+  `tests/test_h53_published_metrics_disclosure.py` and `tests/test_h55_nested_metrics_disclosure.py`
+  → 45 passed.
 
 ## What remains unresolved
 
@@ -66,10 +50,13 @@
 
 ## Precise next task
 
-**None assigned.** The H47–H62 series is complete. If a session wants work, the only honest
-options are (a) wait for newly committed artifacts that make a disclosed value measurable, or
-(b) after any change under `src/qtr`, re-run the pinned contracts -- including
+**None assigned.** The H47–H63 series is complete. If a session wants work, the only honest options
+are (a) wait for newly committed artifacts that make a disclosed value measurable, or (b) after any
+change under `src/qtr`, re-run the pinned contracts -- including
 `test_engine_metric_agreement.py`, `test_h53_published_metrics_disclosure`,
 `test_h54_non_metrics_block_disclosure`, `test_h55_nested_metrics_disclosure`,
 `test_h56_stats_json_echoes`, `test_h57_total_return_audit`, `test_h58_price_pathology_contamination`
-and `test_h59_contamination_gate_blast_radius` -- and confirm the gates stay green.
+and `test_h59_contamination_gate_blast_radius` -- and confirm the gates stay green. In addition,
+verify the quick-start surface by running the suite from a fresh venv with only
+`pip install -r requirements.txt`, since `requirements.txt` is now the contract that must declare
+every dependency a pinned contract test imports.
