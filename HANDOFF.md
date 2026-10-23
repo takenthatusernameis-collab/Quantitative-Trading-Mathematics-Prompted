@@ -90,3 +90,36 @@ options are (a) wait for newly committed artifacts that make a disclosed value m
 `test_h54_non_metrics_block_disclosure`, `test_h55_nested_metrics_disclosure`,
 `test_h56_stats_json_echoes`, `test_h57_total_return_audit`, `test_h58_price_pathology_contamination`
 and `test_h59_contamination_gate_blast_radius` -- and confirm the gates stay green.
+
+---
+
+## What changed (this session — dependency fix)
+
+`requirements.txt` — added the missing core dependency `pyarrow>=14.0.0`.
+
+`pyproject.toml` declares `pyarrow>=14.0.0` as a core dependency and `src/qtr` uses it
+(`data/fetcher.py:92`/`111`, `tracking/experiment.py:166`/`336`), but `requirements.txt` — the
+documented quick start (`pip install -r requirements.txt` per AGENTS.md) — omitted it. A fresh
+environment following the quick start could not read/write parquet, so
+`tests/test_h53_published_metrics_disclosure.py` and `tests/test_h55_nested_metrics_disclosure.py`
+errored at collection (`ImportError: Unable to find a usable engine`). Added `pyarrow>=14.0.0` after
+`loguru>=0.7.0`, mirroring `pyproject.toml`'s core-dependency block.
+
+No code under `src/qtr` or tests was modified; no published artifact, gate threshold, verdict or
+certified number was changed; no grid was re-run; no hypothesis was added.
+
+## What was actually verified (this session)
+
+- `python -m pytest -q -W error` → **2 057 passed, 16 skipped** (full suite; both previously
+  erroring modules collect and pass).
+- `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` = **1 086 statements, 330 branches,
+  0 missed, 0 partial, 100.00%**.
+- `python -m ruff check src tests run_*.py` → *All checks passed!*; `ruff format --check` →
+  **103 files already formatted**.
+
+## What remains unresolved
+
+- Clean-environment verification of the requirements.txt fix (fresh venv, install only
+  requirements.txt, full suite green) remains; see NEXT_TASK.md.
+- All remaining items in FINAL_REPORT.md §H53–§H61 are disclosed, not quantified, and depend on
+  inputs the record does not hold.
