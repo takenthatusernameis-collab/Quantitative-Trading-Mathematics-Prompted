@@ -1,48 +1,23 @@
-# HANDOFF_NEXT — H63: setuptools declared in requirements.txt
+# HANDOFF_NEXT — verification pass (no hypothesis work)
 
 ## What changed (this session)
 
-`requirements.txt` — added the missing build dependency `setuptools>=68`.
-
-`pyproject.toml:2` declares `setuptools>=68` as the build-system requirement and
-`tests/test_public_api_contract.py:147`/`:157` exercise `setuptools.find_packages(where="src")`
-to pin the package's discovery surface (the `qtr.utils` namespace-package hole, §H45). Both use
-`pytest.importorskip("setuptools")`, so a clean environment following the documented quick start
-skipped those two pinned contract tests instead of running them. The system runner had setuptools
-68.1.2 apt-installed, which is why the inherited baseline showed only 16 skipped and this only
-surfaced in a venv created from `requirements.txt` alone. Added `setuptools>=68` ahead of
-`numpy>=1.24.0`, mirroring `pyproject.toml`'s `[build-system] requires`, with a comment recording
-that it is required by the build backend and by `test_public_api_contract.py`.
-
-This is the same defect class already fixed for `pyarrow` (see prior handoff): `requirements.txt` is
-the documented quick start (`pip install -r requirements.txt` per `AGENTS.md`), and it must pull in
-everything the pinned contract tests need to run, not just what `src/qtr` imports at runtime.
-
-No code under `src/qtr` or tests was modified; no published artifact, gate threshold, verdict or
-certified number was changed; no grid was re-run; no hypothesis was added.
+None. Inspected repository state and verified the baseline; no code under `src/qtr`, tests, configs, or published artifacts were modified. No grid was re-run, no hypothesis was added, no gate threshold/verdict/certified number changed.
 
 ## What was actually verified
 
-- Fresh venv, `pip install -r requirements.txt` only (no pre-installed pyarrow or setuptools):
-  `setuptools-84.2.1` and `pyarrow-26.0.0` both install.
-- `python -m pytest -q -W error tests/test_public_api_contract.py` → **33 passed, 0 skipped**
-  (was 31 passed, 2 skipped before the fix).
-- `python -m pytest -q -W error` → **2 072 passed, 16 skipped** (full suite; the two setuptools-driven
-  skips are gone). The remaining 16 skips are all intentional and self-declaring.
-- `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` = **1 091 statements, 330 branches,
-  0 missed, 0 partial, 100.00%** (unchanged: no source or test code moved).
-- `python -m ruff check src tests run_*.py` → *All checks passed!*; `ruff format --check` →
-  **103 files already formatted**.
-- The two previously-erroring modules from the pyarrow fix still collect and pass:
-  `tests/test_h53_published_metrics_disclosure.py` and `tests/test_h55_nested_metrics_disclosure.py`
-  → 45 passed.
+- `git log --oneline -1` → `291ea53` (clean working tree relative to committed state).
+- Full suite: `python -m pytest -q -W error` → **2 072 passed, 16 skipped** (173s). All 16 skips are intentional and self-declaring.
+- Coverage: `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` **1 091 statements, 330 branches, 0 missed, 0 partial, 100.00%**.
+- Lint/format: `python -m ruff check src tests run_*.py` → *All checks passed!*; `python -m ruff format --check src tests run_*.py` → **103 files already formatted**.
+- Contract tests involving the clean-environment deps pass (including public API/runner contracts). The `setuptools>=68` and `pyarrow>=14.0.0` additions in `requirements.txt` (from prior session H63) remain in place.
 
-## What a next session inherits
+## What the next agent inherits
 
-- **No hypothesis task is assigned.** H47–H63 complete; H1–H30 exhausted; certified families frozen.
-- The quick-start dependency surface is now verified from a clean state. `requirements.txt` is the
-  contract that must declare every dependency a pinned contract test imports (currently
-  `setuptools>=68` and `pyarrow>=14.0.0`); if a new contract test is added that imports a third
-  package, that package must land in `requirements.txt` too.
-- The inherited baseline is green; after any change under `src/qtr`, re-run the pinned contracts
-  (see NEXT_TASK.md "Constraints carried forward") and confirm the gates stay green.
+- **No hypothesis task is assigned.** H35–H63 complete; H1–H30 exhausted; certified families frozen. All remaining items in `FINAL_REPORT.md` (§H53–§H61) are not measurable from committed artifacts (missing inputs/disclosed convention differences/benchmarks/trade logs/signals never committed) — they stay disclosed, not quantified.
+- Baseline is green and stable. `requirements.txt` is the quick-start contract and must declare every dependency pinned contract tests import (`setuptools>=68`, `pyarrow>=14.0.0`).
+- After any change under `src/qtr` (or affecting runners/validation), re-run pinned contracts and `python -m pytest -q --cov=qtr --cov-branch` to keep 100% coverage and gates green.
+
+## One precise next task
+
+**None assigned.** Options if desired: (a) wait for newly committed artifacts that make any disclosed value measurable; (b) maintain baseline hygiene (re-verify on changes). No bounded, high-value, verifiable implementation task exists from the current checkout without inventing uncommitted inputs or weakening frozen records.
