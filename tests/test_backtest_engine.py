@@ -485,3 +485,79 @@ def test_unknown_asset_class_zero_costs():
     cfg_ref = _make_config()  # equity with zero commission/spread/impact
     res_ref = run_backtest(prices=prices, signals=signals, config=cfg_ref)
     assert np.allclose(res.returns.values, res_ref.returns.values, atol=1e-12)
+
+
+# ============================================================
+# Empty / degenerate input (H71)
+# ============================================================
+class TestEmptyPanelHandling:
+    """An empty price/signal panel must not crash the engine.
+
+    The fetcher's documented "no data" path returns an empty DataFrame per
+    symbol (fetcher.py:196), and a runner that passes every symbol through
+    the engine (run_ts_momentum_experiment.py) hands that empty panel
+    straight here, so the crash is reachable from a live data failure, not
+    just from a synthetic test fixture. The engine must degrade to the same
+    boundary values ``validate_strategy`` returns for an empty return
+    series, so the cross-module contract holds on this input too.
+    """
+
+    @pytest.mark.parametrize(
+        "prices,signals",
+        [
+            # Completely empty: no rows and no columns.
+            (pd.DataFrame(columns=["ES"]), pd.DataFrame(columns=["ES"])),
+            # Empty rows with columns.
+            (
+                pd.DataFrame(columns=["ES"], index=pd.DatetimeIndex([])),
+                pd.DataFrame(0.0, index=pd.DatetimeIndex([]), columns=["ES"]),
+            ),
+            # Mismatched: prices empty, signals carries bars.
+            (
+                pd.DataFrame(columns=["ES"], index=pd.DatetimeIndex([])),
+                pd.DataFrame(0.0, index=pd.bdate_range("2020-01-01", periods=5), columns=["ES"]),
+            ),
+        ],
+    )
+    def test_empty_panel_does_not_crash(self, prices, signals):
+        res = run_backtest(prices=prices, signals=signals, config=_make_config())
+        assert isinstance(res, BacktestResult)
+        assert len(res.returns) == 0
+        assert len(res.trades) == 0
+
+    def test_empty_panel_returns_boundary_metrics(self):
+        prices = pd.DataFrame(columns=["ES"])
+        signals = pd.DataFrame(columns=["ES"])
+        res = run_backtest(prices=prices, signals=signals, config=_make_config())
+
+        # Every shared metric is a boundary value, matching
+        # validate_strategy's empty-series guard (statistics.py:759).
+        assert res.metrics["total_return"] == 0.0
+        assert res.metrics["annualized_return"] == 0.0
+        assert res.metrics["annualized_volatility"] == 0.0
+        assert res.metrics["sharpe"] == 0.0
+        assert res.metrics["sortino"] == 0.0
+        assert res.metrics["max_drawdown"] == 0.0
+        assert res.metrics["max_drawdown_duration"] == 0
+        assert res.metrics["profit_factor"] == 1.0
+        assert res.metrics["num_trades"] == 0
+        assert res.metrics["avg_trade_cost"] == 0.0
+        assert res.metrics["calmar"] == np.inf
+
+    def test_empty_panel_agrees_with_validate_strategy(self):
+        """Cross-module agreement must hold on the empty panel too."""
+        from qtr.validation.statistics import validate_strategy
+
+        prices = pd.DataFrame(columns=["ES"])
+        signals = pd.DataFrame(columns=["ES"])
+        res = run_backtest(prices=prices, signals=signals, config=_make_config())
+        validation = validate_strategy(res.returns, res.trades, {})
+
+        for metric in ("total_return", "annualized_return", "annualized_volatility",
+                       "sharpe", "max_drawdown", "profit_factor"):
+            assert metric in res.metrics, f"engine missing {metric}"
+            assert metric in validation, f"validate_strategy missing {metric}"
+            assert res.metrics[metric] == validation[metric], (
+                f"{metric} disagrees: engine={res.metrics[metric]!r}, "
+                f"validate_strategy={validation[metric]!r}"
+            )

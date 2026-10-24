@@ -140,6 +140,37 @@ class VectorizedBacktester:
         prices = prices.loc[common_index]
         signals = signals.loc[common_index]
 
+        # Degenerate-input guard: an empty panel (no bars after alignment) has no
+        # position changes to extract and no returns to annualize, and every
+        # downstream step that indexes ``.iloc[0]`` or ``.iloc[-1]`` raises
+        # ``IndexError`` on it. The fetcher's documented "no data" path returns
+        # an empty DataFrame per symbol (fetcher.py:196), and a runner that
+        # passes every symbol through the engine (run_ts_momentum_experiment.py)
+        # hands that empty panel straight here, so the crash is reachable from
+        # a live data failure, not just from a synthetic test fixture.
+        #
+        # The boundary is the same one ``validate_strategy`` returns for an
+        # empty return series (statistics.py:759): every shared metric is a
+        # boundary value, so the two implementations still agree on this input
+        # and the cross-module contract in test_engine_metric_agreement.py
+        # holds. The engine-only metrics follow the same boundary convention
+        # (zero volatility, zero Sortino, zero Calmar, zero trade cost).
+        if len(common_index) == 0:
+            empty_returns = pd.Series([], dtype=float)
+            empty_equity = pd.Series([], dtype=float)
+            empty_trades = pd.DataFrame(
+                columns=["timestamp", "symbol", "side", "weight_change", "price", "cost"]
+            )
+            empty_positions = pd.DataFrame(index=common_index, columns=prices.columns)
+            return BacktestResult(
+                equity_curve=empty_equity,
+                returns=empty_returns,
+                positions=empty_positions,
+                trades=empty_trades,
+                metrics=self._calculate_metrics(empty_returns, empty_equity, empty_trades),
+                config=self.config,
+            )
+
         if volumes is not None:
             volumes = volumes.loc[common_index]
         else:
@@ -356,6 +387,29 @@ class VectorizedBacktester:
     ) -> dict[str, float]:
         """Calculate performance metrics."""
         metrics = {}
+
+        # Degenerate-input guard: an empty return series cannot be annualized
+        # (252 / len(returns) divides by zero) and yields no trades, so it
+        # must return the same boundary values ``validate_strategy`` returns
+        # for the same input (statistics.py:759) rather than crashing on
+        # ``equity.iloc[-1]``. The engine-only metrics follow the flat-series
+        # convention (zero Sortino, zero drawdown duration, zero trade cost,
+        # infinite Calmar from a zero drawdown), matching what this function
+        # already returns for a 40-bar zero series.
+        if len(returns) == 0:
+            return {
+                "total_return": 0.0,
+                "annualized_return": 0.0,
+                "annualized_volatility": 0.0,
+                "sharpe": 0.0,
+                "sortino": 0.0,
+                "max_drawdown": 0.0,
+                "max_drawdown_duration": 0,
+                "profit_factor": 1.0,
+                "num_trades": len(trades),
+                "avg_trade_cost": 0.0,
+                "calmar": np.inf,
+            }
 
         # Basic returns
         # The total return is measured from the INITIAL capital to the final
