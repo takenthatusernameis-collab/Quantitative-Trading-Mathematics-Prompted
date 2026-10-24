@@ -636,57 +636,6 @@ def test_fetcher_ccxt_default_timeframe_matches_fetch_ccxt(monkeypatch, tmp_path
     assert corrected_default != pre_fix_default
 
 
-def test_fetcher_ccxt_rejects_the_pre_fix_interval_forwarding(monkeypatch, tmp_path):
-    """Negative control: the pre-fix dispatch forwarded ``interval`` into the
-    CCXT branch's ``timeframe`` slot, so a default call requested ``"1d"``
-    bars where ``fetch_ccxt``'s own default is ``"1h"``. Reconstructing that
-    forwarding must produce a *different* call than the corrected dispatcher,
-    otherwise the contract would not have caught the defect.
-    """
-    from qtr.data import fetcher
-
-    rows = [[1577836800000, 1.0, 2.0, 0.5, 1.5, 100.0]]
-    sink: dict = {}
-    # The dispatcher uses the singleton fetcher, which caches CCXT exchange
-    # instances across calls; a prior test may have cached a different stub
-    # under "binance", so the cache must be cleared for the recording stub
-    # to be picked up.
-    from qtr.data.fetcher import get_data_fetcher
-
-    get_data_fetcher()._ccxt_exchanges.clear()
-
-    # The corrected dispatcher forwards its own ``timeframe`` default ("1h").
-    _install_recording_ccxt(monkeypatch, rows, sink)
-    fetcher(
-        "ccxt",
-        ["BTC/USDT"],
-        "2020-01-01",
-        "2020-02-01",
-        use_cache=False,
-        exchange_id="binance",
-    )
-    corrected_default = sink["timeframe"]
-
-    # The pre-fix form forwarded the dispatcher's ``interval`` default ("1d")
-    # into the CCXT branch. Re-run it by passing that value explicitly.
-    sink.clear()
-    get_data_fetcher()._ccxt_exchanges.clear()
-    fetcher(
-        "ccxt",
-        ["BTC/USDT"],
-        "2020-01-01",
-        "2020-02-01",
-        use_cache=False,
-        exchange_id="binance",
-        timeframe="1d",
-    )
-    pre_fix_default = sink["timeframe"]
-
-    assert corrected_default == "1h"
-    assert pre_fix_default == "1d"
-    assert corrected_default != pre_fix_default
-
-
 def test_fetcher_ccxt_requires_exchange_id(tmp_path):
     """CCXT has no default exchange: calling without ``exchange_id`` must raise
     rather than silently return an empty dict (every fetch method logs and
