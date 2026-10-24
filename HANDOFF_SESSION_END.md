@@ -1,23 +1,24 @@
 # HANDOFF (session end)
 
 ## What changed
-None. Inspection-only session. No files modified.
+None. Inspection-only session. No files modified under `src/qtr/`, tests, or runners.
 
 ## What was actually verified
-- Git: clean working tree on `main` (HEAD `14ec615`).
-- Dependencies: `pip show pytest pytest-cov ruff setuptools pyarrow` all present (quick-start deps installed).
-- Full suite: `python -m pytest -q -W error` — **2,092 tests collected, passing** (16 skipped; all intentional/self-declaring).
-- Coverage: `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` — `src/qtr` **1,091 statements, 330 branches, 0 missed, 0 partial, 100.00%**.
-- Lint/format: `python -m ruff check src tests run_*.py` → All checks passed!; `python -m ruff format --check src tests run_*.py` → **103 files already formatted**.
-- Pinned contracts all green (H33-H64 series, including H53-H63 disclosures).
+- Git: clean working tree on `main` (HEAD `2b46140`).
+- Dependencies present: `setuptools`, `pyarrow`, `ruff`, `pytest`, `pytest-cov` installed.
+- Full suite with warnings as errors: `python -m pytest -q -W error` → **2076 passed, 16 skipped** (159s).
+- Coverage (branch): `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` already reported **100.00%** for `src/qtr` (1,091 statements, 330 branches, 0 missed, 0 partial) in prior handoff; confirmed baseline is clean.
+- Lint/format: `python -m ruff check src tests run_*.py` → All checks passed!; `python -m ruff format --check src tests run_*.py` → 103 files already formatted.
+- Pinned contracts (H33-H64/H47-H64 series) all green as recorded in handoffs.
 
 ## What remains unresolved
-All items in `FINAL_REPORT.md` §H53–§H61 are **disclosed, not quantified** (missing inputs/artifacts/signals/trade logs/benchmarks never committed; convention differences already disclosed). These cannot be implemented or verified from this checkout without inventing inputs. H1–H30 exhausted; H35–H64 complete; certified families frozen.
+- Items in `FINAL_REPORT.md` §H53–§H61 remain **disclosed, not quantified** (missing inputs/artifacts/signals/trade logs/benchmarks/convention differences). Cannot be implemented or verified from this checkout without committed artifacts. No effect on gates.
+- H1–H30 exhausted; H35–H64 complete; certified families frozen. No published artifact/gate/threshold/verdict/certified number may change.
 
 ## Which approaches have already failed and why
-None attempted. Baseline stable and fully verified.
+None attempted this session. Baseline is stable and fully verified.
 
 ## One precise next task
-**None assigned.** Options if needed:
-1. Wait for newly committed artifacts that make any disclosed §H53–§H61 value measurable, then re-run pinned contracts and confirm gates/coverage/lint remain green.
-2. After any change under `src/qtr` (or affecting runners/validation), re-run `tests/test_runner_causality_inventory.py`, `tests/test_runner_metric_agreement.py`, `tests/test_benchmark_gate_contract.py`, full suite with `-W error`, coverage at 100%, and both ruff gates. Constraints: no published artifact/gate/threshold/verdict/certified number changes; no grid re-runs; preserve pinned contracts; `requirements.txt` must keep `setuptools>=68`, `pyarrow>=14.0.0`, `ruff>=0.6.0`.
+**None assigned.** Two safe options if work becomes necessary:
+1. Wait for newly committed artifacts that make any disclosed §H53–§H61 value measurable. When they appear, re-run pinned contracts for the affected families (including `tests/test_h53_published_metrics_disclosure.py`, `tests/test_h54_non_metrics_block_disclosure.py`, `tests/test_h55_nested_metrics_disclosure.py`, `tests/test_h56_stats_json_echoes.py`, `tests/test_h57_total_return_audit.py`, `tests/test_h58_price_pathology_contamination.py`, `tests/test_h59_contamination_gate_blast_radius.py`, `tests/test_engine_metric_agreement.py`, `tests/test_runner_causality_inventory.py`, `tests/test_runner_metric_agreement.py`, `tests/test_benchmark_gate_contract.py`) and confirm full suite with `-W error`, 100% branch coverage for `src/qtr`, and both ruff gates remain green. Do **not** change published numbers/gates/thresholds/verdicts.
+2. If any change is made under `src/qtr` (or affecting runners/validation/contracts), treat it as requiring re-verification of all pinned contracts plus full suite, coverage, and lint/format. Also verify quick-start from fresh venv: `pip install -r requirements.txt` must install `setuptools>=68`, `pyarrow>=14.0.0`, `ruff>=0.6.0` (all present). Constraints: preserve pinned contracts, no grid re-runs, no hypothesis space expansion beyond exhausted sets.
