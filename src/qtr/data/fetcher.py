@@ -441,6 +441,14 @@ def get_data_fetcher() -> DataFetcher:
     return get_data_fetcher._instance
 
 
+def fetch_sp500_constituents(date: str | None = None) -> list[str]:
+    """Fetch S&P 500 constituents (current list only).
+
+    Convenience wrapper around :meth:`DataFetcher.fetch_sp500_constituents`.
+    """
+    return get_data_fetcher().fetch_sp500_constituents(date=date)
+
+
 def fetcher(
     source: str,
     symbols: list[str],
