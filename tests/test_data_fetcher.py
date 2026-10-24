@@ -726,14 +726,18 @@ def test_fetcher_is_exported_from_the_data_package():
 
 
 def test_fetch_sp500_constituents_module_level(tmp_path, monkeypatch):
-    import qtr.data.fetcher as fetcher_mod
+    import sys
+
+    fetcher_mod = sys.modules["qtr.data.fetcher"]
 
     def raise_html(*a, **k):
         raise RuntimeError("no network")
 
     monkeypatch.setattr(pd, "read_html", raise_html)
     # ensure we use a fresh fetcher instance
-    if hasattr(fetcher_mod, "get_data_fetcher") and hasattr(fetcher_mod.get_data_fetcher, "_instance"):
+    if hasattr(fetcher_mod, "get_data_fetcher") and hasattr(
+        fetcher_mod.get_data_fetcher, "_instance"
+    ):
         del fetcher_mod.get_data_fetcher._instance
     res = fetcher_mod.fetch_sp500_constituents()
     assert res == ["SPY", "IVV", "VOO", "SPLG"]
