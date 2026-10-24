@@ -439,3 +439,61 @@ def get_data_fetcher() -> DataFetcher:
     if not hasattr(get_data_fetcher, "_instance"):
         get_data_fetcher._instance = DataFetcher()
     return get_data_fetcher._instance
+
+
+def fetcher(
+    source: str,
+    symbols: list[str],
+    start: str,
+    end: str | None = None,
+    interval: str = "1d",
+    use_cache: bool = True,
+    exchange_id: str | None = None,
+) -> dict[str, pd.DataFrame]:
+    """Fetch OHLCV panels through the named source.
+
+    The three fetch methods on :class:`DataFetcher` each carry their own
+    contract (the futures ``=F`` suffix check, the CCXT pagination loop, the
+    yahoo column standardisation), and a caller who knows which source they
+    want has to remember which method to call and which keyword arguments it
+    takes. This is the single entry point: it dispatches on ``source`` and
+    forwards the rest unchanged, so ``fetcher("yahoo", ...)`` is the same
+    call as ``DataFetcher().fetch_yahoo(...)`` and ``fetcher("ccxt", ...,
+    exchange_id="binance")`` is the same call as ``fetch_ccxt``.
+
+    The dispatch is explicit rather than a ``getattr`` on the fetcher, so a
+    typo in ``source`` raises a named ``ValueError`` instead of silently
+    returning an empty dict (every fetch method logs and continues on a
+    per-symbol failure, so a misspelled method name would be invisible).
+
+    Args:
+        source: ``"yahoo"``, ``"yahoo_futures"`` or ``"ccxt"``.
+        symbols: Tickers to download.
+        start: Start date ``"YYYY-MM-DD"``.
+        end: End date, or ``None`` for today.
+        interval: Vendor interval string.
+        use_cache: Whether the file cache is consulted.
+        exchange_id: CCXT exchange id; required for ``source="ccxt"``.
+
+    Returns:
+        ``{symbol: DataFrame}``, exactly what the dispatched method returns.
+
+    Raises:
+        ValueError: if ``source`` is not one of the three supported names.
+    """
+    fetch = get_data_fetcher()
+    if source == "yahoo":
+        return fetch.fetch_yahoo(symbols, start, end, interval, use_cache)
+    if source == "yahoo_futures":
+        return fetch.fetch_futures(symbols, start, end, interval, use_cache)
+    if source == "ccxt":
+        if exchange_id is None:
+            raise ValueError(
+                "source='ccxt' requires exchange_id= (e.g. 'binance'); "
+                "got None. CCXT needs an exchange to query."
+            )
+        return fetch.fetch_ccxt(exchange_id, symbols, start, end, interval, use_cache)
+    raise ValueError(
+        f"unknown data source {source!r}; supported: 'yahoo', 'yahoo_futures', 'ccxt'. "
+        "Pass one of those as source=."
+    )

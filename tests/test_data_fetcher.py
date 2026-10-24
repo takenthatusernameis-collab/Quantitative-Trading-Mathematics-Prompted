@@ -466,3 +466,124 @@ def test_get_data_fetcher_singleton():
     a = get_data_fetcher()
     b = get_data_fetcher()
     assert a is b
+
+
+# --------------------------------------------------------------------------- #
+# The public ``fetcher()`` dispatch entry point (H65)
+# --------------------------------------------------------------------------- #
+def _install_fake_yahoo(monkeypatch, df: pd.DataFrame) -> None:
+    """Install a yfinance stub whose Ticker always returns ``df``."""
+    import sys
+    import types
+
+    class FakeTicker:
+        def history(self, **kw):
+            return df
+
+    fake_yf = types.ModuleType("yfinance")
+    fake_yf.Ticker = lambda s: FakeTicker()
+    monkeypatch.setitem(sys.modules, "yfinance", fake_yf)
+
+
+def _install_fake_ccxt(monkeypatch, rows: list[list]) -> None:
+    import sys
+    import types
+
+    class FakeExchange:
+        def fetch_ohlcv(self, symbol, timeframe, since=None, limit=1000):
+            return rows
+
+    fake_ccxt = types.ModuleType("ccxt")
+    fake_ccxt.binance = lambda cfg: FakeExchange()
+    monkeypatch.setitem(sys.modules, "ccxt", fake_ccxt)
+
+
+def test_fetcher_dispatches_to_fetch_yahoo(monkeypatch, tmp_path):
+    """``fetcher("yahoo", ...)`` must be the same call as ``fetch_yahoo``."""
+    from qtr.data import fetcher
+
+    df = pd.DataFrame(
+        {"Open": [1.0], "High": [2.0], "Low": [0.5], "Close": [1.5], "Volume": [100]},
+        index=pd.to_datetime(["2020-01-02"]),
+    )
+    _install_fake_yahoo(monkeypatch, df)
+
+    direct = DataFetcher(cache=DataCache(cache_dir=tmp_path)).fetch_yahoo(
+        ["SPY"], "2020-01-01", "2020-02-01", use_cache=False
+    )
+    dispatched = fetcher("yahoo", ["SPY"], "2020-01-01", "2020-02-01", use_cache=False)
+    assert "close" in dispatched["SPY"].columns
+    pd.testing.assert_frame_equal(dispatched["SPY"], direct["SPY"], check_names=False)
+
+
+def test_fetcher_dispatches_to_fetch_futures(monkeypatch, tmp_path):
+    """``fetcher("yahoo_futures", ...)`` must be the same call as ``fetch_futures``."""
+    from qtr.data import fetcher
+
+    df = pd.DataFrame(
+        {"Open": [1.0], "High": [2.0], "Low": [0.5], "Close": [1.5], "Volume": [100]},
+        index=pd.to_datetime(["2020-01-02"]),
+    )
+    _install_fake_yahoo(monkeypatch, df)
+
+    direct = DataFetcher(cache=DataCache(cache_dir=tmp_path)).fetch_futures(
+        ["ES=F"], "2020-01-01", "2020-02-01", use_cache=False
+    )
+    dispatched = fetcher("yahoo_futures", ["ES=F"], "2020-01-01", "2020-02-01", use_cache=False)
+    assert "close" in dispatched["ES=F"].columns
+    pd.testing.assert_frame_equal(dispatched["ES=F"], direct["ES=F"], check_names=False)
+
+
+def test_fetcher_dispatches_to_fetch_ccxt(monkeypatch, tmp_path):
+    """``fetcher("ccxt", ..., exchange_id="binance")`` must be the same call as ``fetch_ccxt``."""
+    from qtr.data import fetcher
+
+    rows = [[1577836800000, 1.0, 2.0, 0.5, 1.5, 100.0]]
+    _install_fake_ccxt(monkeypatch, rows)
+
+    direct = DataFetcher(cache=DataCache(cache_dir=tmp_path)).fetch_ccxt(
+        "binance", ["BTC/USDT"], "2020-01-01", "2020-02-01", use_cache=False
+    )
+    dispatched = fetcher(
+        "ccxt", ["BTC/USDT"], "2020-01-01", "2020-02-01", use_cache=False, exchange_id="binance"
+    )
+    assert "BTC/USDT" in dispatched
+    pd.testing.assert_frame_equal(dispatched["BTC/USDT"], direct["BTC/USDT"], check_names=False)
+
+
+def test_fetcher_ccxt_requires_exchange_id(tmp_path):
+    """CCXT has no default exchange: calling without ``exchange_id`` must raise
+    rather than silently return an empty dict (every fetch method logs and
+    continues on a per-symbol failure, so a misspelled or omitted argument
+    would otherwise be invisible)."""
+    from qtr.data import fetcher
+
+    with pytest.raises(ValueError, match="exchange_id"):
+        fetcher("ccxt", ["BTC/USDT"], "2020-01-01", "2020-02-01", use_cache=False)
+
+
+@pytest.mark.parametrize("bad", ["yahoo_future", "YAHOO", "yfinance", "", "ccx", "binance"])
+def test_fetcher_rejects_unknown_source(bad, tmp_path):
+    """A typo in ``source`` must raise a named ``ValueError``.
+
+    The dispatch is explicit rather than a ``getattr`` on the fetcher exactly
+    so this cannot silently return an empty dict: every fetch method treats a
+    per-symbol failure as non-fatal and logs it, so a misspelled method name
+    would be indistinguishable from a symbol that genuinely had no data.
+    """
+    from qtr.data import fetcher
+
+    with pytest.raises(ValueError, match="unknown data source"):
+        fetcher(bad, ["SPY"], "2020-01-01", "2020-02-01", use_cache=False)
+
+
+def test_fetcher_is_exported_from_the_data_package():
+    """The dispatch entry point is part of the public data surface."""
+    import qtr.data as data
+
+    assert "fetcher" in data.__all__
+    assert data.fetcher is not None
+    # ... and reachable through the top-level star export too.
+    namespace: dict = {}
+    exec("from qtr import *", namespace)  # noqa: S102
+    assert "fetcher" in namespace

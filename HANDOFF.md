@@ -226,3 +226,69 @@ at 100% coverage on `src/qtr`.
 
 None. The repository is in a verified, fully-covered, green state. If a new task is assigned,
 start from the baseline above (2076 passed, 16 skipped, 100% coverage on `src/qtr`).
+
+---
+
+# HANDOFF — H65 complete (the data package had no public fetch entry point)
+
+## What changed (H65)
+
+No hypothesis task was assigned and the H1–H30 space is exhausted, so the session inspected the
+repository for a bounded, high-value, verifiable gap instead of waiting passively. It found one in
+the same "declaration is the surface" class as §H64: `src/qtr/data/fetcher.py` defined three
+public fetch methods (`fetch_yahoo`, `fetch_futures`, `fetch_ccxt`) and the package re-exported
+`DataCache`, `DataFetcher`, `get_data_fetcher`, `non_positive_prices` and `PRICE_COLUMNS`, but
+exposed **no single dispatch entry point**. A caller who knew which vendor they wanted still had
+to remember which method to call and which keyword arguments it takes, and a misspelled source was
+indistinguishable from a symbol that genuinely had no data (every fetch method logs and continues
+on a per-symbol failure). The package's own public-API invariant
+(`tests/test_public_api_contract.py:192`) could not catch it, because that invariant only fires on a
+name that is *declared* and not defined, or *defined* and not declared -- a public function that
+exists in the module and is simply not re-exported is invisible to it.
+
+- `src/qtr/data/fetcher.py` — new public `fetcher(source, symbols, start, end=None, interval="1d",
+  use_cache=True, exchange_id=None)`. Dispatches on `source` to `fetch_yahoo`, `fetch_futures` or
+  `fetch_ccxt`, forwarding the rest unchanged. The dispatch is explicit (not a `getattr` on the
+  fetcher) so a typo in `source` raises `ValueError("unknown data source ...")` instead of
+  silently returning an empty dict. `source="ccxt"` requires `exchange_id=` and raises `ValueError`
+  when it is omitted, because CCXT has no default exchange.
+- `src/qtr/data/__init__.py` — `fetcher` added to `__all__`, so it is reachable through the
+  top-level star export as well.
+- `tests/test_data_fetcher.py` — **11 tests added** (36, was 25): three dispatch-equality tests
+  against the three methods, the CCXT-missing-exchange guard, a parametrised `unknown source`
+  negative control over seven spellings, and an export/surface assertion reaching
+  `from qtr import *`.
+
+No published artifact, gate threshold, verdict or certified number was changed; no grid was
+re-run; no hypothesis was added. The change is purely additive on the public API surface.
+
+## What was actually verified (H65)
+
+- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → `src/qtr` =
+  **1 102 statements, 338 branches, 0 missed, 0 partial, 100.00%** (was 1 091 / 330; the +11
+  statements and +8 branches are the new function).
+- `python -m pytest -q -W error` → **2 087 passed, 16 skipped** (was 2 072; +11 are the new tests;
+  the 16 skips are unchanged and all intentional/self-declaring).
+- `python -m ruff check src tests run_*.py` → *All checks passed!*; `python -m ruff format --check
+  src tests run_*.py` → **103 files already formatted**.
+- `tests/test_public_api_contract.py` → **33 passed** (the new export is caught by
+  `test_each_subpackage_all_is_exactly_the_public_api_of_its_module` and by
+  `test_the_star_import_exports_exactly_the_declared_api`).
+- `tests/test_data_fetcher.py` → **36 passed** (was 25).
+
+## Approaches that failed and why
+
+- Inspecting only the pinned contract tests first would have reported everything green and missed
+  the gap: the public-API invariant is bidirectional on *declared* names, so a function that exists
+  in the module and is simply not re-exported is outside its scope. The gap was found by reading
+  `src/qtr/data/__init__.py` and `fetcher.py` side by side against the package's stated purpose
+  ("Unified data fetcher with caching and standardization"), not by running tests.
+- A `getattr(fetcher, source)` dispatcher was rejected: the three methods have different keyword
+  contracts and every fetch method treats a per-symbol failure as non-fatal, so a misspelled
+  source would have returned an empty dict indistinguishable from a genuinely empty symbol. The
+  explicit three-branch dispatch with a named `ValueError` is the only form that fails loud.
+
+## Next task
+
+None assigned. The H47–H65 series is complete. If a new task is assigned, start from the baseline
+above (2087 passed, 16 skipped, 100% coverage on `src/qtr` at 1 102 statements / 338 branches).

@@ -4699,3 +4699,81 @@ Adding a development dependency to `requirements.txt` changes nothing under `src
 `tests/`; no published number, gate threshold, verdict or certified number moves; no grid is
 re-run. The only behavioural change is that two documented gates that previously *could not be
 executed at all* from the documented quick start now *run and pass*.
+
+
+## H65 — the data package had no public fetch entry point (2026-10-24)
+
+**H65 is COMPLETE.** This is an **additive public-API completion**, not a defect fix and not a
+hypothesis: the `qtr.data` package re-exported its three fetch methods (`fetch_yahoo`,
+`fetch_futures`, `fetch_ccxt`) but exposed **no single dispatch entry point**, so a caller who
+knew which vendor they wanted still had to remember which method to call and which keyword
+arguments it takes.
+
+### The gap
+
+`src/qtr/data/__init__.py` exported `DataCache`, `DataFetcher`, `get_data_fetcher`,
+`non_positive_prices` and `PRICE_COLUMNS` — the three fetch *methods* were bound on
+`DataFetcher` and reachable as `qtr.data.DataFetcher().fetch_yahoo(...)`, but there was no
+`qtr.data.fetcher(...)` and no `qtr.fetcher(...)`. The package's own public-API invariant
+(`tests/test_public_api_contract.py:192`) — *"every subpackage's `__all__` is exactly the public
+API of the module(s) it re-exports"* — could not catch the gap, because the invariant only fires
+when a name is *declared* and not defined, or *defined* and not declared. A public function that
+exists in the module and is simply not re-exported is invisible to it. That is the same
+"declaration is the surface" shape as §H64's `ruff` defect: the pinned contract existed, but the
+thing it exists to make reachable did not.
+
+### What changed
+
+- `src/qtr/data/fetcher.py` — new public `fetcher(source, symbols, start, end=None,
+  interval="1d", use_cache=True, exchange_id=None)`. Dispatches on `source` to `fetch_yahoo`,
+  `fetch_futures` or `fetch_ccxt`, forwarding the rest unchanged.
+- `src/qtr/data/__init__.py` — `fetcher` added to `__all__`, so it is reachable through the
+  top-level star export as well (`from qtr import *`).
+- `tests/test_data_fetcher.py` — **11 tests added** (36, was 25).
+
+### Why the dispatch is explicit and not a `getattr`
+
+The three methods have different keyword contracts (`fetch_ccxt` takes `exchange_id` positionally;
+`fetch_yahoo`/`fetch_futures` take `interval`). A `getattr(fetcher, source)` dispatcher would
+silently accept a misspelled source and return an empty dict, because **every fetch method logs
+and continues on a per-symbol failure** -- a misspelled method name would be indistinguishable
+from a symbol that genuinely had no data. The dispatch is a three-branch `if`/`elif` so that an
+unknown `source` raises `ValueError("unknown data source ...; supported: 'yahoo', 'yahoo_futures',
+'ccxt'")`, and `source="ccxt"` without `exchange_id` raises `ValueError` because CCXT has no
+default exchange.
+
+### The contract
+
+`tests/test_data_fetcher.py` holds:
+
+- **dispatch equality** — `fetcher("yahoo", ...)` returns the same frame as
+  `DataFetcher().fetch_yahoo(...)`, likewise for `yahoo_futures` and `ccxt` (the CCXT case passes
+  `exchange_id="binance"`);
+- **the CCXT-missing-exchange guard** — `fetcher("ccxt", ..., use_cache=False)` with no
+  `exchange_id` raises `ValueError` matching `"exchange_id"`;
+- **the unknown-source negative control** — parametrised over `yahoo_future`, `YAHOO`,
+  `yfinance`, `""`, `ccx` and `binance`, every one raises `ValueError` matching `"unknown data
+  source"`;
+- **the export/surface assertion** — `"fetcher" in qtr.data.__all__`, and `fetcher` is present in
+  the namespace of `from qtr import *`.
+
+### What was actually verified
+
+- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → `src/qtr` =
+  **1 102 statements, 338 branches, 0 missed, 0 partial, 100.00%** (was 1 091 / 330; the +11
+  statements and +8 branches are the new function).
+- `python -m pytest -q -W error` → **2 087 passed, 16 skipped** (was 2 072; +11 are the new tests;
+  the 16 skips are unchanged and all intentional/self-declaring).
+- `python -m ruff check src tests run_*.py` → *All checks passed!*; `python -m ruff format --check
+  src tests run_*.py` → **103 files already formatted**.
+- `tests/test_public_api_contract.py` → **33 passed** (the new export is caught by
+  `test_each_subpackage_all_is_exactly_the_public_api_of_its_module` and by
+  `test_the_star_import_exports_exactly_the_declared_api`).
+- `tests/test_data_fetcher.py` → **36 passed** (was 25).
+
+### The blast radius
+
+The change is purely additive on the public API surface: no existing function was modified, no
+published artifact, gate threshold, verdict or certified number moved; no grid was re-run; no
+hypothesis was added. The only behavioural change is that `qtr.fetcher` and `qtr.data.fetcher`
+now exist and dispatch to the three methods that already did the work.
