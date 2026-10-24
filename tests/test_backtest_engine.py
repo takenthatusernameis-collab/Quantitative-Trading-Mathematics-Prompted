@@ -553,8 +553,14 @@ class TestEmptyPanelHandling:
         res = run_backtest(prices=prices, signals=signals, config=_make_config())
         validation = validate_strategy(res.returns, res.trades, {})
 
-        for metric in ("total_return", "annualized_return", "annualized_volatility",
-                       "sharpe", "max_drawdown", "profit_factor"):
+        for metric in (
+            "total_return",
+            "annualized_return",
+            "annualized_volatility",
+            "sharpe",
+            "max_drawdown",
+            "profit_factor",
+        ):
             assert metric in res.metrics, f"engine missing {metric}"
             assert metric in validation, f"validate_strategy missing {metric}"
             assert res.metrics[metric] == validation[metric], (
