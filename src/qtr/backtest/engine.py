@@ -363,9 +363,12 @@ class VectorizedBacktester:
         # compounding periods). Measuring it from equity.iloc[0] instead would
         # silently drop the first bar -- the only bar on which the initial
         # entry cost is charged -- and would disagree with
-        # qtr.validation.statistics.validate_strategy, which computes
-        # (1 + returns).prod() - 1 over the same series. See
-        # tests/test_engine_total_return_consistency.py.
+        # qtr.validation.statistics.validate_strategy, which measures the same
+        # statistic as ``(1 + returns).cumprod().iloc[-1] - 1``: bit-identical
+        # to this for finite series, and matching even on a NaN-tail input
+        # where the engine's gross <= 0 guard fires. See
+        # tests/test_engine_total_return_consistency.py and
+        # tests/test_engine_metric_agreement.py.
         total_return = equity.iloc[-1] / self.config.initial_capital - 1.0
         n_periods = len(returns)
         ann_factor = 252  # daily data assumption
