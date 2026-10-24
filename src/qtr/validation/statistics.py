@@ -777,7 +777,31 @@ def validate_strategy(
         }
 
     n_trades = len(trades)
-    total_return = (1 + returns).prod() - 1
+    # The total return is the compound of the whole series, measured the same
+    # way the engine measures it: as the LAST row of the cumulative product,
+    # not as ``returns.prod()``. The two are bit-identical for a finite series
+    # (measured: relative difference 0.0 over 200 series of length 2..11441,
+    # including returns as large as +/-50%), but they differ on the boundary
+    # the engine's guard exists for: a series whose tail carries a NaN.
+    #
+    # ``pandas.Series.prod()`` SKIPS NaN (it is a reduction with skipna=True
+    # by default), so it silently drops the trailing NaN and reports the
+    # compound of the bars before it; ``pandas.Series.cumprod()`` propagates
+    # NaN, so its last row is NaN and the engine's ``equity.iloc[-1]`` is NaN
+    # too. On that input the engine reports ``total_return = NaN`` and
+    # ``annualized_return = -1.0`` (its guard fires on ``gross <= 0``), while
+    # the old ``prod()`` form reported ``0.0`` and ``0.0`` -- the two
+    # implementations disagreed on an input the record actually contains:
+    # ``prices.pct_change()`` leaves a NaN in every symbol whose first
+    # committed price is missing, and a trailing NaN survives into the
+    # return series a runner feeds to ``validate_strategy``. The engine is
+    # the side that had to move here (§H38 moved it for the total return),
+    # because changing ``prod()`` instead would move every published
+    # ``validation.total_return`` -- five of which are published.
+    #
+    # See tests/test_engine_metric_agreement.py, where the cross-module
+    # agreement contract now holds across the NaN-tail regime as well.
+    total_return = (1 + returns).cumprod().iloc[-1] - 1
     # The annualized return is the same statistic the engine computes in
     # ``VectorizedBacktester._calculate_metrics`` (engine.py:381-382), and the
     # two must agree for every input -- including the case the engine's guard

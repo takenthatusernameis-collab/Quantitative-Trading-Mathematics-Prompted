@@ -390,6 +390,57 @@ class TestSharedMetricAgreement:
         assert metrics["sharpe"] == 0.0
         assert validation["sharpe"] == 0.0
 
+    @pytest.mark.parametrize("tail", [np.nan, np.inf, -np.inf])
+    def test_agreement_holds_when_the_returns_carry_a_non_finite_tail(self, tail):
+        """A return series whose LAST bar is non-finite must not break the
+        agreement contract.
+
+        This is the same input class as the mid-series bar above, but it
+        reaches the total return differently: the total return is measured as
+        the last row of the cumulative product, so a non-finite tail propagates
+        into it. ``pandas.Series.prod()`` (the pre-fix form) SKIPS NaN by
+        default and silently reports the compound of the bars before the tail,
+        so the two implementations disagreed on a NaN-tail input the record
+        actually contains: ``prices.pct_change()`` leaves a NaN in every
+        symbol whose first committed price is missing, and a trailing NaN
+        survives into the return series a runner feeds to ``validate_strategy``
+        (``run_experiment.py:218``, ``run_baseline.py:193`` both pass
+        ``result.returns.values``).
+
+        The engine reports ``total_return = NaN`` and ``annualized_return =
+        -1.0`` here (its guard fires on ``gross <= 0``); the corrected
+        ``validate_strategy`` now does the same, so the contract holds across
+        the NaN-tail regime as well as the finite one. For every finite input
+        the arithmetic is bit-identical to before (measured: relative
+        difference 0.0 between ``cumprod().iloc[-1]`` and ``prod()`` over 200
+        series of length 2..11441, including returns as large as +/-50%).
+        """
+        import warnings
+
+        backtester = VectorizedBacktester(BacktestConfig())
+        empty_trades = pd.DataFrame(
+            columns=["timestamp", "symbol", "side", "weight_change", "price", "cost"]
+        )
+        returns = pd.Series([0.001] * 19 + [tail])
+        equity = (1.0 + returns).cumprod() * 1_000_000.0
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            metrics = backtester._calculate_metrics(returns, equity, empty_trades)
+            validation = validate_strategy(returns, empty_trades, {})
+
+        _assert_shared_metrics_agree(metrics, validation)
+        # The total return and annualized return agree on the boundary too.
+        # Both are NaN on a NaN-tail input (the agreement helper skips NaN==NaN),
+        # so compare the same way: NaN matches NaN, and finite values match.
+        for metric in ("total_return", "annualized_return"):
+            a, b = metrics[metric], validation[metric]
+            if np.isnan(a) and np.isnan(b):
+                continue
+            assert a == pytest.approx(b, rel=1e-12, abs=1e-15), (
+                f"{metric} disagrees: engine={a!r}, validate_strategy={b!r}"
+            )
+
 
 class TestEngineOnlyMetrics:
     """Metrics the engine computes alone are pinned by their exact formula."""
@@ -908,6 +959,40 @@ class TestContractNegativeControl:
         )
         with pytest.raises(AssertionError, match="total_return disagrees"):
             _assert_shared_metrics_agree(pre_fix, validation)
+
+    def test_the_contract_rejects_a_pre_fix_prod_total_return_on_a_nan_tail(self):
+        """Negative control for the NaN-tail total-return defect: the pre-fix
+        ``validate_strategy`` measured the total return with
+        ``returns.prod() - 1``, which SKIPS NaN by default and silently
+        reported the compound of the bars before the tail. The agreement
+        contract must reject that value, because the engine measures the same
+        statistic as the last row of the cumulative product and reports NaN
+        there.
+        """
+        import warnings
+
+        backtester = VectorizedBacktester(BacktestConfig())
+        empty_trades = pd.DataFrame(
+            columns=["timestamp", "symbol", "side", "weight_change", "price", "cost"]
+        )
+        returns = pd.Series([0.001] * 19 + [np.nan])
+        equity = (1.0 + returns).cumprod() * 1_000_000.0
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            metrics = backtester._calculate_metrics(returns, equity, empty_trades)
+            validation = validate_strategy(returns, empty_trades, {})
+
+        # The corrected implementation agrees with the engine.
+        _assert_shared_metrics_agree(metrics, validation)
+
+        # The pre-fix implementation reports the compound of the bars before
+        # the tail (prod skips NaN); the engine reports NaN.
+        pre_fix_validation = dict(validation)
+        pre_fix_validation["total_return"] = float((1 + returns).prod() - 1)
+        assert pre_fix_validation["total_return"] != metrics["total_return"]
+        with pytest.raises(AssertionError, match="total_return disagrees"):
+            _assert_shared_metrics_agree(metrics, pre_fix_validation)
 
     def test_the_contract_rejects_a_nan_annualized_return(self):
         """Negative control for the negative-gross guard: the pre-fix

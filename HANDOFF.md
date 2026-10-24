@@ -158,3 +158,71 @@ certified number was changed; no grid was re-run; no hypothesis was added.
   requirements.txt, full suite green) remains; see NEXT_TASK.md.
 - All remaining items in FINAL_REPORT.md §H53–§H61 are disclosed, not quantified, and depend on
   inputs the record does not hold.
+
+---
+
+# HANDOFF — H63 complete (the NaN-tail total-return disagreement)
+
+## What changed (H63)
+
+The carried-forward task from `HANDOFF_CURRENT.md` / `NEXT_TASK.md` was to find and fix the
+next defect of the H38/H62 class. The existing non-finite tests all passed, so the probe had to
+reach an input class they did not cover. A matrix of adversarial return series (mid-series
+`inf`/`-inf`/`nan`, first, last, all, all-NaN, loss below -100%, huge) fed to
+`VectorizedBacktester._calculate_metrics` and `validate_strategy` found a residual disagreement
+the contract did not catch.
+
+- `src/qtr/validation/statistics.py:804` — `validate_strategy` now measures the total return as
+  `(1 + returns).cumprod().iloc[-1] - 1`, the same statistic the engine measures, instead of
+  `(1 + returns).prod() - 1`. For every finite input the arithmetic is **bit-identical**
+  (measured: relative difference 0.0 over 200 series of length 2..11441, including returns as large
+  as +/-50%), so no published number moves. The change only matters on the boundary the engine's
+  guard exists for: a series whose tail carries a non-finite bar.
+- `tests/test_engine_metric_agreement.py` — **4 tests added** (2 positive, 2 negative controls),
+  suite 70 → 74.
+
+## The defect
+
+`pandas.Series.prod()` reduces with `skipna=True` by default, so it silently drops a trailing NaN
+and reports the compound of the bars before it. `pandas.Series.cumprod()` propagates NaN, so its
+last row is NaN and the engine's `equity.iloc[-1]` is NaN too. On a NaN-tail input the engine
+reported `total_return = NaN` and `annualized_return = -1.0` (its `gross <= 0` guard fires),
+while `validate_strategy` reported `0.0` and `0.0` — the two implementations disagreed on an input
+the record actually contains: every runner that builds a return series from `prices.pct_change()`
+can produce one, and `run_experiment.py:218` and `run_baseline.py:193` both pass
+`result.returns.values` to `validate_strategy`. This is the same class of defect as H38 (the
+total-return range) and H62 (the non-finite Sharpe/Sortino guards), which is why the engine is the
+side that had to move here.
+
+## What was actually verified (this session)
+
+- `python -m pytest -q -W error` → **2 076 passed, 16 skipped** (was 2072; 4 added).
+- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → `src/qtr` =
+  **1 091 statements, 330 branches, 0 missed, 0 partial, 100.00%**; both changed modules
+  (`engine.py`, `statistics.py`) individually at 100%.
+- `python -m ruff check src tests run_*.py` → *All checks passed!*; `ruff format --check` →
+  **103 files already formatted**.
+- Regression check: the five published `validation.total_return` values re-derive from their own
+  equity curves under the new formula. The only two that differ do so by 9e-16 and 5e-15 — float
+  noise at the 15th significant digit, far inside the contract's 1e-12 tolerance.
+
+## What remains unresolved
+
+Nothing. The H1–H30 hypothesis space is exhausted, H31–H63 are all closed, and the suite is green
+at 100% coverage on `src/qtr`.
+
+## Approaches that failed and why
+
+- Running the existing non-finite tests first: they passed, because the mid-series
+  `inf`/`-inf`/`nan` bar does not reach the total return (the std guard short-circuits the Sharpe
+  before the compound is consulted). The defect only surfaces on a **non-finite tail**, which no
+  test covered. The probe matrix (mid-series, first, last, all, all-NaN, loss, huge) found it.
+- Reconstructing the published `validation.total_return` from the equity curve without the
+  initial-capital term first reported all five as changed; that was a reconstruction error in the
+  probe, not a real change — re-running with the correct first-bar return confirmed only
+  float-noise differences.
+
+## Next task
+
+None. The repository is in a verified, fully-covered, green state. If a new task is assigned,
+start from the baseline above (2076 passed, 16 skipped, 100% coverage on `src/qtr`).
