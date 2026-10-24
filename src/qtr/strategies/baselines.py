@@ -32,11 +32,11 @@ def moving_average_crossover_signals(
         fast_ma = price.rolling(fast_window).mean()
         slow_ma = price.rolling(slow_window).mean()
 
-        # Crossover signal
-        signal = (fast_ma > slow_ma).astype(float)
+        # Crossover signal: +1 when fast > slow, -1 when fast < slow, 0 on tie
+        signal = np.sign(fast_ma - slow_ma)
 
-        if not long_only:
-            signal = signal * 2 - 1  # Convert to -1/1
+        if long_only:
+            signal = (signal > 0).astype(float)
 
         # Align back to full index
         signals.loc[signal.index, symbol] = signal
@@ -93,10 +93,10 @@ def ewma_crossover_signals(
         fast_ema = price.ewm(span=fast_span, adjust=False).mean()
         slow_ema = price.ewm(span=slow_span, adjust=False).mean()
 
-        signal = (fast_ema > slow_ema).astype(float)
+        signal = np.sign(fast_ema - slow_ema)
 
-        if not long_only:
-            signal = signal * 2 - 1
+        if long_only:
+            signal = (signal > 0).astype(float)
 
         signals.loc[signal.index, symbol] = signal
 
