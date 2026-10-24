@@ -2,32 +2,40 @@
 
 ## State
 
-H35–H66 complete. **No hypothesis work is assigned** — every remaining
+H35–H67 complete. **No hypothesis work is assigned** — every remaining
 unresolved item in `FINAL_REPORT.md` (§H53–§H61) is a value that is not a
 function of the committed record (missing inputs, disclosed convention
 differences, or benchmarks/trade logs/signals never committed). None can be
 implemented or verified from this checkout; they stay disclosed, not
 quantified, and no gate reads any of them.
 
-## What changed (this session — duplicate CCXT recording test removed)
+## What changed (this session — H67: zero momentum booked as a SHORT)
 
-Removed the duplicate test
-`test_fetcher_ccxt_rejects_the_pre_fix_interval_forwarding` from
-`tests/test_data_fetcher.py` (51 deletions). Its body was identical to
-`test_fetcher_ccxt_default_timeframe_matches_fetch_ccxt`: both clear the
-fetcher's CCXT exchange cache, install a recording CCXT stub, call
-`fetcher("ccxt", ...)` with defaults and with `timeframe="1d"`, and assert
-`"1h"` vs `"1d"`. The removed test's "negative control" docstring was
-misleading — it tested the exact same corrected behavior, adding zero unique
-coverage. Kept the better-documented, earlier test.
+- `src/qtr/strategies/baselines.py` — `vol_scaled_tsmom_signals`'s long/short
+  direction was `(mom > 0) * 2 - 1`, which maps an exact-zero momentum to -1.0,
+  so a price series returning exactly to its starting level over the lookback
+  window was booked as a SHORT and then inverse-volatility-scaled into a
+  non-zero short weight. Direction is now `np.sign(mom)` (NaN -> 0.0), so zero
+  momentum yields zero direction and zero weight. The long-only branch was
+  already correct and is bit-identical to before.
+- `tests/test_tsmom_signal.py` — **3 tests added** (21, was 18): a
+  `TestZeroMomentumIsNotAShort` class with a repeating 3-bar-cycle fixture
+  (pct_change(lookback) exactly zero while rolling vol is strictly positive),
+  pinning zero-momentum => zero weight in long/short, the same in long-only,
+  and a behavioural negative control reconstructing the pre-fix mapping.
 
-- `python -m pytest -q -W error` → **2 089 passed, 16 skipped** (was 2 090;
-  −1 is the removed test).
+- `python -m pytest -q -W error` → **2 092 passed, 16 skipped** (was 2 089; +3).
 - `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` **1 104 statements,
   338 branches, 0 missed, 0 partial, 100.00%** (unchanged).
 - `python -m ruff check src tests run_*.py` → *All checks passed!*;
   `python -m ruff format --check src tests run_*.py` → **103 files already
   formatted**.
+- Pinned contracts re-run: 940 passed across `test_engine_metric_agreement`,
+  `test_h53_*`, `test_h54_*`, `test_h55_*`, `test_h56_*`, `test_h57_*`,
+  `test_h58_*`, `test_h59_*`, `test_runner_causality_inventory`,
+  `test_runner_metric_agreement`, `test_benchmark_gate_contract`,
+  `test_public_api_contract`, `test_ruff_reproducibility`,
+  `test_trade_log_cost_reconciliation`, `test_tsmom_signal`.
 
 ## One precise next task
 
@@ -39,10 +47,13 @@ runners/validation, re-run the pinned contracts
 (`test_engine_metric_agreement.py`, `test_h53_published_metrics_disclosure`,
 `test_h54_non_metrics_block_disclosure`, `test_h55_nested_metrics_disclosure`,
 `test_h56_stats_json_echoes`, `test_h57_total_return_audit`,
-`test_h58_price_pathology_contamination`, `test_h59_contamination_gate_blast_radius`)
-and confirm `python -m pytest -q --cov=qtr --cov-branch` keeps `src/qtr` at
-100% with gates green; keep the ruff lint/format gates clean. Verify the
-quick-start surface from a fresh venv with only `pip install -r
+`test_h58_price_pathology_contamination`, `test_h59_contamination_gate_blast_radius`,
+`test_runner_causality_inventory`, `test_runner_metric_agreement`,
+`test_benchmark_gate_contract`, `test_public_api_contract`,
+`test_ruff_reproducibility`, `test_trade_log_cost_reconciliation`,
+`test_tsmom_signal`) and confirm `python -m pytest -q --cov=qtr --cov-branch`
+keeps `src/qtr` at 100% with gates green; keep the ruff lint/format gates clean.
+Verify the quick-start surface from a fresh venv with only `pip install -r
 requirements.txt` (`setuptools>=68`, `pyarrow>=14.0.0`, `ruff>=0.6.0`).
 
 ## Constraints carried forward
@@ -54,6 +65,7 @@ requirements.txt` (`setuptools>=68`, `pyarrow>=14.0.0`, `ruff>=0.6.0`).
 - Ruff lint (`python -m ruff check src tests run_*.py`) and format
   (`python -m ruff format --check src tests run_*.py`) gates must stay clean.
 - Re-run `tests/test_runner_causality_inventory.py`,
-  `tests/test_runner_metric_agreement.py` and
-  `tests/test_benchmark_gate_contract.py` after any change in a runner or
-  under `src/qtr/validation`.
+  `tests/test_runner_metric_agreement.py` and `tests/test_benchmark_gate_contract.py`
+  after any change in a runner or under `src/qtr/validation`.
+
+(End of file - total 79 lines)

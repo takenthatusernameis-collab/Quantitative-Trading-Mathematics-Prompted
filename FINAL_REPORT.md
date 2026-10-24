@@ -4848,3 +4848,86 @@ moves; no grid was re-run; no hypothesis was added.
   **33 passed** (the new parameter is invisible to the `__all__`-vs-public-API invariant, which is
   exactly what makes it a *behavioural* contract rather than a declaration one).
 - `tests/test_ruff_reproducibility.py` → **2 passed**.
+
+
+## H67 — zero momentum was booked as a SHORT (2026-10-24)
+
+**H67 is COMPLETE.** This is a **real defect in `src/qtr`**, found by widening the same
+"pinned contract passes while the thing it makes reachable does not" inspection that
+produced §H65/H66 from the strategy library the certified families are built from. It is
+the first change under `src/qtr/strategies` in this session.
+
+### The defect
+
+`vol_scaled_tsmom_signals` builds the long/short direction with
+
+```python
+direction = (mom > 0).astype(float) * 2.0 - 1.0
+```
+
+The sign of zero is not a direction, and this form maps an exact-zero momentum to `-1.0`.
+A price series that returns **exactly** to its starting level over the lookback window -- a
+repeating cycle, a flat book, a synthetic fixture -- was therefore booked as a SHORT. The
+position is then inverse-volatility-scaled, so the error is not cosmetic: a zero-momentum
+bar with positive realised volatility produced a non-zero short weight.
+
+```
+prices = tile([100, 101, 102])          # returns to 100 every 3 bars
+vol_scaled_tsmom_signals(prices, lookback=3, skip=1, long_only=False)
+  -> weight = -0.55 on every zero-momentum bar   (pre-fix)
+  -> weight =  0.00                              (corrected)
+```
+
+### Why the record made it reachable
+
+The long-only branch was already correct (`(mom > 0).astype(float)` maps zero to 0.0), and
+every existing test fed the function either a perfectly flat price (zero momentum **and** zero
+volatility, so no inverse-vol scaling could produce a weight) or a trending series where
+momentum is never exactly zero. The defect sat in the one branch no test had ever executed
+against an input that separates "zero momentum" from "no volatility".
+
+### What changed
+
+- `src/qtr/strategies/baselines.py` — the long/short direction is now `np.sign(mom)` (with
+  `mom.notna()` mapped to 0.0), so zero momentum yields zero direction and zero weight. `np.sign`
+  returns `0.0` for an exact zero; NaN momentum is mapped to 0.0 by the `where` below, exactly
+  as before. The long-only branch is bit-identical to before; only the long/short path moved.
+- `tests/test_tsmom_signal.py` — **3 tests added** (21, was 18): a `TestZeroMomentumIsNotAShort`
+  class whose fixture is a repeating 3-bar price cycle (so `pct_change(lookback)` is exactly zero
+  while `rolling(vol_window).std()` is strictly positive). It pins zero-momentum => zero weight in
+  long/short, pins the same in long-only (which was already correct), and a behavioural negative
+  control that reconstructs the pre-fix `(mom > 0) * 2 - 1` mapping and requires the corrected
+  signal to differ from it.
+
+### The blast radius
+
+The change is a one-symbol predicate in the long/short branch of a signal function. For every
+input with non-zero momentum the arithmetic is bit-identical to before, so:
+
+- every published signal that re-derives is unchanged;
+- the certified families (H10, H21, H22, H25) are unaffected -- they all call
+  `vol_scaled_tsmom_signals` with `long_only=True` (verified in their runners), the branch that
+  did not move;
+- `tests/test_causality_invariant.py`, which builds its base signal through this function,
+  still passes bit-exactly.
+
+### What was actually verified
+
+- The new tests **fail on the pre-fix code** (reverted source:
+  `zero-momentum bars must produce zero weight in long/short mode; got 195 offending rows`, all
+  negative short weights), then pass with the fix.
+- `python -m pytest -q -W error` → **2 092 passed, 16 skipped** (was 2 089; +3 are the new tests;
+  the 16 skips are unchanged and all intentional/self-declaring).
+- `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` **1 104 statements, 338 branches,
+  0 missed, 0 partial, 100.00%** (unchanged: the predicate swap adds no statement and no branch).
+- `python -m ruff check src tests run_*.py` → *All checks passed!*; `python -m ruff format --check
+  src tests run_*.py` → **103 files already formatted**.
+- Pinned contracts re-run after the change: `test_engine_metric_agreement.py`,
+  `test_h53_published_metrics_disclosure`, `test_h54_non_metrics_block_disclosure`,
+  `test_h55_nested_metrics_disclosure`, `test_h56_stats_json_echoes`, `test_h57_total_return_audit`,
+  `test_h58_price_pathology_contamination`, `test_h59_contamination_gate_blast_radius`,
+  `test_runner_causality_inventory`, `test_runner_metric_agreement`, `test_benchmark_gate_contract`,
+  `test_public_api_contract`, `test_ruff_reproducibility`, `test_trade_log_cost_reconciliation`,
+  `test_tsmom_signal` → **940 passed**.
+- No published artifact, gate threshold, verdict or certified number was modified; no grid was
+  re-run; no hypothesis was added.

@@ -332,7 +332,18 @@ def vol_scaled_tsmom_signals(
     if long_only:
         direction = (mom > 0).astype(float)
     else:
-        direction = (mom > 0).astype(float) * 2.0 - 1.0
+        # Direction is the SIGN of momentum: +1 long, -1 short, and **0 when
+        # momentum is exactly zero**. The sign of zero is not a direction, and
+        # ``(mom > 0) * 2 - 1`` maps it to -1, so a price series that returns
+        # exactly to its starting level over the lookback window (a
+        # repeating cycle, a flat book, a synthetic test fixture) was booked
+        # as a SHORT while carrying no information about trend. The position
+        # is then inverse-volatility-scaled, so the error is not cosmetic: a
+        # zero-momentum bar with positive realised volatility produced a
+        # non-zero short weight. ``np.sign`` returns 0.0 for an exact zero and
+        # is used instead of the arithmetic form; NaN momentum is mapped to
+        # 0.0 by the ``where`` below, exactly as before.
+        direction = np.sign(mom)
         direction = direction.where(mom.notna(), 0.0)
 
     sigma = pct.rolling(vol_window).std() * np.sqrt(252)

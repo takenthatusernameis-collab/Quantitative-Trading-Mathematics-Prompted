@@ -110,6 +110,94 @@ class TestTsmomSignInvariant:
         assert sig.abs().max().max() <= 1e-12, "zero momentum must produce zero TSMOM weight"
 
 
+class TestZeroMomentumIsNotAShort:
+    """A zero-momentum bar carries no trend information.
+
+    The long/short direction is the SIGN of momentum, and the sign of zero is
+    not a direction. The construction used to be ``(mom > 0) * 2 - 1``, which
+    maps an exact zero to -1: a price series that returns exactly to its
+    starting level over the lookback window (a repeating cycle, a flat book,
+    a synthetic fixture) was booked as a SHORT. The position is then
+    inverse-volatility-scaled, so the error is not cosmetic -- a zero-momentum
+    bar with positive realised volatility produced a non-zero short weight.
+    The invariant is that weight is zero wherever momentum is exactly zero,
+    for both long-only and long/short.
+    """
+
+    @staticmethod
+    def _repeating_prices(period: int = 3, length: int = 200) -> pd.DataFrame:
+        """A price series that returns to the same level every ``period`` bars.
+
+        pct_change(period) is therefore EXACTLY zero on every bar after the
+        first period, while the intra-period moves give a strictly positive
+        realised volatility. This is the minimal input that separates
+        "zero momentum" from "no volatility".
+        """
+        index = pd.bdate_range("2020-01-01", periods=length)
+        pattern = [100.0, 101.0, 102.0]
+        prices = pd.DataFrame(
+            {"REP": np.tile(pattern, length // period + 1)[:length]},
+            index=index,
+        )
+        return prices
+
+    def test_long_short_zero_momentum_produces_zero_weight(self):
+        prices = self._repeating_prices()
+        sig = vol_scaled_tsmom_signals(prices, lookback=3, skip=1, long_only=False, vol_window=3)
+        mom = prices.pct_change(3).shift(1)
+        sigma = prices.pct_change().rolling(3).std() * np.sqrt(252)
+
+        zero_mom = mom["REP"].abs() < 1e-12
+        # Every bar after the first period has exactly-zero momentum.
+        assert zero_mom.sum() > 0, "the fixture must actually produce zero momentum"
+        # ... and a strictly positive realised volatility, so the inverse-vol
+        # scaling would otherwise produce a non-zero weight.
+        assert (sigma["REP"][zero_mom] > 1e-6).all(), (
+            "the fixture must carry positive volatility on its zero-momentum bars"
+        )
+
+        # The invariant: zero momentum => zero weight, in BOTH directions.
+        bad = sig.loc[zero_mom, "REP"]
+        assert (bad.abs() <= 1e-9).all(), (
+            f"zero-momentum bars must produce zero weight in long/short mode; "
+            f"got {int((bad.abs() > 1e-9).sum())} offending rows"
+        )
+        # And specifically not a short: the pre-fix construction booked these
+        # as SHORT.
+        assert (bad >= -1e-9).all(), "a zero-momentum bar must not be booked as a short"
+
+    def test_long_only_zero_momentum_still_produces_zero_weight(self):
+        """The long-only path was already correct; pin it so it cannot regress
+        to the arithmetic form that the long/short path used to share."""
+        prices = self._repeating_prices()
+        sig = vol_scaled_tsmom_signals(prices, lookback=3, skip=1, long_only=True, vol_window=3)
+        mom = prices.pct_change(3).shift(1)
+        zero_mom = mom["REP"].abs() < 1e-12
+        bad = sig.loc[zero_mom, "REP"]
+        assert (bad.abs() <= 1e-9).all(), (
+            "zero-momentum bars must produce zero weight in long-only mode too"
+        )
+
+    def test_the_contract_rejects_the_pre_fix_zero_is_short(self):
+        """Behavioural negative control: the pre-fix ``(mom > 0) * 2 - 1``
+        construction maps an exact zero to -1, so a repeating-cycle price
+        series is booked as a SHORT on every bar. The corrected construction
+        must not be that one."""
+        prices = self._repeating_prices()
+        mom = prices.pct_change(3).shift(1)
+        pre_fix_direction = (mom > 0).astype(float) * 2.0 - 1.0
+        zero_mom = mom["REP"].abs() < 1e-12
+        # The pre-fix direction is -1 on zero-momentum bars.
+        assert (pre_fix_direction.loc[zero_mom, "REP"] == -1.0).all(), (
+            "the negative control must reconstruct the pre-fix mapping"
+        )
+        # ... and the corrected signal must differ from it.
+        sig = vol_scaled_tsmom_signals(prices, lookback=3, skip=1, long_only=False, vol_window=3)
+        assert not (sig.loc[zero_mom, "REP"] == pre_fix_direction.loc[zero_mom, "REP"]).all(), (
+            "the corrected signal must not reproduce the pre-fix zero-is-short mapping"
+        )
+
+
 class TestTsmomVolScaling:
     """Volatility scaling properties."""
 
