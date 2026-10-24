@@ -1,4 +1,67 @@
-# HANDOFF — H64 complete (the documented lint/format gates were not runnable from the documented quick start)
+# HANDOFF — H66 complete (the `fetcher()` CCXT branch forwarded the wrong default)
+
+## What changed (H66)
+
+No hypothesis task was assigned and the H1–H30 space is exhausted, so the session inspected the
+most recent change (§H65's `fetcher()` dispatch entry point) for a defect of the same class as the
+ones that produced it — a pinned contract that passes while the thing it makes reachable does not.
+It found one in the CCXT branch.
+
+- `src/qtr/data/fetcher.py` — `fetcher` now carries its own `timeframe: str = "1h"` parameter and
+  forwards *that* into the CCXT branch. Before the fix the CCXT branch forwarded the dispatcher's
+  `interval` parameter (default `"1d"`) into `fetch_ccxt`'s `timeframe` slot, whose own default is
+  `"1h"`, so `fetcher("ccxt", ...)` with defaults was **not** the same call as `fetch_ccxt(...)`
+  — hourly bars requested as daily ones. The yahoo and futures branches forwarded `interval`
+  unchanged and are bit-identical to before; only the CCXT default call moved.
+- `tests/test_data_fetcher.py` — **3 tests added** (38, was 35): the CCXT dispatch-equality test
+  now passes an explicit `timeframe` on both sides so it pins the *forwarding* rather than leaving
+  it at the dispatcher's default; a recording CCXT stub proves the default call forwards `"1h"`;
+  and a behavioural negative control reconstructs the pre-fix forwarding and requires it to
+  differ from the corrected default.
+
+The defect was invisible to the inherited dispatch-equality test because the fake exchange's
+`fetch_ohlcv` ignored `timeframe` entirely, so both sides returned the same frame.
+
+No published artifact, gate threshold, verdict or certified number was changed; no grid was
+re-run; no hypothesis was added.
+
+## What was actually verified
+
+- The two new tests **fail on the pre-fix code** (reverted dispatcher:
+  `TypeError: fetcher() got an unexpected keyword argument 'timeframe'`), then pass with the fix.
+- `python -m pytest -q -W error` → **2 089 passed, 16 skipped** (was 2 087; the 16 skips are
+  unchanged and all intentional/self-declaring).
+- `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` = **1 102 statements, 338 branches,
+  0 missed, 0 partial, 100.00%** (unchanged).
+- `python -m ruff check src tests run_*.py` → *All checks passed!*; `python -m ruff format --check
+  src tests run_*.py` → **103 files already formatted**.
+- `tests/test_data_fetcher.py` → **38 passed**; `tests/test_public_api_contract.py` → **33 passed**;
+  `tests/test_ruff_reproducibility.py` → **2 passed**.
+
+## What remains unresolved
+
+All remaining items in `FINAL_REPORT.md` §H53–§H61 are **disclosed, not quantified** — each
+depends on an input the record does not hold, and none can be resolved without new committed
+inputs. The thirteen H58/H59 gate booleans stay as published (all in REJECT families; no certified
+verdict moves). H1–H30 exhausted; certified families frozen.
+
+## Precise next task
+
+**None assigned.** The H47–H66 series is complete. If a session wants work, the only honest
+options are (a) wait for newly committed artifacts that make a disclosed value measurable, or
+(b) after any change under `src/qtr`, re-run the pinned contracts -- including
+`test_engine_metric_agreement.py`, `test_h53_published_metrics_disclosure`,
+`test_h54_non_metrics_block_disclosure`, `test_h55_nested_metrics_disclosure`,
+`test_h56_stats_json_echoes`, `test_h57_total_return_audit`, `test_h58_price_pathology_contamination`
+and `test_h59_contamination_gate_blast_radius` -- and confirm the gates stay green. In addition,
+verify the quick-start surface by running the suite from a fresh venv with only
+`pip install -r requirements.txt`, since `requirements.txt` is now the contract that must declare
+every dependency a pinned contract test or a documented gate imports (currently
+`setuptools>=68`, `pyarrow>=14.0.0` and `ruff>=0.6.0`).
+
+---
+
+## What changed (H65)
 
 ## What changed (H64)
 

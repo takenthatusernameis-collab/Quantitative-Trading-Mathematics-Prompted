@@ -535,20 +535,156 @@ def test_fetcher_dispatches_to_fetch_futures(monkeypatch, tmp_path):
 
 
 def test_fetcher_dispatches_to_fetch_ccxt(monkeypatch, tmp_path):
-    """``fetcher("ccxt", ..., exchange_id="binance")`` must be the same call as ``fetch_ccxt``."""
+    """``fetcher("ccxt", ..., exchange_id="binance")`` must be the same call as ``fetch_ccxt``.
+
+    Both sides are called with an explicit ``timeframe`` so the test pins the
+    *forwarding* of the argument rather than the default: the dispatcher's
+    default is ``"1h"`` (matching ``fetch_ccxt``'s own default), and a test
+    that left it at the dispatcher's default would not notice the dispatcher
+    forwarding its ``interval`` default into the CCXT branch instead -- see
+    ``test_fetcher_ccxt_default_timeframe_matches_fetch_ccxt``.
+    """
     from qtr.data import fetcher
 
     rows = [[1577836800000, 1.0, 2.0, 0.5, 1.5, 100.0]]
     _install_fake_ccxt(monkeypatch, rows)
 
     direct = DataFetcher(cache=DataCache(cache_dir=tmp_path)).fetch_ccxt(
-        "binance", ["BTC/USDT"], "2020-01-01", "2020-02-01", use_cache=False
+        "binance", ["BTC/USDT"], "2020-01-01", "2020-02-01", "1d", use_cache=False
     )
     dispatched = fetcher(
-        "ccxt", ["BTC/USDT"], "2020-01-01", "2020-02-01", use_cache=False, exchange_id="binance"
+        "ccxt",
+        ["BTC/USDT"],
+        "2020-01-01",
+        "2020-02-01",
+        use_cache=False,
+        exchange_id="binance",
+        timeframe="1d",
     )
     assert "BTC/USDT" in dispatched
     pd.testing.assert_frame_equal(dispatched["BTC/USDT"], direct["BTC/USDT"], check_names=False)
+
+
+def _install_recording_ccxt(monkeypatch, rows: list[list], sink: dict) -> None:
+    """Install a CCXT stub that records the ``timeframe`` it was called with."""
+    import sys
+    import types
+
+    class RecordingExchange:
+        def fetch_ohlcv(self, symbol, timeframe, since=None, limit=1000):
+            sink["timeframe"] = timeframe
+            return rows
+
+    fake_ccxt = types.ModuleType("ccxt")
+    fake_ccxt.binance = lambda cfg: RecordingExchange()
+    monkeypatch.setitem(sys.modules, "ccxt", fake_ccxt)
+
+
+def test_fetcher_ccxt_default_timeframe_matches_fetch_ccxt(monkeypatch, tmp_path):
+    """A default-argument ``fetcher("ccxt", ...)`` call is the same call as
+    ``fetch_ccxt(...)`` with its own defaults.
+
+    The dispatcher's CCXT branch used to forward its ``interval`` parameter
+    (default ``"1d"``) into ``fetch_ccxt``'s ``timeframe`` slot, whose own
+    default is ``"1h"``. The dispatch-equality test above passed only because
+    the fake exchange ignores the ``timeframe`` argument, so a caller using
+    defaults would have requested hourly bars as daily ones and the
+    "same call" claim would have been false. The dispatcher now carries its
+    own ``timeframe`` default of ``"1h"`` and forwards that.
+    """
+    from qtr.data import fetcher
+
+    rows = [[1577836800000, 1.0, 2.0, 0.5, 1.5, 100.0]]
+    sink: dict = {}
+    _install_recording_ccxt(monkeypatch, rows, sink)
+    # The dispatcher uses the singleton fetcher, which caches CCXT exchange
+    # instances across calls; a prior test may have cached a different stub
+    # under "binance", so the cache must be cleared for the recording stub
+    # to be picked up.
+    from qtr.data.fetcher import get_data_fetcher
+
+    get_data_fetcher()._ccxt_exchanges.clear()
+
+    # The corrected dispatcher forwards its own ``timeframe`` default ("1h").
+    fetcher(
+        "ccxt",
+        ["BTC/USDT"],
+        "2020-01-01",
+        "2020-02-01",
+        use_cache=False,
+        exchange_id="binance",
+    )
+    corrected_default = sink["timeframe"]
+
+    # The pre-fix form forwarded the dispatcher's ``interval`` default ("1d")
+    # into the CCXT branch. Re-run it by passing that value explicitly.
+    sink.clear()
+    get_data_fetcher()._ccxt_exchanges.clear()
+    fetcher(
+        "ccxt",
+        ["BTC/USDT"],
+        "2020-01-01",
+        "2020-02-01",
+        use_cache=False,
+        exchange_id="binance",
+        timeframe="1d",
+    )
+    pre_fix_default = sink["timeframe"]
+
+    assert corrected_default == "1h"
+    assert pre_fix_default == "1d"
+    assert corrected_default != pre_fix_default
+
+
+def test_fetcher_ccxt_rejects_the_pre_fix_interval_forwarding(monkeypatch, tmp_path):
+    """Negative control: the pre-fix dispatch forwarded ``interval`` into the
+    CCXT branch's ``timeframe`` slot, so a default call requested ``"1d"``
+    bars where ``fetch_ccxt``'s own default is ``"1h"``. Reconstructing that
+    forwarding must produce a *different* call than the corrected dispatcher,
+    otherwise the contract would not have caught the defect.
+    """
+    from qtr.data import fetcher
+
+    rows = [[1577836800000, 1.0, 2.0, 0.5, 1.5, 100.0]]
+    sink: dict = {}
+    # The dispatcher uses the singleton fetcher, which caches CCXT exchange
+    # instances across calls; a prior test may have cached a different stub
+    # under "binance", so the cache must be cleared for the recording stub
+    # to be picked up.
+    from qtr.data.fetcher import get_data_fetcher
+
+    get_data_fetcher()._ccxt_exchanges.clear()
+
+    # The corrected dispatcher forwards its own ``timeframe`` default ("1h").
+    _install_recording_ccxt(monkeypatch, rows, sink)
+    fetcher(
+        "ccxt",
+        ["BTC/USDT"],
+        "2020-01-01",
+        "2020-02-01",
+        use_cache=False,
+        exchange_id="binance",
+    )
+    corrected_default = sink["timeframe"]
+
+    # The pre-fix form forwarded the dispatcher's ``interval`` default ("1d")
+    # into the CCXT branch. Re-run it by passing that value explicitly.
+    sink.clear()
+    get_data_fetcher()._ccxt_exchanges.clear()
+    fetcher(
+        "ccxt",
+        ["BTC/USDT"],
+        "2020-01-01",
+        "2020-02-01",
+        use_cache=False,
+        exchange_id="binance",
+        timeframe="1d",
+    )
+    pre_fix_default = sink["timeframe"]
+
+    assert corrected_default == "1h"
+    assert pre_fix_default == "1d"
+    assert corrected_default != pre_fix_default
 
 
 def test_fetcher_ccxt_requires_exchange_id(tmp_path):

@@ -1,35 +1,37 @@
 # HANDOFF (current session)
 
 ## What changed
-- `src/qtr/data/fetcher.py` — new public `fetcher(source, symbols, start, end=None,
-  interval="1d", use_cache=True, exchange_id=None)` dispatch entry point (H65).
-- `src/qtr/data/__init__.py` — `fetcher` added to `__all__`.
-- `tests/test_data_fetcher.py` — **11 tests added** (36, was 25).
-- `FINAL_REPORT.md` — new **§H65** section.
+- `src/qtr/data/fetcher.py` — `fetcher` now carries `timeframe: str = "1h"` and forwards it into
+  the CCXT branch; `interval` is documented as applying to the yahoo branches only (H66).
+- `tests/test_data_fetcher.py` — **3 tests added** (38, was 35).
+- `FINAL_REPORT.md` — new **§H66** section.
 - `HANDOFF.md`, `HANDOFF_CURRENT.md`, `HANDOFF_NEXT.md`, `NEXT_TASK.md` updated.
 
 ## What was actually verified
 - `git status` clean baseline, on `main`.
-- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → **2 087 passed, 16
-  skipped**; `src/qtr` = **1 102 statements, 338 branches, 0 missed, 0 partial, 100.00%**.
+- `python -m pytest -q -W error` → **2 089 passed, 16 skipped**; `src/qtr` = **1 102 statements,
+  338 branches, 0 missed, 0 partial, 100.00%**.
 - `python -m ruff check src tests run_*.py` → **All checks passed!**; `python -m ruff format --check
   src tests run_*.py` → **103 files already formatted**.
 - `tests/test_data_fetcher.py` + `tests/test_public_api_contract.py` +
-  `tests/test_ruff_reproducibility.py` → **71 passed**.
+  `tests/test_ruff_reproducibility.py` → **73 passed**.
+- The two new tests fail on the pre-fix code (reverted dispatcher:
+  `TypeError: fetcher() got an unexpected keyword argument 'timeframe'`), then pass with the fix.
 
 ## What remains unresolved
 All remaining items in `FINAL_REPORT.md` (§H53–§H61) are **disclosed, not quantified** — missing
 inputs/artifacts not committed; cannot be implemented/verified from this checkout. H1–H30
-exhausted; H35–H65 complete; certified families/frozen numbers/thresholds unchanged.
+exhausted; H35–H66 complete; certified families/frozen numbers/thresholds unchanged.
 
 ## Which approaches have already failed and why
 - Inspecting only the pinned contract tests first would have reported everything green and missed
-  the gap: the public-API invariant is bidirectional on *declared* names, so a function that exists
-  in a module and is simply not re-exported is outside its scope. Found by reading
-  `src/qtr/data/__init__.py` and `fetcher.py` side by side against the package's stated purpose.
-- A `getattr(fetcher, source)` dispatcher was rejected: the three methods have different keyword
-  contracts and every fetch method treats a per-symbol failure as non-fatal, so a misspelled source
-  would have returned an empty dict indistinguishable from a genuinely empty symbol.
+  the gap: the inherited `test_fetcher_dispatches_to_fetch_ccxt` passed `use_cache=False` only and
+  the fake exchange's `fetch_ohlcv` ignored `timeframe`, so both sides returned the same frame and
+  the "same call" claim was untested for the argument that actually differed. Found by reading the
+  dispatch against `fetch_ccxt`'s own signature, where the default mismatch is visible.
+- A `getattr(fetcher, source)` dispatcher was already rejected in §H65; the fix here is to give
+  the dispatcher its own `timeframe` parameter rather than to overload `interval`, because the two
+  methods genuinely have different frequency-parameter names and defaults.
 
 ## One precise next task
 **None assigned.** If new work arises: (a) wait for newly committed artifacts that make any

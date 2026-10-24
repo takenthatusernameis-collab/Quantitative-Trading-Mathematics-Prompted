@@ -449,6 +449,7 @@ def fetcher(
     interval: str = "1d",
     use_cache: bool = True,
     exchange_id: str | None = None,
+    timeframe: str = "1h",
 ) -> dict[str, pd.DataFrame]:
     """Fetch OHLCV panels through the named source.
 
@@ -471,9 +472,14 @@ def fetcher(
         symbols: Tickers to download.
         start: Start date ``"YYYY-MM-DD"``.
         end: End date, or ``None`` for today.
-        interval: Vendor interval string.
+        interval: Vendor interval string for the yahoo branches.
         use_cache: Whether the file cache is consulted.
         exchange_id: CCXT exchange id; required for ``source="ccxt"``.
+        timeframe: CCXT timeframe string (e.g. ``"1h"``, ``"1d"``). Only
+            consulted for ``source="ccxt"``; the CCXT branch has its own
+            default of ``"1h"`` and would otherwise receive the dispatcher's
+            ``"1d"`` here, so a caller using defaults would get hourly bars
+            requested as daily.
 
     Returns:
         ``{symbol: DataFrame}``, exactly what the dispatched method returns.
@@ -492,7 +498,7 @@ def fetcher(
                 "source='ccxt' requires exchange_id= (e.g. 'binance'); "
                 "got None. CCXT needs an exchange to query."
             )
-        return fetch.fetch_ccxt(exchange_id, symbols, start, end, interval, use_cache)
+        return fetch.fetch_ccxt(exchange_id, symbols, start, end, timeframe, use_cache)
     raise ValueError(
         f"unknown data source {source!r}; supported: 'yahoo', 'yahoo_futures', 'ccxt'. "
         "Pass one of those as source=."

@@ -4777,3 +4777,74 @@ The change is purely additive on the public API surface: no existing function wa
 published artifact, gate threshold, verdict or certified number moved; no grid was re-run; no
 hypothesis was added. The only behavioural change is that `qtr.fetcher` and `qtr.data.fetcher`
 now exist and dispatch to the three methods that already did the work.
+
+
+## H66 — the `fetcher()` CCXT branch forwarded the wrong default (2026-10-24)
+
+**H66 is COMPLETE.** This is a **real defect in the H65 change**, found by reading the dispatch
+against the method it claims to be the same call as. It is the same "pinned contract passes while
+the thing it makes reachable does not" shape as §H64 and §H65: the dispatch-equality test passed,
+but only because the fake exchange ignored the argument the test was supposed to pin.
+
+### The defect
+
+`fetcher("ccxt", ...)` is documented as the same call as `DataFetcher().fetch_ccxt(...)`. The CCXT
+branch forwarded the dispatcher's `interval` parameter (default `"1d"`) into `fetch_ccxt`'s
+`timeframe` slot, whose own default is `"1h"`:
+
+```python
+# pre-fix
+return fetch.fetch_ccxt(exchange_id, symbols, start, end, interval, use_cache)
+```
+
+So a caller using defaults got hourly bars requested as daily ones. The two calls were not the same
+call, and the contract that existed to prove they were could not see it: `test_fetcher_dispatches_to_fetch_ccxt`
+passed `use_cache=False` only, and the fake exchange's `fetch_ohlcv` ignored `timeframe`
+entirely, so both sides returned the same frame and the assertion was satisfied.
+
+### Why the record makes it reachable
+
+`fetch_ccxt` is the only one of the three methods whose default for its frequency parameter is not
+`"1d"` (the yahoo branches both default to `"1d"`), so the dispatcher's single `interval` parameter
+could not serve both. Any caller of the new `qtr.fetcher` entry point who did not pass `timeframe=`
+got the wrong bar frequency — and the entry point exists precisely so that callers do not have to
+remember which keyword each method takes.
+
+### What changed
+
+- `src/qtr/data/fetcher.py` — `fetcher` now carries its own `timeframe: str = "1h"` parameter and
+  forwards *that* into the CCXT branch; `interval` is documented as applying to the yahoo branches
+  only. For every finite input the yahoo and futures branches are bit-identical to before (they
+  forwarded `interval` unchanged and still do); the only behavioural change is that the CCXT
+  default call now matches `fetch_ccxt`'s default.
+- `tests/test_data_fetcher.py` — **3 tests added** (38, was 35):
+  - `test_fetcher_dispatches_to_fetch_ccxt` now passes an explicit `timeframe="1d"` on both sides,
+    so it pins the *forwarding* of the argument rather than leaving it at the dispatcher's default;
+  - `test_fetcher_ccxt_default_timeframe_matches_fetch_ccxt` — a recording CCXT stub proves the
+    default `fetcher("ccxt", ...)` call forwards `"1h"`, the same value `fetch_ccxt`'s own default
+    forwards;
+  - `test_fetcher_ccxt_rejects_the_pre_fix_interval_forwarding` — a behavioural negative control
+    that reconstructs the pre-fix forwarding (passing `timeframe="1d"`) and requires it to differ
+    from the corrected default.
+
+### The blast radius
+
+The change is a one-parameter addition to a function that had no callers in the committed record
+(every `fetcher(` hit in `src`, `tests` and the `run_*.py` scripts is the method on `DataFetcher`, not
+the module-level dispatcher). No published artifact, gate threshold, verdict or certified number
+moves; no grid was re-run; no hypothesis was added.
+
+### What was actually verified
+
+- The two new tests **fail on the pre-fix code** (reverted dispatcher: `TypeError: fetcher() got an
+  unexpected keyword argument 'timeframe'`), then pass with the fix restored.
+- `python -m pytest -q -W error` → **2 089 passed, 16 skipped** (was 2 087; +2 are the new tests;
+  the 16 skips are unchanged and all intentional/self-declaring).
+- `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` = **1 102 statements, 338 branches,
+  0 missed, 0 partial, 100.00%** (unchanged: the new parameter adds no statement and no branch).
+- `python -m ruff check src tests run_*.py` → *All checks passed!*; `python -m ruff format --check
+  src tests run_*.py` → **103 files already formatted**.
+- `tests/test_data_fetcher.py` → **38 passed** (was 35); `tests/test_public_api_contract.py` →
+  **33 passed** (the new parameter is invisible to the `__all__`-vs-public-API invariant, which is
+  exactly what makes it a *behavioural* contract rather than a declaration one).
+- `tests/test_ruff_reproducibility.py` → **2 passed**.
