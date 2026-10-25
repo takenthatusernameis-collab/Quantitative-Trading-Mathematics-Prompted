@@ -131,7 +131,7 @@ def momentum_signals(
     """
     signals = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
 
-    if lookback <= 0:
+    if lookback <= 0 or skip < 0:
         return signals
 
     # Calculate momentum
@@ -366,7 +366,7 @@ def vol_scaled_tsmom_signals(
 
     All scaling uses only data available at time t (rolling windows, shift).
     """
-    if lookback <= 0 or vol_window <= 0:
+    if lookback <= 0 or vol_window <= 0 or skip < 0:
         return pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
     pct = prices.pct_change()
     # Momentum = lookback return, shifted by skip to avoid short-horizon
