@@ -24,6 +24,9 @@ def moving_average_crossover_signals(
     """
     signals = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
 
+    if fast_window <= 0 or slow_window <= 0:
+        return signals
+
     for symbol in prices.columns:
         price = prices[symbol].dropna()
         if len(price) < slow_window:
@@ -84,6 +87,9 @@ def ewma_crossover_signals(
         DataFrame of position weights
     """
     signals = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
+
+    if fast_span <= 0 or slow_span <= 0:
+        return signals
 
     for symbol in prices.columns:
         price = prices[symbol].dropna()

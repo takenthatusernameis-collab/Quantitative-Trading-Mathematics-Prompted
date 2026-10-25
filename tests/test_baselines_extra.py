@@ -90,3 +90,19 @@ def test_momentum_signals_n_top_nonpositive_skips():
 def test_vol_scale_nonpositive_vol_returns_one():
     assert baselines._vol_scale(0.0, 0.15) == 1.0
     assert baselines._vol_scale(-1.0, 0.15) == 1.0
+
+
+def test_ma_crossover_invalid_window():
+    prices = _make_prices(n_days=50)
+    sig = baselines.moving_average_crossover_signals(prices, fast_window=0, slow_window=10)
+    assert (sig.values == 0).all()
+    sig2 = baselines.moving_average_crossover_signals(prices, fast_window=5, slow_window=-1)
+    assert (sig2.values == 0).all()
+
+
+def test_ewma_crossover_invalid_span():
+    prices = _make_prices(n_days=50)
+    sig = baselines.ewma_crossover_signals(prices, fast_span=0, slow_span=10)
+    assert (sig.values == 0).all()
+    sig2 = baselines.ewma_crossover_signals(prices, fast_span=5, slow_span=-1)
+    assert (sig2.values == 0).all()
