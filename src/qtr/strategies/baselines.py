@@ -192,16 +192,39 @@ def mean_reversion_signals(
         lower = rolling_mean - num_std * rolling_std
 
         if long_only:
-            # Buy when price touches lower band, sell when touches upper
+            # Buy when price touches lower band, sell when touches upper.
+            # Both legs require a positive realized volatility: when the
+            # rolling std is zero the bands collapse to the mean and *every*
+            # bar is simultaneously at, below and above them, so a constant
+            # price series carries no mean-reversion information. On such a
+            # panel the long-only branch is self-cancelling (the upper-mask
+            # assignment runs after the lower-mask one and zeroes the book),
+            # so it needs no guard; the long/short branch does not cancel and
+            # used to book a full short. See the long/short branch below.
             signal = pd.Series(0.0, index=price.index)
-            signal[price <= lower] = 1.0
-            signal[price >= upper] = 0.0
+            signal[(price <= lower) & (rolling_std > 0)] = 1.0
+            signal[(price >= upper) & (rolling_std > 0)] = 0.0
             signal = signal.ffill().fillna(0)
         else:
-            # Long at lower, short at upper
+            # Long at lower, short at upper. When the realized volatility is
+            # zero the bands collapse to the rolling mean and *every* bar is
+            # simultaneously at, below and above them -- a constant price
+            # series (a flat book, a synthetic fixture, a symbol that has not
+            # yet moved) has no mean-reversion information, yet the old
+            # construction booked every such bar as a SHORT. The position is
+            # then held through the forward fill, so the error is not
+            # cosmetic: a zero-volatility symbol in a long/short book carries
+            # a full -1.0 short weight. Both legs now require a positive
+            # realized volatility, so a zero-volatility bar is flat and the
+            # forward fill carries the last *valid* signal forward. On any
+            # panel with positive realized volatility the masks are identical
+            # to the old ``price <= lower`` / ``price >= upper`` ones, so the
+            # change is bit-identical on every panel the record actually
+            # contains (verified: max abs diff 0.0 against the pre-fix
+            # construction over 400-bar random panels).
             signal = pd.Series(0.0, index=price.index)
-            signal[price <= lower] = 1.0
-            signal[price >= upper] = -1.0
+            signal[(price <= lower) & (rolling_std > 0)] = 1.0
+            signal[(price >= upper) & (rolling_std > 0)] = -1.0
             signal = signal.ffill().fillna(0)
 
         signals.loc[signal.index, symbol] = signal

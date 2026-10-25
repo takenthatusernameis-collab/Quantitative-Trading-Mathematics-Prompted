@@ -100,6 +100,102 @@ def test_mean_reversion_short():
     assert sig.values.sum() == 0
 
 
+class TestZeroVolatilityIsNotASignal:
+    """A zero-volatility bar carries no mean-reversion information.
+
+    When the rolling standard deviation is zero the Bollinger bands collapse
+    to the rolling mean and *every* bar is simultaneously at, below and above
+    them: a constant price series (a flat book, a synthetic fixture, a symbol
+    that has not yet moved) has no mean-reversion signal to give. The old
+    long/short construction booked every such bar as a SHORT and then held it
+    through the forward fill, so a zero-volatility symbol in a long/short book
+    carried a full -1.0 short weight. The invariant is that a bar whose
+    realized volatility is not positive is flat, for both long-only and
+    long/short.
+    """
+
+    @staticmethod
+    def _flat_prices(length: int = 120) -> pd.DataFrame:
+        index = pd.bdate_range("2020-01-01", periods=length)
+        return pd.DataFrame({"FLAT": [100.0] * length}, index=index)
+
+    def test_zero_volatility_produces_zero_weight_in_long_short(self):
+        prices = self._flat_prices()
+        sigma = prices["FLAT"].rolling(20).std()
+        assert (sigma.dropna() == 0.0).all(), (
+            "the fixture must carry zero realized volatility after the warmup"
+        )
+
+        sig = baselines.mean_reversion_signals(prices, window=20, num_std=2.0, long_only=False)
+        bad = sig["FLAT"].values
+        assert (np.abs(bad) <= 1e-9).all(), (
+            f"zero-volatility bars must produce zero mean-reversion weight in "
+            f"long/short mode; got {int((np.abs(bad) > 1e-9).sum())} offending rows"
+        )
+        assert (bad >= -1e-9).all(), "a zero-volatility bar must not be booked as a short"
+
+    def test_zero_volatility_produces_zero_weight_in_long_only(self):
+        prices = self._flat_prices()
+        sig = baselines.mean_reversion_signals(prices, window=20, num_std=2.0, long_only=True)
+        assert (np.abs(sig["FLAT"].values) <= 1e-9).all(), (
+            "zero-volatility bars must produce zero mean-reversion weight in long-only mode too"
+        )
+
+    def test_a_zero_volatility_symbol_stays_flat_alongside_a_trading_symbol(self):
+        """A mixed panel must not let the flat symbol leak a short.
+
+        The forward fill carries the last *valid* signal forward, so the flat
+        symbol's column stays at zero even when a neighbouring symbol is
+        trading around it. The trading symbol is a high-volatility random
+        walk (not a monotone trend: a trend never crosses its own 2-sigma
+        band, so it would not trade either).
+        """
+        length = 200
+        idx = pd.bdate_range("2020-01-01", periods=length)
+        rng = np.random.default_rng(7)
+        data = np.zeros((length, 2))
+        data[:, 0] = 100.0 * np.exp(np.cumsum(rng.normal(0.0, 0.05, length)))
+        data[:, 1] = 100.0  # flat: must stay flat
+        prices = pd.DataFrame(data, index=idx, columns=["TREND", "FLAT"])
+
+        sig = baselines.mean_reversion_signals(prices, window=20, num_std=2.0, long_only=False)
+        assert (np.abs(sig["FLAT"].values) <= 1e-9).all(), (
+            "a zero-volatility symbol in a long/short book must stay flat"
+        )
+        assert (np.abs(sig["TREND"].values) > 1e-9).any(), (
+            "the neighbouring trading symbol must still trade"
+        )
+
+    def test_the_contract_rejects_the_pre_fix_zero_volatility_is_a_short(self):
+        """Behavioural negative control: the pre-fix construction assigns
+        ``price >= upper`` to -1 unconditionally, so on a zero-volatility
+        panel every bar after the warmup is booked as a SHORT. The corrected
+        construction must not be that one.
+        """
+        prices = self._flat_prices()
+        price = prices["FLAT"].dropna()
+        rolling_mean = price.rolling(20).mean()
+        rolling_std = price.rolling(20).std()
+        upper = rolling_mean + 2.0 * rolling_std
+        pre_fix = pd.Series(0.0, index=price.index)
+        pre_fix[price <= upper] = 1.0
+        pre_fix[price >= upper] = -1.0
+        pre_fix = pre_fix.ffill().fillna(0)
+        # The warmup bars (where the rolling std is NaN) are filled by the
+        # forward fill with the first *assigned* value, so they are an
+        # artefact of the ffill rather than of the zero-volatility mapping;
+        # the invariant is pinned on the bars where the rolling std exists.
+        valid = rolling_std.notna()
+        assert (pre_fix[valid] == -1.0).all(), (
+            "the negative control must reconstruct the pre-fix zero-volatility-is-a-short mapping"
+        )
+
+        sig = baselines.mean_reversion_signals(prices, window=20, num_std=2.0, long_only=False)
+        assert not (sig["FLAT"].values == pre_fix.values).all(), (
+            "the corrected signal must not reproduce the pre-fix zero-volatility-is-a-short mapping"
+        )
+
+
 def test_tsmom_basic():
     prices = _make_prices(n_days=300)
     sig = baselines.time_series_momentum_signals(
