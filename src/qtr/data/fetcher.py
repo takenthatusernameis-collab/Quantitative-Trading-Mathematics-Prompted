@@ -427,7 +427,12 @@ class DataFetcher:
         try:
             tables = pd.read_html(url)
             df = tables[0]
-            return df["Symbol"].str.replace(".", "-").tolist()
+            # ``regex=False`` is required: in pandas >= 2.0 the default of
+            # ``Series.str.replace`` is regex=True, so a bare ``"."`` is the
+            # "any character" pattern and turns every class-share ticker
+            # (BRK.B, BF.B, GOOGL.A, ...) into a string of dashes. The dot is
+            # a literal character to strip, not a pattern to match.
+            return df["Symbol"].str.replace(".", "-", regex=False).tolist()
         except Exception as e:  # noqa: BLE001 -- constituent list fetch failure is non-fatal; fallback proxy list
             logger.error(f"Failed to fetch S&P 500 list: {e}")
             # Fallback to major ETFs as proxy

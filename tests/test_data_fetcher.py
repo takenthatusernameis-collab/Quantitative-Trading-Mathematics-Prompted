@@ -314,6 +314,54 @@ def test_fetch_sp500_success(monkeypatch):
     assert res == ["AAPL", "MSFT"]
 
 
+class TestSp500SymbolSanitization:
+    """The Wikipedia Symbol column carries class-share dots that must be
+    stripped as LITERAL characters, not as a regex pattern.
+
+    In pandas 2.x ``Series.str.replace`` defaulted to ``regex=True``, so a
+    bare ``"."`` was the "any character" pattern and turned every class-share
+    ticker (BRK.B, BF.B, GOOGL.A, ...) into a string of dashes. The committed
+    fixture had no dotted ticker, so the three existing tests could not see
+    it: they asserted ``["AAPL", "MSFT"]`` -> ``["AAPL", "MSFT"]`` either way.
+    The fix pins ``regex=False`` explicitly, which is correct under both the
+    2.x default (where it changes behaviour) and the 3.x default (where it is
+    a no-op but keeps the code honest against the documented contract).
+    """
+
+    @staticmethod
+    def _panel(symbols: list[str]) -> pd.DataFrame:
+        return pd.DataFrame({"Symbol": symbols})
+
+    def test_dotted_class_share_tickers_are_preserved(self, monkeypatch):
+        import tempfile
+
+        df = self._panel(["BRK.B", "BF.B", "GOOGL", "AAPL", "MSFT", "A.B.C"])
+        monkeypatch.setattr(pd, "read_html", lambda url: [df])
+        fetcher = DataFetcher(cache=DataCache(cache_dir=Path(tempfile.mkdtemp())))
+        res = fetcher.fetch_sp500_constituents()
+        assert res == ["BRK-B", "BF-B", "GOOGL", "AAPL", "MSFT", "A-B-C"]
+
+    def test_the_contract_rejects_the_regex_default(self, monkeypatch):
+        """Behavioural negative control: the pre-fix construction relied on
+        the pandas-2.x default of ``regex=True``, so a bare ``"."`` was the
+        "any character" pattern and mangled every dotted ticker. The corrected
+        sanitization must not reproduce that mangling.
+        """
+        import tempfile
+
+        df = self._panel(["BRK.B", "BF.B", "GOOGL", "AAPL", "MSFT"])
+        monkeypatch.setattr(pd, "read_html", lambda url: [df])
+        fetcher = DataFetcher(cache=DataCache(cache_dir=Path(tempfile.mkdtemp())))
+        res = fetcher.fetch_sp500_constituents()
+
+        pre_fix = df["Symbol"].str.replace(".", "-", regex=True).tolist()
+        assert pre_fix == ["-----", "----", "-----", "----", "----"], (
+            "the negative control must reconstruct the regex mangling"
+        )
+        assert res != pre_fix, "the corrected sanitization must not reproduce the regex mangling"
+        assert res == ["BRK-B", "BF-B", "GOOGL", "AAPL", "MSFT"]
+
+
 def test_fetch_yahoo_cache_hit(monkeypatch):
     # lines 103-104: cache hit short-circuits the yfinance call
     import sys

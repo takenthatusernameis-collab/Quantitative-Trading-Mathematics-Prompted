@@ -1,3 +1,98 @@
+# HANDOFF — H69 complete (S&P 500 symbol sanitization relied on a regex default)
+
+## What changed (H69)
+
+No hypothesis task was assigned and the H1–H30 space is exhausted, so the session
+inspected the most recent change under `src/qtr` (§H68's `mean_reversion_signals`
+volatility guard) for a defect of the same class as the ones that produced it -- a
+pinned contract that passes while the thing it makes reachable does not -- and,
+finding none there, widened the inspection to the data-fetching surface the
+strategy library is built from. It found one in `fetch_sp500_constituents`.
+
+- `src/qtr/data/fetcher.py:435` — `fetch_sp500_constituents` sanitized the
+  Wikipedia Symbol column with `df["Symbol"].str.replace(".", "-")`, relying on
+  the **pandas-2.x default** of `regex=True`. Under that default a bare `"."` is
+  the "any character" pattern, so every class-share ticker (BRK.B, BF.B,
+  GOOGL.A, ...) was turned into a string of dashes. The function's own docstring
+  says the returned list is the current Wikipedia list; a caller consuming it
+  would have received `-----` in place of `BRK.B`. The fix is
+  `str.replace(".", "-", regex=False)`, which is correct under both the 2.x
+  default (where it changes behaviour) and the 3.x default (where it is a no-op
+  but keeps the code honest against the documented contract). No published
+  artifact, gate threshold, verdict or certified number depends on this output:
+  no runner in the committed record calls `fetch_sp500_constituents`, so the
+  change is a robustness fix with zero behavioural impact on the frozen record.
+- `tests/test_data_fetcher.py` — **2 tests added** (40, was 38): a
+  `TestSp500SymbolSanitization` class whose fixture is a panel of dotted
+  class-share tickers (BRK.B, BF.B, GOOGL, AAPL, MSFT, A.B.C), pinning that
+  each is preserved as `BRK-B` etc.; and a behavioural negative control that
+  reconstructs the pre-fix `regex=True` mangling (`["-----", "----", ...]`)
+  and requires the corrected sanitization to differ from it.
+
+The defect was invisible to every existing test because none of them ever fed
+`fetch_sp500_constituents` a Symbol column containing a dotted ticker:
+`test_fetch_sp500_success` used `["AAPL", "MSFT"]` and `test_fetch_sp500_fallback`
+asserted the fallback list `["SPY", "IVV", "VOO", "SPLG"]`, both of which are
+dot-free and therefore bit-identical under either default.
+
+## What was actually verified (H69)
+
+- `python -m pytest -q -W error` → **2 103 passed, 16 skipped** (was 2 101; +2 are
+  the new tests; the 16 skips are unchanged and all intentional/self-declaring).
+- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` →
+  `src/qtr` **1 112 statements, 342 branches, 0 missed, 0 partial, 100.00%**
+  (unchanged: the one-line predicate change adds no statement and no branch).
+- `python -m ruff check src tests run_*.py` → *All checks passed!*;
+  `python -m ruff format --check src tests run_*.py` → **103 files already
+  formatted** (ruff reformatted the new test file once; re-run clean).
+- Pinned contracts re-run after the change: `test_engine_metric_agreement.py`,
+  `test_h53_published_metrics_disclosure`, `test_h54_non_metrics_block_disclosure`,
+  `test_h55_nested_metrics_disclosure`, `test_h56_stats_json_echoes`,
+  `test_h57_total_return_audit`, `test_h58_price_pathology_contamination`,
+  `test_h59_containment_gate_blast_radius`, `test_runner_causality_inventory`,
+  `test_runner_metric_agreement`, `test_benchmark_gate_contract`,
+  `test_public_api_contract`, `test_ruff_reproducibility`,
+  `test_trade_log_cost_reconciliation`, `test_tsmom_signal`,
+  `test_causality_invariant` → **609 passed, 1 skipped**.
+
+## What remains unresolved
+
+All remaining items in `FINAL_REPORT.md` §H53–§H61 are **disclosed, not
+quantified** (missing committed inputs/convention differences/benchmarks/trade
+logs/signals). The thirteen H58/H59 gate booleans stay as published (all in
+REJECT families; no certified verdict moves). H1–H30 exhausted; certified
+families frozen.
+
+## Precise next task
+
+**None assigned.** The H47–H69 series is complete. If a session wants work, the
+only honest options are (a) wait for newly committed artifacts that make any
+disclosed §H53–§H61 value measurable, or (b) after any change under `src/qtr`,
+re-run the pinned contracts -- including `test_engine_metric_agreement.py`,
+`test_h53_published_metrics_disclosure`, `test_h54_non_metrics_block_disclosure`,
+`test_h55_nested_metrics_disclosure`, `test_h56_stats_json_echoes`,
+`test_h57_total_return_audit`, `test_h58_price_pathology_contamination`,
+`test_h59_containment_gate_blast_radius`, `test_runner_causality_inventory`,
+`test_runner_metric_agreement`, `test_benchmark_gate_contract`,
+`test_public_api_contract`, `test_ruff_reproducibility`,
+`test_trade_log_cost_reconciliation`, `test_tsmom_signal`,
+`test_causality_invariant` -- and confirm `python -m pytest -q --cov=qtr
+--cov-branch` keeps `src/qtr` at 100% with gates green; keep the ruff
+lint/format gates clean.
+
+## Constraints carried forward
+
+- No published artifact, gate threshold, verdict or certified number may be
+  modified. No grid may be re-run; the H1–H30 hypothesis space remains exhausted.
+- `src/qtr` coverage gate must stay at 100% (statement + branch).
+- Ruff lint (`python -m ruff check src tests run_*.py`) and format
+  (`python -m ruff format --check src tests run_*.py`) gates must stay clean.
+- Re-run `tests/test_runner_causality_inventory.py`,
+  `tests/test_runner_metric_agreement.py` and `tests/test_benchmark_gate_contract.py`
+  after any change in a runner or under `src/qtr/validation`.
+
+---
+
 # HANDOFF — H68 complete (zero-volatility was booked as a SHORT)
 
 ## What changed (H68)
