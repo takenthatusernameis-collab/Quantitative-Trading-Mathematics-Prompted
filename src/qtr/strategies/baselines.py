@@ -24,7 +24,7 @@ def moving_average_crossover_signals(
     """
     signals = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
 
-    if fast_window <= 0 or slow_window <= 0:
+    if fast_window <= 0 or slow_window <= 0 or fast_window >= slow_window:
         return signals
 
     for symbol in prices.columns:
@@ -88,7 +88,7 @@ def ewma_crossover_signals(
     """
     signals = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
 
-    if fast_span <= 0 or slow_span <= 0:
+    if fast_span <= 0 or slow_span <= 0 or fast_span >= slow_span:
         return signals
 
     for symbol in prices.columns:
