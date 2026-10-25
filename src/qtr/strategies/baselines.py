@@ -294,7 +294,7 @@ def time_series_momentum_signals(
     """
     signals = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
 
-    if lookback <= 0:
+    if lookback <= 0 or skip < 0:
         return signals
 
     # Calculate momentum: past return over lookback, shifted by skip
