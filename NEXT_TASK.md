@@ -39,22 +39,28 @@ quantified, and no gate reads any of them.
 
 ## One precise next task
 
-**None assigned.** Options if work is desired:
-(a) wait for newly committed artifacts that make any disclosed §H53–§H61 value
-measurable; or
-(b) baseline hygiene — after any change under `src/qtr` or affecting
-runners/validation, re-run the pinned contracts
+**None assigned.** The quick-start surface verification from a fresh venv
+(`pip install -r requirements.txt` only) is now complete and green in this
+session:
+- `python -m ruff check src tests run_*.py` → All checks passed!
+- `python -m ruff format --check src tests run_*.py` → 103 files already formatted
+- `python -m pytest -q -W error` → 2100 passed, 13 skipped (no failures/errors; `-W error` clean)
+- `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` 1112 statements, 342 branches, 0 missed, 0 partial, **100.00%** (gate `fail_under = 100` reached)
+
+No working-tree changes were made; `git status` remains clean on `main` up to date with `origin/main`.
+
+Options if further work is desired:
+(a) wait for newly committed artifacts that make any disclosed §H53–§H61 value measurable; or
+(b) baseline hygiene — after any change under `src/qtr` or affecting runners/validation, re-run the pinned contracts
 (`test_engine_metric_agreement.py`, `test_h53_published_metrics_disclosure`,
 `test_h54_non_metrics_block_disclosure`, `test_h55_nested_metrics_disclosure`,
 `test_h56_stats_json_echoes`, `test_h57_total_return_audit`,
-`test_h58_price_pathology_contamination`, `test_h59_contamination_gate_blast_radius`,
+`test_h58_price_pathology_contamination`, `test_h59_containment_gate_blast_radius`,
 `test_runner_causality_inventory`, `test_runner_metric_agreement`,
 `test_benchmark_gate_contract`, `test_public_api_contract`,
 `test_ruff_reproducibility`, `test_trade_log_cost_reconciliation`,
 `test_tsmom_signal`) and confirm `python -m pytest -q --cov=qtr --cov-branch`
 keeps `src/qtr` at 100% with gates green; keep the ruff lint/format gates clean.
-Verify the quick-start surface from a fresh venv with only `pip install -r
-requirements.txt` (`setuptools>=68`, `pyarrow>=14.0.0`, `ruff>=0.6.0`).
 
 ## Constraints carried forward
 
