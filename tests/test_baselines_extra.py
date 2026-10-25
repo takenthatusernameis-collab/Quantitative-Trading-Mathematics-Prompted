@@ -87,6 +87,14 @@ def test_momentum_signals_n_top_nonpositive_skips():
     assert (sig.values == 0).all()
 
 
+def test_momentum_signals_n_top_negative_skips():
+    """A negative ``n_top`` is also nonpositive and must skip every date,
+    leaving an all-zero signal frame (the ``n_top <= 0`` guard, H70)."""
+    prices = _make_prices(n_days=300)
+    sig = baselines.momentum_signals(prices, lookback=20, skip=1, n_top=-1)
+    assert (sig.values == 0).all()
+
+
 def test_vol_scale_nonpositive_vol_returns_one():
     assert baselines._vol_scale(0.0, 0.15) == 1.0
     assert baselines._vol_scale(-1.0, 0.15) == 1.0
