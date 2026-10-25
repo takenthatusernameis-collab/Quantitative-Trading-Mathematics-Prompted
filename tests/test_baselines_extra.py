@@ -79,3 +79,14 @@ def test_registry_and_get_run():
 def test_get_strategy_invalid():
     with pytest.raises(ValueError):
         baselines.get_strategy("nope")
+
+
+def test_momentum_signals_n_top_nonpositive_skips():
+    prices = _make_prices(n_days=300)
+    sig = baselines.momentum_signals(prices, lookback=20, skip=1, n_top=0)
+    assert (sig.values == 0).all()
+
+
+def test_vol_scale_nonpositive_vol_returns_one():
+    assert baselines._vol_scale(0.0, 0.15) == 1.0
+    assert baselines._vol_scale(-1.0, 0.15) == 1.0
