@@ -467,8 +467,11 @@ def carry_signals(
 
 STRATEGY_REGISTRY = {
     "ma_crossover": moving_average_crossover_signals,
+    "moving_average_crossover": moving_average_crossover_signals,
+    "sma_crossover": moving_average_crossover_signals,
     "buy_and_hold": buy_and_hold_signals,
     "ewma_crossover": ewma_crossover_signals,
+    "ema_crossover": ewma_crossover_signals,
     "momentum": momentum_signals,
     "mean_reversion": mean_reversion_signals,
     "time_series_momentum": time_series_momentum_signals,

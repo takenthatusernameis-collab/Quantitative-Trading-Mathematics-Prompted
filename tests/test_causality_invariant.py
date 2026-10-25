@@ -89,12 +89,27 @@ PROBE_CASES: dict[str, dict[str, object]] = {
         "sparse": {"fast_window": 20, "slow_window": 50},
         "reactive": True,
     },
+    "moving_average_crossover": {
+        "dense": {"fast_window": 10, "slow_window": 25},
+        "sparse": {"fast_window": 20, "slow_window": 50},
+        "reactive": True,
+    },
+    "sma_crossover": {
+        "dense": {"fast_window": 10, "slow_window": 25},
+        "sparse": {"fast_window": 20, "slow_window": 50},
+        "reactive": True,
+    },
     "buy_and_hold": {
         "dense": {"weight": 1.0},
         "sparse": {"weight": 1.0},
         "reactive": False,
     },
     "ewma_crossover": {
+        "dense": {"fast_span": 10, "slow_span": 25},
+        "sparse": {"fast_span": 20, "slow_span": 50},
+        "reactive": True,
+    },
+    "ema_crossover": {
         "dense": {"fast_span": 10, "slow_span": 25},
         "sparse": {"fast_span": 20, "slow_span": 50},
         "reactive": True,
