@@ -321,3 +321,131 @@ def test_momentum_all_negative_long_short():
     assert isinstance(sig, pd.DataFrame)
     # When all negative and long_short, each gets negative weight (-1/2)
     assert np.allclose(sig.iloc[-1].values, -0.5)
+
+
+class TestMomentumTopNLongShortDisjoint:
+    """The long and short n_top sets must be disjoint.
+
+    With ``n_top`` symbols longed and ``n_top`` shorted, when ``2 * n_top``
+    exceeds the number of symbols carrying momentum the two selections overlap.
+    The old construction assigned the long weight first and then overwrote it
+    with the short weight, so a symbol with positive momentum that landed in
+    both lists was booked as a SHORT. A symbol is never simultaneously long and
+    short: the long side is dropped first, and the short leg is skipped when
+    nothing remains.
+    """
+
+    @staticmethod
+    def _overlap_prices() -> pd.DataFrame:
+        """Three symbols, all trending, so momentum never ties.
+
+        S0 rises fastest, S1 rises slower (still positive momentum), S2 falls.
+        With ``n_top=2`` the old top set is {S0, S1} and the old bottom set is
+        {S2, S1}: S1 is in both and has positive momentum.
+        """
+        idx = pd.date_range("2020-01-01", periods=40, freq="D")
+        data = np.zeros((40, 3))
+        for i in range(40):
+            data[i, 0] = 100 + 0.1 * i  # S0: up fastest
+            data[i, 1] = 100 + 0.05 * i  # S1: up slower (positive momentum)
+            data[i, 2] = 100 - 0.2 * i  # S2: down
+        return pd.DataFrame(data, index=idx, columns=["S0", "S1", "S2"])
+
+    def test_positive_momentum_symbol_is_not_shorted_on_overlap(self):
+        prices = self._overlap_prices()
+        sig = baselines.momentum_signals(prices, lookback=20, skip=1, long_only=False, n_top=2)
+        last = sig.iloc[-1]
+        # S1 has positive momentum and must not carry a short weight.
+        assert last["S1"] >= 0.0, (
+            f"a positive-momentum symbol must not be shorted on n_top overlap; S1={last['S1']}"
+        )
+        # S0 is longed, S2 is shorted, and the book nets to zero.
+        assert last["S0"] > 0.0, "the top-momentum symbol must be longed"
+        assert last["S2"] < 0.0, "the bottom-momentum symbol must be shorted"
+        assert abs(last.sum()) <= 1e-9, "a long/short book must net to zero"
+
+    def test_long_only_branch_is_unaffected_by_the_overlap(self):
+        prices = self._overlap_prices()
+        sig = baselines.momentum_signals(prices, lookback=20, skip=1, long_only=True, n_top=2)
+        last = sig.iloc[-1]
+        assert last["S0"] > 0.0 and last["S1"] > 0.0, "the two top symbols are longed"
+        assert last["S2"] == 0.0, "the bottom symbol is flat in long-only mode"
+        assert abs(last.sum() - 1.0) <= 1e-9, "long-only weights sum to one"
+
+    def test_the_contract_rejects_the_pre_fix_overlap_is_a_short(self):
+        """Behavioural negative control: the pre-fix construction assigned the
+        long weight and then the short weight to the overlapping symbol, so on
+        the overlap fixture S1 (positive momentum) ended at -0.25. The
+        corrected construction must not reproduce that mapping.
+        """
+        prices = self._overlap_prices()
+        mom = prices.pct_change(20).shift(1)
+        date = mom.index[-1]
+        mom_vals = mom.loc[date].dropna()
+        n_top = 2
+        top_symbols = mom_vals.nlargest(n_top).index
+        pre_fix = pd.Series(0.0, index=prices.columns)
+        pre_fix[list(top_symbols)] = 1.0 / (2 * len(top_symbols))
+        pre_fix[list(mom_vals.nsmallest(n_top).index)] = -1.0 / (2 * n_top)
+        assert pre_fix["S1"] < 0.0, (
+            "the negative control must reconstruct the pre-fix overlap-is-a-short mapping"
+        )
+
+        sig = baselines.momentum_signals(prices, lookback=20, skip=1, long_only=False, n_top=2)
+        assert sig.loc[date, "S1"] != pre_fix["S1"], (
+            "the corrected signal must not book the overlapping positive-momentum symbol as a short"
+        )
+
+
+def test_momentum_degenerate_guard_returns_empty():
+    """The degenerate-input guard (lookback <= 0 or skip < 0) returns an
+    empty signal frame rather than computing on a nonsensical lookback."""
+    prices = _make_prices(n_days=60)
+    assert np.allclose(baselines.momentum_signals(prices, lookback=0, skip=5).values, 0.0)
+    assert np.allclose(baselines.momentum_signals(prices, lookback=20, skip=-1).values, 0.0)
+
+
+def test_momentum_n_top_exhausts_symbols_skips_short_leg():
+    """When ``n_top`` meets or exceeds the symbol count the long side takes
+    every symbol and the short side has nothing left to short, so the short
+    leg is skipped (the bottom set is empty)."""
+    prices = _make_prices(n_days=60, n_syms=2)
+    sig = baselines.momentum_signals(prices, lookback=20, skip=1, long_only=False, n_top=5)
+    last = sig.iloc[-1]
+    assert (last >= 0.0).all(), "no short leg when n_top exhausts the universe"
+    assert (last > 0.0).all(), "the long side takes every symbol"
+
+
+def test_mean_reversion_degenerate_guard_returns_empty():
+    prices = _make_prices(n_days=60)
+    assert np.allclose(baselines.mean_reversion_signals(prices, window=0).values, 0.0)
+    assert np.allclose(baselines.mean_reversion_signals(prices, num_std=-1.0).values, 0.0)
+
+
+def test_time_series_momentum_degenerate_guard_returns_empty():
+    prices = _make_prices(n_days=60)
+    assert np.allclose(baselines.time_series_momentum_signals(prices, lookback=0).values, 0.0)
+
+
+def test_vol_scaled_tsmom_degenerate_guard_returns_empty():
+    prices = _make_prices(n_days=60)
+    assert np.allclose(baselines.vol_scaled_tsmom_signals(prices, lookback=0).values, 0.0)
+
+
+def test_carry_degenerate_guard_returns_empty():
+    prices = _make_prices(n_days=60)
+    assert np.allclose(baselines.carry_signals(prices, lookback=0).values, 0.0)
+
+
+def test_momentum_long_short_all_positive_covers_empty_negative_branch():
+    """All prices rise, so momentum is always positive: with long_only=False
+    and n_top=None the negative set is empty and the short leg is skipped
+    (arc ``if len(negative) > 0`` -> next loop iteration)."""
+    idx = pd.date_range("2020-01-01", periods=60, freq="D")
+    prices = pd.DataFrame(
+        {"A": 100 + 0.1 * np.arange(60), "B": 100 + 0.05 * np.arange(60)},
+        index=idx,
+    )
+    sig = baselines.momentum_signals(prices, lookback=20, skip=1, long_only=False, n_top=None)
+    assert (sig.values >= 0.0).all()
+    assert np.allclose(sig.iloc[-1].values, 0.5)

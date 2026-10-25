@@ -151,10 +151,21 @@ def momentum_signals(
             for sym in top_symbols:
                 signals.loc[date, sym] = weight
             if not long_only:
-                bottom_symbols = mom_vals.nsmallest(n_top).index
-                weight = -1.0 / (2 * len(bottom_symbols))
-                for sym in bottom_symbols:
-                    signals.loc[date, sym] = weight
+                # Long the top n_top, short the bottom n_top. The two sets must
+                # be disjoint: when ``2 * n_top`` exceeds the number of symbols
+                # with momentum the top and bottom selections overlap, and a
+                # positive-momentum symbol that made both lists was booked as a
+                # short because the bottom assignment ran after the top one.
+                # Drop the long side first so a symbol is never simultaneously
+                # long and short, and skip the short leg entirely when nothing
+                # remains.
+                bottom_symbols = (
+                    mom_vals.loc[~mom_vals.index.isin(top_symbols)].nsmallest(n_top).index
+                )
+                if len(bottom_symbols) > 0:
+                    weight = -1.0 / (2 * len(bottom_symbols))
+                    for sym in bottom_symbols:
+                        signals.loc[date, sym] = weight
         else:
             # All positive momentum
             positive = mom_vals[mom_vals > 0]
