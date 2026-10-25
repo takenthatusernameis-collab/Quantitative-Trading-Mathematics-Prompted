@@ -2,6 +2,7 @@
 Configuration management for QTR.
 """
 
+import math
 import os
 from pathlib import Path
 from typing import Any
@@ -72,13 +73,17 @@ def _set_nested(d: dict[str, Any], keys: list, value: str) -> None:
         d = d.setdefault(key, {})
     # Try to parse as int/float/bool
     try:
-        if "." in value:
-            value = float(value)
-        else:
-            value = int(value)
+        value = int(value)
     except ValueError:
-        if value.lower() in ("true", "false"):
-            value = value.lower() == "true"
+        try:
+            parsed = float(value)
+        except ValueError:
+            if value.lower() in ("true", "false"):
+                value = value.lower() == "true"
+        else:
+            if math.isfinite(parsed):
+                value = parsed
+            # non-finite (nan/inf) stays as the original string
     d[keys[-1]] = value
 
 
