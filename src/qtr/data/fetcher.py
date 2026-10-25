@@ -90,6 +90,9 @@ class DataCache:
         if path.exists():
             try:
                 df = pd.read_parquet(path)
+                if getattr(df.index, "tz", None) is not None:
+                    df = df.copy()
+                    df.index = pd.to_datetime(df.index).tz_localize(None)
                 logger.debug(f"Cache hit: {source} {symbol} {interval}")
                 return df
             except Exception as e:  # noqa: BLE001 -- cache corruption is non-fatal; skip and re-read
@@ -108,7 +111,10 @@ class DataCache:
         key = self._cache_key(source, symbol, start, end, interval)
         path = self.cache_dir / f"{key}.parquet"
         try:
-            df.to_parquet(path)
+            df_to_write = df.copy()
+            if getattr(df_to_write.index, "tz", None) is not None:
+                df_to_write.index = pd.to_datetime(df_to_write.index).tz_localize(None)
+            df_to_write.to_parquet(path)
             logger.debug(f"Cache write: {source} {symbol} {interval}")
         except Exception as e:  # noqa: BLE001 -- cache write failure is non-fatal; continue in memory
             logger.warning(f"Cache write failed: {e}")
@@ -175,6 +181,9 @@ class DataFetcher:
             if use_cache:
                 cached = self.cache.get("yahoo", symbol, start, end, interval)
                 if cached is not None:
+                    if getattr(cached.index, "tz", None) is not None:
+                        cached = cached.copy()
+                        cached.index = pd.to_datetime(cached.index).tz_localize(None)
                     self._reject_non_positive_prices(symbol, cached)
                     results[symbol] = cached
                     continue
@@ -259,6 +268,9 @@ class DataFetcher:
             if use_cache:
                 cached = self.cache.get("yahoo_futures", symbol, start, end, interval)
                 if cached is not None:
+                    if getattr(cached.index, "tz", None) is not None:
+                        cached = cached.copy()
+                        cached.index = pd.to_datetime(cached.index).tz_localize(None)
                     self._reject_non_positive_prices(symbol, cached)
                     results[symbol] = cached
                     continue
@@ -359,6 +371,9 @@ class DataFetcher:
                     "ccxt", f"{exchange_id}:{cache_symbol}", start, end, timeframe
                 )
                 if cached is not None:
+                    if getattr(cached.index, "tz", None) is not None:
+                        cached = cached.copy()
+                        cached.index = pd.to_datetime(cached.index).tz_localize(None)
                     self._reject_non_positive_prices(symbol, cached)
                     results[symbol] = cached
                     continue
