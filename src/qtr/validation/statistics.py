@@ -822,7 +822,7 @@ def validate_strategy(
     # Drawdown
     equity = (1 + returns).cumprod()
     rolling_max = equity.expanding().max()
-    drawdown = (equity - rolling_max) / rolling_max
+    drawdown = (equity - rolling_max) / rolling_max.where(rolling_max > 0, 1.0)
     max_dd = drawdown.min()
 
     # Profit factor
