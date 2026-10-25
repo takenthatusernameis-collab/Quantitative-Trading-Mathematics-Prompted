@@ -1,22 +1,23 @@
-# HANDOFF_CURRENT — session complete (baseline verified, no new task assigned)
+# HANDOFF_CURRENT — session complete (baseline hygiene)
 
 ## State
 
 - **H35–H70 are COMPLETE** per prior handoffs; H1–H30 exhausted; certified families frozen. No hypothesis work is assigned.
-- Baseline verified: lint/format gates green. Test suite passes (2103 passed, 16 skipped per H70). Coverage is at 100% for `src/qtr`.
+- Baseline verified: lint/format gates green. Working tree clean (HEAD 9f5ea72).
+- `src/qtr` coverage gate must remain at 100% (statement + branch).
 
 ## What changed (this session)
 
-- **No code changes** made. This session verified baseline state and prepared handoff per instructions.
-- Inspected repo status: working tree clean, on branch `main`. No pending assignments in handoffs.
+- **No code changes** made. Verified baseline state and prepared handoff.
+- Inspected: git status clean, HEAD at 9f5ea72 (matches prior session), gates/structure consistent.
 
 ## What was actually verified (this session)
 
 - `python -m ruff check src tests run_*.py` → *All checks passed!*
 - `python -m ruff format --check src tests run_*.py` → **103 files already formatted**
 - `git status --short` → clean working tree
-- `git log --oneline -1` → `28b0dbb` (matches current HEAD)
-- Confirmed `HANDOFF_NEXT.md` and `NEXT_TASK.md` state: **no hypothesis task assigned**; remaining items H53–H61 in `FINAL_REPORT.md` are disclosed (not quantifiable) — missing inputs/benchmarks/logs/signals never committed.
+- `git log --oneline -1` → `9f5ea72`
+- Focused test: `tests/test_baselines_extra.py` → **8 passed**
 
 ## What remains unresolved
 
