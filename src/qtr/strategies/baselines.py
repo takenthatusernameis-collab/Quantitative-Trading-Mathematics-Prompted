@@ -131,6 +131,9 @@ def momentum_signals(
     """
     signals = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
 
+    if lookback <= 0:
+        return signals
+
     # Calculate momentum
     momentum = prices.pct_change(lookback).shift(skip)
 
@@ -188,6 +191,9 @@ def mean_reversion_signals(
         DataFrame of position weights
     """
     signals = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
+
+    if window <= 0 or num_std < 0:
+        return signals
 
     for symbol in prices.columns:
         price = prices[symbol].dropna()
@@ -288,6 +294,9 @@ def time_series_momentum_signals(
     """
     signals = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
 
+    if lookback <= 0:
+        return signals
+
     # Calculate momentum: past return over lookback, shifted by skip
     momentum = prices.pct_change(lookback).shift(skip)
 
@@ -357,6 +366,8 @@ def vol_scaled_tsmom_signals(
 
     All scaling uses only data available at time t (rolling windows, shift).
     """
+    if lookback <= 0 or vol_window <= 0:
+        return pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
     pct = prices.pct_change()
     # Momentum = lookback return, shifted by skip to avoid short-horizon
     # reversal (Moskowitz, Ooi & Pedersen 2012).
@@ -418,6 +429,9 @@ def carry_signals(
         DataFrame of position weights
     """
     signals = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
+
+    if lookback <= 0:
+        return signals
 
     # Simple carry proxy: 12-month return minus 1-month return
     # High carry = positive term structure
