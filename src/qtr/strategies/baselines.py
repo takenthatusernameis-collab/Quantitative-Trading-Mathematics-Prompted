@@ -138,13 +138,18 @@ def momentum_signals(
                 continue
             # Top N momentum
             top_symbols = mom_vals.nlargest(n_top).index
-            weight = 1.0 / n_top if long_only else 1.0 / (2 * n_top)
+            if len(top_symbols) == 0:
+                continue
+            weight = 1.0 / len(top_symbols) if long_only else 1.0 / (2 * len(top_symbols))
             for sym in top_symbols:
                 signals.loc[date, sym] = weight
             if not long_only:
                 bottom_symbols = mom_vals.nsmallest(n_top).index
+                if len(bottom_symbols) == 0:
+                    continue
+                weight = -1.0 / (2 * len(bottom_symbols))
                 for sym in bottom_symbols:
-                    signals.loc[date, sym] = -weight
+                    signals.loc[date, sym] = weight
         else:
             # All positive momentum
             positive = mom_vals[mom_vals > 0]
