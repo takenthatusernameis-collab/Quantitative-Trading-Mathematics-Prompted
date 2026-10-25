@@ -134,6 +134,8 @@ def momentum_signals(
             continue
 
         if n_top is not None:
+            if n_top <= 0:
+                continue
             # Top N momentum
             top_symbols = mom_vals.nlargest(n_top).index
             weight = 1.0 / n_top if long_only else 1.0 / (2 * n_top)
