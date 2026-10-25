@@ -1,43 +1,59 @@
-# Next Task
+# Next task — H73
 
-## State
+Hunt the same defect class as H67-H72 in the remaining unguarded surface:
+a **zero-information input being booked as a direction**, or an
+**unordered-comparison guard / unguarded division** that lets a degenerate
+input produce a number instead of a sentinel.
 
-H35–H70 complete. **No hypothesis work is assigned** — every remaining
-unresolved item in `FINAL_REPORT.md` (§H53–§H61) is a value that is not a
-function of the committed record (missing inputs, disclosed convention
-differences, or benchmarks/trade logs/signals never committed). None can be
-implemented or verified from this checkout; they stay disclosed, not
-quantified, and no gate reads any of them.
+## Where to look
 
-## What changed (this session — H70: momentum_signals guards n_top<=0)
+- `src/qtr/tracking/experiment.py` — artifact serialization, summary
+  persistence, run-id / timestamp handling.
+- `src/qtr/utils/config.py` — config loading, defaults, boundary handling.
 
-- `src/qtr/strategies/baselines.py` — `momentum_signals` now skips when
-  `n_top <= 0` (avoiding division by zero in both long-only and long/short
-  branches). No published artifact, gate threshold, verdict or certified number
-  depends on this; no runner in the committed record passes `n_top <= 0`.
+## Method (from the H67-H72 record)
 
-- `python -m pytest -q -W error` → **2103 passed, 16 skipped**.
-- `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` **1112 statements,
-  342 branches, 0 missed, 0 partial, 100.00%**.
-- `python -m ruff check src tests run_*.py` → *All checks passed!*;
-  `python -m ruff format --check src tests run_*.py` → **103 files already
-  formatted**.
-- Pinned contracts re-run: 609 passed, 1 skipped across the full pinned set.
+1. Read the module and list every guard: every `if`, every division, every
+   comparison against a boundary (0, 1e-15, inf, nan).
+2. For each guard, ask: *does this compare unordered?* An `x > 0` guard does
+   not fire when `x` is `nan` or `inf` — that is the H62/H68/H70 defect
+   class, and it has now been found in `sharpe_ratio`, `compare_to_benchmark`,
+   `_vol_scale`, and `momentum_signals`.
+3. Probe with the smallest reproducing input **before** changing anything.
+   Feed the degenerate case at the function's public surface, not through a
+   runner, so the test is a unit test rather than an integration fixture.
+4. Fix with the smallest reversible change: a sentinel (0.0) on the
+   degenerate branch, matching whatever `validate_strategy` or the matching
+   implementation already reports, so the two implementations agree.
+5. Add a test with a **negative control** that feeds the pre-fix formula and
+   requires the corrected result to differ from it — the guard is only
+   load-bearing if the two disagree on the input.
+6. Verify the change is **bit-identical** on every committed artifact it
+   touches, and that no published verdict, gate threshold, or certified
+   number moves.
+7. Run the full gates before committing:
+   ```bash
+   python -m pytest -q -W error
+   python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing
+   python -m ruff check src tests run_*.py
+   python -m ruff format --check src tests run_*.py
+   ```
 
-## One precise next task
+## Constraints
 
-**None assigned.** Options if further work is desired:
-(a) wait for newly committed artifacts that make any disclosed §H53–§H61
-value measurable; or
-(b) baseline hygiene — after any change under `src/qtr` or affecting
-runners/validation, re-run the pinned contracts and confirm `src/qtr` stays
-at 100% coverage with gates green; keep ruff clean.
+- Coverage is enforced at 100% for `src/qtr` (`pyproject.toml`). Every new
+  branch must have a test that reaches it.
+- The working tree is left with qtr **uninstalled** so the suite runs from a
+  bare clone. Do not `pip install -e .` unless a test requires it; if you do,
+  restore the state and note it in the handoff.
+- Do not commit unless explicitly asked.
 
-## Constraints carried forward
+## Evidence from this session (H72)
 
-- No published artifact, gate threshold, verdict or certified number may be
-  modified. No grid may be re-run; the H1–H30 hypothesis space remains exhausted.
-- `src/qtr` coverage gate must stay at 100% (statement + branch).
-- Ruff lint and format gates must stay clean.
-- Re-run causality/metric agreement/benchmark gate contracts after changes in
-  runners or under `src/qtr/validation`.
+The defect was found by reading `db7aaff`'s diff (a divide-by-zero guard
+added to `validate_strategy`'s drawdown at statistics.py:825) and asking
+where the **parallel** drawdown in the engine lacked the same guard —
+`src/qtr/backtest/engine.py:504`. Probing with `returns = [-1.0] + [0.001]*19`
+confirmed `engine.max_drawdown = nan` vs `validate_strategy.max_drawdown = 0.0`.
+The fix was one line; the negative control (raw formula emits `nan`) makes it
+non-tautological.

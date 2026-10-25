@@ -501,9 +501,23 @@ class VectorizedBacktester:
         else:
             metrics["sortino"] = 0.0
 
-        # Drawdown
+        # Drawdown. The denominator is guarded the same way the matching
+        # guard in ``validate_strategy`` was given in §H71
+        # (statistics.py:825): ``rolling_max.where(rolling_max > 0, 1.0)``.
+        # Without it the first bar of a strategy that loses its entire
+        # capital on day one -- ``equity[0] == 0``, so ``rolling_max[0]``
+        # is exactly 0 -- divides by zero and reports ``max_drawdown = nan``,
+        # while ``validate_strategy`` reports ``0.0`` for the same input: the
+        # two implementations disagreed on a series the record actually
+        # contains (any runner that feeds a first-bar total loss, e.g. a
+        # contract that is in default on day one). The guard is a no-op on
+        # every curve that starts at positive capital: ``rolling_max`` is
+        # then positive from the first bar and the substitution never fires,
+        # so the published drawdowns are bit-identical (measured: identical
+        # to all five committed equity curves). See
+        # tests/test_engine_metric_agreement.py.
         rolling_max = equity.expanding().max()
-        drawdown = (equity - rolling_max) / rolling_max
+        drawdown = (equity - rolling_max) / rolling_max.where(rolling_max > 0, 1.0)
         metrics["max_drawdown"] = drawdown.min()
         metrics["max_drawdown_duration"] = self._max_dd_duration(drawdown)
 

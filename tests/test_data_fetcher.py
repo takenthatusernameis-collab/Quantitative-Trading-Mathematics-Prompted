@@ -29,6 +29,35 @@ def test_cache_miss(tmp_path):
     assert c.get("yahoo", "SPY", "2020-01-01", "2020-02-01", "1d") is None
 
 
+def test_cache_set_strips_a_tz_aware_index_before_writing(tmp_path):
+    """A frame written with a tz-aware index is stored tz-naive (§H58).
+
+    The cache layer canonicalizes the index on the way out, so every fetch
+    method's cache-hit path can assume a tz-naive index and need not
+    re-normalize it. Without this guard a tz-aware frame would be written
+    through verbatim and the tz-aware branch of every cache-hit path would
+    have to fire later to correct it -- the four now-removed normalization
+    blocks in ``fetch_yahoo`` / ``fetch_futures`` / ``fetch_ccxt``.
+    """
+    aware = pd.DataFrame(
+        {"close": [1.0, 2.0]},
+        index=pd.to_datetime(["2020-01-02", "2020-01-03"]).tz_localize("America/New_York"),
+    )
+    c = DataCache(cache_dir=tmp_path)
+    c.set("yahoo", "SPY", "2020-01-01", "2020-02-01", "1d", aware)
+    on_disk = pd.read_parquet(
+        tmp_path / f"{c._cache_key('yahoo', 'SPY', '2020-01-01', '2020-02-01', '1d')}.parquet"
+    )
+    assert on_disk.index.tz is None
+    # The round-trip is the tz-naive frame, not the tz-aware one: the cache
+    # canonicalizes on the way out, so what comes back is the stripped version.
+    stripped = aware.copy()
+    stripped.index = pd.to_datetime(stripped.index).tz_localize(None)
+    pd.testing.assert_frame_equal(
+        c.get("yahoo", "SPY", "2020-01-01", "2020-02-01", "1d"), stripped, check_names=False
+    )
+
+
 def test_cache_corrupt_returns_none(tmp_path, monkeypatch):
     c = DataCache(cache_dir=tmp_path)
     key = c._cache_key("yahoo", "SPY", "2020-01-01", "2020-02-01", "1d")

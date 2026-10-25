@@ -335,6 +335,72 @@ class TestSharedMetricAgreement:
         assert metrics["annualized_return"] == pytest.approx(-1.0, rel=1e-12)
         assert validation["annualized_return"] == pytest.approx(-1.0, rel=1e-12)
 
+    def test_agreement_holds_when_the_curve_starts_at_zero_capital(self):
+        """A strategy that loses its entire capital on the FIRST bar must not
+        break the agreement contract.
+
+        The bar is injected at the metric surface because a -100% *price*
+        return on day one needs a price of exactly zero, and the fetcher now
+        refuses any panel carrying a non-positive price (§H58), so this input
+        reaches these functions only through this contract.
+
+        The defect is in the drawdown denominator, not the numerator: with
+        ``equity[0] == 0`` the expanding maximum is exactly zero on the first
+        bar, and ``rolling_max[0] == 0`` makes
+        ``(equity - rolling_max) / rolling_max`` a 0/0 that numpy reports as
+        ``nan``. ``validate_strategy``'s drawdown was guarded in §H71 with
+        ``rolling_max.where(rolling_max > 0, 1.0)`` and reports ``0.0`` there,
+        so the engine reported ``max_drawdown = nan`` while
+        ``validate_strategy`` reported ``0.0`` for the same input -- the
+        two implementations disagreed on a series the record actually
+        contains (every runner that feeds a first-bar total loss, e.g. a
+        contract in default on day one, or a synthetic fixture). The engine
+        now carries the same guard.
+
+        The guard is a no-op on every curve that starts at positive capital:
+        ``rolling_max`` is positive from the first bar and the substitution
+        never fires, so the published drawdowns are bit-identical (measured:
+        identical to all five committed equity curves).
+        """
+        backtester = VectorizedBacktester(BacktestConfig())
+        empty_trades = pd.DataFrame(
+            columns=["timestamp", "symbol", "side", "weight_change", "price", "cost"]
+        )
+        returns = pd.Series([-1.0] + [0.001] * 19)
+        equity = (1.0 + returns).cumprod() * 1_000_000.0
+
+        metrics = backtester._calculate_metrics(returns, equity, empty_trades)
+        validation = validate_strategy(returns, empty_trades, {})
+
+        _assert_shared_metrics_agree(metrics, validation)
+        assert metrics["max_drawdown"] == 0.0
+        assert validation["max_drawdown"] == 0.0
+        assert metrics["total_return"] == pytest.approx(-1.0, rel=1e-12)
+
+    def test_max_drawdown_rejects_the_pre_fix_unguarded_formula(self):
+        """Negative control: the raw
+        ``(equity - rolling_max) / rolling_max`` formula emits ``nan`` on a
+        first-bar total loss, so the corrected drawdown must differ from it.
+
+        This pins that the guard is load-bearing rather than cosmetic: the
+        pre-fix engine and the corrected engine disagree on exactly the input
+        the contract exists to catch.
+        """
+        backtester = VectorizedBacktester(BacktestConfig())
+        empty_trades = pd.DataFrame(
+            columns=["timestamp", "symbol", "side", "weight_change", "price", "cost"]
+        )
+        returns = pd.Series([-1.0] + [0.001] * 19)
+        equity = (1.0 + returns).cumprod() * 1_000_000.0
+
+        metrics = backtester._calculate_metrics(returns, equity, empty_trades)
+
+        rolling_max = equity.expanding().max()
+        pre_fix = float(((equity - rolling_max) / rolling_max).min())
+        assert np.isnan(pre_fix)
+        assert metrics["max_drawdown"] == 0.0
+        assert metrics["max_drawdown"] != pre_fix
+
     def test_num_trades_agrees_with_the_validation_counter(self):
         """`num_trades` (engine) and `n_trades` (validation) count the same
         rows of the same trades frame."""

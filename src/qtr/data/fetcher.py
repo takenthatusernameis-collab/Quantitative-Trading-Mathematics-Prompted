@@ -179,11 +179,13 @@ class DataFetcher:
 
         for symbol in symbols:
             if use_cache:
+                # ``DataCache.get`` canonicalizes the index to tz-naive on the
+                # way out (fetcher.py:92-96), so a cached frame is already in
+                # the shape every caller expects and needs no per-fetch
+                # normalization here. The normalization lives in the cache
+                # layer, not in each fetch method's cache-hit path.
                 cached = self.cache.get("yahoo", symbol, start, end, interval)
                 if cached is not None:
-                    if getattr(cached.index, "tz", None) is not None:
-                        cached = cached.copy()
-                        cached.index = pd.to_datetime(cached.index).tz_localize(None)
                     self._reject_non_positive_prices(symbol, cached)
                     results[symbol] = cached
                     continue
@@ -266,11 +268,13 @@ class DataFetcher:
                 logger.warning(f"Futures symbol {symbol} should end with =F; proceeding anyway")
 
             if use_cache:
+                # ``DataCache.get`` canonicalizes the index to tz-naive on the
+                # way out (fetcher.py:92-96), so a cached frame is already in
+                # the shape every caller expects and needs no per-fetch
+                # normalization here. The normalization lives in the cache
+                # layer, not in each fetch method's cache-hit path.
                 cached = self.cache.get("yahoo_futures", symbol, start, end, interval)
                 if cached is not None:
-                    if getattr(cached.index, "tz", None) is not None:
-                        cached = cached.copy()
-                        cached.index = pd.to_datetime(cached.index).tz_localize(None)
                     self._reject_non_positive_prices(symbol, cached)
                     results[symbol] = cached
                     continue
@@ -367,13 +371,15 @@ class DataFetcher:
         for symbol in symbols:
             cache_symbol = symbol.replace("/", "_")
             if use_cache:
+                # ``DataCache.get`` canonicalizes the index to tz-naive on the
+                # way out (fetcher.py:92-96), so a cached frame is already in
+                # the shape every caller expects and needs no per-fetch
+                # normalization here. The normalization lives in the cache
+                # layer, not in each fetch method's cache-hit path.
                 cached = self.cache.get(
                     "ccxt", f"{exchange_id}:{cache_symbol}", start, end, timeframe
                 )
                 if cached is not None:
-                    if getattr(cached.index, "tz", None) is not None:
-                        cached = cached.copy()
-                        cached.index = pd.to_datetime(cached.index).tz_localize(None)
                     self._reject_non_positive_prices(symbol, cached)
                     results[symbol] = cached
                     continue
