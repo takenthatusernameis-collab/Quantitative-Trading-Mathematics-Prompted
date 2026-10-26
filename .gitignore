@@ -21,3 +21,6 @@ dist/
 # and install, so tracking it only produces a stale copy that drifts out of
 # sync with the tree (and a dirty working tree after any `pip install -e .`).
 *.egg-info/
+
+# Cached data files are intentionally committed for reproducibility; ignore new cache files
+.cache/
