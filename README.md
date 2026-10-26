@@ -1,16 +1,16 @@
 # Quantitative Trading Mathematics (Prompted)
 
-This repository contains a quantitative trading research codebase with experiment runners, backtesting infrastructure, and a large set of audited hypothesis tests (H1–H57).
+This repository contains a quantitative trading research codebase with experiment runners, backtesting infrastructure, and a large set of audited hypothesis tests (H1–H74).
 
 ## Quickstart
 
 - Install dependencies: `pip install -r requirements.txt`
 - Run tests: `python -m pytest -q`
-- Lint/format: `python -m ruff check . && python -m ruff format --check .`
+- Lint/format: `python -m ruff check src tests run_*.py && python -m ruff format --check src tests run_*.py`
 
 ## Key Directories
 
-- `src/qtr/` — Core library (backtest, data, features, portfolio, validation, etc.)
+- `src/qtr/` — Core library (backtest, data, strategies, tracking, utils, validation, etc.)
 - `run_*.py` — Experiment runners for hypotheses H1+
 - `tests/` — Test suite with hypothesis contracts and audits
 - `*.md` — Handoff reports, execution logs, and discovery reports
