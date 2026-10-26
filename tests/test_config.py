@@ -101,6 +101,15 @@ def test_env_overrides_float(tmp_path, monkeypatch):
     _clear_config_state()
 
 
+def test_env_overrides_nonfinite_float_stays_string(tmp_path, monkeypatch):
+    _clear_config_state()
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("QTR_MAX_CPU_HOURS", "nan")
+    result = config.load_config()
+    assert result["compute"]["max_cpu_hours"] == "nan"
+    _clear_config_state()
+
+
 def test_env_overrides_bool_true(tmp_path, monkeypatch):
     _clear_config_state()
     monkeypatch.chdir(tmp_path)
