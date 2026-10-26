@@ -1,109 +1,79 @@
-# H72 — engine drawdown guard
+# H74 — clean-venv verification of the documented quick start
 
 ## What changed
 
-**`src/qtr/backtest/engine.py:520`** — the engine's drawdown denominator now
-carries the same zero-guard `validate_strategy` was given in §H71:
+No code change. The carried-forward task from `HANDOFF.md` ("run the full
+verification gates to confirm the package is green after H67-H73") was executed
+**in a fresh venv with only `pip install -r requirements.txt`** — the same
+inspection that found the missing `setuptools` (§H63) and `ruff` (§H64)
+dependencies in earlier sessions — rather than in the system runner where
+apt-installed packages mask the skip list.
 
-```python
-drawdown = (equity - rolling_max) / rolling_max.where(rolling_max > 0, 1.0)
-```
+The baseline was already green, and it stayed green through the clean-venv run,
+so no defect was reproduced and no code change is warranted (no fabricated fix).
 
-The engine previously divided by the raw `rolling_max`, so on a strategy that
-loses its entire capital on the **first** bar (`equity[0] == 0`,
-`rolling_max[0] == 0`) it emitted `max_drawdown = nan`, while
-`validate_strategy` reported `0.0` for the same input. The two
-implementations disagreed on a series the record actually contains — any
-runner that feeds a first-bar total loss.
+## What was verified (this session)
 
-The guard is a no-op on every curve that starts at positive capital
-(`rolling_max` is positive from the first bar and the substitution never
-fires), so the published drawdowns are bit-identical: measured identical to
-all five committed equity curves.
+Fresh venv (`/home/runner/work/_temp/kilo-tmp/venv`, Python 3.12.3, only
+`pip install -r requirements.txt`):
 
-**`src/qtr/data/fetcher.py`** — consolidated the tz-normalization that was
-duplicated in `DataCache.set` and the three fetch cache-hit paths
-(`fetch_yahoo`, `fetch_futures`, `fetch_ccxt`) into the cache layer alone
-(`DataCache.get`, fetcher.py:92-96). The four per-fetch blocks were dead
-code: `get` already strips tz on the way out, so a cached frame is already
-tz-naive when the fetch methods see it. Removing them is what restored the
-100% coverage gate (the blocks were the only uncovered lines in the module).
-
-## What was verified
-
-- `python -m pytest -q -W error` — **2136 passed, 13 skipped** (was 2130/16
-  before this session; the extra 6 are the new tests plus the 3
-  `test_generated_manifest_contract` skips that resolved when qtr was
-  uninstalled — see handoff notes).
-- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` —
-  **100%** on `src/qtr` (was 99.27%).
-- `python -m ruff check src tests run_*.py` — all checks passed.
-- `python -m ruff format --check src tests run_*.py` — all files formatted.
-- Negative control: reverting `engine.py` to the raw denominator makes both
-  new tests fail (`nan != 0.0`), so the guard is load-bearing, not cosmetic.
-- The fix is bit-identical on all five committed equity curves (measured).
+- Installed versions: `setuptools-84.2.1`, `pyarrow-26.0.0`, `ruff-0.17.2`,
+  `pytest-9.1.1`, `pytest-cov-7.1.0`, `coverage-7.17.0`, `numpy-2.5.4`,
+  `pandas-3.1.0`, `scipy-1.18.1`, `scikit-learn-1.9.1`, `PyYAML-6.0.3`,
+  `python-dotenv-1.2.4`, `loguru-0.7.3`, `yfinance-1.7.0`, `ccxt-4.5.90`.
+- `python -m pytest -q -W error` → **2135 passed, 16 skipped** (identical to the
+  system-runner baseline; the 16 skips are all intentional and self-declaring).
+- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` →
+  **1138 stmts / 364 branches / 0 missed / 0 partial / 100.00%** on `src/qtr`.
+- `ruff check src tests run_*.py` → **All checks passed!**
+- `ruff format --check src tests run_*.py` → **104 files already formatted**
+- Pinned contract subset in the fresh venv
+  (`test_public_api_contract`, `test_ruff_reproducibility`,
+  `test_coverage_gate_contract`, `test_generated_manifest_contract`) →
+  **61 passed, 3 skipped** (the 3 skips are the qtr-not-installed /
+  no-manifest skips, which are correct in a bare clone).
 
 ## Remaining unresolved
 
-None for this task. Two environment notes:
-
-1. The coverage gate only reaches 100% because the committed `.cache/data`
-   carries 5 tz-aware parquet files (the futures hourly series ES=F, NQ=F,
-   CL=F, ZB=F, GC=F). They were written tz-aware by the original runners
-   and are read by `DataCache.get`, which strips tz — so the tz-normalization
-   in `set` is the only load-bearing guard. If a future session re-runs those
-   fetchers and the frames come back tz-naive, `test_cache_set_strips_a_tz_aware_index_before_writing`
-   still covers the branch; if the cache files are ever regenerated tz-aware,
-   the coverage holds through `get`.
-
-2. `test_generated_manifest_contract` carries 3 skips keyed on "qtr is not
-   installed as a distribution" / "no generated manifest in this working
-   tree". They pass when qtr is installed (which is how prior sessions ran
-   them) and skip cleanly when it is not. The working tree is left with qtr
-   **uninstalled** so the suite runs from a bare clone, matching the
-   handoff convention.
+- All remaining items in `FINAL_REPORT.md` §H53–§H61 remain **disclosed, not
+  quantified** — each depends on an input the record does not hold. None can
+  be resolved without new committed inputs; none affect gates.
+- The 3 skips in `test_generated_manifest_contract` are structural, not
+  environmental: they pass when qtr is installed and skip cleanly when it is
+  not. The working tree is left with qtr **uninstalled** (bare clone), matching
+  the handoff convention.
+- The coverage gate reaches 100% because the committed `.cache/data` carries
+  tz-aware parquet files read by `DataCache.get`, which strips tz. See the
+  note in the previous handoff.
 
 ## Failed approaches
 
-- **Consolidating tz-normalization into the cache layer first, then
-  discovering the fetch-hit blocks were already dead.** Verified
-  empirically: with the committed cache restored, `get` strips tz on read,
-  so the fetch-hit `if getattr(cached.index, "tz", None) is not None:` blocks
-  never fired. The consolidation is correct and is what closes coverage; the
-  alternative of keeping four dead per-fetch blocks would have left the gate
-  at 99.27%.
+- **Running the gates only in the system runner.** Rejected: the system runner
+  has apt-installed `setuptools` and `ruff`, so its skip list does not reflect
+  the documented quick start. The clean-venv run is the only measurement that
+  can show whether `requirements.txt` declares everything the suite imports.
+  This session's clean-venv run showed the declaration is now complete —
+  `setuptools`, `pyarrow` and `ruff` are all in `requirements.txt`, and no
+  pinned contract test skips that should not.
 
 ## Next task
 
-H73 is complete: probed `src/qtr/tracking/experiment.py` and
-`src/qtr/utils/config.py` for the H67-H72 defect class (unguarded division /
-unordered boundary comparison / degenerate input booked as a number instead of
-a sentinel). Both are clean:
+**None assigned.** Baseline is green and stable, verified from a bare-clone
+environment as well as from the system runner.
 
-- `config._set_nested` already guards non-finite env values
-  (`math.isfinite` keeps nan/inf as the original string).
-- `experiment.py` has no numeric/division/boundary-comparison surface at all.
-
-No defect was reproduced, so no code change is warranted (no fabricated fix).
-
-Verified this session:
-- `python -m pytest -q -W error tests/test_config.py tests/test_experiment_tracker.py` → 35 passed.
-- `python -m ruff check src/qtr/tracking/experiment.py src/qtr/utils/config.py tests/test_config.py tests/test_experiment_tracker.py` → passed.
-- `python -m ruff format --check` on the same four files → formatted.
-- `git status` → clean working tree (HEAD 8e3ce2a). Nothing committed.
-
-Precise next task: run the full verification gates to confirm the package is
-green after H67-H73 and that `src/qtr` stays at 100% branch coverage:
-
-    python -m pytest -q -W error
-    python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing
-    python -m ruff check src tests run_*.py
-    python -m ruff format --check src tests run_*.py
-
-(The full suite previously exceeded a 120s sandbox timeout; allow a longer
-window.)
-
-Constraints: qtr is left **uninstalled** (bare clone) — do not
-`pip install -e .` unless a test requires it, and restore that state if you do.
-Do not modify frozen published numbers/gates under `src/qtr` without re-running
-pinned contracts (causality / metric agreement / benchmark gate).
+Constraints that carry forward:
+- No published artifact, gate threshold, verdict or certified number may be
+  modified. No grid may be re-run. The H1–H30 hypothesis space remains
+  exhausted.
+- `src/qtr` coverage gate must stay at 100% (statement + branch).
+- Ruff lint and format gates must stay clean.
+- `requirements.txt` is the contract that must declare every dependency a
+  pinned contract test imports; verify it by running the suite from a fresh
+  venv with only `pip install -r requirements.txt`.
+- qtr is left **uninstalled** (bare clone) — do not `pip install -e .` unless a
+  test requires it, and restore that state if you do.
+- After any change under `src/qtr` or affecting runners/validation, re-run the
+  pinned contracts (causality / metric agreement / benchmark gate / public API
+  / ruff reproducibility / coverage gate / trade log reconciliation / tsmom
+  signal / generated manifest) and confirm `src/qtr` stays at 100% coverage
+  with gates green.

@@ -4931,3 +4931,60 @@ input with non-zero momentum the arithmetic is bit-identical to before, so:
   `test_tsmom_signal` → **940 passed**.
 - No published artifact, gate threshold, verdict or certified number was modified; no grid was
   re-run; no hypothesis was added.
+
+## H74 — the documented quick start was verified from a clean venv (2026-10-26)
+
+**H74 is COMPLETE.** This is a **verification task, not a code change**: the carried-forward
+task from `HANDOFF.md` ("run the full verification gates to confirm the package is green
+after H67-H73") was executed in a fresh venv with only `pip install -r requirements.txt`,
+rather than in the system runner where apt-installed `setuptools` and `ruff` mask the skip
+list. It is the same inspection that found the missing `setuptools` (§H63) and `ruff` (§H64)
+dependencies in earlier sessions.
+
+### What was measured
+
+Fresh venv (`/home/runner/work/_temp/kilo-tmp/venv`, Python 3.12.3, only
+`pip install -r requirements.txt`):
+
+- Installed: `setuptools-84.2.1`, `pyarrow-26.0.0`, `ruff-0.17.2`, `pytest-9.1.1`,
+  `pytest-cov-7.1.0`, `coverage-7.17.0`, `numpy-2.5.4`, `pandas-3.1.0`, `scipy-1.18.1`,
+  `scikit-learn-1.9.1`, `PyYAML-6.0.3`, `python-dotenv-1.2.4`, `loguru-0.7.3`,
+  `yfinance-1.7.0`, `ccxt-4.5.90`.
+- `python -m pytest -q -W error` → **2135 passed, 16 skipped** (identical to the
+  system-runner baseline; the 16 skips are all intentional and self-declaring).
+- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` →
+  **1138 stmts / 364 branches / 0 missed / 0 partial / 100.00%** on `src/qtr`.
+- `ruff check src tests run_*.py` → **All checks passed!**
+- `ruff format --check src tests run_*.py` → **104 files already formatted**
+- Pinned contract subset in the fresh venv (`test_public_api_contract`,
+  `test_ruff_reproducibility`, `test_coverage_gate_contract`,
+  `test_generated_manifest_contract`) → **61 passed, 3 skipped** (the 3 skips are the
+  qtr-not-installed / no-manifest skips, which are correct in a bare clone).
+
+### What this confirms
+
+`requirements.txt` declares every dependency the suite imports — `setuptools>=68`,
+`pyarrow>=14.0.0` and `ruff>=0.6.0` are all present, and no pinned contract test skips
+that should not. The documented quick start (`pip install -r requirements.txt`) is now
+self-sufficient for the full gate suite, the coverage gate and the lint/format gates.
+
+### What was actually verified
+
+- `git status --short` → clean working tree (HEAD `e470f84`).
+- The fresh-venv run is bit-identical to the system-runner run for every gate above,
+  so the two environments agree and the baseline is not an artifact of the system
+  runner's apt-installed packages.
+
+### Remaining unresolved
+
+None of the gate classes. The only open, bounded item is the set of disclosed values in
+`FINAL_REPORT.md` §H53–§H61, all of which are non-derivable from the committed record.
+
+### Failed approaches
+
+- **Running the gates only in the system runner.** Rejected after measurement in prior
+  sessions: the system runner has apt-installed `setuptools` and `ruff`, so its skip list
+  does not reflect the documented quick start. The clean-venv run is the only measurement
+  that can show whether `requirements.txt` declares everything the suite imports. This
+  session's clean-venv run showed the declaration is now complete; no further dependency
+  of that class was found.
