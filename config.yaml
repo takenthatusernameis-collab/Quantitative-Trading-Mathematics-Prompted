@@ -1,0 +1,16 @@
+# QTR configuration defaults.
+# Loaded automatically from the repository root by qtr.utils.config.get_config()
+# (search order: cwd, then src/). These values match the code's built-in
+# fallbacks, so the file is behavior-preserving and documents the defaults.
+
+data:
+  cache_dir: .cache/data
+
+logging:
+  level: INFO
+
+compute:
+  max_cpu_hours: 1.0
+
+tracking:
+  log_dir: .experiments
