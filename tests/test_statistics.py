@@ -339,6 +339,36 @@ class TestParameterSensitivity:
         )
         assert 0.0 <= res["stability_ratio"] <= 1.0
 
+    def test_empty_grid_returns_no_data_sentinel(self):
+        """An empty parameter grid is a degenerate input: the pre-fix code
+        raised ``ValueError: attempt to get argmax of an empty sequence``
+        from ``np.argmax(metrics)`` and would have divided the stability
+        ratio by ``n_params == 0``. There is no parameter to recommend, so
+        the function returns the same zero-initialised shape a non-empty
+        grid produces, with every recommendation field at its no-data
+        value."""
+        res = st.parameter_sensitivity(np.zeros((0, 10)), np.array([]), n_bootstrap=10)
+        assert len(res["param_values"]) == 0
+        assert len(res["metrics"]) == 0
+        assert len(res["ci_lower"]) == 0
+        assert len(res["ci_upper"]) == 0
+        assert np.isnan(res["optimal_param"])
+        assert np.isnan(res["optimal_metric"])
+        assert res["stability_ratio"] == 0.0
+        assert res["metric_std"] == 0.0
+
+    def test_single_parameter_grid_is_not_degenerate(self, rng):
+        """A one-row grid is the boundary of the degenerate class: ``n_params``
+        is 1, so ``argmax`` and the ``/ n_params`` division are both defined.
+        The pre-fix code already handled this case; it is pinned so a
+        future change that treats ``n_params == 1`` as degenerate cannot
+        silently break it."""
+        res = st.parameter_sensitivity(
+            rng.normal(0.001, 0.01, 100)[None, :], np.array([1.0]), n_bootstrap=50
+        )
+        assert res["optimal_param"] == pytest.approx(1.0)
+        assert res["stability_ratio"] == pytest.approx(1.0)
+
 
 # ===========================================================================
 # regime_analysis
@@ -391,6 +421,20 @@ class TestStressedCostTest:
         base_costs = np.full(400, 0.0005)
         res = st.stressed_cost_test(base_returns, base_costs)
         assert res["stressed_commission_sharpe"] == pytest.approx(res["stressed_spread_sharpe"])
+
+    def test_empty_stress_map_is_not_a_division_by_zero(self, rng):
+        """An empty ``stress_multipliers`` is a degenerate input: the pre-fix
+        code computed ``total_stress = sum(...) / len(stress_multipliers)``
+        and raised ``ZeroDivisionError``. With no stress to apply the
+        function returns the unstressed baseline -- the same shape, with
+        the default keys absent and only the combined line present."""
+        base_returns = rng.normal(0.001, 0.01, 400)
+        base_costs = np.full(400, 0.0005)
+        res = st.stressed_cost_test(base_returns, base_costs, stress_multipliers={})
+        assert set(res.keys()) == {"stressed_combined_sharpe"}
+        assert res["stressed_combined_sharpe"] == pytest.approx(
+            st.sharpe_ratio(base_returns - base_costs)
+        )
 
 
 # ===========================================================================
@@ -637,6 +681,16 @@ class TestStatisticalPowerAnalysis:
         z_beta = norm.ppf(0.8)
         expected = int(np.ceil(2 * ((z_alpha + z_beta) * 1.0 / 0.5) ** 2))
         assert n == expected
+
+    def test_non_positive_effect_size_is_unpowerable(self):
+        """A non-positive effect size is a degenerate input: the closed form
+        divides by ``effect_size`` and the pre-fix code raised
+        ``ZeroDivisionWarning`` (``1/0``) then ``OverflowError``
+        (``int(inf)``). No sample size can detect an effect that is not
+        there, so the function returns 0 -- "the experiment is unpowerable"
+        -- and a caller gating on ``n > 0`` fails closed."""
+        assert st.statistical_power_analysis(effect_size=0.0) == 0
+        assert st.statistical_power_analysis(effect_size=-1.0) == 0
 
 
 # ===========================================================================

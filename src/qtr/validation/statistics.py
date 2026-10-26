@@ -292,6 +292,24 @@ def parameter_sensitivity(
         Dictionary with sensitivity metrics
     """
     n_params = len(param_values)
+    if n_params == 0:
+        # An empty grid is a degenerate input: ``np.argmax`` below raises
+        # ``ValueError: attempt to get argmax of an empty sequence`` and the
+        # stability ratio divides by ``n_params``. There is no parameter to
+        # recommend, so return the empty, zero-initialised result -- the same
+        # shape a non-empty grid produces, with every field at its no-data
+        # value. A caller gating on ``optimal_param`` or ``stability_ratio``
+        # therefore sees a zero rather than an exception.
+        return {
+            "param_values": param_values,
+            "metrics": np.zeros(0),
+            "ci_lower": np.zeros(0),
+            "ci_upper": np.zeros(0),
+            "optimal_param": np.nan,
+            "optimal_metric": np.nan,
+            "stability_ratio": 0.0,
+            "metric_std": 0.0,
+        }
     metrics = np.zeros(n_params)
     ci_lower = np.zeros(n_params)
     ci_upper = np.zeros(n_params)
@@ -379,6 +397,16 @@ def stressed_cost_test(
             "slippage": 2.0,
             "impact": 5.0,
         }
+
+    # An empty stress map is a degenerate input: the combined-stress line
+    # below divides by ``len(stress_multipliers)`` and would raise
+    # ``ZeroDivisionError``. The function's contract is to report metrics
+    # under stressed costs, so with no stress to apply it returns the
+    # unstressed baseline -- costs applied once (a stress factor of 1.0,
+    # the identity of the multiplication the combined line performs), the
+    # same shape a non-empty map produces, with the default keys absent.
+    if not stress_multipliers:
+        return {"stressed_combined_sharpe": sharpe_ratio(base_returns - base_costs)}
 
     results = {}
     for name, mult in stress_multipliers.items():
@@ -716,6 +744,15 @@ def statistical_power_analysis(
         Required sample size per group
     """
     from scipy.stats import norm
+
+    # A non-positive effect size is a degenerate input: the closed form
+    # divides by ``effect_size`` and would raise ``ZeroDivisionWarning`` /
+    # ``OverflowError`` (``1/0 -> inf -> int(inf)``). No positive sample size
+    # can detect an effect that is not there, so the honest answer is 0 --
+    # "the experiment is unpowerable" -- rather than an exception or an
+    # ``OverflowError``. A caller gating on ``n > 0`` therefore fails closed.
+    if effect_size <= 0:
+        return 0
 
     z_alpha = norm.ppf(1 - alpha / 2)
     z_beta = norm.ppf(power)
