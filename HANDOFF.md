@@ -75,10 +75,35 @@ None for this task. Two environment notes:
 
 ## Next task
 
-H73: hunt the same defect class in the remaining unguarded surface —
-specifically the `tracking` experiment tracker's artifact serialization and
-the `utils` config loader's boundary handling, following the H67-H72 pattern
-of a zero-information input being booked as a direction. Start by reading
-`src/qtr/tracking/experiment.py` and `src/qtr/utils/config.py` for an
-unordered-comparison guard or an unguarded division, then probe with the
-smallest reproducing input before changing anything.
+H73 is complete: probed `src/qtr/tracking/experiment.py` and
+`src/qtr/utils/config.py` for the H67-H72 defect class (unguarded division /
+unordered boundary comparison / degenerate input booked as a number instead of
+a sentinel). Both are clean:
+
+- `config._set_nested` already guards non-finite env values
+  (`math.isfinite` keeps nan/inf as the original string).
+- `experiment.py` has no numeric/division/boundary-comparison surface at all.
+
+No defect was reproduced, so no code change is warranted (no fabricated fix).
+
+Verified this session:
+- `python -m pytest -q -W error tests/test_config.py tests/test_experiment_tracker.py` → 35 passed.
+- `python -m ruff check src/qtr/tracking/experiment.py src/qtr/utils/config.py tests/test_config.py tests/test_experiment_tracker.py` → passed.
+- `python -m ruff format --check` on the same four files → formatted.
+- `git status` → clean working tree (HEAD 8e3ce2a). Nothing committed.
+
+Precise next task: run the full verification gates to confirm the package is
+green after H67-H73 and that `src/qtr` stays at 100% branch coverage:
+
+    python -m pytest -q -W error
+    python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing
+    python -m ruff check src tests run_*.py
+    python -m ruff format --check src tests run_*.py
+
+(The full suite previously exceeded a 120s sandbox timeout; allow a longer
+window.)
+
+Constraints: qtr is left **uninstalled** (bare clone) — do not
+`pip install -e .` unless a test requires it, and restore that state if you do.
+Do not modify frozen published numbers/gates under `src/qtr` without re-running
+pinned contracts (causality / metric agreement / benchmark gate).
