@@ -3,12 +3,12 @@
 ## Status
 
 Full verification gates passed this session:
-- `python -m pytest -q -W error` → 2135 passed, 16 skipped (322.83s).
-- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → TOTAL 1140 stmts / 364 branches, 100.00% required reached.
+- `python -m pytest -q -W error` → 2135 passed, 16 skipped (~5:15).
+- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → TOTAL 1138 stmts / 364 branches, 100.00% required reached.
 - `python -m ruff check src tests run_*.py` → All checks passed!
 - `python -m ruff format --check src tests run_*.py` → 104 files already formatted.
 
-Working tree clean. No code changes. H1–H30 exhausted; certified families frozen; disclosed §H53–§H61 items remain non-quantifiable.
+One uncommitted change: `src/qtr/data/fetcher.py` — removed two no-op `df.rename(columns={"adj_close": "adj_close"})` calls (dead code, no behavior change).
 
 ## What to do
 

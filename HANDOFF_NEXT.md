@@ -3,10 +3,10 @@
 ## State
 - H35–H70 complete; H1–H30 exhausted; certified families frozen. **No hypothesis work is assigned**.
 - All remaining items in `FINAL_REPORT.md` (§H53–§H61) are disclosed, not quantified (missing inputs/disclosed convention differences/benchmarks/trade logs/signals never committed) — they stay disclosed, not quantified, and no gate reads any of them.
-- Baseline green: ruff clean, 2135 passed/16 skipped, `src/qtr` 100% coverage (HEAD 5c7543f).
+- Baseline green: ruff clean, 2135 passed/16 skipped, `src/qtr` 100% coverage (HEAD 21b4a5c, one uncommitted change in `src/qtr/data/fetcher.py`).
 
 ## What changed (this session)
-- No code changes. Verified baseline and refreshed handoff documents.
+- `src/qtr/data/fetcher.py` — removed two no-op `df = df.rename(columns={"adj_close": "adj_close"})` calls (one in `fetch_yahoo`, one in `fetch_futures`). Dead code removal only; no behavior change.
 
 ## What was actually verified (this session)
 - `python -m ruff check src tests run_*.py` → All checks passed!

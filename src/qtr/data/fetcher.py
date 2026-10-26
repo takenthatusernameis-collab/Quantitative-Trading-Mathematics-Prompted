@@ -209,7 +209,6 @@ class DataFetcher:
 
                 # Standardize column names
                 df.columns = [c.lower().replace(" ", "_") for c in df.columns]
-                df = df.rename(columns={"adj_close": "adj_close"})
 
                 # Ensure required columns
                 required = ["open", "high", "low", "close", "volume"]
@@ -298,7 +297,6 @@ class DataFetcher:
 
                 # Standardize column names
                 df.columns = [c.lower().replace(" ", "_") for c in df.columns]
-                df = df.rename(columns={"adj_close": "adj_close"})
 
                 # Ensure required columns
                 required = ["open", "high", "low", "close", "volume"]
