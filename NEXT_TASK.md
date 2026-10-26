@@ -1,33 +1,15 @@
-# Next task — run full verification gates after H73
+# Next task — none assigned
 
 ## Status
 
-H73 (hunt H67-H72 defect class in `src/qtr/tracking/experiment.py` and
-`src/qtr/utils/config.py`) is COMPLETE with a conclusive negative result:
-both files already guard degenerate inputs / have no numeric surface, so no
-defect was reproduced and no code change was made. The H67-H72 defect class
-(sharpe_ratio, compare_to_benchmark, _vol_scale, momentum_signals, engine
-drawdown, fetcher tz) is fully hunted and guarded.
+Full verification gates passed this session:
+- `python -m pytest -q -W error` → 2135 passed, 16 skipped (322.83s).
+- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → TOTAL 1140 stmts / 364 branches, 100.00% required reached.
+- `python -m ruff check src tests run_*.py` → All checks passed!
+- `python -m ruff format --check src tests run_*.py` → 104 files already formatted.
 
-Verified this session:
-- `python -m pytest -q -W error tests/test_config.py tests/test_experiment_tracker.py` → 35 passed.
-- `python -m ruff check ...` and `ruff format --check ...` on those four files → clean.
-- `git status` → clean working tree (HEAD 8e3ce2a). Nothing committed.
+Working tree clean. No code changes. H1–H30 exhausted; certified families frozen; disclosed §H53–§H61 items remain non-quantifiable.
 
 ## What to do
 
-Run the full verification gates to confirm the package is green and
-`src/qtr` stays at 100% branch coverage:
-
-    python -m pytest -q -W error
-    python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing
-    python -m ruff check src tests run_*.py
-    python -m ruff format --check src tests run_*.py
-
-(The full suite previously exceeded a 120s sandbox timeout; allow a longer window.)
-
-## Constraints
-
-- qtr is left **uninstalled** (bare clone) — do not `pip install -e .` unless a test requires it; restore that state if you do.
-- Do not modify frozen published numbers/gates under `src/qtr` without re-running pinned contracts (causality / metric agreement / benchmark gate).
-- Do not commit unless explicitly asked.
+No further hypothesis work assigned. Baseline is green and stable. After any change under `src/qtr` or affecting runners/validation, re-run pinned contracts (causality/metric agreement/benchmark gate) and confirm 100% coverage with gates green; keep ruff clean. `requirements.txt` must declare every dependency pinned contract tests import (`setuptools>=68`, `pyarrow>=14.0.0`, `ruff>=0.6.0`).
