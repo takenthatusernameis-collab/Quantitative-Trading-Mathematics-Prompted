@@ -1,17 +1,18 @@
-# HANDOFF_NEXT_SESSION — no change (baseline verified green)
+# HANDOFF_NEXT_SESSION — baseline verified, no assigned task
 
 ## State
-- H35–H74 complete; H1–H30 exhausted; certified families frozen. **No hypothesis work is assigned.**
-- HEAD `e470f84`, working tree clean.
+- H35–H74 complete; H1–H30 exhausted; certified families frozen. No hypothesis work is assigned.
+- HEAD `e32eabb` (recent handoff commit). Working tree clean.
 
 ## What changed (this session)
-- No code/test/docs changes. Inspected repo state, confirmed handoffs show clean-venv verification complete (H74). No task from prior agent to execute; nothing to fix.
+- No code/test/docs changes. Inspected repo state (git history, handoffs, AGENTS, NEXT_TASK). Confirmed no unexecuted assignment from prior agent.
 
 ## What was actually verified (this session)
-- `git log --oneline -5` → 6b285c3, 6510050, bd9657b, 54cd08a, bfbd760 (HEAD e470f84)
 - `git status --short` → clean
-- `python -m pytest -q -W error` (quick check) started passing; full run not re-executed to save time (baseline reported 2135 passed, 16 skipped in prior handoff with identical result)
-- Reviewed H74: fresh venv with only `pip install -r requirements.txt` gives 2135 passed/16 skipped, ruff clean, `src/qtr` 100% coverage (1138 stmts/364 branches). `requirements.txt` includes `setuptools>=68`, `pyarrow>=14.0.0`, `ruff>=0.6.0`.
+- `git log --oneline -3` → e32eabb, 6b285c3, 6510050
+- `python -m ruff check src tests run_*.py` → All checks passed!
+- `python -m ruff format --check src tests run_*.py` → 104 files already formatted
+- Reviewed prior handoffs: baseline previously verified green (2135 passed, 16 skipped; src/qtr 100% coverage).
 
 ## What remains unresolved
 - Disclosed values in `FINAL_REPORT.md` §H53–§H61 are non-derivable from committed record (no new committed inputs). No gate/threshold/verdict/certified number affected.
