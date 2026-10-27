@@ -18,9 +18,9 @@ The hypothesis is that the direction of recent futures returns contains informat
 
 The H10 family implementation computes hourly returns and two momentum directions:
 
-- **Slow direction:** sign of the return over a long lookback. The selected H10/H22 configuration uses 1,008 hourly bars.
-- **Fast direction:** sign of the return over a shorter lookback, one quarter of the long lookback (252 hourly bars in the selected configuration).
-- **Volatility scaling:** estimates long- and short-window realized volatility, inversely scales each directional component, blends the components, then scales exposure toward a 15% annualized target-volatility baseline (subject to caps and available history).
+- **Slow direction:** sign of the price return over 252 hourly bars (the function's default momentum lookback).
+- **Fast direction:** sign of the price return over 63 hourly bars (the function's default fast lookback).
+- **Volatility scaling:** for the selected H10/H22 configuration, estimates long-window volatility over 1,008 hourly bars and short-window volatility over 252 hourly bars. It inversely scales each directional component, blends the components, then scales exposure toward a 15% annualized target-volatility baseline (subject to caps and available history). The selected 1,008-bar parameter is a volatility-estimation window, not the slow momentum lookback.
 - **Target timing:** the implementation collapses the hourly signal to a daily target and expands that target back onto the hourly price grid. This step is the critical defect: the published resampling/label convention allowed a target computed using the end of a day to appear on earlier hourly bars of that same day.
 
 These are research-code conventions, not a recommendation to trade this exact signal. The implementation and timing defect are documented in [H9 signal code](https://github.com/takenthatusernameis-collab/Quantitative-Trading-Mathematics-Prompted/blob/main/run_h9_intraday_tsmom_experiment.py), [H10 experiment](https://github.com/takenthatusernameis-collab/Quantitative-Trading-Mathematics-Prompted/blob/main/run_h10_intraday_tsmom_pfopt_experiment.py), and [H29 look-ahead audit](https://github.com/takenthatusernameis-collab/Quantitative-Trading-Mathematics-Prompted/blob/main/.experiments/artifacts/h29_lookahead_sweep/summary.json).
@@ -29,8 +29,8 @@ These are research-code conventions, not a recommendation to trade this exact si
 
 The selected H10 configuration used:
 
-- Long volatility lookback: 1,008 hourly bars.
-- Fast momentum lookback: 252 hourly bars.
+- Momentum lookbacks: 252 hourly bars (slow direction) and 63 hourly bars (fast direction).
+- Volatility-estimation windows: 1,008 hourly bars (long window) and 252 hourly bars (short window).
 - Target volatility baseline: 15% annualized.
 - Trailing exit: 2.0 × the implementation's ATR-like measure.
 - Maximum holding period: 60 hourly bars.
@@ -38,7 +38,7 @@ The selected H10 configuration used:
 - Volatility floor fraction: 0.25.
 - No signal smoothing, no VIX regime scaling, and no minimum trade interval in the published H10 selection.
 
-The exit state machine also contains a trailing stop, a time stop when a trade has not made positive progress, volatility-based exposure reduction, and exits when the target becomes zero. Exact semantics should be read from the runner and tests before any new implementation; do not assume that a prose description alone reproduces the code.
+The exit state machine also contains a trailing stop, a time stop when a trade has not made positive progress, volatility-based exposure reduction, and exits when the target becomes zero. The implementation enters only when the target is positive and closes when it is zero or negative; negative momentum targets therefore act as flat/exit signals, not short entries. The backtest config also sets `allow_short=False`. The volatility reduction multiplies the current position by the configured 0.25 factor on each eligible bar while the volatility trigger remains active, rather than resetting directly to 25% of the original position. Exact semantics should be read from the runner and tests before any new implementation; do not assume that a prose description alone reproduces the code.
 
 ## 2. Markets, data and costs
 
