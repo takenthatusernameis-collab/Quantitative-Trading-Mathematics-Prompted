@@ -110,10 +110,13 @@ def test_env_overrides_nonfinite_float_stays_string(tmp_path, monkeypatch):
     _clear_config_state()
 
 
-def test_env_overrides_bool_true(tmp_path, monkeypatch):
+def test_env_overrides_non_bool_string_stays_string(tmp_path, monkeypatch):
     _clear_config_state()
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv("QTR_LOG_LEVEL", "DEBUG")  # stays string? wait - check mapping
+    monkeypatch.setenv("QTR_LOG_LEVEL", "DEBUG")
+    result = config.load_config()
+    assert result["logging"]["level"] == "DEBUG"
+    assert isinstance(result["logging"]["level"], str)
     _clear_config_state()
 
 
