@@ -58,6 +58,30 @@ def test_cache_set_strips_a_tz_aware_index_before_writing(tmp_path):
     )
 
 
+def test_cache_get_strips_tz_on_read(tmp_path):
+    """Reading a tz-aware parquet from disk strips the timezone (fetcher.py:92-94).
+
+    ``DataCache.set`` canonicalizes to tz-naive before writing, so a frame
+    written through the normal path is already tz-naive on disk. But an
+    external process -- or a stale cache file from an older writer -- could
+    leave a tz-aware parquet in the cache directory. The read path must strip
+    it so every caller can assume a tz-naive index.
+    """
+    c = DataCache(cache_dir=tmp_path)
+    aware = pd.DataFrame(
+        {"close": [1.0, 2.0]},
+        index=pd.to_datetime(["2020-01-02", "2020-01-03"]).tz_localize("America/New_York"),
+    )
+    key = c._cache_key("yahoo", "SPY", "2020-01-01", "2020-02-01", "1d")
+    (tmp_path / f"{key}.parquet").write_bytes(aware.to_parquet())
+
+    got = c.get("yahoo", "SPY", "2020-01-01", "2020-02-01", "1d")
+    assert got.index.tz is None
+    stripped = aware.copy()
+    stripped.index = pd.to_datetime(stripped.index).tz_localize(None)
+    pd.testing.assert_frame_equal(got, stripped, check_names=False)
+
+
 def test_cache_corrupt_returns_none(tmp_path, monkeypatch):
     c = DataCache(cache_dir=tmp_path)
     key = c._cache_key("yahoo", "SPY", "2020-01-01", "2020-02-01", "1d")
