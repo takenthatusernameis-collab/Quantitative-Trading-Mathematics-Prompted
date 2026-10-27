@@ -92,7 +92,10 @@ class DataCache:
                 df = pd.read_parquet(path)
                 if getattr(df.index, "tz", None) is not None:
                     df = df.copy()
-                    df.index = pd.to_datetime(df.index).tz_localize(None)
+                    try:
+                        df.index = df.index.tz_localize(None)
+                    except Exception:  # noqa: BLE001 -- be defensive across pandas versions
+                        df.index = pd.to_datetime(df.index).tz_localize(None)
                 logger.debug(f"Cache hit: {source} {symbol} {interval}")
                 return df
             except Exception as e:  # noqa: BLE001 -- cache corruption is non-fatal; skip and re-read
@@ -113,7 +116,10 @@ class DataCache:
         try:
             df_to_write = df.copy()
             if getattr(df_to_write.index, "tz", None) is not None:
-                df_to_write.index = pd.to_datetime(df_to_write.index).tz_localize(None)
+                try:
+                    df_to_write.index = df_to_write.index.tz_localize(None)
+                except Exception:  # noqa: BLE001
+                    df_to_write.index = pd.to_datetime(df_to_write.index).tz_localize(None)
             df_to_write.to_parquet(path)
             logger.debug(f"Cache write: {source} {symbol} {interval}")
         except Exception as e:  # noqa: BLE001 -- cache write failure is non-fatal; continue in memory
