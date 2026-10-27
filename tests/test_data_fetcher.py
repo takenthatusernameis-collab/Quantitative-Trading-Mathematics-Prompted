@@ -82,6 +82,69 @@ def test_cache_get_strips_tz_on_read(tmp_path):
     pd.testing.assert_frame_equal(got, stripped, check_names=False)
 
 
+def _install_flaky_tz_localize(monkeypatch):
+    """Patch ``DatetimeIndex.tz_localize`` to raise once, then delegate.
+
+    The first call simulates a pandas version where ``tz_localize(None)``
+    fails on a tz-aware index; the second call succeeds, exercising the
+    defensive ``pd.to_datetime(df.index).tz_localize(None)`` fallback in
+    ``DataCache.get`` (fetcher.py:97-98) and ``DataCache.set`` (fetcher.py:121-122).
+    """
+    calls = {"n": 0}
+    original = pd.DatetimeIndex.tz_localize
+
+    def flaky(self, *args, **kwargs):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise ValueError("simulated tz_localize failure")
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(pd.DatetimeIndex, "tz_localize", flaky)
+    return calls
+
+
+def test_cache_get_tz_localize_fallback(tmp_path, monkeypatch):
+    """The read path falls back to ``pd.to_datetime`` when ``tz_localize`` raises."""
+    c = DataCache(cache_dir=tmp_path)
+    aware = pd.DataFrame(
+        {"close": [1.0, 2.0]},
+        index=pd.to_datetime(["2020-01-02", "2020-01-03"]).tz_localize("America/New_York"),
+    )
+    key = c._cache_key("yahoo", "SPY", "2020-01-01", "2020-02-01", "1d")
+    (tmp_path / f"{key}.parquet").write_bytes(aware.to_parquet())
+
+    # Return the tz-aware frame directly from read_parquet so no tz_localize
+    # call is consumed during the read itself; the first tz_localize(None)
+    # must be the one inside the inner try (fetcher.py:95).
+    monkeypatch.setattr(pd, "read_parquet", lambda *a, **k: aware)
+
+    calls = _install_flaky_tz_localize(monkeypatch)
+    got = c.get("yahoo", "SPY", "2020-01-01", "2020-02-01", "1d")
+
+    assert got is not None
+    assert got.index.tz is None
+    # First call raised (entered the except branch), second call succeeded.
+    assert calls["n"] == 2
+
+
+def test_cache_set_tz_localize_fallback(tmp_path, monkeypatch):
+    """The write path falls back to ``pd.to_datetime`` when ``tz_localize`` raises."""
+    c = DataCache(cache_dir=tmp_path)
+    aware = pd.DataFrame(
+        {"close": [1.0, 2.0]},
+        index=pd.to_datetime(["2020-01-02", "2020-01-03"]).tz_localize("America/New_York"),
+    )
+
+    calls = _install_flaky_tz_localize(monkeypatch)
+    c.set("yahoo", "SPY", "2020-01-01", "2020-02-01", "1d", aware)
+
+    key = c._cache_key("yahoo", "SPY", "2020-01-01", "2020-02-01", "1d")
+    on_disk = pd.read_parquet(tmp_path / f"{key}.parquet")
+    assert on_disk.index.tz is None
+    # First call raised (entered the except branch), second call succeeded.
+    assert calls["n"] == 2
+
+
 def test_cache_corrupt_returns_none(tmp_path, monkeypatch):
     c = DataCache(cache_dir=tmp_path)
     key = c._cache_key("yahoo", "SPY", "2020-01-01", "2020-02-01", "1d")
