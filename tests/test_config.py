@@ -177,9 +177,15 @@ def test_save_config_uses_config_path_fallback(tmp_path, monkeypatch):
     _clear_config_state()
     monkeypatch.chdir(tmp_path)
     cfg_path = tmp_path / "existing.yaml"
-    config.load_config(cfg_path)  # sets _CONFIG_PATH even if empty
-    # but load_config with non-existent explicit path sets empty config and path? check
-    config._CONFIG_PATH = cfg_path  # simulate
-    config._CONFIG = None
-    # better to simulate properly
+    # Create an existing config file so load_config sets _CONFIG_PATH
+    cfg_path.write_text("a: 1\n")
+    config.load_config(cfg_path)  # sets _CONFIG_PATH from existing file
+    assert config._CONFIG_PATH == cfg_path
+    # Save without explicit path should use _CONFIG_PATH as fallback
+    config.save_config({"b": 2})
+    assert cfg_path.exists()
+    loaded = yaml.safe_load(cfg_path.read_text())
+    assert loaded["b"] == 2
+    assert config._CONFIG == {"b": 2}
+    assert config._CONFIG_PATH == cfg_path
     _clear_config_state()
