@@ -258,7 +258,13 @@ def test_fetch_futures_success(monkeypatch):
 
 
 def test_fetch_futures_missing_column_and_cache(monkeypatch):
-    # lines 214 (missing column warning) and 222 (futures cache write)
+    # lines 214 (missing column warning) and 222 (futures cache write).
+    # A vendor panel that omits every required column is NOT an empty
+    # result: the pre-fix selection raised ``KeyError`` inside the fetch
+    # loop, the broad ``except Exception`` swallowed it, and the symbol was
+    # returned as an empty frame with an error log -- a silent void of the
+    # class the H53-H61 audits exist to catch. The corrected selection
+    # returns the panel over the columns the vendor actually carried.
     import sys
     import types
 
@@ -280,7 +286,12 @@ def test_fetch_futures_missing_column_and_cache(monkeypatch):
     d = Path(tempfile.mkdtemp())
     fetcher = DataFetcher(cache=DataCache(cache_dir=d))
     res = fetcher.fetch_futures(["ES=F"], "2020-01-01", "2020-02-01", use_cache=True)
-    assert res["ES=F"].empty  # required columns all missing -> empty result
+    assert list(res["ES=F"].columns) == ["close"]
+    assert len(res["ES=F"]) == 1
+    # ... and the corrected panel is what gets cached and returned on the
+    # cache-hit path (no second yfinance call).
+    res2 = fetcher.fetch_futures(["ES=F"], "2020-01-01", "2020-02-01", use_cache=True)
+    pd.testing.assert_frame_equal(res2["ES=F"], res["ES=F"], check_names=False)
 
 
 def test_fetch_ccxt_success(monkeypatch):
@@ -444,7 +455,12 @@ def test_fetch_yahoo_cache_hit(monkeypatch):
 
 
 def test_fetch_yahoo_missing_column(monkeypatch):
-    # line 131: missing required column triggers a warning but does not raise
+    # line 131: a vendor panel that omits required columns must degrade, not
+    # raise. The pre-fix selection raised ``KeyError`` inside the fetch loop,
+    # the broad ``except Exception`` swallowed it, and the symbol came back
+    # as an empty frame -- a silent void, the class the H53-H61 audits exist
+    # to catch. The corrected selection returns the panel over the columns
+    # the vendor actually carried.
     import sys
     import types
 
@@ -466,7 +482,8 @@ def test_fetch_yahoo_missing_column(monkeypatch):
     d = Path(tempfile.mkdtemp())
     fetcher = DataFetcher(cache=DataCache(cache_dir=d))
     res = fetcher.fetch_yahoo(["SPY"], "2020-01-01", "2020-02-01", use_cache=False)
-    assert res["SPY"].empty  # required columns all missing -> empty result
+    assert list(res["SPY"].columns) == ["close"]
+    assert len(res["SPY"]) == 1
 
 
 def test_fetch_futures_cache_hit(monkeypatch):
@@ -791,3 +808,118 @@ def test_fetch_sp500_constituents_module_level(tmp_path, monkeypatch):
         del fetcher_mod.get_data_fetcher._instance
     res = fetcher_mod.fetch_sp500_constituents()
     assert res == ["SPY", "IVV", "VOO", "SPLG"]
+
+
+# --------------------------------------------------------------------------- #
+# H75 -- a vendor that omits a required column must not crash the fetch
+# --------------------------------------------------------------------------- #
+def _fake_yf_returning(df):
+    import sys
+    import types
+
+    class FakeTicker:
+        def history(self, **kw):
+            return df
+
+    fake_yf = types.ModuleType("yfinance")
+    fake_yf.Ticker = lambda s: FakeTicker()
+    sys.modules["yfinance"] = fake_yf
+    return fake_yf
+
+
+@pytest.mark.parametrize("method", ["fetch_yahoo", "fetch_futures"])
+def test_fetch_does_not_crash_when_volume_is_missing(method, tmp_path, monkeypatch):
+    """A vendor panel that omits ``volume`` must degrade, not raise.
+
+    The column selection used to be ``df[required + extras]`` with
+    ``required = ["open", "high", "low", "close", "volume"]`` built as a
+    *literal* list, so a frame missing any one of the five raised
+    ``KeyError`` inside the fetch loop. A real yfinance response that omits
+    ``volume`` (or any other required column) is a fact about the source,
+    not an exception: the fetch logs the warning the code already carries and
+    returns the panel over the columns it actually has. The engine treats a
+    missing volume column as zero volume in the impact model, so the
+    downstream behaviour is unchanged for panels that carry it.
+    """
+    fetcher = DataFetcher(cache=DataCache(cache_dir=tmp_path))
+    df = pd.DataFrame(
+        {"Open": [1.0], "High": [2.0], "Low": [0.5], "Close": [1.5]},
+        index=pd.to_datetime(["2020-01-02"]),
+    )
+    _fake_yf_returning(df)
+
+    res = getattr(fetcher, method)(["SPY"], "2020-01-01", "2020-02-01", use_cache=False)
+    assert "close" in res["SPY"].columns
+    assert "volume" not in res["SPY"].columns
+    assert len(res["SPY"]) == 1
+
+
+@pytest.mark.parametrize("method", ["fetch_yahoo", "fetch_futures"])
+def test_fetch_keeps_extras_and_orders_present_required_first(method, tmp_path, monkeypatch):
+    """The selection re-orders the vendor's columns over the ones present.
+
+    The order is ``[present required columns] + [extras]`` -- the same order
+    the literal-list form produced for a complete panel, so a complete panel
+    is bit-identical to before and an incomplete one keeps whatever extra
+    columns the vendor returned (``adj_close`` etc.).
+    """
+    fetcher = DataFetcher(cache=DataCache(cache_dir=tmp_path))
+    df = pd.DataFrame(
+        {
+            "Adj Close": [1.5],
+            "Open": [1.0],
+            "High": [2.0],
+            "Low": [0.5],
+            "Close": [1.5],
+            "Volume": [100],
+        },
+        index=pd.to_datetime(["2020-01-02"]),
+    )
+    _fake_yf_returning(df)
+
+    res = getattr(fetcher, method)(["SPY"], "2020-01-01", "2020-02-01", use_cache=False)
+    cols = list(res["SPY"].columns)
+    assert cols[:5] == ["open", "high", "low", "close", "volume"]
+    assert "adj_close" in cols
+
+
+@pytest.mark.parametrize("method", ["fetch_yahoo", "fetch_futures"])
+def test_fetch_missing_required_column_warns_but_does_not_raise(method, tmp_path, monkeypatch):
+    """The existing ``Missing column`` warning must still fire for each gap.
+
+    ``loguru`` does not propagate to the stdlib logging module, so the
+    warning is captured through loguru's own sink rather than ``caplog``.
+    """
+    from loguru import logger
+
+    fetcher = DataFetcher(cache=DataCache(cache_dir=tmp_path))
+    df = pd.DataFrame(
+        {"Open": [1.0], "High": [2.0], "Low": [0.5], "Close": [1.5]},
+        index=pd.to_datetime(["2020-01-02"]),
+    )
+    _fake_yf_returning(df)
+
+    messages: list[str] = []
+    handler_id = logger.add(messages.append, level="WARNING")
+    try:
+        getattr(fetcher, method)(["SPY"], "2020-01-01", "2020-02-01", use_cache=False)
+        assert any("Missing column volume" in m for m in messages)
+    finally:
+        logger.remove(handler_id)
+
+
+def test_fetch_missing_required_column_pre_fix_form_raises(tmp_path, monkeypatch):
+    """Behavioural negative control: the literal-list selection still crashes.
+
+    Reconstructs the pre-fix selection over a volume-less frame and requires
+    it to raise ``KeyError``, proving the corrected selection is what makes
+    the fetch safe rather than merely lucky.
+    """
+    df = pd.DataFrame(
+        {"Open": [1.0], "High": [2.0], "Low": [0.5], "Close": [1.5]},
+        index=pd.to_datetime(["2020-01-02"]),
+    )
+    df.columns = [c.lower().replace(" ", "_") for c in df.columns]
+    required = ["open", "high", "low", "close", "volume"]
+    with pytest.raises(KeyError):
+        df[required + [c for c in df.columns if c not in required]]

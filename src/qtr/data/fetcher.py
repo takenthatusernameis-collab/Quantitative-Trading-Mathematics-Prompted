@@ -210,13 +210,24 @@ class DataFetcher:
                 # Standardize column names
                 df.columns = [c.lower().replace(" ", "_") for c in df.columns]
 
-                # Ensure required columns
+                # Ensure required columns. The selection is built from the
+                # columns that are actually present: a vendor that omits
+                # ``volume`` (or any other required column) is warned about
+                # and the frame is re-ordered over the columns it *does*
+                # carry, rather than indexing a list that contains a missing
+                # name and raising ``KeyError``. A missing column is a fact
+                # about the source, not a crash -- the fetch degrades to a
+                # panel without it and the caller decides whether that is
+                # usable (the engine treats a missing volume column as zero
+                # volume in the impact model).
                 required = ["open", "high", "low", "close", "volume"]
+                present = [col for col in required if col in df.columns]
                 for col in required:
                     if col not in df.columns:
                         logger.warning(f"Missing column {col} for {symbol}")
+                extras = [c for c in df.columns if c not in required]
 
-                df = df[required + [c for c in df.columns if c not in required]]
+                df = df[present + extras]
                 df.index = pd.to_datetime(df.index).tz_localize(None)
 
                 results[symbol] = df
@@ -298,13 +309,20 @@ class DataFetcher:
                 # Standardize column names
                 df.columns = [c.lower().replace(" ", "_") for c in df.columns]
 
-                # Ensure required columns
+                # Ensure required columns. The selection is built from the
+                # columns that are actually present (see the identical fix in
+                # ``fetch_yahoo``): a vendor that omits a required column is
+                # warned about and the frame is re-ordered over the columns it
+                # carries, instead of indexing a list containing a missing name
+                # and raising ``KeyError``.
                 required = ["open", "high", "low", "close", "volume"]
+                present = [col for col in required if col in df.columns]
                 for col in required:
                     if col not in df.columns:
                         logger.warning(f"Missing column {col} for {symbol}")
+                extras = [c for c in df.columns if c not in required]
 
-                df = df[required + [c for c in df.columns if c not in required]]
+                df = df[present + extras]
                 df.index = pd.to_datetime(df.index).tz_localize(None)
 
                 results[symbol] = df

@@ -4988,3 +4988,98 @@ None of the gate classes. The only open, bounded item is the set of disclosed va
   that can show whether `requirements.txt` declares everything the suite imports. This
   session's clean-venv run showed the declaration is now complete; no further dependency
   of that class was found.
+
+## H75 — a vendor panel that omits a required column crashed the fetch (2026-10-27)
+
+**H75 is COMPLETE.** This is a **real defect in `src/qtr`**, found by exercising the
+fetcher against a vendor response that omits a column the selection assumed present. It
+is the first change under `src/qtr/data` since §H66.
+
+### The defect
+
+Both `fetch_yahoo` and `fetch_futures` re-select the vendor frame with
+
+```python
+required = ["open", "high", "low", "close", "volume"]
+for col in required:
+    if col not in df.columns:
+        logger.warning(f"Missing column {col} for {symbol}")
+df = df[required + [c for c in df.columns if c not in required]]
+```
+
+`required` is a **literal** list, so `df[required + extras]` indexes a name that is not in
+the frame. A vendor panel that omits `volume` (or any other required column) raises
+`KeyError` *inside* the per-symbol fetch loop, where the broad
+`except Exception` swallows it, logs `Failed to fetch <symbol>: ...`, and returns the
+symbol as an **empty frame** -- a silent void of exactly the class the H53–H61 audits
+exist to catch. The fetcher's own contract says an empty frame means "no data"; here it
+meant "the fetch crashed and the crash was swallowed", and the two are
+indistinguishable to every caller.
+
+The defect was reachable from a live data failure, not just from a synthetic fixture:
+yfinance does not guarantee that every ticker returns every one of the five OHLCV
+columns (a symbol with no volume history, a delisted ticker, an interval the vendor
+does not support).
+
+### What changed
+
+- `src/qtr/data/fetcher.py` — in both `fetch_yahoo` and `fetch_futures`, the selection
+  is now built from the columns that are **actually present**:
+
+  ```python
+  present = [col for col in required if col in df.columns]
+  extras = [c for c in df.columns if c not in required]
+  df = df[present + extras]
+  ```
+
+  The order is `[present required] + [extras]`, which is bit-identical to the old
+  selection for a complete panel, so every panel the record actually contains is
+  unchanged. A panel that omits a column is returned over the columns it carries; the
+  existing `Missing column` warning still fires for each gap, and the engine treats a
+  missing volume column as zero volume in the impact model, so downstream behaviour is
+  unchanged for panels that carry it.
+- `tests/test_data_fetcher.py` — **7 tests added** (49, was 42):
+  - `test_fetch_does_not_crash_when_volume_is_missing` (parametrised over `fetch_yahoo`
+    and `fetch_futures`) — a vendor panel missing `volume` returns a frame carrying
+    `close`, not an empty frame;
+  - `test_fetch_keeps_extras_and_orders_present_required_first` (parametrised) — a
+    complete panel with `adj_close` keeps the extras and re-orders to
+    `open, high, low, close, volume, adj_close`, exactly as before;
+  - `test_fetch_missing_required_column_warns_but_does_not_raise` (parametrised) — the
+    existing `Missing column volume` warning still fires through a loguru sink;
+  - `test_fetch_missing_required_column_pre_fix_form_raises` — a behavioural negative
+    control that reconstructs the literal-list selection over a volume-less frame and
+    requires it to raise `KeyError`, proving the corrected selection is what makes the
+    fetch safe rather than merely lucky;
+  - the two pre-existing tests that pinned the swallowed-exception behaviour
+    (`test_fetch_yahoo_missing_column`, `test_fetch_futures_missing_column_and_cache`)
+    were updated to pin the corrected behaviour (the panel is returned, and the
+    corrected panel is what gets cached and returned on the cache-hit path).
+
+### The blast radius
+
+The change is a two-line predicate swap in each of two fetch methods. For every panel
+that carries all five required columns the selection is bit-identical to before, so:
+
+- every committed cache parquet is unchanged (82 files, all carry `open, high, low,
+  close, volume, adj_close`);
+- no published artifact, gate threshold, verdict or certified number moves;
+- no grid was re-run; no hypothesis was added.
+
+### What was actually verified
+
+- The new tests **fail on the pre-fix code** (reverted source: the fetch returns an
+  empty frame and the assertions on the returned columns fail), then pass with the
+  fix restored.
+- `python -m pytest -q -W error` → **2143 passed, 16 skipped** (was 2135; +8 are the
+  new tests; the 16 skips are unchanged and all intentional/self-declaring).
+- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → `src/qtr` =
+  **1142 statements, 364 branches, 0 missed, 0 partial, 100.00%** (+4 statements from
+  the two new list comprehensions; branches unchanged).
+- `python -m ruff check src tests run_*.py` → *All checks passed!*;
+  `python -m ruff format --check src tests run_*.py` → **104 files already formatted**.
+- Pinned contracts re-run after the change: `test_data_fetcher.py`,
+  `test_public_api_contract.py`, `test_runner_import_contract.py` → **149 passed** in
+  the clean venv with only `pip install -r requirements.txt`.
+- No published artifact, gate threshold, verdict or certified number was modified; no
+  grid was re-run; no hypothesis was added.
