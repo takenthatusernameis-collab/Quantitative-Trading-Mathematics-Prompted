@@ -54,10 +54,26 @@ requires it to raise `KeyError`.
 - **Fixing only `fetch_yahoo`.** Rejected: `fetch_futures` carries the identical
   literal-list selection, so the defect is present in both and both were fixed.
 
+## Session confirmation (no code change)
+
+This session inspected the repository for a bounded defect-fix task. Prior
+agents already brought the baseline to green and froze all hypothesis work
+(H1–H30 exhausted; certified families frozen). A source-level review of
+`src/qtr/data/fetcher.py`, `src/qtr/backtest/engine.py` and
+`src/qtr/utils/config.py`, plus an empirical fuzz of `qtr.data.non_positive_prices`
+(the H58/H59 contamination screen), found **no safe, evidence-based defect**:
+`+inf` correctly passes the screen because the screen's contract is explicitly
+*non-positive* prices (zero or less / sign-changing), and `+inf` is positive.
+No speculative change was made.
+
+Re-verified green in this session (bare clone, `qtr` uninstalled):
+- `python -m pytest -q -W error` → **2143 passed, 16 skipped** (all skips intentional/self-declaring).
+- `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` **1142 stmts / 364 branches / 0 missed / 0 partial / 100.00%**.
+- `python -m ruff check src tests run_*.py` → **All checks passed!**; `ruff format --check` → **104 files formatted**.
+
 ## Next task
 
-**None assigned.** Baseline is green and stable, verified from a bare-clone
-environment as well as from the system runner.
+**None assigned.** Baseline is green and stable.
 
 Constraints that carry forward:
 - No published artifact, gate threshold, verdict or certified number may be
