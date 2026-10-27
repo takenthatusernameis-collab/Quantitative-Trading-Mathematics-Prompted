@@ -1,16 +1,17 @@
 # HANDOFF_CURRENT_SESSION — session complete (baseline inspection, no code change)
 
 ## What changed (this session)
-- No code changes. Verified baseline state at HEAD `54cd08a` (working tree clean). Reviewed recent handoffs (H74 confirmed clean-venv verification; full gates green).
+- No code changes. Verified baseline state at HEAD `bd9657b` (working tree clean). Inspected recent handoffs (H35–H74 complete; H1–H30 exhausted; certified families frozen).
 
 ## What was actually verified (this session)
 - `git status --short` → clean
-- `git log --oneline -1` → `54cd08a`
+- `git log --oneline -1` → `bd9657b`
 - `python -m ruff check src tests run_*.py` → **All checks passed!**
 - `python -m ruff format --check src tests run_*.py` → **104 files already formatted**
-- Pinned contract subset: `test_engine_metric_agreement.py`, `test_public_api_contract.py`, `test_ruff_reproducibility.py` → **107 passed**
+- Pinned contracts: `test_engine_metric_agreement.py`, `test_public_api_contract.py`, `test_ruff_reproducibility.py` → **107 passed**
 - `tests/test_data_fetcher.py`, `tests/test_coverage_gate_contract.py` → **59 passed**
 - Baselines/strategies: `tests/test_baselines.py`, `tests/test_baselines_extra.py` → **47 passed**
+- Full suite: `python -m pytest -q` → **2135 passed, 16 skipped**
 
 ## What remains unresolved
 - All H1–H30 exhausted; certified families frozen. H35–H74 complete per prior handoffs.
