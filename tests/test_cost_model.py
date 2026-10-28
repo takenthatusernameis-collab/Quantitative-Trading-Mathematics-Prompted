@@ -250,3 +250,43 @@ class TestEquityImpactModel:
         )
         res = run_backtest(prices=prices, signals=signals, config=cfg)
         assert res.returns.iloc[0] == pytest.approx(-2.0 / 10_000, abs=1e-12)
+
+
+class TestCostModelFuturesSpecs:
+    def test_future_cost_per_contract_with_symbol_specs(self):
+        cm = CostModel(
+            futures_specs={
+                "ES": {
+                    "tick_value": 50.0,
+                    "spread_ticks": 1.0,
+                    "slippage_ticks": 0.5,
+                    "commission": 2.0,
+                }
+            }
+        )
+        # (1.0 + 0.5) * 50.0 + 2.0 = 75.0 + 2.0 = 77.0
+        assert cm.future_cost_per_contract("ES") == pytest.approx(77.0)
+
+    def test_future_cost_per_contract_with_symbol_missing_keys_uses_defaults(self):
+        cm = CostModel(
+            future_tick_value=12.50,
+            future_spread_ticks=0.25,
+            future_slippage_ticks=0.5,
+            future_commission_per_contract=0.50,
+            futures_specs={"CL": {"multiplier": 1000.0}},  # missing other keys
+        )
+        # falls back to defaults for missing keys
+        assert cm.future_cost_per_contract("CL") == pytest.approx(9.875)
+
+    def test_get_future_contract_multiplier_with_symbol(self):
+        cm = CostModel(futures_specs={"ES": {"multiplier": 50.0}})
+        assert cm.get_future_contract_multiplier("ES") == 50.0
+
+    def test_get_future_contract_multiplier_with_symbol_missing_key(self):
+        cm = CostModel(future_contract_multiplier=100.0, futures_specs={"ES": {}})
+        assert cm.get_future_contract_multiplier("ES") == 100.0
+
+    def test_get_future_contract_multiplier_no_symbol(self):
+        cm = CostModel(future_contract_multiplier=50.0)
+        assert cm.get_future_contract_multiplier() == 50.0
+        assert cm.get_future_contract_multiplier(None) == 50.0
