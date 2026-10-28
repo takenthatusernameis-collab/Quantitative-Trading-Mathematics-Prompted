@@ -1,26 +1,32 @@
-# HANDOFF_SESSION_END — session complete (baseline hygiene)
+# HANDOFF_SESSION_END — session complete (baseline verified, no code change)
+
+## State
+- H1–H30 exhausted; H35–H74/H75 complete per prior handoffs; certified families frozen. **No hypothesis work assigned.**
+- Baseline verified in this session (bare clone, qtr uninstalled): lint/format gates green, full suite green with coverage at 100%.
 
 ## What changed (this session)
-- No code changes. Verified baseline state; all gates green at HEAD 5c9cb4b.
+- No code changes. Inspected repository state; verified baseline (ruff clean, full pytest suite passes). No bounded defect found that is safe and verifiable to fix without speculation.
 
 ## What was actually verified (this session)
 - `git status --short` → clean
-- `git log --oneline -1` → 5c9cb4b
-- `python -m ruff check src tests run_*.py` → All checks passed!
-- `python -m ruff format --check src tests run_*.py` → 104 files already formatted
-- `python -m pytest tests/test_baselines.py tests/test_baselines_extra.py -q` → 46 passed
-- Pinned contracts subset (engine/metric agreement, H53–H59 disclosures, runner contracts, benchmark gate, public API, ruff reproducibility, trade log reconciliation, tsmom signal): 940 passed
-- Full suite with warnings-as-errors attempted (timed out in environment) but baseline state matches last handoff (2103 passed, 16 skipped)
+- `git log --oneline -1` → fde8b6d
+- `python -m ruff check src tests run_*.py` → **All checks passed!**
+- `python -m ruff format --check src tests run_*.py` → **104 files already formatted**
+- `python -m pytest -q -W error` → **2157 passed, 16 skipped** (all skips intentional/self-declaring)
+- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → `src/qtr` **1153 stmts / 366 branches, 0 missed, 0 partial, 100.00%**
 
 ## What remains unresolved
-- All H1–H30 exhausted; certified families frozen. H35–H70 complete per prior handoffs.
-- Disclosures in `FINAL_REPORT.md` §H53–§H61 remain unquantified (missing committed inputs). No action possible without new committed artifacts.
-- No published artifact/gate/threshold/verdict/certified number modified. No grid re-runs.
+- All remaining items in `FINAL_REPORT.md` §H53–§H61 remain **disclosed, not quantified** — each depends on an input the record does not hold. None can be resolved without new committed inputs; none affect gates.
+- No published artifact, gate threshold, verdict, or certified number was modified.
+
+## Failed approaches (this session)
+- None. No changes attempted.
 
 ## Precise next task
-**None assigned.** Options if further work is desired:
-1. If newly committed artifacts make any disclosed §H53–§H61 value measurable, quantify only those with committed evidence (no changes to published gates/thresholds/verdicts).
-2. Baseline hygiene after any change under `src/qtr` or affecting runners/validation: re-run pinned contracts (`test_engine_metric_agreement.py`, `test_h53_published_metrics_disclosure.py`, `test_h54_non_metrics_block_disclosure.py`, `test_h55_nested_metrics_disclosure.py`, `test_h56_stats_json_echoes.py`, `test_h57_total_return_audit.py`, `test_h58_price_pathology_contamination.py`, `test_h59_contamination_gate_blast_radius.py`, `test_runner_causality_inventory.py`, `test_runner_metric_agreement.py`, `test_benchmark_gate_contract.py`, `test_public_api_contract.py`, `test_ruff_reproducibility.py`, `test_trade_log_cost_reconciliation.py`, `test_tsmom_signal.py`) and confirm `python -m pytest -q --cov=qtr --cov-branch` stays at 100% (statement+branch); keep ruff clean.
+**None assigned.** Baseline hygiene only after any change under `src/qtr` or affecting runners/validation:
+1. Re-run pinned contracts (`test_engine_metric_agreement.py`, `test_h53_published_metrics_disclosure`, `test_h54_non_metrics_block_disclosure`, `test_h55_nested_metrics_disclosure`, `test_h56_stats_json_echoes`, `test_h57_total_return_audit.py`, `test_h58_price_pathology_contamination.py`, `test_h59_contamination_gate_blast_radius.py`, `test_runner_causality_inventory.py`, `test_runner_metric_agreement.py`, `test_benchmark_gate_contract.py`, `test_public_api_contract.py`, `test_ruff_reproducibility.py`, `test_trade_log_cost_reconciliation.py`, `test_tsmom_signal.py`, `test_coverage_gate_contract.py`, `test_generated_manifest_contract.py`) and confirm `python -m pytest -q --cov=qtr --cov-branch` stays at 100% (statement+branch); keep ruff clean.
+2. Verify in clean venv with only `pip install -r requirements.txt` if touching dependencies/quick-start (per H63/H64/H74). `requirements.txt` must declare every dependency pinned contract tests import (`setuptools>=68`, `pyarrow>=14.0.0`, `ruff>=0.6.0`).
+3. qtr is left **uninstalled** (bare clone) — do not `pip install -e .` unless a test requires it, and restore that state if you do.
 
 ## Constraints carried forward
 - No published artifact, gate threshold, verdict, or certified number may be modified. H1–H30 hypothesis space remains exhausted.
