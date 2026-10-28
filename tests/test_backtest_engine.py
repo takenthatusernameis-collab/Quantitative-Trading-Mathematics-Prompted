@@ -641,3 +641,27 @@ class TestTotalCosts:
         df = pd.DataFrame({"A": pd.Series([0.001] * 5, index=idx)}, index=idx)
         out = backtester._total_costs(df)
         pd.testing.assert_index_equal(out.index, idx)
+
+
+class TestMaxDrawdownDuration:
+    """Direct tests for VectorizedBacktester._max_dd_duration."""
+
+    def test_no_drawdown_returns_zero(self):
+        backtester = VectorizedBacktester(_make_config())
+        dd = pd.Series([0.0, 0.0, 0.0])
+        assert backtester._max_dd_duration(dd) == 0
+
+    def test_single_period_drawdown(self):
+        backtester = VectorizedBacktester(_make_config())
+        dd = pd.Series([0.0, -0.01, 0.0])
+        assert backtester._max_dd_duration(dd) == 1
+
+    def test_longest_streak(self):
+        backtester = VectorizedBacktester(_make_config())
+        dd = pd.Series([0.0, -0.01, -0.02, -0.01, 0.0, -0.01])
+        assert backtester._max_dd_duration(dd) == 3
+
+    def test_all_negative(self):
+        backtester = VectorizedBacktester(_make_config())
+        dd = pd.Series([-0.01, -0.02, -0.03])
+        assert backtester._max_dd_duration(dd) == 3
