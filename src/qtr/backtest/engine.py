@@ -250,10 +250,7 @@ class VectorizedBacktester:
         equity curve and every published metric are unchanged by the
         attribution fix in ``_extract_trades``.
         """
-        costs = pd.Series(0.0, index=symbol_costs.index)
-        for symbol in symbol_costs.columns:
-            costs += symbol_costs[symbol]
-        return costs
+        return symbol_costs.sum(axis=1)
 
     def _calculate_costs_by_symbol(
         self,
