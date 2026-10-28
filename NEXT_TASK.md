@@ -4,7 +4,7 @@
 
 Full verification gates passed this session, on `main` (system runner, bare clone, qtr uninstalled):
 
-- `python -m pytest -q -W error` → **2153 passed, 16 skipped** (~5:30). All 16 skips are intentional and self-declaring.
+- `python -m pytest -q -W error` → **2157 passed, 16 skipped** (~5:16). All 16 skips are intentional and self-declaring. Re-verified from a fresh venv with only `pip install -r requirements.txt` (bare clone, qtr uninstalled): identical result.
 - `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → TOTAL **1152 stmts / 366 branches, 100.00%** required reached.
 - `python -m ruff check src tests run_*.py` → **All checks passed!**
 - `python -m ruff format --check src tests run_*.py` → **104 files already formatted.**
