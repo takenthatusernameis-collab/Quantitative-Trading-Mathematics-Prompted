@@ -567,3 +567,77 @@ class TestEmptyPanelHandling:
                 f"{metric} disagrees: engine={res.metrics[metric]!r}, "
                 f"validate_strategy={validation[metric]!r}"
             )
+
+
+# ============================================================
+# _total_costs (engine-level cost summation)
+# ============================================================
+class TestTotalCosts:
+    """Direct tests for VectorizedBacktester._total_costs.
+
+    The per-bar charge is the sum of the per-symbol cost breakdown
+    (_calculate_costs_by_symbol). _total_costs assembles that sum; it is
+    called by run_backtest (engine.py:210) and by _calculate_costs
+    (engine.py:242) but has no standalone test of its own. Pin it here.
+    """
+
+    def _costs(self, **cols) -> pd.DataFrame:
+        """Build a per-symbol cost frame over a fixed index."""
+        idx = pd.RangeIndex(5)
+        return pd.DataFrame(cols, index=idx)
+
+    def test_empty_frame_returns_zero_series(self):
+        """A frame with no symbols yields a zero series on its index."""
+        backtester = VectorizedBacktester(_make_config())
+        empty = pd.DataFrame(index=pd.RangeIndex(5))
+        out = backtester._total_costs(empty)
+        assert len(out) == 5
+        assert (out == 0.0).all()
+
+    def test_single_symbol_passes_through(self):
+        """One column is returned unchanged."""
+        backtester = VectorizedBacktester(_make_config())
+        col = pd.Series([0.001, 0.002, 0.003, 0.004, 0.005])
+        out = backtester._total_costs(self._costs(A=col))
+        pd.testing.assert_series_equal(out, col)
+
+    def test_multiple_symbols_sums(self):
+        """The charge is the sum of the per-symbol costs."""
+        backtester = VectorizedBacktester(_make_config())
+        out = backtester._total_costs(
+            self._costs(A=pd.Series([0.001] * 5), B=pd.Series([0.002] * 5))
+        )
+        expected = pd.Series([0.003] * 5)
+        pd.testing.assert_series_equal(out, expected)
+
+    def test_zero_values_sum_to_zero(self):
+        """All-zero per-symbol costs yield a zero charge."""
+        backtester = VectorizedBacktester(_make_config())
+        out = backtester._total_costs(
+            self._costs(
+                A=pd.Series([0.0] * 5),
+                B=pd.Series([0.0] * 5),
+                C=pd.Series([0.0] * 5),
+            )
+        )
+        assert (out == 0.0).all()
+
+    def test_mixed_signs_sum(self):
+        """Negative and positive per-symbol costs net out."""
+        backtester = VectorizedBacktester(_make_config())
+        out = backtester._total_costs(
+            self._costs(
+                A=pd.Series([0.001, -0.001, 0.001, -0.001, 0.001]),
+                B=pd.Series([-0.001, 0.001, -0.001, 0.001, -0.001]),
+            )
+        )
+        expected = pd.Series([0.0] * 5)
+        pd.testing.assert_series_equal(out, expected)
+
+    def test_preserves_index(self):
+        """The output index matches the input index."""
+        backtester = VectorizedBacktester(_make_config())
+        idx = pd.date_range("2020-01-01", periods=5)
+        df = pd.DataFrame({"A": pd.Series([0.001] * 5, index=idx)}, index=idx)
+        out = backtester._total_costs(df)
+        pd.testing.assert_index_equal(out.index, idx)

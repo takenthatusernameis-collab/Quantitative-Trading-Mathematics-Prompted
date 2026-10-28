@@ -4,7 +4,7 @@
 
 Full verification gates passed this session, in a **fresh venv with only `pip install -r requirements.txt`** as well as in the system runner:
 
-- `python -m pytest -q -W error` → **2136 passed, 16 skipped** (~3:00). (Was 2135 passed before this session's change; +1 for the new test below.)
+- `python -m pytest -q -W error` → **2142 passed, 16 skipped** (~3:00). (Was 2136 passed before this session's change; +6 for the new tests below.)
 - `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → TOTAL **1138 stmts / 364 branches, 100.00%** required reached.
 - `python -m ruff check src tests run_*.py` → **All checks passed!**
 - `python -m ruff format --check src tests run_*.py` → **104 files already formatted.**
@@ -14,17 +14,25 @@ Clean-venv install confirmed `requirements.txt` declares every dependency the su
 
 ## What changed (this session)
 
-Added one test to `tests/test_data_fetcher.py`:
+Added six tests to `tests/test_backtest_engine.py` in a new `TestTotalCosts` class:
 
-- `test_cache_get_strips_tz_on_read` — writes a tz-aware parquet directly into the `DataCache` directory (bypassing `set`, which strips tz before writing) and verifies `DataCache.get` returns a tz-naive frame. Pins the read-side timezone-stripping branch in `src/qtr/data/fetcher.py:92-94` that handles externally-written or stale tz-aware cache files. No source code was modified; working tree has only the new test.
+- `test_empty_frame_returns_zero_series` — a per-symbol cost frame with no columns yields a zero series on its index.
+- `test_single_symbol_passes_through` — one column is returned unchanged.
+- `test_multiple_symbols_sums` — the charge is the sum of the per-symbol costs.
+- `test_zero_values_sum_to_zero` — all-zero per-symbol costs yield a zero charge.
+- `test_mixed_signs_sum` — negative and positive per-symbol costs net out.
+- `test_preserves_index` — the output index matches the input index.
+
+These pin `VectorizedBacktester._total_costs` (src/qtr/backtest/engine.py:245), which is called by `run_backtest` (engine.py:210) and `_calculate_costs` (engine.py:242) but had no standalone test. No source code was modified; working tree has only the new tests.
 
 ## What was actually verified (this session)
 
-- New test passes in isolation and within the full suite.
-- Full suite: **2136 passed, 16 skipped** (all 16 skips are intentional and self-declaring).
+- New tests pass in isolation and within `tests/test_backtest_engine.py` (43 passed, up from 37).
+- Pinned contract tests pass: `test_engine_metric_agreement.py`, `test_trade_log_cost_reconciliation.py`, `test_coverage_gate_contract.py`, `test_public_api_contract.py` (160 passed).
+- Full suite: **2142 passed, 16 skipped** (all 16 skips are intentional and self-declaring).
 - Coverage: `src/qtr` **100%** statement + branch, 0 missed, 0 partial.
 - Ruff lint: clean. Ruff format: clean.
-- `git status --short` → clean except the new test file; `git diff` shows only the addition.
+- `git status --short` → clean except the modified test file; `git diff` shows only the addition.
 
 ## What remains unresolved
 
