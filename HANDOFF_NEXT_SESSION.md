@@ -1,35 +1,32 @@
-# HANDOFF_NEXT_SESSION — inspection complete, no assigned task
+# HANDOFF_NEXT_SESSION — session complete (baseline hygiene, no code change)
 
 ## State
-- H35–H74 complete; H1–H30 exhausted; certified families frozen. No hypothesis work assigned.
-- Working tree clean. Baseline as recorded in prior handoffs is green.
-
-## Verified (from prior handoffs / environment state)
-- `python -m pytest -q -W error` → **2145 passed, 16 skipped** (per HANDOFF_NEXT_SESSION.md)
-- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → `src/qtr` **1142 stmts / 364 branches, 0 missed, 0 partial, 100.00%** (per HANDOFF_NEXT_SESSION.md)
-- `python -m ruff check src tests run_*.py` → **All checks passed!**
-- `python -m ruff format --check src tests run_*.py` → **104 files already formatted**
-- Repo is clean (`git status --short` empty). Recent commits: a3ffecd, b45e2c9.
+- H1–H30 exhausted; H35–H73 complete per prior handoffs; certified families frozen. **No hypothesis work assigned.**
+- Baseline verified: ruff check/format clean, core contracts green (185 passed for engine/metric/trade-log/public-API subset).
+- Working tree clean at HEAD abd504b.
 
 ## What changed (this session)
-- No code changes. Inspected repository state, recent handoffs, git history. No safe, evidence-based defect found to fix without speculative changes or breaking frozen published artifacts/contracts. The two ruff I001 issues in `.experiments/artifacts/...` are in generated/artifact files (not under src/tests/runners) — not part of enforced gates; fixing them is cosmetic and not necessary to maintain gates.
+- No code changes. Verified repository state and ran focused contract checks. No defect found requiring a fix.
+
+## What was actually verified (this session)
+- `git status --short` → clean
+- `git log --oneline -1` → `abd504b`
+- `python -m ruff check src tests run_*.py` → All checks passed!
+- `python -m ruff format --check src tests run_*.py` → 104 files already formatted
+- Focused contracts: `tests/test_backtest_engine.py tests/test_trade_log_cost_reconciliation.py tests/test_engine_metric_agreement.py tests/test_public_api_contract.py` → **185 passed**
 
 ## What remains unresolved
-- Disclosed values in `FINAL_REPORT.md` §H53–§H61 remain **non-derivable from the committed record**; each depends on inputs not present. None can be resolved without new committed inputs; none affect gates/thresholds/verdicts/certified numbers.
-
-## Failed approaches (this session)
-- None.
+- All remaining items in `FINAL_REPORT.md` §H53–§H61 are **disclosed, not quantified** — each depends on an input the record does not hold. None can be resolved without new committed inputs; none affect gates.
+- No published artifact, gate threshold, verdict, or certified number modified.
 
 ## Precise next task
 **None assigned.** Baseline hygiene only after any change under `src/qtr` or affecting runners/validation:
-
-1. Re-run pinned contracts (causality/metric agreement/benchmark gate/public API/ruff reproducibility/coverage gate/trade log reconciliation/tsmom signal/generated manifest/runner import contract/data fetcher and all H53–H59 contracts) and confirm `src/qtr` stays at 100% coverage (statement+branch); keep ruff clean.
-2. Verify in a fresh venv with only `pip install -r requirements.txt` if touching dependencies/startup paths.
-3. `requirements.txt` must declare every dependency pinned contract tests import (`setuptools>=68`, `pyarrow>=14.0.0`, `ruff>=0.6.0`).
-4. qtr is left **uninstalled** (bare clone) — do not `pip install -e .` unless a test requires it, and restore that state if you do.
+1. Re-run pinned contracts (`test_engine_metric_agreement.py`, `test_h53_published_metrics_disclosure.py`, `test_h54_non_metrics_block_disclosure.py`, `test_h55_nested_metrics_disclosure.py`, `test_h56_stats_json_echoes.py`, `test_h57_total_return_audit.py`, `test_h58_price_pathology_contamination.py`, `test_h59_contamination_gate_blast_radius.py`, `test_runner_causality_inventory.py`, `test_runner_metric_agreement.py`, `test_benchmark_gate_contract.py`, `test_public_api_contract.py`, `test_ruff_reproducibility.py`, `test_trade_log_cost_reconciliation.py`, `test_tsmom_signal.py`, `test_coverage_gate_contract.py`, `test_generated_manifest_contract.py`) and confirm `python -m pytest -q --cov=qtr --cov-branch` stays at 100% (statement+branch); keep ruff clean.
+2. Verify in clean venv with only `pip install -r requirements.txt` if touching dependencies/quick-start (per H63/H64/H74). `requirements.txt` must declare every dependency pinned contract tests import (`setuptools>=68`, `pyarrow>=14.0.0`, `ruff>=0.6.0`).
+3. qtr is left uninstalled (bare clone) — do not `pip install -e .` unless a test requires it, and restore that state if you do.
 
 ## Constraints carried forward
 - No published artifact, gate threshold, verdict, or certified number may be modified. H1–H30 hypothesis space remains exhausted.
-- `src/qtr` coverage gate must stay at 100% (statement + branch).
-- Ruff lint and format gates must stay clean (`python -m ruff check src tests run_*.py`).
+- `src/qtr` must remain at 100% coverage (statement + branch).
+- Ruff lint and format gates must remain clean.
 - After changes under `src/qtr` or runners/validation, re-run causality/metric agreement/benchmark gate contracts.
