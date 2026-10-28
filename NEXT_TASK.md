@@ -2,10 +2,10 @@
 
 ## Status
 
-Full verification gates passed this session, in a **fresh venv with only `pip install -r requirements.txt`** as well as in the system runner:
+Full verification gates passed this session, on `main` (system runner, bare clone, qtr uninstalled):
 
-- `python -m pytest -q -W error` → **2142 passed, 16 skipped** (~3:00). (Was 2136 passed before this session's change; +6 for the new tests below.)
-- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → TOTAL **1138 stmts / 364 branches, 100.00%** required reached.
+- `python -m pytest -q -W error` → **2153 passed, 16 skipped** (~5:30). All 16 skips are intentional and self-declaring.
+- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → TOTAL **1152 stmts / 366 branches, 100.00%** required reached.
 - `python -m ruff check src tests run_*.py` → **All checks passed!**
 - `python -m ruff format --check src tests run_*.py` → **104 files already formatted.**
 - Pinned contract subset in the fresh venv → 61 passed, 3 skipped (the 3 skips are the qtr-not-installed / no-manifest skips, correct in a bare clone).
