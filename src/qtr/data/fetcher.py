@@ -409,13 +409,29 @@ class DataFetcher:
             try:
                 all_ohlcv = []
                 current_since = since
-
+                # Pagination advances ``current_since`` to one millisecond past
+                # the last bar returned. A vendor that returns a batch whose
+                # newest bar is not later than the ``since`` it was asked for
+                # therefore never advances: the loop re-requests the same
+                # window forever (measured: 27,992 calls in 15s against a stub
+                # that repeats one fixed bar). The fetch is bounded by the
+                # window itself -- ``current_since < end_ms`` -- and by the
+                # page cap, so a non-advancing vendor must be refused here
+                # rather than allowed to consume the whole compute budget.
                 while current_since < end_ms:
                     ohlcv = exchange.fetch_ohlcv(symbol, timeframe, since=current_since, limit=1000)
                     if not ohlcv:
                         break
+                    last_ts = ohlcv[-1][0]
+                    if last_ts <= current_since:
+                        logger.warning(
+                            f"CCXT pagination for {symbol} on {exchange_id} did not advance "
+                            f"(last bar {last_ts} <= requested since {current_since}); "
+                            "stopping to avoid an infinite loop."
+                        )
+                        break
                     all_ohlcv.extend(ohlcv)
-                    current_since = ohlcv[-1][0] + 1
+                    current_since = last_ts + 1
                     if len(ohlcv) < 1000:
                         break
 
