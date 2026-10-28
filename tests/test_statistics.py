@@ -812,6 +812,29 @@ class TestValidateStrategy:
         res = st.validate_strategy(returns, self._trades(50), {})
         assert "sharpe" in res
 
+    def test_annualized_volatility_matches_the_engine_convention(self, rng):
+        """annualized_volatility uses ddof=1 (pandas Series.std default),
+        matching the engine's VectorizedBacktester._calculate_metrics
+        (engine.py:_calculate_metrics).  This is the cross-module agreement
+        convention pinned by test_engine_metric_agreement.py.
+
+        ddof=1 inflates volatility by sqrt(n / (n - 1)) relative to the
+        population std (ddof=0) that sharpe_ratio divides by.  The two
+        volatility measures within a single validate_strategy result
+        deliberately use different conventions: annualized_volatility follows
+        the engine (ddof=1), while sharpe follows sharpe_ratio (ddof=0).
+        """
+        returns = pd.Series(rng.normal(0.001, 0.01, 400))
+        res = st.validate_strategy(returns, self._trades(50), {})
+        expected = returns.std(ddof=1) * np.sqrt(252)
+        assert res["annualized_volatility"] == pytest.approx(expected)
+
+    def test_annualized_volatility_single_element_is_nan(self):
+        """With one observation the sample std (ddof=1) divides by n-1=0,
+        yielding NaN.  This matches the engine convention."""
+        res = st.validate_strategy(pd.Series([0.001]), self._trades(1), {})
+        assert np.isnan(res["annualized_volatility"])
+
 
 def test_purged_kfold_basic():
     from qtr.validation.statistics import purged_kfold_splits
