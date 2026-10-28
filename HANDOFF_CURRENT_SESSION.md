@@ -4,7 +4,7 @@
 - None. Inspected repository state; no bounded high-value fix was identified that could be implemented and verified without speculative changes or touching published artifacts/gates. Working tree remains clean.
 
 ## What was actually verified
-- Git: HEAD `8c7a13d` (clean). Recent commit adds tests to `tests/test_data_fetcher.py` for tz_localize fallback branches (as per prior handoff).
+- Git: HEAD `adc4b84` (clean; working tree matches `8c7a13d` baseline verified this session). Recent commit adds tests to `tests/test_data_fetcher.py` for tz_localize fallback branches (as per prior handoff).
 - Full suite (system env): `python -m pytest -q -W error` → **2145 passed, 16 skipped** (skips are self-declaring/intentional).
 - Coverage (system env): `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → `src/qtr` **100.00%** statement+branch (1148/1148 stmts, 364/364 branches).
 - Pinned contract subset (system): 968 passed, 3 skipped across causality/metric agreement/benchmark gate/public API/ruff reproducibility/coverage gate/trade log reconciliation/tsmom signal/generated manifest tests.
