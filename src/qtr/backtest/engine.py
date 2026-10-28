@@ -250,6 +250,11 @@ class VectorizedBacktester:
         equity curve and every published metric are unchanged by the
         attribution fix in ``_extract_trades``.
         """
+        if symbol_costs is None or symbol_costs.empty or symbol_costs.shape[1] == 0:
+            index = getattr(symbol_costs, "index", None)
+            if index is None:
+                return pd.Series(dtype=float)
+            return pd.Series(0.0, index=index)
         return symbol_costs.sum(axis=1)
 
     def _calculate_costs_by_symbol(
