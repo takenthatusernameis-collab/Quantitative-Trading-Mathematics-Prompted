@@ -642,6 +642,18 @@ class TestTotalCosts:
         out = backtester._total_costs(df)
         pd.testing.assert_index_equal(out.index, idx)
 
+    def test_empty_like_no_index_returns_empty_series(self):
+        """If a frame-like object has no columns and no index attribute, return empty Series."""
+        backtester = VectorizedBacktester(_make_config())
+
+        class Dummy:
+            empty = True
+            shape = (0, 0)
+
+        out = backtester._total_costs(Dummy())
+        assert isinstance(out, pd.Series)
+        assert out.empty
+
 
 class TestMaxDrawdownDuration:
     """Direct tests for VectorizedBacktester._max_dd_duration."""
