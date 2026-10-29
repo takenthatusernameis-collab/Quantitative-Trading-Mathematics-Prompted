@@ -1,20 +1,20 @@
 # HANDOFF_CURRENT — session complete (baseline verified, no code change)
 
 ## State
-- H1–H30 exhausted; H35–H73 complete per prior handoffs; certified families frozen. **No hypothesis work assigned.**
-- Baseline verified in this session (bare clone, qtr uninstalled): lint/format gates green; pinned contracts green; working tree clean.
-- HEAD: `bb4519d` (current). Latest commit on branch: `6776cb4` (previous session changed HANDOFF_CURRENT.md only).
+- H1–H30 exhausted; H35–H74/H75 complete per prior handoffs; certified families frozen. **No hypothesis work assigned.**
+- Baseline verified in this session (bare clone, qtr uninstalled): lint/format gates green; full suite green with coverage at 100%.
+- HEAD: `98bdd07` (latest). Previous commit `c7e9ece` fixed CCXT/yahoo/futures fetcher to be robust when required OHLCV columns are missing.
 
 ## What changed (this session)
-- No code changes. Inspected repository state and verified baseline hygiene (ruff, pinned contracts). No bounded defect found that is safe and verifiable to fix without speculation.
+- No code changes. Inspected repository state; verified baseline (ruff clean, full pytest suite passes). Confirmed latest commit `98bdd07` added defensive column handling in `src/qtr/data/fetcher.py` and regression tests in `tests/test_data_fetcher.py`.
 
 ## What was actually verified (this session)
 - `git status --short` → clean
-- `git log --oneline -1` → `bb4519d`
+- `git log --oneline -1` → `98bdd07`
 - `python -m ruff check src tests run_*.py` → **All checks passed!**
 - `python -m ruff format --check src tests run_*.py` → **105 files already formatted**
-- Pinned contracts subset (engine metric agreement, H53–H59, runner/benchmark contracts, public API, ruff reproducibility, trade log cost reconciliation, tsmom signal, coverage gate, generated manifest): **968 passed, 3 skipped** (skips are expected in bare clone/uninstalled state).
-- `requirements.txt` contains `setuptools>=68`, `pyarrow>=14.0.0`, `ruff>=0.6.0` as required by pinned contracts.
+- `python -m pytest -q -W error` → **2168 passed, 16 skipped** (all skips intentional/self-declaring)
+- `python -m pytest -q --cov=qtr --cov-branch` → `src/qtr` **100.00%** coverage (statement+branch)
 
 ## What remains unresolved
 - All remaining items in `FINAL_REPORT.md` §H53–§H61 remain **disclosed, not quantified** — each depends on an input the record does not hold. None can be resolved without new committed inputs; none affect gates.
