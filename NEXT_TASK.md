@@ -1,36 +1,34 @@
-# Next task — none assigned (baseline hygiene)
+# Next task — none assigned (baseline verified)
 
 ## Status (this session)
 
-No prior agent assignment existed; the baseline was already fully green. I inspected the repository and selected one bounded, high-value task: relocate a late module-level import in `src/qtr/validation/statistics.py` to the top of the file with the other stdlib imports. `from itertools import combinations as _combinations` was defined at line 895, after all function definitions (first def at line 11). While it executes correctly (module-level imports run before any function is called) and ruff ignores E402, it is unconventional and the only import-out-of-place in `src/qtr`.
+No prior agent assignment existed in the sense of a pending hypothesis/task; handoffs consistently state H1–H30 exhausted and certified families frozen. I inspected the repository: git tree clean, ruff/format clean, pinned contract subsets pass. Baseline matches the most recent handoffs.
 
 ## What changed
 
-`src/qtr/validation/statistics.py` — moved `from itertools import combinations as _combinations` from line 895 (after all function definitions) to line 4 (with the other stdlib imports: `warnings`, `typing`). Removed the now-duplicate late import. Behavior-preserving: no code added, removed, or modified; only an import statement relocated.
-
--1 file changed, -2 net lines (1 import added at top, 1 import + 1 blank line removed at bottom); working tree contains only this modification (uncommitted).
+None (working tree clean). No code modifications made.
 
 ## What was actually verified
 
+- `git status --short` → clean
+- `git log --oneline -1` → fde8b6d
 - `python -m ruff check src tests run_*.py` → **All checks passed!**
-- `python -m ruff format --check src tests run_*.py` → **105 files already formatted.**
-- `python -m pytest -q tests/test_statistics.py tests/test_runner_import_contract.py tests/test_ruff_reproducibility.py tests/test_public_api_contract.py tests/test_config.py -W error` → **203 passed.**
-- `git status --short` → only `src/qtr/validation/statistics.py` modified; `qtr` remains **uninstalled** (bare clone).
+- `python -m ruff format --check src tests run_*.py` → **105 files already formatted**
+- Pinned contract subset: `python -m pytest -q tests/test_public_api_contract.py tests/test_ruff_reproducibility.py tests/test_runner_import_contract.py tests/test_coverage_gate_contract.py` → **121 passed**
+- Prior full-suite baselines (from handoffs): `python -m pytest -q -W error` → **2157 passed, 16 skipped**; `src/qtr` coverage **100%** (statement + branch)
 
 ## What remains unresolved
 
-- No hypothesis work assigned (H1–H30 exhausted; certified families frozen per prior handoffs).
-- No published artifact, gate threshold, verdict, or certified number may be modified.
-- Full-suite coverage run (`python -m pytest -q --cov=qtr --cov-branch`) could not complete in this session due to environment slowness (some test files take >3min individually), but the change is a pure import relocation with zero behavior impact, so coverage is unaffected. Statistics module coverage was previously 100%.
+- All remaining items in `FINAL_REPORT.md` §H53–§H61 remain **disclosed, not quantified** — each depends on inputs not present in the repo; none affect gates.
+- No published artifact, gate threshold, verdict, or certified number may be modified. H1–H30 hypothesis space remains exhausted.
 
 ## Precise next task
 
-Baseline hygiene only after any change under `src/qtr` or affecting runners/validation:
+**None assigned.** Baseline hygiene only after any change under `src/qtr` or affecting runners/validation:
 
-1. Re-run pinned contracts and confirm `python -m pytest -q --cov=qtr --cov-branch` stays at 100% (statement+branch).
-2. Keep `python -m ruff check src tests run_*.py` and `python -m ruff format --check src tests run_*.py` clean.
+1. Re-run pinned contracts (`test_engine_metric_agreement.py`, `test_h53_published_metrics_disclosure`, `test_h54_non_metrics_block_disclosure`, `test_h55_nested_metrics_disclosure`, `test_h56_stats_json_echoes`, `test_h57_total_return_audit.py`, `test_h58_price_pathology_contamination.py`, `test_h59_contamination_gate_blast_radius.py`, `test_runner_causality_inventory.py`, `test_runner_metric_agreement.py`, `test_benchmark_gate_contract.py`, `test_public_api_contract.py`, `test_ruff_reproducibility.py`, `test_trade_log_cost_reconciliation.py`, `test_tsmom_signal.py`, `test_coverage_gate_contract.py`, `test_generated_manifest_contract.py`) and confirm `python -m pytest -q --cov=qtr --cov-branch` stays at 100% (statement+branch); keep `ruff check` and `ruff format --check` clean.
+2. Verify in a clean venv with only `pip install -r requirements.txt` if touching dependencies/quick-start. `requirements.txt` must declare every dependency pinned contract tests import (`setuptools>=68`, `pyarrow>=14.0.0`, `ruff>=0.6.0`).
 3. `qtr` is left **uninstalled** (bare clone) — do not `pip install -e .` unless a test requires it, and restore that state if you do.
-4. `requirements.txt` must declare every dependency a pinned contract test imports (`setuptools>=68`, `pyarrow>=14.0.0`, `ruff>=0.6.0`).
 
 ## Constraints carried forward
 
@@ -41,4 +39,4 @@ Baseline hygiene only after any change under `src/qtr` or affecting runners/vali
 
 ## Failed approaches
 
-- None this session. Full suite (`python -m pytest -q`) times out at ~3min in this environment due to slow test files (not failures); individual fast test files (statistics, config, runner import, public API, ruff reproducibility, baselines, data fetcher) all pass quickly. No defect was found in `src/qtr` after reviewing `fetcher.py`, `engine.py`, `statistics.py`, `__init__.py` files, and subpackage `__all__` lists.
+- None this session.
