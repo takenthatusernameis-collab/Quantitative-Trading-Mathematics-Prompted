@@ -3,7 +3,7 @@
 ## State
 - H1–H30 exhausted; H35–H74/H75 complete per prior handoffs; certified families frozen. **No hypothesis work assigned.**
 - Baseline verified in this session (bare clone, qtr uninstalled): lint/format gates green; full suite green with coverage at 100%.
-- HEAD: `98bdd07` (latest). Previous commit `c7e9ece` fixed CCXT/yahoo/futures fetcher to be robust when required OHLCV columns are missing.
+- HEAD: `98bdd07` (latest).
 
 ## What changed (this session)
 - No code changes. Inspected repository state; verified baseline (ruff clean, full pytest suite passes). Confirmed latest commit `98bdd07` added defensive column handling in `src/qtr/data/fetcher.py` and regression tests in `tests/test_data_fetcher.py`.
