@@ -1019,3 +1019,64 @@ def test_fetch_missing_required_column_pre_fix_form_raises(tmp_path, monkeypatch
     required = ["open", "high", "low", "close", "volume"]
     with pytest.raises(KeyError):
         df[required + [c for c in df.columns if c not in required]]
+
+
+def test_fetch_ccxt_does_not_crash_when_volume_is_missing(tmp_path, monkeypatch):
+    """A CCXT panel that omits a required column must degrade, not raise."""
+    import sys
+    import types
+
+    class FakeExchange:
+        def __init__(self):
+            self.calls = 0
+
+        def fetch_ohlcv(self, symbol, timeframe, since=None, limit=1000):
+            self.calls += 1
+            if self.calls == 1:
+                return [
+                    [1577836800000 + 86400000, 1.0, 2.0, 0.5, 1.5],  # missing volume, advanced
+                ]
+            return []
+
+    fake_ccxt = types.ModuleType("ccxt")
+    fake_ccxt.binance = lambda cfg: FakeExchange()
+    monkeypatch.setitem(sys.modules, "ccxt", fake_ccxt)
+
+    fetcher = DataFetcher(cache=DataCache(cache_dir=tmp_path))
+    res = fetcher.fetch_ccxt("binance", ["BTC/USDT"], "2020-01-01", "2020-01-03", use_cache=False)
+    assert "close" in res["BTC/USDT"].columns
+    assert "volume" not in res["BTC/USDT"].columns
+    assert len(res["BTC/USDT"]) == 1
+
+
+def test_fetch_ccxt_missing_required_column_warns_but_does_not_raise(tmp_path, monkeypatch):
+    from loguru import logger
+
+    import sys
+    import types
+
+    class FakeExchange:
+        def __init__(self):
+            self.calls = 0
+
+        def fetch_ohlcv(self, symbol, timeframe, since=None, limit=1000):
+            self.calls += 1
+            if self.calls == 1:
+                return [
+                    [1577836800000 + 86400000, 1.0, 2.0, 0.5, 1.5],
+                ]
+            return []
+
+    fake_ccxt = types.ModuleType("ccxt")
+    fake_ccxt.binance = lambda cfg: FakeExchange()
+    monkeypatch.setitem(sys.modules, "ccxt", fake_ccxt)
+
+    fetcher = DataFetcher(cache=DataCache(cache_dir=tmp_path))
+    messages: list[str] = []
+    handler_id = logger.add(messages.append, level="WARNING")
+    try:
+        res = fetcher.fetch_ccxt("binance", ["BTC/USDT"], "2020-01-01", "2020-01-03", use_cache=False)
+        assert any("Missing column volume" in m for m in messages)
+        assert "close" in res["BTC/USDT"].columns
+    finally:
+        logger.remove(handler_id)

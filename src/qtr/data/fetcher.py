@@ -440,15 +440,20 @@ class DataFetcher:
                     results[symbol] = pd.DataFrame()
                     continue
 
-                df = pd.DataFrame(
-                    all_ohlcv,
-                    columns=["timestamp", "open", "high", "low", "close", "volume"],
-                )
+                # ccxt usually returns [timestamp, open, high, low, close, volume];
+                # a vendor that omits a required column must not crash the fetch.
+                base_cols = ["timestamp", "open", "high", "low", "close", "volume"]
+                df = pd.DataFrame(all_ohlcv)
+                if df.shape[1] >= len(base_cols):
+                    df = df.iloc[:, : len(base_cols)]
+                    df.columns = base_cols
+                else:
+                    df.columns = base_cols[: df.shape[1]]
                 df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
                 df = df.set_index("timestamp")
                 df = df[(df.index >= start) & (df.index <= end)]
                 df = df[~df.index.duplicated(keep="first")].sort_index()
-                # Standardize column names defensively (ccxt usually returns the above)
+                # Standardize column names defensively
                 df.columns = [str(c).lower().replace(" ", "_") for c in df.columns]
                 required = ["open", "high", "low", "close", "volume"]
                 present = [col for col in required if col in df.columns]
