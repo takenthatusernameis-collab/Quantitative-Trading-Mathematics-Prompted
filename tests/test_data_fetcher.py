@@ -1050,10 +1050,10 @@ def test_fetch_ccxt_does_not_crash_when_volume_is_missing(tmp_path, monkeypatch)
 
 
 def test_fetch_ccxt_missing_required_column_warns_but_does_not_raise(tmp_path, monkeypatch):
-    from loguru import logger
-
     import sys
     import types
+
+    from loguru import logger
 
     class FakeExchange:
         def __init__(self):
@@ -1075,7 +1075,9 @@ def test_fetch_ccxt_missing_required_column_warns_but_does_not_raise(tmp_path, m
     messages: list[str] = []
     handler_id = logger.add(messages.append, level="WARNING")
     try:
-        res = fetcher.fetch_ccxt("binance", ["BTC/USDT"], "2020-01-01", "2020-01-03", use_cache=False)
+        res = fetcher.fetch_ccxt(
+            "binance", ["BTC/USDT"], "2020-01-01", "2020-01-03", use_cache=False
+        )
         assert any("Missing column volume" in m for m in messages)
         assert "close" in res["BTC/USDT"].columns
     finally:
