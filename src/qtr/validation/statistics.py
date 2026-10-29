@@ -1,6 +1,7 @@
 """Statistical validation utilities for quantitative trading research."""
 
 import warnings
+from itertools import combinations as _combinations
 from typing import Any, Optional
 
 import numpy as np
@@ -890,9 +891,6 @@ def validate_strategy(
     )
 
     return results
-
-
-from itertools import combinations as _combinations
 
 
 def purged_kfold_splits(

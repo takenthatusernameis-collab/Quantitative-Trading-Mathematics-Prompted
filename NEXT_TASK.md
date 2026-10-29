@@ -2,26 +2,26 @@
 
 ## Status (this session)
 
-No prior agent assignment existed; the baseline was already fully green. I inspected the repository and selected one bounded, high-value task: pin the `run_*.py` experiment runners' formatting as a test, since they are committed experiment artifacts but only had a manual lint/format gate (AGENTS.md) and no test-based check.
+No prior agent assignment existed; the baseline was already fully green. I inspected the repository and selected one bounded, high-value task: relocate a late module-level import in `src/qtr/validation/statistics.py` to the top of the file with the other stdlib imports. `from itertools import combinations as _combinations` was defined at line 895, after all function definitions (first def at line 11). While it executes correctly (module-level imports run before any function is called) and ruff ignores E402, it is unconventional and the only import-out-of-place in `src/qtr`.
 
 ## What changed
 
-`tests/test_runner_import_contract.py` — added `TestRunnerFormatContract.test_all_runners_are_ruff_formatted`, which runs `python -m ruff format --check` over every `run_*.py` in the repo root and fails if any runner is unformatted. Complements `test_runner_import_contract.py`'s importability/import-classification pins and `test_ruff_reproducibility.py`'s pyproject pin. No source under `src/qtr` was modified.
+`src/qtr/validation/statistics.py` — moved `from itertools import combinations as _combinations` from line 895 (after all function definitions) to line 4 (with the other stdlib imports: `warnings`, `typing`). Removed the now-duplicate late import. Behavior-preserving: no code added, removed, or modified; only an import statement relocated.
 
-+35 insertions, 1 file changed; working tree otherwise clean.
+-1 file changed, -2 net lines (1 import added at top, 1 import + 1 blank line removed at bottom); working tree contains only this modification (uncommitted).
 
 ## What was actually verified
 
-- New test passes: `tests/test_runner_import_contract.py` → 68 passed (includes the new formatting test).
-- Full suite `python -m pytest -q -W error` → **2164 passed, 16 skipped** (all 16 skips intentional/self-declaring; was 2163 before the new test).
-- Coverage `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → **TOTAL 1154 stmts / 368 branches / 0 missed / 0 partial / 100.00%**.
 - `python -m ruff check src tests run_*.py` → **All checks passed!**
-- `python -m ruff format --check src tests run_*.py` → **104 files already formatted.**
+- `python -m ruff format --check src tests run_*.py` → **105 files already formatted.**
+- `python -m pytest -q tests/test_statistics.py tests/test_runner_import_contract.py tests/test_ruff_reproducibility.py tests/test_public_api_contract.py tests/test_config.py -W error` → **203 passed.**
+- `git status --short` → only `src/qtr/validation/statistics.py` modified; `qtr` remains **uninstalled** (bare clone).
 
 ## What remains unresolved
 
 - No hypothesis work assigned (H1–H30 exhausted; certified families frozen per prior handoffs).
 - No published artifact, gate threshold, verdict, or certified number may be modified.
+- Full-suite coverage run (`python -m pytest -q --cov=qtr --cov-branch`) could not complete in this session due to environment slowness (some test files take >3min individually), but the change is a pure import relocation with zero behavior impact, so coverage is unaffected. Statistics module coverage was previously 100%.
 
 ## Precise next task
 
@@ -37,7 +37,8 @@ Baseline hygiene only after any change under `src/qtr` or affecting runners/vali
 - No published artifact, gate threshold, verdict, or certified number may be modified. H1–H30 hypothesis space remains exhausted.
 - `src/qtr` coverage gate must stay at 100% (statement + branch).
 - Ruff lint and format gates must stay clean.
+- After changes under `src/qtr` or runners/validation, re-run causality/metric agreement/benchmark gate contracts.
 
 ## Failed approaches
 
-- None this session; the repository had no defect to fix (baseline was already green: 2163 passed / 16 skipped, 100% coverage, ruff clean, all runner imports valid). The only uncommitted improvement available was the missing run-script formatting test, now added.
+- None this session. Full suite (`python -m pytest -q`) times out at ~3min in this environment due to slow test files (not failures); individual fast test files (statistics, config, runner import, public API, ruff reproducibility, baselines, data fetcher) all pass quickly. No defect was found in `src/qtr` after reviewing `fetcher.py`, `engine.py`, `statistics.py`, `__init__.py` files, and subpackage `__all__` lists.
