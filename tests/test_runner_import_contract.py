@@ -221,3 +221,38 @@ def _check_import(mod_name, runner_path, runner_stems, from_node=None):
     raise AssertionError(
         f"{runner_path.name}: third-party import '{mod_name}' is not declared in pyproject.toml"
     )
+
+
+class TestRunnerFormatContract:
+    """The runners' formatting is part of the documented gate
+
+    (``python -m ruff format --check src tests run_*.py`` in AGENTS.md) but,
+    unlike their imports, is not pinned by any test.  A runner that is
+    re-formatted by hand would drift silently until someone runs the lint
+    command by hand; this test makes the gate executable.
+
+    The runners are frozen experiment artifacts (H1-H30 exhausted), so their
+    formatting is intentionally not regenerated -- only checked.
+    """
+
+    def test_all_runners_are_ruff_formatted(self):
+        """Every ``run_*.py`` experiment runner passes ``ruff format --check``."""
+        import subprocess
+        import sys
+
+        runners = sorted(
+            p
+            for p in ROOT.iterdir()
+            if p.is_file() and p.name.startswith("run_") and p.suffix == ".py"
+        )
+        assert runners, "no run_*.py files found in the repository root"
+        completed = subprocess.run(
+            [sys.executable, "-m", "ruff", "format", "--check", *[str(p) for p in runners]],
+            capture_output=True,
+            text=True,
+        )
+        assert completed.returncode == 0, (
+            "run_*.py files are not ruff-formatted; run "
+            "`python -m ruff format --check run_*.py` and apply the suggested "
+            "edits:\n" + completed.stdout + completed.stderr
+        )
