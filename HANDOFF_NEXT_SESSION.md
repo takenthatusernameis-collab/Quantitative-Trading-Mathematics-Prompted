@@ -1,7 +1,7 @@
 # HANDOFF_NEXT_SESSION — session complete (baseline verified, no code change)
 
 ## State
-- H1–H30 exhausted; H35–H74/H75 complete per prior handoffs; certified families frozen. **No hypothesis work assigned.**
+- H1–H30 exhausted; H35–H75 complete per prior handoffs; certified families frozen. **No hypothesis work assigned.**
 - Baseline verified in this session (bare clone, qtr uninstalled): lint/format gates green, full suite green with coverage at 100%.
 
 ## What changed (this session)
@@ -9,15 +9,14 @@
 
 ## What was actually verified (this session)
 - `git status --short` → clean
-- `git log --oneline -1` → 48148f1
+- `git log --oneline -1` → c287a35
 - `python -m ruff check src tests run_*.py` → **All checks passed!**
 - `python -m ruff format --check src tests run_*.py` → **104 files already formatted**
-- `python -m pytest -q -W error` → **2157 passed, 16 skipped** (all skips intentional/self-declaring)
+- `python -m pytest -q -W error` → **2168 passed, 16 skipped** (all skips intentional/self-declaring)
 - `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → `src/qtr` **1153 stmts / 366 branches, 0 missed, 0 partial, 100.00%**
 
 ## What remains unresolved
 - All remaining items in `FINAL_REPORT.md` §H53–§H61 remain **disclosed, not quantified** — each depends on an input the record does not hold. None can be resolved without new committed inputs; none affect gates.
-- No published artifact, gate threshold, verdict, or certified number was modified.
 
 ## Failed approaches (this session)
 - None. No changes attempted.
@@ -33,3 +32,5 @@
 - `src/qtr` must remain at 100% coverage (statement + branch).
 - Ruff lint and format gates must remain clean.
 - After changes under `src/qtr` or runners/validation, re-run causality/metric agreement/benchmark gate contracts.
+
+(End of file)
