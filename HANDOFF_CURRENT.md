@@ -2,8 +2,8 @@
 
 ## State
 - H1–H30 exhausted; H35–H73 complete per prior handoffs; certified families frozen. **No hypothesis work assigned.**
-- Baseline verified in this session (bare clone, qtr uninstalled): lint/format gates green; pinned contracts green; full suite baseline confirmed by prior handoffs.
-- Working tree clean; HEAD at `bb4519d`.
+- Baseline verified in this session (bare clone, qtr uninstalled): lint/format gates green; pinned contracts green; working tree clean.
+- HEAD: `bb4519d` (current). Latest commit on branch: `6776cb4` (previous session changed HANDOFF_CURRENT.md only).
 
 ## What changed (this session)
 - No code changes. Inspected repository state and verified baseline hygiene (ruff, pinned contracts). No bounded defect found that is safe and verifiable to fix without speculation.
@@ -14,6 +14,7 @@
 - `python -m ruff check src tests run_*.py` → **All checks passed!**
 - `python -m ruff format --check src tests run_*.py` → **105 files already formatted**
 - Pinned contracts subset (engine metric agreement, H53–H59, runner/benchmark contracts, public API, ruff reproducibility, trade log cost reconciliation, tsmom signal, coverage gate, generated manifest): **968 passed, 3 skipped** (skips are expected in bare clone/uninstalled state).
+- `requirements.txt` contains `setuptools>=68`, `pyarrow>=14.0.0`, `ruff>=0.6.0` as required by pinned contracts.
 
 ## What remains unresolved
 - All remaining items in `FINAL_REPORT.md` §H53–§H61 remain **disclosed, not quantified** — each depends on an input the record does not hold. None can be resolved without new committed inputs; none affect gates.
