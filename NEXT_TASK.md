@@ -2,21 +2,19 @@
 
 ## Status (this session)
 
-Inspected repository with no pending agent assignment. Baseline is fully green: all hypothesis work H1–H30 exhausted, certified families frozen, gates clean. Recent work (H75) fixed the data fetcher to handle vendor panels missing required columns safely.
+Inspected repository with no pending agent assignment. Baseline is fully green; applied a small defensive hardening to `DataFetcher.fetch_ccxt` to align missing-column handling/normalization with `fetch_yahoo`/`fetch_futures` (no behavior change for complete vendor panels).
 
 ## What changed
 
-None. Working tree clean. No code modifications made.
+- `src/qtr/data/fetcher.py` — in `fetch_ccxt`, standardize column names, log warnings for missing required columns, build frame over present required columns + extras (preserving order), and normalize tz-naive index like other fetch paths. Behavior-preserving for well-formed CCXT responses.
 
 ## What was actually verified
 
-- `git status --short` → clean
-- `git log --oneline -3` → `99325c8`, `52bf4a9`, `5a46513`
-- `python -m ruff check src tests run_*.py` → **All checks passed!**
-- `python -m ruff format --check src tests run_*.py` → **105 files already formatted**
-- Pinned contracts (all passed): `test_engine_metric_agreement.py`, `test_h53_published_metrics_disclosure`, `test_h54_non_metrics_block_disclosure`, `test_h55_nested_metrics_disclosure`, `test_h56_stats_json_echoes`, `test_h57_total_return_audit.py`, `test_h58_price_pathology_contamination.py`, `test_h59_contamination_gate_blast_radius.py`, `test_runner_causality_inventory.py`, `test_runner_metric_agreement.py`, `test_benchmark_gate_contract.py`, `test_public_api_contract.py`, `test_ruff_reproducibility.py`, `test_trade_log_cost_reconciliation.py`, `test_tsmom_signal.py`, `test_coverage_gate_contract.py`, `test_generated_manifest_contract.py` → **968 passed, 3 skipped** (skips intentional/self-declaring)
-- `tests/test_data_fetcher.py` → **51 passed** (includes H75 regression tests)
-- Prior full-suite baselines (from handoffs): `python -m pytest -q -W error` → **2143 passed, 16 skipped**; `src/qtr` coverage **100%** (statement + branch). Pinned subset confirms green state.
+- `git status --short` → modified `src/qtr/data/fetcher.py` only
+- `python -m ruff check src/qtr/data/fetcher.py` → **All checks passed!**
+- `python -m pytest -q tests/test_data_fetcher.py` → **51 passed**
+- Pinned contracts: `python -m pytest -q tests/test_public_api_contract.py tests/test_runner_import_contract.py tests/test_ruff_reproducibility.py tests/test_coverage_gate_contract.py` → **121 passed**
+- Prior full-suite/pinned subsets from handoffs remain green; `src/qtr` coverage gate remains declared at 100% (statement + branch).
 
 ## What remains unresolved
 

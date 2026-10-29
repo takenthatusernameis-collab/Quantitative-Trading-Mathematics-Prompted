@@ -1,27 +1,27 @@
 #!/usr/bin/env python3
 """H9: Intraday Futures TSMOM with CT-Style Path-Dependent Exits."""
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 import json
-from pathlib import Path
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from scipy import stats
 
+from qtr.backtest.engine import AssetClass, BacktestConfig, CostModel, run_backtest
 from qtr.data.fetcher import get_data_fetcher
-from qtr.backtest.engine import run_backtest, BacktestConfig, AssetClass, CostModel
 from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
+    compare_to_benchmark,
     sharpe_ratio,
     sharpe_ratio_ci,
     walk_forward_splits,
-    compare_to_benchmark,
 )
 
 FUTURES_UNIVERSE = ["ES=F", "NQ=F", "CL=F", "GC=F", "ZB=F"]

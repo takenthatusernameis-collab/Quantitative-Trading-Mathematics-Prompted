@@ -448,6 +448,16 @@ class DataFetcher:
                 df = df.set_index("timestamp")
                 df = df[(df.index >= start) & (df.index <= end)]
                 df = df[~df.index.duplicated(keep="first")].sort_index()
+                # Standardize column names defensively (ccxt usually returns the above)
+                df.columns = [str(c).lower().replace(" ", "_") for c in df.columns]
+                required = ["open", "high", "low", "close", "volume"]
+                present = [col for col in required if col in df.columns]
+                for col in required:
+                    if col not in df.columns:
+                        logger.warning(f"Missing column {col} for {symbol}")
+                extras = [c for c in df.columns if c not in required]
+                df = df[present + extras]
+                df.index = pd.to_datetime(df.index).tz_localize(None)
 
                 results[symbol] = df
 
