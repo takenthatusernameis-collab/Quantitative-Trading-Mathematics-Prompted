@@ -641,6 +641,39 @@ def test_fetch_ccxt_no_ohlcv(monkeypatch):
     assert res["BTC/USDT"].empty
 
 
+def test_fetch_ccxt_keeps_required_column_order(tmp_path, monkeypatch):
+    """A complete CCXT panel returns its columns in the required order.
+
+    Mirrors ``test_fetch_keeps_extras_and_orders_present_required_first`` for
+    ``fetch_yahoo`` / ``fetch_futures``: the ``present + extras`` selection in
+    ``fetch_ccxt`` (fetcher.py:453-460) must not scramble a complete panel into
+    a different column order, and must not drop a required column. CCXT builds
+    its own frame from ohlcv rows, so a missing-required-column scenario is not
+    reachable through this path; this test pins that a complete panel survives
+    the defensive selection bit-identically ordered.
+    """
+    import sys
+    import tempfile
+    import types
+
+    class FakeExchange:
+        def fetch_ohlcv(self, symbol, timeframe, since=None, limit=1000):
+            return [
+                [1577836800000, 1.0, 2.0, 0.5, 1.5, 100.0],
+                [1577923200000, 1.5, 2.5, 1.0, 2.0, 120.0],
+            ]
+
+    fake_ccxt = types.ModuleType("ccxt")
+    fake_ccxt.binance = lambda cfg: FakeExchange()
+    monkeypatch.setitem(sys.modules, "ccxt", fake_ccxt)
+
+    d = Path(tempfile.mkdtemp())
+    fetcher = DataFetcher(cache=DataCache(cache_dir=d))
+    res = fetcher.fetch_ccxt("binance", ["BTC/USDT"], "2020-01-01", "2020-02-01", use_cache=False)
+    assert list(res["BTC/USDT"].columns) == ["open", "high", "low", "close", "volume"]
+    assert len(res["BTC/USDT"]) == 2
+
+
 def test_get_data_fetcher_singleton():
     from qtr.data.fetcher import get_data_fetcher
 
