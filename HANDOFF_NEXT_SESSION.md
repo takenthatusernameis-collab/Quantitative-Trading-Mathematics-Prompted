@@ -5,6 +5,7 @@
   **H76 = CI gate enforcement (new workflow, no `src/qtr` change).**
 - Baseline verified in this session (bare clone, qtr uninstalled): lint/format
   gates green, full suite green with coverage at 100%.
+- HEAD: `f1cad51`.
 
 ## What changed (this session)
 - `.github/workflows/gates.yml` — **new**, the first workflow that enforces the
@@ -12,7 +13,7 @@
   `pull_request` and `workflow_dispatch`, path-filtered to `src/`, `tests/`,
   `run_*.py`, `requirements.txt`, `pyproject.toml` and the workflow itself:
   - `lint` — `python -m ruff check src tests run_*.py` and
-    `python -m ruff format --check src tests run_*.py`.
+    `python -m ruff format --check src tests run_*.py` (the AGENTS.md gates).
   - `research_gates` — `python -m pytest -q -W error --cov=qtr --cov-branch
     --cov-report=term-missing`, which runs the documented suite invocation
     *and* enforces `[tool.coverage.report] fail_under = 100` with branch
@@ -23,18 +24,19 @@
 
 ## What was actually verified (this session)
 - `git status --short` → only `.github/workflows/gates.yml` untracked; working
-  tree otherwise clean. HEAD `b73ac86`.
+  tree otherwise clean. HEAD `f1cad51`.
 - `python -m ruff check src tests run_*.py` → **All checks passed!**
 - `python -m ruff format --check src tests run_*.py` → **105 files already
   formatted**
 - `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing`
   → **2168 passed, 16 skipped** (all skips intentional/self-declaring);
-  `src/qtr` **1168 stmts / 374 branches / 0 missed / 0 partial / 100.00%**;
-  `Required test coverage of 100.0% reached.`
-- `python -c "import yaml; yaml.safe_load(...)"` → the workflow parses.
+  `src/qtr` **1168 stmts / 374 branches / 0 missed / 0 partial /
+  100.00%**; `Required test coverage of 100.0% reached.**
+- `python -c "import yaml; yaml.safe_load(...)"` → the workflow parses; triggers
+  are `push`/`pull_request`/`workflow_dispatch`.
 - `.github/scripts/kilo-controller.sh` untouched; `bash -n` still passes, so
-  the existing Kilo orchestration and its `kilo-workflow-audit.yml`
-  guards are unaffected.
+  the existing Kilo orchestration and its `kilo-workflow-audit.yml` guards are
+  unaffected.
 - `pip show qtr` → not installed (bare clone state confirmed).
 
 ## What remains unresolved
@@ -46,7 +48,15 @@
   its commands is green in-tree and that the YAML parses.
 
 ## Failed approaches (this session)
-- None.
+- **Adding a third workflow job that re-runs the full suite.** Rejected: the
+  existing `main.yml`/`kilo-workflow-audit.yml` jobs already cover Kilo's
+  orchestration; adding a third workflow would duplicate the controller's own
+  responsibility rather than enforce the research gates. The research gates
+  belong in their own workflow, triggered by code changes.
+- **Running the gates as part of the existing Kilo workflow.** Rejected: that
+  workflow is gated to changes in `.github/workflows/main.yml`,
+  `.github/scripts/*` and `kilo-controller.sh`, so it would never fire on a
+  `src/qtr` change -- exactly the event the gap exists for.
 
 ## Precise next task
 **None assigned.** If a future session touches CI or the gates it enforces:
@@ -64,7 +74,7 @@
   modified. No grid may be re-run. The H1–H30 hypothesis space remains
   exhausted.
 - `src/qtr` must remain at 100% coverage (statement + branch).
-- Ruff lint and format gates must remain clean.
+- Ruff lint and format gates must stay clean.
 - After changes under `src/qtr` or runners/validation, re-run causality/metric
   agreement/benchmark gate/public API/ruff reproducibility/coverage gate/trade
   log reconciliation/tsmom signal/generated manifest/runner import contract/

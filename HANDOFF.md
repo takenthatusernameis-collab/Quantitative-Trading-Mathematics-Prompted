@@ -1,7 +1,8 @@
-# HANDOFF — Session complete (H76: CI gate enforcement)
+# HANDOFF — Session complete (H76: CI gate enforcement added)
 
 ## State
-- Repository at HEAD `b73ac86` plus one new untracked file, `.github/workflows/gates.yml`.
+- Repository at HEAD `f1cad51` (single squashed commit, 1690 files). Working tree
+  contains one new untracked file, `.github/workflows/gates.yml`.
 - **H76 is COMPLETE.** The documented research gates (AGENTS.md: `pytest -q`,
   `pytest -q -W error`, ruff lint/format, 100% coverage of `src/qtr`) had no
   automated enforcement: both existing workflows (`main.yml`,
@@ -21,7 +22,8 @@
   - Triggers: `push` to `main`, `pull_request`, `workflow_dispatch`, path-
     filtered to `src/`, `tests/`, `run_*.py`, `requirements.txt`,
     `pyproject.toml` and the workflow itself.
-- `HANDOFF_CURRENT_SESSION.md`, `HANDOFF_NEXT.md`, `HANDOFF_NEXT_SESSION.md`,
+- `HANDOFF.md`, `HANDOFF_CURRENT.md`, `HANDOFF_CURRENT_SESSION.md`,
+  `HANDOFF_NEXT.md`, `HANDOFF_NEXT_SESSION.md`, `HANDOFF_SESSION.md`,
   `HANDOFF_SESSION_END.md`, `NEXT_TASK.md` updated to record H76.
 - **No source, test, runner, artifact, gate threshold, verdict or certified
   number was modified. No grid was re-run. The H1–H30 hypothesis space
@@ -29,7 +31,7 @@
 
 ## What was actually verified
 - `git status --short` → only `.github/workflows/gates.yml` untracked; working
-  tree otherwise clean. HEAD `b73ac86`.
+  tree otherwise clean. HEAD `f1cad51`.
 - Each command the workflow runs is green in-tree:
   - `python -m ruff check src tests run_*.py` → **All checks passed!**
   - `python -m ruff format --check src tests run_*.py` → **105 files already
@@ -37,10 +39,12 @@
   - `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing`
     → **2168 passed, 16 skipped**; `src/qtr` **1168 stmts / 374 branches /
     0 missed / 0 partial / 100.00%**; `Required test coverage of 100.0%
-    reached.`
-- `yaml.safe_load` parses the workflow; `.github/scripts/kilo-controller.sh`
-  is untouched and `bash -n` still passes, so the existing Kilo orchestration
-  and its `kilo-workflow-audit.yml` guards are unaffected.
+    reached.**
+- `python -c "import yaml; yaml.safe_load(open('.github/workflows/gates.yml'))"`
+  → parses OK; triggers are `push`/`pull_request`/`workflow_dispatch`.
+- `.github/scripts/kilo-controller.sh` untouched and `bash -n` still passes,
+  so the existing Kilo orchestration and its `kilo-workflow-audit.yml` guards
+  are unaffected.
 - The workflow cannot be executed in this sandbox (no GitHub Actions runner);
   it is verified by confirming each of its commands is green in-tree and that
   the YAML parses. Its behaviour on a real push/PR is unverified.

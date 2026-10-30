@@ -17,7 +17,7 @@
 
 ## What was actually verified
 - `git status --short` → only `.github/workflows/gates.yml` untracked; working
-  tree otherwise clean. HEAD `b73ac86`.
+  tree otherwise clean. HEAD `f1cad51`.
 - The two workflow jobs run commands that are already green in this tree:
   - `python -m ruff check src tests run_*.py` → **All checks passed!**
   - `python -m ruff format --check src tests run_*.py` → **105 files already
@@ -25,21 +25,32 @@
   - `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing`
     → **2168 passed, 16 skipped** (all skips intentional/self-declaring);
     `src/qtr` **1168 stmts / 374 branches / 0 missed / 0 partial /
-    100.00%**; `Required test coverage of 100.0% reached.`
-- `python -c "import yaml; yaml.safe_load(...)"` → the workflow parses.
+    100.00%**; `Required test coverage of 100.0% reached.**
+- `python -c "import yaml; yaml.safe_load(...)"` → the workflow parses; triggers
+  are `push`/`pull_request`/`workflow_dispatch`.
 - `.github/scripts/kilo-controller.sh` untouched; `bash -n` still passes, so
-  the existing Kilo orchestration and its `kilo-workflow-audit.yml`
-  guards are unaffected.
+  the existing Kilo orchestration and its `kilo-workflow-audit.yml` guards are
+  unaffected.
+- `pip show qtr` → not installed (bare clone state confirmed).
 
 ## What remains unresolved
-- Items in `FINAL_REPORT.md` §H53–§H61 remain disclosed (not quantified) with
-  no gate impact.
-- The new workflow cannot be executed in this sandbox (no GitHub Actions
-  runner); it is verified by confirming each of its commands is green in-tree
-  and that the YAML parses. Its behaviour on a real push/PR is unverified.
+- Items in `FINAL_REPORT.md` §H53–§H61 remain disclosed (not quantified) — each
+  depends on an input the record does not hold. None can be resolved without
+  new committed inputs; none affect gates.
+- The new workflow's real-world execution is unverified: it cannot run in this
+  sandbox (no GitHub Actions runner), so it was verified by confirming each of
+  its commands is green in-tree and that the YAML parses.
 
 ## Approaches already failed
-- None this session.
+- **Adding a third workflow job that re-runs the full suite.** Rejected: the
+  existing `main.yml`/`kilo-workflow-audit.yml` jobs already cover Kilo's
+  orchestration; adding a third workflow would duplicate the controller's own
+  responsibility rather than enforce the research gates. The research gates
+  belong in their own workflow, triggered by code changes.
+- **Running the gates as part of the existing Kilo workflow.** Rejected: that
+  workflow is gated to changes in `.github/workflows/main.yml`,
+  `.github/scripts/*` and `kilo-controller.sh`, so it would never fire on a
+  `src/qtr` change -- exactly the event the gap exists for.
 
 ## One precise next task (with evidence and constraints)
 **None assigned.** If a future session touches CI or the gates it enforces:
@@ -55,3 +66,5 @@
 Constraints carried forward: no published artifact, gate threshold, verdict or
 certified number may be modified; H1–H30 exhausted; `src/qtr` coverage must
 stay 100%; ruff lint and format gates must stay clean; qtr left uninstalled.
+
+(End of file)
