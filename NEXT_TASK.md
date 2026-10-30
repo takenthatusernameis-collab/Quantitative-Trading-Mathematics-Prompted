@@ -1,54 +1,45 @@
-# Next task — None (H78)
+# Next task — Commit `.github/workflows/gates.yml` (H78 durable CI)
 
 ## Status (this session)
-**H78 completed.** Restored `.github/workflows/gates.yml` (byte-identical to
-`a9e9fe1:.github/workflows/gates.yml`) after commit `830dfd3` deleted it on
-HEAD. This reintroduces CI enforcement matching the documented H76 gates
-exactly. No `src/qtr` changes, no published artifact, gate threshold, verdict
-or certified number modified, no grid re-run. H1–H30 exhausted.
+H78 re-executed: `.github/workflows/gates.yml` restored on disk (was missing
+despite prior handoffs claiming otherwise), byte-identical to
+`a9e9fe1:.github/workflows/gates.yml`. All gates green: ruff check/format
+pass, pytest `-W error` coverage 2168 passed / 16 skipped,
+`src/qtr` 1168 stmts / 374 branches / 100.00%. qtr uninstalled (bare clone).
+HEAD `830dfd3`; file is untracked (`git status` → `?? .github/workflows/gates.yml`).
 
 ## What changed
-- `.github/workflows/gates.yml` — **restored** to the verified H76 form
-  (two jobs: `lint` runs `ruff check` + `ruff format --check`; `research_gates`
-  runs `pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing`
-  with `fail_under = 100`). Paths/branches/triggers match the verified
-  artifact.
-- All handoff files (`HANDOFF.md`, `HANDOFF_CURRENT.md`,
-  `HANDOFF_CURRENT_SESSION.md`, `HANDOFF_NEXT.md`, `HANDOFF_NEXT_SESSION.md`,
-  `HANDOFF_SESSION.md`, `HANDOFF_SESSION_END.md`) corrected to record H78 and
-  the true on-disk state (the previous handoffs described a file that was not
-  there).
+- `.github/workflows/gates.yml` — restored, untracked, byte-identical to the
+  verified H76 artifact. Two jobs (`lint`, `research_gates`) with the
+  documented gates commands; triggers `push`/`pull_request`/`workflow_dispatch`;
+  path-filtered to `src/`, `tests/`, `run_*.py`, `requirements.txt`,
+  `pyproject.toml`, the workflow itself.
 
 ## What was actually verified
-- `diff <(git show a9e9fe1:.github/workflows/gates.yml) .github/workflows/gates.yml`
-  → empty (byte-identical).
-- `git log --oneline -- .github/workflows/gates.yml` shows repeated add/delete
-  (`830dfd3` delete, `137b8a6` restore, `b37e93b` delete, `0b31804` add,
-  `876a15f` delete, `a9e9fe1` add, `d080a1e` delete, `d878dad` add).
-- `python -c "import yaml; yaml.safe_load(open('.github/workflows/gates.yml'))"`
-  → parses OK; triggers are `push`/`pull_request`/`workflow_dispatch`.
-- `python -m ruff check src tests run_*.py` → **All checks passed!**
-- `python -m ruff format --check src tests run_*.py` → **105 files already formatted**
-- `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing`
-  → **2168 passed, 16 skipped**; `src/qtr` **1168 stmts / 374 branches / 0
-  missed / 0 partial / 100.00%**.
-- `pip show qtr` → not installed (bare clone).
+- byte-identical diff vs `a9e9fe1` → empty; YAML parses; triggers/commands
+  match AGENTS.md/pyproject.toml.
+- ruff: all checks passed, 105 files formatted.
+- pytest coverage: 100.00%, required coverage reached.
+- pip show qtr → not found.
 
 ## What remains unresolved
-- H53–H61 remain disclosed, not quantified (no inputs). No gates affected.
-- Cause of repeated deletions not recorded; treated as unintended regression and
-  restored on disk (not committed per no-commit-without-explicit-request rule).
+- `gates.yml` is NOT committed (not in HEAD), so CI enforcement is not durable
+  across reset/checkout. HEAD `830dfd3` deleted it once; the file has been
+  added/deleted repeatedly across history.
+- Whether the deletion at `830dfd3` was intentional is unrecorded.
+- FINAL_REPORT.md §H53–§H61 disclosed, not quantified; no gate impact.
+- Workflow real-world execution unverified (no GitHub Actions runner).
 
 ## Approaches failed
-- Committing the restored file was rejected (no explicit request).
+- Committing the restored file: rejected (no explicit user request). Left
+  untracked per the no-commit-without-explicit-request rule.
 
 ## One precise next task
-**None assigned.** If CI/gates are touched: keep jobs' commands identical to
-`AGENTS.md`/`pyproject.toml`; do not relax `fail_under`, drop `-W error`, or
-remove format check. After any change that could move the gate surface, re-run
-`python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing`
-and ruff commands; confirm `src/qtr` stays at 100% (stmt+branch). Do not
-`pip install -e .` unless required; restore bare-clone state. No published
-artifact/gate/threshold/verdict/certified number may change; H1–H30 exhausted.
-
-(End of file)
+**Commit `.github/workflows/gates.yml` (requires explicit user approval):**
+`git add .github/workflows/gates.yml && git commit -m "Restore CI research gates workflow (H78)"`,
+then confirm `git status` clean and re-run ruff + pytest `-W error` coverage
+(`src/qtr` 100% stmt+branch).
+Constraints: do not alter gate commands/thresholds/`fail_under`/`-W error`/format
+check; no published artifact/gate/threshold/verdict/certified number changes;
+H1–H30 exhausted; qtr left uninstalled unless a test requires install (restore
+bare-clone state after).
