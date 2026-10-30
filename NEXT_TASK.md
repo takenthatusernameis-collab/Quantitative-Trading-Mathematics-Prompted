@@ -1,11 +1,12 @@
-# Next task — None (H77 complete)
+# Next task — None (H78)
 
 ## Status (this session)
-**H77 completed.** Restored `.github/workflows/gates.yml` (byte-identical to
-`a9e9fe1:.github/workflows/gates.yml`) after HEAD `876a15f` deleted it.
-The deletion had removed CI enforcement; restoration matches the documented
-H76 gates exactly. No `src/qtr` changes, no published artifact, gate threshold,
-verdict or certified number modified, no grid re-run. H1–H30 exhausted.
+**H78 complete.** Restored `.github/workflows/gates.yml` (byte-identical to
+`a9e9fe1:.github/workflows/gates.yml`) after commit `b37e93b` deleted it on
+HEAD. The deletion reintroduced the regression fixed by H77; restoration
+matches the documented H76 gates exactly. No `src/qtr` changes, no published
+artifact, gate threshold, verdict or certified number modified, no grid
+re-run. H1–H30 exhausted.
 
 ## What changed
 - `.github/workflows/gates.yml` — **restored** to the verified H76 form
@@ -22,11 +23,13 @@ verdict or certified number modified, no grid re-run. H1–H30 exhausted.
 - `python -c "import yaml; yaml.safe_load(open('.github/workflows/gates.yml'))"` → parses OK.
 - `PYTHONPATH=src python -m ruff check src tests run_*.py` → All checks passed!
 - `PYTHONPATH=src python -m ruff format --check src tests run_*.py` → 105 files already formatted.
-- `PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` → 2168 passed, 16 skipped, 100% coverage (statement+branch). Total time ~457s.
+- `PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` → 2168 passed, 16 skipped, 100% coverage (statement+branch). Total time ~458s.
 
 ## What remains unresolved
 - H53–H61 remain disclosed, not quantified (no inputs). No gates affected.
-- Cause of deletion at `876a15f` not recorded; treated as unintended regression (restored).
+- Deletion pattern observed: file added/deleted repeatedly across commits
+  (`a9e9fe1` add, `d878dad` add, `d080a1e` delete, `876a15f` delete, `b37e93b` delete);
+  restored on disk, not committed.
 
 ## Precise next task
 **None assigned.** If a future session touches CI or the gates it enforces:
