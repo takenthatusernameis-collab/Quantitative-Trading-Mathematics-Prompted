@@ -1,23 +1,11 @@
-# HANDOFF_NEXT_SESSION — session complete (H78: gates.yml committed; CI enforcement durable)
+# HANDOFF_NEXT_SESSION — session complete (H79: false provenance claims corrected in handoff files)
 
 ## State
-- Repository at HEAD `e646dd0`. Working tree **clean**.
-- `.github/workflows/gates.yml` — **created and committed** (62 lines). It was
-  missing from disk and absent from this repo's history entirely; the prior
-  handoffs' claim of "byte-identical to `a9e9fe1`" was unverifiable because that
-  commit does not exist in this repo (HEAD history is only `d462ff9` handoff
-  marker and `9e4df99` cache data). The file was reconstructed from the
-  documented spec:
-  - triggers `push`/`pull_request`/`workflow_dispatch`, path-filtered to
-    `src/`, `tests/`, `run_*.py`, `requirements.txt`, `pyproject.toml`, the
-    workflow itself
-  - `lint` job: `python -m ruff check src tests run_*.py` + `python -m ruff
-    format --check src tests run_*.py`
-  - `research_gates` job (needs lint): `python -m pytest -q -W error --cov=qtr
-    --cov-branch --cov-report=term-missing` (enforces `fail_under = 100`, branch
-    coverage)
-  - Verified: YAML parses; triggers/paths/jobs correct; gate commands match
-    AGENTS.md/pyproject.toml exactly.
+- Repository at HEAD `64ced09`. Working tree **clean**.
+- H78 (commit `e646dd0`) created and committed `.github/workflows/gates.yml`
+  from the documented spec; CI enforcement is now durable.
+- H79 (commit `64ced09`) audited every handoff/claim file against the
+  committed tree and rewrote the claims that were not true of HEAD.
 - Baseline verified GREEN: ruff check passed, 105 files formatted, pytest
   `-W error` coverage 2168 passed / 16 skipped, `src/qtr` 1168 stmts / 374
   branches / 100.00%. qtr uninstalled (bare clone).
@@ -25,17 +13,28 @@
   number modified. No grid re-run. H1–H30 exhausted.
 
 ## What changed (this session)
-- `.github/workflows/gates.yml` — created and committed. CI research-gates
-  enforcement now exists on this working tree **and** in HEAD, so it survives
-  reset/checkout.
+- Eight markdown files rewritten to correct false provenance claims:
+  `HANDOFF.md`, `HANDOFF_CURRENT.md`, `HANDOFF_CURRENT_SESSION.md`,
+  `HANDOFF_NEXT.md`, `HANDOFF_NEXT_SESSION.md`, `HANDOFF_SESSION.md`,
+  `HANDOFF_SESSION_END.md`, `NEXT_TASK.md`.
+- Corrected claim: prior handoffs asserted `gates.yml` was "restored
+  byte-identical to `a9e9fe1`" and listed add/delete commits (`830dfd3`,
+  `137b8a6`, `b37e93b`, `0b31804`, `876a15f`, `d080a1e`, `d878dad`).
+  `git log --oneline --all` and `git cat-file -e` confirm **none of those
+  commits exist** in this repo (HEAD history is only `d462ff9` and
+  `9e4df99`). The file was absent from disk and was reconstructed from spec
+  at H78. Each file now states the true on-disk/HEAD state and records that
+  the provenance claim was false, rather than leaving it in the record.
 
 ## What was actually verified
-- `git show HEAD:.github/workflows/gates.yml` → present; `diff` vs disk → empty
-  (byte-identical).
-- YAML parses; triggers/jobs/commands match the documented spec.
+- `git log --oneline --all` → 4 commits; the eight cited commits are all
+  `missing` per `git cat-file -e`.
+- `git status --short` → empty (clean tree).
+- `grep` for the eight commit SHAs across `*.md` → every remaining
+  occurrence is inside a sentence that states the commit does not exist
+  (i.e. the correction context), not a positive claim.
 - ruff lint + format green; pytest `-W error` coverage 100.00% stmt+branch.
 - `pip show qtr` → not found.
-- `git status --short` → empty (clean tree).
 
 ## What remains unresolved
 - Real-world workflow execution unverified (no GitHub Actions runner); verified
@@ -43,13 +42,12 @@
 - FINAL_REPORT.md §H53–§H61 disclosed, not quantified; no gate impact.
 
 ## Approaches already tried / failed (and why)
-- **Restoring a byte-identical file.** Impossible: the `a9e9fe1`/`830dfd3`
-  commits referenced in prior handoffs do not exist in this repo. Reconstructing
-  from the documented spec was the only available approach.
-- **Leaving the file untracked (prior sessions).** This is the recurring failure
-  mode: the file was repeatedly restored untracked, then lost on the next
-  checkout/reset, then re-restored. Breaking that cycle required committing,
-  which this session did.
+- **Leaving false provenance claims in the record.** The recurring failure mode
+  is handoff prose asserting facts not true of the committed tree (two
+  consecutive sessions). Corrected this session by rewriting each claim to
+  match reality, and by adding a standing verification rule: assert provenance
+  facts only after checking them against `git log --oneline --all`,
+  `git show HEAD:<path>`, and `git status --short`.
 
 ## Precise next task (one task), with evidence and constraints
 **None assigned.** If a future session touches CI or the gates it enforces:
@@ -61,6 +59,8 @@
    and the ruff commands and confirm `src/qtr` stays at 100% (statement+branch).
 3. Do not `pip install -e .` unless a test requires it; restore the bare-clone
    state (qtr uninstalled) afterwards.
+4. Before asserting any provenance fact in a handoff, verify it against the
+   committed tree. The check is cheap and the failure mode is recurring.
 
 ## Constraints carried forward
 - No published artifact, gate threshold, verdict or certified number may be
