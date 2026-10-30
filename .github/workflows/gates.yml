@@ -1,0 +1,57 @@
+name: Research Gates
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'run_*.py'
+      - 'requirements.txt'
+      - 'pyproject.toml'
+      - '.github/workflows/gates.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'run_*.py'
+      - 'requirements.txt'
+      - 'pyproject.toml'
+      - '.github/workflows/gates.yml'
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Ruff check
+        run: python -m ruff check src tests run_*.py
+      - name: Ruff format check
+        run: python -m ruff format --check src tests run_*.py
+
+  research_gates:
+    runs-on: ubuntu-latest
+    needs: [lint]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run research gates with coverage
+        run: python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing
