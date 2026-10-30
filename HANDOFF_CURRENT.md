@@ -1,7 +1,7 @@
-# HANDOFF_CURRENT — session complete (H77: CI gate workflow restored after HEAD deleted it)
+# HANDOFF_CURRENT — session complete (H79: CI gate workflow restored after repeated deletion after HEAD deleted it)
 
 ## State
-- H1–H30 exhausted; H35–H77 complete per handoffs; certified families frozen.
+- H1–H30 exhausted; H35–H79 complete per handoffs; certified families frozen.
   **H77 = restoration of `.github/workflows/gates.yml` after HEAD `876a15f`
   deleted it** (the H76 artifact). No `src/qtr` change.
 - Baseline verified in this session: lint/format gates green; the restored

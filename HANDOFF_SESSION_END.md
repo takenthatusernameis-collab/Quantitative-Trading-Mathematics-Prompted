@@ -1,4 +1,4 @@
-# HANDOFF_SESSION_END — session complete (H77: CI gate workflow restored)
+# HANDOFF_SESSION_END — session complete (H79: CI gate workflow restored after repeated deletion)
 
 ## What changed
 - `.github/workflows/gates.yml` — **restored**, byte-identical to the version

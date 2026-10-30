@@ -1,4 +1,4 @@
-# HANDOFF — Session complete (H77: CI gate workflow restored after HEAD deleted it)
+# HANDOFF — Session complete (H79: CI gate workflow restored after repeated deletion after HEAD deleted it)
 
 ## State
 - Repository at HEAD `876a15f`. Working tree contains one new untracked file,
