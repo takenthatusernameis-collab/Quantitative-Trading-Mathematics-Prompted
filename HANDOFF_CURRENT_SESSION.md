@@ -1,20 +1,20 @@
 # HANDOFF_CURRENT_SESSION — session complete (baseline verification)
 
 ## State
-- Working tree clean (`git status --short` empty). HEAD `e98860b` on `main`, `main == origin/main` (up to date).
-- `.github/workflows/gates.yml` tracked in HEAD; CI gates present.
+- Working tree clean (`git status --short` empty). HEAD `a46fc1b` on `main`, up to date with origin/main.
+- `.github/workflows/gates.yml` tracked and present.
 - Lint/format: `python -m ruff check src tests run_*.py` PASS; `python -m ruff format --check src tests run_*.py` PASS (105 files).
 - Package `qtr` not installed in this environment (bare clone). `PYTHONPATH=src` works.
-- Coverage: `src/qtr` at 100% statement and branch coverage (verified).
+- Coverage: `src/qtr` at 100% statement and branch coverage (required).
 - H1–H30 exhausted; hypotheses up to H78 documented.
 
 ## What changed
-- None (verification-only session). Updated HANDOFF_CURRENT_SESSION.md to reflect current HEAD/state.
+- None (verification-only session). Updated handoff state to reflect HEAD `a46fc1b`.
 
 ## What was actually verified
-- Git state: clean tree, up to date with origin/main (HEAD e98860b).
+- Git state: clean tree, HEAD `a46fc1b`.
 - Ruff gates pass.
-- Full pytest with coverage: `PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov=branch --cov-report=term-missing` → **2176 passed, 13 skipped**; `src/qtr` **1170 stmts / 376 branches / 100.00%** (required reached).
+- Full pytest with coverage (with `-W error`): `PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` → **2173 passed, 16 skipped** (458.38s); `src/qtr` **1170 stmts / 376 branches / 0 missed / 0 partial / 100.00%** (coverage gate satisfied).
 
 ## What remains unresolved
 - None. Baseline is healthy.
@@ -23,7 +23,7 @@
 - None this session.
 
 ## One precise next task
-**Maintain baseline health.** No code changes needed. If making changes under `src/qtr`, `tests/`, `run_*.py`, `requirements.txt`, or `pyproject.toml`, run pinned gates and confirm green:
+**Maintain baseline health.** No code changes needed now. If making changes under `src/qtr`, `tests/`, `run_*.py`, `requirements.txt`, or `pyproject.toml`, run pinned gates and confirm green:
 
 ```bash
 python -m ruff check src tests run_*.py
