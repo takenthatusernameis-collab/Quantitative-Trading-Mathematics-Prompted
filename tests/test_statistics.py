@@ -517,6 +517,16 @@ class TestCompareToBenchmark:
         assert res["alpha_t_stat"] == 0.0
         assert res["alpha_p_value"] == 1.0
         assert res["alpha_p_value_one_sided"] == 0.5
+        # The CAPM beta/alpha block used to carry its own loose guard
+        # (`bench.std(ddof=0) > 0`) that did NOT fire on this same input: it
+        # divided cov(S,B) by a ~1e-19 variance and emitted a garbage beta
+        # (~1.03) and a garbage alpha (~0.125 annualized) while the IR and
+        # t-test guards above both reported 0.0 -- a cross-statistic
+        # disagreement on an input the record actually contains. The three
+        # guards must agree on the same input: no measurable benchmark
+        # variation means no beta and no alpha.
+        assert res["beta"] == 0.0
+        assert res["alpha_annualized"] == 0.0
 
     def test_non_finite_excess_std_fails_closed(self):
         """An excess series that is entirely non-finite must not divide.

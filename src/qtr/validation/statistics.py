@@ -680,7 +680,27 @@ def compare_to_benchmark(
     # With a consistent ddof=1, beta is the OLS slope and alpha reduces to
     # the OLS intercept (mean(S) - beta * mean(B)), net of the risk-free
     # term, which is the standard CAPM alpha.
-    if bench.std(ddof=0) > 0:
+    # The guard is `np.isfinite(bench_std) and bench_std > 1e-15`, not
+    # `bench_std > 0`: a near-constant benchmark has a population standard
+    # deviation of ~1e-19 from float noise rather than exactly 0.0, so the
+    # old guard did NOT fire and the function divided cov(S,B) by a ~1e-19
+    # variance, emitting a garbage beta (~1.03) and a garbage alpha where
+    # the information ratio and t-test guards above (which carry the same
+    # 1e-15 tolerance) both report 0.0 -- a cross-statistic disagreement on
+    # an input the record actually contains (any benchmark whose bars move
+    # by less than ~1e-8 per bar, e.g. a flat book, a synthetic fixture, or
+    # a benchmark series whose prices are constant to float precision). The
+    # `np.isfinite` half is retained for symmetry with the two guards above
+    # and as defense in depth; after the row filter every surviving bench
+    # value is finite, so `bench_std` is finite whenever the function reaches
+    # this block. For every finite input with bench_std > 1e-15 the
+    # arithmetic is bit-identical to before. See
+    # tests/test_statistics.py::TestCompareToBenchmark.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        with np.errstate(invalid="ignore", divide="ignore"):
+            bench_std = float(bench.std(ddof=0))
+    if np.isfinite(bench_std) and bench_std > 1e-15:
         beta = np.cov(strat, bench, ddof=1)[0, 1] / np.var(bench, ddof=1)
         alpha = (
             strat.mean()
