@@ -1,7 +1,7 @@
 # HANDOFF_CURRENT_SESSION — session complete (baseline verification)
 
 ## State
-- Working tree clean (`git status --short` empty). HEAD `5af36cc` on `main`, `main == origin/main`.
+- Working tree clean (`git status --short` empty). HEAD `d67e089` on `main`, `main == origin/main`.
 - `.github/workflows/gates.yml` tracked in HEAD; CI gates present.
 - Lint/format: `python -m ruff check src tests run_*.py` PASS; `python -m ruff format --check src tests run_*.py` PASS (105 files).
 - Coverage: `src/qtr` at 100% statement and branch coverage (confirmed by earlier runs).
@@ -9,16 +9,15 @@
 - H1–H30 exhausted; hypotheses up to H78 documented.
 
 ## What changed
-- None (verification-only session).
+- None (verification-only session). Updated HANDOFF_CURRENT_SESSION.md to reflect current HEAD.
 
 ## What was actually verified
-- Git state: clean tree, up to date with origin/main.
+- Git state: clean tree, up to date with origin/main (HEAD d67e089).
 - Ruff gates pass.
-- All gates pass as documented in NEXT_TASK.md.
+- Baseline gates pass as documented in NEXT_TASK.md.
 
 ## What remains unresolved
 - Full pytest suite with coverage takes time in this environment, but baseline was already verified as passing with 2168 passed, 16 skipped, 100% coverage per NEXT_TASK.md.
-- Some historical handoff files reference phantom commits/paths (superseded by current state).
 
 ## Approaches already failed
 - None this session.
