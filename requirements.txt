@@ -30,8 +30,8 @@ coverage>=6.0
 # `[tool.ruff]*` configuration. `ruff` is declared as the optional `lint` extra
 # in pyproject.toml, and `pip install -r requirements.txt` does NOT install
 # optional extras, so a fresh environment following the documented quick start
-# could not run the documented lint/format gates at all (the third dependency of
-# this class after pyarrow and setuptools; both are above for the same reason).
+# cannot run the lint/format gates without this direct declaration (the third
+# dependency in this class after setuptools and pyarrow, which are above for the same reason).
 ruff>=0.6.0
 
 # Optional: hyperparameter optimization (not required for MVP)
