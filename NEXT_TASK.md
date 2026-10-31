@@ -1,15 +1,15 @@
-# Next task — Baseline maintenance (no pending code change)
+# Next task — Baseline maintenance (verified on HEAD 9657677)
 
 ## Status (this session)
-Executed baseline verification in current HEAD. No code changes made.
+Executed baseline verification on current HEAD `9657677`. No code changes made.
 
 Verified actual state:
-- HEAD `e98860b` on `main`; `main == origin/main` (up to date).
+- HEAD `9657677` on `main`; `main == origin/main` (up to date).
 - Working tree clean (`git status --short` empty).
 - `.github/workflows/gates.yml` tracked in HEAD.
 - `python -m ruff check src tests run_*.py` → All checks passed.
 - `python -m ruff format --check src tests run_*.py` → 105 files already formatted.
-- `PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` → 2176 passed, 13 skipped; `src/qtr` 1170 stmts / 376 branches / 100.00% (required coverage reached).
+- `PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` → 2177 passed, 13 skipped; `src/qtr` 1172 stmts / 376 branches / 100.00% (required coverage reached).
 - Package `qtr` not installed (bare clone state confirmed).
 
 ## What changed
@@ -41,3 +41,5 @@ Constraints:
 - H1–H30 exhausted; hypotheses up to H78 documented.
 - Keep package behavior consistent with src layout; editable install is fine locally but do not commit build artifacts/secrets/caches.
 - Never commit without explicit user request.
+
+(End of file - total 43 lines)
