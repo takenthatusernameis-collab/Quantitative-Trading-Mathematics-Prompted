@@ -487,6 +487,128 @@ class TestCompareToBenchmark:
         assert res["beta"] == 0.0
         assert res["alpha_annualized"] == 0.0
 
+    def test_near_constant_benchmark_does_not_produce_a_garbage_information_ratio(self):
+        """Regression: a benchmark whose bars move by ~1e-19 (float noise,
+        not exactly 0.0) used to divide the mean excess by ~1e-19 and emit a
+        garbage information ratio of ~7.3e16.
+
+        `sharpe_ratio` carries a 1e-15 tolerance guard and reports 0.0 for
+        the same excess series, so the two implementations disagreed on an
+        input the record actually contains: any benchmark series whose
+        prices are constant to float precision (a flat book, a synthetic
+        fixture, or a benchmark whose per-bar move is below ~1e-8). The
+        information ratio must agree with `sharpe_ratio` on this input.
+        """
+        rng = np.random.default_rng(0)
+        bench = np.full(200, 0.0001) + rng.normal(0.0, 1e-19, 200)
+        strat = bench + 0.0005
+        excess = strat - bench
+
+        assert excess.std(ddof=0) < 1e-15  # the input is near-constant
+
+        res = st.compare_to_benchmark(strat, bench)
+        assert res["information_ratio"] == 0.0
+        assert abs(res["information_ratio"]) < 1e6
+        assert res["information_ratio"] == pytest.approx(
+            st.sharpe_ratio(excess), rel=1e-12, abs=1e-15
+        )
+        # The t-test must also fail closed on the same input: a near-constant
+        # series has no measurable variation, so it cannot be "significant".
+        assert res["alpha_t_stat"] == 0.0
+        assert res["alpha_p_value"] == 1.0
+        assert res["alpha_p_value_one_sided"] == 0.5
+
+    def test_non_finite_excess_std_fails_closed(self):
+        """An excess series that is entirely non-finite must not divide.
+
+        The guard is `np.isfinite(excess_std) and excess_std > 1e-15`,
+        not `excess_std > 0`: a non-finite std compares unordered, so
+        `inf > 0` is True and the old guard did NOT fire, emitting `nan`.
+        A series that is all-inf drops to fewer than two surviving rows and
+        returns the no-evidence tuple (see `_no_comparison`); a single
+        finite row alongside the non-finite ones survives the row filter
+        but is too short for a t-test, so it likewise returns no evidence.
+        """
+        for non_finite in (np.inf, -np.inf, np.nan):
+            excess = np.array([non_finite, non_finite])
+            res = st.compare_to_benchmark(excess, np.zeros(2))
+            assert res["information_ratio"] == 0.0
+            assert res["alpha_t_stat"] == 0.0
+            assert res["alpha_p_value"] == 1.0
+
+    def test_the_information_ratio_and_t_test_guards_use_the_same_tolerance(self):
+        """The two guards must agree at every scale: both fire, or neither
+        does.
+
+        Between 1e-15 and 1e-12 the old t-test guard (1e-12) had already
+        fired while the IR guard (then `> 0`, now 1e-15) had not, so the two
+        statistics disagreed -- a garbage IR alongside a "significant"
+        p-value. Both now use the 1e-15 tolerance: at or below it a series
+        with no measurable variation yields the no-evidence tuple on both
+        sides; above it both report a real signal. The exact value above the
+        threshold is not asserted -- only that the two guards agree on the
+        boundary and that neither emits a garbage-scale statistic.
+        """
+        rng = np.random.default_rng(0)
+        for exponent in range(-19, -12):  # 1e-19 .. 1e-13
+            std = 10.0**exponent
+            mean = std * 10.0
+            excess = mean + rng.normal(0.0, std, 400)
+            res = st.compare_to_benchmark(excess, np.zeros(400))
+            if excess.std(ddof=0) <= 1e-15:
+                assert res["information_ratio"] == 0.0
+                assert res["alpha_t_stat"] == 0.0
+                assert res["alpha_p_value"] == 1.0
+            else:
+                # Both guards fire: a real (if tiny) 10:1 signal-to-noise
+                # series is reported, not suppressed as no evidence.
+                assert np.isfinite(res["information_ratio"])
+                assert abs(res["information_ratio"]) < 1e6
+                assert np.isfinite(res["alpha_t_stat"])
+                assert 0.0 <= res["alpha_p_value"] <= 1.0
+
+    def test_the_contract_rejects_the_pre_fix_information_ratio_guard(self):
+        """Negative control: the pre-fix `excess_std > 0` guard did NOT fire
+        on a near-constant series, so the information ratio was ~7.3e16.
+        Reconstruct the pre-fix arithmetic and require the contract to
+        reject it as not equal to 0.0.
+        """
+        rng = np.random.default_rng(0)
+        bench = np.full(200, 0.0001) + rng.normal(0.0, 1e-19, 200)
+        strat = bench + 0.0005
+        excess = strat - bench
+
+        pre_fix_std = float(excess.std(ddof=0))
+        pre_fix_ir = float(excess.mean() / pre_fix_std * np.sqrt(252))
+        assert pre_fix_ir > 1e6  # the pre-fix path emitted garbage
+
+        res = st.compare_to_benchmark(strat, bench)
+        assert res["information_ratio"] != pytest.approx(pre_fix_ir, rel=1e-6)
+        assert res["information_ratio"] == 0.0
+
+    def test_the_contract_rejects_the_pre_fix_t_test_guard(self):
+        """Negative control: the pre-fix `excess.std(ddof=0) > 1e-12` t-test
+        guard did NOT fire on a series whose excess std is ~1e-13, so it
+        suppressed a real 10:1 signal-to-noise series as "no evidence"
+        (t_stat 0.0, p_value 1.0). The corrected 1e-15 guard fires there and
+        reports the real statistic, so the two disagree on this input and the
+        contract must reject the pre-fix no-evidence tuple.
+        """
+        rng = np.random.default_rng(0)
+        std = 1e-13
+        excess = std * 10.0 + rng.normal(0.0, std, 400)
+        assert excess.std(ddof=0) > 1e-15  # above the corrected tolerance
+        assert excess.std(ddof=0) <= 1e-12  # but below the pre-fix tolerance
+
+        res = st.compare_to_benchmark(excess, np.zeros(400))
+        # The corrected path reports the real statistic ...
+        assert np.isfinite(res["alpha_t_stat"])
+        assert res["alpha_t_stat"] != 0.0
+        assert res["alpha_p_value"] != 1.0
+        # ... and rejects the pre-fix no-evidence tuple.
+        assert res["alpha_t_stat"] != pytest.approx(0.0)
+        assert res["alpha_p_value"] != pytest.approx(1.0)
+
     def test_p_value_in_unit_interval(self, rng):
         res = st.compare_to_benchmark(rng.normal(0.001, 0.01, 400), rng.normal(0.0005, 0.01, 400))
         assert 0.0 <= res["alpha_p_value"] <= 1.0

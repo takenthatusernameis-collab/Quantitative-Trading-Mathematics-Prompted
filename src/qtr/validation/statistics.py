@@ -642,8 +642,35 @@ def compare_to_benchmark(
     # deviation of the excess returns (ddof=0), the same convention as
     # `numpy.ndarray.std()` and as this module's `sharpe_ratio`; it is
     # stated explicitly so it cannot drift with the caller's container.
-    excess_std = excess.std(ddof=0)
-    ir = excess.mean() / excess_std * np.sqrt(periods_per_year) if excess_std > 0 else 0
+    #
+    # The guard is `np.isfinite(excess_std) and excess_std > 1e-15`, not
+    # `excess_std > 0`: a near-constant excess series has a standard
+    # deviation of ~1e-19 from float noise rather than exactly 0.0, so the
+    # old guard did NOT fire and the function divided the mean excess by
+    # ~1e-19, emitting a garbage information ratio of ~7.3e16 where
+    # `sharpe_ratio` (which carries the same 1e-15 tolerance) reports 0.0
+    # for the same input -- a cross-module disagreement on an input the
+    # record actually contains (any benchmark whose bars move by less than
+    # ~1e-8 per bar, e.g. a flat book, a synthetic fixture, or a benchmark
+    # series whose prices are constant to float precision). A non-finite
+    # excess standard deviation (the series carries an `inf`, `-inf` or
+    # `nan` -- the H58/H61 input class, reachable whenever a runner builds
+    # a return series from `prices.pct_change()` and a price crosses zero
+    # or a roll gap is unbounded) compares unordered, so `inf > 0` is True
+    # and the old guard did NOT fire either, leaving `excess.mean()`
+    # (inf or nan) divided by a nan std and emitting `nan`. Both now
+    # report 0.0 for every non-finite input. For every finite input the
+    # arithmetic is bit-identical to before. See
+    # tests/test_statistics.py::TestCompareToBenchmark.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        with np.errstate(invalid="ignore", divide="ignore"):
+            excess_std = float(excess.std(ddof=0))
+    ir = (
+        excess.mean() / excess_std * np.sqrt(periods_per_year)
+        if np.isfinite(excess_std) and excess_std > 1e-15
+        else 0.0
+    )
 
     # Alpha / Beta (CAPM). beta is the OLS regression slope of strategy
     # returns on benchmark returns, cov(S, B) / var(B) with a CONSISTENT
@@ -672,7 +699,20 @@ def compare_to_benchmark(
     # all of alpha in the upper tail when ``t_stat > 0`` and in the lower
     # tail otherwise, so it only passes when the excess return is both
     # significant *and* positive.
-    if excess.std(ddof=0) > 1e-12:
+    #
+    # The guard is the SAME 1e-15 tolerance as the information ratio above,
+    # not the looser 1e-12 it used to carry: `stats.ttest_1samp` divides
+    # the excess mean by its sample standard deviation, and a near-constant
+    # excess series has a sample std of ~1e-19 from float noise rather than
+    # exactly 0.0, so the old guard did NOT fire and the test reported a
+    # wildly significant p-value (t ~ 1e16) on a series with no measurable
+    # variation -- a false positive that would certify noise as a real edge.
+    # Between 1e-15 and 1e-12 the two guards disagreed with each other (the
+    # IR guard reported 0.0 while the t-test reported p ~ 0), so the
+    # internally-consistent result for a constant series is the no-evidence
+    # tuple: t_stat 0.0, p_value 1.0, one-sided 0.5. For every input with
+    # excess_std > 1e-15 the arithmetic is bit-identical to before.
+    if np.isfinite(excess_std) and excess_std > 1e-15:
         t_stat, p_value = stats.ttest_1samp(excess, 0)
         if t_stat > 0:
             alpha_p_value_one_sided = p_value / 2.0
