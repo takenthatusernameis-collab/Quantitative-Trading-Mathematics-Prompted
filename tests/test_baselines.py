@@ -235,6 +235,44 @@ def test_tsmom_edge_zeros():
     assert sig.shape == prices.shape
 
 
+def test_tsmom_max_position_size_caps_weights():
+    idx = pd.date_range("2020-01-01", periods=300, freq="D")
+    # Strong upward trend with tiny oscillation: positive momentum, very low vol
+    # so _vol_scale returns the 2x leverage cap and weights reach 2.0 uncapped.
+    prices = pd.DataFrame(
+        {"A": 100.0 + 0.1 * np.arange(300) + 0.01 * np.sin(np.arange(300))},
+        index=idx,
+    )
+    sig_capped = baselines.time_series_momentum_signals(
+        prices,
+        lookback=50,
+        skip=5,
+        long_only=True,
+        volatility_scale=True,
+        target_vol=0.15,
+        max_position_size=1.0,
+    )
+    assert sig_capped.shape == prices.shape
+    # The per-asset cap binds: no weight exceeds 1.0 in absolute value.
+    assert (sig_capped["A"].abs() <= 1.0).all()
+
+    sig_uncapped = baselines.time_series_momentum_signals(
+        prices,
+        lookback=50,
+        skip=5,
+        long_only=True,
+        volatility_scale=True,
+        target_vol=0.15,
+        max_position_size=2.0,
+    )
+    # Default cap (2.0) is unchanged: vol scaling can still reach 2.0.
+    assert (sig_uncapped["A"].abs() <= 2.0).all()
+    assert (sig_uncapped["A"] == 2.0).any(), (
+        "volatility scaling should reach the 2x cap so the max_position_size "
+        "clipping is actually exercised"
+    )
+
+
 def test_momentum_long_short_n_top_negative():
     # Creates clear positive and negative momentum
     idx = pd.date_range("2020-01-01", periods=60, freq="D")

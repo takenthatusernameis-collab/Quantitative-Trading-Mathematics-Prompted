@@ -296,6 +296,7 @@ def time_series_momentum_signals(
     long_only: bool = True,
     volatility_scale: bool = True,
     target_vol: float = 0.15,
+    max_position_size: float = 2.0,
 ) -> pd.DataFrame:
     """
     Generate time-series momentum signals (Moskowitz, Ooi, Pedersen 2012).
@@ -310,6 +311,7 @@ def time_series_momentum_signals(
         long_only: If True, only long positions
         volatility_scale: If True, scale positions by inverse volatility
         target_vol: Target annualized volatility for scaling
+        max_position_size: Per-asset cap on the absolute position weight
 
     Returns:
         DataFrame of position weights
@@ -347,12 +349,15 @@ def time_series_momentum_signals(
             # Volatility scaling
             if volatility_scale and realized_vol is not None and symbol in realized_vol.columns:
                 vol = realized_vol.loc[date, symbol]
-                # Scale to target volatility (leverage capped at 2x).
+                # Scale to target volatility (leverage capped at 2x by _vol_scale).
                 weight = weight * _vol_scale(vol, target_vol)
 
             signals.loc[date, symbol] = weight
 
-    return signals.ffill().fillna(0)
+    signals = signals.ffill().fillna(0)
+    # Per-asset cap, consistent with vol_scaled_tsmom_signals.
+    signals = signals.clip(-max_position_size, max_position_size)
+    return signals
 
 
 def vol_scaled_tsmom_signals(
