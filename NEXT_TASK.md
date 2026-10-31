@@ -1,10 +1,10 @@
-# Next task — Baseline maintenance (verified on HEAD 9657677)
+# Next task — Baseline maintenance (verified on HEAD a3b9970)
 
 ## Status (this session)
-Executed baseline verification on current HEAD `9657677`. No code changes made.
+Executed baseline verification on current HEAD `a3b9970`. No code changes made.
 
 Verified actual state:
-- HEAD `9657677` on `main`; `main == origin/main` (up to date).
+- HEAD `a3b9970` on `main`; `main == origin/main` (up to date).
 - Working tree clean (`git status --short` empty).
 - `.github/workflows/gates.yml` tracked in HEAD.
 - `python -m ruff check src tests run_*.py` → All checks passed.
