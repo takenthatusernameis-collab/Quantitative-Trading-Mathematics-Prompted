@@ -376,7 +376,8 @@ def main():
             "skip+20%": pert(sel_lb, skp),
             "skip-20%": pert(sel_lb, skm),
         }
-        min_pert = min(perturbs.values()) if min(perturbs.values()) != 0 else 0.0
+        _min_pert = min(perturbs.values())
+        min_pert = _min_pert if _min_pert != 0 else 0.0
         # benchmark test
         bench = bh_result.returns.reindex(oos_returns.index).ffill()
         oos_arr = oos_returns.values
