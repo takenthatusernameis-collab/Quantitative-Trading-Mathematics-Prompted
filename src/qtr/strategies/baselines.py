@@ -145,11 +145,24 @@ def momentum_signals(
         if n_top is not None:
             if n_top <= 0:
                 continue
-            # Top N momentum
-            top_symbols = mom_vals.nlargest(n_top).index
-            weight = 1.0 / len(top_symbols) if long_only else 1.0 / (2 * len(top_symbols))
-            for sym in top_symbols:
-                signals.loc[date, sym] = weight
+            # Top N momentum. The ranking is over the symbols whose momentum is
+            # **non-zero**: a bar whose momentum is exactly zero carries no
+            # directional information, and ``nlargest``/``nsmallest`` rank an
+            # all-zero series by position rather than by value -- it would
+            # return one symbol (the first) and book it as long or short on a
+            # bar that has no trend. The sign of zero is not a direction. This
+            # is the same invariant H67 fixed in ``vol_scaled_tsmom_signals``
+            # and H68 in ``cs_momentum_vol_scaled`` (both use ``np.sign``);
+            # here the construction is rank-based, so the equivalent is to rank
+            # over the non-zero subset. ``nlargest``/``nsmallest`` on an empty
+            # series return an empty index, so a bar with no non-zero momentum
+            # is flat -- no top set, no bottom set, no weight.
+            ranked = mom_vals[mom_vals != 0]
+            top_symbols = ranked.nlargest(n_top).index
+            if len(top_symbols) > 0:
+                weight = 1.0 / len(top_symbols) if long_only else 1.0 / (2 * len(top_symbols))
+                for sym in top_symbols:
+                    signals.loc[date, sym] = weight
             if not long_only:
                 # Long the top n_top, short the bottom n_top. The two sets must
                 # be disjoint: when ``2 * n_top`` exceeds the number of symbols
@@ -159,9 +172,7 @@ def momentum_signals(
                 # Drop the long side first so a symbol is never simultaneously
                 # long and short, and skip the short leg entirely when nothing
                 # remains.
-                bottom_symbols = (
-                    mom_vals.loc[~mom_vals.index.isin(top_symbols)].nsmallest(n_top).index
-                )
+                bottom_symbols = ranked.loc[~ranked.index.isin(top_symbols)].nsmallest(n_top).index
                 if len(bottom_symbols) > 0:
                     weight = -1.0 / (2 * len(bottom_symbols))
                     for sym in bottom_symbols:

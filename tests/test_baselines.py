@@ -449,3 +449,119 @@ def test_momentum_long_short_all_positive_covers_empty_negative_branch():
     sig = baselines.momentum_signals(prices, lookback=20, skip=1, long_only=False, n_top=None)
     assert (sig.values >= 0.0).all()
     assert np.allclose(sig.iloc[-1].values, 0.5)
+
+
+class TestZeroMomentumIsNotAShort:
+    """A zero-momentum bar carries no trend information.
+
+    The rank-based ``n_top`` branch used to select its long and short sets with
+    ``nlargest``/``nsmallest`` over the *whole* momentum frame. Those functions
+    rank an all-zero series by position rather than by value: on a bar where
+    every symbol's momentum is exactly zero they return one symbol (the first)
+    and book it as long or short. A price series that returns exactly to its
+    starting level over the lookback window (a repeating cycle, a flat book, a
+    synthetic fixture) therefore carried a full short weight in long/short mode
+    -- the same defect H67 fixed in ``vol_scaled_tsmom_signals`` and H68 in
+    ``cs_momentum_vol_scaled``, which use ``np.sign``. Here the construction is
+    rank-based, so the equivalent is to rank over the non-zero subset.
+
+    The invariant is that a bar whose momentum is exactly zero receives zero
+    weight, for both long-only and long/short, and for both ``n_top`` and
+    ``n_top=None`` (the latter already filtered on ``> 0`` / ``< 0`` and is
+    pinned so it cannot regress to a rank-based form).
+    """
+
+    @staticmethod
+    def _repeating_prices(period: int = 3, length: int = 200) -> pd.DataFrame:
+        """A price series that returns to the same level every ``period`` bars.
+
+        ``pct_change(period)`` is therefore EXACTLY zero on every bar after the
+        first period, while the intra-period moves give a strictly positive
+        realised volatility. This is the minimal input that separates "zero
+        momentum" from "no volatility".
+        """
+        index = pd.bdate_range("2020-01-01", periods=length)
+        pattern = [100.0, 101.0, 102.0]
+        prices = pd.DataFrame(
+            {"REP": np.tile(pattern, length // period + 1)[:length]},
+            index=index,
+        )
+        return prices
+
+    def _zero_mom_mask(self, prices, lookback, skip):
+        mom = prices.pct_change(lookback).shift(skip)
+        return mom["REP"].abs() < 1e-12
+
+    def test_long_short_n_top_zero_momentum_produces_zero_weight(self):
+        prices = self._repeating_prices()
+        zm = self._zero_mom_mask(prices, lookback=3, skip=1)
+        assert zm.sum() > 0, "the fixture must actually produce zero momentum"
+
+        sig = baselines.momentum_signals(prices, lookback=3, skip=1, long_only=False, n_top=1)
+        bad = sig.loc[zm, "REP"]
+        assert (bad.abs() <= 1e-9).all(), (
+            f"zero-momentum bars must produce zero weight in long/short n_top mode; "
+            f"got {int((bad.abs() > 1e-9).sum())} offending rows"
+        )
+        assert (bad >= -1e-9).all(), "a zero-momentum bar must not be booked as a short"
+
+    def test_long_only_n_top_zero_momentum_produces_zero_weight(self):
+        prices = self._repeating_prices()
+        zm = self._zero_mom_mask(prices, lookback=3, skip=1)
+        sig = baselines.momentum_signals(prices, lookback=3, skip=1, long_only=True, n_top=1)
+        bad = sig.loc[zm, "REP"]
+        assert (bad.abs() <= 1e-9).all(), (
+            "zero-momentum bars must produce zero weight in long-only n_top mode too"
+        )
+
+    def test_n_top_none_zero_momentum_produces_zero_weight(self):
+        """The ``n_top=None`` branch filters on ``> 0`` / ``< 0`` and was already
+        correct; pin it so it cannot regress to a rank-based form."""
+        prices = self._repeating_prices()
+        zm = self._zero_mom_mask(prices, lookback=3, skip=1)
+        for long_only in (True, False):
+            sig = baselines.momentum_signals(
+                prices, lookback=3, skip=1, long_only=long_only, n_top=None
+            )
+            bad = sig.loc[zm, "REP"]
+            assert (bad.abs() <= 1e-9).all(), (
+                f"zero-momentum bars must produce zero weight in n_top=None "
+                f"mode (long_only={long_only})"
+            )
+
+    def test_all_zero_momentum_bar_is_flat_with_no_division(self):
+        """A bar where every symbol's momentum is exactly zero must be flat --
+        the empty ranked set must not reach the ``1 / len(top_symbols)``
+        division (which would be a ZeroDivisionError)."""
+        idx = pd.date_range("2020-01-01", periods=60, freq="D")
+        prices = pd.DataFrame(
+            {"A": [100.0] * 60, "B": [101.0] * 60},
+            index=idx,
+        )
+        # Constant prices => momentum is identically zero for every symbol.
+        sig = baselines.momentum_signals(prices, lookback=20, skip=1, long_only=False, n_top=1)
+        assert (sig.values == 0.0).all(), (
+            "an all-zero-momentum panel must be entirely flat, with no division"
+        )
+
+    def test_the_contract_rejects_the_pre_fix_rank_by_position(self):
+        """Behavioural negative control: the pre-fix construction ranked the
+        whole momentum frame with ``nlargest``/``nsmallest``, so on a bar where
+        every symbol's momentum is exactly zero it booked the first symbol as a
+        long (and, in long/short mode, a short). The corrected construction must
+        not reproduce that mapping."""
+        prices = self._repeating_prices()
+        mom = prices.pct_change(3).shift(1)
+        zm = self._zero_mom_mask(prices, lookback=3, skip=1)
+        # Reconstruct the pre-fix selection over the whole frame.
+        mom_vals = mom.loc[zm.index[zm], "REP"].dropna()
+        pre_fix_top = mom_vals.nlargest(1)
+        assert len(pre_fix_top) == 1, (
+            "the negative control must reconstruct the pre-fix rank-by-position "
+            "mapping on an all-zero momentum frame"
+        )
+
+        sig = baselines.momentum_signals(prices, lookback=3, skip=1, long_only=False, n_top=1)
+        assert (sig.loc[zm, "REP"].abs() <= 1e-9).all(), (
+            "the corrected signal must not book a zero-momentum bar"
+        )
