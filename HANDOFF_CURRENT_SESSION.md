@@ -1,72 +1,29 @@
-# HANDOFF_CURRENT_SESSION — session complete (H78: CI gate workflow restored after HEAD deleted it again)
+# HANDOFF_CURRENT_SESSION — session complete (baseline fully green; no pending source task)
 
-## What changed
-- `.github/workflows/gates.yml` — **restored**, byte-identical to the verified
-  H76 artifact (`a9e9fe1:.github/workflows/gates.yml`). HEAD `830dfd3` had
-  deleted it, while every handoff still recorded H76/H77 as complete and the
-  file as present, so the documented research gates had no CI enforcement.
-  Two jobs on `push` to `main`, `pull_request`, `workflow_dispatch`,
-  path-filtered to `src/`, `tests/`, `run_*.py`, `requirements.txt`,
-  `pyproject.toml` and the workflow itself:
-  - `lint` — `python -m ruff check src tests run_*.py` and
-    `python -m ruff format --check src tests run_*.py`.
-  - `research_gates` — `python -m pytest -q -W error --cov=qtr --cov-branch
-    --cov-report=term-missing`, enforcing `fail_under = 100` with branch
-    coverage.
-- No source, test, runner, artifact, gate threshold, verdict or certified
-  number was modified. No grid was re-run. H1–H30 exhausted.
+## Prior assignment — already complete (nothing to execute)
+- NEXT_TASK.md assigned: "Commit `.github/workflows/gates.yml`". That commit is **already in HEAD** at `0df5b4f` "Restore deleted CI research gates workflow (#7)". The file exists on disk, is tracked, and the working tree is clean. HEAD is `fc6abcf` (up to date with `origin/main`). No prior-agent task remains open.
 
-## What was actually verified
-- `diff <(git show a9e9fe1:.github/workflows/gates.yml) .github/workflows/gates.yml`
-  → empty (byte-identical).
-- `git log --oneline -- .github/workflows/gates.yml` shows repeated add/delete
-  (`830dfd3` delete, `137b8a6` restore, `b37e93b` delete, `0b31804` add,
-  `876a15f` delete, `a9e9fe1` add, `d080a1e` delete, `d878dad` add).
-- `python -c "import yaml; yaml.safe_load(open('.github/workflows/gates.yml'))"`
-  → parses OK; triggers are `push`/`pull_request`/`workflow_dispatch`; the
-  `research_gates` step runs `pytest -q -W error --cov=qtr --cov-branch
-  --cov-report=term-missing`; the `lint` job runs `ruff check` and
-  `ruff format --check`.
+## What changed this session
+- Nothing. No source, test, runner, artifact, gate threshold, or config was modified. The source is frozen (H1–H30 exhausted; changes under `src/qtr` require re-running pinned contracts) and nothing in it demonstrated a defect.
+
+## What was actually verified (evidence at current HEAD `fc6abcf`)
+- `python -m pytest -q` → **2168 passed, 16 skipped** (skips are pre-existing, documented: `buy_and_hold` constant position, no generated manifest, qtr not installed as a distribution, runner p-value/rounding conventions).
 - `python -m ruff check src tests run_*.py` → **All checks passed!**
-- `python -m ruff format --check src tests run_*.py` → **105 files already
-  formatted**
-- `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing`
-  → **2168 passed, 16 skipped**; `src/qtr` **1168 stmts / 374 branches / 0
-  missed / 0 partial / 100.00%**.
-- `.github/scripts/kilo-controller.sh` untouched; `bash -n` still passes.
-- `pip show qtr` → not installed (bare clone state confirmed).
+- `python -m ruff format --check src tests run_*.py` → **105 files already formatted**
+- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → **Required test coverage of 100.0% reached. Total coverage: 100.00%** (`src/qtr`: 1168 stmts / 374 branches / 0 missed / 0 partial).
+- `git status` → clean; nothing to commit, up to date with `origin/main`.
+- qtr is **not** pip-installed (bare-clone state preserved); `.github/workflows/gates.yml` committed.
 
 ## What remains unresolved
-- Whether the deletion at `830dfd3` was intentional is not recorded anywhere in
-  the tree; every handoff describes the file as present, so the deletion is
-  treated as an unintended regression.
-- Items in `FINAL_REPORT.md` §H53–§H61 remain disclosed (not quantified) with
-  no gate impact.
-- The new workflow cannot be executed in this sandbox (no GitHub Actions
-  runner); verified by byte-identity to the verified artifact and by each of
-  its commands being green in-tree.
+- Nothing pending. There is no demonstrated defect, no unfrozen source task, and no gate regression.
 
 ## Approaches already failed
-- **Committing the restored file.** Rejected: the no-commit-without-explicit-
-  request rule applies, and the previous H76/H77 sessions also left it
-  untracked. The file is restored on disk; a commit is a separate decision for
-  the user.
+- None attempted (no change was warranted; making a speculative change solely to produce "activity" is prohibited).
 
-## One precise next task (with evidence and constraints)
-**None assigned.** If a future session touches CI or the gates it enforces:
-1. Keep the two jobs' commands identical to the documented gates in
-   `AGENTS.md`/`pyproject.toml`; do not relax `fail_under`, drop `-W error`, or
-   remove the format check.
-2. After any change that could move the gate surface, re-run
-   `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing`
-   and the ruff commands and confirm `src/qtr` stays at 100% (statement+branch).
-3. Do not `pip install -e .` unless a test requires it; restore the bare-clone
-   state (qtr uninstalled) afterwards.
+## One precise next task (for the next agent)
+- **None — the baseline is fully green.** The next agent should not invent a source change. Act only on a *demonstrated* failure of a gate: if `ruff check`, `ruff format --check`, `pytest -q -W error`, or the 100% branch-coverage gate (`src/qtr` 1168 stmts / 374 branches) regresses, fix the smallest reproducible change and re-run that gate. Otherwise, no work is needed this session.
 
 ## Constraints carried forward
-- No published artifact, gate threshold, verdict or certified number may be
-  modified; H1–H30 exhausted; `src/qtr` coverage must stay 100%
-  (statement+branch); ruff lint and format gates must stay clean; qtr left
-  uninstalled.
+- No published artifact, gate threshold, verdict, or certified number may be modified; `fail_under = 100`, branch coverage, `-W error`, ruff lint/format gates must stay clean; H1–H30 exhausted; qtr left uninstalled unless a test requires install (restore bare-clone state after).
 
 (End of file)
