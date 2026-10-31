@@ -1,28 +1,26 @@
 # Next task — Baseline maintenance (no pending code change)
 
 ## Status (this session)
-Executed baseline verification in current HEAD. No code changes made; environment now has `qtr` installed in editable mode (so manifest/distribution tests run without the install skip).
+Executed baseline verification in current HEAD. No code changes made.
 
 Verified actual state:
-- HEAD `77f9626` on `main`; `main == origin/main` (synced).
+- HEAD `e98860b` on `main`; `main == origin/main` (up to date).
 - Working tree clean (`git status --short` empty).
 - `.github/workflows/gates.yml` tracked in HEAD.
 - `python -m ruff check src tests run_*.py` → All checks passed.
 - `python -m ruff format --check src tests run_*.py` → 105 files already formatted.
-- `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` → 2173 passed, 16 skipped; `src/qtr` 1170 stmts / 376 branches / 100.00% (required coverage reached).
-- `pip show qtr` shows editable install at repo root (installed in this environment). Manifest/distribution contract tests pass.
+- `PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` → 2176 passed, 13 skipped; `src/qtr` 1170 stmts / 376 branches / 100.00% (required coverage reached).
+- Package `qtr` not installed (bare clone state confirmed).
 
 ## What changed
-None to source/tests/runners/artifacts/gates/thresholds/verdicts/certified numbers. Installed package in editable mode for verification only (not committed).
+None to source/tests/runners/artifacts/gates/thresholds/verdicts/certified numbers.
 
 ## What was actually verified
 - Git state clean and up to date.
 - All three pinned gates green with evidence above.
-- `tests/test_generated_manifest_contract.py` passes fully (11 passed) with editable install present.
 
 ## What remains unresolved
-- Older handoff files reference different/phantom HEADs; treat as historical narrative.
-- Workflow execution on GitHub Actions not verified here, only local gates.
+- Older handoff files reference different HEADs; treat as historical narrative.
 
 ## Approaches already failed
 None this session.
@@ -33,7 +31,7 @@ None this session.
 ```bash
 python -m ruff check src tests run_*.py
 python -m ruff format --check src tests run_*.py
-python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing
+PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing
 ```
 
 Constraints:
