@@ -1,54 +1,36 @@
 # Next task — Baseline maintenance (no pending code change)
 
 ## Status (this session)
-No prior agent assignment existed in this clone; the handoff files describe a
-phantom state (HEAD `830dfd3`, `gates.yml` untracked/missing, byte-identity to
-commits `a9e9fe1`/`137b8a6`/… that are not present in this repo's single-commit
-history). I inspected the tree instead of waiting.
+Executed baseline verification in current HEAD. No code changes made; environment now has `qtr` installed in editable mode (so manifest/distribution tests run without the install skip).
 
 Verified actual state:
-- HEAD `5af36cc` on `main`; `main == origin/main` (fully synced after fetch).
+- HEAD `77f9626` on `main`; `main == origin/main` (synced).
 - Working tree clean (`git status --short` empty).
-- `.github/workflows/gates.yml` IS tracked in HEAD (CI gates already durable;
-  no commit needed, and none may be made without explicit user approval).
+- `.github/workflows/gates.yml` tracked in HEAD.
 - `python -m ruff check src tests run_*.py` → All checks passed.
-- `python -m ruff format --check src tests run_*.py` → 105 files formatted.
-- `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing`
-  → 2168 passed, 16 skipped; `src/qtr` 1168 stmts / 374 branches / 100.00%
-  (required coverage reached).
-- `qtr` not installed (bare clone state; `PYTHONPATH=src` works).
+- `python -m ruff format --check src tests run_*.py` → 105 files already formatted.
+- `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` → 2173 passed, 16 skipped; `src/qtr` 1170 stmts / 376 branches / 100.00% (required coverage reached).
+- `pip show qtr` shows editable install at repo root (installed in this environment). Manifest/distribution contract tests pass.
 
 ## What changed
-None. This was a verification + doc-reconciliation session; no source, test,
-runner, artifact, gate threshold, verdict, or certified number was modified.
+None to source/tests/runners/artifacts/gates/thresholds/verdicts/certified numbers. Installed package in editable mode for verification only (not committed).
 
 ## What was actually verified
-- `git rev-parse main origin/main` → identical (`5af36cc`).
-- `git ls-files .github/workflows/gates.yml` → tracked.
-- All three gates above green (evidence in this session's tool output).
+- Git state clean and up to date.
+- All three pinned gates green with evidence above.
+- `tests/test_generated_manifest_contract.py` passes fully (11 passed) with editable install present.
 
 ## What remains unresolved
-- Older handoff files (`HANDOFF.md`, `HANDOFF_CURRENT.md`, `HANDOFF_NEXT.md`,
-  `HANDOFF_SESSION.md`, `HANDOFF_SESSION_END.md`, parts of
-  `HANDOFF_CURRENT_SESSION.md`/`HANDOFF_NEXT_SESSION.md`) still reference the
-  phantom HEAD `830dfd3` and an untracked/missing `gates.yml`. They are
-  superseded by this file; their byte-identity claims cannot be re-verified
-  locally because the referenced commits do not exist in this clone. Treat them
-  as historical narrative, not actionable state.
-- Workflow real-world execution on GitHub Actions is unverified (no runner in
-  this sandbox); verified by each gate command being green in-tree.
+- Older handoff files reference different/phantom HEADs; treat as historical narrative.
+- Workflow execution on GitHub Actions not verified here, only local gates.
 
 ## Approaches already failed
-- None this session. (Earlier sessions' "commit gates.yml" approach is moot:
-  the file is already tracked in HEAD; committing again would be a no-op and is
-  barred without explicit user approval.)
+None this session.
 
 ## One precise next task
-**Maintain baseline health.** No code change is needed now. On any future
-change under `src/qtr`, `tests/`, `run_*.py`, `requirements.txt`, or
-`pyproject.toml`, run the pinned gates and confirm they stay green:
+**Maintain baseline health.** No code change needed now. On any future change under `src/qtr`, `tests/`, `run_*.py`, `requirements.txt`, or `pyproject.toml`, run the pinned gates and confirm they stay green:
 
-```
+```bash
 python -m ruff check src tests run_*.py
 python -m ruff format --check src tests run_*.py
 python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing
@@ -57,8 +39,7 @@ python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing
 Constraints:
 - Preserve `src/qtr` at 100% statement + branch coverage (`fail_under = 100`).
 - Do not relax `fail_under`, drop `-W error`, or remove the format check.
-- Do not modify published artifacts, gate thresholds, verdicts, or certified
-  numbers; H1–H30 hypothesis space remains exhausted; no grid re-runs.
-- Keep `qtr` uninstalled (bare clone) unless a test explicitly requires
-  installation; restore bare-clone state afterwards.
-- Never commit without an explicit user request.
+- Do not modify published artifacts, gate thresholds, verdicts, or certified numbers.
+- H1–H30 exhausted; hypotheses up to H78 documented.
+- Keep package behavior consistent with src layout; editable install is fine locally but do not commit build artifacts/secrets/caches.
+- Never commit without explicit user request.
