@@ -774,9 +774,58 @@ def statistical_power_analysis(
         std: Standard deviation of outcome
 
     Returns:
-        Required sample size per group
+        Required sample size per group. ``0`` when no sample size can be
+        computed: the closed form divides by ``effect_size`` and takes
+        ``norm.ppf`` of ``1 - alpha / 2`` and of ``power``, so any input that
+        makes a denominator zero or a quantile non-finite emits ``inf`` or
+        ``nan`` and the ``int(np.ceil(...))`` cast raises ``OverflowError`` on
+        ``inf`` and ``ValueError`` on ``nan`` -- an unhandled exception out of
+        a pure function that every caller treats as returning an ``int``.
     """
     from scipy.stats import norm
+
+    # Degenerate-input guard. The closed form is only defined when every
+    # operand is finite and strictly positive:
+    #
+    # * ``effect_size`` is the denominator. An exact zero (a flat effect, a
+    #   synthetic fixture, a series with no measurable difference) makes the
+    #   required sample size infinite; a negative one is a sign error in the
+    #   caller's intent (the formula squares it away, silently answering the
+    #   wrong question). Both fail closed.
+    # * ``std`` is the other numerator factor. A non-positive or non-finite
+    #   standard deviation carries no scale information.
+    # * ``alpha`` must lie strictly inside (0, 1): ``norm.ppf(1 - alpha / 2)``
+    #   is only finite there. ``alpha <= 0`` sends the argument to >= 1 (ppf of
+    #   1 is +inf); ``alpha >= 1`` sends it to <= 0.5, and at exactly 1 the
+    #   z-score is 0.0 (a finite but meaningless answer), while any value past
+    #   1 makes the argument negative and ppf returns nan.
+    # * ``power`` must lie strictly inside (0, 1): ``norm.ppf(power)`` is only
+    #   finite there. ``power <= 0`` sends the argument to <= 0 (ppf of 0 is
+    #   -inf); ``power >= 1`` sends it to >= 1 (ppf of 1 is +inf).
+    #
+    # A non-finite operand (the H58/H61/H62 input class -- an `inf`, a `-inf`
+    # or a `nan` reaching a pure function that has no caller to filter for it)
+    # is caught by ``np.isfinite`` rather than by an inequality alone: a nan
+    # compares unordered, so ``nan > 0`` is False and an inequality-only guard
+    # would walk straight into the division. The fail-closed value is ``0``:
+    # no sample size can be justified, so a caller gating on ``n >= threshold``
+    # fails closed, matching the way ``sharpe_ratio`` and
+    # ``compare_to_benchmark`` fail closed on the same input classes.
+    #
+    # For every input in the valid domain the arithmetic is bit-identical to
+    # before: this block only short-circuits the degenerate cases. See
+    # tests/test_statistics.py::TestStatisticalPowerAnalysis.
+    if not (
+        np.isfinite(effect_size)
+        and effect_size > 0
+        and np.isfinite(std)
+        and std > 0
+        and np.isfinite(alpha)
+        and 0.0 < alpha < 1.0
+        and np.isfinite(power)
+        and 0.0 < power < 1.0
+    ):
+        return 0
 
     z_alpha = norm.ppf(1 - alpha / 2)
     z_beta = norm.ppf(power)

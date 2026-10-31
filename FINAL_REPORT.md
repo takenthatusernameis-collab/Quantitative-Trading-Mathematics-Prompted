@@ -5083,3 +5083,97 @@ that carries all five required columns the selection is bit-identical to before,
   the clean venv with only `pip install -r requirements.txt`.
 - No published artifact, gate threshold, verdict or certified number was modified; no
   grid was re-run; no hypothesis was added.
+
+## H80 — `statistical_power_analysis` raised on degenerate operands (2026-10-31)
+
+**H80 is COMPLETE.** This is a **real defect in `src/qtr`**, found by exercising the
+package's own public API against the degenerate input class the previous sessions
+established (§H60 `annualized_return`, §H61 `compare_to_benchmark` row filter,
+§H62 `sharpe_ratio` std guard, §H79 `compare_to_benchmark` beta guard). It is the
+first change under `src/qtr/validation` since §H79.
+
+### The defect
+
+`statistical_power_analysis` is a pure function with no caller-side filtering, and
+its closed form divides by `effect_size` and takes `norm.ppf(1 - alpha / 2)` and
+`norm.ppf(power)`. Reproduced on HEAD `b170f18` before the change:
+
+- `statistical_power_analysis(0.0)` → `RuntimeWarning: divide by zero encountered in
+  scalar divide` then `OverflowError: cannot convert float infinity to integer`;
+- `std=inf`, `alpha=0`, `power=0` → the same `OverflowError`;
+- `effect_size=nan`, `std=nan` → `ValueError: cannot convert float NaN to integer`;
+- `alpha=1.0` → returned `6`; `alpha=1.5` → returned `1` (finite but nonsense:
+  `norm.ppf(0.5) == 0.0`, so the z-score vanished and the answer was meaningless).
+
+A function every caller treats as returning an `int` was raising out of it on an
+input the record actually contains: a flat effect (a synthetic fixture, a series
+with no measurable difference), a non-finite standard deviation reaching a
+function with no caller to filter for it (the H58/H61/H62 input class), or a
+boundary alpha/power the caller did not intend. The `RuntimeWarning` also fires
+under `pytest -W error`, so the defect was reachable from the pinned gate itself.
+
+### What changed
+
+- `src/qtr/validation/statistics.py:761` — a degenerate-input guard before the closed
+  form. The function now returns `0` when `effect_size`, `std`, `alpha` or `power`
+  is non-positive or non-finite (zero, negative, above-one, `inf`, `-inf`, `nan`):
+
+  ```python
+  if not (
+      np.isfinite(effect_size) and effect_size > 0
+      and np.isfinite(std) and std > 0
+      and np.isfinite(alpha) and 0.0 < alpha < 1.0
+      and np.isfinite(power) and 0.0 < power < 1.0
+  ):
+      return 0
+  ```
+
+  The fail-closed value is `0` (no sample size can be justified), matching the way
+  `sharpe_ratio` (§H62) and `compare_to_benchmark` (§H61/§H79) fail closed on the
+  same input classes. The `np.isfinite` half is retained rather than an inequality
+  alone because a `nan` compares unordered (`nan > 0` is `False`), so an
+  inequality-only guard would walk straight into the division. For every input in
+  the valid domain the arithmetic is bit-identical to before: the guard only
+  short-circuits the degenerate cases.
+- `tests/test_statistics.py` — added **21 tests** to `TestStatisticalPowerAnalysis`
+  (4 → 25):
+  - four parametrised fail-closed suites (effect_size, std, alpha, power), **20**
+    cases covering zero, negative, above-one, `inf`, `-inf` and `nan`;
+  - `test_all_degenerate_inputs_raise_no_warning_or_exception` — a behavioural
+    negative control that runs every degenerate input under
+    `warnings.simplefilter("error")` and requires `0` with no warning and no
+    exception (the pre-fix path emitted `RuntimeWarning: divide by zero` for an
+    exact-zero effect size and raised `OverflowError`/`ValueError` for the
+    non-finite operands).
+
+### The blast radius
+
+The change is a guard at the top of one function. For every input in the valid
+domain the arithmetic is bit-identical to before, so:
+
+- no published artifact, gate threshold, verdict or certified number moves;
+- no grid was re-run; no hypothesis was added beyond H80 itself.
+
+### What was actually verified
+
+- The defect was reproduced on HEAD before the change (evidence above).
+- Negative control: with the guard stripped, the 21 new tests fail 18/18 on the
+  pre-fix code (the seven valid-domain tests stay green); all 25 pass with the
+  guard restored.
+- Valid domain bit-identical: `statistical_power_analysis(0.5, 0.05, 0.8, 1.0)` and
+  the four other pinned cases match the closed form exactly.
+- `python -m pytest -q -W error` → **2200 passed, 16 skipped** (was 2179; +21 are the
+  new tests; the 16 skips are unchanged and all intentional/self-declaring).
+- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → `src/qtr` =
+  **1181 statements, 378 branches, 0 missed, 0 partial, 100.00%** (+2 statements
+  and +2 branches from the guard, both covered).
+- `python -m ruff check src tests run_*.py` → *All checks passed!*;
+  `python -m ruff format --check src tests run_*.py` → **105 files already formatted**.
+- No published artifact, gate threshold, verdict or certified number was modified;
+  no grid was re-run; no hypothesis was added.
+
+### What remains unresolved
+
+- The fix is uncommitted; committing requires explicit user approval.
+- Items in §H53–§H61 remain disclosed (not quantified); no gate impact. H1–H30
+  exhausted; certified families frozen.

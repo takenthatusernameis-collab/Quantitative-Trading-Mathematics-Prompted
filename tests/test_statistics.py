@@ -9,6 +9,8 @@ is caught as a hard failure rather than a silent drift in the
 certified H10-H14 numbers.
 """
 
+import warnings
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -769,6 +771,90 @@ class TestStatisticalPowerAnalysis:
         z_beta = norm.ppf(0.8)
         expected = int(np.ceil(2 * ((z_alpha + z_beta) * 1.0 / 0.5) ** 2))
         assert n == expected
+
+    @pytest.mark.parametrize(
+        "effect_size",
+        [0.0, -0.5, np.inf, -np.inf, np.nan],
+        ids=["zero", "negative", "positive_infinity", "negative_infinity", "nan"],
+    )
+    def test_degenerate_effect_size_fails_closed(self, effect_size):
+        """A non-positive or non-finite effect size must not divide.
+
+        The closed form divides by ``effect_size``. An exact zero (a flat
+        effect, a synthetic fixture, a series with no measurable difference)
+        makes the required sample size infinite; a negative one is a sign
+        error in the caller's intent, and the formula squares it away so it
+        would silently answer the wrong question. A non-finite operand is the
+        H58/H61/H62 input class (an `inf`, a `-inf` or a `nan` reaching a pure
+        function that has no caller to filter for it). The pre-fix path raised
+        ``OverflowError`` on ``inf`` and ``ValueError`` on ``nan`` out of a
+        function every caller treats as returning an ``int``.
+        """
+        assert st.statistical_power_analysis(effect_size, alpha=0.05, power=0.8, std=1.0) == 0
+
+    @pytest.mark.parametrize(
+        "std",
+        [0.0, -1.0, np.inf, -np.inf, np.nan],
+        ids=["zero", "negative", "positive_infinity", "negative_infinity", "nan"],
+    )
+    def test_degenerate_std_fails_closed(self, std):
+        """A non-positive or non-finite standard deviation must not scale."""
+        assert st.statistical_power_analysis(0.5, alpha=0.05, power=0.8, std=std) == 0
+
+    @pytest.mark.parametrize(
+        "alpha",
+        [0.0, 1.0, 1.5, np.inf, np.nan],
+        ids=["zero", "one", "above_one", "positive_infinity", "nan"],
+    )
+    def test_degenerate_alpha_fails_closed(self, alpha):
+        """``norm.ppf(1 - alpha / 2)`` is only finite for ``0 < alpha < 1``.
+
+        ``alpha <= 0`` sends the argument to >= 1 (ppf of 1 is +inf); ``alpha
+        >= 1`` sends it to <= 0.5, and at exactly 1 the z-score is 0.0 -- a
+        finite but meaningless answer -- while any value past 1 makes the
+        argument negative and ppf returns nan. The pre-fix path raised
+        ``OverflowError`` on the infinities and returned a nonsense 6 for
+        ``alpha == 1``.
+        """
+        assert st.statistical_power_analysis(0.5, alpha=alpha, power=0.8, std=1.0) == 0
+
+    @pytest.mark.parametrize(
+        "power",
+        [0.0, 1.0, 1.5, np.inf, np.nan],
+        ids=["zero", "one", "above_one", "positive_infinity", "nan"],
+    )
+    def test_degenerate_power_fails_closed(self, power):
+        """``norm.ppf(power)`` is only finite for ``0 < power < 1``.
+
+        ``power <= 0`` sends the argument to <= 0 (ppf of 0 is -inf); ``power
+        >= 1`` sends it to >= 1 (ppf of 1 is +inf). The pre-fix path raised
+        ``OverflowError`` on both boundaries.
+        """
+        assert st.statistical_power_analysis(0.5, alpha=0.05, power=power, std=1.0) == 0
+
+    def test_all_degenerate_inputs_raise_no_warning_or_exception(self):
+        """Negative control: the pre-fix path raised and warned.
+
+        The pre-fix closed form emits ``RuntimeWarning: divide by zero`` for
+        an exact-zero effect size and raises ``OverflowError``/``ValueError``
+        for the non-finite operands, so this contract must reject the
+        pre-fix path: every degenerate input must return ``0`` under
+        ``-W error`` with no warning and no exception.
+        """
+        degenerate = [
+            dict(effect_size=0.0, alpha=0.05, power=0.8, std=1.0),
+            dict(effect_size=-0.5, alpha=0.05, power=0.8, std=-1.0),
+            dict(effect_size=np.inf, alpha=0.05, power=0.8, std=1.0),
+            dict(effect_size=np.nan, alpha=0.05, power=0.8, std=np.nan),
+            dict(effect_size=0.5, alpha=0.0, power=0.8, std=1.0),
+            dict(effect_size=0.5, alpha=1.0, power=0.8, std=1.0),
+            dict(effect_size=0.5, alpha=0.05, power=0.0, std=1.0),
+            dict(effect_size=0.5, alpha=0.05, power=1.0, std=1.0),
+        ]
+        for kwargs in degenerate:
+            with warnings.catch_warnings():
+                warnings.simplefilter("error")
+                assert st.statistical_power_analysis(**kwargs) == 0
 
 
 # ===========================================================================
