@@ -1,18 +1,18 @@
-# HANDOFF_NEXT — session complete (baseline verification on HEAD 116573d)
+# HANDOFF_NEXT — session complete (baseline verification on HEAD 7d9d3cb)
 
 ## What changed
 - None to source/tests/runners/artifacts/gates/thresholds/verdicts/certified numbers.
 - Updated `HANDOFF_CURRENT_SESSION.md`, `HANDOFF_NEXT.md` and `NEXT_TASK.md` to reflect current
-  HEAD `116573d` (previously they referenced the stale HEAD `116573d`).
+  HEAD `7d9d3cb`.
 
 ## What was actually verified
 - Working tree clean (`git status --short` empty before the handoff edits).
-- HEAD `116573d` on `main`; `main == origin/main` (up to date).
+- HEAD `7d9d3cb` on `main`; `main == origin/main` (up to date).
 - `.github/workflows/gates.yml` tracked in HEAD (last touched `5af36cc`); CI gates present.
 - `python -m ruff check src tests run_*.py` → **All checks passed!**
-- `python -m ruff format --check src tests run_*.py` → **105 files already formatted**
+- `python -m ruff format --check src tests run_*.py` → **106 files already formatted**
 - `PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing`
-  → **2177 passed, 13 skipped**; `src/qtr` **1172 stmts / 376 branches / 0
+  → **2224 passed, 16 skipped**; `src/qtr` **1187 stmts / 384 branches / 0
   missed / 0 partial / 100.00%**.
 - `pip show qtr` → not installed (bare clone state confirmed).
 
