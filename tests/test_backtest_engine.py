@@ -9,6 +9,7 @@ trade extraction, metric computation, and the absence of look-ahead
 """
 
 import sys
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -677,3 +678,143 @@ class TestMaxDrawdownDuration:
         backtester = VectorizedBacktester(_make_config())
         dd = pd.Series([-0.01, -0.02, -0.03])
         assert backtester._max_dd_duration(dd) == 3
+
+
+# ============================================================
+# Non-positive price screen
+# ============================================================
+
+
+def _flat_signals(prices: pd.DataFrame) -> pd.DataFrame:
+    """A fully-invested buy-and-hold book over the panel's own index."""
+    return pd.DataFrame(1.0, index=prices.index, columns=prices.columns)
+
+
+class TestNonPositivePriceRefused:
+    """The engine refuses a panel carrying a non-positive price.
+
+    The engine builds its return series from ``prices.pct_change()``, and a
+    zero or negative base makes that percentage undefined: ``0.0 / 0.0`` is
+    ``nan`` and ``(100 - (-37.63)) / -37.63`` inverts the sign of the price
+    move, so a single bad print becomes a six-hundred-percent single-bar
+    return inside the engine. The fetcher refuses such panels at the
+    boundary (§H58), but the engine is a public entry point that runners also
+    call with synthetic frames, so the screen lives here too and shares the
+    fetcher's predicate.
+    """
+
+    def _panel_with(self, values, column="close"):
+        idx = pd.date_range("2020-01-01", periods=len(values))
+        frame = pd.DataFrame({column: values}, index=idx)
+        return frame, _flat_signals(frame)
+
+    @pytest.mark.parametrize("value", [0.0, -1.0, -37.630001068115234, -14.0])
+    def test_zero_or_negative_price_is_refused(self, value):
+        prices, signals = self._panel_with([100.0, value, 100.0, 100.0, 100.0])
+        with pytest.raises(ValueError, match="non-positive price"):
+            run_backtest(prices=prices, signals=signals, config=_make_config())
+
+    def test_sign_changing_price_is_refused(self):
+        # The canonical WTI pathology: a close that crosses zero between two
+        # sessions inverts the sign of the next bar's percentage return.
+        prices, signals = self._panel_with([18.27, -37.63, 10.01])
+        with pytest.raises(ValueError, match="non-positive price"):
+            run_backtest(prices=prices, signals=signals, config=_make_config())
+
+    def test_negative_open_and_low_are_screened_too(self):
+        # The screen is over every price column, not only the close: the same
+        # splice printed -14.0 as the open of the session after the crash.
+        idx = pd.date_range("2020-01-01", periods=3)
+        prices = pd.DataFrame(
+            {
+                "open": [100.0, -14.0, 100.0],
+                "high": [101.0, 101.0, 101.0],
+                "low": [99.0, -16.74, 99.0],
+                "close": [100.0, 100.0, 100.0],
+            },
+            index=idx,
+        )
+        with pytest.raises(ValueError, match="non-positive price"):
+            run_backtest(prices=prices, signals=_flat_signals(prices), config=_make_config())
+
+    def test_wide_panel_screened_column_by_column(self):
+        # A wide frame (one column per symbol) is screened over every column,
+        # the same way the fetcher screens it.
+        idx = pd.date_range("2020-01-01", periods=3)
+        prices = pd.DataFrame(
+            {"ES=F": [5000.0, 5000.0, 5000.0], "CL=F": [60.0, 0.0, 60.0]},
+            index=idx,
+        )
+        with pytest.raises(ValueError, match="non-positive price"):
+            run_backtest(prices=prices, signals=_flat_signals(prices), config=_make_config())
+
+    def test_a_clean_panel_runs_unchanged(self):
+        # The screen is a no-op on every panel the record actually contains:
+        # a clean panel runs to completion and produces finite metrics.
+        prices = _make_prices(n=120, seed=7, symbols=("A",))
+        result = run_backtest(prices=prices, signals=_flat_signals(prices), config=_make_config())
+        assert np.isfinite(result.metrics["sharpe"])
+        assert np.isfinite(result.metrics["annualized_return"])
+        assert np.isfinite(result.metrics["max_drawdown"])
+
+    def test_the_screen_is_what_refuses_the_panel(self):
+        # Behavioural negative control: with the screen disabled the same
+        # zero-price panel runs (and raises a RuntimeWarning under -W error),
+        # so the refusal is the guard and not some downstream step.
+        import qtr.backtest.engine as engine
+
+        prices, signals = self._panel_with([100.0, 0.0, 100.0, 100.0, 100.0])
+        original = engine.non_positive_prices
+
+        def _clean(*args, **kwargs):
+            return original(*args, **kwargs)[:0]  # empty frame -> screen off
+
+        engine.non_positive_prices = _clean
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", RuntimeWarning)
+                result = run_backtest(prices=prices, signals=signals, config=_make_config())
+            assert np.isfinite(result.metrics["sharpe"])
+        finally:
+            engine.non_positive_prices = original
+
+    def test_committed_panels_carrying_non_positive_prices_are_the_disclosed_pathology(self):
+        # Blast-radius evidence, stated honestly rather than claimed clean:
+        # 21 of the committed experiment panels carry a non-positive price,
+        # and every one of them is the single §H58 print -- the WTI CL=F
+        # close of -37.63 on 2020-04-20 -- the pathology the fetcher's screen
+        # exists to refuse. The guard is therefore a no-op on every panel the
+        # committed execution paths actually process (the H16 re-derivation's
+        # tested window is 2017-2024 and excludes the print), and it refuses
+        # exactly the panels §H58 already disclosed. No committed equity
+        # curve, metric, gate, threshold, verdict or certified number moves.
+        import glob
+        import pathlib
+
+        from qtr.data import non_positive_prices
+
+        root = pathlib.Path(__file__).resolve().parent.parent
+        panels = sorted(
+            glob.glob(str(root / ".experiments" / "**" / "prices.parquet"), recursive=True)
+        )
+        assert panels, "the committed experiments must contain price panels to test"
+        bad = []
+        for path in panels:
+            prices = pd.read_parquet(path)
+            offending = non_positive_prices(prices)
+            if len(offending) > 0:
+                assert len(offending) == 1, (
+                    f"{path}: expected exactly one offending print, got {len(offending)}"
+                )
+                row = offending.iloc[0]
+                assert row["symbol"] == "CL=F", (
+                    f"{path}: offending symbol is {row['symbol']!r}, not 'CL=F'"
+                )
+                assert float(row["price"]) == pytest.approx(-37.630001068115234), (
+                    f"{path}: offending price is {row['price']!r}, not the disclosed -37.63"
+                )
+                assert pd.Timestamp(row["timestamp"]).date().isoformat() == "2020-04-20", (
+                    f"{path}: offending timestamp is {row['timestamp']!r}, not 2020-04-20"
+                )
+                bad.append(path)
+        assert len(bad) == 21, f"expected 21 disclosed pathology panels, got {len(bad)}"

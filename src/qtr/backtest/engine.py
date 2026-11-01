@@ -13,6 +13,8 @@ from enum import Enum
 import numpy as np
 import pandas as pd
 
+from qtr.data import non_positive_prices
+
 
 class AssetClass(Enum):
     EQUITY = "equity"
@@ -140,6 +142,49 @@ class VectorizedBacktester:
         prices = prices.loc[common_index]
         signals = signals.loc[common_index]
 
+        # Non-positive-price screen. The engine computes ``prices.pct_change()``
+        # to build the return series, and a zero or negative base makes that
+        # percentage undefined: ``0.0 / 0.0`` is ``nan`` and ``(100 - (-37.63))
+        # / -37.63`` inverts the sign of the price move, so a single bad print
+        # becomes a six-hundred-percent single-bar return inside the engine.
+        # The fetcher refuses such panels at the boundary
+        # (``_reject_non_positive_prices`` in fetcher.py, §H58) so that the
+        # pathology never reaches the pipeline, but the engine is a public
+        # entry point that runners also call with synthetic frames, so the
+        # screen belongs here too: a caller who assembles a panel by hand and
+        # feeds it to ``run_backtest`` is exactly the caller who would not
+        # think to screen it.
+        #
+        # The panel is refused rather than repaired for the same reason the
+        # fetcher refuses it: a zero or negative price is a fact about the
+        # *series*, and every repair (dropping the bar, flooring the price,
+        # clipping it to a small positive) is a research decision the caller
+        # has to make and to record. Silently returning the panel would let
+        # the pathology through as a zero-volatility book.
+        #
+        # The screen is the shared ``non_positive_prices`` helper, so the
+        # engine's predicate is bit-identical to the fetcher's: every price
+        # column is screened (long frames over ``open``/``high``/``low``/
+        # ``close``; wide frames over every column), and a price that changes
+        # sign is caught as well as one that is zero or negative. For every
+        # panel the record actually contains the result is empty and the
+        # guard is a no-op, so no committed equity curve, metric, gate,
+        # threshold, verdict or certified number moves. See
+        # tests/test_backtest_engine.py::TestNonPositivePriceRefused.
+        bad_prices = non_positive_prices(prices)
+        if len(bad_prices) > 0:
+            first = bad_prices.iloc[0]
+            raise ValueError(
+                f"{first['symbol']}: {len(bad_prices)} non-positive price(s) in the "
+                f"panel fed to the engine; first is {first['price']!r} on "
+                f"{first['timestamp']}. A percentage return from a non-positive "
+                f"price base is undefined (and inverts the sign of the price "
+                f"move when the base is negative), so this panel is refused "
+                f"rather than passed to the engine. Trim the window, select a "
+                f"contract series that does not cross zero, or handle the bar "
+                f"explicitly before retrying."
+            )
+
         # Degenerate-input guard: an empty panel (no bars after alignment) has no
         # position changes to extract and no returns to annualize, and every
         # downstream step that indexes ``.iloc[0]`` or ``.iloc[-1]`` raises
@@ -154,7 +199,8 @@ class VectorizedBacktester:
         # boundary value, so the two implementations still agree on this input
         # and the cross-module contract in test_engine_metric_agreement.py
         # holds. The engine-only metrics follow the same boundary convention
-        # (zero volatility, zero Sortino, zero Calmar, zero trade cost).
+        # (zero volatility, zero Sortino, zero drawdown duration, zero trade
+        # cost, infinite Calmar from a zero drawdown).
         if len(common_index) == 0:
             empty_returns = pd.Series([], dtype=float)
             empty_equity = pd.Series([], dtype=float)
