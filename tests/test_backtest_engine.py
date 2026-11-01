@@ -818,3 +818,27 @@ class TestNonPositivePriceRefused:
                 )
                 bad.append(path)
         assert len(bad) == 21, f"expected 21 disclosed pathology panels, got {len(bad)}"
+
+    def test_the_screen_can_be_turned_off_explicitly(self):
+        # The flag is explicit rather than implicit: a caller that has already
+        # screened the panel and recorded the decision passes
+        # ``screen_non_positive_prices=False`` and the engine runs the panel
+        # through unchanged. The caller, not the engine, owns the decision.
+        prices, signals = self._panel_with([100.0, 0.0, 100.0, 100.0, 100.0])
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            result = run_backtest(
+                prices=prices,
+                signals=signals,
+                config=_make_config(),
+                screen_non_positive_prices=False,
+            )
+        assert np.isfinite(result.metrics["sharpe"])
+
+    def test_the_default_still_refuses(self):
+        # A regression that silently dropped the screen would be caught here:
+        # the default is refuse, and the flag must be passed by name so it
+        # cannot be lost by a caller that uses ``**kwargs``.
+        prices, signals = self._panel_with([100.0, -37.63, 100.0])
+        with pytest.raises(ValueError, match="non-positive price"):
+            run_backtest(prices=prices, signals=signals, config=_make_config())

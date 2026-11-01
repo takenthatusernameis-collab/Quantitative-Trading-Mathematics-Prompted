@@ -124,6 +124,7 @@ class VectorizedBacktester:
         signals: pd.DataFrame,
         volumes: pd.DataFrame | None = None,
         adv: pd.Series | None = None,
+        screen_non_positive_prices: bool = True,
     ) -> BacktestResult:
         """
         Run backtest.
@@ -133,6 +134,12 @@ class VectorizedBacktester:
             signals: DataFrame of target position weights (-1 to 1, same index/columns as prices)
             volumes: Optional volume DataFrame for market impact estimation
             adv: Optional average daily volume (shares) per symbol for impact model
+            screen_non_positive_prices: When ``True`` (the default) the panel is
+                refused by ``non_positive_prices`` before any arithmetic is done,
+                so a zero or negative price cannot reach ``prices.pct_change()``.
+                Set ``False`` only for a caller that has already screened the
+                panel and has recorded the decision; the default exists so the
+                safety net is on unless a caller deliberately turns it off.
 
         Returns:
             BacktestResult with equity curve, trades, and metrics
@@ -171,19 +178,26 @@ class VectorizedBacktester:
         # guard is a no-op, so no committed equity curve, metric, gate,
         # threshold, verdict or certified number moves. See
         # tests/test_backtest_engine.py::TestNonPositivePriceRefused.
-        bad_prices = non_positive_prices(prices)
-        if len(bad_prices) > 0:
-            first = bad_prices.iloc[0]
-            raise ValueError(
-                f"{first['symbol']}: {len(bad_prices)} non-positive price(s) in the "
-                f"panel fed to the engine; first is {first['price']!r} on "
-                f"{first['timestamp']}. A percentage return from a non-positive "
-                f"price base is undefined (and inverts the sign of the price "
-                f"move when the base is negative), so this panel is refused "
-                f"rather than passed to the engine. Trim the window, select a "
-                f"contract series that does not cross zero, or handle the bar "
-                f"explicitly before retrying."
-            )
+        #
+        # The screen is on by default and is *not* silently bypassed. A caller
+        # that has already screened the panel and recorded the decision may
+        # pass ``screen_non_positive_prices=False``; the flag is explicit so
+        # the safety net cannot be lost by a refactor that reorders the
+        # alignment step above this point.
+        if screen_non_positive_prices:
+            bad_prices = non_positive_prices(prices)
+            if len(bad_prices) > 0:
+                first = bad_prices.iloc[0]
+                raise ValueError(
+                    f"{first['symbol']}: {len(bad_prices)} non-positive price(s) in the "
+                    f"panel fed to the engine; first is {first['price']!r} on "
+                    f"{first['timestamp']}. A percentage return from a non-positive "
+                    f"price base is undefined (and inverts the sign of the price "
+                    f"move when the base is negative), so this panel is refused "
+                    f"rather than passed to the engine. Trim the window, select a "
+                    f"contract series that does not cross zero, or handle the bar "
+                    f"explicitly before retrying."
+                )
 
         # Degenerate-input guard: an empty panel (no bars after alignment) has no
         # position changes to extract and no returns to annualize, and every
@@ -603,12 +617,23 @@ class VectorizedBacktester:
 
 
 def run_backtest(
-    prices: pd.DataFrame,
-    signals: pd.DataFrame,
-    config: BacktestConfig | None = None,
-    **kwargs,
-) -> BacktestResult:
-    """Convenience function to run a backtest."""
+        prices: pd.DataFrame,
+        signals: pd.DataFrame,
+        config: BacktestConfig | None = None,
+        screen_non_positive_prices: bool = True,
+        **kwargs,
+    ) -> BacktestResult:
+    """Convenience function to run a backtest.
+
+    ``screen_non_positive_prices`` defaults to ``True``; pass ``False`` only
+    for a caller that has already screened the panel and recorded the
+    decision. See ``VectorizedBacktester.run``.
+    """
     config = config or BacktestConfig()
     backtester = VectorizedBacktester(config)
-    return backtester.run(prices, signals, **kwargs)
+    return backtester.run(
+        prices,
+        signals,
+        screen_non_positive_prices=screen_non_positive_prices,
+        **kwargs,
+    )

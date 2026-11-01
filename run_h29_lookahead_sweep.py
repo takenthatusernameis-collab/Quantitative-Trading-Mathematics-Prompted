@@ -37,6 +37,8 @@ with information that is not yet knowable: a look-ahead.
 """
 
 import ast
+import contextlib
+import functools
 import json
 import os
 import sys
@@ -309,6 +311,72 @@ def _frame_max_abs_diff(a: pd.DataFrame, b: pd.DataFrame) -> float:
         return float("nan")
     diff = np.abs(a.loc[idx, cols].to_numpy(dtype=float) - b.loc[idx, cols].to_numpy(dtype=float))
     return float(np.nanmax(diff)) if diff.size else float("nan")
+
+
+# The H4/H5/H6/H7 rebuilds re-enter the engine through ``run_backtest`` with a
+# panel the record itself carries: the committed H7 artifact's
+# ``prices.parquet`` (and the H4/H5/H6 panels, which are the same WTI splice)
+# contains the §H58 -37.63 CL=F print of 2020-04-20, which the engine's
+# non-positive-price screen (added in commit 75824fa, §H81) now refuses. Those
+# four rebuilds are *reproductions of a published artifact that already carries
+# the disclosed pathology*: the audit's job is to measure whether the rebuild
+# reproduces the published equity bit-for-bit, not to re-validate the panel.
+# The screen is therefore turned off explicitly for them, with the decision
+# recorded here rather than buried in a call site. Every other rebuild in this
+# file screens (its panel is clean -- H1/H2/H3/H8 cover 2015-2024 and none of
+# them carries a non-positive price), so the default is left on.
+SCREEN_OFF_FAMILIES = frozenset({"h4", "h5", "h6", "h7"})
+
+
+@contextlib.contextmanager
+def _screen_off_for(family: str):
+    """Temporarily replace ``run_backtest`` everywhere a rebuild can reach.
+
+    The H5 and H6 rebuilds do not call ``run_backtest`` directly: they call
+    ``run_ddcv_experiment.apply_ddcv`` and ``run_h6_vix_ddcv_experiment.apply_combined``,
+    which each call ``run_backtest`` on the *same* committed panel. Screening
+    off only the H29 call site would leave those two internal calls refused,
+    so the swap is applied to every module that imports the function while the
+    rebuild runs and restored afterwards. The default stays on for every
+    other family and for every other caller.
+    """
+    if family not in SCREEN_OFF_FAMILIES:
+        yield
+        return
+    targets = {run_backtest.__module__}
+    targets.update(mod.__name__ for mod in (h4, h5, h6, h7))
+    saved = {}
+    for name in targets:
+        mod = sys.modules.get(name)
+        if mod is None or not hasattr(mod, "run_backtest"):
+            continue
+        saved[name] = mod.run_backtest
+        mod.run_backtest = functools.partial(
+            run_backtest, screen_non_positive_prices=False
+        )
+    try:
+        yield
+    finally:
+        for name, fn in saved.items():
+            sys.modules[name].run_backtest = fn
+
+
+def run_rebuild_backtest(prices, signals, family, **kwargs):
+    """``run_backtest`` for a rebuild, with the screen gated by family.
+
+    The family is passed explicitly rather than read off the call stack: the
+    H5/H6 rebuilds reach ``run_backtest`` through imported runner modules, so
+    the caller's frame is not the rebuild function. A future rebuild that
+    forgets to opt out is refused by the screen, which is the behaviour this
+    helper exists to guarantee.
+    """
+    with _screen_off_for(family):
+        return run_backtest(
+            prices=prices,
+            signals=signals,
+            screen_non_positive_prices=family not in SCREEN_OFF_FAMILIES,
+            **kwargs,
+        )
 
 
 # --------------------------------------------------------------------------- #
@@ -633,12 +701,8 @@ def rebuild_h4(art_dir: Path):
     long_only = [bool(r["long_only"]) for r in top_k]
     avg_long_only = max(set(long_only), key=long_only.count)
     cfg = h4.make_futures_config(allow_short=not avg_long_only)
-    result = run_backtest(
-        prices=prices,
-        signals=target,
-        volumes=volumes,
-        adv=adv,
-        config=cfg,
+    result = run_rebuild_backtest(
+        prices=prices, signals=target, family="h4", volumes=volumes, adv=adv, config=cfg
     )
     return base, target, result.equity_curve.to_frame("equity")
 
@@ -669,7 +733,7 @@ def rebuild_h5(art_dir: Path):
     base = scaled
     adv = volumes.rolling(20).mean().iloc[-1] if len(volumes) else None
     cfg = h5.make_futures_config(allow_short=not h5.LONG_ONLY)
-    result = run_backtest(prices=prices, signals=target, volumes=volumes, adv=adv, config=cfg)
+    result = run_rebuild_backtest(prices=prices, signals=target, volumes=volumes, adv=adv, config=cfg)
     return base, target, result.equity_curve.to_frame("equity")
 
 
@@ -700,7 +764,7 @@ def rebuild_h6(art_dir: Path):
     base = scaled
     adv = volumes.rolling(20).mean().iloc[-1] if len(volumes) else None
     cfg = h6.make_futures_config(allow_short=not h6.LONG_ONLY)
-    result = run_backtest(prices=prices, signals=target, volumes=volumes, adv=adv, config=cfg)
+    result = run_rebuild_backtest(prices=prices, signals=target, volumes=volumes, adv=adv, config=cfg)
     return base, target, result.equity_curve.to_frame("equity")
 
 
@@ -719,7 +783,7 @@ def rebuild_h7(art_dir: Path):
     signals = h7.apply_path_dependent_exits_daily(target, prices, atr)
     cfg = h7.make_futures_config(allow_short=False)
     adv = pd.Series(100_000, index=prices.columns)  # placeholder, matches the runner
-    result = run_backtest(prices=prices, signals=signals, volumes=None, adv=adv, config=cfg)
+    result = run_rebuild_backtest(prices=prices, signals=signals, volumes=None, adv=adv, config=cfg)
     return base, target, result.equity_curve.to_frame("equity")
 
 
