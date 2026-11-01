@@ -632,9 +632,9 @@ class TestStressedCostTest:
     KEYS = ["commission", "spread", "slippage", "impact", "combined"]
 
     def _no_evidence(self):
-        return {
-            f"stressed_{k}_sharpe": 0.0 for k in self.KEYS
-        } | {f"stressed_{k}_return": 0.0 for k in self.KEYS}
+        return {f"stressed_{k}_sharpe": 0.0 for k in self.KEYS} | {
+            f"stressed_{k}_return": 0.0 for k in self.KEYS
+        }
 
     @pytest.mark.parametrize("bad", [np.inf, -np.inf, np.nan])
     def test_non_finite_returns_fail_closed(self, bad):
@@ -643,16 +643,12 @@ class TestStressedCostTest:
         # carried the non-finite value through every `stressed_*_return`
         # (mean * 252) while `sharpe_ratio` already failed closed to 0.0 on
         # the same series, so the two halves of each entry disagreed.
-        res = st.stressed_cost_test(
-            np.array([0.001, bad, 0.001]), np.array([0.0, 0.0, 0.0])
-        )
+        res = st.stressed_cost_test(np.array([0.001, bad, 0.001]), np.array([0.0, 0.0, 0.0]))
         assert res == self._no_evidence()
 
     @pytest.mark.parametrize("bad", [np.inf, -np.inf, np.nan])
     def test_non_finite_costs_fail_closed(self, bad):
-        res = st.stressed_cost_test(
-            np.array([0.001, 0.001, 0.001]), np.array([0.0, bad, 0.0])
-        )
+        res = st.stressed_cost_test(np.array([0.001, 0.001, 0.001]), np.array([0.0, bad, 0.0]))
         assert res == self._no_evidence()
 
     def test_empty_arrays_fail_closed(self):
@@ -665,9 +661,7 @@ class TestStressedCostTest:
     def test_custom_empty_stress_dict_fails_closed(self):
         # A caller who passes `{}` gets no stressors, so the combined stressor
         # divides by zero; the fail-closed result is the combined entry alone.
-        res = st.stressed_cost_test(
-            np.array([0.0] * 5), np.array([0.0] * 5), {}
-        )
+        res = st.stressed_cost_test(np.array([0.0] * 5), np.array([0.0] * 5), {})
         assert res == {"stressed_combined_sharpe": 0.0, "stressed_combined_return": 0.0}
 
     def test_custom_stress_dict_with_non_finite_input(self):
@@ -688,10 +682,14 @@ class TestStressedCostTest:
         that it either raises or emits the inconsistent split this contract
         exists to prevent. The corrected function returns the no-evidence
         tuple on every degenerate input."""
+
         def pre_fix(base_returns, base_costs, stress_multipliers=None):
             if stress_multipliers is None:
                 stress_multipliers = {
-                    "commission": 2.0, "spread": 2.0, "slippage": 2.0, "impact": 5.0,
+                    "commission": 2.0,
+                    "spread": 2.0,
+                    "slippage": 2.0,
+                    "impact": 5.0,
                 }
             results = {}
             for name, mult in stress_multipliers.items():
@@ -712,12 +710,14 @@ class TestStressedCostTest:
         assert not np.isfinite(pf["stressed_commission_return"])
         assert pf["stressed_commission_sharpe"] == 0.0
 
-        # Empty input: the pre-fix body raises (Mean of an empty slice, then
-        # ZeroDivisionError on the combined stressor).
+        # Empty input: the pre-fix body does not fail closed -- with the
+        # default stressors it emits a non-finite `return` alongside a `0.0`
+        # Sharpe (the inconsistent split this contract exists to prevent).
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", RuntimeWarning)
-            with pytest.raises(ZeroDivisionError):
-                pre_fix(np.array([]), np.array([]))
+            pf = pre_fix(np.array([]), np.array([]))
+        assert pf["stressed_commission_sharpe"] == 0.0
+        assert not np.isfinite(pf["stressed_commission_return"])
 
         # Empty stress dict: the pre-fix body raises ZeroDivisionError.
         with pytest.raises(ZeroDivisionError):
@@ -725,13 +725,15 @@ class TestStressedCostTest:
 
         # The corrected function returns the no-evidence tuple in all three
         # cases instead.
-        assert st.stressed_cost_test(
-            np.array([0.001, np.inf, 0.001]), np.array([0.0, 0.0, 0.0])
-        ) == self._no_evidence()
+        assert (
+            st.stressed_cost_test(np.array([0.001, np.inf, 0.001]), np.array([0.0, 0.0, 0.0]))
+            == self._no_evidence()
+        )
         assert st.stressed_cost_test(np.array([]), np.array([])) == self._no_evidence()
-        assert st.stressed_cost_test(
-            np.array([0.0] * 5), np.array([0.0] * 5), {}
-        ) == {"stressed_combined_sharpe": 0.0, "stressed_combined_return": 0.0}
+        assert st.stressed_cost_test(np.array([0.0] * 5), np.array([0.0] * 5), {}) == {
+            "stressed_combined_sharpe": 0.0,
+            "stressed_combined_return": 0.0,
+        }
 
 
 # ===========================================================================

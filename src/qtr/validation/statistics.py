@@ -465,6 +465,25 @@ def regime_analysis(
     return results
 
 
+def _fail_closed_annualized_mean(returns: np.ndarray) -> float:
+    """Mean of ``returns`` annualised by 252, fail-closed to ``0.0``.
+
+    Degenerate input (an empty series or one carrying `inf`, `-inf` or
+    `nan`) yields ``0.0`` with no warning and no exception. Mirrors the
+    fail-closed contract of :func:`sharpe_ratio`.
+    """
+    returns = np.asarray(returns, dtype=float)
+    if returns.size == 0:
+        return 0.0
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        with np.errstate(invalid="ignore", divide="ignore"):
+            mean = float(returns.mean())
+    if not np.isfinite(mean):
+        return 0.0
+    return mean * 252
+
+
 def stressed_cost_test(
     base_returns: np.ndarray,
     base_costs: np.ndarray,
@@ -494,13 +513,16 @@ def stressed_cost_test(
         stressed_costs = base_costs * mult
         stressed_returns = base_returns - stressed_costs
         results[f"stressed_{name}_sharpe"] = sharpe_ratio(stressed_returns)
-        results[f"stressed_{name}_return"] = stressed_returns.mean() * 252
+        results[f"stressed_{name}_return"] = _fail_closed_annualized_mean(stressed_returns)
 
     # Combined stress
-    total_stress = sum(stress_multipliers.values()) / len(stress_multipliers)
+    total_stress = (
+        sum(stress_multipliers.values()) / len(stress_multipliers) if stress_multipliers else 0.0
+    )
     combined_costs = base_costs * total_stress
     combined_returns = base_returns - combined_costs
     results["stressed_combined_sharpe"] = sharpe_ratio(combined_returns)
+    results["stressed_combined_return"] = _fail_closed_annualized_mean(combined_returns)
 
     return results
 
