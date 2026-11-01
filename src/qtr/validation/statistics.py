@@ -35,6 +35,42 @@ def bootstrap_confidence_interval(
     if n == 0:
         return (np.nan, np.nan)
 
+    # Degenerate-bootstrap guard. The interval is the empirical percentiles
+    # of ``n_bootstrap`` resamples, so it is only defined when there is at
+    # least one resample to draw from and the confidence level is a real
+    # probability:
+    #
+    # * ``n_bootstrap <= 0`` produces an empty ``bootstrap_stats`` list and
+    #   ``np.percentile([], ...)`` then raises ``IndexError: index -1 is out
+    #   of bounds for axis 0 with size 0`` -- a crash out of a function every
+    #   caller treats as returning a tuple of two floats. The crash is
+    #   reachable from the public API with no caller-side filtering:
+    #   ``parameter_sensitivity`` forwards its own ``n_bootstrap`` straight
+    #   through here, so a caller that sets it to zero or a negative value
+    #   (or that receives 0 through a misconfiguration) hits it.
+    # * ``confidence`` outside (0, 1] is not a confidence level. ``confidence
+    #   <= 0`` sends both percentile arguments to 0 and returns
+    #   ``(median, median)`` -- a zero-width interval at the middle of the
+    #   distribution, which claims a precision the resample does not have.
+    #   ``confidence < 0`` sends them negative and returns ``(max, min)``,
+    #   an INVERTED interval with the bounds swapped, which is silently
+    #   wrong rather than loud. ``confidence > 1`` sends both arguments above
+    #   100 and ``np.percentile`` raises ``ValueError: Percentiles must be in
+    #   the range [0, 100]``. A caller who meant to pass a percentage (50
+    #   rather than 0.5) gets a crash or an inverted interval instead of a
+    #   clear rejection.
+    #
+    # The valid domain keeps ``confidence == 1.0`` (both percentiles sit at
+    # the extremes and the interval is the full range ``[min, max]``, which
+    # is the correct answer at 100% confidence) and rejects everything else
+    # degenerate. The fail-closed result is ``(nan, nan)`` -- the same tuple
+    # the empty-data path returns, so a caller reading the bounds sees "no
+    # evidence" rather than a swapped pair, a zero-width middle, or an
+    # exception. For every input in the valid domain the arithmetic is
+    # bit-identical to before. See tests/test_statistics.py.
+    if n_bootstrap <= 0 or not (0.0 < confidence <= 1.0):
+        return (np.nan, np.nan)
+
     bootstrap_stats = []
     for _ in range(n_bootstrap):
         sample = data[rng.integers(0, n, n)]
@@ -331,6 +367,43 @@ def parameter_sensitivity(
     metrics = np.zeros(n_params)
     ci_lower = np.zeros(n_params)
     ci_upper = np.zeros(n_params)
+
+    # Degenerate-input guard. The result is a per-parameter dictionary, so it
+    # is only defined when there is at least one parameter row to summarize:
+    #
+    # * an empty ``param_values`` (zero rows, or a length-mismatched ``returns``
+    #   that leaves ``n_params == 0``) walks straight into ``np.argmax([])``
+    #   and raises ``ValueError: attempt to get argmax of an empty sequence``
+    #   -- a crash out of a pure function every caller treats as returning a
+    #   dict. The crash is reachable from the public API with no
+    #   caller-side filtering: ``validate_strategy`` derives its published
+    #   ``param_stability`` from this function's ``optimal_param`` (see
+    #   tests/test_parameter_sensitivity_reproducibility.py), so a strategy
+    #   with no parameter grid hands an empty array here.
+    # * a non-positive ``n_bootstrap`` is forwarded to
+    #   ``bootstrap_confidence_interval``, which now fails closed (see its
+    #   own guard) -- but only if this function reaches the loop, so the
+    #   empty-params crash above would mask it. Both degenerate classes are
+    #   caught here, at the top, in one place.
+    #
+    # The fail-closed result is the empty-grid tuple: no parameters, no
+    # metrics, no optimal parameter, a zero stability ratio and a zero metric
+    # standard deviation. A caller gating on ``optimal_param`` or
+    #   ``stability_ratio`` fails closed, and a caller iterating the rows
+    #   sees an empty set rather than an exception. For every input in the
+    #   valid domain the arithmetic is bit-identical to before. See
+    #   tests/test_statistics.py.
+    if n_params == 0 or returns.shape[0] < n_params or n_bootstrap <= 0:
+        return {
+            "param_values": np.asarray(param_values, dtype=float),
+            "metrics": np.array([], dtype=float),
+            "ci_lower": np.array([], dtype=float),
+            "ci_upper": np.array([], dtype=float),
+            "optimal_param": np.nan,
+            "optimal_metric": 0.0,
+            "stability_ratio": 0.0,
+            "metric_std": 0.0,
+        }
 
     seeds = _bootstrap_seeds(random_state, n_params)
 

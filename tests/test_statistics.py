@@ -104,6 +104,74 @@ class TestBootstrapConfidenceInterval:
         assert state_after[2] == state_before[2]  # position index
         assert np.array_equal(state_after[1], state_before[1])  # state vector
 
+    def test_zero_or_negative_bootstrap_returns_nan_tuple(self):
+        """A bootstrap with no resamples has no interval to report.
+
+        ``n_bootstrap <= 0`` produced an empty ``bootstrap_stats`` list and
+        ``np.percentile([], ...)`` then raised ``IndexError: index -1 is out
+        of bounds for axis 0 with size 0`` -- a crash out of a function every
+        caller treats as returning a tuple of two floats. The crash is
+        reachable from the public API with no caller-side filtering:
+        ``parameter_sensitivity`` forwards its own ``n_bootstrap`` straight
+        through here.
+        """
+        for bad_n in (0, -1, -100):
+            lo, hi = st.bootstrap_confidence_interval(
+                np.array([1.0, 2.0, 3.0]), n_bootstrap=bad_n, random_state=42
+            )
+            assert np.isnan(lo) and np.isnan(hi), f"n_bootstrap={bad_n}"
+
+    def test_non_positive_bootstrap_returns_nan_tuple(self):
+        """A non-positive bootstrap count is degenerate, same as zero."""
+        lo, hi = st.bootstrap_confidence_interval(
+            np.array([1.0, 2.0, 3.0]), n_bootstrap=0, random_state=42
+        )
+        assert np.isnan(lo) and np.isnan(hi)
+
+    def test_confidence_outside_zero_to_one_returns_nan_tuple(self):
+        """A confidence level outside (0, 1] is not a confidence level.
+
+        * ``confidence <= 0`` sent both percentile arguments to 0 and
+          returned ``(median, median)`` -- a zero-width interval at the
+          middle of the distribution, claiming a precision the resample does
+          not have.
+        * ``confidence < 0`` sent them negative and returned ``(max, min)``,
+          an INVERTED interval with the bounds swapped.
+        * ``confidence > 1`` sent both arguments above 100 and
+          ``np.percentile`` raised ``ValueError: Percentiles must be in the
+          range [0, 100]``.
+
+        All three are loud failures in the corrected implementation, which
+        returns the same ``(nan, nan)`` tuple the empty-data path returns.
+        """
+        for bad_conf in (0.0, -0.5, -1.0, 1.5, 2.0):
+            lo, hi = st.bootstrap_confidence_interval(
+                np.array([1.0, 2.0, 3.0]),
+                confidence=bad_conf,
+                n_bootstrap=10,
+                random_state=42,
+            )
+            assert np.isnan(lo) and np.isnan(hi), f"confidence={bad_conf}"
+
+    def test_confidence_one_is_the_full_range(self):
+        """``confidence == 1.0`` is valid: both percentiles sit at the
+        extremes of the resample distribution.
+
+        The interval is the resample min and max (percentile 0 and 100 of
+        the bootstrap statistics), not the data min and max: a resample
+        drawn with replacement from a small set need not include the
+        extremes, so the resample range is a subset of the data range.
+        Every bootstrap statistic is a mean of a subset, so the bounds
+        stay within ``[data.min(), data.max()]``.
+        """
+        data = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+        lo, hi = st.bootstrap_confidence_interval(
+            data, confidence=1.0, n_bootstrap=50, random_state=42
+        )
+        assert lo <= hi
+        assert lo >= data.min() - 1e-12
+        assert hi <= data.max() + 1e-12
+
 
 # ===========================================================================
 # sharpe_ratio / sharpe_ratio_ci
@@ -205,6 +273,27 @@ class TestSharpeRatio:
         lo90, hi90 = st.sharpe_ratio_ci(returns, confidence=0.90, n_bootstrap=800, random_state=5)
         lo99, hi99 = st.sharpe_ratio_ci(returns, confidence=0.99, n_bootstrap=800, random_state=5)
         assert (hi99 - lo99) > (hi90 - lo90)
+
+    def test_ci_propagates_the_bootstrap_degenerate_guard(self):
+        """``sharpe_ratio_ci`` is a thin wrapper over
+        ``bootstrap_confidence_interval`` and must not mask its guard.
+
+        A non-positive bootstrap count or an out-of-range confidence level
+        used to raise here (``IndexError`` from the empty resample list, or
+        ``ValueError`` from ``np.percentile``) rather than returning the
+        no-evidence tuple the underlying function now returns.
+        """
+        for bad_n in (0, -5):
+            lo, hi = st.sharpe_ratio_ci(np.array([1.0, 2.0, 3.0]), n_bootstrap=bad_n)
+            assert np.isnan(lo) and np.isnan(hi)
+        for bad_conf in (0.0, -1.0, 1.5):
+            lo, hi = st.sharpe_ratio_ci(
+                np.array([1.0, 2.0, 3.0]),
+                confidence=bad_conf,
+                n_bootstrap=10,
+                random_state=42,
+            )
+            assert np.isnan(lo) and np.isnan(hi)
 
 
 # ===========================================================================
@@ -401,6 +490,88 @@ class TestParameterSensitivity:
             self._two_regime_returns(rng), np.array([1.0, 2.0]), n_bootstrap=200
         )
         assert 0.0 <= res["stability_ratio"] <= 1.0
+
+    def test_empty_param_grid_returns_safe_all_fail_tuple(self):
+        """A grid with no parameter rows has nothing to summarize.
+
+        ``parameter_sensitivity`` used to walk straight into
+        ``np.argmax([])`` and raise ``ValueError: attempt to get argmax of
+        an empty sequence`` -- a crash out of a pure function every caller
+        treats as returning a dict. The crash is reachable from the public
+        API with no caller-side filtering: ``validate_strategy`` derives its
+        published ``param_stability`` from this function's ``optimal_param``
+        (see tests/test_parameter_sensitivity_reproducibility.py), so a
+        strategy with no parameter grid hands an empty array here.
+        """
+        res = st.parameter_sensitivity(np.zeros((0, 5)), np.array([]))
+        assert res["param_values"].shape == (0,)
+        assert res["metrics"].shape == (0,)
+        assert res["ci_lower"].shape == (0,)
+        assert res["ci_upper"].shape == (0,)
+        assert np.isnan(res["optimal_param"])
+        assert res["optimal_metric"] == 0.0
+        assert res["stability_ratio"] == 0.0
+        assert res["metric_std"] == 0.0
+
+    def test_length_mismatched_returns_is_treated_as_an_empty_grid(self):
+        """A ``returns`` array with fewer rows than ``param_values`` leaves
+        the loop unable to index every parameter row.
+
+        The contract is ``returns.shape[0] == n_params`` ("2D: n_params x
+        n_obs"); a frame with fewer rows than parameters cannot be scored
+        per-row and used to raise ``IndexError`` on the first missing row.
+        A frame with MORE rows is a contract violation the pre-fix code
+        accepted by silently ignoring the extras, and that behaviour is
+        unchanged here -- only the under-supplied case is fail-closed.
+        """
+        res = st.parameter_sensitivity(np.zeros((1, 5)), np.array([1.0, 2.0, 3.0]))
+        assert res["metrics"].shape == (0,)
+        assert res["stability_ratio"] == 0.0
+
+    def test_extra_rows_in_returns_are_silently_ignored(self):
+        """Pre-existing behaviour, pinned so the guard does not widen it.
+
+        A frame with more rows than parameters is scored over the first
+        ``n_params`` rows; the extras are ignored, exactly as before the
+        guard was added.
+        """
+        res = st.parameter_sensitivity(
+            np.zeros((5, 5)), np.array([1.0, 2.0]), n_bootstrap=10, random_state=42
+        )
+        assert res["metrics"].shape == (2,)
+        assert res["optimal_param"] in (1.0, 2.0)
+
+    def test_non_positive_bootstrap_returns_safe_tuple(self):
+        """A non-positive ``n_bootstrap`` is forwarded to the bootstrap and
+        must not crash here either: it is caught at the top, in one place,
+        so the empty-params crash cannot mask it."""
+        for bad_n in (0, -1):
+            res = st.parameter_sensitivity(
+                self._two_regime_returns(np.random.default_rng(1)),
+                np.array([1.0, 2.0]),
+                n_bootstrap=bad_n,
+            )
+            assert res["metrics"].shape == (0,)
+            assert res["stability_ratio"] == 0.0
+            assert np.isnan(res["optimal_param"])
+
+    def test_empty_grid_is_a_no_op_on_every_call(self):
+        """The degenerate result is deterministic: no randomness, no crash.
+
+        The two calls differ only in their seed, which the guard never
+        reaches, so the empty-grid tuple is identical. Comparison is done
+        field by field because the arrays are empty and ``a == b`` on a
+        dict of empty numpy arrays raises "truth value is ambiguous".
+        """
+        a = st.parameter_sensitivity(np.zeros((0, 5)), np.array([]), random_state=42)
+        b = st.parameter_sensitivity(np.zeros((0, 5)), np.array([]), random_state=99)
+        for key in ("metrics", "ci_lower", "ci_upper"):
+            assert a[key].shape == b[key].shape == (0,)
+        assert np.array_equal(a["param_values"], b["param_values"])
+        assert np.isnan(a["optimal_param"]) and np.isnan(b["optimal_param"])
+        assert a["optimal_metric"] == b["optimal_metric"]
+        assert a["stability_ratio"] == b["stability_ratio"]
+        assert a["metric_std"] == b["metric_std"]
 
 
 # ===========================================================================
