@@ -221,8 +221,43 @@ def multiple_testing_correction(
     Returns:
         Tuple of (rejected, adjusted_p_values)
     """
-    p_values = np.asarray(p_values)
+    p_values = np.asarray(p_values, dtype=float)
     n = len(p_values)
+
+    # Degenerate-input guard. A multiple-testing correction is only defined
+    # on a set of valid p-values, and every adjusted p-value in BOTH
+    # branches depends on ``n`` (bonferroni: ``p * n``; BH: ``p * n /
+    # (i + 1)``), so a single bad element corrupts the whole set rather than
+    # staying isolated. The function used to walk straight into the
+    # arithmetic on:
+    #
+    # * a non-finite p-value (the H58/H61/H62 input class -- an `inf`, a
+    #   `-inf` or a `nan` reaching a pure function that has no caller to
+    #   filter for it). A `nan` propagates through ``p * n`` and
+    #   ``min(nan, 1.0)`` unchanged, so the adjusted p-value for that one
+    #   test is `nan` while every OTHER test in the same set gets a finite
+    #   value -- an internally inconsistent result that silently voids one
+    #   test's adjustment while certifying the rest.
+    # * a negative p-value or one above 1.0, which are not p-values at all.
+    #   ``min(p * n, 1.0)`` caps an above-1 p-value at 1.0 (harmless: it is
+    #   not rejected), but a NEGATIVE p-value caps to itself and then
+    #   ``adjusted < alpha`` is True for any alpha > 0, so the correction
+    #   REJECTS a hypothesis whose input was not even a valid significance
+    #   level -- a false positive manufactured out of a bad input. The BH
+    #   branch rejects the same negative input by the same mechanism (its
+    #   monotonicity pass propagates the negative value upward).
+    #
+    # The fail-closed result is the no-evidence tuple: every test left
+    # unadjusted (adjusted p-value 1.0, the maximally non-significant
+    # value) and nothing rejected. A caller gating on ``rejected`` fails
+    # closed, and a caller reading ``adjusted`` sees 1.0 rather than a `nan`
+    # or a `-inf``. For every input in the valid domain the arithmetic is
+    #   bit-identical to before: this block only short-circuits the
+    #   degenerate cases. See tests/test_statistics.py.
+    if n > 0 and (
+        np.any(~np.isfinite(p_values)) or np.any(p_values < 0.0) or np.any(p_values > 1.0)
+    ):
+        return np.zeros(n, dtype=bool), np.ones(n, dtype=float)
 
     if method == "bonferroni":
         adjusted = np.minimum(p_values * n, 1.0)

@@ -292,6 +292,67 @@ class TestMultipleTestingCorrection:
         rejected, adjusted = st.multiple_testing_correction(np.array([]), "bonferroni", 0.05)
         assert len(rejected) == 0 and len(adjusted) == 0
 
+    @pytest.mark.parametrize("method", ["bonferroni", "benjamini_hochberg"])
+    @pytest.mark.parametrize(
+        "bad",
+        [
+            np.array([0.05, np.nan]),
+            np.array([0.05, np.inf]),
+            np.array([0.05, -np.inf]),
+            np.array([-0.1]),
+            np.array([1.5]),
+            np.array([0.05, -0.05]),
+        ],
+        ids=["nan", "inf", "neg_inf", "negative", "above_one", "mixed"],
+    )
+    def test_degenerate_p_values_fail_closed(self, method, bad):
+        """A non-finite, negative or above-one p-value is not a p-value, and
+        the correction must not manufacture a rejection out of it.
+
+        Pre-fix behaviour, measured on this input class:
+        - a `nan` propagated through ``p * n`` and ``min(nan, 1.0)``
+          unchanged, leaving one adjusted p-value as `nan` while every
+          other test in the same set got a finite value -- an internally
+          inconsistent result that silently voids one test's adjustment;
+        - a `-inf` adjusted p-value was rejected at any alpha > 0;
+        - a negative p-value was rejected at any alpha > 0 (a false
+          positive manufactured out of a bad input).
+
+        The fail-closed result is the no-evidence tuple: every test left
+        unadjusted (adjusted p-value 1.0, the maximally non-significant
+        value) and nothing rejected.
+        """
+        rejected, adjusted = st.multiple_testing_correction(bad, method, 0.05)
+        assert rejected.tolist() == [False] * len(bad)
+        assert adjusted.tolist() == [1.0] * len(bad)
+
+    @pytest.mark.parametrize("method", ["bonferroni", "benjamini_hochberg"])
+    def test_the_contract_rejects_the_pre_fix_degenerate_behaviour(self, method):
+        """Negative control: reconstruct the pre-fix arithmetic on a
+        degenerate input and require the contract to reject it.
+
+        A `nan` p-value left a `nan` adjusted p-value and a negative
+        p-value left a rejected hypothesis; both are failures the guard
+        exists to prevent, so the reconstructed pre-fix result must NOT
+        equal the fail-closed tuple.
+        """
+        # nan: pre-fix adjusted p-value is nan, not 1.0
+        nan_p = np.array([0.05, np.nan])
+        pre_fix_nan = float(np.minimum(nan_p * 2, 1.0)[1])
+        assert pre_fix_nan != 1.0
+        assert np.isnan(pre_fix_nan)
+
+        # negative: pre-fix rejected the hypothesis
+        neg_p = np.array([-0.1])
+        pre_fix_rejected = bool(np.minimum(neg_p * 1, 1.0)[0] < 0.05)
+        assert pre_fix_rejected is True
+
+        # The corrected function rejects neither.
+        _, adjusted = st.multiple_testing_correction(nan_p, method, 0.05)
+        assert adjusted.tolist() == [1.0, 1.0]
+        rejected, _ = st.multiple_testing_correction(neg_p, method, 0.05)
+        assert rejected.tolist() == [False]
+
 
 # ===========================================================================
 # parameter_sensitivity
