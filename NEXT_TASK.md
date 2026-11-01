@@ -1,15 +1,15 @@
-# Next task — Baseline maintenance (verified on HEAD db20051)
+# Next task — Baseline maintenance (verified on HEAD fdd6de0)
 
 ## Status (this session)
-Executed the standing "maintain baseline health" task on HEAD `db20051`:
+Executed the standing "maintain baseline health" task on HEAD `fdd6de0`:
 ruff check/format green; full gates green (2224 passed, 16 skipped, 100% coverage); working tree clean.
 
 ## What changed
 - None to source/tests/runners/artifacts/gates/thresholds/verdicts/certified numbers.
-- Updated `NEXT_TASK.md` to reflect current HEAD and verified ground truth.
+- Updated handoff files to reflect current HEAD and verified ground truth.
 
-## What was actually verified (this session, on HEAD db20051)
-- `git status --short` → empty; HEAD `db20051` on `main`; `main == origin/main` (up to date).
+## What was actually verified (this session, on HEAD fdd6de0)
+- `git status --short` → empty; HEAD `fdd6de0` on `main`; `main == origin/main` (up to date).
 - `.github/workflows/gates.yml` present and tracked.
 - `python -m ruff check src tests run_*.py` → All checks passed.
 - `python -m ruff format --check src tests run_*.py` → 106 files already formatted.
@@ -18,7 +18,6 @@ ruff check/format green; full gates green (2224 passed, 16 skipped, 100% coverag
 
 ## What remains unresolved
 - Items in `FINAL_REPORT.md` §H53–§H61 remain disclosed (not quantified); no gate impact.
-- Older handoff files reference stale HEADs (`66ff4cb`, `116573d`, `501b4d0`, `1d4f411`, `9ba00a8`); treat as historical narrative. This session's verified HEAD is `db20051`.
 
 ## Approaches already failed
 - None this session. Baseline verified green; no defect found.
