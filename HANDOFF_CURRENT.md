@@ -2,9 +2,9 @@
 
 ## State
 - H1–H30 exhausted; hypotheses up to H80 documented; certified families frozen.
-- Baseline verified in this session on HEAD `66ff4cb`: lint/format green, working tree clean.
-- `.github/workflows/gates.yml` present; prior full gates verified green (2168 passed, 16 skipped; `src/qtr` 100%).
-- HEAD: `66ff4cb`.
+- Baseline verified in this session on HEAD `c6eaf82`: lint/format green, working tree clean.
+- `.github/workflows/gates.yml` present; full gates verified green (2224 passed, 16 skipped; `src/qtr` 100%).
+- HEAD: `c6eaf82`.
 
 ## What changed (this session)
 - Updated `NEXT_TASK.md` to reflect current HEAD/state.

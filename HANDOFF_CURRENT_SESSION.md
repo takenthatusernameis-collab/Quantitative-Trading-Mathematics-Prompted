@@ -1,7 +1,7 @@
-# HANDOFF_CURRENT_SESSION — session complete (baseline verified on HEAD fdd6de0)
+# HANDOFF_CURRENT_SESSION — session complete (baseline verified on HEAD c6eaf82)
 
 ## State
-- Working tree clean (`git status --short` empty). HEAD `fdd6de0` on `main`;
+- Working tree clean (`git status --short` empty). HEAD `c6eaf82` on `main`;
   `main == origin/main` (up to date).
 - `.github/workflows/gates.yml` tracked in HEAD; CI gates present.
 - Package `qtr` not installed (bare clone). `PYTHONPATH=src` / pytest `pythonpath = ["src"]` works.
@@ -22,7 +22,7 @@
 ## What remains unresolved
 - Items in `FINAL_REPORT.md` §H53–§H61 remain disclosed (not quantified); no gate impact.
 - Older handoff files reference stale HEADs; treat as historical narrative.
-  This session's verified HEAD is `fdd6de0`.
+  This session's verified HEAD is `c6eaf82`.
 
 ## Approaches already failed
 - None this session. Baseline verified green; no defect found.

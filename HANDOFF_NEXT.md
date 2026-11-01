@@ -1,13 +1,13 @@
-# HANDOFF_NEXT — session complete (baseline verification on HEAD 7d9d3cb)
+# HANDOFF_NEXT — session complete (baseline verification on HEAD c6eaf82)
 
 ## What changed
 - None to source/tests/runners/artifacts/gates/thresholds/verdicts/certified numbers.
 - Updated `HANDOFF_CURRENT_SESSION.md`, `HANDOFF_NEXT.md` and `NEXT_TASK.md` to reflect current
-  HEAD `7d9d3cb`.
+  HEAD `c6eaf82`.
 
 ## What was actually verified
 - Working tree clean (`git status --short` empty before the handoff edits).
-- HEAD `7d9d3cb` on `main`; `main == origin/main` (up to date).
+- HEAD `c6eaf82` on `main`; `main == origin/main` (up to date).
 - `.github/workflows/gates.yml` tracked in HEAD (last touched `5af36cc`); CI gates present.
 - `python -m ruff check src tests run_*.py` → **All checks passed!**
 - `python -m ruff format --check src tests run_*.py` → **106 files already formatted**
