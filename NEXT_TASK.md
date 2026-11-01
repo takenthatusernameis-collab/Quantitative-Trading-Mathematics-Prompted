@@ -1,25 +1,25 @@
-# Next task — Baseline maintenance (verified on HEAD 66ff4cb)
+# Next task — Baseline maintenance (verified on HEAD 0a720f6)
 
 ## Status (this session)
-Executed the standing "maintain baseline health" task on HEAD `66ff4cb`:
-ruff check/format green; working tree clean; no code change needed.
+Executed the standing "maintain baseline health" task on HEAD `0a720f6`:
+ruff check/format green; coverage gate green; working tree clean; no code change needed.
 
 Verified actual state:
-- HEAD `66ff4cb` on `main`; clean working tree.
+- HEAD `0a720f6` on `main`; clean working tree.
 - `.github/workflows/gates.yml` present and tracked.
 - `python -m ruff check src tests run_*.py` → All checks passed.
 - `python -m ruff format --check src tests run_*.py` → 105 files already formatted.
-- Prior full gates verified green (2168 passed, 16 skipped; `src/qtr` 1168 stmts / 374 branches / 100.00%).
+- `PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing`
+  → 2203 passed, 13 skipped; `src/qtr` 1181 stmts / 378 branches / 100.00%.
 
 ## What changed
 - None. No source, test, runner, artifact, gate threshold, verdict or certified number modified.
 
 ## What was actually verified
-- Lint/format gates green on current HEAD; `git status --short` empty.
+- Lint/format/coverage gates green on current HEAD; `git status --short` empty.
 
 ## What remains unresolved
 - Items in `FINAL_REPORT.md` §H53–§H61 remain disclosed (not quantified); no gate impact.
-- Older handoff files reference stale HEADs; treat as historical narrative.
 
 ## Approaches already failed
 - None this session.
@@ -42,3 +42,5 @@ Constraints:
 - H1–H30 exhausted; hypotheses up to H80 documented.
 - Keep package behavior consistent with src layout; do not commit build artifacts/secrets/caches.
 - Never commit without explicit user request.
+
+(End of file)
