@@ -626,6 +626,113 @@ class TestStressedCostTest:
         res = st.stressed_cost_test(base_returns, base_costs)
         assert res["stressed_commission_sharpe"] == pytest.approx(res["stressed_spread_sharpe"])
 
+    # ------------------------------------------------------------------
+    # Degenerate inputs: fail closed, no warning, no exception.
+    # ------------------------------------------------------------------
+    KEYS = ["commission", "spread", "slippage", "impact", "combined"]
+
+    def _no_evidence(self):
+        return {
+            f"stressed_{k}_sharpe": 0.0 for k in self.KEYS
+        } | {f"stressed_{k}_return": 0.0 for k in self.KEYS}
+
+    @pytest.mark.parametrize("bad", [np.inf, -np.inf, np.nan])
+    def test_non_finite_returns_fail_closed(self, bad):
+        # The H58/H61/H62 input class: an `inf`, a `-inf` or a `nan` reaching
+        # a pure function with no caller to filter for it. The old function
+        # carried the non-finite value through every `stressed_*_return`
+        # (mean * 252) while `sharpe_ratio` already failed closed to 0.0 on
+        # the same series, so the two halves of each entry disagreed.
+        res = st.stressed_cost_test(
+            np.array([0.001, bad, 0.001]), np.array([0.0, 0.0, 0.0])
+        )
+        assert res == self._no_evidence()
+
+    @pytest.mark.parametrize("bad", [np.inf, -np.inf, np.nan])
+    def test_non_finite_costs_fail_closed(self, bad):
+        res = st.stressed_cost_test(
+            np.array([0.001, 0.001, 0.001]), np.array([0.0, bad, 0.0])
+        )
+        assert res == self._no_evidence()
+
+    def test_empty_arrays_fail_closed(self):
+        # Zero bars: the old function raised `RuntimeWarning: Mean of an
+        # empty slice` from the first stressor's `mean()` and then crashed on
+        # the combined stressor's `sum(...) / len(...)` with ZeroDivisionError.
+        res = st.stressed_cost_test(np.array([]), np.array([]))
+        assert res == self._no_evidence()
+
+    def test_custom_empty_stress_dict_fails_closed(self):
+        # A caller who passes `{}` gets no stressors, so the combined stressor
+        # divides by zero; the fail-closed result is the combined entry alone.
+        res = st.stressed_cost_test(
+            np.array([0.0] * 5), np.array([0.0] * 5), {}
+        )
+        assert res == {"stressed_combined_sharpe": 0.0, "stressed_combined_return": 0.0}
+
+    def test_custom_stress_dict_with_non_finite_input(self):
+        res = st.stressed_cost_test(
+            np.array([0.0, np.inf]), np.array([0.0, 0.0]), {"x": 2.0, "y": 3.0}
+        )
+        assert res == {
+            "stressed_x_sharpe": 0.0,
+            "stressed_x_return": 0.0,
+            "stressed_y_sharpe": 0.0,
+            "stressed_y_return": 0.0,
+            "stressed_combined_sharpe": 0.0,
+            "stressed_combined_return": 0.0,
+        }
+
+    def test_the_contract_rejects_the_pre_fix_behaviour(self):
+        """Negative control: reconstruct the pre-fix function body and require
+        that it either raises or emits the inconsistent split this contract
+        exists to prevent. The corrected function returns the no-evidence
+        tuple on every degenerate input."""
+        def pre_fix(base_returns, base_costs, stress_multipliers=None):
+            if stress_multipliers is None:
+                stress_multipliers = {
+                    "commission": 2.0, "spread": 2.0, "slippage": 2.0, "impact": 5.0,
+                }
+            results = {}
+            for name, mult in stress_multipliers.items():
+                stressed_returns = base_returns - base_costs * mult
+                results[f"stressed_{name}_sharpe"] = st.sharpe_ratio(stressed_returns)
+                results[f"stressed_{name}_return"] = stressed_returns.mean() * 252
+            total_stress = sum(stress_multipliers.values()) / len(stress_multipliers)
+            combined_returns = base_returns - base_costs * total_stress
+            results["stressed_combined_sharpe"] = st.sharpe_ratio(combined_returns)
+            return results
+
+        # Non-finite input: the pre-fix body emits inf returns alongside 0.0
+        # Sharpes -- the inconsistent split.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            pf = pre_fix(np.array([0.001, np.inf, 0.001]), np.array([0.0, 0.0, 0.0]))
+        assert pf["stressed_commission_return"] != pf["stressed_commission_sharpe"]
+        assert not np.isfinite(pf["stressed_commission_return"])
+        assert pf["stressed_commission_sharpe"] == 0.0
+
+        # Empty input: the pre-fix body raises (Mean of an empty slice, then
+        # ZeroDivisionError on the combined stressor).
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            with pytest.raises(ZeroDivisionError):
+                pre_fix(np.array([]), np.array([]))
+
+        # Empty stress dict: the pre-fix body raises ZeroDivisionError.
+        with pytest.raises(ZeroDivisionError):
+            pre_fix(np.array([0.0] * 5), np.array([0.0] * 5), {})
+
+        # The corrected function returns the no-evidence tuple in all three
+        # cases instead.
+        assert st.stressed_cost_test(
+            np.array([0.001, np.inf, 0.001]), np.array([0.0, 0.0, 0.0])
+        ) == self._no_evidence()
+        assert st.stressed_cost_test(np.array([]), np.array([])) == self._no_evidence()
+        assert st.stressed_cost_test(
+            np.array([0.0] * 5), np.array([0.0] * 5), {}
+        ) == {"stressed_combined_sharpe": 0.0, "stressed_combined_return": 0.0}
+
 
 # ===========================================================================
 # capacity_estimate
