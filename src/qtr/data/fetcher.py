@@ -158,6 +158,72 @@ class DataFetcher:
             "not cross zero, or handle the bar explicitly before retrying."
         )
 
+    def _fetch_yahoo_panel(
+        self,
+        source: str,
+        symbol: str,
+        start: str,
+        end: str,
+        interval: str,
+        use_cache: bool,
+    ) -> pd.DataFrame:
+        """Fetch and standardize a single Yahoo Finance panel.
+
+        Shared by :meth:`fetch_yahoo` and :meth:`fetch_futures`, which differ
+        only in the cache source name and in the symbol-level pre-check
+        (futures warn when the symbol lacks the ``=F`` suffix). Returns a
+        possibly-empty DataFrame; the caller applies ``_reject_non_positive_prices``.
+        """
+        if use_cache:
+            # ``DataCache.get`` canonicalizes the index to tz-naive on the way
+            # out (fetcher.py:92-96), so a cached frame needs no per-fetch
+            # normalization here.
+            cached = self.cache.get(source, symbol, start, end, interval)
+            if cached is not None:
+                return cached
+
+        try:
+            import yfinance as yf  # lazy import; data extras not required for core
+
+            ticker = yf.Ticker(symbol)
+            df = ticker.history(
+                start=start,
+                end=end,
+                interval=interval,
+                auto_adjust=False,
+                actions=False,
+            )
+
+            if df.empty:
+                logger.warning(f"No data for {symbol} from {start} to {end}")
+                return pd.DataFrame()
+
+            # Standardize column names
+            df.columns = [c.lower().replace(" ", "_") for c in df.columns]
+
+            # Ensure required columns: degrade over the columns that are
+            # present rather than indexing a missing name and raising
+            # ``KeyError``. A missing column is a fact about the source, not
+            # a crash.
+            required = ["open", "high", "low", "close", "volume"]
+            present = [col for col in required if col in df.columns]
+            for col in required:
+                if col not in df.columns:
+                    logger.warning(f"Missing column {col} for {symbol}")
+            extras = [c for c in df.columns if c not in required]
+
+            df = df[present + extras]
+            df.index = pd.to_datetime(df.index).tz_localize(None)
+
+            if use_cache:
+                self.cache.set(source, symbol, start, end, interval, df)
+
+            return df
+
+        except Exception as e:  # noqa: BLE001 -- per-symbol fetch failure is non-fatal; log and continue
+            logger.error(f"Failed to fetch {symbol}: {e}")
+            return pd.DataFrame()
+
     def fetch_yahoo(
         self,
         symbols: list[str],
@@ -184,68 +250,9 @@ class DataFetcher:
         results = {}
 
         for symbol in symbols:
-            if use_cache:
-                # ``DataCache.get`` canonicalizes the index to tz-naive on the
-                # way out (fetcher.py:92-96), so a cached frame is already in
-                # the shape every caller expects and needs no per-fetch
-                # normalization here. The normalization lives in the cache
-                # layer, not in each fetch method's cache-hit path.
-                cached = self.cache.get("yahoo", symbol, start, end, interval)
-                if cached is not None:
-                    self._reject_non_positive_prices(symbol, cached)
-                    results[symbol] = cached
-                    continue
-
-            try:
-                import yfinance as yf  # lazy import; data extras not required for core
-
-                ticker = yf.Ticker(symbol)
-                df = ticker.history(
-                    start=start,
-                    end=end,
-                    interval=interval,
-                    auto_adjust=False,
-                    actions=False,
-                )
-
-                if df.empty:
-                    logger.warning(f"No data for {symbol} from {start} to {end}")
-                    results[symbol] = pd.DataFrame()
-                    continue
-
-                # Standardize column names
-                df.columns = [c.lower().replace(" ", "_") for c in df.columns]
-
-                # Ensure required columns. The selection is built from the
-                # columns that are actually present: a vendor that omits
-                # ``volume`` (or any other required column) is warned about
-                # and the frame is re-ordered over the columns it *does*
-                # carry, rather than indexing a list that contains a missing
-                # name and raising ``KeyError``. A missing column is a fact
-                # about the source, not a crash -- the fetch degrades to a
-                # panel without it and the caller decides whether that is
-                # usable (the engine treats a missing volume column as zero
-                # volume in the impact model).
-                required = ["open", "high", "low", "close", "volume"]
-                present = [col for col in required if col in df.columns]
-                for col in required:
-                    if col not in df.columns:
-                        logger.warning(f"Missing column {col} for {symbol}")
-                extras = [c for c in df.columns if c not in required]
-
-                df = df[present + extras]
-                df.index = pd.to_datetime(df.index).tz_localize(None)
-
-                results[symbol] = df
-
-                if use_cache:
-                    self.cache.set("yahoo", symbol, start, end, interval, df)
-
-            except Exception as e:  # noqa: BLE001 -- per-symbol fetch failure is non-fatal; log and continue
-                logger.error(f"Failed to fetch {symbol}: {e}")
-                results[symbol] = pd.DataFrame()
-
-            self._reject_non_positive_prices(symbol, results[symbol])
+            df = self._fetch_yahoo_panel("yahoo", symbol, start, end, interval, use_cache)
+            self._reject_non_positive_prices(symbol, df)
+            results[symbol] = df
 
         return results
 
@@ -283,64 +290,9 @@ class DataFetcher:
             if not symbol.endswith("=F"):
                 logger.warning(f"Futures symbol {symbol} should end with =F; proceeding anyway")
 
-            if use_cache:
-                # ``DataCache.get`` canonicalizes the index to tz-naive on the
-                # way out (fetcher.py:92-96), so a cached frame is already in
-                # the shape every caller expects and needs no per-fetch
-                # normalization here. The normalization lives in the cache
-                # layer, not in each fetch method's cache-hit path.
-                cached = self.cache.get("yahoo_futures", symbol, start, end, interval)
-                if cached is not None:
-                    self._reject_non_positive_prices(symbol, cached)
-                    results[symbol] = cached
-                    continue
-
-            try:
-                import yfinance as yf
-
-                ticker = yf.Ticker(symbol)
-                df = ticker.history(
-                    start=start,
-                    end=end,
-                    interval=interval,
-                    auto_adjust=False,
-                    actions=False,
-                )
-
-                if df.empty:
-                    logger.warning(f"No data for {symbol} from {start} to {end}")
-                    results[symbol] = pd.DataFrame()
-                    continue
-
-                # Standardize column names
-                df.columns = [c.lower().replace(" ", "_") for c in df.columns]
-
-                # Ensure required columns. The selection is built from the
-                # columns that are actually present (see the identical fix in
-                # ``fetch_yahoo``): a vendor that omits a required column is
-                # warned about and the frame is re-ordered over the columns it
-                # carries, instead of indexing a list containing a missing name
-                # and raising ``KeyError``.
-                required = ["open", "high", "low", "close", "volume"]
-                present = [col for col in required if col in df.columns]
-                for col in required:
-                    if col not in df.columns:
-                        logger.warning(f"Missing column {col} for {symbol}")
-                extras = [c for c in df.columns if c not in required]
-
-                df = df[present + extras]
-                df.index = pd.to_datetime(df.index).tz_localize(None)
-
-                results[symbol] = df
-
-                if use_cache:
-                    self.cache.set("yahoo_futures", symbol, start, end, interval, df)
-
-            except Exception as e:  # noqa: BLE001 -- per-symbol fetch failure is non-fatal; log and continue
-                logger.error(f"Failed to fetch {symbol}: {e}")
-                results[symbol] = pd.DataFrame()
-
-            self._reject_non_positive_prices(symbol, results[symbol])
+            df = self._fetch_yahoo_panel("yahoo_futures", symbol, start, end, interval, use_cache)
+            self._reject_non_positive_prices(symbol, df)
+            results[symbol] = df
 
         return results
 
