@@ -1,34 +1,37 @@
-# Next task — Baseline maintenance (verified on HEAD 1d4f411)
+# Next task — Baseline maintenance (verified on HEAD db20051)
 
 ## Status (this session)
-Executed the standing "maintain baseline health" task on HEAD `1d4f411`:
-ruff check/format green; full gates green (2200 passed, 16 skipped, 100% coverage); working tree clean.
+Executed the standing "maintain baseline health" task on HEAD `db20051`:
+ruff check/format green; full gates green (2224 passed, 16 skipped, 100% coverage); working tree clean.
 
 ## What changed
 - None to source/tests/runners/artifacts/gates/thresholds/verdicts/certified numbers.
-- Updated `NEXT_TASK.md` to reflect current HEAD.
+- Updated `NEXT_TASK.md` to reflect current HEAD and verified ground truth.
 
-## What was actually verified
-- HEAD `1d4f411` on `main`; clean working tree.
+## What was actually verified (this session, on HEAD db20051)
+- `git status --short` → empty; HEAD `db20051` on `main`; `main == origin/main` (up to date).
 - `.github/workflows/gates.yml` present and tracked.
 - `python -m ruff check src tests run_*.py` → All checks passed.
 - `python -m ruff format --check src tests run_*.py` → 106 files already formatted.
-- `PYTHONPATH=src timeout 2400 python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` → **2200 passed, 16 skipped**; `src/qtr` **1181 stmts / 378 branches / 0 missed / 0 partial / 100.00%**
+- `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing`
+  → **2224 passed, 16 skipped**; `src/qtr` **1187 stmts / 384 branches / 0 missed / 0 partial / 100.00%**.
 
 ## What remains unresolved
 - Items in `FINAL_REPORT.md` §H53–§H61 remain disclosed (not quantified); no gate impact.
-- Older handoff files reference stale HEADs; treat as historical narrative.
+- Older handoff files reference stale HEADs (`66ff4cb`, `116573d`, `501b4d0`, `1d4f411`, `9ba00a8`); treat as historical narrative. This session's verified HEAD is `db20051`.
 
 ## Approaches already failed
-- None this session.
+- None this session. Baseline verified green; no defect found.
 
 ## One precise next task
-**Maintain baseline health.** No code change needed now. On any future change under `src/qtr`, `tests/`, `run_*.py`, `requirements.txt`, or `pyproject.toml`, run the pinned gates and confirm they stay green:
+**Maintain baseline health.** No code change needed now. On any future change under
+`src/qtr`, `tests/`, `run_*.py`, `requirements.txt`, or `pyproject.toml`, run the
+pinned gates and confirm they stay green:
 
 ```bash
 python -m ruff check src tests run_*.py
 python -m ruff format --check src tests run_*.py
-PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing
+python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing
 ```
 
 Constraints:
