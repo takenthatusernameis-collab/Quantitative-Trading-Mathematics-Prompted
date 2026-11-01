@@ -1,18 +1,18 @@
-# Next task — Baseline maintenance (verified on HEAD 495b398)
+# Next task — Baseline maintenance (verified on HEAD 013818c)
 
 ## Status (this session)
-Executed the standing "maintain baseline health" task on HEAD `495b398`:
+Executed the standing "maintain baseline health" task on HEAD `013818c`:
 ruff check/format green; full gates green (2200 passed, 16 skipped, 100% coverage); working tree clean.
 
 ## What changed
 - None to source/tests/runners/artifacts/gates/thresholds/verdicts/certified numbers.
 
 ## What was actually verified
-- HEAD `495b398` on `main`; clean working tree.
+- HEAD `013818c` on `main`; clean working tree.
 - `.github/workflows/gates.yml` present and tracked.
 - `python -m ruff check src tests run_*.py` → All checks passed.
-- `python -m ruff format --check src tests run_*.py` → 105 files already formatted.
-- `PYTHONPATH=src timeout 1500 python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` → **2200 passed, 16 skipped**; `src/qtr` **1181 stmts / 378 branches / 0 missed / 0 partial / 100.00%**
+- `python -m ruff format --check src tests run_*.py` → 106 files already formatted.
+- `PYTHONPATH=src timeout 2400 python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` → **2200 passed, 16 skipped**; `src/qtr` **1181 stmts / 378 branches / 0 missed / 0 partial / 100.00%**
 
 ## What remains unresolved
 - Items in `FINAL_REPORT.md` §H53–§H61 remain disclosed (not quantified); no gate impact.
