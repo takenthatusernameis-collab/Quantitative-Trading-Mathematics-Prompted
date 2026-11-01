@@ -1,7 +1,7 @@
-# HANDOFF_CURRENT_SESSION — session complete (baseline verified on HEAD c6eaf82)
+# HANDOFF_CURRENT_SESSION — session complete (baseline verified on HEAD 9e1fe88)
 
 ## State
-- Working tree clean (`git status --short` empty). HEAD `c6eaf82` on `main`;
+- Working tree clean (`git status --short` empty). HEAD `9e1fe88` on `main`;
   `main == origin/main` (up to date).
 - `.github/workflows/gates.yml` tracked in HEAD; CI gates present.
 - Package `qtr` not installed (bare clone). `PYTHONPATH=src` / pytest `pythonpath = ["src"]` works.
@@ -10,7 +10,7 @@
 ## What changed
 - None. No source, test, runner, artifact, gate threshold, verdict or certified
   number changed. This session executed the standing "maintain baseline health"
-  task and re-verified lint/format/full gates on HEAD `fdd6de0`.
+  task and re-verified lint/format/full gates on HEAD `9e1fe88`.
 
 ## What was actually verified
 - `python -m ruff check src tests run_*.py` → **All checks passed!**
@@ -22,7 +22,7 @@
 ## What remains unresolved
 - Items in `FINAL_REPORT.md` §H53–§H61 remain disclosed (not quantified); no gate impact.
 - Older handoff files reference stale HEADs; treat as historical narrative.
-  This session's verified HEAD is `c6eaf82`.
+  This session's verified HEAD is `9e1fe88`.
 
 ## Approaches already failed
 - None this session. Baseline verified green; no defect found.
