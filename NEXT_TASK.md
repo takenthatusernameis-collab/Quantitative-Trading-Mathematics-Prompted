@@ -1,17 +1,16 @@
-# Next task — Baseline maintenance (verified on HEAD 9ba00a8)
+# Next task — Baseline maintenance (verified on HEAD 501b4d0)
 
 ## Status (this session)
-Executed the standing "maintain baseline health" task on HEAD `9ba00a8`:
-all pinned gates green; no code change needed.
+Executed the standing "maintain baseline health" task on HEAD `501b4d0`:
+ruff check/format green; no code change needed.
 
 Verified actual state:
-- HEAD `9ba00a8` on `main`; `main == origin/main` (up to date). Working tree
-  clean; the H80 `statistical_power_analysis` fail-closed fix is committed in
-  `9ba00a8` (one ahead of `b170f18`).
+- HEAD `501b4d0` on `main`; `main == origin/main` (up to date). Working tree
+  clean; H80 fix is in `9ba00a8`. Latest commit is a handoff commit.
 - `.github/workflows/gates.yml` tracked in HEAD.
 - `python -m ruff check src tests run_*.py` → All checks passed.
 - `python -m ruff format --check src tests run_*.py` → 105 files already formatted.
-- `PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` → 2200 passed, 16 skipped; `src/qtr` 1181 stmts / 378 branches / 100.00%.
+- Prior full gates on `9ba00a8`: 2200 passed, 16 skipped; `src/qtr` 1181 stmts / 378 branches / 100.00%.
 - Package `qtr` not installed (bare clone state confirmed).
 
 ## What changed
@@ -19,12 +18,11 @@ Verified actual state:
   number modified.
 
 ## What was actually verified
-- All three pinned gates green (see above); `git status --short` empty.
+- Lint/format gates green on current HEAD; `git status --short` empty. Full test+coverage gates were verified green on `9ba00a8`.
 
 ## What remains unresolved
 - Items in `FINAL_REPORT.md` §H53–§H61 remain disclosed (not quantified); no gate impact.
-- Older handoff files reference stale HEADs (`b170f18`, `116573d`, `cf3933e`,
-  `830dfd3`); treat as historical narrative per `HANDOFF_NEXT.md`.
+- Older handoff files reference stale HEADs; treat as historical narrative.
 
 ## Approaches already failed
 - None this session.
