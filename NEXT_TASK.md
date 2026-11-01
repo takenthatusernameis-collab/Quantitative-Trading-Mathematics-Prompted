@@ -1,21 +1,18 @@
-# Next task — Baseline maintenance (verified on HEAD 66ff4cb)
+# Next task — Baseline maintenance (verified on HEAD 097c782)
 
 ## Status (this session)
-Executed the standing "maintain baseline health" task on HEAD `66ff4cb`:
-ruff check/format green; working tree clean; no code change needed.
+Executed the standing "maintain baseline health" task on HEAD `097c782`:
+ruff check/format green; full gates green (2200 passed, 16 skipped, 100% coverage); working tree clean.
 
-Verified actual state:
-- HEAD `66ff4cb` on `main`; clean working tree.
+## What changed
+- None to source/tests/runners/artifacts/gates/thresholds/verdicts/certified numbers.
+
+## What was actually verified
+- HEAD `097c782` on `main`; clean working tree.
 - `.github/workflows/gates.yml` present and tracked.
 - `python -m ruff check src tests run_*.py` → All checks passed.
 - `python -m ruff format --check src tests run_*.py` → 105 files already formatted.
-- Prior full gates verified green (2168 passed, 16 skipped; `src/qtr` 1168 stmts / 374 branches / 100.00%).
-
-## What changed
-- None. No source, test, runner, artifact, gate threshold, verdict or certified number modified.
-
-## What was actually verified
-- Lint/format gates green on current HEAD; `git status --short` empty.
+- `PYTHONPATH=src timeout 1500 python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` → **2200 passed, 16 skipped**; `src/qtr` **1181 stmts / 378 branches / 0 missed / 0 partial / 100.00%**
 
 ## What remains unresolved
 - Items in `FINAL_REPORT.md` §H53–§H61 remain disclosed (not quantified); no gate impact.
@@ -25,9 +22,7 @@ Verified actual state:
 - None this session.
 
 ## One precise next task
-**Maintain baseline health.** No code change needed now. On any future change under
-`src/qtr`, `tests/`, `run_*.py`, `requirements.txt`, or `pyproject.toml`, run the
-pinned gates and confirm they stay green:
+**Maintain baseline health.** No code change needed now. On any future change under `src/qtr`, `tests/`, `run_*.py`, `requirements.txt`, or `pyproject.toml`, run the pinned gates and confirm they stay green:
 
 ```bash
 python -m ruff check src tests run_*.py
