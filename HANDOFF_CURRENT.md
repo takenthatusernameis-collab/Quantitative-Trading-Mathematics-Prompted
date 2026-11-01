@@ -2,9 +2,9 @@
 
 ## State
 - H1–H30 exhausted; hypotheses up to H80 documented; certified families frozen.
-- Baseline verified in this session on HEAD `c6eaf82`: lint/format green, working tree clean.
+- Baseline verified in this session on HEAD `1e17b36`: lint/format green, working tree clean.
 - `.github/workflows/gates.yml` present; full gates verified green (2224 passed, 16 skipped; `src/qtr` 100%).
-- HEAD: `c6eaf82`.
+- HEAD: `1e17b36`.
 
 ## What changed (this session)
 - Updated `NEXT_TASK.md` to reflect current HEAD/state.
@@ -12,9 +12,10 @@
 
 ## What was actually verified (this session)
 - `python -m ruff check src tests run_*.py` → All checks passed!
-- `python -m ruff format --check src tests run_*.py` → 105 files already formatted
+- `python -m ruff format --check src tests run_*.py` → 106 files already formatted
+- `python -m pytest -q -W error --cov=qtr --cov=branch --cov-report=term-missing` → 2224 passed, 16 skipped (src/qtr 100%)
 - `git status --short` → clean
-- `git log --oneline -1` → `66ff4cb`
+- `git log --oneline -1` → `1e17b36`
 
 ## What remains unresolved
 - Items in `FINAL_REPORT.md` §H53–§H61 remain disclosed (not quantified); no gate impact.
