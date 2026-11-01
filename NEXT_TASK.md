@@ -1,14 +1,14 @@
-# Next task — Baseline maintenance (verified on HEAD 097c782)
+# Next task — Baseline maintenance (verified on HEAD 495b398)
 
 ## Status (this session)
-Executed the standing "maintain baseline health" task on HEAD `097c782`:
+Executed the standing "maintain baseline health" task on HEAD `495b398`:
 ruff check/format green; full gates green (2200 passed, 16 skipped, 100% coverage); working tree clean.
 
 ## What changed
 - None to source/tests/runners/artifacts/gates/thresholds/verdicts/certified numbers.
 
 ## What was actually verified
-- HEAD `097c782` on `main`; clean working tree.
+- HEAD `495b398` on `main`; clean working tree.
 - `.github/workflows/gates.yml` present and tracked.
 - `python -m ruff check src tests run_*.py` → All checks passed.
 - `python -m ruff format --check src tests run_*.py` → 105 files already formatted.
