@@ -617,12 +617,12 @@ class VectorizedBacktester:
 
 
 def run_backtest(
-        prices: pd.DataFrame,
-        signals: pd.DataFrame,
-        config: BacktestConfig | None = None,
-        screen_non_positive_prices: bool = True,
-        **kwargs,
-    ) -> BacktestResult:
+    prices: pd.DataFrame,
+    signals: pd.DataFrame,
+    config: BacktestConfig | None = None,
+    screen_non_positive_prices: bool = True,
+    **kwargs,
+) -> BacktestResult:
     """Convenience function to run a backtest.
 
     ``screen_non_positive_prices`` defaults to ``True``; pass ``False`` only

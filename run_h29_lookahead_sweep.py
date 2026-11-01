@@ -351,9 +351,7 @@ def _screen_off_for(family: str):
         if mod is None or not hasattr(mod, "run_backtest"):
             continue
         saved[name] = mod.run_backtest
-        mod.run_backtest = functools.partial(
-            run_backtest, screen_non_positive_prices=False
-        )
+        mod.run_backtest = functools.partial(run_backtest, screen_non_positive_prices=False)
     try:
         yield
     finally:
@@ -733,7 +731,9 @@ def rebuild_h5(art_dir: Path):
     base = scaled
     adv = volumes.rolling(20).mean().iloc[-1] if len(volumes) else None
     cfg = h5.make_futures_config(allow_short=not h5.LONG_ONLY)
-    result = run_rebuild_backtest(prices=prices, signals=target, volumes=volumes, adv=adv, config=cfg)
+    result = run_rebuild_backtest(
+        prices=prices, signals=target, volumes=volumes, adv=adv, config=cfg
+    )
     return base, target, result.equity_curve.to_frame("equity")
 
 
@@ -764,7 +764,9 @@ def rebuild_h6(art_dir: Path):
     base = scaled
     adv = volumes.rolling(20).mean().iloc[-1] if len(volumes) else None
     cfg = h6.make_futures_config(allow_short=not h6.LONG_ONLY)
-    result = run_rebuild_backtest(prices=prices, signals=target, volumes=volumes, adv=adv, config=cfg)
+    result = run_rebuild_backtest(
+        prices=prices, signals=target, volumes=volumes, adv=adv, config=cfg
+    )
     return base, target, result.equity_curve.to_frame("equity")
 
 

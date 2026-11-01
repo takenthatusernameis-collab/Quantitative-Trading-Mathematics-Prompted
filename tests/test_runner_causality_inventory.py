@@ -2385,6 +2385,7 @@ INVENTORY: dict[str, dict[str, tuple[str, str]]] = {
         "read_parquet": ("static", _ARG_IO),
         "read_json": ("static", _ARG_IO),
         "_frame_max_abs_diff": ("static", _ARG_METRIC),
+        "_screen_off_for": ("static", _ARG_CONFIG),
         "probe_collapse": (
             "static",
             "THE look-ahead detector: it measures the hold lag of a collapse construction. It "
@@ -2404,6 +2405,7 @@ INVENTORY: dict[str, dict[str, tuple[str, str]]] = {
         "rebuild_h6": ("static", _ARG_AUDIT),
         "rebuild_h7": ("static", _ARG_AUDIT),
         "rebuild_h8": ("static", _ARG_AUDIT),
+        "run_rebuild_backtest": ("static", _ARG_CONFIG),
         "audit_rebuild_family": ("static", _ARG_AUDIT),
         "audit_intraday_artifact": ("static", _ARG_AUDIT),
         "audit_inherited": ("static", _ARG_AUDIT),
