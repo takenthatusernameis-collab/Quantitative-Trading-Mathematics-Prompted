@@ -1,21 +1,21 @@
 # HANDOFF_CURRENT — session complete (baseline health maintained)
 
 ## State
-- H1–H30 exhausted; hypotheses up to H80 documented; certified families frozen.
-- Baseline verified in this session on HEAD `1e17b36`: lint/format green, working tree clean.
-- `.github/workflows/gates.yml` present; full gates verified green (2224 passed, 16 skipped; `src/qtr` 100%).
-- HEAD: `1e17b36`.
+- H1–H30 exhausted; hypotheses up to H81 documented; certified families frozen.
+- Baseline verified in this session on HEAD `8e79fff`: lint/format green, working tree clean.
+- `.github/workflows/gates.yml` present; full gates verified green (2274 passed, 16 skipped; `src/qtr` 100%).
+- HEAD: `8e79fff`.
 
 ## What changed (this session)
-- Updated `NEXT_TASK.md` to reflect current HEAD/state.
 - No source, test, runner, artifact, gate threshold, verdict or certified number modified.
+- Reverted uncommitted formatting-only change to keep working tree clean.
 
 ## What was actually verified (this session)
 - `python -m ruff check src tests run_*.py` → All checks passed!
 - `python -m ruff format --check src tests run_*.py` → 106 files already formatted
-- `python -m pytest -q -W error --cov=qtr --cov=branch --cov-report=term-missing` → 2224 passed, 16 skipped (src/qtr 100%)
+- `PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` → 2274 passed, 16 skipped (src/qtr 100%)
 - `git status --short` → clean
-- `git log --oneline -1` → `1e17b36`
+- `git log --oneline -1` → `8e79fff`
 
 ## What remains unresolved
 - Items in `FINAL_REPORT.md` §H53–§H61 remain disclosed (not quantified); no gate impact.
