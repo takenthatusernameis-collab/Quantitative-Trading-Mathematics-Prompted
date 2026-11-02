@@ -1,7 +1,7 @@
-# HANDOFF — session complete (baseline healthy on HEAD 3755254)
+# HANDOFF — session complete (baseline healthy on HEAD cec42f6)
 
 ## State
-- Working tree clean (`git status --short` empty). HEAD `3755254` on `main`; `main == origin/main` (up to date).
+- Working tree clean (`git status --short` empty). HEAD `cec42f6` on `main`; `main == origin/main` (up to date).
 - `.github/workflows/gates.yml` tracked in HEAD; CI gates present.
 - Package `qtr` not installed (bare clone). `PYTHONPATH=src` works.
 - H1–H30 exhausted; hypotheses up to H82 documented.
@@ -10,7 +10,7 @@
 - None to source/tests/runners/artifacts/gates/thresholds/verdicts/certified numbers. Handoff files updated to reflect current session state.
 
 ## What was actually verified
-- `git log --oneline -1` → `3755254`
+- `git log --oneline -1` → `cec42f6`
 - `git status --short` → empty
 - `python -m ruff check src tests run_*.py` → All checks passed!
 - `python -m ruff format --check src tests run_*.py` → 106 files already formatted

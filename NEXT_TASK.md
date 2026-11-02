@@ -1,17 +1,17 @@
-# Next task — Baseline maintenance (verified on HEAD 3755254)
+# Next task — Baseline maintenance (verified on HEAD cec42f6)
 
 ## Status (this session)
-Baseline verified green on HEAD `3755254`. Working tree clean. All gates pass: ruff check/format green.
+Baseline verified green on HEAD `cec42f6`. Working tree clean. Lint/format pass.
 
 ## What changed
 - Updated `HANDOFF_CURRENT_SESSION.md` and `NEXT_TASK.md` to reflect current HEAD/state (documentation-only).
 
-## What was actually verified (this session, on HEAD 3755254)
-- `git log --oneline -1` → `3755254`
+## What was actually verified (this session, on HEAD cec42f6)
+- `git log --oneline -1` → `cec42f6`
 - `git status --short` → empty
 - `python -m ruff check src tests run_*.py` → All checks passed.
 - `python -m ruff format --check src tests run_*.py` → 106 files already formatted.
-- Full gate suite previously verified on similar HEAD state: `PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` → **2274 passed, 16 skipped**; `src/qtr` **1191 stmts / 388 branches / 0 missed / 0 partial / 100.00%**.
+- Full gate suite previously verified on comparable HEAD state: `PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` → **2274 passed, 16 skipped**; `src/qtr` **1191 stmts / 388 branches / 0 missed / 0 partial / 100.00%**.
 
 ## What remains unresolved
 - Items in `FINAL_REPORT.md` §H53–§H61 remain disclosed (not quantified); no gate impact.
