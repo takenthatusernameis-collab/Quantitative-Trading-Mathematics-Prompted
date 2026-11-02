@@ -5178,6 +5178,80 @@ domain the arithmetic is bit-identical to before, so:
 - Items in §H53–§H61 remain disclosed (not quantified); no gate impact. H1–H30
   exhausted; certified families frozen.
 
+## H81 — `regime_analysis` and `capacity_estimate` fail closed on degenerate input (2026-11-02)
+
+**H81 is COMPLETE.** This is a **real defect in `src/qtr`**, found by exercising the
+package's own public API against the input classes the record already established
+(§H58/H61/H62). Both are the same class of defect as H60/H61/H62/H80: a defensive
+guard that had never been executed against the input that reaches it.
+
+### The defects
+
+`src/qtr/validation/statistics.py` carries two pure functions with no caller-side
+filter that walked straight into arithmetic on degenerate input:
+
+- **`regime_analysis` (statistics.py:473)** — a non-finite return (`inf`/`-inf`/
+  `nan`) reaching a pure function with no caller-side filter raised
+  `RuntimeWarning: invalid value encountered in subtract` under `pytest -W error`.
+  The guard is at statistics.py:512-514: empty or non-finite returns → `{}`.
+- **`capacity_estimate` (statistics.py:635)** — an empty return series (the
+  fetcher's documented "no data" path, fetcher.py:196) walked into the binary
+  search and reported a **positive capacity claim from no data**
+  (`max_participation_rate ~= 0.1`, `estimated_max_aum ~= adv * 0.1`); a
+  non-finite return did the same. The guard is at statistics.py:684-691: empty
+  or non-finite returns → the no-capacity tuple
+  (`current_sharpe`/`max_participation_rate`/`estimated_max_aum`/
+  `sharpe_at_max_aum` all `0.0`).
+
+### What changed
+
+- `src/qtr/validation/statistics.py` — a degenerate-input guard at the top of each
+  function, matching the fail-closed convention already established in
+  `sharpe_ratio` (§H62), `compare_to_benchmark` (§H61/§H79),
+  `stressed_cost_test` (§H60) and `statistical_power_analysis` (§H80). For every
+  input in the valid domain the arithmetic is bit-identical to before: the guard
+  only short-circuits the degenerate cases.
+- `tests/test_statistics.py` — **12 tests added** (142 → 154 at the time; the
+  module now carries **171** after §H82 restored it):
+  - `TestRegimeAnalysis`: `test_non_finite_returns_fail_closed` (parametrised over
+    `inf`/`-inf`/`nan`), `test_empty_returns_fail_closed`,
+    `test_the_contract_rejects_the_pre_fix_non_finite_subtract` (behavioural
+    negative control: the pre-fix loop raises the numpy warning the corrected
+    function swallows).
+  - `TestCapacityEstimate`: `test_empty_returns_fail_closed`,
+    `test_non_finite_returns_fail_closed` (parametrised),
+    `test_the_contract_rejects_the_pre_fix_empty_series_capacity` and
+    `test_the_contract_rejects_the_pre_fix_non_finite_capacity_claim`
+    (behavioural negative controls: the pre-fix body reports a positive
+    participation rate on the degenerate inputs the corrected function reports
+    zero for).
+
+### What was actually verified
+
+- Defects reproduced on HEAD before the change.
+- Negative controls: with the source reverted, **10 of the 12 new tests fail** on
+  the pre-fix code (the two valid-domain tests stay green); all pass with the
+  fix restored.
+- Valid domain bit-identical: `capacity_estimate` over a 400-bar finite series
+  matches the pre-fix output to 10 decimal places (`max_participation_rate`
+  8.03471e-05, `estimated_max_aum` 8034.7061157227); `regime_analysis` over a
+  400-bar two-regime series matches to 10 decimal places.
+- `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing`
+  → **2274 passed, 16 skipped**; `src/qtr` **1191 stmts / 388 branches / 0
+  missed / 0 partial / 100.00%** (+6 statements, no new branches, both covered).
+- `python -m ruff check src tests run_*.py` → **All checks passed!**
+- `python -m ruff format --check src tests run_*.py` → **106 files already
+  formatted** (one file was reformatted by the format gate; the check is now
+  clean).
+- No published artifact, gate threshold, verdict or certified number was
+  modified; no grid was re-run; no hypothesis was added beyond H81 itself.
+
+### What remains unresolved
+
+- The fix is uncommitted; committing requires explicit user approval.
+- Items in §H53–§H61 remain disclosed (not quantified); no gate impact. H1–H30
+  exhausted; certified families frozen.
+
 ## H82 — a mis-indented decorator had made `test_statistics.py` uncollectable (2026-11-02)
 
 **H82 is COMPLETE.** This is a **build-hygiene defect in the test suite itself**,

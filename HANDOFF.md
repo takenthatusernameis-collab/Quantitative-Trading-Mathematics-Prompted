@@ -1,78 +1,67 @@
-# HANDOFF — session complete (H81 fail-closed guards; baseline green on HEAD 91d0840)
+# HANDOFF — session complete (H81 documented in FINAL_REPORT.md; baseline green on HEAD 0e8394c)
 
 ## State
-- Repository at HEAD `91d0840` on `main`; working tree has **2 uncommitted file
-  modifications** (`src/qtr/validation/statistics.py`, `tests/test_statistics.py`).
-  Changes NOT committed (committing requires explicit user approval).
+- Repository at HEAD `0e8394c` on `main`; working tree has **1 uncommitted file
+  modification** (`FINAL_REPORT.md`). The change is a documentation-only
+  insertion; it does not touch source, tests, runners, artifacts, gates,
+  thresholds, verdicts or certified numbers.
 - `main == origin/main` (up to date). `.github/workflows/gates.yml` tracked in
   HEAD; CI gates present.
 - Package `qtr` not installed (bare clone). `PYTHONPATH=src` works.
-- H1–H30 exhausted; hypotheses up to H81 documented.
+- H1–H30 exhausted; hypotheses up to H82 documented.
 
 ## What changed (this session)
-- **H81 — `regime_analysis` and `capacity_estimate` fail closed on degenerate
-  input.** Two real defects in `src/qtr/validation/statistics.py`, found by
-  exercising the package's own public API against the input classes the
-  record already established (§H58/H61/H62). Both are the same class of defect
-  as H60/H61/H62/H80: a defensive guard that had never been executed against
-  the input that reaches it.
-  - `src/qtr/validation/statistics.py`:
-    - `regime_analysis` — a non-finite return (`inf`/`-inf`/`nan`) reaching a
-      pure function with no caller-side filter raised
-      `RuntimeWarning: invalid value encountered in subtract` under
-      `pytest -W error`. Guard added: empty or non-finite returns → `{}`.
-    - `capacity_estimate` — an empty return series (the fetcher's documented
-      "no data" path) walked into the binary search and reported a **positive
-      capacity claim from no data** (`max_participation_rate ~= 0.1`,
-      `estimated_max_aum ~= adv * 0.1`); a non-finite return did the same.
-      Guard added: empty or non-finite returns → the no-capacity tuple.
-  - `tests/test_statistics.py` — **12 tests added** (142 → 154):
-    - `TestRegimeAnalysis`: `test_non_finite_returns_fail_closed`
-      (parametrised over `inf`/`-inf`/`nan`), `test_empty_returns_fail_closed`,
-      `test_the_contract_rejects_the_pre_fix_non_finite_subtract` (behavioural
-      negative control: the pre-fix loop raises the numpy warning the
-      corrected function swallows).
-    - `TestCapacityEstimate`: `test_empty_returns_fail_closed`,
-      `test_non_finite_returns_fail_closed` (parametrised),
-      `test_the_contract_rejects_the_pre_fix_empty_series_capacity` and
-      `test_the_contract_rejects_the_pre_fix_non_finite_capacity_claim`
-      (behavioural negative controls: the pre-fix body reports a positive
-      participation rate on the degenerate inputs the corrected function
-      reports zero for).
+- **H81 now has its own standalone section in `FINAL_REPORT.md`.** Every sibling
+  hypothesis (H56–H80, H82) carries a `## Hxx` section in numeric order, but
+  H81 was described only *inside* the H82 section (FINAL_REPORT.md:5185, 5212,
+  5242), so the record's own index could not point at it. The new
+  `## H81 — regime_analysis and capacity_estimate fail closed on degenerate
+  input (2026-11-02)` section is inserted between H80 and H82 (FINAL_REPORT.md:5181)
+  and reproduces the defect, the fix, the tests, and the verification already
+  recorded in `HANDOFF.md`, grounded in the committed evidence (guard lines,
+  test names, 12 new tests, bit-identical valid-domain output, gate results).
+- Nothing under `src/qtr`, `tests/`, `run_*.py`, `requirements.txt` or
+  `pyproject.toml` changed. No artifact, gate threshold, verdict or certified
+  number moved.
 
 ## What was actually verified
-- Defects reproduced on HEAD before the change (evidence above).
-- Negative controls: with the source reverted, **10 of the 12 new tests fail**
-  on the pre-fix code (the two valid-domain tests stay green); all 154 pass
-  with the fix restored.
-- Valid domain bit-identical: `capacity_estimate` over a 400-bar finite series
-  matches the pre-fix output to 10 decimal places (`max_participation_rate`
-  8.03471e-05, `estimated_max_aum` 8034.7061157227); `regime_analysis` over a
-  400-bar two-regime series matches to 10 decimal places.
-- `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing`
-  → **2257 passed, 16 skipped** (was 2246; +11 are the new tests; the 16 skips
-  are unchanged and all intentional/self-declaring); `src/qtr`
-  **1184 stmts / 384 branches / 0 missed / 0 partial / 100.00%** (+6
-  statements, no new branches, both covered).
+- `git status --short` → only `FINAL_REPORT.md` modified.
 - `python -m ruff check src tests run_*.py` → **All checks passed!**
 - `python -m ruff format --check src tests run_*.py` → **106 files already
-  formatted** (one file was reformatted by the format gate; the check is now
-  clean).
-- No published artifact, gate threshold, verdict or certified number was
-  modified; no grid was re-run; no hypothesis was added beyond H81 itself.
+  formatted**
+- `PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch
+  --cov-report=term-missing` → **2274 passed, 16 skipped**; `src/qtr`
+  **1191 stmts / 388 branches / 0 missed / 0 partial / 100.00%** (identical to
+  the pre-session baseline).
+- The H81 section is in numeric order (H80 → H81 → H82) and is the only
+  `## H81` header in the file.
+- All 33 `run_*.py` files parse and import cleanly; all 2290 tests collect.
 
 ## What remains unresolved
-- The fix is uncommitted; committing requires explicit user approval.
+- The `FINAL_REPORT.md` edit is uncommitted; committing requires explicit user
+  approval.
 - Items in `FINAL_REPORT.md` §H53–§H61 remain disclosed (not quantified); no
   gate impact. H1–H30 exhausted; certified families frozen.
 
 ## Approaches already tried / failed
-- None this session. Both defects were fixed at the source with the smallest
-  reversible change (a guard at the top of each function), matching the
-  fail-closed convention already established in `sharpe_ratio` (§H62),
-  `compare_to_benchmark` (§H61/§H79), `stressed_cost_test` (§H60) and
-  `statistical_power_analysis` (§H80). No parallel execution, orchestration
-  redesign, or permission/safety weakening.
+- **Audit candidates rejected.** An explore subagent flagged two functions as
+  missing degenerate-input guards — `validate_strategy` (statistics.py:1111) and
+  `VectorizedBacktester._calculate_metrics` (engine.py:444). Both were tested
+  against the non-finite input classes and **rejected as false positives**:
+  their `profit_factor == np.inf` on a flat/zero/all-NaN series is the
+  *pinned boundary convention*, explicitly asserted at
+  `tests/test_engine_metric_agreement.py:271` (`assert
+  result.metrics["profit_factor"] == np.inf`), and the cross-module shared-metric
+  contract (`_assert_shared_metrics_agreement`) holds across every non-finite
+  input (nan/inf/-inf tail and mid-series bar, all-NaN, flat zeros) with both
+  implementations agreeing to the bit. Changing either would break that
+  contract and move a published boundary. No source change was made.
+- No other defect of the established class (H58/H61/H62) was found in
+  `src/qtr/strategies/baselines.py`, `src/qtr/data/fetcher.py`,
+  `src/qtr/tracking/experiment.py` or `src/qtr/utils/config.py`: the strategy
+  functions sanitize volatility and momentum before dividing, the fetcher
+  refuses non-positive prices and handles empty frames, and the tracker
+  degrades gracefully on missing git/metadata.
 
 ## One precise next task (with evidence and constraints)
 **Maintain baseline health.** No further code change needed now. On any future
@@ -90,7 +79,7 @@ Constraints:
 - Do not relax `fail_under`, drop `-W error`, or remove the format check.
 - Do not modify published artifacts, gate thresholds, verdicts, or certified
   numbers.
-- H1–H30 exhausted; hypotheses up to H81 documented.
+- H1–H30 exhausted; hypotheses up to H82 documented.
 - Keep package behavior consistent with src layout; do not commit build
   artifacts/secrets/caches.
 - Never commit without explicit user request.
