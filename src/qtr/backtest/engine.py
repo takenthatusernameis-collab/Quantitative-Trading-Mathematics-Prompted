@@ -48,13 +48,70 @@ class CostModel:
     crypto_slippage_bps_per_pct_daily_vol: float = 1.0
 
     def equity_cost_bps(self, spread_bps: float | None = None, adv_pct: float = 0.0) -> float:
-        """Total equity cost in basis points."""
+        """Total equity cost in basis points.
+
+        A cost is only defined on a finite, non-negative operand set, so any
+        operand that is non-finite (``inf``/``-inf``/``nan``) or negative is
+        rejected here rather than propagated into the sum:
+
+        * ``adv_pct`` is the market-impact multiplier's input. A non-finite
+          ``adv_pct`` (the H58/H61/H62 input class -- an ``inf``, a ``-inf``
+          or a ``nan`` reaching a pure method that has no caller to filter
+          for it) makes ``impact`` non-finite, and the cost the engine charges
+          on that bar becomes non-finite too. The engine builds ``adv_pct``
+          internally from ``shares_traded / adv[symbol]`` (engine.py:356),
+          so a non-finite price print (the H58 pathology: a zero or negative
+          close reaching ``prices.pct_change()``) or a zero ADV denominator
+          forwards a non-finite value straight here;
+        * a negative ``adv_pct`` or ``spread_bps`` is a sign error in the
+          caller's intent and would manufacture a *negative* cost -- a
+          subsidy, i.e. money added to the P&L on a trade, which is the
+          opposite of a cost and far worse than a zero.
+
+        The fail-closed value is ``0.0`` (no cost can be justified), matching
+        the way ``sharpe_ratio`` (§H62), ``compare_to_benchmark`` (§H61/§H79)
+        and ``capacity_estimate`` (§H81) fail closed on the same input class.
+        For every finite, non-negative input the arithmetic is bit-identical
+        to before: this guard only short-circuits the degenerate cases. See
+        tests/test_cost_model.py::TestCostModelDegenerateInput.
+        """
         spread = spread_bps if spread_bps is not None else self.equity_spread_bps
+        if not (
+            np.isfinite(spread)
+            and spread >= 0.0
+            and np.isfinite(adv_pct)
+            and adv_pct >= 0.0
+        ):
+            return 0.0
         impact = self.equity_impact_bps_per_pct_adv * adv_pct
         return self.equity_commission_bps + spread + impact
 
     def future_cost_per_contract(self, symbol: str | None = None) -> float:
-        """Total futures cost per contract in dollars for a given symbol."""
+        """Total futures cost per contract in dollars for a given symbol.
+
+        A per-contract cost is only defined on a finite, non-negative operand
+        set, so any operand that is non-finite (``inf``/``-inf``/``nan``) or
+        negative is rejected here rather than propagated into the sum:
+
+        * the four operands come from two places: the per-symbol
+          ``futures_specs`` override (a caller-supplied dict) and the
+          ``CostModel`` defaults. A spec that carries a non-finite value
+          (the H58/H61/H62 input class -- an ``inf``, a ``-inf`` or a
+          ``nan`` reaching a pure method that has no caller to filter for
+          it) makes ``tick_cost`` non-finite, and the cost the engine
+          charges on that symbol's trades becomes non-finite too;
+        * a negative operand is a sign error in the caller's intent and
+          would manufacture a *negative* cost -- a subsidy, i.e. money
+          added to the P&L on a trade, which is the opposite of a cost.
+
+        The fail-closed value is ``0.0`` (no cost can be justified),
+        matching the way ``sharpe_ratio`` (§H62), ``compare_to_benchmark``
+        (§H61/§H79), ``capacity_estimate`` (§H81) and ``equity_cost_bps``
+        (§H83) fail closed on the same input class. For every finite,
+        non-negative input the arithmetic is bit-identical to before: this
+        guard only short-circuits the degenerate cases. See
+        tests/test_cost_model.py::TestCostModelDegenerateInput.
+        """
         if symbol and symbol in self.futures_specs:
             spec = self.futures_specs[symbol]
             tick_value = spec.get("tick_value", self.future_tick_value)
@@ -66,6 +123,15 @@ class CostModel:
             spread_ticks = self.future_spread_ticks
             slippage_ticks = self.future_slippage_ticks
             commission = self.future_commission_per_contract
+        if not (
+            np.isfinite(tick_value)
+            and tick_value >= 0.0
+            and np.isfinite(spread_ticks)
+            and np.isfinite(slippage_ticks)
+            and np.isfinite(commission)
+            and commission >= 0.0
+        ):
+            return 0.0
         tick_cost = (spread_ticks + slippage_ticks) * tick_value
         return commission + tick_cost
 
@@ -76,7 +142,35 @@ class CostModel:
         return self.future_contract_multiplier
 
     def crypto_cost_bps(self, daily_vol_pct: float = 0.0) -> float:
-        """Total crypto cost in basis points."""
+        """Total crypto cost in basis points.
+
+        A cost is only defined on a finite, non-negative operand set, so any
+        operand that is non-finite (``inf``/``-inf``/``nan``) or negative is
+        rejected here rather than propagated into the sum:
+
+        * ``daily_vol_pct`` is the slippage multiplier's input. A non-finite
+          ``daily_vol_pct`` (the H58/H61/H62 input class -- an ``inf``, a
+          ``-inf`` or a ``nan`` reaching a pure method that has no caller
+          to filter for it) makes ``slippage`` non-finite, and the cost the
+          engine charges on that bar becomes non-finite too;
+        * a negative ``daily_vol_pct`` is a sign error in the caller's
+          intent and would manufacture a *negative* cost -- a subsidy, i.e.
+          money added to the P&L on a trade, which is the opposite of a
+          cost.
+
+        The fail-closed value is ``0.0`` (no cost can be justified),
+        matching the way ``sharpe_ratio`` (§H62), ``compare_to_benchmark``
+        (§H61/§H79), ``capacity_estimate`` (§H81), ``equity_cost_bps``
+        (§H83) and ``future_cost_per_contract`` (§H83) fail closed on the
+        same input class. For every finite, non-negative input the
+        arithmetic is bit-identical to before: this guard only
+        short-circuits the degenerate cases. See
+        tests/test_cost_model.py::TestCostModelDegenerateInput.
+        """
+        if not (
+            np.isfinite(daily_vol_pct) and daily_vol_pct >= 0.0
+        ):
+            return 0.0
         slippage = self.crypto_slippage_bps_per_pct_daily_vol * daily_vol_pct
         return self.crypto_fee_bps + self.crypto_spread_bps + slippage
 
