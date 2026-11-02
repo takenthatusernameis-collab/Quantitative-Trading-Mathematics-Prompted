@@ -5177,3 +5177,74 @@ domain the arithmetic is bit-identical to before, so:
 - The fix is uncommitted; committing requires explicit user approval.
 - Items in §H53–§H61 remain disclosed (not quantified); no gate impact. H1–H30
   exhausted; certified families frozen.
+
+## H82 — a mis-indented decorator had made `test_statistics.py` uncollectable (2026-11-02)
+
+**H82 is COMPLETE.** This is a **build-hygiene defect in the test suite itself**,
+found by running the pinned gates rather than by reasoning about the source. It
+blocked the module that carries the H81 fail-closed contract, so the H81 guard was
+unverified in CI even though its own tests were written.
+
+### The defect
+`tests/test_statistics.py:789` opened a method of `TestStressedCostTest` with its
+first `@pytest.mark.parametrize` decorator at **column 0** instead of indented
+inside the class:
+
+```python
+        }                                  # end of test_custom_stress_dict_...
+
+@pytest.mark.parametrize("rb", [np.inf, -np.inf, np.nan])   # <-- column 0
+    @pytest.mark.parametrize("rc", [np.inf, -np.inf, np.nan])
+    def test_both_inputs_non_finite_fail_closed(self, rb, rc):
+```
+
+Python's parser treats the column-0 decorator as a *module-level* decorator that
+must decorate a following class/function/async-def. The indented
+`@pytest.mark.parametrize("rc", ...)` is therefore `IndentationError: unexpected
+indent`, and the whole module fails at **collection time**:
+
+```
+ERROR tests/test_statistics.py
+IndentationError: unexpected indent
+```
+
+Every one of the module's **171 tests** was silently unrunnable -- including the
+H81 `TestRegimeAnalysis` and `TestCapacityEstimate` fail-closed contract, the
+behavioural negative controls that prove the pre-fix bodies were broken, and the
+valid-domain bit-identity tests. The defect was invisible to `ruff check` (lint
+does not parse decorators) and to every hypothesis that never re-ran this file.
+
+### The fix
+Re-indented the first decorator to 4 spaces, putting `test_both_inputs_non_finite_fail_closed`
+back inside `TestStressedCostTest`, and reformatted the two call sites the format gate
+then flagged (both were already correct; `ruff format` wanted them on one line):
+
+```python
+        }                                  # end of test_custom_stress_dict_...
+
+    @pytest.mark.parametrize("rb", [np.inf, -np.inf, np.nan])
+    @pytest.mark.parametrize("rc", [np.inf, -np.inf, np.nan])
+    def test_both_inputs_non_finite_fail_closed(self, rb, rc):
+        # Both inputs non-finite: the arithmetic ...
+        res = st.stressed_cost_test(np.array([0.001, rb, 0.001]), np.array([0.0001, rc, 0.0001]))
+        assert res == self._no_evidence()
+```
+
+### What was actually verified
+- Reproduced the failure before the change: `PYTHONPATH=src python -m pytest
+  tests/test_statistics.py` → `ERROR tests/test_statistics.py` / `IndentationError`.
+- After the fix: `python -m pytest tests/test_statistics.py -q` → **171 passed**.
+- `python -m ruff check src tests run_*.py` → **All checks passed!**
+- `python -m ruff format --check src tests run_*.py` → **106 files already formatted**
+  (was 105; the module now formats cleanly).
+- `PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing`
+  → **2274 passed, 16 skipped** (unchanged total; the 171 were already counted in
+  the H81 baseline -- they were just not *running*); `src/qtr`
+  **1191 stmts / 388 branches / 0 missed / 0 partial / 100.00%**.
+- No source, artifact, gate threshold, verdict or certified number was modified;
+  no grid was re-run; no hypothesis beyond H82 was added.
+
+### What remains unresolved
+- The fix is uncommitted; committing requires explicit user approval.
+- Items in §H53–§H61 remain disclosed (not quantified); no gate impact. H1–H30
+  exhausted; certified families frozen.

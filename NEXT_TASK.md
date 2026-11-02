@@ -1,16 +1,16 @@
-# Next task — Baseline maintenance (verified on HEAD 8e79fff)
+# Next task — Baseline maintenance (verified on HEAD c17c06c)
 
 ## Status (this session)
-Baseline verified green on HEAD `8e79fff`. H81 fail-closed guards committed in previous
-session (`bootstrap_confidence_interval`, `stressed_cost_test`); working tree clean.
+Baseline verified green on HEAD `c17c06c`. H82 fail-closed guard committed in previous
+session (`tests/test_statistics.py` indentation fix); working tree clean.
 All gates pass: ruff check/format green; full gates green (2274 passed, 16 skipped,
 100% coverage).
 
 ## What changed
-- No code changes in this session. Reverted formatting-only diff to keep working tree clean.
+- Restored `tests/test_statistics.py` to a collectable state (H82).
 
-## What was actually verified (this session, on HEAD 8e79fff)
-- `git status --short` → clean; HEAD `8e79fff` on `main`.
+## What was actually verified (this session, on HEAD c17c06c)
+- `git status --short` → clean after handoff edits; HEAD `c17c06c` on `main`.
 - `.github/workflows/gates.yml` present and tracked.
 - `python -m ruff check src tests run_*.py` → All checks passed.
 - `python -m ruff format --check src tests run_*.py` → 106 files already formatted.
@@ -37,6 +37,6 @@ Constraints:
 - Preserve `src/qtr` at 100% statement + branch coverage (`fail_under = 100`).
 - Do not relax `fail_under`, drop `-W error`, or remove the format check.
 - Do not modify published artifacts, gate thresholds, verdicts, or certified numbers.
-- H1–H30 exhausted; hypotheses up to H81 documented.
+- H1–H30 exhausted; hypotheses up to H82 documented.
 - Keep package behavior consistent with src layout; do not commit build artifacts/secrets/caches.
 - Never commit without explicit user request.

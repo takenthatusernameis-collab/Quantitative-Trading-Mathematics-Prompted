@@ -786,7 +786,7 @@ class TestStressedCostTest:
             "stressed_combined_return": 0.0,
         }
 
-@pytest.mark.parametrize("rb", [np.inf, -np.inf, np.nan])
+    @pytest.mark.parametrize("rb", [np.inf, -np.inf, np.nan])
     @pytest.mark.parametrize("rc", [np.inf, -np.inf, np.nan])
     def test_both_inputs_non_finite_fail_closed(self, rb, rc):
         # Both inputs non-finite: the arithmetic
@@ -795,9 +795,7 @@ class TestStressedCostTest:
         # ``RuntimeWarning: invalid value encountered in subtract`` out of a
         # function every caller treats as returning a dict. The corrected
         # function returns the no-evidence tuple.
-        res = st.stressed_cost_test(
-            np.array([0.001, rb, 0.001]), np.array([0.0001, rc, 0.0001])
-        )
+        res = st.stressed_cost_test(np.array([0.001, rb, 0.001]), np.array([0.0001, rc, 0.0001]))
         assert res == self._no_evidence()
 
     @pytest.mark.parametrize("bad", [np.inf, -np.inf, np.nan])
@@ -811,9 +809,7 @@ class TestStressedCostTest:
         assert st._fail_closed_annualized_mean(np.array([0.001, bad, 0.001])) == 0.0
         assert st._fail_closed_annualized_mean(np.array([])) == 0.0
         # A finite series is annualised unchanged.
-        assert st._fail_closed_annualized_mean(np.array([0.001] * 252)) == pytest.approx(
-            0.252
-        )
+        assert st._fail_closed_annualized_mean(np.array([0.001] * 252)) == pytest.approx(0.252)
 
     def test_the_contract_rejects_the_pre_fix_both_non_finite_subtract(self):
         """Negative control: reconstruct the pre-fix body and require that it
