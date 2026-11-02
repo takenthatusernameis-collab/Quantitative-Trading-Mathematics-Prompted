@@ -1,63 +1,29 @@
-# HANDOFF_CURRENT_SESSION — session complete (orphan placeholder removed; baseline green)
+# HANDOFF_CURRENT_SESSION — session complete (baseline verified)
 
 ## State
-- Working tree has **1 deletion** (`tests/test_h59_ablation_rederivation.py`), uncommitted.
-  HEAD `253a83b` on `main`; `main == origin/main` (up to date).
+- Working tree clean (`git status --short` empty). HEAD `38723d6` on `main`; `main == origin/main` (up to date).
 - `.github/workflows/gates.yml` tracked in HEAD; CI gates present.
 - Package `qtr` not installed (bare clone). `PYTHONPATH=src` works.
 - H1–H30 exhausted; hypotheses up to H82 documented.
 
 ## What changed
-- **`tests/test_h59_ablation_rederivation.py` deleted.** A 1-line orphan placeholder
-  (`"""H59 ablation re-derivation contract placeholder."""`) committed at `228b5cc`,
-  carrying **zero tests** and referenced by **nothing** in the tree. Its name
-  collided with the real H59 contract test
-  (`tests/test_h59_contamination_gate_blast_radius.py`, 93 tests), and the
-  "ablation re-derivation contract" it claimed to be already exists as
-  `tests/h55_rederivation.py` + `tests/test_h55_nested_metrics_disclosure.py`
-  (915 lines). It was the H82 class of defect (a committed file that promises a
-  contract and delivers nothing) and was invisible to every gate.
-- Nothing under `src/qtr`, `tests/` (other than the deletion), `run_*.py`,
-  `requirements.txt`, `pyproject.toml`, artifacts, gate thresholds, verdicts or
-  certified numbers changed. No grid was re-run.
+- None. Inspected repository state; no source/tests/runners/artifacts/gates/thresholds/verdicts/certified numbers modified.
 
 ## What was actually verified
-- `git log --oneline -1` → `253a83b`; `git status --short` → only the deletion.
 - `python -m ruff check src tests run_*.py` → **All checks passed!**
 - `python -m ruff format --check src tests run_*.py` → **105 files already formatted**
-  (was 106; the placeholder is gone).
-- `PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch
-  --cov-report=term-missing` → **2274 passed, 16 skipped**; `src/qtr`
-  **1191 stmts / 388 branches / 0 missed / 0 partial / 100.00%** — identical to
-  the pre-change baseline measured on the unchanged tree.
-- `pytest --collect-only -q` → **2290 tests collected**, unchanged (the
-  placeholder collected nothing: `no tests ran`).
+- `PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov=branch --cov-report=term-missing` → **2274 passed, 16 skipped**; `src/qtr` **1191 stmts / 388 branches / 0 missed / 0 partial / 100.00%** (required coverage reached).
+- `pytest --collect-only -q` → **2290 tests collected**.
 
 ## What remains unresolved
-- The deletion is uncommitted; committing requires explicit user approval.
-- Items in `FINAL_REPORT.md` §H53–§H61 remain disclosed (not quantified); no gate
-  impact. H1–H30 exhausted; certified families frozen.
+- Items in `FINAL_REPORT.md` §H53–§H61 remain disclosed (not quantified); no gate impact.
+- Older handoff files reference stale HEADs; treat as historical narrative.
 
-## Approaches already tried / failed
-- **No defect of the established class found in `src/qtr`.** Re-inspected
-  `statistics.py`, `engine.py` (`_calculate_metrics`, the empty-series guard at
-  engine.py:461), `fetcher.py` (all three fetch branches apply
-  `_reject_non_positive_prices`; the CCXT cache-hit and live paths both call it
-  at fetcher.py:357 and 435), `config.py` (finite-check at config.py:84) and
-  `baselines.py`. Every guard the H58/H61/H62 class requires is already present
-  and covered at 100%. The two functions previously flagged
-  (`validate_strategy`, `_calculate_metrics`) were tested and **rejected as
-  false positives** — their `profit_factor == np.inf` on a flat/zero series is
-  the pinned boundary convention asserted at
-  `tests/test_engine_metric_agreement.py:271`.
-- **The placeholder was the only artifact of this class left.** It was the one
-  committed file that promised a contract and delivered nothing, and the only
-  one that could be removed without moving a published number.
+## Approaches already failed
+- None this session. Baseline verified green.
 
-## One precise next task (with evidence and constraints)
-**Maintain baseline health.** No code change needed now. On any future change
-under `src/qtr`, `tests/`, `run_*.py`, `requirements.txt`, or `pyproject.toml`,
-run the pinned gates and confirm they stay green:
+## One precise next task
+**Maintain baseline health.** No further code change needed now. On any future change under `src/qtr`, `tests/`, `run_*.py`, `requirements.txt`, or `pyproject.toml`, run the pinned gates and confirm they stay green:
 
 ```bash
 python -m ruff check src tests run_*.py
@@ -68,11 +34,7 @@ PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=
 Constraints:
 - Preserve `src/qtr` at 100% statement + branch coverage (`fail_under = 100`).
 - Do not relax `fail_under`, drop `-W error`, or remove the format check.
-- Do not modify published artifacts, gate thresholds, verdicts, or certified
-  numbers.
+- Do not modify published artifacts, gate thresholds, verdicts, or certified numbers.
 - H1–H30 exhausted; hypotheses up to H82 documented.
-- Keep package behavior consistent with src layout; do not commit build
-  artifacts/secrets/caches.
+- Keep package behavior consistent with src layout; do not commit build artifacts/secrets/caches.
 - Never commit without explicit user request.
-
-(End of file - total 73 lines)
