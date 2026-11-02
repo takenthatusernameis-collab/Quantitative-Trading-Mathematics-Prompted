@@ -1,13 +1,13 @@
-# Next task — Baseline maintenance (verified on HEAD 228b5cc)
+# Next task — Baseline maintenance (verified on HEAD 3755254)
 
 ## Status (this session)
-Baseline verified green on HEAD `228b5cc`. Working tree clean. All gates pass: ruff check/format green.
+Baseline verified green on HEAD `3755254`. Working tree clean. All gates pass: ruff check/format green.
 
 ## What changed
-- Updated `HANDOFF_NEXT_SESSION.md` and `NEXT_TASK.md` to reflect current HEAD/state (documentation-only).
+- Updated `HANDOFF_CURRENT_SESSION.md` and `NEXT_TASK.md` to reflect current HEAD/state (documentation-only).
 
-## What was actually verified (this session, on HEAD 228b5cc)
-- `git log --oneline -1` → `228b5cc`
+## What was actually verified (this session, on HEAD 3755254)
+- `git log --oneline -1` → `3755254`
 - `git status --short` → empty
 - `python -m ruff check src tests run_*.py` → All checks passed.
 - `python -m ruff format --check src tests run_*.py` → 106 files already formatted.
