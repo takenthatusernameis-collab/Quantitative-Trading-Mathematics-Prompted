@@ -599,6 +599,60 @@ class TestRegimeAnalysis:
         res = st.regime_analysis(np.array([0.01]), np.array(["only"]))
         assert res == {}
 
+    # ------------------------------------------------------------------
+    # Degenerate inputs: fail closed, no warning, no exception.
+    # ------------------------------------------------------------------
+    @pytest.mark.parametrize("bad", [np.inf, -np.inf, np.nan])
+    def test_non_finite_returns_fail_closed(self, bad):
+        # The H58/H61/H62 input class: an `inf`, a `-inf` or a `nan` reaching
+        # a pure function that has no caller to filter for it. The old
+        # function walked into ``regime_returns.mean()`` / ``.std()`` on the
+        # non-finite regime and, under ``pytest -W error``, raised
+        # ``RuntimeWarning: invalid value encountered in subtract`` out of a
+        # function every caller treats as returning a dict. The fail-closed
+        # result is the empty dict: no regime, no metric, no evidence.
+        res = st.regime_analysis(
+            np.array([0.001, bad, 0.001, -0.001]),
+            np.array(["up", "up", "down", "down"]),
+        )
+        assert res == {}
+
+    def test_empty_returns_fail_closed(self):
+        # The fetcher's documented "no data" path returns an empty frame per
+        # symbol (fetcher.py:196), and a runner that passes every symbol
+        # through the engine hands an empty panel straight here. The old
+        # function returned an empty dict by construction (no regimes to
+        # iterate); the guard keeps that contract explicit rather than
+        # incidental.
+        assert st.regime_analysis(np.array([]), np.array([])) == {}
+
+    def test_the_contract_rejects_the_pre_fix_non_finite_subtract(self):
+        # Behavioural negative control: reconstruct the pre-fix loop (no
+        # ``isfinite`` screen) and require it to raise the numpy warning the
+        # corrected function swallows, proving the guard is what makes the
+        # call safe rather than merely lucky.
+        returns = np.array([0.001, np.inf, 0.001, -0.001])
+        labels = np.array(["up", "up", "down", "down"])
+
+        def pre_fix(returns, labels, metric_func=st.sharpe_ratio):
+            results = {}
+            for regime in np.unique(labels):
+                regime_returns = returns[labels == regime]
+                if len(regime_returns) > 1:
+                    results[f"regime_{regime}_sharpe"] = metric_func(regime_returns)
+                    results[f"regime_{regime}_count"] = len(regime_returns)
+                    results[f"regime_{regime}_mean"] = regime_returns.mean()
+                    results[f"regime_{regime}_std"] = regime_returns.std()
+            return results
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", RuntimeWarning)
+            with pytest.raises(RuntimeWarning):
+                pre_fix(returns, labels)
+
+        # And the corrected function returns the empty dict on the same input.
+        assert st.regime_analysis(returns, labels) == {}
+
 
 # ===========================================================================
 # stressed_cost_test
@@ -768,6 +822,118 @@ class TestCapacityEstimate:
 
         res = st.capacity_estimate(returns, adv=1_000_000.0, impact_model=impact)
         assert res["max_participation_rate"] > 0.0
+
+    # ------------------------------------------------------------------
+    # Degenerate inputs: fail closed, no warning, no exception.
+    # ------------------------------------------------------------------
+    def _no_capacity(self):
+        return {
+            "current_sharpe": 0.0,
+            "max_participation_rate": 0.0,
+            "estimated_max_aum": 0.0,
+            "sharpe_at_max_aum": 0.0,
+        }
+
+    def test_empty_returns_fail_closed(self):
+        # An empty return series is the fetcher's documented "no data" path
+        # (fetcher.py:196 returns an empty frame per symbol on a fetch
+        # failure, and a runner that passes every symbol through the engine
+        # hands that empty panel straight here). The old function walked
+        # into the binary search anyway and reported a **positive capacity
+        # claim from no data**: ``max_participation_rate ~= 0.1`` and
+        # ``estimated_max_aum ~= adv * 0.1``. The fail-closed result is the
+        # no-capacity tuple.
+        assert st.capacity_estimate(np.array([]), adv=1_000_000.0) == self._no_capacity()
+
+    @pytest.mark.parametrize("bad", [np.inf, -np.inf, np.nan])
+    def test_non_finite_returns_fail_closed(self, bad):
+        # The H58/H61/H62 input class: an `inf`, a `-inf` or a `nan` reaching
+        # a pure function that has no caller to filter for it. ``sharpe_ratio``
+        # already fails closed to 0.0 on it, so the pre-fix binary search did
+        # not raise -- it **converged to a positive participation rate** and
+        # the function reported a capacity it could not justify. The
+        # fail-closed result is the no-capacity tuple.
+        res = st.capacity_estimate(np.array([0.001, bad, 0.001]), adv=1_000_000.0)
+        assert res == self._no_capacity()
+
+    def test_the_contract_rejects_the_pre_fix_non_finite_capacity_claim(self):
+        # Behavioural negative control: reconstruct the pre-fix body (no
+        # degenerate-input guard) and require it to report a **positive**
+        # participation rate on a non-finite series -- a capacity claim
+        # manufactured from an impossible return -- while the corrected
+        # function reports zero. ``sharpe_ratio`` fails closed to 0.0 on the
+        # non-finite input, so the pre-fix path does not raise; the defect is
+        # the fabricated positive answer, not an exception.
+        def pre_fix(returns, adv, max_participation=0.1, impact_model=None):
+            if impact_model is None:
+
+                def impact_model(p):
+                    return 10 * np.sqrt(p / 0.01)
+
+            current_sharpe = st.sharpe_ratio(returns)
+            target_sharpe = current_sharpe * 0.5
+            low, high = 0.0, max_participation
+            for _ in range(20):
+                mid = (low + high) / 2
+                adj_sharpe = st.sharpe_ratio(returns - impact_model(mid) / 10000)
+                if adj_sharpe >= target_sharpe:
+                    low = mid
+                else:
+                    high = mid
+            rate = (low + high) / 2
+            return {
+                "current_sharpe": current_sharpe,
+                "max_participation_rate": rate,
+                "estimated_max_aum": rate * adv * 100,
+                "sharpe_at_max_aum": st.sharpe_ratio(returns - impact_model(rate) / 10000),
+            }
+
+        pre = pre_fix(np.array([0.001, np.inf, 0.001]), 1_000_000.0)
+        assert pre["max_participation_rate"] > 0.0
+        assert pre["estimated_max_aum"] > 0.0
+
+        # And the corrected function returns the no-capacity tuple.
+        assert (
+            st.capacity_estimate(np.array([0.001, np.inf, 0.001]), adv=1_000_000.0)
+            == self._no_capacity()
+        )
+
+    def test_the_contract_rejects_the_pre_fix_empty_series_capacity(self):
+        # Behavioural negative control: reconstruct the pre-fix body (no
+        # degenerate-input guard) and require it to report a positive
+        # participation rate on an empty series, proving the corrected
+        # function's zero is what makes the call safe rather than merely
+        # lucky.
+        def pre_fix(returns, adv, max_participation=0.1, impact_model=None):
+            if impact_model is None:
+
+                def impact_model(p):
+                    return 10 * np.sqrt(p / 0.01)
+
+            current_sharpe = st.sharpe_ratio(returns)
+            target_sharpe = current_sharpe * 0.5
+            low, high = 0.0, max_participation
+            for _ in range(20):
+                mid = (low + high) / 2
+                adj_sharpe = st.sharpe_ratio(returns - impact_model(mid) / 10000)
+                if adj_sharpe >= target_sharpe:
+                    low = mid
+                else:
+                    high = mid
+            rate = (low + high) / 2
+            return {
+                "current_sharpe": current_sharpe,
+                "max_participation_rate": rate,
+                "estimated_max_aum": rate * adv * 100,
+                "sharpe_at_max_aum": st.sharpe_ratio(returns - impact_model(rate) / 10000),
+            }
+
+        pre = pre_fix(np.array([]), 1_000_000.0)
+        assert pre["max_participation_rate"] > 0.0
+        assert pre["estimated_max_aum"] > 0.0
+
+        # And the corrected function returns the no-capacity tuple.
+        assert st.capacity_estimate(np.array([]), adv=1_000_000.0) == self._no_capacity()
 
 
 # ===========================================================================

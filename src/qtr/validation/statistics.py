@@ -450,6 +450,33 @@ def regime_analysis(
     Returns:
         Dictionary with per-regime metrics
     """
+    # Degenerate-input guard. The result is a per-regime dictionary, so it is
+    # only defined when there is at least one finite return to summarise:
+    #
+    # * an empty ``returns`` (or a length-mismatched ``regime_labels`` that
+    #   leaves nothing to mask) walks straight into ``returns[mask]`` over an
+    #   empty array and yields no regimes at all -- harmless in itself, but
+    #   the fail-closed result is the empty dict, the same one the
+    #   single-observation regime path returns (``len(regime_returns) < 2``),
+    #   so the two boundaries agree;
+    # * a non-finite return (the H58/H61/H62 input class -- an `inf`, a
+    #   `-inf` or a `nan` reaching a pure function that has no caller to
+    #   filter for it) is not a missing value, it is an impossible return.
+    #   ``regime_returns.mean()`` / ``.std()`` propagate it and, under
+    #   ``pytest -W error``, numpy raises ``RuntimeWarning: invalid value
+    #   encountered in subtract`` out of a function every caller treats as
+    #   returning a dict -- the same silent-void failure the guards in
+    #   ``sharpe_ratio`` (§H62), ``compare_to_benchmark`` (§H61/§H79) and
+    #   ``stressed_cost_test`` (§H60) already close for the same input class.
+    #   The fail-closed result is the empty dict: no regime, no metric, no
+    #   evidence. A caller iterating the keys sees nothing rather than a
+    #   per-regime statistic computed from an impossible return. For every
+    #   finite input the arithmetic is bit-identical to before. See
+    #   tests/test_statistics.py::TestRegimeAnalysis.
+    returns = np.asarray(returns, dtype=float)
+    if returns.size == 0 or not np.all(np.isfinite(returns)):
+        return {}
+
     unique_regimes = np.unique(regime_labels)
     results = {}
 
@@ -545,6 +572,46 @@ def capacity_estimate(
     Returns:
         Dictionary with capacity estimates
     """
+    # Degenerate-input guard. Capacity is a claim about how much capital the
+    # strategy can take before its edge decays, and it is only defined when
+    # there is a return series to measure that edge from:
+    #
+    # * an empty ``returns`` is the fetcher's documented "no data" path
+    #   (fetcher.py:196 returns an empty frame per symbol on a fetch failure,
+    #   and a runner that passes every symbol through the engine hands that
+    #   empty panel straight here). Without a guard the function walks into
+    #   the binary search anyway: ``current_sharpe`` is 0.0 (the
+    #   ``sharpe_ratio`` empty-series convention), but the search still
+    #   converges to ``max_participation_rate ~= 0.1`` and
+    #   ``estimated_max_aum ~= adv * 0.1`` -- a **positive capacity claim
+    #   manufactured from no data**, exactly the silent-void failure the
+    #   fail-closed convention exists to prevent.
+    # * a non-finite return (the H58/H61/H62 input class -- an `inf`, a
+    #   `-inf` or a `nan` reaching a pure function that has no caller to
+    #   filter for it) is not a missing value, it is an impossible return.
+    #   ``sharpe_ratio`` already fails closed to 0.0 on it, but the binary
+    #   search still converges to a positive participation rate and the
+    #   function reports a capacity it cannot justify. Under
+    #   ``pytest -W error`` the reduction of a non-finite series also raises
+    #   ``RuntimeWarning: invalid value encountered in subtract`` out of a
+    #   function every caller treats as returning a dict.
+    #
+    # The fail-closed result is the no-capacity tuple: zero current Sharpe,
+    # zero participation, zero AUM, zero Sharpe at the (non-existent) max
+    # AUM. A caller gating on ``estimated_max_aum`` fails closed, and a
+    # caller iterating the keys sees no capacity rather than a fabricated
+    # one. For every finite, non-empty input the arithmetic is
+    # bit-identical to before: the guard only short-circuits the degenerate
+    # cases. See tests/test_statistics.py::TestCapacityEstimate.
+    returns = np.asarray(returns, dtype=float)
+    if returns.size == 0 or not np.all(np.isfinite(returns)):
+        return {
+            "current_sharpe": 0.0,
+            "max_participation_rate": 0.0,
+            "estimated_max_aum": 0.0,
+            "sharpe_at_max_aum": 0.0,
+        }
+
     if impact_model is None:
         # Simple square-root impact model
         def impact_model(p):
