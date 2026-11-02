@@ -2385,6 +2385,17 @@ INVENTORY: dict[str, dict[str, tuple[str, str]]] = {
         "read_parquet": ("static", _ARG_IO),
         "read_json": ("static", _ARG_IO),
         "_frame_max_abs_diff": ("static", _ARG_METRIC),
+        "_screen_off_for": (
+            "static",
+            "Temporarily disables the non-positive-price screen for rebuilds of families "
+            "that reproduce published artifacts containing a disclosed pathology; restores "
+            "state afterwards.",
+        ),
+        "run_rebuild_backtest": (
+            "static",
+            "Wrapper around run_backtest that gates non-positive-price screening by family "
+            "and records the decision explicitly.",
+        ),
         "probe_collapse": (
             "static",
             "THE look-ahead detector: it measures the hold lag of a collapse construction. It "
