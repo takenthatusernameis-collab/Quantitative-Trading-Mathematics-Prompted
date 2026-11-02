@@ -1,67 +1,65 @@
-# HANDOFF — session complete (H81 documented in FINAL_REPORT.md; baseline green on HEAD 0e8394c)
+# HANDOFF — session complete (orphan placeholder removed; baseline green)
 
 ## State
-- Repository at HEAD `0e8394c` on `main`; working tree has **1 uncommitted file
-  modification** (`FINAL_REPORT.md`). The change is a documentation-only
-  insertion; it does not touch source, tests, runners, artifacts, gates,
-  thresholds, verdicts or certified numbers.
-- `main == origin/main` (up to date). `.github/workflows/gates.yml` tracked in
-  HEAD; CI gates present.
+- Working tree has **1 deletion** (`tests/test_h59_ablation_rederivation.py`), uncommitted.
+  Everything else clean. HEAD `253a83b` on `main`; `main == origin/main`.
+- `.github/workflows/gates.yml` tracked in HEAD; CI gates present.
 - Package `qtr` not installed (bare clone). `PYTHONPATH=src` works.
-- H1–H30 exhausted; hypotheses up to H82 documented.
+- H1–H30 exhausted; hypotheses up to H82 documented in FINAL_REPORT.md.
 
 ## What changed (this session)
-- **H81 now has its own standalone section in `FINAL_REPORT.md`.** Every sibling
-  hypothesis (H56–H80, H82) carries a `## Hxx` section in numeric order, but
-  H81 was described only *inside* the H82 section (FINAL_REPORT.md:5185, 5212,
-  5242), so the record's own index could not point at it. The new
-  `## H81 — regime_analysis and capacity_estimate fail closed on degenerate
-  input (2026-11-02)` section is inserted between H80 and H82 (FINAL_REPORT.md:5181)
-  and reproduces the defect, the fix, the tests, and the verification already
-  recorded in `HANDOFF.md`, grounded in the committed evidence (guard lines,
-  test names, 12 new tests, bit-identical valid-domain output, gate results).
-- Nothing under `src/qtr`, `tests/`, `run_*.py`, `requirements.txt` or
-  `pyproject.toml` changed. No artifact, gate threshold, verdict or certified
-  number moved.
+- **`tests/test_h59_ablation_rederivation.py` deleted.** It was a 1-line orphan
+  placeholder (`"""H59 ablation re-derivation contract placeholder."""`) committed
+  at `228b5cc`, carrying **zero tests** and referenced by **nothing** in the tree.
+  Its name collided with the real H59 contract test
+  (`tests/test_h59_contamination_gate_blast_radius.py`, 93 tests), and the
+  "ablation re-derivation contract" it claimed to be already exists as
+  `tests/h55_rederivation.py` + `tests/test_h55_nested_metrics_disclosure.py`
+  (915 lines). It is the H82 class of defect (a committed file that promises a
+  contract and delivers nothing) and was invisible to every gate.
+- Nothing under `src/qtr`, `tests/` (other than the deletion), `run_*.py`,
+  `requirements.txt`, `pyproject.toml`, artifacts, gate thresholds, verdicts or
+  certified numbers changed. No grid was re-run.
 
 ## What was actually verified
-- `git status --short` → only `FINAL_REPORT.md` modified.
+- `git status --short` → only the deletion.
+- Pre-change baseline: `PYTHONPATH=src python -m pytest -q -W error --cov=qtr
+  --cov-branch --cov-report=term-missing` → **2274 passed, 16 skipped**; `src/qtr`
+  **1191 stmts / 388 branches / 0 missed / 0 partial / 100.00%**.
+- After the deletion, full pin gate re-run → **2274 passed, 16 skipped**;
+  `src/qtr` **1191 stmts / 388 branches / 0 missed / 0 partial / 100.00%**
+  (identical to the pre-change baseline).
+- `pytest --collect-only -q` → **2290 tests collected**, unchanged (the
+  placeholder collected nothing).
 - `python -m ruff check src tests run_*.py` → **All checks passed!**
-- `python -m ruff format --check src tests run_*.py` → **106 files already
-  formatted**
-- `PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch
-  --cov-report=term-missing` → **2274 passed, 16 skipped**; `src/qtr`
-  **1191 stmts / 388 branches / 0 missed / 0 partial / 100.00%** (identical to
-  the pre-session baseline).
-- The H81 section is in numeric order (H80 → H81 → H82) and is the only
-  `## H81` header in the file.
-- All 33 `run_*.py` files parse and import cleanly; all 2290 tests collect.
+- `python -m ruff format --check src tests run_*.py` → **105 files already
+  formatted** (was 106; the placeholder is gone).
+- No test, source file, artifact, gate threshold, verdict or certified number
+  moved.
 
 ## What remains unresolved
-- The `FINAL_REPORT.md` edit is uncommitted; committing requires explicit user
-  approval.
-- Items in `FINAL_REPORT.md` §H53–§H61 remain disclosed (not quantified); no
-  gate impact. H1–H30 exhausted; certified families frozen.
+- The deletion is uncommitted; committing requires explicit user approval.
+- Items in `FINAL_REPORT.md` §H53–§H61 remain disclosed (not quantified); no gate
+  impact. H1–H30 exhausted; certified families frozen.
 
 ## Approaches already tried / failed
-- **Audit candidates rejected.** An explore subagent flagged two functions as
-  missing degenerate-input guards — `validate_strategy` (statistics.py:1111) and
-  `VectorizedBacktester._calculate_metrics` (engine.py:444). Both were tested
-  against the non-finite input classes and **rejected as false positives**:
-  their `profit_factor == np.inf` on a flat/zero/all-NaN series is the
-  *pinned boundary convention*, explicitly asserted at
-  `tests/test_engine_metric_agreement.py:271` (`assert
-  result.metrics["profit_factor"] == np.inf`), and the cross-module shared-metric
-  contract (`_assert_shared_metrics_agreement`) holds across every non-finite
-  input (nan/inf/-inf tail and mid-series bar, all-NaN, flat zeros) with both
-  implementations agreeing to the bit. Changing either would break that
-  contract and move a published boundary. No source change was made.
-- No other defect of the established class (H58/H61/H62) was found in
-  `src/qtr/strategies/baselines.py`, `src/qtr/data/fetcher.py`,
-  `src/qtr/tracking/experiment.py` or `src/qtr/utils/config.py`: the strategy
-  functions sanitize volatility and momentum before dividing, the fetcher
-  refuses non-positive prices and handles empty frames, and the tracker
-  degrades gracefully on missing git/metadata.
+- **No defect of the established class found in `src/qtr`.** Re-inspected
+  `statistics.py` (`regime_analysis`, `capacity_estimate`, `sharpe_ratio`,
+  `compare_to_benchmark`, `statistical_power_analysis`, `validate_strategy`,
+  `stressed_cost_test`), `engine.py` (`_calculate_metrics`, the empty-series
+  guard at engine.py:461), `fetcher.py` (all three fetch branches apply
+  `_reject_non_positive_prices`; the CCXT cache-hit and live paths both call it
+  at fetcher.py:357 and 435), `config.py` (finite-check in `_set_nested` at
+  config.py:84) and `baselines.py`. Every guard the H58/H61/H62 class requires
+  is already present and covered at 100%. The two functions an explore subagent
+  previously flagged (`validate_strategy`, `_calculate_metrics`) were tested
+  and **rejected as false positives** — their `profit_factor == np.inf` on a
+  flat/zero series is the pinned boundary convention asserted at
+  `tests/test_engine_metric_agreement.py:271`, and the cross-module
+  shared-metric contract holds across every non-finite input.
+- **The placeholder was the only artifact of this class left.** It was the one
+  committed file that promised a contract and delivered nothing, and the only
+  one that could be removed without moving a published number.
 
 ## One precise next task (with evidence and constraints)
 **Maintain baseline health.** No further code change needed now. On any future
@@ -84,4 +82,4 @@ Constraints:
   artifacts/secrets/caches.
 - Never commit without explicit user request.
 
-(End of file)
+(End of file - total 87 lines)
