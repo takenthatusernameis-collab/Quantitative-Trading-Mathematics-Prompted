@@ -31,8 +31,44 @@ def bootstrap_confidence_interval(
     """
     rng = np.random.default_rng(random_state)
 
+    # Reduce to a plain float ndarray once, here. Every statistic below is
+    # then a function of the data alone and not of the container the caller
+    # happened to pass (a ``pandas.Series`` and a ``numpy.ndarray`` holding
+    # the same numbers produce the same interval). The conversion also makes
+    # the ``np.isfinite`` screen below well defined for an object array,
+    # which would otherwise raise ``TypeError`` inside the ufunc.
+    data = np.asarray(data, dtype=float)
+
     n = len(data)
     if n == 0:
+        return (np.nan, np.nan)
+
+    # Non-finite-data guard. The interval is the empirical percentiles of
+    # ``n_bootstrap`` resamples, so it is only defined on a set of finite
+    # observations:
+    #
+    # * a non-finite element (the H58/H61/H62 input class -- an `inf`, a
+    #   `-inf` or a `nan` reaching a pure function that has no caller to
+    #   filter for it) is not a missing value, it is an impossible
+    #   observation. The resample draws it into ``bootstrap_stats`` and
+    #   ``np.percentile`` then interpolates across it: numpy's quantile
+    #   linear interpolation computes ``b - a`` between adjacent order
+    #   statistics and raises ``RuntimeWarning: invalid value encountered
+    #   in scalar subtract`` whenever one of the pair is non-finite. Under
+    #   ``pytest -W error`` that warning becomes an error out of a
+    #   function every caller treats as returning a tuple of two floats.
+    #   The result is also internally inconsistent -- an `inf` input
+    #   returns one finite bound and one `nan` bound (measured:
+    #   ``bootstrap([inf, 1, 2])`` -> ``(1.158, nan)``), so a caller reading
+    #   the interval sees half an answer and half a void.
+    #
+    # The fail-closed result is ``(nan, nan)`` -- the same tuple the
+    # empty-data path returns, so a caller reading the bounds sees "no
+    # evidence" rather than a half-finite interval or an exception. For
+    # every finite input the arithmetic is bit-identical to before: the
+    # guard only short-circuits the degenerate cases. See
+    # tests/test_statistics.py::TestBootstrapConfidenceInterval.
+    if not np.all(np.isfinite(data)):
         return (np.nan, np.nan)
 
     # Degenerate-bootstrap guard. The interval is the empirical percentiles
@@ -534,6 +570,48 @@ def stressed_cost_test(
             "slippage": 2.0,
             "impact": 5.0,
         }
+
+    # Reduce both inputs to plain float ndarrays once, here. Every arithmetic
+    # below is then a function of the data alone and not of the container the
+    # caller happened to pass (a ``pandas.Series`` and a ``numpy.ndarray``
+    # holding the same numbers produce the same stressed metrics). The
+    # conversion also makes the ``np.isfinite`` screen below well defined for
+    # an object array, which would otherwise raise ``TypeError`` inside the
+    # ufunc.
+    base_returns = np.asarray(base_returns, dtype=float)
+    base_costs = np.asarray(base_costs, dtype=float)
+
+    # Non-finite-input guard. A stress test is only defined on a set of finite
+    # gross returns and finite costs:
+    #
+    # * a non-finite element in EITHER input (the H58/H61/H62 input class --
+    #   an `inf`, a `-inf` or a `nan` reaching a pure function that has no
+    #   caller to filter for it) is not a missing value, it is an impossible
+    #   return or cost. The arithmetic below walks it straight into
+    #   ``base_returns - base_costs * mult`` and numpy raises
+    #   ``RuntimeWarning: invalid value encountered in subtract`` out of every
+    #   stressor's stressed-returns series. Under ``pytest -W error`` that
+    #   warning becomes an error out of a function every caller treats as
+    #   returning a dict. The result was also internally inconsistent by
+    #   accident rather than by contract: ``_fail_closed_annualized_mean``
+    #   already fails closed to 0.0 on a non-finite series, so each entry
+    #   reported a 0.0 Sharpe alongside a 0.0 return -- the no-evidence tuple
+    #   -- but only because the return helper swallowed the warning the
+    #   subtraction emitted in the first place.
+    #
+    # The fail-closed result is the no-evidence tuple: every stressor's Sharpe
+    # and return are 0.0, and the combined stressor's are 0.0 too, so a caller
+    # gating on any of them fails closed. For every finite input the
+    # arithmetic is bit-identical to before: the guard only short-circuits the
+    # degenerate cases. See tests/test_statistics.py::TestStressedCostTest.
+    if (base_returns.size > 0 and not np.all(np.isfinite(base_returns))) or (
+        base_costs.size > 0 and not np.all(np.isfinite(base_costs))
+    ):
+        return (
+            {f"stressed_{k}_sharpe": 0.0 for k in stress_multipliers}
+            | {f"stressed_{k}_return": 0.0 for k in stress_multipliers}
+            | {"stressed_combined_sharpe": 0.0, "stressed_combined_return": 0.0}
+        )
 
     results = {}
     for name, mult in stress_multipliers.items():

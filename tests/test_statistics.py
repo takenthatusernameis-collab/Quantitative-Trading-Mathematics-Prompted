@@ -172,6 +172,61 @@ class TestBootstrapConfidenceInterval:
         assert lo >= data.min() - 1e-12
         assert hi <= data.max() + 1e-12
 
+    @pytest.mark.parametrize("bad", [np.inf, -np.inf, np.nan])
+    def test_non_finite_data_fail_closed(self, bad):
+        # The H58/H61/H62 input class: an `inf`, a `-inf` or a `nan` reaching
+        # a pure function that has no caller to filter for it. The resample
+        # draws the bad element into ``bootstrap_stats`` and ``np.percentile``
+        # then interpolates across it, raising
+        # ``RuntimeWarning: invalid value encountered in scalar subtract`` out
+        # of a function every caller treats as returning a tuple of two
+        # floats. The result was also internally inconsistent by accident:
+        # ``bootstrap([inf, 1, 2])`` returned ``(1.158, nan)`` -- one finite
+        # bound and one void -- so a caller reading the interval saw half an
+        # answer.
+        lo, hi = st.bootstrap_confidence_interval(
+            np.array([1.0, 2.0, 3.0, bad]), n_bootstrap=20, random_state=42
+        )
+        assert np.isnan(lo) and np.isnan(hi), f"bad={bad}"
+
+    def test_the_contract_rejects_the_pre_fix_non_finite_subtract(self):
+        """Negative control: reconstruct the pre-fix body and require that it
+        emits the warning and the half-finite interval this contract exists to
+        prevent. The corrected function returns ``(nan, nan)`` on every
+        non-finite input."""
+
+        def pre_fix(data, statistic=np.mean, confidence=0.95, n_bootstrap=1000, random_state=None):
+            rng = np.random.default_rng(random_state)
+            n = len(data)
+            if n == 0:
+                return (np.nan, np.nan)
+            if n_bootstrap <= 0 or not (0.0 < confidence <= 1.0):
+                return (np.nan, np.nan)
+            bootstrap_stats = []
+            for _ in range(n_bootstrap):
+                sample = data[rng.integers(0, n, n)]
+                bootstrap_stats.append(statistic(sample))
+            alpha = (1 - confidence) / 2
+            lower = np.percentile(bootstrap_stats, 100 * alpha)
+            upper = np.percentile(bootstrap_stats, 100 * (1 - alpha))
+            return (lower, upper)
+
+        data = np.array([1.0, 2.0, 3.0, np.inf])
+        # The pre-fix body emits the numpy warning the corrected function
+        # swallows.
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            lo, hi = pre_fix(data, n_bootstrap=20, random_state=42)
+        assert any(
+            issubclass(w.category, RuntimeWarning) and "subtract" in str(w.message) for w in caught
+        )
+        # And it returns a half-finite interval: one bound finite, one void.
+        assert np.isfinite(lo) and np.isnan(hi)
+
+        # The corrected function returns the no-evidence tuple instead.
+        lo, hi = st.bootstrap_confidence_interval(data, n_bootstrap=20, random_state=42)
+        assert np.isnan(lo) and np.isnan(hi)
+
 
 # ===========================================================================
 # sharpe_ratio / sharpe_ratio_ci
@@ -730,6 +785,81 @@ class TestStressedCostTest:
             "stressed_combined_sharpe": 0.0,
             "stressed_combined_return": 0.0,
         }
+
+@pytest.mark.parametrize("rb", [np.inf, -np.inf, np.nan])
+    @pytest.mark.parametrize("rc", [np.inf, -np.inf, np.nan])
+    def test_both_inputs_non_finite_fail_closed(self, rb, rc):
+        # Both inputs non-finite: the arithmetic
+        # ``base_returns - base_costs * mult`` walks the non-finite value into
+        # every stressor's stressed-returns series and numpy raises
+        # ``RuntimeWarning: invalid value encountered in subtract`` out of a
+        # function every caller treats as returning a dict. The corrected
+        # function returns the no-evidence tuple.
+        res = st.stressed_cost_test(
+            np.array([0.001, rb, 0.001]), np.array([0.0001, rc, 0.0001])
+        )
+        assert res == self._no_evidence()
+
+    @pytest.mark.parametrize("bad", [np.inf, -np.inf, np.nan])
+    def test_fail_closed_annualized_mean_helper(self, bad):
+        # The ``_fail_closed_annualized_mean`` helper is the return half of
+        # every stressor entry. It must fail closed to 0.0 on a non-finite
+        # series with no warning and no exception, independently of the
+        # ``stressed_cost_test`` guard above (which now short-circuits before
+        # the helper is reached, so the helper needs its own direct test to
+        # keep the branch covered).
+        assert st._fail_closed_annualized_mean(np.array([0.001, bad, 0.001])) == 0.0
+        assert st._fail_closed_annualized_mean(np.array([])) == 0.0
+        # A finite series is annualised unchanged.
+        assert st._fail_closed_annualized_mean(np.array([0.001] * 252)) == pytest.approx(
+            0.252
+        )
+
+    def test_the_contract_rejects_the_pre_fix_both_non_finite_subtract(self):
+        """Negative control: reconstruct the pre-fix body and require that it
+        emits the numpy warning this contract exists to prevent. The
+        corrected function returns the no-evidence tuple on both-non-finite
+        input."""
+
+        def pre_fix(base_returns, base_costs, stress_multipliers=None):
+            if stress_multipliers is None:
+                stress_multipliers = {
+                    "commission": 2.0,
+                    "spread": 2.0,
+                    "slippage": 2.0,
+                    "impact": 5.0,
+                }
+            results = {}
+            for name, mult in stress_multipliers.items():
+                stressed_costs = base_costs * mult
+                stressed_returns = base_returns - stressed_costs
+                results[f"stressed_{name}_sharpe"] = st.sharpe_ratio(stressed_returns)
+                results[f"stressed_{name}_return"] = stressed_returns.mean() * 252
+            total_stress = sum(stress_multipliers.values()) / len(stress_multipliers)
+            combined_costs = base_costs * total_stress
+            combined_returns = base_returns - combined_costs
+            results["stressed_combined_sharpe"] = st.sharpe_ratio(combined_returns)
+            results["stressed_combined_return"] = combined_returns.mean() * 252
+            return results
+
+        # The pre-fix body emits the numpy warning the corrected function
+        # swallows, and its `return` half is non-finite alongside a 0.0 Sharpe.
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            pf = pre_fix(np.array([0.001, np.inf, 0.001]), np.array([0.0001, np.inf, 0.0001]))
+        assert any(
+            issubclass(w.category, RuntimeWarning) and "subtract" in str(w.message) for w in caught
+        )
+        assert not np.isfinite(pf["stressed_commission_return"])
+        assert pf["stressed_commission_sharpe"] == 0.0
+
+        # The corrected function returns the no-evidence tuple instead.
+        assert (
+            st.stressed_cost_test(
+                np.array([0.001, np.inf, 0.001]), np.array([0.0001, np.inf, 0.0001])
+            )
+            == self._no_evidence()
+        )
 
     def test_the_contract_rejects_the_pre_fix_behaviour(self):
         """Negative control: reconstruct the pre-fix function body and require
