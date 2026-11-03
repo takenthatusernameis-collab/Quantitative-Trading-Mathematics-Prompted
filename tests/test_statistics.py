@@ -961,6 +961,7 @@ class TestCapacityEstimate:
             "estimated_max_aum": 0.0,
             "sharpe_at_max_aum": 0.0,
         }
+
     def test_custom_impact_model_used(self, rng):
         returns = rng.normal(0.001, 0.01, 400)
 
