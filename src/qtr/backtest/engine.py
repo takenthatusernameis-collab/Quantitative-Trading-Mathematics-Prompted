@@ -580,6 +580,33 @@ class VectorizedBacktester:
                 "calmar": np.inf,
             }
 
+        # Non-finite-input guard: a return series carrying an inf, -inf or nan
+        # bar is not a missing value -- it is an impossible return (the
+        # H58/H61/H62 input class, reachable whenever a runner builds a return
+        # series from ``prices.pct_change()`` and a price crosses zero or a roll
+        # gap is unbounded). The arithmetic below propagates that value into
+        # total_return, volatility, drawdown and profit factor, where it
+        # disagrees with validate_strategy's fail-closed boundary values
+        # (statistics.py:1204) and breaks the cross-module contract in
+        # tests/test_engine_metric_agreement.py. Short-circuit here so every
+        # shared metric reports the same boundary value as validation on this
+        # input. For every finite input the arithmetic is bit-identical to
+        # before: this guard only short-circuits the degenerate cases.
+        if not np.all(np.isfinite(returns.to_numpy(dtype=float))):
+            return {
+                "total_return": 0.0,
+                "annualized_return": 0.0,
+                "annualized_volatility": 0.0,
+                "sharpe": 0.0,
+                "sortino": 0.0,
+                "max_drawdown": 0.0,
+                "max_drawdown_duration": 0,
+                "profit_factor": 1.0,
+                "num_trades": len(trades),
+                "avg_trade_cost": 0.0,
+                "calmar": np.inf,
+            }
+
         # Basic returns
         # The total return is measured from the INITIAL capital to the final
         # equity, so it spans every bar of the return series (n_periods
