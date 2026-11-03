@@ -84,12 +84,35 @@ class CostModel:
         # the Python ``and``.  Every finite, non-negative input is bit-identical
         # to before; only the degenerate branches change, and they fail closed
         # to 0.0.
+        adv_is_series = isinstance(adv_pct, pd.Series)
+        spread_is_series = isinstance(spread, pd.Series)
+        if adv_is_series or spread_is_series:
+            adv_s = adv_pct.copy() if adv_is_series else pd.Series(adv_pct)
+            spread_s = spread.copy() if spread_is_series else pd.Series(spread, index=adv_s.index)
+            if adv_is_series and not spread_is_series:
+                spread_s = pd.Series(spread, index=adv_s.index)
+            if spread_is_series and not adv_is_series:
+                adv_s = pd.Series(adv_pct, index=spread_s.index)
+            valid = np.isfinite(spread_s) & (spread_s >= 0.0) & np.isfinite(adv_s) & (adv_s >= 0.0)
+            if not bool(valid.all()):
+                adv_s = adv_s.where(valid, 0.0)
+                spread_s = spread_s.where(valid, 0.0)
+            impact = self.equity_impact_bps_per_pct_adv * adv_s
+            res = self.equity_commission_bps + spread_s + impact
+            if adv_is_series or spread_is_series:
+                return res
         valid = np.isfinite(spread) & (spread >= 0.0) & np.isfinite(adv_pct) & (adv_pct >= 0.0)
         if np.isscalar(valid):
             if not valid:
                 return 0.0
         else:
-            adv_pct = adv_pct.where(valid, 0.0)
+            adv_s = pd.Series(adv_pct)
+            spread_s = pd.Series(spread, index=adv_s.index)
+            valid2 = np.isfinite(spread_s) & (spread_s >= 0.0) & np.isfinite(adv_s) & (adv_s >= 0.0)
+            adv_s = adv_s.where(valid2, 0.0)
+            spread_s = spread_s.where(valid2, 0.0)
+            impact = self.equity_impact_bps_per_pct_adv * adv_s
+            return self.equity_commission_bps + spread_s + impact
         impact = self.equity_impact_bps_per_pct_adv * adv_pct
         return self.equity_commission_bps + spread + impact
 
