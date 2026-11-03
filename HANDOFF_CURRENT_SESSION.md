@@ -1,21 +1,21 @@
 # HANDOFF_CURRENT_SESSION — session complete (baseline verified)
 
 ## State
-- Working tree clean. HEAD `339956f` on `main`; `main == origin/main` (up to date).
+- Working tree clean. HEAD `32d8074` on `main`; `main == origin/main` (up to date).
 - `.github/workflows/gates.yml` tracked in HEAD; CI gates present.
 - Package `qtr` not installed (bare clone). `PYTHONPATH=src` works.
 - H1–H30 exhausted; hypotheses up to H82 documented.
 
 ## What changed
-- None in this session (verified existing baseline).
+- None in this session (verified existing baseline; handoff updated to reflect current HEAD/state).
 
 ## What was actually verified
-- `git log --oneline -1` → `339956f`
+- `git log --oneline -1` → `32d8074`
 - `git status --short` → clean
 - `python -m ruff check src tests run_*.py` → **All checks passed!**
 - `python -m ruff format --check src tests run_*.py` → **105 files already formatted**
-- Spot-checked test suites pass with `-W error` (cost model, backtest engine, statistics, data fetcher, H58/H59 price pathology, H25 robustness, H55–H59 nested metrics/disclosure, runner contracts, h10/h20/h23 families) — all passing.
-- Full suite contains 2294 collected tests; the pinned gates are ruff + `pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` with `fail_under = 100` for `src/qtr`.
+- `PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` → **2278 passed, 16 skipped**; `src/qtr` **1191 stmts / 388 branches / 0 missed / 0 partial / 100.00%**.
+- Coverage gate enforced at 100% for `src/qtr` (pyproject). All pinned gates green.
 
 ## What remains unresolved
 - Items in `FINAL_REPORT.md` §H53–§H61 remain disclosed (not quantified); no gate impact.
