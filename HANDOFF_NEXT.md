@@ -1,4 +1,4 @@
-# HANDOFF_NEXT — session complete (baseline verified on HEAD 32d8074)
+# HANDOFF_NEXT — session complete (baseline verified on HEAD 071e499)
 
 ## What changed
 - None to source/tests/runners/artifacts/gates/thresholds/verdicts/certified numbers.
@@ -6,11 +6,11 @@
 
 ## What was actually verified
 - Working tree clean (`git status --short` empty).
-- HEAD `32d8074` on `main`; `main == origin/main` (up to date).
+- HEAD `071e499` on `main`; `main == origin/main` (up to date).
 - `.github/workflows/gates.yml` tracked in HEAD; CI gates present.
 - `python -m ruff check src tests run_*.py` → **All checks passed!**
 - `python -m ruff format --check src tests run_*.py` → **105 files already formatted**
-- `PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` → **2278 passed, 16 skipped**; `src/qtr` **1191 stmts / 388 branches / 0 missed / 0 partial / 100.00%**.
+- `PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` → **2278 passed, 16 skipped**; `src/qtr` **1207 stmts / 402 branches / 0 missed / 0 partial / 100.00%**.
 
 ## What remains unresolved
 - Older handoff files reference different HEADs; treat as historical narrative.
