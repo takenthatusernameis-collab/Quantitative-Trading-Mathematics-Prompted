@@ -690,6 +690,55 @@ def capacity_estimate(
             "sharpe_at_max_aum": 0.0,
         }
 
+    # Scalar-operand guard. ``adv`` and ``max_participation`` are the two
+    # numbers that *scale* the capacity claim: ``estimated_max_aum`` is
+    # ``max_participation_rate * adv * 100`` and ``max_participation_rate``
+    # is bounded by ``max_participation`` in the binary search. The §H81
+    # guard above screens ``returns`` only, so a caller that hands in a
+    # degenerate scalar got a fabricated claim instead of a rejection:
+    #
+    # * a non-finite ``adv`` (the H58/H61/H62 input class -- an ``inf``, a
+    #   ``-inf`` or a ``nan`` reaching a pure function that has no caller to
+    #   filter for it) is not a missing volume, it is an impossible one.
+    #   ``max_participation_rate * adv * 100`` is then ``inf`` or ``nan``,
+    #   so the function reports a capacity of ``inf`` or ``nan`` -- an
+    #   answer with no finite meaning. Under ``pytest -W error`` a ``nan``
+    #   also raises ``RuntimeWarning: invalid value encountered in
+    #   multiply`` out of a function every caller treats as returning a
+    #   dict. The fetcher's "no data" path returns an empty panel, not a
+    #   non-finite ADV, so this is reachable from a misconfiguration rather
+    #   than from a live failure -- but it is reachable from the public API
+    #   with no caller-side filtering.
+    # * a negative ``adv`` or ``max_participation`` is a sign error in the
+    #   caller's intent and manufactures a **negative** capacity claim:
+    #   ``estimated_max_aum`` comes back negative, i.e. the strategy is
+    #   claimed to hold negative capital. A negative AUM is nonsense in the
+    #   same way a negative cost is (§H83): it is the opposite of the thing
+    #   the function is supposed to estimate.
+    #
+    # The valid domain keeps ``0.0`` for both: ``adv == 0.0`` is a real,
+    # measured boundary (a symbol with no volume cannot be traded, so its
+    # capacity is zero -- the existing ``test_zero_adv_yields_zero_aum``
+    # contract pins it) and ``max_participation == 0.0`` is the degenerate
+    # search window that returns a zero participation rate. Both are finite
+    # and non-negative, so they pass; everything else degenerate fails
+    # closed to the no-capacity tuple. For every finite, non-negative input
+    # the arithmetic is bit-identical to before: this guard only
+    # short-circuits the degenerate cases. See
+    # tests/test_statistics.py::TestCapacityEstimate.
+    if not (
+        np.isfinite(adv)
+        and adv >= 0.0
+        and np.isfinite(max_participation)
+        and max_participation >= 0.0
+    ):
+        return {
+            "current_sharpe": 0.0,
+            "max_participation_rate": 0.0,
+            "estimated_max_aum": 0.0,
+            "sharpe_at_max_aum": 0.0,
+        }
+
     if impact_model is None:
         # Simple square-root impact model
         def impact_model(p):
