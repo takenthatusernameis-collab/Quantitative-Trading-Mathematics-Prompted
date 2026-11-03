@@ -1161,6 +1161,66 @@ def validate_strategy(
             "all_pass": False,
         }
 
+    # Non-finite-input guard. A validation is only defined on a set of finite
+    # returns, and the function used to walk straight into the arithmetic on
+    # one:
+    #
+    # * a non-finite element (the H58/H61/H62 input class -- an `inf`, a
+    #   `-inf` or a `nan` reaching a pure function that has no caller to filter
+    #   for it) is not a missing value, it is an impossible return. It is
+    #   reachable from the public API with no caller-side filtering: the engine
+    #   builds its return series from ``prices.pct_change()``, and a zero or
+    #   negative close (the H58 pathology) or an unbounded roll gap produces
+    #   exactly this class; ``run_ts_momentum_experiment.py`` passes the
+    #   fetched panel straight through ``validate_strategy``.
+    #
+    #   On an `inf` or `-inf` input the function raised
+    #   ``RuntimeWarning: invalid value encountered in subtract`` out of
+    #   ``returns.std()`` and, under ``pytest -W error``, that warning became
+    #   an error out of a function every caller treats as returning a dict --
+    #   the same silent-void failure the guards in ``sharpe_ratio`` (§H62),
+    #   ``compare_to_benchmark`` (§H61/§H79), ``stressed_cost_test`` (§H60),
+    #   ``capacity_estimate`` (§H81) and ``statistical_power_analysis`` (§H80)
+    #   already close for the same input class.
+    #   On a `nan` input the function did NOT raise: the reduction of a series
+    #   carrying one `nan` emits the warning but returns `nan`, and every
+    #   downstream statistic was `nan` too -- an internally inconsistent
+    #   result that silently voided every gate reading these fields while
+    #   ``sharpe_ratio`` (which the function calls for the shared Sharpe)
+    #   reported ``0.0`` for the same input. The two implementations disagreed
+    #   on an input the record actually contains, exactly the cross-module
+    #   disagreement the contract in tests/test_engine_metric_agreement.py
+    #   exists to catch.
+    #
+    # The fail-closed result is the same tuple the empty-series path returns:
+    # every evidence gate fails, the drawdown gate passes (no exposure => no
+    # drawdown), and the shared metrics are the boundary values the engine
+    # reports for the same input (zero Sharpe, zero drawdown, infinite
+    # Calmar-equivalent profit factor). A caller gating on any of them fails
+    # closed, and the cross-module agreement contract holds on this input as
+    # well as on the empty-series one. For every finite input the arithmetic
+    # is bit-identical to before: this guard only short-circuits the
+    # degenerate cases. See tests/test_statistics.py::TestValidateStrategy.
+    if not np.all(np.isfinite(returns.to_numpy(dtype=float))):
+        return {
+            "sharpe": 0.0,
+            "sharpe_pass": False,
+            "n_trades": len(trades),
+            "trades_pass": False,
+            "profit_factor": 1.0,
+            "profit_factor_pass": False,
+            "max_drawdown": 0.0,
+            "drawdown_pass": True,
+            "walkforward_stability": 0.0,
+            "walkforward_pass": False,
+            "param_stability": 0.0,
+            "param_stability_pass": False,
+            "annualized_return": 0.0,
+            "annualized_volatility": 0.0,
+            "total_return": 0.0,
+            "all_pass": False,
+        }
+
     n_trades = len(trades)
     # The total return is the compound of the whole series, measured the same
     # way the engine measures it: as the LAST row of the cumulative product,
