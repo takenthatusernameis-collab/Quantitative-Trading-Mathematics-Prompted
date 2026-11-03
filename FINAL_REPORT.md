@@ -5322,3 +5322,70 @@ then flagged (both were already correct; `ruff format` wanted them on one line):
 - The fix is uncommitted; committing requires explicit user approval.
 - Items in §H53–§H61 remain disclosed (not quantified); no gate impact. H1–H30
   exhausted; certified families frozen.
+
+## H83 — the `CostModel` cost methods were guarded, but their docstrings cited a hypothesis that did not exist (2026-11-03)
+
+**H83 is COMPLETE.** This is a **documentation-hygiene defect**, not a code change:
+three docstrings in `src/qtr/backtest/engine.py` and one in
+`src/qtr/validation/statistics.py` cited `§H83` as the hypothesis under which the
+`CostModel` cost methods were guarded, but `FINAL_REPORT.md` contained no such
+section. A forward reference to a not-yet-written hypothesis is the same class of
+defect as a committed file that promises a contract and delivers nothing: a
+reader following the citation finds nothing, and the reference cannot be
+reconciled against the report's own hypothesis index (which runs H1–H82).
+
+### The defect
+
+Four citation sites, all written when the degenerate-input guards landed
+(§H83 was the intended label at the time):
+
+- `src/qtr/backtest/engine.py:72-73` — `equity_cost_bps` docstring:
+  "matching the way ``sharpe_ratio`` (§H62), ``compare_to_benchmark`` (§H61/§H79)
+  and ``capacity_estimate`` (§H81) fail closed on the same input class."
+- `src/qtr/backtest/engine.py:116-117` — `future_cost_per_contract` docstring:
+  "(§H83) and ``future_cost_per_contract`` (§H83) fail closed on the same input
+  class."
+- `src/qtr/backtest/engine.py:170-171` — `crypto_cost_bps` docstring:
+  "(§H83) and ``future_cost_per_contract`` (§H83) fail closed on the same input
+  class."
+- `src/qtr/validation/statistics.py:716` — `capacity_estimate` scalar guard:
+  "the same way a negative cost is (§H83): it is the opposite of the thing
+  the function is supposed to estimate."
+
+`NEXT_TASK.md:19` already recorded the observation ("`engine.py` docstrings cite
+`§H83` (a forward reference to a not-yet-written hypothesis); cosmetic,
+pre-existing"), but no section existed to resolve it against. The guards
+themselves are real and were verified under §H81; the defect is the dangling
+citation, not the guard.
+
+### What changed
+
+- `FINAL_REPORT.md` — new **§H83** section (this section), recording the
+  `CostModel` degenerate-input guards as an **already-delivered** hypothesis so
+  the citations resolve. The guards are byte-identical to the ones §H81
+  measured; no source line moved.
+- Nothing under `src/qtr`, `tests/`, `run_*.py`, `requirements.txt`,
+  `pyproject.toml`, artifacts, gate thresholds, verdicts or certified numbers
+  changed. No grid was re-run.
+
+### What was actually verified
+
+- `grep -n "H83\|§H83" --include="*.py" --include="*.md" .` → the four citation
+  sites now resolve against a real §H83 section in `FINAL_REPORT.md`.
+- `git diff --stat` → `FINAL_REPORT.md` only; no source, test, runner,
+  dependency, artifact, gate threshold, verdict or certified number moved.
+- Pinned gates re-run on the unchanged tree (the report is outside the gate's
+  `paths` filter, so CI is unaffected): `python -m ruff check src tests run_*.py`
+  → **All checks passed!**; `python -m ruff format --check src tests run_*.py`
+  → **105 files already formatted**; `PYTHONPATH=src python -m pytest -q -W error
+  --cov=qtr --cov-branch --cov-report=term-missing` → **2286 passed, 16
+  skipped**; `src/qtr` **1209 stmts / 404 branches / 0 missed / 0 partial /
+  100.00%** (identical to the pre-change baseline).
+
+### What remains unresolved
+
+- The §H83 section is a **narrative reconciliation**, not a new measurement: it
+  records guards that were already verified under §H81 and cites the same
+  evidence. It moves no published number.
+- Items in §H53–§H61 remain disclosed (not quantified); no gate impact.
+- H1–H30 exhausted; certified families frozen.
