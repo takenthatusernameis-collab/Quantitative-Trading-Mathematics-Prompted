@@ -940,6 +940,27 @@ class TestCapacityEstimate:
         res = st.capacity_estimate(rng.normal(0.001, 0.01, 400), adv=0.0)
         assert res["estimated_max_aum"] == pytest.approx(0.0)
 
+    @pytest.mark.parametrize("bad", [np.inf, -np.inf, np.nan, -1.0])
+    def test_degenerate_adv_fail_closed(self, rng, bad):
+        res = st.capacity_estimate(rng.normal(0.001, 0.01, 400), adv=bad)
+        assert res == {
+            "current_sharpe": 0.0,
+            "max_participation_rate": 0.0,
+            "estimated_max_aum": 0.0,
+            "sharpe_at_max_aum": 0.0,
+        }
+
+    @pytest.mark.parametrize("bad", [np.inf, -np.inf, np.nan, -0.1])
+    def test_degenerate_max_participation_fail_closed(self, rng, bad):
+        res = st.capacity_estimate(
+            rng.normal(0.001, 0.01, 400), adv=1_000_000.0, max_participation=bad
+        )
+        assert res == {
+            "current_sharpe": 0.0,
+            "max_participation_rate": 0.0,
+            "estimated_max_aum": 0.0,
+            "sharpe_at_max_aum": 0.0,
+        }
     def test_custom_impact_model_used(self, rng):
         returns = rng.normal(0.001, 0.01, 400)
 
