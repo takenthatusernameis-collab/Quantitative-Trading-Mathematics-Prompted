@@ -2,24 +2,22 @@
 
 ## State
 - Working tree clean (`git status --short` empty).
-- HEAD `04a27bf` on `main`; repo up to date with remote state observed.
+- HEAD `1dab63a` on `main`; repo up to date.
 - `.github/workflows/gates.yml` tracked in HEAD; CI gates present.
 - `PYTHONPATH=src` works. H1–H30 exhausted; hypotheses up to H82 documented.
 - No secrets/credentials added. No artifacts/gate thresholds/verdicts/certified numbers modified.
 
 ## What changed
 - None to source/tests/runners/artifacts/gates/thresholds/verdicts/certified numbers.
-- Formatted `tests/test_statistics.py` (whitespace/formatting only) via `ruff format` to satisfy `ruff format --check`.
 
 ## What was actually verified
 - `python -m ruff check src tests run_*.py` → **All checks passed!**
 - `python -m ruff format --check src tests run_*.py` → **105 files already formatted**
-- `PYTHONPATH=src python -m pytest -q -W error` → **2286 passed, 16 skipped** (full suite, ~3m49s)
-- Pinned coverage gate enforced in CI/config; `fail_under = 100` with `-W error` and format check present in `pyproject.toml`/workflows.
+- `PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` → **2286 passed, 16 skipped**; `src/qtr` coverage 100% (statement + branch).
 
 ## What remains unresolved
-- Older handoff files reference different HEADs; treat as historical narrative.
 - Items in `FINAL_REPORT.md` §H53–§H61 remain disclosed (not quantified); no gate impact.
+- Older handoff files reference different HEADs; treat as historical narrative.
 
 ## Approaches already failed
 - None this session.
@@ -30,7 +28,7 @@
 ```bash
 python -m ruff check src tests run_*.py
 python -m ruff format --check src tests run_*.py
-PYTHONPATH=src python -m pytest -q -W error
+PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing
 ```
 
 Constraints:
