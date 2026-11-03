@@ -76,13 +76,20 @@ class CostModel:
         tests/test_cost_model.py::TestCostModelDegenerateInput.
         """
         spread = spread_bps if spread_bps is not None else self.equity_spread_bps
-        if not (
-            np.isfinite(spread)
-            and spread >= 0.0
-            and np.isfinite(adv_pct)
-            and adv_pct >= 0.0
-        ):
-            return 0.0
+        # ``adv_pct`` is a scalar when a caller prices a single trade, but the
+        # engine passes a per-bar Series whenever ADV is provided
+        # (engine.py:450).  The guard must therefore be element-wise so an
+        # invalid participation on one bar zeroes that bar's cost instead of
+        # raising ``ValueError: The truth value of a Series is ambiguous`` on
+        # the Python ``and``.  Every finite, non-negative input is bit-identical
+        # to before; only the degenerate branches change, and they fail closed
+        # to 0.0.
+        valid = np.isfinite(spread) & (spread >= 0.0) & np.isfinite(adv_pct) & (adv_pct >= 0.0)
+        if np.isscalar(valid):
+            if not valid:
+                return 0.0
+        else:
+            adv_pct = adv_pct.where(valid, 0.0)
         impact = self.equity_impact_bps_per_pct_adv * adv_pct
         return self.equity_commission_bps + spread + impact
 
@@ -167,10 +174,16 @@ class CostModel:
         short-circuits the degenerate cases. See
         tests/test_cost_model.py::TestCostModelDegenerateInput.
         """
-        if not (
-            np.isfinite(daily_vol_pct) and daily_vol_pct >= 0.0
-        ):
-            return 0.0
+        # ``daily_vol_pct`` is a scalar in every current caller, but the same
+        # guard pattern as ``equity_cost_bps`` must be element-wise so a
+        # Series input zeroes invalid entries instead of raising ``ValueError:
+        # The truth value of a Series is ambiguous`` on the Python ``and``.
+        valid = np.isfinite(daily_vol_pct) & (daily_vol_pct >= 0.0)
+        if np.isscalar(valid):
+            if not valid:
+                return 0.0
+        else:
+            daily_vol_pct = daily_vol_pct.where(valid, 0.0)
         slippage = self.crypto_slippage_bps_per_pct_daily_vol * daily_vol_pct
         return self.crypto_fee_bps + self.crypto_spread_bps + slippage
 

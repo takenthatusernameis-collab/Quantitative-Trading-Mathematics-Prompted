@@ -290,3 +290,52 @@ class TestCostModelFuturesSpecs:
         cm = CostModel(future_contract_multiplier=50.0)
         assert cm.get_future_contract_multiplier() == 50.0
         assert cm.get_future_contract_multiplier(None) == 50.0
+
+
+# ============================================================
+# Degenerate-input guards: fail closed to 0.0 on invalid operands
+# ============================================================
+class TestCostModelDegenerateInput:
+    def test_equity_cost_bps_rejects_invalid_scalar(self):
+        cm = CostModel(
+            equity_commission_bps=1.0,
+            equity_spread_bps=1.0,
+            equity_impact_bps_per_pct_adv=0.1,
+        )
+        assert cm.equity_cost_bps(spread_bps=1.0, adv_pct=-1.0) == 0.0
+        assert cm.equity_cost_bps(spread_bps=-1.0, adv_pct=1.0) == 0.0
+        assert cm.equity_cost_bps(spread_bps=float("nan"), adv_pct=1.0) == 0.0
+        assert cm.equity_cost_bps(spread_bps=1.0, adv_pct=float("inf")) == 0.0
+
+    def test_crypto_cost_bps_rejects_invalid_scalar(self):
+        cm = CostModel(
+            crypto_fee_bps=5.0,
+            crypto_spread_bps=2.0,
+            crypto_slippage_bps_per_pct_daily_vol=1.0,
+        )
+        assert cm.crypto_cost_bps(daily_vol_pct=-1.0) == 0.0
+        assert cm.crypto_cost_bps(daily_vol_pct=float("nan")) == 0.0
+
+    def test_crypto_cost_bps_zeroes_invalid_series_rows(self):
+        cm = CostModel(
+            crypto_fee_bps=5.0,
+            crypto_spread_bps=2.0,
+            crypto_slippage_bps_per_pct_daily_vol=1.0,
+        )
+        # A negative row is not a missing value; it is an impossible input, so
+        # that row's slippage input is zeroed (fee + spread still apply).
+        vols = pd.Series([1.0, -2.0, 3.0])
+        out = cm.crypto_cost_bps(daily_vol_pct=vols)
+        assert list(out) == [8.0, 7.0, 10.0]
+
+    def test_future_cost_per_contract_rejects_invalid(self):
+        cm = CostModel(
+            future_commission_per_contract=0.5,
+            future_spread_ticks=0.25,
+            future_slippage_ticks=0.5,
+            future_tick_value=12.5,
+            futures_specs={"BAD": {"commission": -1.0}},
+        )
+        assert cm.future_cost_per_contract("BAD") == 0.0
+        cm_nan = CostModel(future_commission_per_contract=float("nan"))
+        assert cm_nan.future_cost_per_contract() == 0.0
