@@ -189,3 +189,59 @@ def test_save_config_uses_config_path_fallback(tmp_path, monkeypatch):
     assert config._CONFIG == {"b": 2}
     assert config._CONFIG_PATH == cfg_path
     _clear_config_state()
+
+
+def test_reset_config_clears_cache(tmp_path, monkeypatch):
+    _clear_config_state()
+    monkeypatch.chdir(tmp_path)
+    cfg_path = tmp_path / "config.yaml"
+    cfg_path.write_text(yaml.dump({"a": 1}))
+    first = config.load_config()
+    assert first["a"] == 1
+
+    config.reset_config()
+    assert config._CONFIG is None
+    assert config._CONFIG_PATH is None
+
+    # After reset, get_config re-reads from disk
+    second = config.get_config()
+    assert second["a"] == 1
+    assert second is not first
+    _clear_config_state()
+
+
+def test_reset_config_then_load_explicit_path(tmp_path):
+    _clear_config_state()
+    cfg_path = tmp_path / "config.yaml"
+    cfg_path.write_text(yaml.dump({"a": 1}))
+    config.load_config(cfg_path)
+    assert config._CONFIG == {"a": 1}
+
+    config.reset_config()
+    assert config._CONFIG is None
+    assert config._CONFIG_PATH is None
+
+    # load_config with no path re-searches standard locations (none here)
+    result = config.load_config()
+    assert result == {}
+    _clear_config_state()
+
+
+def test_reset_config_reachable_from_top_level(tmp_path, monkeypatch):
+    """reset_config is exported through qtr.utils and reachable via qtr import."""
+    _clear_config_state()
+    monkeypatch.chdir(tmp_path)
+    cfg_path = tmp_path / "config.yaml"
+    cfg_path.write_text(yaml.dump({"a": 1}))
+    config.load_config()
+    assert config._CONFIG == {"a": 1}
+
+    config.reset_config()
+    assert config._CONFIG is None
+
+    import qtr
+
+    assert hasattr(qtr, "reset_config")
+    qtr.reset_config()
+    assert config._CONFIG is None
+    _clear_config_state()

@@ -53,6 +53,19 @@ def get_config() -> dict[str, Any]:
     return _CONFIG
 
 
+def reset_config() -> None:
+    """Clear the cached configuration and config path.
+
+    The next call to :func:`load_config` or :func:`get_config` re-reads
+    the config file from disk (or returns an empty dict if none is found).
+    Used by tests and by callers that need to force a re-read after the
+    config file has changed on disk.
+    """
+    global _CONFIG, _CONFIG_PATH
+    _CONFIG = None
+    _CONFIG_PATH = None
+
+
 def _apply_env_overrides(config: dict[str, Any]) -> None:
     """Apply environment variable overrides to config."""
     env_mappings = {
