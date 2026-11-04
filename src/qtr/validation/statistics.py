@@ -869,10 +869,10 @@ def benchmark_significance_gate(
     # and rejects everything else degenerate. The fail-closed result is
     # ``False``: a caller gating on the boolean fails closed, and no
     # significance claim can be manufactured out of a bad threshold. For every
-#   input in the valid domain the arithmetic is bit-identical to before: this
-#   block only short-circuits the degenerate cases. See
-#   test_benchmark_gate_contract.py, the threshold-operand half of the
-#   §H34 gate contract.
+    #   input in the valid domain the arithmetic is bit-identical to before: this
+    #   block only short-circuits the degenerate cases. See
+    #   test_benchmark_gate_contract.py, the threshold-operand half of the
+    #   §H34 gate contract.
     if not (np.isfinite(max_p_value) and 0.0 < max_p_value <= 1.0):
         return False
     return bool(float(p_value) < float(max_p_value) and float(information_ratio) > 0.0)
