@@ -286,3 +286,9 @@ Per experiment, preserve:
 - [ ] Walk-forward splits and per-fold metrics
 - [ ] Parameter sensitivity heatmap
 - [ ] Cost model assumptions and sensitivity
+
+---
+
+## Additive directive — strategy-family expansion (2026-11-04)
+
+The v2 execution specification remains the governing baseline for its evidence gates, data integrity, costs, holdout protection, and safety rules. The mandatory, versioned **STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md** supplements it: when the repository's existing strategy-family queue is exhausted, switch to NEW-FAMILY DISCOVERY MODE and search for genuinely distinct return-generating mechanisms. Do not mistake parameter variants, audits, or engineering repairs for new strategy families. Read and follow the directive before choosing the next research task. This addendum does not authorize weakening any existing gate or using protected-holdout feedback.
