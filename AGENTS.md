@@ -27,3 +27,11 @@ Coverage is enforced at 100% for `src/qtr` (see `pyproject.toml`).
 - Source lives in `src/qtr/`; tests in `tests/`.
 - Many experiment artifacts and reports are committed. Published numbers and gates are treated as frozen per handoff conventions.
 - The hypothesis space H1–H30 is exhausted per handoffs; changes under `src/qtr` require re-running pinned contracts.
+
+
+## Strategy-family exhaustion and new discovery
+
+- Read **STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md** before selecting a research task. It is a mandatory additive instruction to PROMPT_V2.md.
+- The current research record says H1–H30 are exhausted and hypotheses through H84 are documented. This is a trigger for NEW-FAMILY DISCOVERY MODE, not a reason to stop at maintenance-only work.
+- Do not treat parameter, timeframe, indicator, market, or universe variations as new strategy families. Build a mechanism-level lineage map and search for genuinely distinct return-generating mechanisms.
+- Preserve all existing statistical gates, protected-holdout rules, free-data preference, and 100% source coverage requirement.
