@@ -1,42 +1,40 @@
-# NEXT_TASK.md — H84 committed (defect fix under `src/qtr`); gates green on committed tree
+# NEXT_TASK.md — mandatory new strategy-family discovery
 
-## Status
-Working tree clean. HEAD `1c3fd75` on `main`; `main == origin/main`. The H84 defect fix
-(`get_future_contract_multiplier` guard at engine.py:192) is committed; nothing is pending
-commit or rollback. Baseline verified green; no code change needed now.
+## Assignment
 
-## What changed (this session)
-- None to source/tests/runners/artifacts/gates/thresholds/verdicts/certified numbers.
-- Corrected handoff files that previously described uncommitted H84 changes.
+This task supersedes the previous maintenance-only next task. The repository has recorded H1–H30 as exhausted and hypotheses through H84 as documented. The next research cycle must now investigate genuinely new strategy families rather than defaulting to baseline maintenance, additional audits, or more parameter variations of known ideas.
 
-## What was actually verified (this session)
-- `git status --short` → empty; HEAD `1c3fd75`.
-- `src/qtr/backtest/engine.py:192` — `get_future_contract_multiplier` guards its operand
-  (`np.isfinite(multiplier) and multiplier >= 0.0`), fail-closed to `0.0`; the H84 fix is present
-  in the committed tree.
-- `python -m ruff check src tests run_*.py` → **All checks passed!**
-- `python -m ruff format --check src tests run_*.py` → **105 files already formatted**
-- `PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` → **2295 passed, 16 skipped**; `src/qtr` **1215 stmts / 406 branches / 0 missed / 0 partial / 100.00%**.
+## Mandatory reading
 
-## What remains unresolved
-- Items in `FINAL_REPORT.md` §H53–§H61 remain disclosed (not quantified); no gate impact.
-- H1–H30 exhausted; hypotheses up to H84 documented.
-
-## Approaches already tried / failed
-- None this session. Baseline verified green; H84 fix confirmed committed.
+1. AGENTS.md
+2. PROMPT_V2.md
+3. STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md
+4. HYPOTHESIS_SPEC.md, FINAL_REPORT.md, MATHEMATICAL_DISCOVERY_REPORT.md, INEFFICIENCY_RANKING.md, and the latest handoffs
 
 ## Precise next task
-**Maintain baseline health.** No code change needed now. On any future change under `src/qtr`, `tests/`, `run_*.py`, `requirements.txt`, or `pyproject.toml`, run the pinned gates and confirm they stay green:
 
-```bash
-python -m ruff check src tests run_*.py
-python -m ruff format --check src tests run_*.py
-PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing
-```
+Enter NEW-FAMILY DISCOVERY MODE.
 
-Constraints: keep `src/qtr` at 100% statement + branch coverage (`fail_under = 100`);
-do not relax `fail_under`, drop `-W error`, or remove the format check; do not modify published
-artifacts, gate thresholds, verdicts, or certified numbers; H1–H30 exhausted; hypotheses up to
-H84 documented; never commit without explicit user request.
+1. Reconcile the full current hypothesis inventory, including any IDs added after H84. Cluster H-IDs by their actual return-generating mechanism; explicitly distinguish root families from variants, extensions, audits, replications, and engineering repairs.
+2. Produce a repository-relative family-lineage map documenting each root mechanism, tested markets/data, verdict, known failure mode, and any genuinely untested discriminating experiment.
+3. Research at least three materially distinct new candidate mechanisms from at least three broad mechanism categories. Each candidate must be demonstrably different from existing families and include a causal explanation, falsifiable hypothesis, free/public point-in-time data path, realistic net-of-cost implementation, and explicit rejection conditions.
+4. Rank candidates using the weighted score in STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md. Do not manufacture novelty or force a candidate to pass.
+5. Select the smallest high-information experiment for the strongest credible candidate. Pre-register it before examining validation or protected-test results. If decision-ready, assign the next unused H-ID and implement it in an isolated, testable change.
+6. Preserve the candidate inventory, citations, scores, and outcomes in NEW_FAMILY_RESEARCH_REGISTER.md so later sessions continue exploring new mechanisms rather than restarting the same search.
 
-(End of file)
+## Guardrails
+
+- Do not stop after confirming that H1–H30 are exhausted; the documented history through H84 must also be mapped.
+- A changed lookback, indicator, market, timeframe, universe, parameter grid, or conventional overlay is not a new family on its own.
+- Do not modify published artifacts, prior results, existing gates, certified metrics, or verdicts.
+- Preserve the protected holdout and all existing PROMPT_V2 statistical and cost standards.
+- Keep src/qtr at 100% statement and branch coverage. For source/test/runner changes, retain these checks: Ruff lint, Ruff format, and warning-as-error pytest with coverage.
+- Use free/public data and existing infrastructure. No paid resources, live trades, or live-system modifications without explicit authorization.
+- Do not claim an experiment, result, or validation passed without evidence.
+- Keep the established commit/authorization conventions; the directive does not authorize unrelated commits or changes.
+
+## Required closeout
+
+Report the family map, the three or more candidate mechanisms (or a specific evidence-based explanation if that number is infeasible), sources, novelty comparison, ranking, selected experiment, pre-registration status, actual checks, unresolved blockers, and one precise next research task.
+
+Baseline maintenance remains a guardrail, not the sole research objective.
