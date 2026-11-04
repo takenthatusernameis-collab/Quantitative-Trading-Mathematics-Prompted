@@ -831,6 +831,50 @@ def benchmark_significance_gate(
     Returns:
         True only if the strategy is significantly better than the benchmark
     """
+    # Degenerate-operand guard. The gate is a conjunction of two inequalities,
+    # so it is only defined when BOTH operands are real numbers in the domain
+    # their meaning requires. The two operands the gate compares
+    # (``p_value`` and ``information_ratio``) were already guarded before this
+    # block was written (§H34, tests/test_benchmark_gate_contract.py), but the
+    # third operand -- the threshold the p-value is compared AGAINST -- was not:
+    # it was the last unguarded input to a published gate, the same class of
+    # defect §H84 found one guard over in the CostModel.
+    #
+    # * a non-finite ``max_p_value`` (the H58/H61/H62 input class -- an
+    #   ``inf``, a ``-inf`` or a ``nan`` reaching a published gate that has no
+    #   caller to filter for it) is not a significance level. ``float(p_value)
+    #   < inf`` is True for every finite p-value, so an ``inf`` threshold
+    #   manufactures a PASS for any strategy that already clears the direction
+    #   half -- the gate becomes a direction check with no significance floor,
+    #   i.e. it admits a comparison at p = 0.9999 as long as the excess return
+    #   is positive. A ``nan`` compares unordered, so ``p < nan`` is False and
+    #   the gate silently rejects everything; a ``-inf`` does the same. All
+    #   three are answers with no finite meaning, and the first one is a
+    #   fabricated pass rather than a rejection.
+    # * a ``max_p_value`` outside (0, 1] is not a probability. ``max_p_value <=
+    #   0`` makes ``p < max_p_value`` False for every p in [0, 1], so the gate
+    #   rejects everything -- harmless in itself, but it is the degenerate
+    #   boundary, and a caller who meant to pass a percentage (50 rather than
+    #   0.5) gets a gate that can never pass instead of a clear rejection.
+    #   ``max_p_value > 1`` loosens the significance floor past certainty: at
+    #   1.5 the gate accepts p = 1.4, and since every published p-value is in
+    #   [0, 1] the comparison is then ``p < 1.5`` for all of them, so the
+    #   significance half of the conjunction drops out entirely and the gate
+    #   reduces to ``information_ratio > 0`` -- a direction check with no
+    #   statistical content, i.e. a vacuous gate of exactly the kind §H35
+    #   exists to close.
+    #
+    # The valid domain keeps ``max_p_value == 1.0`` (the gate then accepts any
+    # p-value up to certainty and is the correct answer at 100% confidence)
+    # and rejects everything else degenerate. The fail-closed result is
+    # ``False``: a caller gating on the boolean fails closed, and no
+    # significance claim can be manufactured out of a bad threshold. For every
+#   input in the valid domain the arithmetic is bit-identical to before: this
+#   block only short-circuits the degenerate cases. See
+#   test_benchmark_gate_contract.py, the threshold-operand half of the
+#   §H34 gate contract.
+    if not (np.isfinite(max_p_value) and 0.0 < max_p_value <= 1.0):
+        return False
     return bool(float(p_value) < float(max_p_value) and float(information_ratio) > 0.0)
 
 

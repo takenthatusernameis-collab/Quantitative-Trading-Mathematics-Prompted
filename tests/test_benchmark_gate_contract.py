@@ -376,6 +376,52 @@ def test_the_gate_fails_closed_on_degenerate_inputs():
     assert benchmark_significance_gate(0.0, 0.0) is False
 
 
+def test_the_gate_fails_closed_on_a_degenerate_threshold_operand():
+    """The third operand -- the significance level the p-value is compared
+    against -- was the last unguarded input to a published gate. A non-finite
+    threshold is not a significance level, a negative one inverts the gate, and
+    one above 1.0 drops the significance floor entirely (the conjunction
+    reduces to ``information_ratio > 0``, i.e. a vacuous gate of the kind
+    §H35 exists to close). All fail closed to ``False``; none can manufacture a
+    pass."""
+    # A non-finite threshold. ``p < inf`` is True for every finite p, so an
+    # ``inf`` threshold used to manufacture a pass for any positive-IR strategy
+    # regardless of significance -- the worst case of the three.
+    assert benchmark_significance_gate(0.001, 1.0, float("inf")) is False
+    assert benchmark_significance_gate(0.9999, 1.0, float("inf")) is False
+    assert benchmark_significance_gate(0.001, 1.0, float("nan")) is False
+    assert benchmark_significance_gate(0.001, 1.0, float("-inf")) is False
+    # A threshold outside (0, 1] is not a probability.
+    assert benchmark_significance_gate(0.001, 1.0, 0.0) is False
+    assert benchmark_significance_gate(0.001, 1.0, -0.1) is False
+    assert benchmark_significance_gate(0.001, 1.0, 1.5) is False
+    assert benchmark_significance_gate(0.001, 1.0, 2.0) is False
+    # The degenerate threshold must not rescue a strategy that would otherwise
+    # fail: a negative IR still fails closed, and a non-significant p-value
+    # still fails closed.
+    assert benchmark_significance_gate(0.6, 1.0, float("inf")) is False
+    assert benchmark_significance_gate(0.001, -1.0, float("inf")) is False
+    assert benchmark_significance_gate(0.9999, 1.0, 1.5) is False
+
+
+def test_the_gate_is_bit_identical_on_the_valid_threshold_domain():
+    """For every threshold in (0, 1] the arithmetic is unchanged: the guard
+    only short-circuits the degenerate cases. ``max_p_value == 1.0`` is the
+    correct answer at 100% confidence (any p-value up to certainty is
+    accepted), so it stays in the valid domain."""
+    assert benchmark_significance_gate(0.001, 1.0, 0.05) is True
+    assert benchmark_significance_gate(0.0499, 1.0, 0.05) is True
+    assert benchmark_significance_gate(0.05, 1.0, 0.05) is False
+    assert benchmark_significance_gate(0.001, 1.0, 1.0) is True
+    assert benchmark_significance_gate(0.9999, 1.0, 1.0) is True
+    assert benchmark_significance_gate(0.001, -1.0, 1.0) is False
+    # At 100% confidence the significance half accepts any p-value in [0, 1],
+    # so the gate reduces to the direction check: a positive IR passes, a
+    # negative one does not.
+    assert benchmark_significance_gate(0.6, 1.0, 1.0) is True
+    assert benchmark_significance_gate(0.6, -1.0, 1.0) is False
+
+
 def _summary(path: pathlib.Path) -> dict:
     with open(path / "summary.json") as f:
         return json.load(f)
