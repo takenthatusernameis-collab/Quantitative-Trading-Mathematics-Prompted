@@ -143,10 +143,55 @@ class CostModel:
         return commission + tick_cost
 
     def get_future_contract_multiplier(self, symbol: str | None = None) -> float:
-        """Contract multiplier for a given symbol."""
+        """Contract multiplier for a given symbol.
+
+        A contract multiplier is only defined on a finite, non-negative
+        operand, so any operand that is non-finite (``inf``/``-inf``/``nan``)
+        or negative is rejected here rather than propagated into the division
+        the engine performs on it:
+
+        * the operand comes from two places: the per-symbol
+          ``futures_specs`` override (a caller-supplied dict) and the
+          ``CostModel`` default. A spec that carries a non-finite value (the
+          H58/H61/H62 input class -- an ``inf``, a ``-inf`` or a ``nan``
+          reaching a pure method that has no caller to filter for it) makes
+          the contract count non-finite, and the cost the engine charges on
+          that symbol's trades becomes non-finite too;
+        * a negative operand is a sign error in the caller's intent and would
+          manufacture a *negative* contract count -- a position size in the
+          wrong direction, i.e. the opposite of the thing this method is
+          supposed to return.
+
+        This is the fourth CostModel cost method and the only one that was
+        still unguarded when §H83 closed the other three: ``equity_cost_bps``,
+        ``future_cost_per_contract`` and ``crypto_cost_bps`` all fail closed
+        to ``0.0`` on the same input class, and the engine divides by this
+        method's return value (engine.py:483), so a non-finite multiplier
+        used to flow straight into a published P&L number. Measured on a
+        six-bar futures panel: with the default 50.0 multiplier the engine's
+        ``total_return`` is ``0.03757107146358196``; with an ``inf`` or
+        ``nan`` multiplier it is ``0.03960396039603964`` -- a fabricated
+        return with no finite meaning, the same silent-void failure the
+        guards exist to prevent.
+
+        The fail-closed value is ``0.0`` (no position can be justified), so
+        the caller's division yields a zero contract count and the symbol
+        contributes no cost -- matching the way ``equity_cost_bps`` (§H83),
+        ``future_cost_per_contract`` (§H83) and ``crypto_cost_bps`` (§H83)
+        fail closed on the same input class. For every finite, non-negative
+        input the arithmetic is bit-identical to before: this guard only
+        short-circuits the degenerate cases. See
+        tests/test_cost_model.py::TestCostModelDegenerateInput.
+        """
         if symbol and symbol in self.futures_specs:
-            return self.futures_specs[symbol].get("multiplier", self.future_contract_multiplier)
-        return self.future_contract_multiplier
+            multiplier = self.futures_specs[symbol].get(
+                "multiplier", self.future_contract_multiplier
+            )
+        else:
+            multiplier = self.future_contract_multiplier
+        if not (np.isfinite(multiplier) and multiplier >= 0.0):
+            return 0.0
+        return multiplier
 
     def crypto_cost_bps(self, daily_vol_pct: float = 0.0) -> float:
         """Total crypto cost in basis points.

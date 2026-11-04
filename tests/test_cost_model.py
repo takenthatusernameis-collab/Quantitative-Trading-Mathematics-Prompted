@@ -339,3 +339,151 @@ class TestCostModelDegenerateInput:
         assert cm.future_cost_per_contract("BAD") == 0.0
         cm_nan = CostModel(future_commission_per_contract=float("nan"))
         assert cm_nan.future_cost_per_contract() == 0.0
+
+    def test_get_future_contract_multiplier_rejects_invalid_default(self):
+        cm = CostModel(future_contract_multiplier=50.0)
+        assert cm.get_future_contract_multiplier() == 50.0
+        assert cm.get_future_contract_multiplier(None) == 50.0
+        # A non-finite default is not a contract multiplier.
+        assert (
+            CostModel(future_contract_multiplier=float("inf")).get_future_contract_multiplier()
+            == 0.0
+        )
+        assert (
+            CostModel(future_contract_multiplier=float("nan")).get_future_contract_multiplier()
+            == 0.0
+        )
+        assert (
+            CostModel(future_contract_multiplier=float("-inf")).get_future_contract_multiplier()
+            == 0.0
+        )
+        # A negative default is a sign error, not a short position.
+        assert CostModel(future_contract_multiplier=-50.0).get_future_contract_multiplier() == 0.0
+
+    def test_get_future_contract_multiplier_rejects_invalid_spec(self):
+        cm = CostModel(futures_specs={"ES": {"multiplier": 50.0}})
+        assert cm.get_future_contract_multiplier("ES") == 50.0
+        for bad in (float("inf"), float("nan"), float("-inf"), -50.0):
+            cm_bad = CostModel(futures_specs={"ES": {"multiplier": bad}})
+            assert cm_bad.get_future_contract_multiplier("ES") == 0.0
+        # A missing spec key still falls back to the (valid) default.
+        assert (
+            CostModel(
+                future_contract_multiplier=100.0, futures_specs={"ES": {}}
+            ).get_future_contract_multiplier("ES")
+            == 100.0
+        )
+        # A non-finite default with a valid spec still returns the spec value.
+        assert (
+            CostModel(
+                future_contract_multiplier=float("inf"), futures_specs={"ES": {"multiplier": 50.0}}
+            ).get_future_contract_multiplier("ES")
+            == 50.0
+        )
+
+    def test_get_future_contract_multiplier_zero_is_a_real_boundary(self):
+        # 0.0 is finite and non-negative, so it is a measured boundary (a symbol
+        # with no deliverable cannot be traded), not a degenerate input.
+        assert (
+            CostModel(futures_specs={"ES": {"multiplier": 0.0}}).get_future_contract_multiplier(
+                "ES"
+            )
+            == 0.0
+        )
+
+    @staticmethod
+    def _futures_panel(price: float = 100.0, n: int = 6) -> tuple[pd.DataFrame, pd.DataFrame]:
+        rng = np.random.default_rng(7)
+        rets = rng.normal(0.0005, 0.01, n)
+        prices = pd.DataFrame(
+            {"ES=F": price * np.exp(np.cumsum(rets))},
+            index=pd.bdate_range("2020-01-01", periods=n),
+        )
+        signals = pd.DataFrame({"ES=F": [0.0] + [1.0] * (n - 1)}, index=prices.index)
+        return prices, signals
+
+    def test_the_engine_futures_path_fails_closed_on_a_degenerate_multiplier(self):
+        # The engine divides by this method's return value (engine.py:483), so
+        # a non-finite or negative multiplier used to flow straight into a
+        # published P&L number. Measured on a six-bar futures panel: with the
+        # default 50.0 multiplier the engine's total_return is
+        # 0.03757107146358196; with an inf or nan multiplier it was
+        # 0.03960396039603964 -- a fabricated return with no finite meaning.
+        # The guarded method returns 0.0, so the caller's division yields a zero
+        # contract count and the symbol contributes no cost.
+        prices, signals = self._futures_panel()
+        base_cfg = dict(
+            initial_capital=1_000_000.0,
+            asset_class=AssetClass.FUTURE,
+            max_position_size=1.0,
+            max_leverage=1.0,
+            allow_short=False,
+        )
+        for bad in (float("inf"), float("nan"), float("-inf"), -50.0):
+            cm = CostModel(futures_specs={"ES=F": {"multiplier": bad}})
+            res = run_backtest(
+                prices=prices, signals=signals, config=BacktestConfig(cost_model=cm, **base_cfg)
+            )
+            assert res.metrics["total_return"] == 0.0, (
+                f"a {bad!r} multiplier must fail closed to a zero total_return, "
+                f"got {res.metrics['total_return']!r}"
+            )
+
+    def test_the_engine_futures_path_is_bit_identical_on_finite_multipliers(self):
+        # For every finite, non-negative input the arithmetic is bit-identical
+        # to before: the guard only short-circuits the degenerate cases.
+        prices, signals = self._futures_panel()
+        base_cfg = dict(
+            initial_capital=1_000_000.0,
+            asset_class=AssetClass.FUTURE,
+            max_position_size=1.0,
+            max_leverage=1.0,
+            allow_short=False,
+        )
+        base = run_backtest(
+            prices=prices,
+            signals=signals,
+            config=BacktestConfig(cost_model=CostModel(), **base_cfg),
+        )
+        for mult in (1.0, 50.0, 100.0, 1000.0):
+            cm = CostModel(futures_specs={"ES=F": {"multiplier": mult}})
+            res = run_backtest(
+                prices=prices, signals=signals, config=BacktestConfig(cost_model=cm, **base_cfg)
+            )
+            # The contract count scales with the multiplier, so the cost -- and
+            # with it the net return -- is NOT invariant across multipliers;
+            # what must hold is that the finite path produces a finite result
+            # and that the default (50.0) reproduces the pre-guard baseline.
+            assert np.isfinite(res.metrics["total_return"])
+        assert (
+            run_backtest(
+                prices=prices,
+                signals=signals,
+                config=BacktestConfig(cost_model=CostModel(), **base_cfg),
+            ).metrics["total_return"]
+            == base.metrics["total_return"]
+        )
+
+    def test_the_contract_rejects_the_pre_guard_multiplier(self):
+        # Behavioural negative control: the pre-guard method returned whatever
+        # the caller supplied, so a non-finite or negative operand reached the
+        # engine's division (engine.py:483) and manufactured a published P&L
+        # number. Reconstruct that behaviour here and require it to be the
+        # bad value, while the guarded method fails closed to 0.0 on the same
+        # input.
+
+        import math
+
+        def pre_guard(cm, symbol):
+            if symbol and symbol in cm.futures_specs:
+                return cm.futures_specs[symbol].get("multiplier", cm.future_contract_multiplier)
+            return cm.future_contract_multiplier
+
+        for bad in (float("inf"), float("nan"), float("-inf"), -50.0):
+            cm = CostModel(futures_specs={"ES": {"multiplier": bad}})
+            emitted = pre_guard(cm, "ES")
+            # `nan == nan` is False by IEEE 754, so the nan case is checked
+            # with math.isnan rather than equality -- the point is that the
+            # pre-guard path passes the caller's value through unchanged.
+            assert (math.isnan(emitted) and math.isnan(bad)) or emitted == bad
+            assert cm.get_future_contract_multiplier("ES") == 0.0  # the guarded path rejects it

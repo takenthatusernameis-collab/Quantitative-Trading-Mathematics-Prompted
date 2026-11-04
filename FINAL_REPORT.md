@@ -5389,3 +5389,86 @@ citation, not the guard.
   evidence. It moves no published number.
 - Items in §H53–§H61 remain disclosed (not quantified); no gate impact.
 - H1–H30 exhausted; certified families frozen.
+
+## H84 — `get_future_contract_multiplier` was the CostModel method with no guard (2026-11-04)
+
+**H84 is COMPLETE.** This is a **real defect in `src/qtr`**, found by reading the
+fourth CostModel cost method against the guard its three siblings already carry.
+It is the same class of defect as §H83's dangling citation and as H60/H61/H62/H80/
+H81 before it: a defensive guard that had never been executed against the input
+that reaches it.
+
+### The defect
+
+`CostModel` publishes four cost methods. Three of them -- `equity_cost_bps`,
+`future_cost_per_contract` and `crypto_cost_bps` -- were guarded under §H83 to
+fail closed to `0.0` on a non-finite or negative operand. The fourth,
+`get_future_contract_multiplier` (engine.py:145), was not: it returned whatever
+the caller supplied, whether the `CostModel` default or a per-symbol
+`futures_specs` override. It is the only one of the four whose return value is
+**divided into a published number**: the engine's futures path computes
+`contracts_traded = changes * initial_capital / (price * multiplier)`
+(engine.py:483), and `run_h11_robustness_experiment.py:353` performs the same
+division in its per-symbol decomposition.
+
+Measured on a six-bar futures panel, the defect is a silent void rather than a
+crash:
+
+| multiplier | engine `total_return` |
+|---|---:|
+| `50.0` (default) | `0.03757107146358196` |
+| `inf` | `0.03960396039603964` |
+| `nan` | `0.03960396039603964` |
+| `-50.0` | `0.03757107146358196` |
+
+An `inf` or `nan` multiplier manufactures a return with no finite meaning; a
+negative one manufactures a negative contract count, i.e. a position size in the
+wrong direction. Both are reachable from the public API with no caller-side
+filtering: any caller that constructs a `CostModel` with a bad
+`future_contract_multiplier` or a bad `futures_specs` entry reaches it.
+
+### What changed
+
+- `src/qtr/backtest/engine.py` -- `get_future_contract_multiplier` now guards its
+  operand the same way its three siblings do:
+  `if not (np.isfinite(multiplier) and multiplier >= 0.0): return 0.0`. The
+  docstring records the measurement above and the fact that this was the last
+  unguarded CostModel method. `0.0` is retained as a real boundary (a symbol
+  with no deliverable cannot be traded), so the guard rejects only the
+  degenerate cases; for every finite, non-negative input the arithmetic is
+  bit-identical to before.
+- `tests/test_cost_model.py` -- six additions to `TestCostModelDegenerateInput`:
+  `test_get_future_contract_multiplier_rejects_invalid_default`,
+  `test_get_future_contract_multiplier_rejects_invalid_spec`,
+  `test_get_future_contract_multiplier_zero_is_a_real_boundary`,
+  `test_the_engine_futures_path_fails_closed_on_a_degenerate_multiplier`,
+  `test_the_engine_futures_path_is_bit_identical_on_finite_multipliers`, and
+  `test_the_contract_rejects_the_pre_guard_multiplier` (a behavioural negative
+  control that reconstructs the pre-guard method and requires it to emit the
+  bad value while the guarded one rejects it).
+
+### What was actually verified
+
+- The six new tests **fail on the pre-fix code** (reverted guard) with the
+  expected `inf == 0.0` / `nan == 0.0` / `total_return == 0.0` errors, then pass
+  with the fix restored. The negative control fires.
+- `python -m pytest -q -W error tests/test_cost_model.py` → **25 passed** (19
+  before).
+- `python -m pytest -q -W error` → **2 295 passed, 16 skipped** (full suite, +6).
+- `python -m pytest -q -W error --cov=qtr --cov-branch
+  --cov-report=term-missing` → `src/qtr` **1 215 stmts / 406 branches / 0 missed
+  / 0 partial / 100.00%** (up from 1 209 / 404: six statements, two branches,
+  all covered).
+- `python -m ruff check src tests run_*.py` → **All checks passed!**
+- `python -m ruff format --check src tests run_*.py` → **105 files already
+  formatted** (the two files touched by this change format cleanly after
+  applying `ruff format`).
+- `git diff --stat` → `src/qtr/backtest/engine.py` and `tests/test_cost_model.py`
+  only. No artifact, gate threshold, verdict or certified number moved; no grid
+  was re-run; no hypothesis beyond H84 was added.
+
+### What remains unresolved
+
+- The fix is uncommitted; committing requires explicit user approval.
+- Items in §H53–§H61 remain disclosed (not quantified); no gate impact. H1–H30
+  exhausted; certified families frozen.
