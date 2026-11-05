@@ -5137,7 +5137,7 @@ Phase 6.
 
 **Family:** NEW-FAMILY DISCOVERY MODE per STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §4.
 **Temporary lineage key:** NF-20261105-06 (see NEW_FAMILY_RESEARCH_REGISTER.md §10–11).
-**Status:** PRE-REGISTERED / IMPLEMENTED (decision-ready); experiment execution pending.
+**Status:** EXECUTION BLOCKED (data feasibility, not rejected). Pre-registration/implementation decision-ready; 2026-11-05 execution attempt failed before any grid/gate evaluation.
 
 ### Mechanism (relative value and convergence)
 
@@ -5206,3 +5206,15 @@ perturbation instability indicating selection artifact.
 
 Pending execution. Implementation: `run_nf_20261105_06_gold_oil_rv.py`, tests in
 `tests/test_nf_20261105_06_gold_oil_rv.py`.
+
+### Execution outcome (2026-11-05) — BLOCKED, not rejected
+
+**Attempt:** `PYTHONPATH=src python run_nf_20261105_06_gold_oil_rv.py` (exp `exp_2026-11-05T12-16-14-717827Z`, git `e5e871f`, tree clean at experiment start). GC=F/CL=F daily 2010-01-01→2026-10-31 fetched to isolated cache; execution stopped at `DataFetcher._reject_non_positive_prices` before grid evaluation.
+
+> `ValueError: CL=F: 4 non-positive price(s) in the fetched panel; first is np.float64(-14.0) on 2020-04-21 00:00:00. A percentage return from a non-positive price base is undefined...`
+
+**Cause:** CL=F continuous front-month includes non-positive prices around the 2020-04-20 WTI negative-settlement episode (4 bars). Data-construction/feasibility blocker for the pre-registered GC=F/CL=F universe under the engine's fail-closed price guard. **No `src/qtr` change.**
+
+**Not evaluated:** grid, OOS metrics, gates, verdict — **protected holdout untouched**. Blocked ≠ rejected.
+
+**Feasibility options (require explicit re-specification/pre-registration before outcome evaluation):** (1) trim/segment window excluding non-positive CL bars (changes sample/split structure; must preserve holdout integrity); (2) ETF proxies GLD/USO (verified clean this session: 4233 rows each, 0 bad rows, 2010-01-01→2026-10-31) — different instrument/cost/basis, material construction change; (3) roll-adjusted series with explicit non-positive handling and point-in-time disclosure.

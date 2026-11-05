@@ -482,3 +482,22 @@ Queue exhausted after H87 (REJECT). Per directive §4.1 and §6, fresh mechanism
 **Falsification:** (1) Randomized entry control; (2) spread stationarity diagnostic reported (not a gate, but mechanism evidence); (3) subperiod stability including 2020 oil shock.
 
 **Next task:** Formalize H88 in HYPOTHESIS_SPEC.md; implement `run_nf_20261105_06_gold_oil_rv.py` + focused tests; run lint/format + NF tests; run pinned src/qtr gates if `src/qtr` touched (not expected). Execute experiment only if hypothesis is decision-ready and data fetch feasible in-session; otherwise produce decision-ready implementation + tests and leave execution as next task with evidence. Next unused H-ID after H88 is H89.
+
+## 12. NF-20261105-06 / H88 execution outcome — BLOCKED (data feasibility)
+
+**Experiment:** `exp_2026-11-05T12-16-14-717827Z` (`nf_20261105_06_gold_oil_rv`, git `e5e871fde002`, `git_dirty=false` at start, 2026-11-05T12:16:14Z). Command: `PYTHONPATH=src python run_nf_20261105_06_gold_oil_rv.py`. Status in `.experiments/experiments.jsonl`: `failed`.
+
+**Blocker (reproducible evidence):** yfinance GC=F/CL=F daily 2010-01-01→2026-10-31 fetched to isolated cache; `DataFetcher._reject_non_positive_prices` raised before any grid/gate evaluation:
+`CL=F: 4 non-positive price(s)... first np.float64(-14.0) on 2020-04-21 00:00:00` (WTI negative-settlement episode; fail-closed guard correct for percentage-return engine).
+
+**Not produced:** param grid results, OOS metrics, gate counts, selected config, verdict. **Protected holdout not used.** H88 remains **BLOCKED, not rejected**.
+
+**Verification this session (no `src/qtr` changes):** `python -m ruff check src tests run_nf_20261105_06_gold_oil_rv.py tests/test_nf_20261105_06_gold_oil_rv.py` → All checks passed. `python -m ruff format --check src tests run_*.py` → 113 files already formatted. `PYTHONPATH=src python -m pytest tests/test_nf_20261105_06_gold_oil_rv.py -q` → 13 passed.
+
+**Lineage map update:**
+
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Gold–oil relative-value spread mean reversion | H88 (NF-20261105-06) | Log(GC/CL) z-score dislocation mean reversion; long/short spread, vol-targeted | GC=F/CL=F daily (yfinance) — **blocked** | **BLOCKED** (data feasibility; CL=F non-positive 2020-04-21) | CL continuous front-month crosses non-positive in 2020 negative-WTI episode; engine correctly refuses non-positive price base |
+
+**Next candidate decision (directive §6, after blocker documented):** NF-20261105-06 mechanism remains untested on the pre-registered universe. Before moving to NF-20261105-04/NF-20261105-05, the next task must make an explicit, pre-registered re-specification choice for H88’s observables: (a) trim/segment CL window around non-positive bars with holdout-preserving split disclosure, or (b) GLD/USO ETF proxy (clean, 4233 rows each, 0 bad rows verified 2026-11-05) with instrument/cost/basis disclosure — material construction change, requires spec/register update and re-implementation/tests as needed. NF-20261105-04 deferred for roll-proxy point-in-time risk; NF-20261105-05 deferred for high-turnover net-of-cost risk. Do not run holdout-evaluating experiments until re-specification is recorded.

@@ -1,44 +1,35 @@
-# HANDOFF_CURRENT.md — H88 (NF-20261105-06 gold–oil RV mean reversion) pre-registered & implemented
+# HANDOFF_CURRENT.md — H88 (NF-20261105-06) executed → BLOCKED (CL=F data feasibility)
 
 ## State
-- Working tree has **uncommitted** changes from this session (no commit made; no user request): modified `HYPOTHESIS_SPEC.md`, modified `NEW_FAMILY_RESEARCH_REGISTER.md`; untracked `run_nf_20261105_06_gold_oil_rv.py`, `tests/test_nf_20261105_06_gold_oil_rv.py`. `src/qtr` **not modified**.
-- H1–H30 exhausted; hypotheses documented through H88 (H88 pre-registered). H85/H86/H87 REJECTED. Next unused H-ID after H88 is H89.
-- STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md followed: cycle 3 mechanism search completed across 3 distinct categories; 3 repo-new candidates ranked; H88 selected as highest expected-information candidate (relative value/convergence, 3.95).
+- Working tree has **uncommitted** changes from prior/new-family sessions (no commit made; no user request): modified `HYPOTHESIS_SPEC.md`, modified `NEW_FAMILY_RESEARCH_REGISTER.md`, modified `NEXT_TASK.md`, modified `HANDOFF_CURRENT.md`, modified `.experiments/experiments.jsonl`; untracked `run_nf_20261105_06_gold_oil_rv.py`, `tests/test_nf_20261105_06_gold_oil_rv.py`. `src/qtr` **not modified**.
+- H1–H30 exhausted; hypotheses documented through H88. H85/H86/H87 REJECTED. **H88 BLOCKED (data feasibility), not rejected** — no grid/OOS/gates/holdout evaluated. Next unused H-ID after H88 remains H89.
 
 ## What changed (this session)
-- `NEW_FAMILY_RESEARCH_REGISTER.md`: appended §10 cycle-3 discovery/ranking (NF-20261105-04 commodity carry/roll proxy — deferred, data/roll feasibility; NF-20261105-05 short-term CS reversal — deferred, net-of-cost/turnover; NF-20261105-06 gold–oil RV mean reversion — selected) and §11 H88 pre-registration.
-- `HYPOTHESIS_SPEC.md`: appended §H88 (NF-20261105-06) pre-registration — mechanism, distinction (vs H85 lead-lag), construction, data/splits, grid, gates/rejection, falsification; status PRE-REGISTERED/IMPLEMENTED, execution pending.
-- `run_nf_20261105_06_gold_oil_rv.py` (new): H88 runner — GC=F/CL=F log-spread z-score mean reversion, 1-bar delay, dollar-neutral legs, vol target, futures config, 18-combo grid (train-only WF selection), OOS Val+Test gates, direction-aware benchmark gate, OAT ±20% perturbation, stationarity diagnostic, isolated cache, tracker/artifacts. Patterned after NF-01/H86/H87 runners.
-- `tests/test_nf_20261105_06_gold_oil_rv.py` (new): 13 focused tests pinning gates/grid/splits, log-spread construction, non-positive handling, trailing-only z-score, 1-bar delay, dollar neutrality/bounds, future-data non-leakage, determinism, metrics/diagnostic shape.
-- `NEXT_TASK.md`: replaced with H88 execution instructions and constraints.
+- Executed the assigned task: `PYTHONPATH=src python run_nf_20261105_06_gold_oil_rv.py`.
+- Recorded blocker outcome in `HYPOTHESIS_SPEC.md` §H88 and `NEW_FAMILY_RESEARCH_REGISTER.md` §12 (lineage row added: H88/NF-20261105-06 BLOCKED; CL=F non-positive 2020-04-21).
+- Updated `NEXT_TASK.md` / `HANDOFF_CURRENT.md` for evidence-based handoff.
+- `.experiments/experiments.jsonl` gained failed run entry `exp_2026-11-05T12-16-14-717827Z` (runner/tracker behavior; no published artifact thresholds/verdicts modified).
 
 ## What was actually verified
-- `python -m ruff check src tests run_nf_20261105_06_gold_oil_rv.py tests/test_nf_20261105_06_gold_oil_rv.py` → **All checks passed!**
-- `python -m ruff format run_nf_20261105_06_gold_oil_rv.py tests/test_nf_20261105_06_gold_oil_rv.py` applied; `python -m ruff format --check src tests run_*.py` → **113 files already formatted**.
-- `PYTHONPATH=src python -m pytest tests/test_nf_20261105_06_gold_oil_rv.py -q` → **13 passed in 1.47s**.
-- `git status --short` confirms only the expected H88 files changed/untracked.
+- **Execution evidence (reproducible):** exp `exp_2026-11-05T12-16-14-717827Z` (`nf_20261105_06_gold_oil_rv`, git `e5e871fde002`, `git_dirty=false` at start, 2026-11-05T12:16:14Z) fetched GC=F/CL=F daily 2010-01-01→2026-10-31 to isolated cache, then failed: `ValueError: CL=F: 4 non-positive price(s) in the fetched panel; first is np.float64(-14.0) on 2020-04-21 00:00:00` from `DataFetcher._reject_non_positive_prices`. Traceback captured in session output; status logged as `failed` in `.experiments/experiments.jsonl`.
+- **No holdout use:** failure occurred before param grid/gate evaluation; protected holdout untouched.
+- **Feasibility probe (this session, no execution side effects beyond temp caches):** GLD/USO ETF proxies fetched cleanly via `DataFetcher` — 4233 rows each, 0 non-positive rows, 2010-01-01→2026-10-31. (GC=F/CL=F futures: CL=F contains the 2020 negative-WTI non-positive bars.)
+- **Focused checks (no `src/qtr` changes):** `python -m ruff check src tests run_nf_20261105_06_gold_oil_rv.py tests/test_nf_20261105_06_gold_oil_rv.py` → All checks passed. `python -m ruff format --check src tests run_*.py` → 113 files already formatted. `PYTHONPATH=src python -m pytest tests/test_nf_20261105_06_gold_oil_rv.py -q` → **13 passed**.
 
-## Not verified / not run (by design)
-- **H88 experiment execution not run.** Runner requires yfinance network access to fetch GC=F/CL=F daily 2010-01-01→2026-10-31 (isolated cache) and produces protected-holdout metrics; execution is the next bounded task. No holdout feedback used.
-- **Full pinned `src/qtr` gate suite not re-run** because `src/qtr` was not modified (`--cov=qtr --cov-branch -W error`, 100% required). H87 baseline was previously green per handoffs; touched files are runners/tests/docs only.
-- No published artifacts, gate thresholds, verdicts, or certified numbers modified.
+## Not verified / not run
+- H88 grid/OOS metrics/gates/verdict — **blocked by data feasibility**, not computed.
+- Full pinned `src/qtr` gate suite not re-run (`-W error --cov=qtr --cov-branch`, 100% required) because **`src/qtr` was not modified**.
 
 ## What remains unresolved
-- H88 execution and outcome recording (spec result, register §12, lineage update, verdict).
-- NF-20261105-04 (commodity carry, roll-proxy feasibility) and NF-20261105-05 (short-term CS reversal, turnover/net-of-cost) deferred with documented reasons; revisit after H88 outcome or if H88 execution is data-blocked.
+- H88 requires an **explicit pre-registered re-specification** of observables before re-execution: (a) CL=F trimmed/segmented window excluding non-positive bars with holdout-preserving split disclosure, or (b) GLD/USO ETF proxy (material instrument/cost/basis change; clean data verified). Choice must be recorded in spec/register with rationale before evaluating outcomes.
+- NF-20261105-04 (commodity carry, roll-proxy point-in-time risk) and NF-20261105-05 (short-term CS reversal, turnover/net-of-cost risk) remain deferred per register §10.
 - FINAL_REPORT.md §H53–§H61 disclosed-not-quantified items remain (no gate impact).
 
-## Approaches already tried / failed (this cycle)
-- None failed in implementation. Cycle 3 followed directive: searched 3 mechanism categories, proposed/ranked 3 candidates, selected NF-06 (relative value/convergence). NF-04 deferred for yfinance roll-proxy construction/point-in-time risk; NF-05 deferred for high-turnover net-of-cost feasibility (execution score 2).
+## Approaches already tried / failed
+- **H88 execution as pre-registered (GC=F/CL=F, 2010-01-01→2026-10-31):** failed deterministically at data validation — CL=F has 4 non-positive prices, first -14.0 on 2020-04-21 (WTI negative settlement). This is a recurring/deterministic feasibility blocker for that exact universe/window under fail-closed engine rules, **not a transient network error**. Do **not** blindly re-run the identical GC=F/CL=F full-window command without a recorded re-specification (trim/segment/proxy).
+- Prior cycle: NF-04 deferred (roll-proxy feasibility), NF-05 deferred (net-of-cost/turnover).
 
 ## Precise next task (one task), with evidence and constraints
-**Execute H88 and record the outcome.** See `NEXT_TASK.md`.
+**Pre-register and implement the H88 observable re-specification (choose a or b), then execute.** See `NEXT_TASK.md`.
 
-```bash
-cd /home/runner/work/Quantitative-Trading-Mathematics-Prompted/Quantitative-Trading-Mathematics-Prompted
-PYTHONPATH=src python run_nf_20261105_06_gold_oil_rv.py
-```
-
-Then update HYPOTHESIS_SPEC §H88 and NEW_FAMILY_RESEARCH_REGISTER §12 with experiment ID/gates/OOS metrics/selected config/verdict/lineage row; re-run focused tests + lint/format; if `src/qtr` changes, run pinned full gates (100% coverage, `-W error`). If data/network blocks execution, preserve traceback, mark blocked (not rejected), and document the blocker before selecting NF-04/NF-05.
-
-Constraints: protect holdout; do not modify published artifacts/thresholds/prior verdicts; keep `src/qtr` 100% stmt+branch if touched; no paid data/compute; never commit without explicit user request.
+Constraints: blocked ≠ rejected; protect holdout; no protected-test feedback in re-spec decisions; no silent universe/construction change; do not modify published artifacts/thresholds/prior verdicts; keep `src/qtr` 100% stmt+branch if touched; no paid data/compute; never commit without explicit user request.
