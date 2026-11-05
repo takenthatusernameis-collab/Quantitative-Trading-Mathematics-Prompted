@@ -1,21 +1,39 @@
-# NEXT_TASK.md — H87 (NF-20261105-01 opening-gap fill) complete — REJECT
+# NEXT_TASK.md — H88 (NF-20261105-06 gold–oil RV mean reversion) pre-registered/implemented — EXECUTE
 
-H87 implemented in `run_nf_20261105_01_opening_gap.py` with focused tests in
-`tests/test_nf_20261105_01_opening_gap.py`. Formalized in HYPOTHESIS_SPEC.md §H87
-and registered in NEW_FAMILY_RESEARCH_REGISTER.md §8–9.
+Cycle 3 new-family discovery completed (NEW_FAMILY_RESEARCH_REGISTER.md §10–11).
+Three repo-new candidates across three mechanism categories were assessed and ranked:
+NF-20261105-06 gold–oil relative-value mean reversion (3.95), NF-20261105-04 commodity
+carry/roll proxy (3.70, deferred: yfinance point-in-time roll construction risk),
+NF-20261105-05 short-term cross-sectional reversal (3.35, deferred: net-of-cost/turnover risk).
 
-Result: **REJECT (1/9 gates).** OOS Sharpe = −0.348, PF = 0.940, max DD = −40.4%,
-0 OOS trades, IR = −0.577 vs SPY benchmark. Selected config: lookback 5,
-zscore_thresh 0.0, vol_target 0.15. Experiment `exp_2026-11-05T11-33-50-642571Z`.
+Selected: **H88 / NF-20261105-06** (relative value and convergence). Formalized in
+HYPOTHESIS_SPEC.md §H88; decision-ready implementation in
+`run_nf_20261105_06_gold_oil_rv.py` with focused tests in
+`tests/test_nf_20261105_06_gold_oil_rv.py`.
 
-Runner fixes applied:
-- Replaced bare `bench_p <= GATES["max_p_value"]` with `benchmark_significance_gate(bench_p, ir)` (H34 direction-aware gate contract).
-- Replaced noise-based perturbation_eval with OAT ±20% parameter sensitivity (lookback, zscore_thresh, vol_target).
+**Verified this session (no `src/qtr` changes):**
+- `python -m ruff check src tests run_nf_20261105_06_gold_oil_rv.py tests/test_nf_20261105_06_gold_oil_rv.py` → All checks passed.
+- `python -m ruff format --check src tests run_*.py` → 113 files already formatted.
+- `PYTHONPATH=src python -m pytest tests/test_nf_20261105_06_gold_oil_rv.py -q` → 13 passed.
 
-All nf-focused tests pass; ruff lint and format clean. Two pre-existing failures in
-`run_nf_20261104_01_vix_termstructure.py` remain (bare p-value comparison and
-non-evaluating worst_regime_sharpe gate) — not part of H87 scope.
+**Not executed:** the H88 backtest (requires yfinance network fetch for GC=F/CL=F,
+2010–2026, isolated cache; protected holdout). Execution was left as the next bounded task.
 
-Next: Per directive §6, H1–H30 exhausted and H85/H86/H87 all rejected. A new
-mechanism search across distinct return-generating categories is required before
-selecting the next experiment. Next unused H-ID is H88.
+## Next task (one task)
+
+Execute H88 and record the outcome:
+
+```bash
+cd /home/runner/work/Quantitative-Trading-Mathematics-Prompted/Quantitative-Trading-Mathematics-Prompted
+PYTHONPATH=src python run_nf_20261105_06_gold_oil_rv.py
+```
+
+Then:
+1. Capture experiment ID, gate counts, OOS metrics, selected config, and verdict from the printed summary/artifacts.
+2. Update `HYPOTHESIS_SPEC.md` §H88 status/result/verdict (do not alter prior sections).
+3. Append §12 outcome to `NEW_FAMILY_RESEARCH_REGISTER.md` with lineage-map row and next candidate decision.
+4. Run focused NF tests + lint/format checks; if any `src/qtr` file changed, run pinned full gates:
+   `PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` (must stay 100%).
+5. Update `HANDOFF_CURRENT.md`/`NEXT_TASK.md` with evidence. Do not modify published artifacts, thresholds, or prior verdicts.
+
+If execution fails due to data/network: preserve traceback/evidence, mark H88 execution blocked (not rejected), and choose NF-20261105-04 or NF-20261105-05 only after documenting the specific blocker and data feasibility.

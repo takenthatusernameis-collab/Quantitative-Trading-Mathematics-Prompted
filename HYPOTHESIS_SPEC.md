@@ -5132,3 +5132,77 @@ trades, negative OOS Sharpe (−0.348), drawdown −40.4%, and negative informat
 (−0.577) vs buy-and-hold. The overnight-gap information is either fully absorbed at the
 open or swamped by costs/slippage. Recorded as a negative result per PROMPT_V2.md
 Phase 6.
+
+## H88 — NF-20261105-06: Gold–Oil Relative-Value Spread Mean Reversion (pre-registered 2026-11-05)
+
+**Family:** NEW-FAMILY DISCOVERY MODE per STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §4.
+**Temporary lineage key:** NF-20261105-06 (see NEW_FAMILY_RESEARCH_REGISTER.md §10–11).
+**Status:** PRE-REGISTERED / IMPLEMENTED (decision-ready); experiment execution pending.
+
+### Mechanism (relative value and convergence)
+
+Gold (GC=F) and crude oil (CL=F) share macro inflation/geopolitical risk exposures but
+diverge due to supply shocks, demand cycles, and convenience yield. The log-price spread
+`s_t = log(GC_t) - log(CL_t)` (unit hedge ratio, fixed baseline) mean-reverts when
+dislocated: extreme positive z-scores (gold rich vs oil) predict negative spread returns
+(short spread / short gold + long oil convergence) and vice versa, after transaction costs.
+
+### Distinction from prior repository families
+
+- H85 (cross-asset lead-lag) predicts target returns from *lagged leader* returns
+  (directional information transmission). H88 trades *mean reversion of a contemporaneous
+  price ratio* with symmetric long/short convergence; no lead-lag predictor, no directional
+  equity/commodity bet — relative value/convergence mechanism.
+- No prior family tests gold–oil spread mean reversion.
+
+### Pre-registered construction
+
+Daily signal evaluation. Spread `s_t = log(GC_t) - log(CL_t)`. Rolling z-score of `s_t`
+over lookback `L`, computed using only data through t (trailing window). Long spread
+(long GC, short CL, equal notional legs) when `z < -entry_z`; short spread when
+`z > +entry_z`; flat when `|z| < exit_z`. Vol-target spread returns to 10% ann (baseline).
+Entry/exit evaluated on close t; position applied t+1 (no look-ahead).
+
+### Data
+
+yfinance daily continuous front-month GC=F (COMEX gold) and CL=F (NYMEX WTI), adjusted
+closes, 2010-01-01 → 2026-10-31. Free/public. Splits (time-based, protected holdout):
+train 2010-01-01→2018-12-31, val 2019-01-01→2022-12-31, test 2023-01-01→2026-10-31.
+Point-in-time: all rolling statistics use trailing data only; no look-ahead beta (fixed
+unit hedge ratio in baseline).
+
+### Grid (train-only selection)
+
+`lookback L ∈ {60, 120, 252}`, `entry_z ∈ {1.5, 2.0, 2.5}`, `exit_z ∈ {0.5, 0.75}` (18
+combos). Selection by train-only walk-forward Sharpe; val for sanity; test protected final.
+
+### Costs / constraints
+
+Futures cost model per leg (conservative equity-like bps baseline in implementation;
+documented). GC/CL highly liquid; capacity not binding at research scale. Spread can
+diverge in oil supply shocks (2014, 2020) — regime fragility is an explicit falsification
+risk.
+
+### Gates / rejection (PROMPT_V2 Phase 4, applied to OOS Val+Test)
+
+Pre-registered: OOS Sharpe >= 1.0, >= 30 OOS spread-trade events (rebalances/entries),
+PF >= 1.1, max DD <= 15%, WF stability (test >= 0.7 × train when train > 0),
+benchmark significance (direction-aware, vs equal-weight GC/CL buy-hold),
+information ratio >= 0, perturbation min ratio >= 0.5 (OAT ±20% on L/entry_z).
+
+**Explicit rejection:** OOS Sharpe < 0.5, PF < 1.1, max DD > 15%, < 30 OOS trades, or
+perturbation instability indicating selection artifact.
+
+### Confounders / leakage / falsification
+
+- Continuous futures roll adjustments in yfinance may affect spread level; use consistent
+  adjusted closes and disclose.
+- Fixed unit hedge ratio avoids look-ahead beta estimation.
+- Falsification: (1) randomized entry control; (2) report spread stationarity diagnostic
+  (ADF-style summary) as mechanism evidence, not a gate; (3) subperiod stability including
+  2020 oil shock.
+
+### Result
+
+Pending execution. Implementation: `run_nf_20261105_06_gold_oil_rv.py`, tests in
+`tests/test_nf_20261105_06_gold_oil_rv.py`.

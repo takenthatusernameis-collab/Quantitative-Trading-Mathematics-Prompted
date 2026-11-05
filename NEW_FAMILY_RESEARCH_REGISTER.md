@@ -404,3 +404,81 @@ Ablations: random_entry Sharpe 0.160, PF 1.034; long_only_negative_gaps Sharpe 0
 Per directive §6, H1–H30 exhausted and H85/H86/H87 all rejected. A new mechanism
 search across distinct return-generating categories is required before selecting the
 next experiment. Next unused H-ID is H88.
+
+## 10. New-family discovery cycle 3 (2026-11-05) — mechanism search
+
+Queue exhausted after H87 (REJECT). Per directive §4.1 and §6, fresh mechanism search across new broad categories required. Three candidates spanning three distinct mechanism categories, checked against the full lineage map (H1–H87): no overlap with TSMOM/trend (H1,H7-12,H21-23,H25), cross-sectional momentum (H2,H16), regime-gated vol-scaled momentum (H3,H5,H6), VRP (H17), overnight/intraday persistence decomposition (H18), volume predictive (H19), order flow (H20), VIX slope equity timing (H86), cross-asset lead-lag sector→stock (H85), or opening-gap fill (H87).
+
+### NF-20261105-04: Commodity Futures Front-Month Roll-Yield Proxy Carry
+
+**Category:** Carry and term structure (distinct broad category).
+**Mechanism:** Commodity futures exhibit term-structure carry: backwardation (deferred < front, or negative roll cost) implies positive expected roll yield to long holders; contango implies negative carry. A cross-commodity portfolio long backwardated commodities and flat/short contangoed commodities harvests carry premia driven by storage costs, convenience yield, and hedging pressure (Theory of Storage / hedging-pressure).
+**Observable:** Daily continuous front-month prices for liquid commodity futures (CL=F, GC=F, SI=F, HG=F, NG=F, ZC=F, ZS=F, ZW=F) via yfinance. Roll-yield proxy = annualized slope of log-price between front continuous series and a 63-day lagged roll-adjusted proxy, or alternatively the sign of 21-day return momentum of the contango/backwardation state inferred from term slope when second-month data unavailable; *feasibility note*: point-in-time front vs deferred chain construction from yfinance individual contract tickers is operationally complex and may introduce survivorship/roll artifacts — the smallest decisive test must use only continuous front-month with a documented, point-in-time roll proxy and treat contract-construction ambiguity as a rejection risk.
+**Null:** Roll-yield/carry proxy does not predict next-month commodity returns after costs.
+**Rejection:** OOS Sharpe < 0.5, PF < 1.1, max DD > 15%, < 50 OOS portfolio rebalances.
+**Data:** yfinance daily 2010-01-01→2026-10-31 (longer history for carry regimes), free. Monthly rebalance. Costs: futures model. Capacity: moderate (liquid contracts).
+**Closest prior family:** H17 VRP (volatility term structure, options/vol vehicle) — different asset class, instrument, and mechanism (commodity storage/convenience yield vs variance risk premium). No prior commodity carry family.
+**Scores (1–5):** novelty 4 (repo-new commodity carry), plausibility 4 (established economic basis but crowded/decayed), data 3 (point-in-time roll proxy feasible but noisy with yfinance continuous), falsifiability 4, execution 3 (futures costs/roll), support 4. **Weighted 3.70** (25/25/20/15/10/5).
+
+### NF-20261105-05: Short-Term Cross-Sectional Return Reversal (Liquidity Provision)
+
+**Category:** Liquidity provision and order-flow effects (distinct broad category).
+**Mechanism:** Large one-day price moves in liquid equities/ETFs create temporary order imbalances; liquidity providers demand compensation, producing short-horizon reversal as prices revert toward equilibrium. A daily-rebalanced cross-section long recent losers and short recent winners (1-day lookback, 1-day hold) harvests the liquidity premium, opposite in sign to momentum.
+**Observable:** Daily close-to-close returns for a liquid, survivorship-managed ETF universe (e.g., SPY sector ETFs XLK,XLF,XLE,XLV,XLI,XLP,XLU,XLB,XLY,XLC plus broad ETFs) via yfinance. All observable at close t for position held t+1.
+**Distinct from:** H2/H16 cross-sectional momentum (own-past-return *trend*, multi-day/monthly horizons, opposite direction) — NF-05 is a *reversal* mechanism with 1-day horizon driven by liquidity provision, not relative strength persistence. Different causal path and sign.
+**Null:** 1-day cross-sectional reversal does not produce net-of-cost alpha after realistic equity transaction costs.
+**Rejection:** OOS Sharpe < 0.5, PF < 1.1, max DD > 15%, < 200 OOS portfolio-days.
+**Data:** yfinance daily 2015-01-01→2026-10-31, free. Daily rebalance. Costs: equity model (1 bp commission + 0.5 bp spread + 0.1 bp impact) — high turnover is the key feasibility risk.
+**Scores (1–5):** novelty 3 (reversal well-known; repo-new as distinct family vs CS-momentum but mechanism adjacent in literature — scored honestly), plausibility 3 (microstructure effect present but largely arbitraged in liquid ETFs; capacity/decay risk), data 5, falsifiability 5, execution 2 (very high turnover; net-of-cost feasibility is the decisive risk), support 3. **Weighted 3.35**.
+
+### NF-20261105-06: Gold–Oil Relative-Value Spread Mean Reversion
+
+**Category:** Relative value and convergence (distinct broad category).
+**Mechanism:** Gold (GC=F/GLD) and crude oil (CL=F/USO) share macro inflation/geopolitical risk exposures but diverge due to supply shocks, demand cycles, and convenience yield. The log-price ratio (or normalized spread) exhibits mean reversion when dislocations exceed transaction-cost bounds, as relative macro pricing corrects. Long the undervalued leg / short the overvalued leg when spread z-score is extreme, targeting convergence.
+**Observable:** Daily prices for GC=F and CL=F (or GLD/USO) via yfinance. Spread = log(GC) - β*log(CL), β estimated on rolling train-only window; z-score of spread. All point-in-time.
+**Distinct from:** H85 lead-lag (uses *one asset's lagged return* to predict another — directional information transmission). NF-06 uses *contemporaneous spread dislocation* and bets on convergence (mean reversion of a stationary-ish relation), no lead-lag prediction. Different mechanism (relative value/convergence vs information transmission).
+**Null:** Extreme gold–oil spread dislocations do not predict spread convergence beyond costs.
+**Rejection:** OOS Sharpe < 0.5, PF < 1.1, max DD > 15%, < 50 OOS spread trades, spread non-stationarity (ADF-style diagnostic failure) documented as mechanism failure.
+**Data:** yfinance daily 2010-01-01→2026-10-31, free. Daily/weekly evaluation, positions held until convergence or stop. Costs: futures or ETF model. Capacity: high for GC/CL.
+**Scores (1–5):** novelty 4 (repo-new relative-value pair), plausibility 3 (economic link exists but cointegration unstable; oil regime shifts break spread), data 5, falsifiability 5, execution 4, support 3. **Weighted 3.95**.
+
+### Ranking (cycle 3)
+
+| Candidate | Mechanism category | Novelty | Plaus | Data | Falsif | Exec | Support | Weighted |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261105-06 Gold–oil RV mean reversion | Relative value / convergence | 4 | 3 | 5 | 5 | 4 | 3 | **3.95** |
+| NF-20261105-04 Commodity carry (roll proxy) | Carry / term structure | 4 | 4 | 3 | 4 | 3 | 4 | **3.70** |
+| NF-20261105-05 Short-term CS reversal | Liquidity provision / order-flow | 3 | 3 | 5 | 5 | 2 | 3 | **3.35** |
+
+**Selection:** NF-20261105-06 (Gold–oil relative-value spread mean reversion) ranks highest. It has a clean, point-in-time observable (two liquid prices), strong falsifiability, and no data-construction ambiguity comparable to NF-04's roll proxy. NF-05's decisive risk is net-of-cost viability under daily turnover in liquid ETFs — a valid but lower-expected-information first test given execution score 2. NF-04 remains credible but deferred behind NF-06 due to yfinance roll-proxy feasibility risk; revisit if NF-06 rejects and a point-in-time roll construction is specified.
+
+## 11. Pre-registration: NF-20261105-06 (Gold–Oil Relative-Value Mean Reversion) — H88
+
+**Temporary ID:** NF-20261105-06
+**Proposed H-ID:** H88 (pending formal registration in HYPOTHESIS_SPEC.md)
+
+**Hypothesis:** "The log-price spread between gold and crude oil mean-reverts when dislocated: extreme positive spread z-scores (gold rich vs oil) predict negative spread returns (short gold/long oil convergence) and vice versa, after transaction costs."
+
+**Mechanism:** Relative value and convergence (broad category per directive §4.1).
+
+**Null:** Spread z-score does not predict next-period spread change beyond costs; spread is non-stationary or dislocations are not exploitable net of costs.
+
+**Observables (all point-in-time):** GC=F (COMEX gold front continuous) and CL=F (NYMEX WTI front continuous) daily close, yfinance. Spread `s_t = log(GC_t) - log(CL_t)` (unit hedge ratio fixed for simplicity in baseline; hedge-ratio grid variant documented). Signal = rolling z-score of `s_t` over lookback `L`, computed using only data through t.
+
+**Data:** yfinance daily 2010-01-01→2026-10-31, free/public. Splits: train 2010-01-01→2018-12-31, val 2019-01-01→2022-12-31, test (protected holdout) 2023-01-01→2026-10-31 (~32% holdout by time; protected — no feedback into selection). Point-in-time: z-score uses trailing window ending at t; position entered t+1 close-to-close (or next day) — no look-ahead.
+
+**Construction:** Daily signal evaluation. Long spread (long GC, short CL, dollar-neutral by notional) when z < -entry_z; short spread when z > +entry_z; flat when |z| < exit_z. Vol-target spread returns to 10% ann. Costs: futures model per leg (conservative; document params). Max 1 spread unit.
+
+**Grid (train-only selection):** lookback L ∈ {60, 120, 252}, entry_z ∈ {1.5, 2.0, 2.5}, exit_z ∈ {0.5, 0.75} (18 combos). Selection by train walk-forward Sharpe; val for sanity; test protected final.
+
+**Metrics/gates:** Sharpe, PF, max DD, trade count, perturbation sensitivity (OAT ±20% on L/entry_z), benchmark comparison vs equal-weight GC/CL buy-hold (direction-aware gate), train/val/test stability. **Rejection:** OOS Sharpe < 0.5, PF < 1.1, max DD > 15%, < 30 OOS trades, or perturbation instability indicating selection artifact.
+
+**Capacity/constraints:** GC/CL highly liquid; daily/weekly holding; capacity not binding at research scale. Spread can diverge in oil supply shocks (2014, 2020) — regime fragility is an explicit falsification risk.
+
+**Closest prior family:** H85 (cross-asset lead-lag). **Distinction:** H85 predicts target returns from *lagged leader* returns (directional information transmission). H88 trades *mean reversion of a contemporaneous price ratio* with symmetric long/short convergence; no lead-lag predictor, no directional equity bet — relative value/convergence mechanism.
+
+**Confounders/leakage:** Continuous futures roll adjustments in yfinance data may affect spread level; use consistent adjusted closes and document. Hedge ratio fixed at 1.0 in baseline (log-ratio) avoids look-ahead beta estimation; rolling-beta variant only if train-only. No survivorship in futures continuous series beyond yfinance conventions — disclose.
+
+**Falsification:** (1) Randomized entry control; (2) spread stationarity diagnostic reported (not a gate, but mechanism evidence); (3) subperiod stability including 2020 oil shock.
+
+**Next task:** Formalize H88 in HYPOTHESIS_SPEC.md; implement `run_nf_20261105_06_gold_oil_rv.py` + focused tests; run lint/format + NF tests; run pinned src/qtr gates if `src/qtr` touched (not expected). Execute experiment only if hypothesis is decision-ready and data fetch feasible in-session; otherwise produce decision-ready implementation + tests and leave execution as next task with evidence. Next unused H-ID after H88 is H89.
