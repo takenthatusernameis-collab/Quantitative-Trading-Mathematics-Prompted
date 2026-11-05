@@ -853,3 +853,14 @@ H85–H96 rejected (H96 equity-bond correlation regime REJECT 4/9, `exp_2026-11-
 | Equity concentration relative-value timing | H97 (NF-20261105-18) | Long SPY vol-targeted when trailing SPY-vs-RSP log concentration-spread z-score low (cheap), flat when high (rich/crowded); hysteresis + 1-bar delay | SPY (traded), RSP (signal-only) daily (yfinance), 2010–2026 | **REJECT** (4/9; exp_2026-11-05T22-15-20-636539Z) | Train WF 2.250 → OOS Sharpe 0.724 selection overfit; fails Sharpe/PF/worst-regime -1.157/benchmark p=1.0/IR -0.262; underperforms SPY buy-hold (0.798); concentration regimes persist |
 
 **Deferred risks reassessed (cycle 11):** NF-04/05/11/12/17 remain deferred with documented decisive risks (see above); no silent drops. Next unused H-ID is H98 (H24/H68-H73/H76-H79 unassigned, not recycled).
+
+## Cycle 11 discovery (H98) — 2026-11-05
+
+**Candidates (>=3):**
+1. NF-20261105-19 PEAD post-earnings announcement drift (event-driven fundamental) — selected, pre-registered H98.
+2. NF-20261105-20 Treasury auction supply-pressure (event-driven, deferred: auction calendar/free data feasible but implementation heavier).
+3. NF-20261105-21 Month-end pension rebalancing (calendar/flow, deferred: weak independent evidence).
+
+**Scoring:** PEAD novelty 4/5, plausibility 4/5, data 4/5, falsifiability 4/5, execution 3/5, support 4/5 → highest.
+
+**Next task:** Implement H98 runner + tests (PEAD long/short cross-sectional, 20-day hold, vol-targeted), then execute. src/qtr unchanged.

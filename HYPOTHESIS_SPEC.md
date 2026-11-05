@@ -5571,3 +5571,17 @@ Ablations: random-exposure-matched OOS Sharpe -0.389 (PF 0.892, 774 trades, DD -
 Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold benchmark OOS Sharpe 0.798 (PF 1.165, DD -17.97%) outperforms the strategy on protected OOS. Ablations: random-exposure-matched OOS Sharpe -0.035 (PF 0.989, 551 trades) — concentration gating is better than random exposure; inverse-signal (long when concentration rich, `z>=entry_z`) OOS Sharpe 0.285 (PF 1.113, 157 trades) — directionally mixed, no robust edge.
 
 **Verdict rationale.** Concentration relative-value timing shows the intended cheap-vs-rich direction vs random exposure but is not a validated edge: it fails Sharpe/PF/worst-regime/benchmark/IR gates and does not demonstrate statistically significant outperformance vs buy-hold SPY on protected OOS. The high train WF Sharpe (2.250) decaying to OOS 0.724 indicates selection overfit on a slow-moving spread; concentration regimes persist and the long-only contrarian timing is not cost/statistically robust on this sample. Family not supported by this free, point-in-time test; no gate was weakened; no published/certified artifact was modified.
+
+## H98 (NF-20261105-19): Post-earnings announcement drift (PEAD) cross-sectional long/short
+
+**Mechanism.** Stocks with positive earnings surprises (reported EPS > estimate) drift upward for ~20 trading days post-announcement; negative surprises drift downward. Long positive-surprise / short negative-surprise portfolio, equal-weight, held over the drift window, vol-targeted. Distinct from all prior families (trend/momentum/regime/vol/flow); event-driven fundamental information incorporation.
+
+**Data.** yfinance earnings dates + EPS estimate/reported for a fixed large-cap universe (SPY constituents top 50 or a fixed 20-ticker set); daily prices yfinance. Free, point-in-time (earnings date known after release; use release timestamp next-day open execution).
+
+**Timing/causality.** Signal formed at close of announcement day (earnings_date close); positions entered next open; hold 20 trading days; no same-day look-ahead. Engine shift(1).
+
+**Splits.** Train 2015-2019; Val 2020-2022; Test 2023-2026 (protected).
+
+**Gates.** Standard PROMPT_V2 Phase 4 OOS Val+Test.
+
+**Closest prior.** None event-driven; distinct from TSMOM/CS momentum (price-based) and volume-predictive (flow-based).
