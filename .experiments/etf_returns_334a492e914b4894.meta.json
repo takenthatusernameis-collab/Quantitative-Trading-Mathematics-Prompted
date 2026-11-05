@@ -1,0 +1,31 @@
+{
+  "shape": [
+    2975,
+    10
+  ],
+  "columns": [
+    "XLF",
+    "XLE",
+    "XLV",
+    "XLI",
+    "XLB",
+    "XLP",
+    "XLU",
+    "XLY",
+    "XLC",
+    "XLK"
+  ],
+  "dtypes": {
+    "XLF": "float64",
+    "XLE": "float64",
+    "XLV": "float64",
+    "XLI": "float64",
+    "XLB": "float64",
+    "XLP": "float64",
+    "XLU": "float64",
+    "XLY": "float64",
+    "XLC": "float64",
+    "XLK": "float64"
+  },
+  "index_type": "datetime64[s]"
+}

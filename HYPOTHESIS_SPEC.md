@@ -4948,3 +4948,81 @@ the disclosure must say so explicitly and name the artifact.
 - The audit is offline: the committed cache and the committed artifacts only.
 - The pre-registered free-data hypothesis space (H1–H30) remains exhausted; H57 adds
   no hypothesis.
+
+---
+
+## H85 — NF-20261104-02: Cross-Asset Lead-Lag (Sector ETF → Constituent Stock) (pre-registered 2026-11-05)
+
+**Family:** NEW-FAMILY DISCOVERY MODE per STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §4.
+**Temporary lineage key:** NF-20261104-02 (see NEW_FAMILY_RESEARCH_REGISTER.md §2).
+**Status:** REJECTED (2/8 gates). Experiment `exp_2026-11-05T01-24-02-934356Z`.
+
+### Mechanism (information transmission and lead-lag)
+
+Sector-level information diffuses with a delay from liquid sector ETFs to their
+constituent stocks. A sector ETF's prior-day return (close[t-2] → close[t-1], known at
+close t-1) predicts the next-day returns of stocks in that sector. The position built
+at row t earns close[t-1] → close[t], so the ranking is built on lagged information only:
+each stock is ranked by its **own** prior-day return minus the sector ETF's prior-day
+return.
+
+### Distinction from prior repository families
+
+- H2/H16 (cross-sectional momentum) rank assets by their **own** past returns.
+  H85 ranks stocks by a **different asset's** prior return (the sector ETF lead).
+- No prior repository family tests cross-asset lead-lag. This is not a parameter,
+  indicator, market, timeframe, universe, or overlay variant of any tested family.
+
+### Pre-registered construction
+
+Daily rebalance at close. Within each sector, rank stocks by their lagged excess return
+over the sector ETF; long the top quintile, short the bottom quintile, equal-weighted
+within quintile, vol-targeted to 15% annualised. Universe: 10 sector ETFs + 40 mapped
+large-cap stocks (50 symbols), fixed mapping, no survivorship from changing membership.
+Grid: 4 lookbacks × 3 quintile shares × 3 vol targets = 36 combos; selection = argmax
+train-only walk-forward Sharpe; Test protected.
+
+### Data
+
+yfinance daily, all free. 2015-01-01 → 2026-10-31. Train ≤ 2019-12-31, Val ≤
+2022-12-31, Test > 2022-12-31 (protected holdout, final ~20%). Costs: equity model
+(1 bp commission + 0.5 bp spread + 0.1 bp impact per 1% ADV).
+
+### Result
+
+**REJECT (2/8 gates).** OOS Sharpe = −1.615, PF = 0.759, max DD = −47.1%, 50,488 OOS
+trades, WF stability = 1.445 (passes), perturbation min ratio = 0.000 (fails). Train
+Sharpe −2.188, Val −1.140, Test −2.073. Benchmark p = 0.0012, IR = −1.247 (the strategy
+is significantly *worse* than the equal-weight buy-and-hold benchmark). Selected config:
+lookback 21, quintile_share 0.2, vol_target 0.15.
+
+Ablations: random-quintile control Sharpe −0.657 (the signal is not the source of the
+loss — the long book itself is short-gamma to the signal); long-only top quintile Sharpe
++0.373, PF 1.070; EW benchmark Sharpe +0.900, PF 1.198. The strategy underperforms the
+benchmark on every dimension that matters.
+
+### Integrity defects found and fixed during this experiment (not verdict-affecting)
+
+1. **Look-ahead in the ranking.** The original builder ranked stocks by their *concurrent*
+   close[t-1] → close[t] return minus the sector's lagged return — the very return the
+   position was about to earn. Fixed: rank on the stock's own prior-day return minus the
+   sector's prior-day return. Pinned by
+   `tests/test_nf_20261104_02_cross_asset_leadlag.py::TestSignalCausality::test_stock_ranking_uses_only_prior_day_information`.
+2. **Pandas column-alignment nullified the signal.** `stock_rets.shift(1) - sector_ret_lagged`
+   aligned to an empty intersection (disjoint columns), producing all-NaN positions.
+   Fixed by subtracting per-sector inside the loop. The builder now produces 20 positions
+   per day (10 long / 10 short).
+3. **Runner polluted the committed cache.** `fetch_yahoo` wrote 50 untracked parquet files
+   into `.cache/data/`, breaking the frozen 82-file baseline the H57 price-return-basis
+   audit pins. Fixed: the runner now uses an isolated per-experiment cache under its own
+   artifact directory.
+4. **A comment substring tripped a tripwire.** A comment mentioning the audit's name
+   contained the substring "total_return", which
+   `tests/test_engine_total_return_consistency.py::test_no_runner_selects_on_the_engines_total_return`
+   flags by substring scan. Reworded.
+
+### Verdict
+
+REJECTED. The lead-lag mechanism does not produce a monetisable edge on free daily data
+over 2015–2026; the sector-ETF signal is dominated by the cost of the daily rebalance
+and by the benchmark itself. Recorded as a negative result per PROMPT_V2.md Phase 6.

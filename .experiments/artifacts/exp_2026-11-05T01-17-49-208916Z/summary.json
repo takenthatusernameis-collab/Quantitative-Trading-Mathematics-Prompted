@@ -1,0 +1,79 @@
+{
+  "experiment_id": "exp_2026-11-05T01-17-49-208916Z",
+  "hypothesis": "NF-20261104-02",
+  "selected_config": {
+    "lookback": 21,
+    "quintile_share": 0.2,
+    "vol_target": 0.15
+  },
+  "selection_rule": "best train-only walk-forward Sharpe; Test protected; gates on OOS Val+Test",
+  "grid_size": 36,
+  "n_evaluated": 36,
+  "grid_elapsed_sec": 119.1,
+  "total_elapsed_sec": 154.5,
+  "compute_cpu_hours": 0.043,
+  "metrics": {
+    "train_sharpe": -3.067949827194827,
+    "val_sharpe": -2.0284239055357096,
+    "test_sharpe": -1.8238033762363406,
+    "oos_sharpe": -1.9157883059500012,
+    "profit_factor": 0.7232710223054993,
+    "max_drawdown": -0.5316560858128179,
+    "trades": 50486,
+    "wf_stability": 0.8322606109017536,
+    "benchmark_p_value": 0.00034288882101651905,
+    "information_ratio": -1.3748803928118603,
+    "perturbation": {
+      "variants": {
+        "lookback=16.800": -1.9157883059500012,
+        "lookback=25.200": -1.9157883059500012,
+        "quintile_share=0.160": -1.9143389340936623,
+        "quintile_share=0.240": -1.9198691010488929,
+        "vol_target=0.120": -1.9143389340936625,
+        "vol_target=0.180": -1.9198691010488929
+      },
+      "min_perturbed_sharpe_ratio": 0.0
+    },
+    "ablations": {
+      "random_quintiles": {
+        "sharpe": -1.1738292800619072,
+        "max_drawdown": -0.5128397731687955,
+        "profit_factor": 0.8172331141225653,
+        "trades": 49950,
+        "gross_profit": 2.614480614509569,
+        "gross_loss": 3.199185849580564,
+        "n_periods": 1717
+      },
+      "long_only_top_quintile": {
+        "sharpe": 0.17021225282817362,
+        "max_drawdown": -0.283548846643216,
+        "profit_factor": 1.031433953409664,
+        "trades": 29903,
+        "gross_profit": 6.107087932856675,
+        "gross_loss": 5.920968485348153,
+        "n_periods": 1717
+      },
+      "ew_benchmark": {
+        "sharpe": 0.8999319340740932,
+        "max_drawdown": -0.3640330014515243,
+        "profit_factor": 1.1976605621943743,
+        "trades": 0,
+        "gross_profit": 7.290947277265823,
+        "gross_loss": 6.08765747776417,
+        "n_periods": 1717
+      }
+    }
+  },
+  "passes": {
+    "sharpe": false,
+    "trades": true,
+    "pf": false,
+    "dd": false,
+    "stab": true,
+    "p": false,
+    "ir": false,
+    "perturbation": false
+  },
+  "all_pass": false,
+  "verdict": "REJECT"
+}

@@ -44,7 +44,7 @@ from qtr.backtest.engine import (
     CostModel,
     run_backtest,
 )
-from qtr.data.fetcher import get_data_fetcher
+from qtr.data.fetcher import DataCache, DataFetcher
 from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
     benchmark_significance_gate,
@@ -199,8 +199,16 @@ def build_daily_targets(
     inv_vol = 1.0 / rolling_vol
 
     # Vectorised per-sector rank construction. For each sector we rank stocks
-    # by their excess return over the sector ETF (both known at close t-1),
-    # take the top/bottom quintile, and size by inverse realised vol.
+    # by their lagged excess return over the sector ETF (both known at close
+    # t-1), take the top/bottom quintile, and size by inverse realised vol.
+    #
+    # Causality: the position built at row t earns the close[t-1] -> close[t]
+    # return, so that concurrent return must not enter the ranking. The stock
+    #'s own prior-day return (close[t-2] -> close[t-1]) and the sector ETF's
+    # prior-day return are both known at close t-1 and are the only inputs.
+    # (The excess is computed per-sector inside the loop: the two frames have
+    # disjoint columns, so a single ``stock_rets.shift(1) - sector_ret_lagged``
+    # subtraction would align to an empty intersection and yield all-NaN.)
     for etf, sector_stocks in SECTOR_ETFS.items():
         if etf not in sector_ret_lagged.columns:
             continue
@@ -208,7 +216,7 @@ def build_daily_targets(
         if len(stocks) < 2:
             continue
 
-        excess = stock_rets[stocks].values - sector_ret_lagged[etf].values[:, None]
+        excess = stock_rets[stocks].shift(1).values - sector_ret_lagged[etf].values[:, None]
         vol = inv_vol[stocks].values
         n_long = max(1, int(round(len(stocks) * quintile_share)))
         n_short = max(1, int(round(len(stocks) * quintile_share)))
@@ -311,7 +319,7 @@ def full_gate_eval(result, oos_mask, val_mask, test_mask, prices, etf_returns, b
     }
 
 
-def perturbation_eval(selected, prices, volumes, oos_mask, cfg, opt_oos_sharpe: float):
+def perturbation_eval(selected, prices, etf_returns, volumes, oos_mask, cfg, opt_oos_sharpe: float):
     variants = {}
     for param, base in (
         ("lookback", selected["lookback"]),
@@ -325,7 +333,7 @@ def perturbation_eval(selected, prices, volumes, oos_mask, cfg, opt_oos_sharpe: 
             kw = dict(selected)
             kw[param] = float(v)
             pos = build_daily_targets(
-                prices, None, kw["lookback"], kw["quintile_share"], kw["vol_target"]
+                prices, etf_returns, kw["lookback"], kw["quintile_share"], kw["vol_target"]
             )
             res = run_backtest(prices=prices, signals=pos, volumes=volumes, config=cfg)
             r = res.returns[oos_mask].dropna()
@@ -377,7 +385,15 @@ def main():
     print(f"[NF-02] started {exp_id}  grid_size={grid_size}")
 
     try:
-        fetcher = get_data_fetcher()
+        # Isolated cache: this experiment's 50-symbol universe is NOT part of
+        # the committed 82-file baseline that the price-return-basis audit
+        # pins (its coverage test asserts exactly 82 parquet files in
+        # .cache/data). Writing this runner's fetch artifacts to the shared
+        # committed cache would silently break that frozen baseline, so the
+        # runner uses a per-experiment cache dir under its own artifact dir.
+        isolated_cache = Path(tracker.log_dir) / "artifacts" / exp_id / "cache"
+        isolated_cache.mkdir(parents=True, exist_ok=True)
+        fetcher = DataFetcher(cache=DataCache(cache_dir=isolated_cache))
         data = fetcher.fetch_yahoo(UNIVERSE, start=DATA_START, end=DATA_END, interval="1d")
         prices_list, volumes_list = [], []
         for sym in UNIVERSE:
@@ -470,7 +486,7 @@ def main():
 
         # --- perturbation gate ---
         pert = perturbation_eval(
-            selected, prices, volumes, oos_mask, cfg, gate["oos_metrics"]["sharpe"]
+            selected, prices, etf_returns, volumes, oos_mask, cfg, gate["oos_metrics"]["sharpe"]
         )
         gate["passes"]["perturbation"] = (
             pert["min_perturbed_sharpe_ratio"] >= GATES["min_perturbed_sharpe_ratio"]

@@ -213,7 +213,7 @@ Scores 1–5. Weights: novelty 25%, plausibility 25%, data 20%, falsifiability 1
 
 **Rejection conditions:** OOS Sharpe < 0.5 or PF < 1.1 or < 200 OOS trades or max DD > 15%.
 
-**Not yet implemented.** Next step: write experiment runner `run_h85_cross_asset_leadlag.py` and focused test, then run gates.
+**Not yet implemented.** Implemented 2026-11-05 as **H85**; result **REJECT** — see §6.
 
 ---
 
@@ -226,7 +226,57 @@ Scores 1–5. Weights: novelty 25%, plausibility 25%, data 20%, falsifiability 1
 | Weighted ranking | Complete |
 | NF-02 selected | Complete |
 | Pre-registered | Above |
-| Experiment runner | Not yet started |
-| Test | Not yet started |
-| Gates (ruff/pytest/coverage) | Not yet run |
-| HYPOTHESIS_SPEC.md registration (H85) | Pending implementation |
+| Experiment runner | Complete (`run_nf_20261104_02_cross_asset_leadlag.py`) |
+| Test | Complete (`tests/test_nf_20261104_02_cross_asset_leadlag.py`, 10 tests) |
+| Gates (ruff/pytest/coverage) | Green: lint, format, 2308 passed / 16 skipped / 100% coverage |
+| HYPOTHESIS_SPEC.md registration (H85) | Registered (§H85) |
+| Experiment executed | `exp_2026-11-05T01-24-02-934356Z` — REJECT |
+
+---
+
+## 6. NF-20261104-02 outcome (H85) and next candidate
+
+### Result: REJECT (2/8 gates)
+
+OOS Sharpe = **−1.615**, PF = 0.759, max DD = −47.1%, 50,488 OOS trades, WF stability =
+1.445 (passes), perturbation min ratio = 0.000 (fails). Train −2.188 / Val −1.140 /
+Test −2.073. Benchmark p = 0.0012, IR = −1.247 — the strategy is significantly *worse*
+than the equal-weight buy-and-hold benchmark. Selected config: lookback 21,
+quintile_share 0.2, vol_target 0.15.
+
+Ablations: random-quintile control Sharpe −0.657 (the loss is not signal-driven — the
+long book is short-gamma to the daily rebalance); long-only top quintile Sharpe +0.373,
+PF 1.070; EW benchmark Sharpe +0.900, PF 1.198.
+
+### New root family added to the lineage map
+
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Cross-asset lead-lag (sector ETF → constituent) | H85 | Prior-day sector ETF return predicts next-day constituent returns; information diffuses with a delay | 10 sector ETFs + 40 mapped stocks; daily, yfinance | REJECTED (OOS Sharpe −1.615) | Daily rebalance cost drag dominates; signal worse than EW benchmark (IR −1.247) |
+
+### Integrity defects found and fixed during this experiment (not verdict-affecting)
+
+1. **Look-ahead in the ranking.** The original builder ranked stocks by their *concurrent*
+   close[t-1] → close[t] return — the very return the position was about to earn. Fixed
+   to rank on the stock's own prior-day return minus the sector's prior-day return.
+   Pinned by `test_stock_ranking_uses_only_prior_day_information`.
+2. **Pandas column-alignment nullified the signal.** `stock_rets.shift(1) -
+   sector_ret_lagged` aligned to an empty intersection (disjoint columns), producing
+   all-NaN positions. Fixed by subtracting per-sector inside the loop.
+3. **Runner polluted the committed cache.** `fetch_yahoo` wrote 50 untracked parquet
+   files into `.cache/data/`, breaking the frozen 82-file baseline the H57 audit pins.
+   Fixed: isolated per-experiment cache under the runner's own artifact directory.
+4. **Comment substring tripped a tripwire.** A comment mentioning the audit's name
+   contained "total_return", flagged by the engine's total-return tripwire scan.
+   Reworded.
+
+### Next candidate: NF-20261104-01 (VIX Term Structure Slope Equity Timing)
+
+NF-02 is exhausted. The next-highest ranked candidate is **NF-20261104-01** (weighted
+total 4.15, category: volatility and convexity premia), which is materially distinct from
+every exhausted family — no prior repository family trades equity exposure timed by the
+VIX term-structure slope (H17 trades SVXY gated by the spot VIX *level*). It uses only
+free yfinance daily data (^VIX, ^VIX3M, SPY), is single-instrument, has low turnover, and
+its falsification is clean. Runner scaffold already exists at
+`run_nf_20261104_01_vix_termstructure.py` (not yet implemented). Pre-register as H86,
+implement, and run the gates.

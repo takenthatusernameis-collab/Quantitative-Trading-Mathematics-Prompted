@@ -94,6 +94,67 @@ class TestSignalCausality:
                     f"expected {expected_sector_ret}, got {actual_sector_ret}"
                 )
 
+    def test_stock_ranking_uses_only_prior_day_information(self):
+        """The quintile *membership* at row t must depend only on prices up to
+        close t-1. The position built at row t earns the close[t-1] -> close[t]
+        return, so that concurrent return must not enter the ranking: ranking
+        on it would be look-ahead dressed as a cross-sectional signal.
+
+        Construction: perturb the close[t-1] -> close[t] return of one stock by
+        a large amount. If the builder is causal, row t's membership for that
+        stock is unchanged; if it ranked on the concurrent return, the stock
+        would move into or out of a quintile.
+        """
+        dates = pd.date_range("2020-01-01", periods=120, freq="B")
+        rng = np.random.default_rng(101)
+
+        etf_data = {
+            etf: 100 * np.exp(np.cumsum(rng.normal(0, 0.01, len(dates)))) for etf in ["XLF", "XLV"]
+        }
+        etf_prices = pd.DataFrame(etf_data, index=dates)
+
+        stock_data = {}
+        for sector, stocks in [
+            ("XLF", ["JPM", "BAC", "WFC", "C"]),
+            ("XLV", ["JNJ", "UNH", "ABBV", "TMO"]),
+        ]:
+            for s in stocks:
+                stock_data[s] = 100 * np.exp(np.cumsum(rng.normal(0, 0.015, len(dates))))
+        stock_prices = pd.DataFrame(stock_data, index=dates)
+
+        prices = pd.concat([etf_prices, stock_prices], axis=1)
+        etf_returns = etf_prices.pct_change()
+
+        # Perturb the *concurrent* close[t-1] -> close[t] return of JPM at one
+        # row only. Everything known at close t-1 is untouched.
+        t_idx = 80
+        perturbed = prices.copy()
+        perturbed.iloc[t_idx, perturbed.columns.get_loc("JPM")] *= 1.5
+
+        t_causal = nf02.build_daily_targets(
+            prices, etf_returns, lookback=21, quintile_share=0.25, vol_target=0.15
+        )
+        t_perturbed = nf02.build_daily_targets(
+            perturbed, etf_returns, lookback=21, quintile_share=0.25, vol_target=0.15
+        )
+
+        row = dates[t_idx]
+        # The perturbation is a concurrent return; a causal builder ignores it.
+        # Membership (zero vs non-zero weight) must be identical at row t.
+        causal_membership = (t_causal.loc[row] != 0).astype(int)
+        pert_membership = (t_perturbed.loc[row] != 0).astype(int)
+        assert causal_membership.equals(pert_membership), (
+            f"row {row.date()}: ranking used concurrent return; "
+            f"membership changed by a close[t-1]->close[t] perturbation"
+        )
+        # The perturbation is large enough to flip a quintile if the builder
+        # were ranking on the concurrent return, so membership must also be
+        # unchanged relative to the unperturbed row for every stock.
+        for s in ["JPM", "BAC", "WFC", "C", "JNJ", "UNH", "ABBV", "TMO"]:
+            assert (t_causal.loc[row, s] == 0) == (t_perturbed.loc[row, s] == 0), (
+                f"{s} membership changed at {row.date()}"
+            )
+
     def test_positions_are_long_short_balanced_within_sector(self):
         """Each sector's net exposure per side is balanced (top quintile long,
         bottom quintile short, equal magnitude aggregate)."""

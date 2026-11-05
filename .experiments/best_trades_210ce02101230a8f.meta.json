@@ -1,0 +1,23 @@
+{
+  "shape": [
+    0,
+    6
+  ],
+  "columns": [
+    "timestamp",
+    "symbol",
+    "side",
+    "weight_change",
+    "price",
+    "cost"
+  ],
+  "dtypes": {
+    "timestamp": "object",
+    "symbol": "object",
+    "side": "object",
+    "weight_change": "object",
+    "price": "object",
+    "cost": "object"
+  },
+  "index_type": "int64"
+}

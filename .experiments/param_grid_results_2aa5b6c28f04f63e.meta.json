@@ -1,0 +1,27 @@
+{
+  "shape": [
+    36,
+    8
+  ],
+  "columns": [
+    "lookback",
+    "quintile_share",
+    "vol_target",
+    "train_wf_sharpe",
+    "train_sharpe",
+    "val_sharpe",
+    "test_sharpe",
+    "oos_sharpe"
+  ],
+  "dtypes": {
+    "lookback": "int64",
+    "quintile_share": "float64",
+    "vol_target": "float64",
+    "train_wf_sharpe": "float64",
+    "train_sharpe": "float64",
+    "val_sharpe": "float64",
+    "test_sharpe": "float64",
+    "oos_sharpe": "float64"
+  },
+  "index_type": "int64"
+}
