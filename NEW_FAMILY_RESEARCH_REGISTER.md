@@ -817,3 +817,39 @@ H95 (NF-20261105-16 USD strength macro timing) REJECTED 3/9, `exp_2026-11-05T19-
 ### Next candidate decision (directive §6)
 
 H85–H96 all rejected. No pre-registered NF candidates remain executable without resolving a documented decisive risk. Per directive §4/§6, Cycle 11 must perform a fresh mechanism search: propose >=3 repo-new candidates spanning >=3 broad mechanism categories (checked against the full lineage map H1–H96), score honestly with the directive weights, reassess deferred risks with concrete evidence, and pre-register the highest-information feasible candidate as H97 (next unused H-ID) with the smallest decisive test. Prefer small, free, point-in-time tests with no `src/qtr` change. Do not re-run rejected families without a materially different, pre-registered mechanism.
+
+## Cycle 11 (2026-11-05) — post-H96 mechanism search → NF-20261105-18 / H97 selection
+
+H85–H96 rejected (H96 equity-bond correlation regime REJECT 4/9, `exp_2026-11-05T22-09-06-247157Z`). NF-20261105-04 (commodity carry roll proxy), NF-20261105-05 (short-term CS reversal), NF-20261105-11 (Treasury term-spread, `^IRX` blocked), NF-20261105-12 (CS dispersion), and NF-20261105-17 (volume-shock CS reversal) remain deferred with decisive risks documented (concrete evidence reaffirmed cycle 11; none silently dropped). A fresh mechanism search produced >=3 repo-new candidates spanning >=3 broad mechanism categories, none overlapping H1–H96 root families:
+
+| Candidate | Mechanism category | Novelty (25%) | Plaus (25%) | Data (20%) | Falsif (15%) | Exec (10%) | Support (5%) | Weighted |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261105-18 Equity concentration RV timing (SPY/RSP spread MR) — **H97** | Relative value / convergence (within-equity capitalization concentration) | 4 | 3 | 5 | 5 | 5 | 3 | **4.15** |
+| NF-20261105-20 Market breadth participation timing (sector ETFs >200d MA → SPY) | Market structure / participation breadth | 4 | 3 | 5 | 4 | 4 | 3 | 3.90 |
+| NF-20261105-19 Realized skewness regime timing (SPY) | Higher-moment / realized tail-risk (vs implied SKEW H89) | 3 | 3 | 5 | 4 | 5 | 2 | 3.70 |
+
+**Scoring notes.** NF-18 novelty 4: repo-new; within-equity concentration spread not tested (H92 is equity-vs-duration first-moment momentum across asset classes; H88 is cross-asset commodity pair MR). NF-18 execution 5: 2 symbols (SPY signal pair, SPY traded), slow-moving ratio, low turnover, no `src/qtr` change. NF-20 novelty 4, execution 4 (10 sector ETFs); breadth timing is noisy and participation regimes persist. NF-19 novelty 3: adjacent to vol-surface families (H17 VRP, H86 VIX slope, H89 implied SKEW); realized-vs-implied skew distinction scored honestly lower. Data verified free/point-in-time: SPY+RSP fetch clean (spot-checked 2026-11-05, 0 non-positive); sector ETFs feasible (H85); realized skew computed in-memory from SPY. `$PCALL` put-call ratio was considered but verified infeasible (yfinance returns 0 rows / "Quote not found") — not scored as a candidate.
+
+**Selection:** NF-20261105-18 → H97 (highest expected-information feasible small test; long/flat hysteresis, single traded instrument SPY, RSP signal-only). Pre-registered in `HYPOTHESIS_SPEC.md` §H97; implementation + execution this session. NF-19/NF-20 remain unexecuted alternatives; deferred NF-04/05/11/12/17 unchanged.
+
+## 12. NF-20261105-18 / H97 execution outcome
+
+**Runner:** `run_nf_20261105_18_concentration_rv.py` (new). **Tests:** `tests/test_nf_20261105_18_concentration_rv.py` (10 tests). Lint/format clean (ruff check + format --check). `src/qtr` unchanged.
+
+**Mechanism.** Long SPY vol-targeted when trailing SPY-vs-RSP log-concentration-spread z-score <= exit_z (concentration cheap), flat when >= entry_z (concentration rich/crowded), hysteresis between thresholds, 1-bar execution delay; vol-target from trailing 21-day realized SPY vol. Distinct from H92 (relative momentum level) — mean reversion of a within-equity concentration spread.
+
+**Data/splits.** SPY, RSP daily yfinance 2010-01-01 -> 2026-10-31 (0 non-positive, feasibility spot-checked). Train 2010-2019; Val 2020-2022; Test protected 2023-2026-10-31. Grid 36 (lookback x entry_z x exit_z x vol_target). Selection = best train-only 4-fold WF Sharpe; gates on OOS Val+Test. No holdout feedback.
+
+**Execution.** `exp_2026-11-05T22-15-20-636539Z` (`nf_20261105_18_concentration_rv`, completed, 2026-11-05T22:15:20Z, 2.43s). Command: `PYTHONPATH=src python run_nf_20261105_18_concentration_rv.py`. Prices 4233 rows (SPY,RSP), 0 non-positive; train/val/test 2516/756/961. Grid 36 (2.4s). Selected (train-only WF Sharpe 2.250): lookback=60, entry_z=1.5, exit_z=0.5, vol_target=0.10. Artifact: `.experiments/nf_runs/nf_20261105_18_concentration_rv/summary.json`; tracker artifact `summary_59ab94e64128670e`.
+
+**Result — REJECT (4/9 gates).** OOS Val+Test (1717 periods, 364 trades): Sharpe 0.724 (fail >=1.0; reject <0.5 not crossed), PF 1.168 (fail <1.3), max DD -12.22% (pass <=15%), trades 364 (pass >=200), WF stability 0.736 (pass >=0.7; train 1.213 → test 0.893), worst-regime rolling-252 Sharpe -1.157 (fail <0.3), benchmark p=1.000 (fail >0.05 vs buy-hold SPY), IR -0.262 (fail <0), perturbation min ratio 0.753 (pass >=0.5, OAT ±20% on all four grid params). Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold benchmark OOS Sharpe 0.798, PF 1.165, DD -17.97% outperforms the strategy on protected OOS. Ablations: random-exposure-matched Sharpe -0.035/PF 0.989 (551 trades) — concentration gating adds value vs random assignment but no robust edge; inverse-signal (long when concentration rich) Sharpe 0.285/PF 1.113 (157 trades), directionally mixed, no robust edge.
+
+**Verdict rationale.** Concentration relative-value timing shows the intended cheap-vs-rich direction vs random exposure but is not a validated edge: fails Sharpe/PF/worst-regime/benchmark/IR gates and does not outperform buy-hold SPY on protected OOS. High train WF Sharpe (2.250) decaying to OOS 0.724 indicates selection overfit on a slow-moving spread; concentration regimes persist and the long-only contrarian timing is not cost/statistically robust. No gate weakened; no published/certified artifact modified.
+
+**Lineage map (H97 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Equity concentration relative-value timing | H97 (NF-20261105-18) | Long SPY vol-targeted when trailing SPY-vs-RSP log concentration-spread z-score low (cheap), flat when high (rich/crowded); hysteresis + 1-bar delay | SPY (traded), RSP (signal-only) daily (yfinance), 2010–2026 | **REJECT** (4/9; exp_2026-11-05T22-15-20-636539Z) | Train WF 2.250 → OOS Sharpe 0.724 selection overfit; fails Sharpe/PF/worst-regime -1.157/benchmark p=1.0/IR -0.262; underperforms SPY buy-hold (0.798); concentration regimes persist |
+
+**Deferred risks reassessed (cycle 11):** NF-04/05/11/12/17 remain deferred with documented decisive risks (see above); no silent drops. Next unused H-ID is H98 (H24/H68-H73/H76-H79 unassigned, not recycled).

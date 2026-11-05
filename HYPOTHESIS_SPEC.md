@@ -5524,3 +5524,50 @@ Ablations: random-exposure-matched OOS Sharpe -0.389 (PF 0.892, 774 trades, DD -
 **Deferred risks reassessed (cycle 10).** NF-04 (commodity carry roll proxy) remains deferred — free point-in-time term-structure/roll proxy unavailable. NF-05 (short-term CS reversal) remains deferred — daily turnover/net-of-cost risk. NF-11 (Treasury term-spread regime timing) remains deferred — `^IRX` blocked by non-positive history; FRED absent. NF-12 (cross-sectional equity dispersion) remains deferred — complexity/turnover. NF-17 (volume-shock CS reversal) remains deferred — turnover/cost-sensitive; pre-register constrained design only if pursued. NF-15 (this H96) selected as highest-information feasible candidate: free data (SPY/TLT), 2-symbol, small grid, mechanism distinct from H92.
 
 **Execution outcome (2026-11-05).** Runner `run_nf_20261105_15_corr_regime.py` + tests `tests/test_nf_20261105_15_corr_regime.py` implemented; lint/format clean; focused tests 10/10 passed. `src/qtr` unchanged. Executed `exp_2026-11-05T22-09-06-247157Z`. Selected (train-only WF Sharpe 1.511): lookback=63, entry_z=1.0, exit_z=0.5, vol_target=0.10. OOS Val+Test (254 trades): Sharpe 0.726 (<1.0 fail), PF 1.187 (<1.3 fail), max DD -10.26% (pass), worst-regime rolling-252 Sharpe -0.840 (fail), benchmark p=1.000 vs buy-hold SPY (fail), IR -0.334 (fail), perturbation min ratio 0.716 (pass). WF stability 1.110 (pass); trades 254 (pass). Gate pass count 4/9. Verdict: REJECT. Train/Val/Test Sharpe 1.107/0.220/1.229; SPY buy-hold benchmark OOS Sharpe 0.798/PF 1.165/DD -17.97% outperforms the strategy on protected OOS. Ablations: random-exposure-matched Sharpe -0.134/PF 0.949; inverse-signal (long when correlation high) Sharpe 0.695/PF 1.219 — no robust cost-robust edge over buy-hold SPY. Family not supported by this free, point-in-time test; no gate weakened; no published/certified artifact modified.
+
+## H97 — NF-20261105-18: Equity concentration relative-value timing (pre-registered 2026-11-05; implementation + execution this session)
+
+**Temporary lineage ID:** NF-20261105-18 (cycle 11, post H96 REJECT; cycle-11 selection). H-ID: H97 (next unused after H96; H24/H68-H73/H76-H79 remain unassigned and are not recycled per directive §3).
+
+**Statement.** The cap-weight vs equal-weight equity concentration spread (log SPY / log RSP) mean-reverts when dislocated: an extreme positive spread z-score (cap-heavy SPY rich vs equal-weight RSP, high capitalization concentration) predicts negative next-period spread returns (short SPY / long RSP convergence), and an extreme negative z-score predicts positive spread returns. A long-only timing implementation goes long SPY vol-targeted when the spread is cheap (z <= exit_z, concentration low/unfashionable), flat when rich (z >= entry_z, concentration extreme/crowded), holds between thresholds with hysteresis, and earns net pooled OOS (Val+Test) Sharpe >= 1.0 with >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 vs buy-hold SPY, IR >= 0, and perturbation min ratio >= 0.5.
+
+**Null (H0).** The cap-weight vs equal-weight concentration spread z-score has no predictive power for next-day SPY returns beyond random chance after costs.
+
+**Mechanism / causal chain.** Relative value / convergence within equities (broad category per directive §4.1): capitalization-concentration mean reversion driven by valuation dispersion, index-rebalancing flows, and style rotation. `spread[t] = log(SPY_t) - log(RSP_t)` (unit hedge ratio log-ratio, no look-ahead beta estimation) using only closes through t. `z[t]` = rolling z-score of spread over `lookback` bars (past-only, `min_periods=lookback`). Hysteresis: `z[t] >= entry_z` → flat (concentration rich/crowded); `z[t] <= exit_z` → long SPY (concentration cheap); `exit_z < z[t] < entry_z` → hold previous state; NaN → flat. Vol target scales by trailing 21-day realized SPY vol (past-only), clipped to `MAX_POS=0.5`. Engine applies `signals.shift(1)`: target at close t earns return t→t+1 — strictly causal, no same-day look-ahead. Direction: buy cap-weight equity when it is historically cheap vs equal-weight (contrarian value timing), flat when crowded.
+
+**Distinct from prior families.** H92 uses SPY-vs-TLT relative *momentum* level (first moment, equity-vs-duration across asset classes, REJECT 3/9, no directional edge); H97 uses a within-equity *concentration spread mean reversion* (relative value/convergence). H88 tests a cross-asset commodity pair (gold-oil); H97 is within-equity (SPY/RSP). H86/H89 use vol-surface/tail-shape; H91 calendar; H94 credit; H95 USD macro; H96 equity-bond correlation. No prior repository family uses the SPY-vs-RSP capitalization-concentration spread as the timing observable.
+
+**Universe / data (free).** `SPY`, `RSP` daily adjusted close via `DataFetcher.fetch_yahoo` (with `_reject_non_positive_prices`), 2010-01-01→2026-10-31. RSP inception 2006, full coverage from 2010. Point-in-time: only published daily closes. Feasibility spot-checked 2026-11-05: SPY/RSP both fetch clean (0 non-positive). Single instrument traded (SPY); capacity not binding.
+
+**Splits (pre-registered, protected holdout).** Train 2010-01-01→2019-12-31; Val 2020-01-01→2022-12-31; Test (protected) 2023-01-01→2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test. No holdout feedback.
+
+**Grid (train-only selection).** `lookback ∈ {60,126,252}` × `entry_z ∈ {1.5,2.0,2.5}` × `exit_z ∈ {0.0,0.5}` × `vol_target ∈ {0.10,0.15}` = 36 combos.
+
+**Costs / constraints.** `AssetClass.EQUITY`, `CostModel` defaults (1 bp commission + 0.5 bp spread + 0.1 bp impact per 1% ADV), daily bar engine, max position 0.5, max leverage 1.0, long-only (SPY only; RSP is signal-only, not traded). Slow-moving concentration ratio → low turnover.
+
+**Gates (OOS Val+Test).** Sharpe >= 1.0, >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability (test >= 0.7×train when train>0), worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 vs buy-hold SPY, IR >= 0, perturbation min ratio >= 0.5 (OAT ±20% on lookback/entry_z/exit_z/vol_target for selected config).
+
+**Rejection.** OOS Sharpe < 0.5, PF < 1.1, < 200 OOS trades, max DD > 15%, or perturbation/benchmark failure. No gate weakening.
+
+**Runner.** `run_nf_20261105_18_concentration_rv.py`. Tests: `tests/test_nf_20261105_18_concentration_rv.py`. Deterministic seed 42. Compute budget <= 2 CPU-h (expected << 1 min).
+
+**Closest prior family / distinction.** H92 equity-vs-duration relative momentum (first moment, cross-asset) vs H97 within-equity concentration spread mean reversion (relative value/convergence). Different observable (concentration ratio vs relative cumulative return), different causal path (concentration mean reversion vs relative performance momentum), different direction (mean reversion vs trend).
+
+**Confounders / falsifiers.** Concentration regimes can persist for years (mega-cap dominance episodes); the long-only cheap-vs-rich timing can be persistently wrong in a sustained momentum/concentration regime. RSP tracks equal-weight with its own expense/flow characteristics (not a pure theoretical index). Falsifiers/ablations: random-exposure-matched ablation; buy-hold SPY benchmark; inverse-signal ablation (long when concentration rich, `z >= entry_z`); perturbation min ratio (OAT ±20%); subperiod stability (Val vs Test); worst-regime rolling-252 Sharpe. No claim of profit/robustness from backtest mechanics alone.
+
+**Execution (exp `exp_2026-11-05T22-15-20-636539Z`):** EXECUTED 2026-11-05, `run_nf_20261105_18_concentration_rv.py`. Data 4233 daily bars (SPY,RSP), Train 2516 / Val 756 / Test 961. Grid 36 combos, 2.43s total. Artifact: `.experiments/nf_runs/nf_20261105_18_concentration_rv/summary.json`. Selected (train-only 4-fold WF Sharpe): `lookback=60, entry_z=1.5, exit_z=0.5, vol_target=0.10` (train WF 2.250).
+
+**Result — REJECT (4/9 gates).** OOS Val+Test metrics:
+- OOS Sharpe 0.724 (gate >=1.0 → **FAIL**)
+- Profit factor 1.168 (gate >=1.3 → **FAIL**)
+- Max DD -12.22% (gate <=15% → **PASS**)
+- Trades 364 (gate >=200 → **PASS**)
+- WF stability 0.736 (gate >=0.7 → **PASS**; train 1.213 → test 0.893)
+- Worst-regime rolling-252 Sharpe -1.157 (gate >=0.3 → **FAIL**)
+- Benchmark p-value 1.0 vs buy-hold SPY (gate <=0.05 → **FAIL**)
+- Information ratio -0.262 (gate >=0 → **FAIL**)
+- Perturbation min ratio 0.753 (gate >=0.5 → **PASS**)
+
+Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold benchmark OOS Sharpe 0.798 (PF 1.165, DD -17.97%) outperforms the strategy on protected OOS. Ablations: random-exposure-matched OOS Sharpe -0.035 (PF 0.989, 551 trades) — concentration gating is better than random exposure; inverse-signal (long when concentration rich, `z>=entry_z`) OOS Sharpe 0.285 (PF 1.113, 157 trades) — directionally mixed, no robust edge.
+
+**Verdict rationale.** Concentration relative-value timing shows the intended cheap-vs-rich direction vs random exposure but is not a validated edge: it fails Sharpe/PF/worst-regime/benchmark/IR gates and does not demonstrate statistically significant outperformance vs buy-hold SPY on protected OOS. The high train WF Sharpe (2.250) decaying to OOS 0.724 indicates selection overfit on a slow-moving spread; concentration regimes persist and the long-only contrarian timing is not cost/statistically robust on this sample. Family not supported by this free, point-in-time test; no gate was weakened; no published/certified artifact was modified.
