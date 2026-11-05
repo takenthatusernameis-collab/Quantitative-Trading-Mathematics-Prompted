@@ -5065,7 +5065,7 @@ REJECTED. VIX term structure slope timing of SPY shows no monetisable edge on fr
 
 **Family:** NEW-FAMILY DISCOVERY MODE per STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §4.
 **Temporary lineage key:** NF-20261105-01 (see NEW_FAMILY_RESEARCH_REGISTER.md §8).
-**Status:** PRE-REGISTERED; not yet implemented.
+**Status:** REJECTED (1/9 gates). Experiment `exp_2026-11-05T11-33-50-642571Z`.
 
 ### Mechanism (event/auction mechanisms)
 
@@ -5107,3 +5107,28 @@ Phase 4 gates on OOS (Val+Test).
 Open prices adjusted consistently with close on yfinance. Gap uses no look-ahead.
 Slippage at open may exceed model; treated as lower bound. Falsification via
 random-entry control and gap-magnitude monotonicity.
+
+### Result
+
+**REJECT (1/9 gates).** OOS Sharpe = −0.348, PF = 0.940, max DD = −0.404, 0 OOS trades,
+WF stability = 0.827 (passes), perturbation min ratio = 0.000 (fails). Train Sharpe
+0.421, Val −0.961, Test 0.348. Benchmark p = 1.0000, IR = −0.577 (does not outperform
+buy-and-hold SPY). Selected config: lookback 5, zscore_thresh 0.0, vol_target 0.15.
+
+The strategy generates zero OOS trades: with zscore_thresh = 0.0 the z-scored gap
+signal produces positions, but the entry-at-open/exit-at-close construction with
+vol-target scaling yields no tradeable signal after costs — all 9 gates except
+walkforward_stability fail. The zero-trade result indicates the gap-fill signal does
+not survive into executable positions on SPY daily data.
+
+Ablations: random_entry Sharpe 0.160, PF 1.034; long_only_negative_gaps Sharpe 0.057,
+PF 1.014; short_only_positive_gaps Sharpe −0.536, PF 0.868; SPY benchmark Sharpe 0.812,
+PF 1.154. The buy-and-hold SPY benchmark dominates all strategy variants.
+
+### Verdict
+
+REJECTED. Opening-gap fill on SPY daily data produces no monetisable edge: zero OOS
+trades, negative OOS Sharpe (−0.348), drawdown −40.4%, and negative information ratio
+(−0.577) vs buy-and-hold. The overnight-gap information is either fully absorbed at the
+open or swamped by costs/slippage. Recorded as a negative result per PROMPT_V2.md
+Phase 6.

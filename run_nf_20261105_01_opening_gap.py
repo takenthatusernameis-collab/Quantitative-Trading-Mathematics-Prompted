@@ -137,7 +137,10 @@ def build_daily_targets(
     gap_ret = (open_ - close.shift(1)) / close.shift(1)
 
     if lookback <= 1:
-        gap_z = gap_ret
+        # No history for a z-score: the gap return itself is the signal, so
+        # its sign is the gap direction (long a negative gap, short a
+        # positive one). A zero/NaN gap yields no position.
+        gap_z = gap_ret.fillna(0.0)
     else:
         min_p = int(max(1, min(lookback, 21)))
         rolling_mean = gap_ret.rolling(lookback, min_periods=min_p).mean()
@@ -211,7 +214,7 @@ def full_gate_eval(result, oos_mask, val_mask, test_mask, train_mask, prices, be
     wf_stab = float(test_sr / train_sr) if train_sr > 0 and np.isfinite(train_sr) else 0.0
 
     bench_cmp = compare_to_benchmark(result.returns, bench_result.returns)
-    bench_p = float(bench_cmp.get("p_value", 1.0))
+    bench_p = float(bench_cmp.get("alpha_p_value", 1.0))
     ir = float(bench_cmp.get("information_ratio", 0.0))
 
     regime_sharpes = []
@@ -228,7 +231,7 @@ def full_gate_eval(result, oos_mask, val_mask, test_mask, train_mask, prices, be
         "drawdown": oos_dd >= -GATES["max_drawdown"],
         "walkforward_stability": wf_stab >= GATES["min_walkforward_stability"],
         "worst_regime_sharpe": worst_regime >= GATES["min_worst_regime_sharpe"],
-        "benchmark_significance": bench_p <= GATES["max_p_value"],
+        "benchmark_significance": benchmark_significance_gate(bench_p, ir),
         "information_ratio": ir >= GATES["min_information_ratio"],
     }
     test_cum = (1 + test_ret).cumprod() if len(test_ret) > 0 else pd.Series([1.0])
@@ -252,39 +255,45 @@ def full_gate_eval(result, oos_mask, val_mask, test_mask, train_mask, prices, be
 
 
 def perturbation_eval(selected, prices, oos_mask, cfg, baseline_sharpe):
-    lookback, zth, vol_target = (
-        selected["lookback"],
-        selected["zscore_thresh"],
-        selected["vol_target"],
-    )
-    base_pos = build_daily_targets(prices, lookback, zth, vol_target)
-    ratios = []
-    rng = np.random.default_rng(SEED + 123)
-    p_base = prices[["close"]].copy()
-    p_base.columns = [SYMBOL]
-    for eps in [1e-4, 5e-4, 1e-3]:
-        noisy = base_pos.copy()
-        for c in noisy.columns:
-            noise = rng.normal(0, eps, size=len(noisy))
-            noisy[c] = (noisy[c] + noise).clip(-1.0, 1.0)
-        try:
-            res = run_backtest(prices=p_base, signals=noisy, volumes=None, config=cfg)
-            sr = (
-                float(sharpe_ratio(res.returns[oos_mask].dropna().values))
-                if len(res.returns[oos_mask].dropna()) > 1
-                else -np.inf
-            )
-            if baseline_sharpe > 0 and np.isfinite(sr):
-                ratios.append(sr / baseline_sharpe)
-            elif baseline_sharpe <= 0 and sr >= baseline_sharpe * 0.5:
-                ratios.append(1.0)
-        except Exception:
-            continue
-    if ratios:
-        min_ratio = float(min(ratios))
+    """OAT perturbation +/-20% of lookback, zscore_thresh, vol_target.
+
+    Returns per-variant OOS Sharpes and the min ratio to the baseline
+    (pre-registered gate >= 0.5).
+    """
+    variants = {}
+    intraday_ret = prices["close"] / prices["open"] - 1.0
+    for param in ["lookback", "zscore_thresh", "vol_target"]:
+        base = selected[param]
+        for factor in [0.8, 1.2]:
+            v = base * factor
+            if abs(v - base) < 1e-12:
+                v = base + (0.05 if factor > 1 else -0.05)
+            kw = dict(selected)
+            if param == "lookback":
+                kw[param] = int(max(1, round(v)))
+            elif param == "vol_target":
+                kw[param] = float(max(0.01, min(0.5, v)))
+            else:
+                kw[param] = float(max(0.0, v))
+            pos = build_daily_targets(prices, kw["lookback"], kw["zscore_thresh"], kw["vol_target"])
+            pos_s = pos[SYMBOL].reindex(prices.index).fillna(0.0)
+            intraday_ret_s = intraday_ret.reindex(prices.index).fillna(0.0)
+            strat_ret = pos_s.shift(1).fillna(0.0).values * intraday_ret_s.values
+            strat_price = (1.0 + pd.Series(strat_ret, index=prices.index)).cumprod()
+            strat_price.iloc[0] = 1.0
+            p_strat = pd.DataFrame({SYMBOL: strat_price.values}, index=prices.index)
+            s_strat = pd.DataFrame(1.0, index=p_strat.index, columns=[SYMBOL])
+            try:
+                res = run_backtest(prices=p_strat, signals=s_strat, volumes=None, config=cfg)
+                r = res.returns[oos_mask].dropna()
+                variants[f"{param}={v:.3f}"] = float(sharpe_ratio(r.values)) if len(r) > 1 else 0.0
+            except Exception:
+                variants[f"{param}={v:.3f}"] = 0.0
+    if baseline_sharpe > 0 and variants:
+        min_ratio = float(min(variants.values()) / baseline_sharpe)
     else:
         min_ratio = 0.0
-    return {"min_perturbed_sharpe_ratio": min_ratio, "ratios": ratios}
+    return {"variants": variants, "min_perturbed_sharpe_ratio": min_ratio}
 
 
 def main() -> int:

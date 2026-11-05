@@ -378,3 +378,29 @@ Queue of pre-registered NF candidates exhausted after H85/H86 rejections. Per di
 **Confounders/leakage:** open prices on yfinance are adjusted for splits/dividends consistently with close; gap computed with no look-ahead (open known at entry). Slippage at open may exceed model; treat as lower bound. Falsification: random-entry control and gap-magnitude monotonicity.
 
 **Next task:** Implement `run_nf_20261105_01_opening_gap.py` + focused tests; formalize H87 in HYPOTHESIS_SPEC.md; run pinned gates. Next unused H-ID after H87 is H88.
+
+---
+
+## 9. NF-20261105-01 outcome (H87) and next candidate
+
+#### Result: REJECT (1/9 gates)
+
+OOS Sharpe = **−0.348**, PF = 0.940, max DD = −40.4%, 0 OOS trades,
+WF stability = 0.827 (passes), perturbation min ratio = 0.000 (fails).
+Train 0.421 / Val −0.961 / Test 0.348. Benchmark p = 1.0000, IR = −0.577 — strategy does not outperform buy-and-hold SPY.
+
+Selected config: lookback 5, zscore_thresh 0.0, vol_target 0.15.
+
+Ablations: random_entry Sharpe 0.160, PF 1.034; long_only_negative_gaps Sharpe 0.057, PF 1.014; short_only_positive_gaps Sharpe −0.536, PF 0.868; SPY benchmark Sharpe 0.812, PF 1.154.
+
+#### New root family added to the lineage map
+
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Opening-gap fill / overnight information | H87 | Overnight gap sign predicts same-day intraday fill direction; long/short gap direction, open→close holding | SPY daily OHLC; yfinance | REJECTED (OOS Sharpe −0.348) | Zero executable trades after vol targeting; gap information absorbed at open or swamped by costs |
+
+#### Next candidate: new mechanism search required
+
+Per directive §6, H1–H30 exhausted and H85/H86/H87 all rejected. A new mechanism
+search across distinct return-generating categories is required before selecting the
+next experiment. Next unused H-ID is H88.
