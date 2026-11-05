@@ -1,0 +1,23 @@
+{
+  "shape": [
+    18,
+    6
+  ],
+  "columns": [
+    "lookback",
+    "entry_z",
+    "exit_z",
+    "train_wf_sharpe",
+    "oos_sharpe",
+    "trades_total"
+  ],
+  "dtypes": {
+    "lookback": "int64",
+    "entry_z": "float64",
+    "exit_z": "float64",
+    "train_wf_sharpe": "float64",
+    "oos_sharpe": "float64",
+    "trades_total": "int64"
+  },
+  "index_type": "int64"
+}

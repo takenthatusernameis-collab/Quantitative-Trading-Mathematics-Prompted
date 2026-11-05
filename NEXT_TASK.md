@@ -1,22 +1,20 @@
-# NEXT_TASK.md — H88 (NF-20261105-06) execution BLOCKED by CL=F data; re-specify observables
+# NEXT_TASK.md — H88 resolved (REJECTED, GLD/USO amended); select next new-family mechanism
 
 ## State
-- H88 pre-registered/implemented (`run_nf_20261105_06_gold_oil_rv.py`, `tests/test_nf_20261105_06_gold_oil_rv.py`). Execution attempted 2026-11-05: **BLOCKED, not rejected**.
-- Evidence: exp `exp_2026-11-05T12-16-14-717827Z` (`.experiments/experiments.jsonl`, status failed). `DataFetcher._reject_non_positive_prices` refused CL=F: 4 non-positive prices, first `-14.0` on 2020-04-21 (WTI negative-settlement episode). No grid/OOS/gates evaluated; **protected holdout untouched**.
-- `src/qtr` unchanged. Focused checks green: `ruff check/format` clean; `pytest tests/test_nf_20261105_06_gold_oil_rv.py -q` → 13 passed.
+- H88/NF-20261105-06 re-specified (option b, GLD/USO ETF proxy, 2026-11-05, pre-outcome; material instrument/cost/basis change disclosed) and executed: **REJECTED (1/9)**, exp `exp_2026-11-05T12-24-33-350043Z`. Original GC=F/CL=F attempt blocked by CL=F non-positive 2020-04-21 bar (exp `exp_2026-11-05T12-16-14-717827Z`) — blocker recorded; not a rejection of that universe without re-spec. Summary: `.experiments/artifacts/exp_2026-11-05T12-24-33-350043Z/summary.json`. H88 documented in `HYPOTHESIS_SPEC.md` §H88 and `NEW_FAMILY_RESEARCH_REGISTER.md` §12.
+- `src/qtr` unchanged this session. Next unused H-ID: **H89**.
 
 ## Next task (one bounded task)
-Make an **explicit, pre-registered re-specification** for H88 observables before any further execution, preserving holdout integrity:
+Run a **new-family discovery/selection step** per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` (H1–H30 exhausted; H85–H88 rejected). Do **not** re-run H88 unchanged.
 
-1. **Choose one option and record it** in `HYPOTHESIS_SPEC.md` §H88 and `NEW_FAMILY_RESEARCH_REGISTER.md` (amendment with date/reason):
-   - **(a) CL=F trimmed/segmented**: exclude non-positive CL bars (e.g., adjust window/splits so 2020-04 negative episode is not in any priced return base used by engine; disclose exact rule and confirm train/val/test still meaningful and holdout protected).
-   - **(b) GLD/USO ETF proxy**: yfinance GLD/USO verified clean 2026-11-05 (4233 rows each, 0 non-positive, 2010-01-01→2026-10-31). Material construction change (ETF basis/costs/tracking vs futures); update universe, cost model, mechanism disclosure, and tests/runner accordingly.
-2. Update runner/tests for the chosen option; run focused NF tests + lint/format. If `src/qtr` touched, run pinned full gates: `PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` (100% required).
-3. Only after re-spec is recorded, execute: `PYTHONPATH=src python run_nf_20261105_06_gold_oil_rv.py`. Then record experiment ID, gate counts, OOS metrics, selected config, verdict in spec/register §12/lineage; update handoff.
+1. Re-evaluate deferred candidates NF-20261105-04 (commodity carry, roll-proxy point-in-time feasibility) and NF-20261105-05 (short-term CS reversal, turnover/net-of-cost decisive risk) against current lineage + H88 evidence; propose at least a third materially distinct mechanism candidate if required to satisfy multi-mechanism search/ranking discipline.
+2. Pre-register the top decision-ready candidate as **H89** (with NF temp ID, observables, splits including protected holdout, costs, gates, null/rejection, falsifiers, closest-prior distinction) only if data/feasibility is evidenced. Prefer the smallest decisive, free-data, point-in-time test.
+3. Implement runner + focused tests; run focused NF tests + `python -m ruff check/format --check ...`. If `src/qtr` touched, run pinned full gates: `PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` (100%).
+4. Execute H89 only if decision-ready; record exp ID, gate counts, OOS metrics, selected config, verdict in spec/register and handoff.
 
 ## Constraints
-- Do **not** mark H88 rejected due to this data blocker; blocked ≠ rejected.
-- Do **not** use protected-test feedback in re-specification decisions.
-- Do **not** modify published artifacts/thresholds/prior verdicts.
-- Do **not** silently change the universe/construction without spec/register disclosure.
-- NF-20261105-04 (commodity carry, roll-proxy point-in-time risk) and NF-20261105-05 (CS reversal, turnover/net-of-cost risk) remain deferred; revisit only after H88 is resolved or re-spec is infeasible with documented evidence.
+- Preserve protected holdout; no protected-test feedback in discovery/selection/implementation.
+- Do not modify published artifacts/thresholds/prior verdicts.
+- Do not treat parameter/timeframe/indicator/universe tweaks as new families.
+- NF-04/NF-05: address their stated decisive risks (point-in-time roll proxy for NF-04; net-of-cost/turnover realism for NF-05) before execution.
+- Never commit without explicit user request.

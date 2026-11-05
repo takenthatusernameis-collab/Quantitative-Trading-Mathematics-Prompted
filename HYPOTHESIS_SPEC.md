@@ -5133,17 +5133,17 @@ trades, negative OOS Sharpe (−0.348), drawdown −40.4%, and negative informat
 open or swamped by costs/slippage. Recorded as a negative result per PROMPT_V2.md
 Phase 6.
 
-## H88 — NF-20261105-06: Gold–Oil Relative-Value Spread Mean Reversion (pre-registered 2026-11-05)
+## H88 — NF-20261105-06: Gold–Oil Relative-Value Spread Mean Reversion (pre-registered 2026-11-05; **amended 2026-11-05 before outcome evaluation**)
 
 **Family:** NEW-FAMILY DISCOVERY MODE per STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §4.
 **Temporary lineage key:** NF-20261105-06 (see NEW_FAMILY_RESEARCH_REGISTER.md §10–11).
-**Status:** EXECUTION BLOCKED (data feasibility, not rejected). Pre-registration/implementation decision-ready; 2026-11-05 execution attempt failed before any grid/gate evaluation.
+**Status:** PRE-REGISTERED (re-specified observables; decision-ready for execution). Original GC=F/CL=F execution attempt was **BLOCKED** by data feasibility (not rejected) — see Execution outcome (2026-11-05).
 
 ### Mechanism (relative value and convergence)
 
-Gold (GC=F) and crude oil (CL=F) share macro inflation/geopolitical risk exposures but
-diverge due to supply shocks, demand cycles, and convenience yield. The log-price spread
-`s_t = log(GC_t) - log(CL_t)` (unit hedge ratio, fixed baseline) mean-reverts when
+Gold and crude oil share macro inflation/geopolitical risk exposures but diverge due to
+supply shocks, demand cycles, and convenience yield. The log-price spread
+`s_t = log(P_gold,t) - log(P_oil,t)` (unit hedge ratio, fixed baseline) mean-reverts when
 dislocated: extreme positive z-scores (gold rich vs oil) predict negative spread returns
 (short spread / short gold + long oil convergence) and vice versa, after transaction costs.
 
@@ -5157,19 +5157,32 @@ dislocated: extreme positive z-scores (gold rich vs oil) predict negative spread
 
 ### Pre-registered construction
 
-Daily signal evaluation. Spread `s_t = log(GC_t) - log(CL_t)`. Rolling z-score of `s_t`
-over lookback `L`, computed using only data through t (trailing window). Long spread
-(long GC, short CL, equal notional legs) when `z < -entry_z`; short spread when
+Daily signal evaluation. Spread `s_t = log(P_gold,t) - log(P_oil,t)`. Rolling z-score of
+`s_t` over lookback `L`, computed using only data through t (trailing window). Long spread
+(long gold leg, short oil leg, equal notional legs) when `z < -entry_z`; short spread when
 `z > +entry_z`; flat when `|z| < exit_z`. Vol-target spread returns to 10% ann (baseline).
 Entry/exit evaluated on close t; position applied t+1 (no look-ahead).
 
-### Data
+### Data (amended 2026-11-05 — observable re-specification, option b)
 
-yfinance daily continuous front-month GC=F (COMEX gold) and CL=F (NYMEX WTI), adjusted
-closes, 2010-01-01 → 2026-10-31. Free/public. Splits (time-based, protected holdout):
-train 2010-01-01→2018-12-31, val 2019-01-01→2022-12-31, test 2023-01-01→2026-10-31.
-Point-in-time: all rolling statistics use trailing data only; no look-ahead beta (fixed
-unit hedge ratio in baseline).
+**Amendment rationale (recorded before any re-execution outcome evaluation; protected-test
+feedback not used):** The original GC=F/CL=F continuous-front-month universe failed
+fail-closed data validation because CL=F contains non-positive prices (first -14.0 on
+2020-04-21, WTI negative-settlement episode; 4 bars). Feasibility probe verified
+**GLD/USO ETF proxies** are clean for the same window (yfinance daily, 4233 rows each, 0
+non-positive rows, 2010-01-01→2026-10-31). Option (b) preserves the pre-registered
+sample window and time-based splits/holdout structure without trimming the 2020 episode.
+
+**Material construction change disclosed:** GLD (gold ETF) and USO (WTI oil ETF) replace
+GC=F/CL=F futures. Differences: ETF expense ratios/tracking error/roll implementation
+(especially USO), equity-style trading frictions vs futures tick/contract costs, and
+potential basis vs front-month futures. This tests the same *relative-value/convergence
+mechanism* on liquid, point-in-time ETF observables; it is **not** a silent universe change.
+
+Universe: GLD, USO (yfinance daily adjusted closes), 2010-01-01 → 2026-10-31. Free/public.
+Splits (unchanged, time-based, protected holdout): train 2010-01-01→2018-12-31, val
+2019-01-01→2022-12-31, test 2023-01-01→2026-10-31. Point-in-time: all rolling statistics
+use trailing data only; no look-ahead beta (fixed unit hedge ratio in baseline).
 
 ### Grid (train-only selection)
 
@@ -5178,16 +5191,18 @@ combos). Selection by train-only walk-forward Sharpe; val for sanity; test prote
 
 ### Costs / constraints
 
-Futures cost model per leg (conservative equity-like bps baseline in implementation;
-documented). GC/CL highly liquid; capacity not binding at research scale. Spread can
-diverge in oil supply shocks (2014, 2020) — regime fragility is an explicit falsification
-risk.
+**Amended cost model:** `AssetClass.EQUITY` / equity cost model for ETF legs (conservative
+bps-based commission/spread/impact defaults in `CostModel`; per-leg costs applied by the
+engine). This differs from the original futures-cost intent and is disclosed as part of the
+ETF proxy re-specification. GLD/USO are liquid; capacity not binding at research scale.
+Spread can diverge in oil supply shocks (2014, 2020) and USO roll/tracking episodes —
+regime/instrument fragility is an explicit falsification risk.
 
 ### Gates / rejection (PROMPT_V2 Phase 4, applied to OOS Val+Test)
 
 Pre-registered: OOS Sharpe >= 1.0, >= 30 OOS spread-trade events (rebalances/entries),
 PF >= 1.1, max DD <= 15%, WF stability (test >= 0.7 × train when train > 0),
-benchmark significance (direction-aware, vs equal-weight GC/CL buy-hold),
+benchmark significance (direction-aware, vs equal-weight GLD/USO buy-hold),
 information ratio >= 0, perturbation min ratio >= 0.5 (OAT ±20% on L/entry_z).
 
 **Explicit rejection:** OOS Sharpe < 0.5, PF < 1.1, max DD > 15%, < 30 OOS trades, or
@@ -5195,26 +5210,25 @@ perturbation instability indicating selection artifact.
 
 ### Confounders / leakage / falsification
 
-- Continuous futures roll adjustments in yfinance may affect spread level; use consistent
-  adjusted closes and disclose.
+- ETF adjusted closes may reflect distributions/splits; use consistent adjusted closes and
+  disclose.
+- USO roll mechanics and tracking error can distort oil-leg dynamics vs spot/front-month
+  crude; mechanism evidence must be interpreted with this basis risk.
 - Fixed unit hedge ratio avoids look-ahead beta estimation.
 - Falsification: (1) randomized entry control; (2) report spread stationarity diagnostic
-  (ADF-style summary) as mechanism evidence, not a gate; (3) subperiod stability including
+  (ACF/AR(1) summary) as mechanism evidence, not a gate; (3) subperiod stability including
   2020 oil shock.
 
-### Result
+### Result (amended GLD/USO execution, exp `exp_2026-11-05T12-24-33-350043Z`, 2026-11-05) — **REJECTED (1/9 gates)**
 
-Pending execution. Implementation: `run_nf_20261105_06_gold_oil_rv.py`, tests in
-`tests/test_nf_20261105_06_gold_oil_rv.py`.
+Universe GLD/USO (4233 rows), train/val/test 2264/1008/961. Grid 18 (train-only WF selection). Selected: lookback=252, entry_z=2.0, exit_z=0.75. OOS Val+Test: Sharpe −0.535, PF 0.866, max DD −34.53%, trades 1766, WF stability 0.000 (train −0.278, val −0.666, test −0.395), benchmark p=0.0872 / IR −0.417, perturbation min ratio 0.000, worst-regime Sharpe −0.666. Ablations: random_entry Sharpe 0.256 / PF 1.056; equal-weight GLD/USO benchmark Sharpe 0.740 / PF 1.142. Spread diagnostic: acf1≈0.999, ar1≈0.999 (high persistence). Passes: trades only. Artifact: `.experiments/artifacts/exp_2026-11-05T12-24-33-350043Z/summary.json`. Protected holdout used only in pre-registered OOS gate evaluation after amendment/runner execution; no holdout feedback in re-spec or selection.
 
-### Execution outcome (2026-11-05) — BLOCKED, not rejected
+### Execution outcome (2026-11-05, original GC=F/CL=F attempt) — BLOCKED, not rejected
 
 **Attempt:** `PYTHONPATH=src python run_nf_20261105_06_gold_oil_rv.py` (exp `exp_2026-11-05T12-16-14-717827Z`, git `e5e871f`, tree clean at experiment start). GC=F/CL=F daily 2010-01-01→2026-10-31 fetched to isolated cache; execution stopped at `DataFetcher._reject_non_positive_prices` before grid evaluation.
 
 > `ValueError: CL=F: 4 non-positive price(s) in the fetched panel; first is np.float64(-14.0) on 2020-04-21 00:00:00. A percentage return from a non-positive price base is undefined...`
 
-**Cause:** CL=F continuous front-month includes non-positive prices around the 2020-04-20 WTI negative-settlement episode (4 bars). Data-construction/feasibility blocker for the pre-registered GC=F/CL=F universe under the engine's fail-closed price guard. **No `src/qtr` change.**
+**Cause:** CL=F continuous front-month includes non-positive prices around the 2020-04-20 WTI negative-settlement episode (4 bars). Data-construction/feasibility blocker for the original GC=F/CL=F universe under the engine's fail-closed price guard. **No `src/qtr` change.**
 
-**Not evaluated:** grid, OOS metrics, gates, verdict — **protected holdout untouched**. Blocked ≠ rejected.
-
-**Feasibility options (require explicit re-specification/pre-registration before outcome evaluation):** (1) trim/segment window excluding non-positive CL bars (changes sample/split structure; must preserve holdout integrity); (2) ETF proxies GLD/USO (verified clean this session: 4233 rows each, 0 bad rows, 2010-01-01→2026-10-31) — different instrument/cost/basis, material construction change; (3) roll-adjusted series with explicit non-positive handling and point-in-time disclosure.
+**Not evaluated:** grid, OOS metrics, gates, verdict — **protected holdout untouched**. Blocked ≠ rejected. Resolved by 2026-11-05 option-(b) GLD/USO re-specification above.

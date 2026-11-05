@@ -1,35 +1,31 @@
-# HANDOFF_CURRENT.md — H88 (NF-20261105-06) executed → BLOCKED (CL=F data feasibility)
+# HANDOFF_CURRENT.md — H88 (NF-20261105-06, GLD/USO amended) executed → REJECTED (1/9)
 
 ## State
-- Working tree has **uncommitted** changes from prior/new-family sessions (no commit made; no user request): modified `HYPOTHESIS_SPEC.md`, modified `NEW_FAMILY_RESEARCH_REGISTER.md`, modified `NEXT_TASK.md`, modified `HANDOFF_CURRENT.md`, modified `.experiments/experiments.jsonl`; untracked `run_nf_20261105_06_gold_oil_rv.py`, `tests/test_nf_20261105_06_gold_oil_rv.py`. `src/qtr` **not modified**.
-- H1–H30 exhausted; hypotheses documented through H88. H85/H86/H87 REJECTED. **H88 BLOCKED (data feasibility), not rejected** — no grid/OOS/gates/holdout evaluated. Next unused H-ID after H88 remains H89.
+- Working tree has **uncommitted** changes (no commit; no user request): modified `HYPOTHESIS_SPEC.md`, `NEW_FAMILY_RESEARCH_REGISTER.md`, `NEXT_TASK.md`, `HANDOFF_CURRENT.md`, `.experiments/experiments.jsonl`, `run_nf_20261105_06_gold_oil_rv.py`, `tests/test_nf_20261105_06_gold_oil_rv.py`. `src/qtr` **not modified**.
+- H1–H30 exhausted; hypotheses documented through H88. H85–H87 REJECTED. **H88 REJECTED (1/9)** under 2026-11-05 option-b GLD/USO ETF-proxy re-specification (material instrument/cost/basis change disclosed; amendment recorded before outcome evaluation). Original GC=F/CL=F attempt remained **BLOCKED** (CL=F non-positive 2020-04-21), not rejected. Next unused H-ID: **H89**.
 
 ## What changed (this session)
-- Executed the assigned task: `PYTHONPATH=src python run_nf_20261105_06_gold_oil_rv.py`.
-- Recorded blocker outcome in `HYPOTHESIS_SPEC.md` §H88 and `NEW_FAMILY_RESEARCH_REGISTER.md` §12 (lineage row added: H88/NF-20261105-06 BLOCKED; CL=F non-positive 2020-04-21).
-- Updated `NEXT_TASK.md` / `HANDOFF_CURRENT.md` for evidence-based handoff.
-- `.experiments/experiments.jsonl` gained failed run entry `exp_2026-11-05T12-16-14-717827Z` (runner/tracker behavior; no published artifact thresholds/verdicts modified).
+- Executed assigned NEXT_TASK: chose **option (b) GLD/USO ETF proxy** (feasibility clean: 4233 rows each, 0 non-positive, 2010-01-01→2026-10-31). Recorded amendment in `HYPOTHESIS_SPEC.md` §H88 and `NEW_FAMILY_RESEARCH_REGISTER.md` §11/§12 before outcome evaluation.
+- Updated `run_nf_20261105_06_gold_oil_rv.py` to GLD/USO + `AssetClass.EQUITY` cost/config; updated `tests/test_nf_20261105_06_gold_oil_rv.py` (14 tests).
+- Executed amended H88: exp `exp_2026-11-05T12-24-33-350043Z` (completed). Summary: `.experiments/artifacts/exp_2026-11-05T12-24-33-350043Z/summary.json`.
 
 ## What was actually verified
-- **Execution evidence (reproducible):** exp `exp_2026-11-05T12-16-14-717827Z` (`nf_20261105_06_gold_oil_rv`, git `e5e871fde002`, `git_dirty=false` at start, 2026-11-05T12:16:14Z) fetched GC=F/CL=F daily 2010-01-01→2026-10-31 to isolated cache, then failed: `ValueError: CL=F: 4 non-positive price(s) in the fetched panel; first is np.float64(-14.0) on 2020-04-21 00:00:00` from `DataFetcher._reject_non_positive_prices`. Traceback captured in session output; status logged as `failed` in `.experiments/experiments.jsonl`.
-- **No holdout use:** failure occurred before param grid/gate evaluation; protected holdout untouched.
-- **Feasibility probe (this session, no execution side effects beyond temp caches):** GLD/USO ETF proxies fetched cleanly via `DataFetcher` — 4233 rows each, 0 non-positive rows, 2010-01-01→2026-10-31. (GC=F/CL=F futures: CL=F contains the 2020 negative-WTI non-positive bars.)
-- **Focused checks (no `src/qtr` changes):** `python -m ruff check src tests run_nf_20261105_06_gold_oil_rv.py tests/test_nf_20261105_06_gold_oil_rv.py` → All checks passed. `python -m ruff format --check src tests run_*.py` → 113 files already formatted. `PYTHONPATH=src python -m pytest tests/test_nf_20261105_06_gold_oil_rv.py -q` → **13 passed**.
+- **Focused checks:** `python -m ruff check src tests run_nf_20261105_06_gold_oil_rv.py tests/test_nf_20261105_06_gold_oil_rv.py` → All checks passed. `python -m ruff format --check src tests run_*.py` → 113 files already formatted. `PYTHONPATH=src python -m pytest tests/test_nf_20261105_06_gold_oil_rv.py -q` → **14 passed**.
+- **Execution evidence:** `PYTHONPATH=src python run_nf_20261105_06_gold_oil_rv.py` completed. Prices (4233,2), train/val/test 2264/1008/961, grid 18 (5.0s). Selected lookback=252, entry_z=2.0, exit_z=0.75. OOS Val+Test: Sharpe −0.535, PF 0.866, max DD −34.53%, trades 1766, WF stability 0.000 (train −0.278, val −0.666, test −0.395), benchmark p=0.0872 / IR −0.417, perturbation min ratio 0.000, worst-regime −0.666. Ablations: random_entry Sharpe 0.256/PF 1.056; equal-weight GLD/USO Sharpe 0.740/PF 1.142. Spread diagnostic acf1≈0.999/ar1≈0.999. **Gates 1/9 passed (trades only) → REJECT.**
+- **Holdout discipline:** protected holdout evaluated only in pre-registered OOS (Val+Test) gate set after amendment/runner execution; no holdout feedback used in re-specification or train-only selection.
 
 ## Not verified / not run
-- H88 grid/OOS metrics/gates/verdict — **blocked by data feasibility**, not computed.
-- Full pinned `src/qtr` gate suite not re-run (`-W error --cov=qtr --cov-branch`, 100% required) because **`src/qtr` was not modified**.
+- Full pinned `src/qtr` gate suite (`-W error --cov=qtr --cov-branch`, 100%) **not re-run** because `src/qtr` was not modified.
 
 ## What remains unresolved
-- H88 requires an **explicit pre-registered re-specification** of observables before re-execution: (a) CL=F trimmed/segmented window excluding non-positive bars with holdout-preserving split disclosure, or (b) GLD/USO ETF proxy (material instrument/cost/basis change; clean data verified). Choice must be recorded in spec/register with rationale before evaluating outcomes.
-- NF-20261105-04 (commodity carry, roll-proxy point-in-time risk) and NF-20261105-05 (short-term CS reversal, turnover/net-of-cost risk) remain deferred per register §10.
+- NF-20261105-04 (commodity carry, roll-proxy point-in-time risk) and NF-20261105-05 (short-term CS reversal, turnover/net-of-cost risk) remain deferred; must address decisive risks before execution.
 - FINAL_REPORT.md §H53–§H61 disclosed-not-quantified items remain (no gate impact).
 
 ## Approaches already tried / failed
-- **H88 execution as pre-registered (GC=F/CL=F, 2010-01-01→2026-10-31):** failed deterministically at data validation — CL=F has 4 non-positive prices, first -14.0 on 2020-04-21 (WTI negative settlement). This is a recurring/deterministic feasibility blocker for that exact universe/window under fail-closed engine rules, **not a transient network error**. Do **not** blindly re-run the identical GC=F/CL=F full-window command without a recorded re-specification (trim/segment/proxy).
-- Prior cycle: NF-04 deferred (roll-proxy feasibility), NF-05 deferred (net-of-cost/turnover).
+- **H88 original GC=F/CL=F (pre-registered universe):** blocked deterministically by CL=F non-positive price -14.0 on 2020-04-21 under fail-closed `DataFetcher._reject_non_positive_prices` (exp `exp_2026-11-05T12-16-14-717827Z`). Do not rerun identical GC=F/CL=F full-window command.
+- **H88 amended GLD/USO ETF proxy (option b, exp `exp_2026-11-05T12-24-33-350043Z`):** **REJECTED 1/9**. Negative OOS Sharpe/PF, large DD, WF/perturbation/benchmark failures; spread highly persistent (acf1≈0.999). Do not treat as profitable/robust; do not retune same mechanism as a “new family”.
 
 ## Precise next task (one task), with evidence and constraints
-**Pre-register and implement the H88 observable re-specification (choose a or b), then execute.** See `NEXT_TASK.md`.
+**H89 discovery/selection:** run new-family discovery per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` (H85–H88 rejected). Reassess NF-20261105-04 (roll-proxy point-in-time feasibility) and NF-20261105-05 (net-of-cost/turnover) with explicit decisive-risk evidence; add a third materially distinct mechanism if needed; pre-register top decision-ready candidate as H89 (NF temp ID, splits/protected holdout, costs, gates, null/falsifiers). Implement + focused tests + lint/format; run pinned full `src/qtr` gates if `src/qtr` touched; execute H89 only if decision-ready and record verdict/artifacts.
 
-Constraints: blocked ≠ rejected; protect holdout; no protected-test feedback in re-spec decisions; no silent universe/construction change; do not modify published artifacts/thresholds/prior verdicts; keep `src/qtr` 100% stmt+branch if touched; no paid data/compute; never commit without explicit user request.
+Constraints: preserve protected holdout; no protected-test feedback; do not modify published artifacts/thresholds/prior verdicts; keep `src/qtr` 100% stmt+branch if touched; free/public data only; never commit without explicit user request.

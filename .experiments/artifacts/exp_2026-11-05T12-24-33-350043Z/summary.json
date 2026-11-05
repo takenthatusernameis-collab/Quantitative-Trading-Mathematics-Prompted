@@ -1,0 +1,75 @@
+{
+  "experiment_id": "exp_2026-11-05T12-24-33-350043Z",
+  "hypothesis": "H88",
+  "temporary_id": "NF-20261105-06",
+  "selected_config": {
+    "lookback": 252,
+    "entry_z": 2.0,
+    "exit_z": 0.75
+  },
+  "selection_rule": "best train-only walk-forward Sharpe; Test protected; gates on OOS Val+Test",
+  "grid_size": 18,
+  "n_evaluated": 18,
+  "grid_elapsed_sec": 5.0,
+  "total_elapsed_sec": 7.2,
+  "compute_cpu_hours": 0.002,
+  "spread_diagnostic": {
+    "n": 4233,
+    "acf1": 0.9992305613316597,
+    "ar1_coef": 0.9992875326786922
+  },
+  "metrics": {
+    "train_sharpe": -0.2775112451298373,
+    "val_sharpe": -0.6659420194875009,
+    "test_sharpe": -0.3954411042374481,
+    "oos_sharpe": -0.5352720743812891,
+    "profit_factor": 0.8663472138149131,
+    "max_drawdown": -0.3453424391434612,
+    "trades": 1766,
+    "wf_stability": 0.0,
+    "benchmark_p_value": 0.08719830728026949,
+    "information_ratio": -0.41746213101096935,
+    "perturbation": {
+      "variants": {
+        "lookback=201.600": -0.42756864296273345,
+        "lookback=302.400": -0.2816668082379128,
+        "entry_z=1.600": -0.31042243332297415,
+        "entry_z=2.400": -0.20534676324435386
+      },
+      "min_perturbed_sharpe_ratio": 0.0
+    },
+    "ablations": {
+      "random_entry": {
+        "sharpe": 0.2561907116522954,
+        "max_drawdown": -0.36765984456354395,
+        "profit_factor": 1.056083006250688,
+        "trades": 2644,
+        "gross_profit": 6.49845393508849,
+        "gross_loss": 6.153355272858086,
+        "n_periods": 1969
+      },
+      "gold_oil_equal_benchmark": {
+        "sharpe": 0.7404510881835381,
+        "max_drawdown": -0.5553755371050958,
+        "profit_factor": 1.142179793155132,
+        "trades": 0,
+        "gross_profit": 10.79981187998892,
+        "gross_loss": 9.455439454199903,
+        "n_periods": 1969
+      }
+    }
+  },
+  "passes": {
+    "sharpe": false,
+    "trades": true,
+    "profit_factor": false,
+    "drawdown": false,
+    "walkforward_stability": false,
+    "worst_regime_sharpe": false,
+    "benchmark_significance": false,
+    "information_ratio": false,
+    "perturbation": false
+  },
+  "all_pass": false,
+  "verdict": "REJECT"
+}

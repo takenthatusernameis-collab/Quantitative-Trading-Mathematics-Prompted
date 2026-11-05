@@ -1,0 +1,15 @@
+{
+  "shape": [
+    4233,
+    2
+  ],
+  "columns": [
+    "GLD",
+    "USO"
+  ],
+  "dtypes": {
+    "GLD": "float64",
+    "USO": "float64"
+  },
+  "index_type": "datetime64[s]"
+}

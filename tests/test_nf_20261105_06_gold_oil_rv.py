@@ -2,9 +2,13 @@
 Regression tests for NF-20261105-06 gold–oil relative-value mean reversion
 (run_nf_20261105_06_gold_oil_rv.py, H88).
 
+Amendment 2026-11-05 (option b): GLD/USO ETF proxy replaces GC=F/CL=F futures
+after CL=F non-positive-price feasibility blocker. Pins amended universe/cost
+model plus causality/bounds.
+
 Pins:
   * Pre-registered gate thresholds and grid integrity
-  * Spread construction (log GC - log CL), no non-positive price leakage
+  * Spread construction (log GOLD - log OIL), no non-positive price leakage
   * Signal causality: z-score uses trailing data only; 1-bar position delay
   * Position bounds (dollar-neutral legs), determinism
 """
@@ -20,14 +24,15 @@ sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT))
 
 import run_nf_20261105_06_gold_oil_rv as nf06
+from qtr.backtest.engine import AssetClass
 
 
-def _gc_cl(n=300, seed=42):
+def _gold_oil(n=300, seed=42):
     dates = pd.date_range("2015-01-01", periods=n, freq="B")
     rng = np.random.default_rng(seed)
-    gc = 1500 * np.exp(np.cumsum(rng.normal(0.0001, 0.008, n)))
-    cl = 60 * np.exp(np.cumsum(rng.normal(0.0001, 0.015, n)))
-    return pd.DataFrame({"GC=F": gc, "CL=F": cl}, index=dates)
+    gold = 150 * np.exp(np.cumsum(rng.normal(0.0001, 0.008, n)))
+    oil = 30 * np.exp(np.cumsum(rng.normal(0.0001, 0.015, n)))
+    return pd.DataFrame({"GLD": gold, "USO": oil}, index=dates)
 
 
 class TestPreRegistration:
@@ -56,18 +61,25 @@ class TestPreRegistration:
         assert nf06.DATA_START == "2010-01-01"
         assert nf06.DATA_END == "2026-10-31"
 
+    def test_amended_universe_and_config(self):
+        assert nf06.UNIVERSE == ["GLD", "USO"]
+        cfg = nf06.make_etf_config()
+        assert cfg.asset_class == AssetClass.EQUITY
+        assert cfg.allow_short is True
+        assert cfg.max_leverage == 2.0
+
 
 class TestSpreadConstruction:
     def test_spread_is_log_ratio(self):
-        prices = _gc_cl(n=50)
+        prices = _gold_oil(n=50)
         s = nf06.spread_series(prices)
-        expected = np.log(prices["GC=F"]) - np.log(prices["CL=F"])
+        expected = np.log(prices["GLD"]) - np.log(prices["USO"])
         pd.testing.assert_series_equal(s, expected, check_names=False)
 
     def test_spread_ignores_non_positive(self):
-        prices = _gc_cl(n=30)
-        prices.loc[prices.index[5], "CL=F"] = 0.0
-        prices.loc[prices.index[6], "GC=F"] = -1.0
+        prices = _gold_oil(n=30)
+        prices.loc[prices.index[5], "USO"] = 0.0
+        prices.loc[prices.index[6], "GLD"] = -1.0
         s = nf06.spread_series(prices)
         assert not np.isfinite(s.iloc[5])
         assert not np.isfinite(s.iloc[6])
@@ -77,8 +89,7 @@ class TestSpreadConstruction:
         s = pd.Series(
             np.arange(200, dtype=float), index=pd.date_range("2020-01-01", periods=200, freq="B")
         )
-        z = nf06.spread_zscore(s, lookback=60)
-        # z at index i must not change when future values change
+        nf06.spread_zscore(s, lookback=60)
         z1 = nf06.spread_zscore(s, lookback=60)
         s2 = s.copy()
         s2.iloc[150:] = 9999.0
@@ -88,36 +99,35 @@ class TestSpreadConstruction:
 
 class TestCausalityAndBounds:
     def test_position_delayed_one_bar(self):
-        prices = _gc_cl(n=300, seed=7)
-        tgt, pos = nf06.build_spread_targets(prices, lookback=60, entry_z=1.5, exit_z=0.5)
-        # pos is shifted by 1 in build_spread_targets; first element must be 0
-        assert float(tgt["GC=F"].iloc[0]) == 0.0
-        assert float(tgt["CL=F"].iloc[0]) == 0.0
+        prices = _gold_oil(n=300, seed=7)
+        tgt, _pos = nf06.build_spread_targets(prices, lookback=60, entry_z=1.5, exit_z=0.5)
+        assert float(tgt["GLD"].iloc[0]) == 0.0
+        assert float(tgt["USO"].iloc[0]) == 0.0
 
     def test_dollar_neutral_legs(self):
-        prices = _gc_cl(n=300, seed=11)
+        prices = _gold_oil(n=300, seed=11)
         tgt, _ = nf06.build_spread_targets(prices, lookback=60, entry_z=1.5, exit_z=0.5)
-        diff = tgt["GC=F"] + tgt["CL=F"]
+        diff = tgt["GLD"] + tgt["USO"]
         assert (diff.abs() < 1e-12).all()
 
     def test_leg_bounds(self):
-        prices = _gc_cl(n=300, seed=13)
+        prices = _gold_oil(n=300, seed=13)
         tgt, _ = nf06.build_spread_targets(prices, lookback=60, entry_z=1.5, exit_z=0.5)
-        assert (tgt["GC=F"].abs() <= nf06.MAX_LEG + 1e-10).all()
-        assert (tgt["CL=F"].abs() <= nf06.MAX_LEG + 1e-10).all()
+        assert (tgt["GLD"].abs() <= nf06.MAX_LEG + 1e-10).all()
+        assert (tgt["USO"].abs() <= nf06.MAX_LEG + 1e-10).all()
 
     def test_future_price_change_does_not_affect_past_targets(self):
-        prices = _gc_cl(n=300, seed=17)
+        prices = _gold_oil(n=300, seed=17)
         t1, _ = nf06.build_spread_targets(prices, lookback=60, entry_z=2.0, exit_z=0.5)
         perturbed = prices.copy()
-        perturbed.iloc[250:, perturbed.columns.get_loc("GC=F")] *= 1.5
+        perturbed.iloc[250:, perturbed.columns.get_loc("GLD")] *= 1.5
         t2, _ = nf06.build_spread_targets(perturbed, lookback=60, entry_z=2.0, exit_z=0.5)
         pd.testing.assert_frame_equal(t1.iloc[:249], t2.iloc[:249])
 
 
 class TestDeterminismAndMetrics:
     def test_deterministic(self):
-        prices = _gc_cl(n=250, seed=23)
+        prices = _gold_oil(n=250, seed=23)
         t1, p1 = nf06.build_spread_targets(prices, lookback=120, entry_z=2.0, exit_z=0.75)
         t2, p2 = nf06.build_spread_targets(prices, lookback=120, entry_z=2.0, exit_z=0.75)
         pd.testing.assert_frame_equal(t1, t2)
@@ -137,6 +147,6 @@ class TestDeterminismAndMetrics:
         }
 
     def test_stationarity_diagnostic_shape(self):
-        s = nf06.spread_series(_gc_cl(n=200))
+        s = nf06.spread_series(_gold_oil(n=200))
         d = nf06._stationarity_diagnostic(s)
         assert "acf1" in d and "ar1_coef" in d and d["n"] > 0

@@ -2,9 +2,15 @@
 H88 / NF-20261105-06: Gold–Oil Relative-Value Spread Mean Reversion.
 
 Pre-registered in NEW_FAMILY_RESEARCH_REGISTER.md §10–11 and
-HYPOTHESIS_SPEC.md §H88. Mechanism: mean reversion of log(GC/CL) spread
-dislocations (relative value/convergence). Long spread (long GC, short CL)
+HYPOTHESIS_SPEC.md §H88. Mechanism: mean reversion of log(GOLD/OIL) spread
+dislocations (relative value/convergence). Long spread (long gold, short oil)
 when z-score extreme negative; short spread when extreme positive.
+
+Amendment 2026-11-05 (option b, before outcome evaluation): observable
+re-specification from GC=F/CL=F futures to GLD/USO ETF proxies after CL=F
+non-positive-price feasibility blocker (2020-04 WTI episode). Material
+instrument/cost/basis change disclosed in spec/register; splits/holdout
+unchanged. Equity cost model applied to ETF legs.
 """
 
 import json
@@ -34,15 +40,15 @@ from qtr.validation.statistics import (  # noqa: E402
 
 EXPERIMENT_NAME = "nf_20261105_06_gold_oil_rv"
 EXPERIMENT_DESC = (
-    "H88/NF-20261105-06: Gold–oil relative-value spread mean reversion "
-    "(log GC/CL z-score). Long/short spread on extreme dislocations, "
-    "vol-targeted; Train/Val/Test 2010-2018/2019-2022/2023-2026; "
-    "Test protected; gates on OOS Val+Test."
+    "H88/NF-20261105-06 (amended option b): Gold–oil relative-value spread "
+    "mean reversion (log GLD/USO z-score, ETF proxy). Long/short spread on "
+    "extreme dislocations, vol-targeted; Train/Val/Test 2010-2018/2019-2022/"
+    "2023-2026; Test protected; gates on OOS Val+Test."
 )
 
-GC = "GC=F"
-CL = "CL=F"
-UNIVERSE = [GC, CL]
+GOLD = "GLD"
+OIL = "USO"
+UNIVERSE = [GOLD, OIL]
 
 DATA_START = "2010-01-01"
 DATA_END = "2026-10-31"
@@ -73,11 +79,11 @@ MAX_LEG = 0.5  # per leg, dollar-neutral spread
 WF_FOLDS_SELECTION = 4
 
 
-def make_futures_config() -> BacktestConfig:
+def make_etf_config() -> BacktestConfig:
     return BacktestConfig(
         initial_capital=INITIAL_CAPITAL,
         cost_model=CostModel(),
-        asset_class=AssetClass.FUTURES,
+        asset_class=AssetClass.EQUITY,
         max_position_size=MAX_LEG,
         max_leverage=2.0,
         allow_short=True,
@@ -125,12 +131,12 @@ def _count_in(trades: pd.DataFrame, mask, prices) -> int:
 
 
 def spread_series(prices: pd.DataFrame) -> pd.Series:
-    """Log spread s_t = log(GC_t) - log(CL_t), point-in-time."""
-    gc = prices[GC].astype(float)
-    cl = prices[CL].astype(float)
-    valid = (gc > 0) & (cl > 0)
+    """Log spread s_t = log(GOLD_t) - log(OIL_t), point-in-time."""
+    gold = prices[GOLD].astype(float)
+    oil = prices[OIL].astype(float)
+    valid = (gold > 0) & (oil > 0)
     s = pd.Series(np.nan, index=prices.index)
-    s[valid] = np.log(gc[valid]) - np.log(cl[valid])
+    s[valid] = np.log(gold[valid]) - np.log(oil[valid])
     return s
 
 
@@ -167,12 +173,12 @@ def build_spread_targets(
     exit_z: float,
     vol_target: float = VOL_TARGET,
 ) -> tuple[pd.DataFrame, pd.Series]:
-    """Daily target weights for GC and CL (spread legs), strictly causal.
+    """Daily target weights for GOLD and OIL (spread legs), strictly causal.
 
-    Returns (targets DataFrame with GC/CL columns, spread_position series in {-1,0,1}).
+    Returns (targets DataFrame with GOLD/OIL columns, spread_position series in {-1,0,1}).
     """
     targets = pd.DataFrame(0.0, index=prices.index, columns=UNIVERSE)
-    if GC not in prices.columns or CL not in prices.columns:
+    if GOLD not in prices.columns or OIL not in prices.columns:
         return targets, pd.Series(0.0, index=prices.index)
 
     s = spread_series(prices)
@@ -188,7 +194,7 @@ def build_spread_targets(
             continue
         if current == 0.0:
             if zi <= -entry_z:
-                current = 1.0  # long spread: long GC, short CL
+                current = 1.0  # long spread: long GOLD, short OIL
             elif zi >= entry_z:
                 current = -1.0  # short spread
         elif current == 1.0:
@@ -209,17 +215,17 @@ def build_spread_targets(
     pos_delayed = pos.shift(1).fillna(0.0)
 
     # Vol targeting on spread returns (causal, trailing)
-    gc_ret = prices[GC].pct_change()
-    cl_ret = prices[CL].pct_change()
-    # Unit spread return proxy: 0.5*(gc_ret - cl_ret) per leg notionally
-    spread_ret = 0.5 * (gc_ret - cl_ret)
+    gold_ret = prices[GOLD].pct_change()
+    oil_ret = prices[OIL].pct_change()
+    # Unit spread return proxy: 0.5*(gold_ret - oil_ret) per leg notionally
+    spread_ret = 0.5 * (gold_ret - oil_ret)
     rolling_vol = spread_ret.rolling(63, min_periods=21).std() * np.sqrt(252)
     rolling_vol = rolling_vol.replace(0, np.nan).ffill().fillna(0.15)
     scale = (vol_target / rolling_vol).clip(lower=0.0, upper=1.0)
 
     leg = (MAX_LEG * scale * pos_delayed).fillna(0.0)
-    targets[GC] = leg
-    targets[CL] = -leg
+    targets[GOLD] = leg
+    targets[OIL] = -leg
     return targets, pos_delayed
 
 
@@ -407,9 +413,9 @@ def main() -> int:
             f"[H88] spread diagnostic acf1={stat_diag.get('acf1')} ar1={stat_diag.get('ar1_coef')}"
         )
 
-        cfg = make_futures_config()
+        cfg = make_etf_config()
 
-        # Benchmark: equal-weight buy-hold GC+CL
+        # Benchmark: equal-weight buy-hold GOLD+OIL (ETF proxy)
         bench_w = pd.DataFrame(0.5, index=prices.index, columns=UNIVERSE)
         bench_result = run_backtest(
             prices=prices[UNIVERSE], signals=bench_w, volumes=None, config=cfg
@@ -476,15 +482,15 @@ def main() -> int:
             rand_pos[:] = rng_ab.choice([-1.0, 0.0, 1.0], size=len(rand_pos))
             rand_pos = rand_pos.shift(1).fillna(0.0)
             rt = pd.DataFrame(0.0, index=prices.index, columns=UNIVERSE)
-            rt[GC] = MAX_LEG * rand_pos
-            rt[CL] = -MAX_LEG * rand_pos
+            rt[GOLD] = MAX_LEG * rand_pos
+            rt[OIL] = -MAX_LEG * rand_pos
             rr = run_backtest(prices=prices[UNIVERSE], signals=rt, volumes=None, config=cfg)
             ablations["random_entry"] = _period_metrics(
                 rr.returns[oos_mask], _count_in(rr.trades, oos_mask, prices)
             )
         except Exception:
             ablations["random_entry"] = {"error": "failed"}
-        ablations["gc_cl_equal_benchmark"] = _period_metrics(
+        ablations["gold_oil_equal_benchmark"] = _period_metrics(
             bench_result.returns[oos_mask], _count_in(bench_result.trades, oos_mask, prices)
         )
 

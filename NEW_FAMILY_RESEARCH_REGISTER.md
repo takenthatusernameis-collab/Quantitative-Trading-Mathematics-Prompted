@@ -483,21 +483,26 @@ Queue exhausted after H87 (REJECT). Per directive §4.1 and §6, fresh mechanism
 
 **Next task:** Formalize H88 in HYPOTHESIS_SPEC.md; implement `run_nf_20261105_06_gold_oil_rv.py` + focused tests; run lint/format + NF tests; run pinned src/qtr gates if `src/qtr` touched (not expected). Execute experiment only if hypothesis is decision-ready and data fetch feasible in-session; otherwise produce decision-ready implementation + tests and leave execution as next task with evidence. Next unused H-ID after H88 is H89.
 
-## 12. NF-20261105-06 / H88 execution outcome — BLOCKED (data feasibility)
+## 12. NF-20261105-06 / H88 execution outcome — BLOCKED (GC=F/CL=F) → REJECTED (GLD/USO amended, option b)
 
-**Experiment:** `exp_2026-11-05T12-16-14-717827Z` (`nf_20261105_06_gold_oil_rv`, git `e5e871fde002`, `git_dirty=false` at start, 2026-11-05T12:16:14Z). Command: `PYTHONPATH=src python run_nf_20261105_06_gold_oil_rv.py`. Status in `.experiments/experiments.jsonl`: `failed`.
+**Original attempt (blocked):** `exp_2026-11-05T12-16-14-717827Z` (`nf_20261105_06_gold_oil_rv`, git `e5e871fde002`, `git_dirty=false` at start). GC=F/CL=F daily 2010-01-01→2026-10-31 fetched to isolated cache; `DataFetcher._reject_non_positive_prices` raised before any grid/gate evaluation: `CL=F: 4 non-positive price(s)... first np.float64(-14.0) on 2020-04-21 00:00:00` (WTI negative-settlement episode). Status `failed`. **Not evaluated:** grid, OOS metrics, gates, verdict. **Protected holdout not used.** Blocked ≠ rejected.
 
-**Blocker (reproducible evidence):** yfinance GC=F/CL=F daily 2010-01-01→2026-10-31 fetched to isolated cache; `DataFetcher._reject_non_positive_prices` raised before any grid/gate evaluation:
-`CL=F: 4 non-positive price(s)... first np.float64(-14.0) on 2020-04-21 00:00:00` (WTI negative-settlement episode; fail-closed guard correct for percentage-return engine).
+**2026-11-05 amendment (option b, recorded before outcome evaluation; no protected-test feedback):** Re-specified observables to GLD/USO ETF proxies (verified clean 2026-11-05: 4233 rows each, 0 non-positive, 2010-01-01→2026-10-31). Same sample window/splits/holdout (train 2010-2018, val 2019-2022, test 2023-2026). **Material construction change disclosed:** ETF basis/expense/roll-tracking (especially USO) and equity cost model (`AssetClass.EQUITY`, `CostModel` defaults) replace futures continuous-front-month/tick costs. Mechanism unchanged (relative-value spread mean reversion).
 
-**Not produced:** param grid results, OOS metrics, gate counts, selected config, verdict. **Protected holdout not used.** H88 remains **BLOCKED, not rejected**.
+**Amended execution (verified):** `exp_2026-11-05T12-24-33-350043Z` (`nf_20261105_06_gold_oil_rv`, completed, 2026-11-05T12:24:33Z). Command: `PYTHONPATH=src python run_nf_20261105_06_gold_oil_rv.py`. Prices (4233,2), train/val/test 2264/1008/961. Grid 18 (5.0s). Spread diagnostic: n=4233, acf1=0.999231, ar1=0.999288 (high persistence; mechanism-evidence concern, not a gate). Summary artifact: `.experiments/artifacts/exp_2026-11-05T12-24-33-350043Z/summary.json`.
 
-**Verification this session (no `src/qtr` changes):** `python -m ruff check src tests run_nf_20261105_06_gold_oil_rv.py tests/test_nf_20261105_06_gold_oil_rv.py` → All checks passed. `python -m ruff format --check src tests run_*.py` → 113 files already formatted. `PYTHONPATH=src python -m pytest tests/test_nf_20261105_06_gold_oil_rv.py -q` → 13 passed.
+**Selected (train-only WF Sharpe):** lookback=252, entry_z=2.0, exit_z=0.75.
+
+**OOS (Val+Test, 1969 periods, 1766 trades):** Sharpe −0.535, PF 0.866, max DD −34.53%, WF stability 0.000 (train Sharpe −0.278, val −0.666, test −0.395). Benchmark (equal-weight GLD/USO buy-hold) p=0.0872, IR −0.417 (gate fails). Perturbation min ratio 0.000 (fails). Worst regime Sharpe −0.666.
+
+**Ablations:** random_entry Sharpe 0.256, PF 1.056, 2644 trades; gold_oil_equal_benchmark Sharpe 0.740, PF 1.142.
+
+**Gates:** 1/9 passed (trades only). Verdict **REJECT**. Protected holdout was evaluated only as part of the pre-registered OOS (Val+Test) gate set after the amendment was recorded and runner executed — no holdout feedback used in re-specification or selection.
 
 **Lineage map update:**
 
 | Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
 |---|---|---|---|---|---|
-| Gold–oil relative-value spread mean reversion | H88 (NF-20261105-06) | Log(GC/CL) z-score dislocation mean reversion; long/short spread, vol-targeted | GC=F/CL=F daily (yfinance) — **blocked** | **BLOCKED** (data feasibility; CL=F non-positive 2020-04-21) | CL continuous front-month crosses non-positive in 2020 negative-WTI episode; engine correctly refuses non-positive price base |
+| Gold–oil relative-value spread mean reversion | H88 (NF-20261105-06) | Log(GOLD/OIL) z-score dislocation mean reversion; long/short spread, vol-targeted | GLD/USO daily ETF proxy (yfinance), amended 2026-11-05 from GC=F/CL=F | **REJECTED** (1/9; OOS Sharpe −0.535, PF 0.866, DD −34.5%, WF 0, pert 0) | Spread highly persistent (acf1≈0.999); convergence not realized net of costs; USO ETF roll/tracking basis may distort oil leg; original CL=F futures blocked by non-positive 2020-04-21 bar |
 
-**Next candidate decision (directive §6, after blocker documented):** NF-20261105-06 mechanism remains untested on the pre-registered universe. Before moving to NF-20261105-04/NF-20261105-05, the next task must make an explicit, pre-registered re-specification choice for H88’s observables: (a) trim/segment CL window around non-positive bars with holdout-preserving split disclosure, or (b) GLD/USO ETF proxy (clean, 4233 rows each, 0 bad rows verified 2026-11-05) with instrument/cost/basis disclosure — material construction change, requires spec/register update and re-implementation/tests as needed. NF-20261105-04 deferred for roll-proxy point-in-time risk; NF-20261105-05 deferred for high-turnover net-of-cost risk. Do not run holdout-evaluating experiments until re-specification is recorded.
+**Next candidate decision (directive §6):** H88 rejected under amended ETF-proxy construction. NF-20261105-04 (commodity carry, roll-proxy point-in-time risk) and NF-20261105-05 (short-term CS reversal, high turnover/net-of-cost risk) remain deferred from cycle 3. Next unused H-ID is H89. New mechanism search/decision-ready selection required before implementation.
