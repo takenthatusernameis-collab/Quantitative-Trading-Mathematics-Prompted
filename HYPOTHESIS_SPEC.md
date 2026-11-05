@@ -5059,3 +5059,30 @@ Ablations: long-only Sharpe −0.118, PF 0.974; inverse signal Sharpe +0.118, PF
 ### Verdict
 
 REJECTED. VIX term structure slope timing of SPY shows no monetisable edge on free daily data over 2015–2026; signal is weak and underperforms the benchmark. Recorded as a negative result per PROMPT_V2.md Phase 6.
+
+
+## H87 — NF-20261105-01: Opening-Gap Fill / Overnight Information (pre-registered 2026-11-05)
+
+**Family:** NEW-FAMILY DISCOVERY MODE per STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §4.
+**Temporary lineage key:** NF-20261105-01 (see NEW_FAMILY_RESEARCH_REGISTER.md §8).
+**Status:** PRE-REGISTERED; not yet implemented.
+
+### Mechanism (event/auction mechanisms)
+
+Overnight gaps in SPY partially fill intraday due to overreaction at the open. Long SPY when gap negative (open < prior close) expecting fill up, short when gap positive expecting fill down; held intraday open→close only.
+
+### Pre-registered construction
+
+Daily. Signal = -sign(gap_z) where gap = open_t/close_{t-1}-1, z-scored over lookback window. Long if gap very negative, short if gap very positive, vol-targeted to 15% ann (grid 0.10/0.15/0.20), max position 0.5. Universe: SPY (yfinance daily open/close). Window 2015-01-01 onward. Protected holdout final ~20%.
+
+### Data
+
+yfinance daily SPY (Open/Close), 2015-01-01 → 2026-10-31. Train ≤ 2020-12-31, Val ≤ 2023-12-31, Test > 2023-12-31 (protected holdout). Costs: equity model (1 bp commission + 0.5 bp spread + 0.1 bp impact per 1% ADV). Grid: lookback in {1,5,21}, zscore in {0.0,0.5,1.0}, vol_target in {0.10,0.15,0.20} (27 combos). Selection by train-only WF Sharpe; Test protected.
+
+### Result
+
+**TBD (not yet run).**
+
+### Verdict
+
+PENDING. Implementation and evaluation required per pre-registration.
