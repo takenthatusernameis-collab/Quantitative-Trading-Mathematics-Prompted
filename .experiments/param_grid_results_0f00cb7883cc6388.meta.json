@@ -1,0 +1,27 @@
+{
+  "shape": [
+    32,
+    8
+  ],
+  "columns": [
+    "hold_days",
+    "vix_gate",
+    "vol_target",
+    "train_wf_sharpe",
+    "train_sharpe",
+    "val_sharpe",
+    "test_sharpe",
+    "oos_sharpe"
+  ],
+  "dtypes": {
+    "hold_days": "int64",
+    "vix_gate": "float64",
+    "vol_target": "float64",
+    "train_wf_sharpe": "float64",
+    "train_sharpe": "float64",
+    "val_sharpe": "float64",
+    "test_sharpe": "float64",
+    "oos_sharpe": "float64"
+  },
+  "index_type": "int64"
+}

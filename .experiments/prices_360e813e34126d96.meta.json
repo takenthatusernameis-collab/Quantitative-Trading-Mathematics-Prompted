@@ -1,0 +1,15 @@
+{
+  "shape": [
+    2975,
+    2
+  ],
+  "columns": [
+    "SPY",
+    "^VIX"
+  ],
+  "dtypes": {
+    "SPY": "float64",
+    "^VIX": "float64"
+  },
+  "index_type": "datetime64[s]"
+}

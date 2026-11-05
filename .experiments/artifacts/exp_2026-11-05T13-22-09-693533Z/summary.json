@@ -1,0 +1,86 @@
+{
+  "experiment_id": "exp_2026-11-05T13-22-09-693533Z",
+  "hypothesis": "NF-20261105-08/H90",
+  "selected_config": {
+    "hold_days": 1,
+    "vix_gate": null,
+    "vol_target": 0.1
+  },
+  "selection_rule": "best train-only walk-forward Sharpe; Test protected; gates on OOS Val+Test",
+  "grid_size": 32,
+  "n_evaluated": 32,
+  "grid_elapsed_sec": 0.8,
+  "total_elapsed_sec": 1.8,
+  "compute_cpu_hours": 0.0,
+  "calendar": {
+    "source": "Federal Reserve Board public FOMC calendars/statements (hardcoded)",
+    "dates_count": 96,
+    "coverage": [
+      "2015-01-01",
+      "2026-10-31"
+    ]
+  },
+  "metrics": {
+    "train_sharpe": -0.8723659457771057,
+    "val_sharpe": -0.8863852951148984,
+    "test_sharpe": -0.37913462135955084,
+    "oos_sharpe": -0.6332084395930693,
+    "profit_factor": 0.5822496019145215,
+    "max_drawdown": -0.06571408584124905,
+    "trades": 110,
+    "wf_stability": 0.0,
+    "benchmark_p_value": 1.0,
+    "information_ratio": -0.8593752630572937,
+    "worst_regime_sharpe": -2.2675856088854798,
+    "perturbation": {
+      "variants": {
+        "vol_target=0.08000000000000002": -0.6177261675561455,
+        "vol_target=0.12": -0.6379269194048549,
+        "vix_gate=20.0": -0.7986454708167782
+      },
+      "min_perturbed_sharpe_ratio": 0.0
+    },
+    "ablations": {
+      "spy_benchmark": {
+        "sharpe": 0.7265532171000195,
+        "max_drawdown": -0.18206356730445683,
+        "profit_factor": 1.1489898603066666,
+        "trades": 0,
+        "gross_profit": 3.819564264794159,
+        "gross_loss": 3.3242802193003804,
+        "n_periods": 1717
+      },
+      "random_event_dates": {
+        "sharpe": -0.35281638680035743,
+        "max_drawdown": -0.093129196806647,
+        "profit_factor": 0.6825208313401602,
+        "trades": 115,
+        "gross_profit": 0.10237052573058077,
+        "gross_loss": 0.14998886631719602,
+        "n_periods": 1717
+      },
+      "no_vix_gate": {
+        "sharpe": -0.6332084395930693,
+        "max_drawdown": -0.06571408584124905,
+        "profit_factor": 0.5822496019145215,
+        "trades": 110,
+        "gross_profit": 0.09358471164532711,
+        "gross_loss": 0.16072954165637376,
+        "n_periods": 1717
+      }
+    }
+  },
+  "passes": {
+    "sharpe": false,
+    "trades": false,
+    "profit_factor": false,
+    "max_drawdown": true,
+    "walkforward_stability": false,
+    "worst_regime_sharpe": false,
+    "p_value": false,
+    "information_ratio": false,
+    "perturbation": false
+  },
+  "all_pass": false,
+  "verdict": "REJECT"
+}
