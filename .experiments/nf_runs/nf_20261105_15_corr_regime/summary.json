@@ -1,0 +1,180 @@
+{
+  "experiment": "nf_20261105_15_corr_regime",
+  "hypothesis": "H96/NF-20261105-15 equity-bond return-correlation regime timing",
+  "seed": 42,
+  "data": {
+    "start": "2010-01-01",
+    "end": "2026-10-31",
+    "symbols": [
+      "SPY",
+      "TLT"
+    ],
+    "rows": 4233
+  },
+  "splits": {
+    "train_end": "2019-12-31",
+    "val_end": "2022-12-31"
+  },
+  "grid_rows": 36,
+  "selected": {
+    "lookback": 63,
+    "entry_z": 1.0,
+    "exit_z": 0.5,
+    "vol_target": 0.1,
+    "train_wf_sharpe": 1.5113168902159484
+  },
+  "gate_eval_oos_val_test": {
+    "oos_metrics": {
+      "sharpe": 0.7263598665637516,
+      "max_drawdown": -0.10258400097432674,
+      "profit_factor": 1.186691950344531,
+      "trades": 254,
+      "gross_profit": 1.8903019003169614,
+      "gross_loss": 1.5929171001523623,
+      "n_periods": 1717
+    },
+    "train_sharpe": 1.1067423964288268,
+    "val_sharpe": 0.22027893940854448,
+    "test_metrics": {
+      "sharpe": 1.2287914637515482,
+      "max_drawdown": -0.060826268335479106,
+      "profit_factor": 1.3262685576320064,
+      "trades": 77,
+      "gross_profit": 1.0289472253791403,
+      "gross_loss": 0.7758211709521938,
+      "n_periods": 961
+    },
+    "wf_stability": 1.110277755434817,
+    "worst_regime_sharpe": -0.8396264343024168,
+    "benchmark_p": 1.0,
+    "information_ratio": -0.3336831636942634,
+    "passes": {
+      "sharpe": false,
+      "trades": true,
+      "profit_factor": false,
+      "max_drawdown": true,
+      "walkforward_stability": true,
+      "worst_regime_sharpe": false,
+      "p_value": false,
+      "information_ratio": false,
+      "perturbation": true
+    },
+    "gate_pass_count": 4,
+    "perturbation": {
+      "rows": [
+        {
+          "lookback": 50,
+          "sharpe": 0.6793974026852806,
+          "max_drawdown": -0.10258400097432652,
+          "profit_factor": 1.167729188887325,
+          "trades": 263,
+          "gross_profit": 1.99344905367473,
+          "gross_loss": 1.7071158900928007,
+          "n_periods": 1717
+        },
+        {
+          "lookback": 76,
+          "sharpe": 0.5197792212438496,
+          "max_drawdown": -0.10258400097432652,
+          "profit_factor": 1.129857827568685,
+          "trades": 258,
+          "gross_profit": 1.8602393302191433,
+          "gross_loss": 1.6464366443538736,
+          "n_periods": 1717
+        },
+        {
+          "entry_z": 0.8,
+          "sharpe": 0.7701807913226728,
+          "max_drawdown": -0.10258400097432674,
+          "profit_factor": 1.2015157087991186,
+          "trades": 251,
+          "gross_profit": 1.8638106683164857,
+          "gross_loss": 1.5512162301892103,
+          "n_periods": 1717
+        },
+        {
+          "entry_z": 1.2,
+          "sharpe": 0.5417508994280301,
+          "max_drawdown": -0.11145304456140614,
+          "profit_factor": 1.1316445497378198,
+          "trades": 267,
+          "gross_profit": 1.9587968989876903,
+          "gross_loss": 1.730929468481517,
+          "n_periods": 1717
+        },
+        {
+          "exit_z": 0.4,
+          "sharpe": 0.7104090561627829,
+          "max_drawdown": -0.10258400097432674,
+          "profit_factor": 1.1860033575409175,
+          "trades": 240,
+          "gross_profit": 1.8365892940377382,
+          "gross_loss": 1.5485531995843236,
+          "n_periods": 1717
+        },
+        {
+          "exit_z": 0.6,
+          "sharpe": 0.6588718615587346,
+          "max_drawdown": -0.10258400097432663,
+          "profit_factor": 1.1652026748972897,
+          "trades": 256,
+          "gross_profit": 1.9214265736017717,
+          "gross_loss": 1.649006318811568,
+          "n_periods": 1717
+        },
+        {
+          "vol_target": 0.08,
+          "sharpe": 0.766591877686129,
+          "max_drawdown": -0.08845990855415897,
+          "profit_factor": 1.1926696247596993,
+          "trades": 379,
+          "gross_profit": 1.7472439459838782,
+          "gross_loss": 1.464985700743335,
+          "n_periods": 1717
+        },
+        {
+          "vol_target": 0.12,
+          "sharpe": 0.7191556061713834,
+          "max_drawdown": -0.1108197780572735,
+          "profit_factor": 1.188660426292836,
+          "trades": 175,
+          "gross_profit": 1.9808839415898543,
+          "gross_loss": 1.6664843026429212,
+          "n_periods": 1717
+        }
+      ],
+      "min_sharpe_ratio": 0.7155946317667721
+    },
+    "ablations": {
+      "random_exposure_matched": {
+        "sharpe": -0.13355560296455682,
+        "max_drawdown": -0.10732233434382199,
+        "profit_factor": 0.9494453922202256,
+        "trades": 511,
+        "gross_profit": 1.0372505350178929,
+        "gross_loss": 1.0924804559768728,
+        "n_periods": 1717
+      },
+      "buy_hold_spy": {
+        "sharpe": 0.7980691204428457,
+        "max_drawdown": -0.17971862889763146,
+        "profit_factor": 1.1650651012615703,
+        "trades": 0,
+        "gross_profit": 3.8288858338454936,
+        "gross_loss": 3.286413634482272,
+        "n_periods": 1717
+      },
+      "inverse_high_corr_long": {
+        "sharpe": 0.6954905319106427,
+        "max_drawdown": -0.0838084589025706,
+        "profit_factor": 1.2194840205234632,
+        "trades": 216,
+        "gross_profit": 1.2014726164578895,
+        "gross_loss": 0.9852303074395002,
+        "n_periods": 1717
+      }
+    }
+  },
+  "verdict": "REJECT",
+  "duration_seconds": 2.516
+}

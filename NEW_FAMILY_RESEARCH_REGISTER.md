@@ -780,3 +780,40 @@ Deferred risks (cycle 10): NF-04 commodity carry roll proxy unavailable (free po
 | NF-20261105-04 Commodity carry (roll yield) | Carry / term structure | 3 | 4 | 2 | 4 | 3 | 3 | 3.10 |
 
 **Selection:** NF-20261105-15 (H96). Smallest decisive test: 2 symbols (SPY, TLT), daily, free yfinance, 36-combo grid, no `src/qtr` change. Distinct from H92 (relative momentum level). NF-17/NF-04 deferred.
+
+
+## 11. Cycle 11 (2026-11-05) — H96 execution outcome (NF-20261105-15 equity-bond return-correlation regime timing)
+
+H95 (NF-20261105-16 USD strength macro timing) REJECTED 3/9, `exp_2026-11-05T19-09-07-377344Z`. Cycle 10 selected NF-20261105-15 (H96) as highest-information feasible candidate; pre-registered in `HYPOTHESIS_SPEC.md` §H96 and this register cycle 10. Implemented and executed this session.
+
+### NF-20261105-15 / H96 — Equity-bond return-correlation regime timing (EXECUTED REJECT)
+
+**Runner:** `run_nf_20261105_15_corr_regime.py` (new). **Tests:** `tests/test_nf_20261105_15_corr_regime.py` (10 tests, all passed). Lint/format clean (ruff check + format --check). `src/qtr` unchanged.
+
+**Mechanism.** Trailing rolling correlation of SPY vs TLT daily returns over `lookback` bars, z-scored over 252 bars (past-only). Hysteresis: z >= entry_z -> flat (high correlation / risk-off co-movement), z <= exit_z -> vol-targeted long SPY (low correlation / diversification intact), hold between thresholds. Engine `signals.shift(1)` gives t -> t+1 causality. Distinct from H92 (relative *momentum* level, first moment) — H96 uses rolling *correlation* (second moment / diversification breakdown).
+
+**Data/splits.** SPY, TLT daily yfinance 2010-01-01 -> 2026-10-31 (4233 rows, 0 non-positive). Train 2010-01-01 -> 2019-12-31; Val 2020-01-01 -> 2022-12-31; Test (protected) 2023-01-01 -> 2026-10-31. Grid 36 (lookback x entry_z x exit_z x vol_target). Selection = best train-only 4-fold WF Sharpe; gates on OOS Val+Test. No holdout feedback.
+
+**Execution.** `exp_2026-11-05T22-09-06-247157Z` (completed, 2.5s). Artifact: `.experiments/nf_runs/nf_20261105_15_corr_regime/summary.json`; tracker artifact `summary_e586f8fb0c0b17c2`. Selected (train-only WF Sharpe 1.511): lookback=63, entry_z=1.0, exit_z=0.5, vol_target=0.10.
+
+**Result — REJECT (4/9 gates).** OOS Val+Test (1717 periods, 254 trades): Sharpe 0.726 (fail, reject <0.5 boundary not crossed), PF 1.187 (fail <1.3), max DD -10.26% (pass <=15%), trades 254 (pass >=200), WF stability 1.110 (pass >=0.7), worst-regime rolling-252 Sharpe -0.840 (fail <0.3), benchmark p=1.000 (fail >0.05 vs buy-hold SPY), IR -0.334 (fail <0), perturbation min ratio 0.716 (pass >=0.5, OAT ±20% on all four grid params). Train/Val/Test Sharpe: 1.107 / 0.220 / 1.229. SPY buy-hold benchmark OOS Sharpe 0.798, PF 1.165, DD -17.97% — outperforms the strategy on OOS. Ablations: random-exposure-matched Sharpe -0.134/PF 0.949 (511 trades) — correlation gating adds exposure value vs random assignment but is not cost-robust vs buy-hold; inverse-signal (long when correlation high) Sharpe 0.695/PF 1.219 (216 trades), directionally mixed, no robust edge.
+
+**Verdict rationale.** Correlation-regime timing shows a train WF Sharpe of 1.511 but decays to OOS Sharpe 0.726, fails Sharpe/PF/worst-regime/benchmark/IR gates, and underperforms buy-hold SPY on protected OOS evaluation. The family is not supported by this free, point-in-time test. SPY-TLT correlation instability across rate regimes (notably the 2022 diversification breakdown) is the likely confounder; no gate weakened, no published/certified artifact modified.
+
+### Lineage map (H96 REJECT)
+
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Equity-bond return-correlation regime timing | H96 (NF-20261105-15) | Vol-targeted long SPY when trailing SPY-TLT return correlation z-score low (diversification intact), flat when high (risk-off co-movement); hysteresis + 1-bar delay | SPY, TLT daily (yfinance), 2010–2026 | **REJECT** (4/9; exp_2026-11-05T22-09-06-247157Z) | OOS Sharpe 0.726/PF 1.187/worst-regime -0.840/benchmark p=1.0/IR -0.334; train WF 1.511 decays to OOS; underperforms SPY buy-hold (0.798) on protected OOS; correlation instability across rate regimes |
+
+### Deferred risks reassessed (cycle 11, concrete evidence)
+
+- **NF-20261105-04 (commodity carry, roll proxy) — remains DEFERRED.** yfinance/DataFetcher pipeline provides continuous/front proxies only; no free point-in-time deferred/term-structure/second-month series. Continuous-only carry requires splice/roll assumptions not pre-specified as point-in-time and risks roll/regime leakage. ETF proxies (DBC/USO/GLD) confound roll/flows/equity beta. Blocker: data/point-in-time term-structure construction.
+- **NF-20261105-05 (short-term CS reversal, liquidity provision) — remains DEFERRED.** Liquid sector-ETF universe is free/point-in-time feasible, but 1-day daily cross-sectional rebalancing implies very high turnover; under CostModel equity defaults, cost drag is decisive. Any turnover cap/entry threshold/lower frequency materially changes mechanism and must be pre-registered. Blocker: execution/net-of-cost realism under pre-registered turnover assumptions.
+- **NF-20261105-11 (Treasury term-spread regime timing) — remains DEFERRED.** `^IRX` blocked by `DataFetcher._reject_non_positive_prices` (non-positive history); FRED absent from pipeline. Free ETF/yield proxies are ambiguous and risk mechanism adjacency to prior vol/macro timing without a clean point-in-time term-spread observable. Blocker: free point-in-time rates/term-spread data quality/construction.
+- **NF-20261105-12 (cross-sectional equity dispersion regime) — remains DEFERRED.** Free data feasible, but dispersion measurement + regime-to-portfolio mapping is complex and turnover/capacity risks resemble CS families; lower expected information than a small single-asset timing test. Blocker: execution/complexity vs smallest decisive test.
+- **NF-20261105-17 (cross-sectional volume-shock reversal) — remains DEFERRED.** Turnover/cost-sensitive; pre-register constrained design only if pursued. Blocker: net-of-cost under daily ETF turnover.
+
+### Next candidate decision (directive §6)
+
+H85–H96 all rejected. No pre-registered NF candidates remain executable without resolving a documented decisive risk. Per directive §4/§6, Cycle 11 must perform a fresh mechanism search: propose >=3 repo-new candidates spanning >=3 broad mechanism categories (checked against the full lineage map H1–H96), score honestly with the directive weights, reassess deferred risks with concrete evidence, and pre-register the highest-information feasible candidate as H97 (next unused H-ID) with the smallest decisive test. Prefer small, free, point-in-time tests with no `src/qtr` change. Do not re-run rejected families without a materially different, pre-registered mechanism.
