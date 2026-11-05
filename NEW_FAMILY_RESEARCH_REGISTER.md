@@ -277,6 +277,4 @@ total 4.15, category: volatility and convexity premia), which is materially dist
 every exhausted family — no prior repository family trades equity exposure timed by the
 VIX term-structure slope (H17 trades SVXY gated by the spot VIX *level*). It uses only
 free yfinance daily data (^VIX, ^VIX3M, SPY), is single-instrument, has low turnover, and
-its falsification is clean. Runner scaffold already exists at
-`run_nf_20261104_01_vix_termstructure.py` (not yet implemented). Pre-register as H86,
-implement, and run the gates.
+its falsification is clean. Pre-registered as H86 in HYPOTHESIS_SPEC.md (2026-11-05). Runner not yet implemented; next task is to implement `run_nf_20261104_01_vix_termstructure.py` and focused tests, then run gates.

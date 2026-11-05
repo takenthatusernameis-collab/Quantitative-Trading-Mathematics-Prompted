@@ -5026,3 +5026,25 @@ benchmark on every dimension that matters.
 REJECTED. The lead-lag mechanism does not produce a monetisable edge on free daily data
 over 2015–2026; the sector-ETF signal is dominated by the cost of the daily rebalance
 and by the benchmark itself. Recorded as a negative result per PROMPT_V2.md Phase 6.
+
+## H86 — NF-20261104-01: VIX Term Structure Slope Equity Timing (pre-registered 2026-11-05)
+
+**Family:** NEW-FAMILY DISCOVERY MODE per STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §4.
+**Temporary lineage key:** NF-20261104-01 (see NEW_FAMILY_RESEARCH_REGISTER.md §2).
+**Status:** PRE-REGISTERED; not yet implemented.
+
+### Mechanism (volatility and convexity premia)
+
+VIX futures term structure slope (VIX3M / VIX) predicts equity returns: steep contango
+implies expected VIX mean reversion downward, hence lower equity volatility and higher
+equity returns; backwardation implies the opposite. Position long SPY in contango, flat/short
+in backwardation.
+
+### Pre-registered construction
+
+Daily rebalance at close. Slope = VIX3M/VIX. If slope > rolling median + z, long SPY
+vol-targeted to 15% ann; if < rolling median - z, flat/short. Max position 0.5. Universe:
+^VIX, ^VIX3M, SPY (yfinance daily). Window 2015-01-01 onward. Protected holdout final 20%.
+
+### Gates (PROMPT_V2.md): OOS Sharpe >= 1.0, >= 200 OOS trades, PF >= 1.3, max DD <= 15%.
+Rejection: OOS Sharpe < 0.5, PF < 1.1, < 200 OOS trades, max DD > 15%.
