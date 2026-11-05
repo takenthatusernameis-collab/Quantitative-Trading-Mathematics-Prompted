@@ -196,45 +196,39 @@ def build_daily_targets(
     stock_rets = prices[stocks_available].pct_change()
     rolling_vol = stock_rets.rolling(63, min_periods=21).std() * np.sqrt(252)
     rolling_vol = rolling_vol.replace(0, np.nan).ffill().fillna(0.15)
+    inv_vol = 1.0 / rolling_vol
 
-    for t_idx in range(1, len(prices)):
-        t = prices.index[t_idx]
-        sr = sector_ret_lagged.loc[t]
-        if sr.isna().all():
+    # Vectorised per-sector rank construction. For each sector we rank stocks
+    # by their excess return over the sector ETF (both known at close t-1),
+    # take the top/bottom quintile, and size by inverse realised vol.
+    for etf, sector_stocks in SECTOR_ETFS.items():
+        if etf not in sector_ret_lagged.columns:
+            continue
+        stocks = [s for s in sector_stocks if s in stocks_available]
+        if len(stocks) < 2:
             continue
 
-        # Group stocks by sector; rank within sector by sector return.
-        # SECTOR_ETFS maps ETF symbol -> list of constituent stocks.
-        for etf, sector_stocks in SECTOR_ETFS.items():
-            sector_ret = sr[etf]
-            if pd.isna(sector_ret):
-                continue
-            stocks = [s for s in sector_stocks if s in stocks_available]
-            # All stocks in the sector get the same sector-return rank signal;
-            # differentiate by idiosyncratic momentum residual:
-            # stock_return - sector_return (alpha relative to sector).
-            stock_ret_t1 = stock_rets.loc[t, stocks]
-            valid = stock_ret_t1.notna()
-            if valid.sum() < 2:
-                continue
-            excess = (stock_ret_t1 - sector_ret)[valid]
-            n_long = max(1, int(round(len(excess) * quintile_share)))
-            n_short = max(1, int(round(len(excess) * quintile_share)))
-            top = excess.nlargest(n_long)
-            bottom = excess.nsmallest(n_short)
+        excess = stock_rets[stocks].values - sector_ret_lagged[etf].values[:, None]
+        vol = inv_vol[stocks].values
+        n_long = max(1, int(round(len(stocks) * quintile_share)))
+        n_short = max(1, int(round(len(stocks) * quintile_share)))
 
-            # Vol-target: each position sized by inverse vol, scaled to target.
-            vol_t = rolling_vol.loc[t, stocks].reindex(excess.index).fillna(0.15)
-            inv_vol = 1.0 / vol_t
-            long_w = inv_vol[top.index] / inv_vol[top.index].sum()
-            short_w = inv_vol[bottom.index] / inv_vol[bottom.index].sum()
+        # Rows with fewer than 2 valid excess values carry no signal.
+        valid_count = (~np.isnan(excess)).sum(axis=1)
 
-            # Scale so gross exposure per side = quintile_share * vol_target / vol_t
-            # Position size per name: sign * quintile_share * (vol_target / stock_vol)
-            for sym, w in long_w.items():
-                targets.loc[t, sym] = quintile_share * (vol_target / vol_t[sym])
-            for sym, w in short_w.items():
-                targets.loc[t, sym] = -quintile_share * (vol_target / vol_t[sym])
+        order = np.argsort(excess, axis=1, kind="stable")
+        top_idx = order[:, -n_long:]
+        bot_idx = order[:, :n_short]
+
+        signs = np.zeros_like(excess)
+        rows = np.arange(len(prices))[:, None]
+        signs[rows, top_idx] = 1.0
+        signs[rows, bot_idx] = -1.0
+        # No signal where the sector return or stock returns are missing.
+        signs = np.where(np.isnan(excess), 0.0, signs)
+        signs[valid_count < 2, :] = 0.0
+
+        targets[stocks] = signs * (quintile_share * vol_target * vol)
 
     return targets
 
