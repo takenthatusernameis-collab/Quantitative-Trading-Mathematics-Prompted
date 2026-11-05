@@ -5046,5 +5046,16 @@ Daily rebalance at close. Slope = VIX3M/VIX. If slope > rolling median + z, long
 vol-targeted to 15% ann; if < rolling median - z, flat/short. Max position 0.5. Universe:
 ^VIX, ^VIX3M, SPY (yfinance daily). Window 2015-01-01 onward. Protected holdout final 20%.
 
-### Gates (PROMPT_V2.md): OOS Sharpe >= 1.0, >= 200 OOS trades, PF >= 1.3, max DD <= 15%.
-Rejection: OOS Sharpe < 0.5, PF < 1.1, < 200 OOS trades, max DD > 15%.
+### Data
+
+yfinance daily (^VIX, ^VIX3M, SPY), 2015-01-01 → 2026-10-31. Train ≤ 2019-12-31, Val ≤ 2022-12-31, Test > 2022-12-31 (protected holdout). Costs: equity model (1 bp commission + 0.5 bp spread + 0.1 bp impact per 1% ADV). Grid: lookback in {63,126,252}, zscore in {0.5,1.0,1.5}, vol_target in {0.10,0.15,0.20} (27 combos). Selection by train-only WF Sharpe; Test protected.
+
+### Result
+
+**REJECT (2/9 gates).** OOS Sharpe = −0.118, PF = 0.974, max DD = −19.4%, 594 OOS trades, WF stability = −3.200 (fails), perturbation min ratio = 0.000 (fails). Train Sharpe 0.119, Val 0.117, Test −0.373. Benchmark p = 1.0000, IR = −0.478 (does not outperform buy-and-hold SPY). Selected config: lookback 126, zscore 0.5, vol_target 0.10.
+
+Ablations: long-only Sharpe −0.118, PF 0.974; inverse signal Sharpe +0.118, PF 1.027; SPY benchmark Sharpe +0.828, PF 1.148. The inverse signal outperforms the long-contango formulation; mechanism does not hold as specified.
+
+### Verdict
+
+REJECTED. VIX term structure slope timing of SPY shows no monetisable edge on free daily data over 2015–2026; signal is weak and underperforms the benchmark. Recorded as a negative result per PROMPT_V2.md Phase 6.

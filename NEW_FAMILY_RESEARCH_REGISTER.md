@@ -278,3 +278,25 @@ every exhausted family — no prior repository family trades equity exposure tim
 VIX term-structure slope (H17 trades SVXY gated by the spot VIX *level*). It uses only
 free yfinance daily data (^VIX, ^VIX3M, SPY), is single-instrument, has low turnover, and
 its falsification is clean. Pre-registered as H86 in HYPOTHESIS_SPEC.md (2026-11-05). Runner not yet implemented; next task is to implement `run_nf_20261104_01_vix_termstructure.py` and focused tests, then run gates.
+
+### NF-20261104-01 outcome (H86) and next candidate
+
+#### Result: REJECT (2/9 gates)
+
+OOS Sharpe = **−0.118**, PF = 0.974, max DD = −19.4%, 594 OOS trades, WF stability =
+−3.200 (fails), perturbation min ratio = 0.000 (fails). Train 0.119 / Val 0.117 /
+Test −0.373. Benchmark p = 1.0000, IR = −0.478 — strategy does not outperform buy-and-hold SPY.
+
+Selected config: lookback 126, zscore 0.5, vol_target 0.10.
+
+Ablations: long-only Sharpe −0.118, PF 0.974; inverse signal Sharpe +0.118, PF 1.027; SPY benchmark Sharpe +0.828, PF 1.148.
+
+#### New root family added to the lineage map
+
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| VIX term structure slope equity timing | H86 | Slope VIX3M/VIX predicts SPY returns via vol mean reversion; long in steep contango, short/flat in backwardation | ^VIX, ^VIX3M, SPY; daily, yfinance | REJECTED (OOS Sharpe −0.118) | Signal weak; inverse performs better than long-side; underperforms SPY benchmark on OOS |
+
+#### Next candidate: none remaining in current ranked set
+
+NF-01 is the second-highest ranked candidate from the initial three (NF-02 done, NF-01 done, NF-03 deferred). No other pre-registered NF candidates remain. Per directive §6, need to search for new mechanisms if queue exhausted. Current state: H1–H30 exhausted, H85/H86 rejected. Next unused H-ID is H87 (H24, H68–H73, H76–H79 unassigned; next sequential unused is H87). Must perform new mechanism search before selecting next experiment.
