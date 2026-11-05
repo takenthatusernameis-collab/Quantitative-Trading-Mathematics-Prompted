@@ -649,12 +649,12 @@ H85–H91 rejected (H91 turn-of-month 3/9, `exp_2026-11-05T13-32-55-648939Z`). N
 
 | Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
 |---|---|---|---|---|---|
-| Equity/bond relative-momentum risk-premium timing | H92 (NF-20261105-10) | Trailing SPY-vs-TLT relative momentum; vol-targeted SPY long/flat(/short) | SPY, TLT daily (yfinance), 2010–2026 | **REJECT** (3/9; exp_2026-11-05T18-05-46-174209Z / summary artifact `exp_2026-11-05T15-40-24-218763Z`) | OOS Sharpe 0.447, PF 1.089, DD -16.9%; random-direction ablation identical (no directional edge); allow_short=True Sharpe -0.092 (regime-shift risk); equity-bond correlation breaks persistence in 2022 |
+| Equity/bond relative-momentum risk-premium timing | H92 (NF-20261105-10) | Trailing SPY-vs-TLT relative momentum; vol-targeted SPY long/flat(/short) | SPY, TLT daily (yfinance), 2010–2026 | **REJECT** (3/9; exp_2026-11-05T18-11-49-464520Z / summary artifact `exp_2026-11-05T15-40-24-218763Z`) | OOS Sharpe 0.447, PF 1.089, DD -16.9%; random-direction ablation identical (no directional edge); allow_short=True Sharpe -0.092 (regime-shift risk); equity-bond correlation breaks persistence in 2022 |
 
 
 ## Cycle 7 (2026-11-05) — H93 execution (NF-20261105-13 idiosyncratic-volatility cross-section)
 
-H92 (NF-20261105-10, equity/bond relative momentum) **REJECTED** 3/9, `exp_2026-11-05T18-05-46-174209Z` — no directional edge (random-direction ablation identical), short side value-destroying. NF-20261105-13 (IVOL cross-section, limits-of-arbitrage/lottery-demand premium) was pre-registered as H93 in cycle 6 pre-work and executed this session.
+H92 (NF-20261105-10, equity/bond relative momentum) **REJECTED** 3/9, `exp_2026-11-05T18-11-49-464520Z` — no directional edge (random-direction ablation identical), short side value-destroying. NF-20261105-13 (IVOL cross-section, limits-of-arbitrage/lottery-demand premium) was pre-registered as H93 in cycle 6 pre-work and executed this session.
 
 ### NF-20261105-13 / H93 — Idiosyncratic-volatility cross-section timing (EXECUTED REJECT)
 
