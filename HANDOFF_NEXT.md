@@ -1,44 +1,34 @@
-# HANDOFF_NEXT.md — H84 committed (defect fix under `src/qtr`); gates green on committed tree
+# HANDOFF_CURRENT.md — NF-20261105-10/H92 completed (runner fix) + pre-registered; execution pending
 
-## State
-- Working tree clean (`git status --short` empty). HEAD `1c3fd75` on `main`; `main == origin/main`.
-- The H84 fix (`get_future_contract_multiplier` guard at engine.py:192) is committed in HEAD `1c3fd75`; nothing is pending commit or rollback.
-- `.github/workflows/gates.yml` tracked in HEAD; CI gates present.
-- `PYTHONPATH=src` works. H1–H30 exhausted; hypotheses up to H84 documented.
-- No secrets/credentials added. No artifacts/gate thresholds/verdicts/certified numbers modified.
+## What changed
+- `run_nf_20261105_10_equity_bond_relmom.py` was committed incomplete in `0c0cabe` (ended at `perturbation_eval`; missing `main()`/CLI). Completed the runner in working tree with full pipeline: isolated cache fetch (SPY+TLT), train/val/test split, 16-combo grid (lookback×vol_target×allow_short) with train-only WF selection, OOS Val+Test gate evaluation, perturbation (OAT ±20% lookback/vol_target), ablations (SPY benchmark, random-direction, opposite `allow_short`), artifact/summary logging, tracker finish. Causal: relmom uses prices through close t; engine `shift(1)` earns t→t+1. **Not committed** (no explicit user request).
+- Added `tests/test_nf_20261105_10_equity_bond_relmom.py` (10 tests): pre-registration constants/gates/grid/config, relmom shape/bounds, warmup flat, deterministic direction (up-SPY→long, down-SPY+short→short), missing-symbol flat. **Not committed**.
+- Pre-registered H92/NF-20261105-10 in `HYPOTHESIS_SPEC.md` §H92 and added cycle 6 entry to `NEW_FAMILY_RESEARCH_REGISTER.md` (3 candidates scored; NF-10 selected 4.05; NF-11/12 deferred). **Not committed**.
+- `src/qtr` unchanged. No published artifacts, gate thresholds, verdicts, or certified numbers modified.
 
-## What changed (this session)
-- None to source/tests/runners/artifacts/gates/thresholds/verdicts/certified numbers.
-- Audited all of `src/qtr` (engine.py, statistics.py, fetcher.py, baselines.py, experiment.py, config.py): every public function carries fail-closed guards on the H58/H61/H62 non-finite/negative input class; no unguarded path remains. No code change was warranted — the baseline is complete.
-
-## What was actually verified (this session)
-- `git status --short` → empty; HEAD `1c3fd75` on `main`; `main == origin/main`.
-- Full source audit of `src/qtr` — no missing fail-closed guard; every public function closes on non-finite/negative operands.
-- `python -m ruff check src tests run_*.py` → **All checks passed!**
-- `python -m ruff format --check src tests run_*.py` → **105 files already formatted**
-- `PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` → **2295 passed, 16 skipped**; `src/qtr` **1215 stmts / 406 branches / 0 missed / 0 partial / 100.00%**.
+## What was actually verified
+- `run_nf_20261105_10_equity_bond_relmom.py` parses (`ast.parse`/`py_compile`) and includes `main()`/`__main__` after fix.
+- `python3 -m ruff check run_nf_20261105_10_equity_bond_relmom.py tests/test_nf_20261105_10_equity_bond_relmom.py` → All checks passed.
+- `python3 -m ruff format --check run_nf_20261105_10_equity_bond_relmom.py tests/test_nf_20261105_10_equity_bond_relmom.py` → clean (formatted).
+- `python3 -m ruff check src tests run_*.py` → All checks passed.
+- `python3 -m ruff format --check src tests run_*.py` → 121 files already formatted.
+- `PYTHONPATH=src python3 -m pytest -q tests/test_nf_20261105_10_equity_bond_relmom.py tests/test_nf_20261105_09_turn_of_month.py` → **18 passed** (1.34s).
+- Pinned `src/qtr` 100% coverage / `-W error` suite **not re-run** (no `src/qtr` change). Last known green per prior handoffs/committed state; run if `src/qtr`/tests/runners affecting gates change.
 
 ## What remains unresolved
-- Items in `FINAL_REPORT.md` §H53–§H61 remain disclosed (not quantified); no gate impact.
-- H1–H30 exhausted; hypotheses up to H84 documented.
+- **H92/NF-20261105-10 not executed.** No experiment ID/artifact/verdict. Execution requires yfinance SPY+TLT fetch + 16-combo grid backtests; not run in this bounded session. Non-execution is not a verdict.
+- NF-20261105-04 (commodity carry, point-in-time term-structure/roll proxy unavailable in free pipeline; CL=F non-positive history risk) and NF-20261105-05 (short-term CS reversal, decisive daily turnover/net-of-cost risk) remain deferred with documented decisive risks. NF-20261105-11/12 deferred (cycle 6).
+- H1–H30 exhausted; H85–H91 rejected; H92 pre-registered/pending.
+- Working tree has uncommitted changes (NF-10 runner completion, NF-10 tests, HYPOTHESIS_SPEC.md §H92, NEW_FAMILY_RESEARCH_REGISTER.md cycle 6, handoffs).
 
-## Approaches already tried / failed
-- None this session. Baseline verified green; H84 fix confirmed committed.
+## Failed/blocked approaches (evidence)
+- **Committed incomplete NF-10 runner (0c0cabe):** file ended at `perturbation_eval` (298 lines) with no `main()`/execution/summary. Evidence: `grep def main run_nf_20261105_10_equity_bond_relmom.py` returned nothing before fix; `wc -l` 298; `git show --name-only HEAD` shows only the runner added. Fixed in working tree by appending complete `main()`.
+- No experiment failures this session (H92 not executed).
 
-## Precise next task (one task), with evidence and constraints
-**Maintain baseline health.** No code change needed now. On any future change under `src/qtr`, `tests/`, `run_*.py`, `requirements.txt`, or `pyproject.toml`, run the pinned gates and confirm they stay green:
-
-```bash
-python -m ruff check src tests run_*.py
-python -m ruff format --check src tests run_*.py
-PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing
-```
-
-Constraints:
-- Preserve `src/qtr` at 100% statement + branch coverage (`fail_under = 100`).
-- Do not relax `fail_under`, drop `-W error`, or remove the format check.
-- Do not modify published artifacts, gate thresholds, verdicts, or certified numbers.
-- H1–H30 exhausted; hypotheses up to H84 documented.
-- Never commit without explicit user request.
-
-(End of file)
+## One precise next task
+Execute H92/NF-20261105-10 and record the verdict:
+1. Run `cd /home/runner/work/Quantitative-Trading-Mathematics-Prompted/Quantitative-Trading-Mathematics-Prompted && PYTHONPATH=src python run_nf_20261105_10_equity_bond_relmom.py` (uses isolated cache under `.cache/nf_20261105_10_h92/...`, train-only WF selection, protected Test, OOS Val+Test gates). Capture experiment ID and `summary.json`.
+2. Update `HYPOTHESIS_SPEC.md` §H92 “Execution” with exp ID, selected config, OOS metrics/gates/verdict (PASS/REJECT), ablations, artifact path.
+3. Update `NEW_FAMILY_RESEARCH_REGISTER.md` cycle 6 H92 status/lineage row from PENDING to actual verdict; include failure modes if rejected.
+4. Re-run focused checks: `ruff check/format --check` on touched files and `PYTHONPATH=src pytest -q tests/test_nf_20261105_10_equity_bond_relmom.py`. If verdict affects documentation only and `src/qtr` remains untouched, pinned 100% coverage suite can be skipped with that evidence stated.
+5. If REJECT, perform next new-family discovery cycle (≥3 repo-new mechanism candidates, ≥3 categories, NF scoring), resolve/reassess NF-04/05/11/12 decisive risks with evidence, pre-register highest-information feasible candidate as H93. Do not re-optimize H92 without a materially different pre-registered mechanism. Never weaken gates or modify published/certified artifacts.

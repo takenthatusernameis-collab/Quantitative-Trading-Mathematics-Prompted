@@ -171,12 +171,8 @@ def build_relmom_targets(
     spy_ret = prices[SPY].astype(float).pct_change()
     tlt_ret = prices[TLT].astype(float).pct_change()
     # Cumulative window return from close[t-lookback] to close[t].
-    spy_window = (1.0 + spy_ret).rolling(lookback).apply(
-        lambda x: np.prod(x) - 1.0, raw=True
-    )
-    tlt_window = (1.0 + tlt_ret).rolling(lookback).apply(
-        lambda x: np.prod(x) - 1.0, raw=True
-    )
+    spy_window = (1.0 + spy_ret).rolling(lookback).apply(lambda x: np.prod(x) - 1.0, raw=True)
+    tlt_window = (1.0 + tlt_ret).rolling(lookback).apply(lambda x: np.prod(x) - 1.0, raw=True)
     relmom = spy_window - tlt_window
 
     realized = spy_ret.rolling(21, min_periods=21).std() * np.sqrt(252)
@@ -281,18 +277,244 @@ def perturbation_eval(selected, prices, oos_mask, cfg, opt_oos_sharpe):
                 kw[param] = float(max(0.01, min(0.5, base * factor)))
             if kw == selected:
                 continue
-            pos = build_relmom_targets(
-                prices, kw["lookback"], kw["vol_target"], kw["allow_short"]
-            )
-            res = run_backtest(
-                prices=prices[[SPY]], signals=pos, volumes=None, config=cfg
-            )
+            pos = build_relmom_targets(prices, kw["lookback"], kw["vol_target"], kw["allow_short"])
+            res = run_backtest(prices=prices[[SPY]], signals=pos, volumes=None, config=cfg)
             r = res.returns[oos_mask].dropna()
-            variants[f"{param}={kw[param]}"] = (
-                float(sharpe_ratio(r.values)) if len(r) > 1 else 0.0
-            )
+            variants[f"{param}={kw[param]}"] = float(sharpe_ratio(r.values)) if len(r) > 1 else 0.0
     if opt_oos_sharpe > 0 and variants:
         min_ratio = float(min(variants.values()) / opt_oos_sharpe)
     else:
         min_ratio = 0.0
     return {"variants": variants, "min_perturbed_sharpe_ratio": min_ratio}
+
+
+def main():
+    t_start = time.time()
+    print("=" * 72)
+    print(" NF-20261105-10 / H92: Equity/bond relative-momentum risk-premium timing")
+    print("=" * 72)
+    print(f"  Universe: {UNIVERSE}  |  {DATA_START} -> {DATA_END}")
+
+    np.random.seed(SEED)
+
+    cache_dir = Path(".cache") / "nf_20261105_10_h92" / str(int(time.time()))
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cache = DataCache(cache_dir=cache_dir)
+    fetcher = DataFetcher(cache=cache)
+
+    prices = fetcher.fetch_yahoo(UNIVERSE, start=DATA_START, end=DATA_END)
+    if isinstance(prices.columns, pd.MultiIndex):
+        prices = prices.xs("close", axis=1, level=0)
+    prices = prices.dropna(subset=[SPY, TLT]).sort_index()
+    print(f"  Prices: {prices.shape}")
+
+    spy_prices = prices[[SPY]]
+    train_mask, val_mask, test_mask = _splits(prices)
+    oos_mask = val_mask | test_mask
+    print(f"  Train {train_mask.sum()} | Val {val_mask.sum()} | Test {test_mask.sum()}")
+
+    tracker = get_tracker()
+    exp_id = tracker.start_experiment(
+        EXPERIMENT_NAME,
+        EXPERIMENT_DESC,
+        parameters={
+            "hypothesis": "NF-20261105-10/H92 equity-bond relative-momentum risk-premium timing",
+            "universe": UNIVERSE,
+            "data_window": [DATA_START, DATA_END],
+            "splits": {
+                "train": [DATA_START, TRAIN_END],
+                "val": [TRAIN_END, VAL_END],
+                "test_protected": [VAL_END, DATA_END],
+            },
+            "grid": {
+                "lookback": LOOKBACKS,
+                "vol_target": VOL_TARGETS,
+                "allow_short": ALLOW_SHORT,
+            },
+            "selection": "best train-only walk-forward Sharpe; Test protected; gates on OOS Val+Test",
+            "gates": GATES,
+            "seed": SEED,
+        },
+        tags=["nf-20261105-10", "h92", "relmom", "equity-bond", "new-family-discovery"],
+    )
+
+    try:
+        bench_pos = pd.DataFrame(1.0, index=spy_prices.index, columns=[SPY])
+        bench_result = run_backtest(
+            prices=spy_prices,
+            signals=bench_pos,
+            volumes=None,
+            config=make_equity_config(allow_short=False),
+        )
+
+        grid_rows = []
+        best = None
+        t0 = time.time()
+        grid = [(lb, vt, sh) for lb in LOOKBACKS for vt in VOL_TARGETS for sh in ALLOW_SHORT]
+        for i, (lookback, vol_target, allow_short) in enumerate(grid, 1):
+            cfg = make_equity_config(allow_short)
+            pos = build_relmom_targets(prices, lookback, vol_target, allow_short)
+            result = run_backtest(prices=spy_prices, signals=pos, volumes=None, config=cfg)
+            sel_score = train_only_wf_sharpe(result.returns, train_mask)
+            tr_m = _period_metrics(
+                result.returns[train_mask],
+                _count_in(result.trades, train_mask, prices),
+            )
+            va_m = _period_metrics(
+                result.returns[val_mask],
+                _count_in(result.trades, val_mask, prices),
+            )
+            row = {
+                "lookback": lookback,
+                "vol_target": vol_target,
+                "allow_short": allow_short,
+                "selection_train_wf_sharpe": sel_score,
+                "train_sharpe": tr_m["sharpe"],
+                "val_sharpe": va_m["sharpe"],
+                "train_trades": tr_m["trades"],
+                "val_trades": va_m["trades"],
+                "train_pf": tr_m["profit_factor"],
+            }
+            grid_rows.append(row)
+            key = (lookback, vol_target, allow_short)
+            if best is None or sel_score > best[0]:
+                best = (sel_score, key, result, cfg)
+            if i % 8 == 0:
+                print(f"  grid {i}/{len(grid)} ({time.time() - t0:.1f}s)")
+
+        grid_df = pd.DataFrame(grid_rows).sort_values("selection_train_wf_sharpe", ascending=False)
+        tracker.log_dataframe("grid_results", grid_df)
+        grid_elapsed = time.time() - t0
+        _, sel, sel_result, cfg = best
+        selected = {"lookback": sel[0], "vol_target": sel[1], "allow_short": sel[2]}
+
+        gate = full_gate_eval(sel_result, oos_mask, val_mask, test_mask, prices, bench_result)
+        pert = perturbation_eval(selected, prices, oos_mask, cfg, gate["oos_metrics"]["sharpe"])
+        gate["passes"]["perturbation"] = (
+            pert["min_perturbed_sharpe_ratio"] >= GATES["min_perturbed_sharpe_ratio"]
+        )
+        gate["perturbation"] = pert
+        gate["all_pass"] = all(gate["passes"].values())
+        gate["verdict"] = "PASS" if gate["all_pass"] else "REJECT"
+
+        ablations = {}
+        ablations["spy_benchmark"] = _period_metrics(
+            bench_result.returns[oos_mask], _count_in(bench_result.trades, oos_mask, spy_prices)
+        )
+        # Random direction ablation (same frequency of long/short days, deterministic)
+        rng = np.random.default_rng(SEED)
+        base_pos = build_relmom_targets(prices, sel[0], sel[1], sel[2])
+        active = base_pos[SPY].abs() > 1e-12
+        n_active = int(active.sum())
+        n_pos = int((base_pos[SPY] > 1e-12).sum())
+        rand_side = np.zeros(len(prices), dtype=float)
+        if n_active > 0:
+            idxs = np.flatnonzero(active.values)
+            pick = rng.choice(idxs, size=n_active, replace=False)
+            pos_pick = pick[:n_pos] if sel[2] else pick
+            rand_side[pos_pick] = 1.0
+            if sel[2]:
+                rand_side[pick[n_pos:]] = -1.0
+        spy_ret = prices[SPY].astype(float).pct_change()
+        realized = spy_ret.rolling(21, min_periods=21).std() * np.sqrt(252)
+        scale = (sel[1] / realized.replace(0, np.nan)).clip(upper=MAX_POS).fillna(0.0)
+        rand_pos = pd.DataFrame(
+            {
+                SPY: (pd.Series(rand_side, index=prices.index) * scale).clip(
+                    -MAX_POS if sel[2] else 0.0, MAX_POS
+                )
+            }
+        )
+        rand_res = run_backtest(prices=spy_prices, signals=rand_pos, volumes=None, config=cfg)
+        ablations["random_direction"] = _period_metrics(
+            rand_res.returns[oos_mask], _count_in(rand_res.trades, oos_mask, prices)
+        )
+        # Long-only ablation when selected is short-allowed (and vice versa)
+        alt_short = not sel[2]
+        alt_cfg = make_equity_config(alt_short)
+        alt_pos = build_relmom_targets(prices, sel[0], sel[1], alt_short)
+        alt_res = run_backtest(prices=spy_prices, signals=alt_pos, volumes=None, config=alt_cfg)
+        ablations[f"allow_short={alt_short}"] = _period_metrics(
+            alt_res.returns[oos_mask], _count_in(alt_res.trades, oos_mask, prices)
+        )
+
+        tracker.log_dataframe("prices", prices)
+        tracker.log_dataframe("param_grid_results", grid_df)
+        tracker.log_dataframe(
+            "selected_signals", build_relmom_targets(prices, sel[0], sel[1], sel[2])
+        )
+        tracker.log_dataframe("best_equity", sel_result.equity_curve.to_frame("equity"))
+        tracker.log_dataframe("best_trades", sel_result.trades)
+        tracker.log_dataframe("benchmark_equity", bench_result.equity_curve.to_frame("equity"))
+
+        total_elapsed = time.time() - t_start
+        summary = {
+            "experiment_id": exp_id,
+            "hypothesis": "NF-20261105-10/H92",
+            "selected_config": selected,
+            "selection_rule": "best train-only walk-forward Sharpe; Test protected; gates on OOS Val+Test",
+            "grid_size": len(grid),
+            "n_evaluated": len(grid_rows),
+            "grid_elapsed_sec": float(round(grid_elapsed, 1)),
+            "total_elapsed_sec": float(round(total_elapsed, 1)),
+            "compute_cpu_hours": float(round(total_elapsed / 3600, 3)),
+            "signal": {
+                "type": "equity-bond relative momentum (SPY trailing return minus TLT trailing return)",
+                "causal": "relmom at close t uses prices through t; engine shift(1) earns t->t+1",
+            },
+            "metrics": {
+                "train_sharpe": gate["train_sharpe"],
+                "val_sharpe": gate["val_sharpe"],
+                "test_sharpe": gate["test_metrics"]["sharpe"],
+                "oos_sharpe": gate["oos_metrics"]["sharpe"],
+                "profit_factor": gate["oos_metrics"]["profit_factor"],
+                "max_drawdown": gate["oos_metrics"]["max_drawdown"],
+                "trades": gate["oos_metrics"]["trades"],
+                "wf_stability": gate["wf_stability"],
+                "benchmark_p_value": gate["benchmark_p_value"],
+                "information_ratio": gate["information_ratio"],
+                "worst_regime_sharpe": gate["worst_regime_sharpe"],
+                "perturbation": pert,
+                "ablations": ablations,
+            },
+            "passes": gate["passes"],
+            "all_pass": gate["all_pass"],
+            "verdict": gate["verdict"],
+        }
+
+        exp_dir = Path(tracker.log_dir) / "artifacts" / exp_id
+        exp_dir.mkdir(parents=True, exist_ok=True)
+        with open(exp_dir / "summary.json", "w") as f:
+            json.dump(
+                summary,
+                f,
+                indent=2,
+                default=lambda x: float(x) if isinstance(x, (np.integer, np.floating)) else str(x),
+            )
+        tracker.log_artifact("summary", exp_dir / "summary.json")
+        tracker.finish_experiment(status="completed")
+
+        print("\n" + "=" * 72)
+        p = gate["passes"]
+        print(f"  gates passed: {int(sum(p.values()))}/{len(p)}  ->  {gate['verdict']}")
+        om = gate["oos_metrics"]
+        print(
+            f"  OOS Sharpe={om['sharpe']:.3f} PF={om['profit_factor']:.3f} "
+            f"DD={om['max_drawdown']:.3f} Trades={om['trades']}"
+        )
+        print(f"  Selected: {selected}")
+        print(
+            f"  Grid {len(grid_rows)} combos in {grid_elapsed:.1f}s | total {total_elapsed / 60:.1f} min"
+        )
+        print("=" * 72)
+        return 0 if gate["all_pass"] else 1
+    except Exception as e:
+        import traceback
+
+        tracker.finish_experiment(status="failed", error=str(e))
+        traceback.print_exc()
+        return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

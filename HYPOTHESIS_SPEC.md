@@ -5322,3 +5322,34 @@ Universe `^SKEW`/`SPY` (2918 aligned rows), train/val/test 1241/743/934. Grid 48
 ### Result (exp `exp_2026-11-05T13-32-55-648939Z`, 2026-11-05) — **REJECTED (3/9 gates)**
 
 Universe SPY (4233 rows), train/val/test 2516/756/961. Grid 10 (train-only WF selection). Selected: head_days=5, vol_target=0.15 (best train-WF Sharpe 0.854). OOS Val+Test (1717 periods, 190 trades): Sharpe 0.784, PF 1.296, max DD −9.35%, WF stability 1.144 (train 0.446, val 1.048, test 0.521), worst-regime rolling-252 Sharpe −1.73, benchmark p=1.000 / IR −0.639 vs buy-hold SPY, perturbation min ratio 0.941. Ablations: SPY benchmark Sharpe 0.727/PF 1.149; random-window Sharpe 0.041/PF 1.022 (297 trades); always-flat Sharpe 0.0. Passes: max_drawdown, walkforward_stability, perturbation. Fails: Sharpe (0.784<1.0), PF (1.296<1.3), trades (190<200), worst-regime, p-value, information ratio. Artifact: `.experiments/artifacts/exp_2026-11-05T13-32-55-648939Z/summary.json`. Protected holdout used only in pre-registered OOS gate evaluation after selection; no holdout feedback.
+
+
+## H92 — NF-20261105-10: Equity/bond relative-momentum risk-premium timing (pre-registered 2026-11-05; executed pending)
+
+**Temporary lineage ID:** NF-20261105-10 (cycle 6, post H91 REJECT). H-ID: H92.
+
+**Statement.** The equity risk premium relative to bonds is time-varying: when equities have outperformed Treasuries over a trailing window, cross-asset relative momentum persists and supports a vol-targeted long SPY position (short when negative if `allow_short`), evaluated net of costs. Mechanism: cross-asset risk premium / relative momentum — a new family dimension distinct from prior equity-only trend, volatility-regime, calendar, or event families.
+
+**Null (H0).** Trailing SPY-vs-TLT relative momentum has no predictive power for next-day SPY returns beyond random chance after costs.
+
+**Mechanism / causal chain.** `relmom[t] = (SPY cumulative return over lookback ending at close t) - (TLT cumulative return over same lookback)`, computed from close-to-close returns using prices through close t only (past-only). Direction = sign(relmom) (long-only: flat when negative; short-allowed: short when negative). Vol target scales by trailing 21-day realized SPY vol (past-only), clipped to `MAX_POS=0.5`. Engine applies `signals.shift(1)`: target at close t earns return t→t+1 — strictly causal, no same-day look-ahead.
+
+**Universe / data (free).** `SPY`, `TLT` daily adjusted close via `DataFetcher.fetch_yahoo`, 2010-01-01→2026-10-31. Point-in-time: only published daily closes; no future data.
+
+**Splits (pre-registered, protected holdout).** Train 2010-01-01→2019-12-31, Val 2020-01-01→2022-12-31, Test (protected) 2023-01-01→2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test. No holdout feedback.
+
+**Grid (train-only selection).** `lookback ∈ {21,63,126,252}` × `vol_target ∈ {0.10,0.15}` × `allow_short ∈ {False,True}` = 16 combos.
+
+**Costs / constraints.** `AssetClass.EQUITY`, `CostModel` defaults (1 bp commission + 0.5 bp spread + 0.1 bp impact per 1% ADV), daily bar engine, max position 0.5, max leverage 1.0. SPY/TLT capacity not binding.
+
+**Gates (OOS Val+Test).** Sharpe ≥ 1.0, ≥ 200 trades, PF ≥ 1.3, max DD ≤ 15%, WF stability (test ≥ 0.7×train when train>0), worst-regime rolling-252 Sharpe ≥ 0.3, benchmark p ≤ 0.05 vs buy-hold SPY, IR ≥ 0, perturbation min ratio ≥ 0.5 (OAT ±20% on lookback/vol_target for selected config).
+
+**Rejection.** OOS Sharpe < 0.5, PF < 1.1, < 200 OOS trades, max DD > 15%, or perturbation/benchmark failure. No gate weakening.
+
+**Runner.** `run_nf_20261105_10_equity_bond_relmom.py`. Tests: `tests/test_nf_20261105_10_equity_bond_relmom.py`. Deterministic seed 42. Compute budget ≤ 2 CPU-h (expected << 1 min).
+
+**Closest prior family / distinction.** H86 uses VIX term-structure slope (ATM vol) to time SPY — a vol-surface signal. H89 uses `^SKEW` implied tail shape — option-implied skew. H91 uses ex-ante calendar month boundaries. H2/H16 rank equities by own past returns (cross-sectional equity momentum). H92 uses *relative* equity-vs-bond trailing performance (SPY minus TLT), a cross-asset risk-premium signal; different observables, mechanism, and causal path.
+
+**Confounders / falsifiers.** Equity-bond correlation regimes shift (e.g., inflation shocks where bonds and equities fall together), which can break relative-momentum persistence. Falsifiers: (1) random-direction ablation matched on exposure frequency; (2) opposite `allow_short` ablation; (3) SPY buy-hold benchmark; (4) perturbation min ratio; (5) subperiod stability (Val vs Test). No claim of profit/robustness from backtest mechanics alone.
+
+**Execution (exp `pending`):** Not yet executed in this session if data fetch/execution is infeasible; record status truthfully. If executed, update with experiment ID, metrics, and verdict.

@@ -617,3 +617,36 @@ H85–H90 rejected (H90 FOMC event drift 1/9). NF-20261105-04 (commodity carry r
 | Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
 |---|---|---|---|---|---|
 | Turn-of-month equity seasonality | H91 (NF-20261105-09) | Vol-targeted long SPY during ex-ante turn-of-month window (last trading day of month m + first head_days days of month m+1); calendar-seasonality / supply-flow constraints | SPY daily (yfinance), 2010–2026 | **REJECTED** (3/9; OOS Sharpe 0.784, PF 1.296, DD −9.4%, trades 190) | Calendar anomaly weak/crowded after costs; train→OOS decay; underperforms SPY benchmark (IR −0.639) |
+
+
+## Cycle 6 (2026-11-05) — post-H91 mechanism search → NF-20261105-10 / H92 selection
+
+H85–H91 rejected (H91 turn-of-month 3/9, `exp_2026-11-05T13-32-55-648939Z`). NF-20261105-04 (commodity carry roll proxy) and NF-20261105-05 (short-term CS reversal) remain deferred with decisive risks documented (NF-04: point-in-time term-structure/roll proxy unavailable in free pipeline; NF-05: daily turnover/net-of-cost under pre-registered CS reversal). NF-20261105-11 (Treasury term-spread regime timing) was deferred in cycle 5 pending data/mechanism separation from H86/VIX families. Per directive §4/§6, a bounded mechanism search selected NF-20261105-10 (cross-asset risk premium / equity-bond relative momentum) as a decision-ready, free, point-in-time test in a materially distinct category.
+
+### Candidates considered (cycle 6, scored honestly)
+
+| Candidate | Mechanism category | Novelty | Plaus | Data | Falsif | Exec | Support | Weighted |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261105-10 Equity/bond relative-momentum timing (H92) | Cross-asset risk premium / relative momentum | 4 | 3 | 5 | 5 | 5 | 3 | **4.05** |
+| NF-20261105-11 Treasury term-spread regime timing | Bond/equity cross-asset risk premium (rates level/slope) | 3 | 3 | 3 | 4 | 3 | 3 | 3.25 |
+| NF-20261105-12 Cross-sectional equity dispersion regime | Dispersion / cross-section risk premium | 3 | 3 | 5 | 4 | 3 | 3 | 3.40 |
+
+**Selection:** NF-20261105-10 (H92). Smallest decisive test: 2 symbols (SPY, TLT), daily, free yfinance, 16-combo grid, no `src/qtr` change. Distinct from H86/H89 (vol-surface/option-skew signals on SPY), H91 (calendar), H2/H16 (equity-only cross-sectional own-return ranking). NF-11 deferred (free term-spread data quality/point-in-time construction needs explicit pre-registration; mechanism adjacency to macro/rates regime requires careful separation). NF-12 deferred (dispersion measurement/portfolio construction more complex; execution/turnover risk similar to CS strategies).
+
+### NF-20261105-10 / H92 — Equity/bond relative-momentum risk-premium timing
+
+**Temporary lineage ID:** NF-20261105-10. **H-ID:** H92 (next unused).
+
+**Mechanism.** Cross-asset risk premium / relative momentum. Trailing SPY cumulative return minus TLT cumulative return over lookback; positive relmom → long SPY (vol-targeted), negative → flat (long-only) or short (if `allow_short`). Causal: uses prices through close t; engine `shift(1)` earns t→t+1.
+
+**Data/splits.** SPY+TLT daily 2010-01-01→2026-10-31, train 2010–2019, val 2020–2022, test 2023–2026 (protected). Grid 16 (lookback × vol_target × allow_short). Gates: PROMPT_V2 standard on OOS Val+Test.
+
+**Implementation status (2026-11-05).** Runner `run_nf_20261105_10_equity_bond_relmom.py` completed (was committed incomplete in 0c0cabe; `main()` added this session). Tests `tests/test_nf_20261105_10_equity_bond_relmom.py` (10 tests) pass. Lint/format clean for runner+tests and global `src tests run_*.py`. `src/qtr` unchanged. Pre-registered in `HYPOTHESIS_SPEC.md` §H92.
+
+**Execution status.** **Not yet executed in this session** (bounded session; execution requires yfinance data fetch and grid backtests). Next task: run `PYTHONPATH=src python run_nf_20261105_10_equity_bond_relmom.py`, record experiment ID/artifact, evaluate gates, update HYPOTHESIS_SPEC.md and this register with verdict (PASS/REJECT) and lineage map entry. Do not treat non-execution as a verdict.
+
+**Lineage map (provisional, pending execution):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Equity/bond relative-momentum risk-premium timing | H92 (NF-20261105-10) | Trailing SPY-vs-TLT relative momentum; vol-targeted SPY long/flat(/short) | SPY, TLT daily (yfinance), 2010–2026 | **PENDING** | Equity-bond correlation regime shifts (inflation shocks) can break persistence; crowded cross-asset momentum |
