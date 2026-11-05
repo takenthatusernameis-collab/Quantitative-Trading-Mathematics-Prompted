@@ -41,7 +41,9 @@ class TestSignalCausality:
     def test_gap_computed_from_close_lag_and_open_no_lookahead(self):
         dates = pd.date_range("2020-01-01", periods=50, freq="B")
         rng = np.random.default_rng(7)
-        close = pd.Series(100 * np.exp(np.cumsum(rng.normal(0.0002, 0.01, len(dates)))), index=dates)
+        close = pd.Series(
+            100 * np.exp(np.cumsum(rng.normal(0.0002, 0.01, len(dates)))), index=dates
+        )
         open_ = close * (1 + pd.Series(rng.normal(0, 0.002, len(dates)), index=dates))
         prices = pd.DataFrame({"open": open_, "close": close}, index=dates)
 

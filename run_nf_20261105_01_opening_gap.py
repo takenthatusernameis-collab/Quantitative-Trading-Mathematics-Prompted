@@ -235,7 +235,12 @@ def full_gate_eval(result, oos_mask, val_mask, test_mask, train_mask, prices, be
     test_dd = float((test_cum / test_cum.cummax() - 1.0).min()) if len(test_cum) > 0 else 0.0
     return {
         "passes": passes,
-        "oos_metrics": {"sharpe": oos_sr, "profit_factor": oos_pf, "max_drawdown": oos_dd, "trades": oos_trades},
+        "oos_metrics": {
+            "sharpe": oos_sr,
+            "profit_factor": oos_pf,
+            "max_drawdown": oos_dd,
+            "trades": oos_trades,
+        },
         "train_sharpe": train_sr,
         "val_sharpe": val_sr,
         "test_metrics": {"sharpe": test_sr, "max_drawdown": test_dd},
@@ -247,7 +252,11 @@ def full_gate_eval(result, oos_mask, val_mask, test_mask, train_mask, prices, be
 
 
 def perturbation_eval(selected, prices, oos_mask, cfg, baseline_sharpe):
-    lookback, zth, vol_target = selected["lookback"], selected["zscore_thresh"], selected["vol_target"]
+    lookback, zth, vol_target = (
+        selected["lookback"],
+        selected["zscore_thresh"],
+        selected["vol_target"],
+    )
     base_pos = build_daily_targets(prices, lookback, zth, vol_target)
     ratios = []
     rng = np.random.default_rng(SEED + 123)
@@ -260,7 +269,11 @@ def perturbation_eval(selected, prices, oos_mask, cfg, baseline_sharpe):
             noisy[c] = (noisy[c] + noise).clip(-1.0, 1.0)
         try:
             res = run_backtest(prices=p_base, signals=noisy, volumes=None, config=cfg)
-            sr = float(sharpe_ratio(res.returns[oos_mask].dropna().values)) if len(res.returns[oos_mask].dropna()) > 1 else -np.inf
+            sr = (
+                float(sharpe_ratio(res.returns[oos_mask].dropna().values))
+                if len(res.returns[oos_mask].dropna()) > 1
+                else -np.inf
+            )
             if baseline_sharpe > 0 and np.isfinite(sr):
                 ratios.append(sr / baseline_sharpe)
             elif baseline_sharpe <= 0 and sr >= baseline_sharpe * 0.5:
@@ -285,9 +298,17 @@ def main() -> int:
             "lookbacks": LOOKBACKS,
             "zscore_thresholds": ZSCORE_THRESHOLDS,
             "vol_targets": VOL_TARGETS,
-            "splits": {"train": f"≤{TRAIN_END}", "val": f"{VAL_END} prev→{VAL_END}", "test": f">{VAL_END}"},
+            "splits": {
+                "train": f"≤{TRAIN_END}",
+                "val": f"{VAL_END} prev→{VAL_END}",
+                "test": f">{VAL_END}",
+            },
         },
-        data_sources={"source": "yahoo_daily_cached_isolated", "symbols": [SYMBOL], "interval": "1d"},
+        data_sources={
+            "source": "yahoo_daily_cached_isolated",
+            "symbols": [SYMBOL],
+            "interval": "1d",
+        },
         compute_budget={"max_cpu_hours": 1.0},
         random_seeds={"numpy": SEED, "python": SEED},
     )
@@ -328,43 +349,63 @@ def main() -> int:
                 for vt in VOL_TARGETS:
                     try:
                         pos = build_daily_targets(prices, lb, zth, vt)
-                        intraday_ret = (prices["close"] / prices["open"] - 1.0)
+                        intraday_ret = prices["close"] / prices["open"] - 1.0
                         pos_s = pos[SYMBOL].reindex(prices.index).fillna(0.0)
                         intraday_ret_s = intraday_ret.reindex(prices.index).fillna(0.0)
-                        strat_ret = (pos_s.shift(1).fillna(0.0).values * intraday_ret_s.values)
+                        strat_ret = pos_s.shift(1).fillna(0.0).values * intraday_ret_s.values
                         strat_price = (1.0 + pd.Series(strat_ret, index=prices.index)).cumprod()
                         strat_price.iloc[0] = 1.0
                         p_strat = pd.DataFrame({SYMBOL: strat_price.values}, index=prices.index)
                         s_strat = pd.DataFrame(1.0, index=p_strat.index, columns=[SYMBOL])
-                        res = run_backtest(prices=p_strat, signals=s_strat, volumes=None, config=cfg)
+                        res = run_backtest(
+                            prices=p_strat, signals=s_strat, volumes=None, config=cfg
+                        )
                         wf_train = train_only_wf_sharpe(res.returns, train_mask)
                         oos_ret_m = res.returns[oos_mask].dropna()
-                        oos_sr_m = float(sharpe_ratio(oos_ret_m.values)) if len(oos_ret_m) > 1 else 0.0
+                        oos_sr_m = (
+                            float(sharpe_ratio(oos_ret_m.values)) if len(oos_ret_m) > 1 else 0.0
+                        )
                         key = (lb, zth, vt)
                         grid_results[key] = (res, pos)
-                        grid_rows.append({
-                            "lookback": lb,
-                            "zscore_thresh": zth,
-                            "vol_target": vt,
-                            "train_wf_sharpe": wf_train,
-                            "oos_sharpe": oos_sr_m,
-                            "trades_total": int(len(res.trades)) if res.trades is not None else 0,
-                        })
+                        grid_rows.append(
+                            {
+                                "lookback": lb,
+                                "zscore_thresh": zth,
+                                "vol_target": vt,
+                                "train_wf_sharpe": wf_train,
+                                "oos_sharpe": oos_sr_m,
+                                "trades_total": int(len(res.trades))
+                                if res.trades is not None
+                                else 0,
+                            }
+                        )
                     except Exception as e:
                         print(f"  err {lb},{zth},{vt}: {e}")
                         continue
 
         grid_df = pd.DataFrame(grid_rows).sort_values("train_wf_sharpe", ascending=False)
         grid_elapsed = time.time() - t_grid
-        print(f"[NF-05-01] grid done in {grid_elapsed:.1f}s; best train-WF={grid_df.iloc[0]['train_wf_sharpe']:.4f}")
+        print(
+            f"[NF-05-01] grid done in {grid_elapsed:.1f}s; best train-WF={grid_df.iloc[0]['train_wf_sharpe']:.4f}"
+        )
 
         best = grid_df.iloc[0]
-        sel = {"lookback": int(best["lookback"]), "zscore_thresh": float(best["zscore_thresh"]), "vol_target": float(best["vol_target"])}
-        sel_result, base_pos = grid_results[(sel["lookback"], sel["zscore_thresh"], sel["vol_target"])]
+        sel = {
+            "lookback": int(best["lookback"]),
+            "zscore_thresh": float(best["zscore_thresh"]),
+            "vol_target": float(best["vol_target"]),
+        }
+        sel_result, base_pos = grid_results[
+            (sel["lookback"], sel["zscore_thresh"], sel["vol_target"])
+        ]
 
-        gate = full_gate_eval(sel_result, oos_mask, val_mask, test_mask, train_mask, prices, bench_result)
+        gate = full_gate_eval(
+            sel_result, oos_mask, val_mask, test_mask, train_mask, prices, bench_result
+        )
         pert = perturbation_eval(sel, prices, oos_mask, cfg, gate["oos_metrics"]["sharpe"])
-        gate["passes"]["perturbation"] = pert["min_perturbed_sharpe_ratio"] >= GATES["min_perturbed_sharpe_ratio"]
+        gate["passes"]["perturbation"] = (
+            pert["min_perturbed_sharpe_ratio"] >= GATES["min_perturbed_sharpe_ratio"]
+        )
         gate["perturbation"] = pert
         gate["all_pass"] = all(gate["passes"].values())
         gate["verdict"] = "PASS" if gate["all_pass"] else "REJECT"
@@ -375,43 +416,53 @@ def main() -> int:
         for c in rand_pos.columns:
             rand_pos[c] = rng_ab.choice([-1.0, 0.0, 1.0], size=len(rand_pos))
         try:
-            intraday_ret = (prices["close"] / prices["open"] - 1.0)
+            intraday_ret = prices["close"] / prices["open"] - 1.0
             pos_s = rand_pos[SYMBOL].reindex(prices.index).fillna(0.0)
             intraday_ret_s = intraday_ret.reindex(prices.index).fillna(0.0)
-            strat_ret_r = (pos_s.shift(1).fillna(0.0).values * intraday_ret_s.values)
+            strat_ret_r = pos_s.shift(1).fillna(0.0).values * intraday_ret_s.values
             p_strat_r = (1.0 + pd.Series(strat_ret_r, index=prices.index)).cumprod()
             p_strat_r.iloc[0] = 1.0
             p_strat_r = pd.DataFrame({SYMBOL: p_strat_r.values}, index=prices.index)
             s_strat_r = pd.DataFrame(1.0, index=p_strat_r.index, columns=[SYMBOL])
             rand_res = run_backtest(prices=p_strat_r, signals=s_strat_r, volumes=None, config=cfg)
-            ablations["random_entry"] = _period_metrics(rand_res.returns[oos_mask], _count_in(rand_res.trades, oos_mask, prices))
+            ablations["random_entry"] = _period_metrics(
+                rand_res.returns[oos_mask], _count_in(rand_res.trades, oos_mask, prices)
+            )
         except Exception:
             ablations["random_entry"] = {"error": "failed"}
         try:
-            long_pos = base_pos.copy(); long_pos[long_pos < 0] = 0
+            long_pos = base_pos.copy()
+            long_pos[long_pos < 0] = 0
             pos_s = long_pos[SYMBOL].reindex(prices.index).fillna(0.0)
-            strat_ret_l = (pos_s.shift(1).fillna(0.0).values * intraday_ret_s.values)
+            strat_ret_l = pos_s.shift(1).fillna(0.0).values * intraday_ret_s.values
             p_strat_l = (1.0 + pd.Series(strat_ret_l, index=prices.index)).cumprod()
             p_strat_l.iloc[0] = 1.0
             p_strat_l = pd.DataFrame({SYMBOL: p_strat_l.values}, index=prices.index)
             s_strat_l = pd.DataFrame(1.0, index=p_strat_l.index, columns=[SYMBOL])
             lon_res = run_backtest(prices=p_strat_l, signals=s_strat_l, volumes=None, config=cfg)
-            ablations["long_only_negative_gaps"] = _period_metrics(lon_res.returns[oos_mask], _count_in(lon_res.trades, oos_mask, prices))
+            ablations["long_only_negative_gaps"] = _period_metrics(
+                lon_res.returns[oos_mask], _count_in(lon_res.trades, oos_mask, prices)
+            )
         except Exception:
             ablations["long_only_negative_gaps"] = {"error": "failed"}
         try:
-            short_pos = base_pos.copy(); short_pos[short_pos > 0] = 0
+            short_pos = base_pos.copy()
+            short_pos[short_pos > 0] = 0
             pos_s = short_pos[SYMBOL].reindex(prices.index).fillna(0.0)
-            strat_ret_s = (pos_s.shift(1).fillna(0.0).values * intraday_ret_s.values)
+            strat_ret_s = pos_s.shift(1).fillna(0.0).values * intraday_ret_s.values
             p_strat_s = (1.0 + pd.Series(strat_ret_s, index=prices.index)).cumprod()
             p_strat_s.iloc[0] = 1.0
             p_strat_s = pd.DataFrame({SYMBOL: p_strat_s.values}, index=prices.index)
             s_strat_s = pd.DataFrame(1.0, index=p_strat_s.index, columns=[SYMBOL])
             shr_res = run_backtest(prices=p_strat_s, signals=s_strat_s, volumes=None, config=cfg)
-            ablations["short_only_positive_gaps"] = _period_metrics(shr_res.returns[oos_mask], _count_in(shr_res.trades, oos_mask, prices))
+            ablations["short_only_positive_gaps"] = _period_metrics(
+                shr_res.returns[oos_mask], _count_in(shr_res.trades, oos_mask, prices)
+            )
         except Exception:
             ablations["short_only_positive_gaps"] = {"error": "failed"}
-        ablations["spy_benchmark"] = _period_metrics(bench_result.returns[oos_mask], _count_in(bench_result.trades, oos_mask, p_close))
+        ablations["spy_benchmark"] = _period_metrics(
+            bench_result.returns[oos_mask], _count_in(bench_result.trades, oos_mask, p_close)
+        )
 
         tracker.log_dataframe("prices", prices)
         tracker.log_dataframe("param_grid_results", grid_df)
@@ -453,7 +504,12 @@ def main() -> int:
         exp_dir_art = Path(tracker.log_dir) / "artifacts" / exp_id
         exp_dir_art.mkdir(parents=True, exist_ok=True)
         with open(exp_dir_art / "summary.json", "w") as f:
-            json.dump(summary, f, indent=2, default=lambda x: float(x) if isinstance(x, (np.integer, np.floating)) else str(x))
+            json.dump(
+                summary,
+                f,
+                indent=2,
+                default=lambda x: float(x) if isinstance(x, (np.integer, np.floating)) else str(x),
+            )
         tracker.log_artifact("summary", exp_dir_art / "summary.json")
         tracker.finish_experiment(status="completed")
 
@@ -461,15 +517,22 @@ def main() -> int:
         p = gate["passes"]
         print(f"  gates passed: {int(sum(p.values()))}/{len(p)}  ->  {gate['verdict']}")
         om = gate["oos_metrics"]
-        print(f"  OOS Sharpe={om['sharpe']:.3f} PF={om['profit_factor']:.3f} DD={om['max_drawdown']:.3f} Trades={om['trades']}")
-        print(f"  Train={gate['train_sharpe']:.3f} Val={gate['val_sharpe']:.3f} Test={gate['test_metrics']['sharpe']:.3f}")
-        print(f"  WF stab={gate['wf_stability']:.3f} | Bench p={gate['benchmark_p_value']:.4f} IR={gate['information_ratio']:.3f}")
+        print(
+            f"  OOS Sharpe={om['sharpe']:.3f} PF={om['profit_factor']:.3f} DD={om['max_drawdown']:.3f} Trades={om['trades']}"
+        )
+        print(
+            f"  Train={gate['train_sharpe']:.3f} Val={gate['val_sharpe']:.3f} Test={gate['test_metrics']['sharpe']:.3f}"
+        )
+        print(
+            f"  WF stab={gate['wf_stability']:.3f} | Bench p={gate['benchmark_p_value']:.4f} IR={gate['information_ratio']:.3f}"
+        )
         print(f"  Perturbation min ratio={pert['min_perturbed_sharpe_ratio']:.3f}")
         print(f"  Selected: {sel}")
         print("=" * 72)
         return 0 if gate["all_pass"] else 1
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         try:
             tracker.finish_experiment(status="failed", error=str(e))
