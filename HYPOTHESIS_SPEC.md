@@ -5445,3 +5445,50 @@ Ablations: equal-weight universe benchmark OOS Sharpe 0.518 (DD -27.4%, PF 1.103
 **Confounders / falsifiers.** HYG embeds equity beta and spread-duration; the signal may proxy equity momentum or general risk-off rather than credit-specific stress. Falsifiers: (1) random-exposure-matched ablation; (2) SPY buy-hold benchmark; (3) perturbation min ratio; (4) subperiod stability (Val vs Test); (5) worst-regime rolling-252 Sharpe. No claim of profit/robustness from backtest mechanics alone.
 
 **Status.** Pre-registered 2026-11-05 (cycle 8). Runner + focused tests written; lint/format clean; focused tests 10/10 passed. Execution pending (compute budget small; execute as next bounded step when decision-ready).
+
+## H95 — NF-20261105-16: USD strength macro risk timing (pre-registered 2026-11-05; EXECUTED REJECT 2026-11-05)
+
+**Temporary lineage ID:** NF-20261105-16 (cycle 9, post H94 REJECT; cycle-8 runner-up). H-ID: H95 (next unused after H94; H24/H68-H73/H76-H79 remain unassigned and are not recycled per directive §3).
+
+**Statement.** USD strength (UUP, US Dollar Index bullish ETF) proxies global financial-conditions tightening and risk-off pressure on equity risk assets. A vol-targeted long SPY position when trailing UUP strength z-score is below `exit_z` (USD neutral/weak), flat when at/above `entry_z` (USD strong), with hysteresis between thresholds and 1-bar execution delay, earns net pooled OOS (Val+Test) Sharpe >= 1.0 with >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 vs buy-hold SPY, IR >= 0, and perturbation min ratio >= 0.5.
+
+**Null (H0).** Trailing UUP strength has no predictive power for next-day SPY returns beyond random chance after costs.
+
+**Mechanism / causal chain.** `uup_window[t]` = cumulative UUP return over `lookback` bars ending at close t (past-only). `z[t]` = rolling z-score of `uup_window` over 252 bars (past-only, `min_periods=lookback`). Hysteresis state: `z[t] >= entry_z` → flat (USD strong/risk-off); `z[t] <= exit_z` → long (USD neutral/weak); `exit_z < z[t] < entry_z` → hold previous state; `z[t]` NaN → flat. Vol target scales by trailing 21-day realized SPY vol (past-only), clipped to `MAX_POS=0.5`. Engine applies `signals.shift(1)`: target at close t earns return t→t+1 — strictly causal, no same-day look-ahead.
+
+**Universe / data (free).** `SPY`, `UUP` daily adjusted close via `DataFetcher.fetch_yahoo` (with `_reject_non_positive_prices`), 2010-01-01→2026-10-31. Point-in-time: only published daily closes. Feasibility checked 2026-11-05 (yfinance 2010–2026): SPY/UUP 4233 aligned rows.
+
+**Splits (pre-registered, protected holdout).** Train 2010-01-01→2019-12-31; Val 2020-01-01→2022-12-31; Test (protected) 2023-01-01→2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test. No holdout feedback.
+
+**Grid (train-only selection).** `lookback ∈ {63,126,252}` × `entry_z ∈ {1.0,1.5,2.0}` × `exit_z ∈ {0.0,0.5}` × `vol_target ∈ {0.10,0.15}` = 36 combos.
+
+**Costs / constraints.** `AssetClass.EQUITY`, `CostModel` defaults (1 bp commission + 0.5 bp spread + 0.1 bp impact per 1% ADV), daily bar engine, max position 0.5, max leverage 1.0, long-only. SPY/UUP capacity not binding.
+
+**Gates (OOS Val+Test).** Sharpe >= 1.0, >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability (test >= 0.7×train when train>0), worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 vs buy-hold SPY, IR >= 0, perturbation min ratio >= 0.5 (OAT ±20% on lookback/entry_z/exit_z/vol_target for selected config).
+
+**Rejection.** OOS Sharpe < 0.5, PF < 1.1, < 200 OOS trades, max DD > 15%, or perturbation/benchmark failure. No gate weakening.
+
+**Runner.** `run_nf_20261105_16_usd_macro.py`. Tests: `tests/test_nf_20261105_16_usd_macro.py` (10 tests). Deterministic seed 42. Compute budget <= 2 CPU-h (expected << 1 min).
+
+**Closest prior family / distinction.** H94 uses HYG-vs-IEF *credit/default-risk vs Treasuries* (credit stress/flight-to-quality). H92 uses SPY-vs-TLT *equity-vs-duration* relative momentum. H86/H89 use vol-surface/tail-shape signals (^VIX/^VIX3M/^SKEW). H95 uses *USD strength* (UUP, FX/macro global risk transmission) — a different observable, asset channel, and causal path. No prior repository family uses UUP/USD strength as the timing observable.
+
+**Confounders / falsifiers (including NF-16 risks).** UUP is a futures-based ETF basket (not spot DXY) and has tracking/roll characteristics; FX-equity links are unstable/regime-dependent (USD can be risk-off or rate-differential driven). Falsifiers/ablations recorded: (1) random-exposure-matched ablation; (2) buy-hold SPY benchmark; (3) inverse-signal ablation (long when USD strong, `z >= entry_z`); (4) perturbation min ratio (OAT ±20%); (5) subperiod stability (Val vs Test); (6) worst-regime rolling-252 Sharpe. No claim of profit/robustness from backtest mechanics alone.
+
+**Implementation note (evidence-based fix).** Initial implementation used overlapping `where` assignments that corrupted hysteresis state; corrected to explicit state assignment (`z>=entry_z → 0`, `z<=exit_z → 1`, `ffill` hold, NaN→0). Focused tests caught mechanism behavior and were refined to match the corrected, pre-registered hysteresis semantics. Corrected run recorded below.
+
+**Execution (exp `exp_2026-11-05T19-09-07-377344Z`):** EXECUTED 2026-11-05, `run_nf_20261105_16_usd_macro.py` (corrected hysteresis). Data 4233 daily bars (SPY,UUP), Train 2516 / Val 756 / Test 961. Grid 36 combos, 2.77s total. Artifact: `.experiments/nf_runs/nf_20261105_16_usd_macro/summary.json`. Selected (train-only 4-fold WF Sharpe): `lookback=63, entry_z=2.0, exit_z=0.5, vol_target=0.15` (train WF 1.334).
+
+**Result — REJECT (3/9 gates).** OOS Val+Test metrics:
+- OOS Sharpe 0.814 (gate >=1.0 → **FAIL**)
+- Profit factor 1.169 (gate >=1.3 → **FAIL**)
+- Max DD -13.36% (gate <=15% → **PASS**)
+- Trades 88 (gate >=200 → **FAIL**)
+- WF stability 1.415 (gate >=0.7 → **PASS**; train 0.912 → test 1.290)
+- Worst-regime rolling-252 Sharpe -1.187 (gate >=0.3 → **FAIL**)
+- Benchmark p-value 1.0 vs buy-hold SPY (gate <=0.05 → **FAIL**)
+- Information ratio -0.280 (gate >=0 → **FAIL**)
+- Perturbation min ratio 0.911 (gate >=0.5 → **PASS**)
+
+Ablations: random-exposure-matched OOS Sharpe -0.389 (PF 0.892, 774 trades, DD -19.69%) — USD gating is far better than random exposure; buy-hold SPY OOS Sharpe 0.798 (PF 1.165, DD -17.97%) — strategy slightly above raw buy-hold Sharpe but fails absolute/statistical gates and has far fewer trades; inverse-signal (long when USD strong, `z>=entry_z`) OOS Sharpe -0.125 (PF 0.904, 44 trades) — consistent with USD-strength-as-risk-off direction, but the main strategy still lacks a robust, cost/statistically significant edge.
+
+**Verdict rationale.** USD-strength regime timing shows the intended risk-off direction (inverse ablation negative) and beats random exposure, but is not a validated edge: it fails Sharpe/PF/trade-count/worst-regime/benchmark/IR gates and does not demonstrate statistically significant outperformance vs buy-hold SPY on protected OOS. The low trade count (88 OOS) and worst-regime -1.187 indicate unstable/insufficient event coverage under the pre-registered design. UUP tracking and FX-equity regime instability remain key confounders. No gate was weakened; no published/certified artifact was modified.

@@ -339,7 +339,10 @@ def main():
             "gates": GATES,
         },
         data_sources={"source": "yahoo_daily_cached", "symbols": UNIVERSE, "interval": "1d"},
-        compute_budget={"max_cpu_hours": 2.0, "grid_size": len(LOOKBACKS) * len(VOL_TARGETS) * len(ALLOW_SHORT)},
+        compute_budget={
+            "max_cpu_hours": 2.0,
+            "grid_size": len(LOOKBACKS) * len(VOL_TARGETS) * len(ALLOW_SHORT),
+        },
         random_seeds={"numpy": SEED, "python": SEED},
     )
     print(f"[NF-10/H92] started {exp_id}")

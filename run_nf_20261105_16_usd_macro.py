@@ -177,19 +177,22 @@ def build_usd_macro_targets(
     vol_target = float(max(0.01, vol_target))
 
     uup_ret = prices[UUP].astype(float).pct_change()
-    uup_window = (
-        (1.0 + uup_ret).rolling(lookback).apply(lambda x: np.prod(x) - 1.0, raw=True)
-    )
+    uup_window = (1.0 + uup_ret).rolling(lookback).apply(lambda x: np.prod(x) - 1.0, raw=True)
     mu = uup_window.rolling(ZSCORE_WINDOW, min_periods=lookback).mean()
     sd = uup_window.rolling(ZSCORE_WINDOW, min_periods=lookback).std()
     z = (uup_window - mu) / sd.replace(0, np.nan)
 
-    side = pd.Series(np.nan, index=idx)
-    side = side.where(z > entry_z, 0.0)   # USD strong -> flat
-    side = side.where(z <= exit_z, 1.0)   # USD neutral/weak -> long (overwrites flat below exit)
-    side = side.ffill().fillna(0.0)       # hysteresis: hold between exit_z and entry_z; flat at start
+    # Hysteresis: USD strong (z >= entry_z) -> flat; USD weak/neutral (z <= exit_z) -> long.
+    # Between thresholds: hold previous state. No look-ahead (z uses prices through close t).
+    state = pd.Series(np.nan, index=idx, dtype=float)
+    state[z >= entry_z] = 0.0
+    state[z <= exit_z] = 1.0
+    side = state.ffill().fillna(0.0)
+    side = side.where(z.notna(), 0.0)
 
-    realized = prices[SPY].astype(float).pct_change().rolling(21, min_periods=21).std() * np.sqrt(252)
+    realized = prices[SPY].astype(float).pct_change().rolling(21, min_periods=21).std() * np.sqrt(
+        252
+    )
     scale = (vol_target / realized.replace(0, np.nan)).clip(upper=MAX_POS).fillna(0.0)
     targets[SPY] = (side * scale).clip(0.0, MAX_POS)
     return targets
@@ -298,7 +301,13 @@ def main() -> int:
     bench_pos = pd.DataFrame({SPY: 1.0}, index=prices.index)
     bench_result = run_backtest(prices[[SPY]], bench_pos, make_equity_config())
 
-    grid = [(lb, ez, xz, vt) for lb in LOOKBACKS for ez in ENTRY_ZS for xz in EXIT_ZS for vt in VOL_TARGETS]
+    grid = [
+        (lb, ez, xz, vt)
+        for lb in LOOKBACKS
+        for ez in ENTRY_ZS
+        for xz in EXIT_ZS
+        for vt in VOL_TARGETS
+    ]
     rows = []
     best = None
     for lookback, entry_z, exit_z, vol_target in grid:
@@ -323,28 +332,36 @@ def main() -> int:
 
     pert_rows = []
     for lb in sorted({max(2, int(round(best_row["lookback"] * m))) for m in [0.8, 1.2]}):
-        pos = build_usd_macro_targets(prices, lb, best_row["entry_z"], best_row["exit_z"], best_row["vol_target"])
+        pos = build_usd_macro_targets(
+            prices, lb, best_row["entry_z"], best_row["exit_z"], best_row["vol_target"]
+        )
         res = run_backtest(prices[[SPY]], pos[[SPY]], make_equity_config())
         pm = _period_metrics(
             res.returns[oos_mask].dropna(), _count_in(res.trades, oos_mask, prices)
         )
         pert_rows.append({"lookback": lb, **pm})
     for ez in sorted({round(best_row["entry_z"] * m, 4) for m in [0.8, 1.2]}):
-        pos = build_usd_macro_targets(prices, best_row["lookback"], ez, best_row["exit_z"], best_row["vol_target"])
+        pos = build_usd_macro_targets(
+            prices, best_row["lookback"], ez, best_row["exit_z"], best_row["vol_target"]
+        )
         res = run_backtest(prices[[SPY]], pos[[SPY]], make_equity_config())
         pm = _period_metrics(
             res.returns[oos_mask].dropna(), _count_in(res.trades, oos_mask, prices)
         )
         pert_rows.append({"entry_z": ez, **pm})
     for xz in sorted({round(best_row["exit_z"] * m, 4) for m in [0.8, 1.2]}):
-        pos = build_usd_macro_targets(prices, best_row["lookback"], best_row["entry_z"], xz, best_row["vol_target"])
+        pos = build_usd_macro_targets(
+            prices, best_row["lookback"], best_row["entry_z"], xz, best_row["vol_target"]
+        )
         res = run_backtest(prices[[SPY]], pos[[SPY]], make_equity_config())
         pm = _period_metrics(
             res.returns[oos_mask].dropna(), _count_in(res.trades, oos_mask, prices)
         )
         pert_rows.append({"exit_z": xz, **pm})
     for vt in sorted({round(best_row["vol_target"] * m, 4) for m in [0.8, 1.2]}):
-        pos = build_usd_macro_targets(prices, best_row["lookback"], best_row["entry_z"], best_row["exit_z"], vt)
+        pos = build_usd_macro_targets(
+            prices, best_row["lookback"], best_row["entry_z"], best_row["exit_z"], vt
+        )
         res = run_backtest(prices[[SPY]], pos[[SPY]], make_equity_config())
         pm = _period_metrics(
             res.returns[oos_mask].dropna(), _count_in(res.trades, oos_mask, prices)
@@ -377,13 +394,19 @@ def main() -> int:
     if SPY in prices.columns and UUP in prices.columns:
         uup_ret = prices[UUP].astype(float).pct_change()
         uup_window = (
-            (1.0 + uup_ret).rolling(best_row["lookback"]).apply(lambda x: np.prod(x) - 1.0, raw=True)
+            (1.0 + uup_ret)
+            .rolling(best_row["lookback"])
+            .apply(lambda x: np.prod(x) - 1.0, raw=True)
         )
         mu = uup_window.rolling(ZSCORE_WINDOW, min_periods=best_row["lookback"]).mean()
         sd = uup_window.rolling(ZSCORE_WINDOW, min_periods=best_row["lookback"]).std()
         z = (uup_window - mu) / sd.replace(0, np.nan)
-        realized = prices[SPY].astype(float).pct_change().rolling(21, min_periods=21).std() * np.sqrt(252)
-        scale = (best_row["vol_target"] / realized.replace(0, np.nan)).clip(upper=MAX_POS).fillna(0.0)
+        realized = prices[SPY].astype(float).pct_change().rolling(
+            21, min_periods=21
+        ).std() * np.sqrt(252)
+        scale = (
+            (best_row["vol_target"] / realized.replace(0, np.nan)).clip(upper=MAX_POS).fillna(0.0)
+        )
         inv_side = (z >= best_row["entry_z"]).astype(float)
         inv_side = inv_side.where(z.notna(), 0.0)
         inv_pos[SPY] = (inv_side * scale).clip(0.0, MAX_POS)

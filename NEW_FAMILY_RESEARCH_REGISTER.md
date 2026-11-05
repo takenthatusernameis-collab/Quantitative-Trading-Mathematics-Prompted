@@ -723,3 +723,47 @@ H93 (NF-20261105-13, idiosyncratic-volatility cross-section) **REJECTED** 2/9, `
 | Credit risk-premium / flight-to-quality timing | H94 (NF-20261105-14) | Vol-targeted long SPY when trailing HYG-vs-IEF credit excess return benign (sign/z-score), else flat | SPY, HYG, IEF daily (yfinance), 2010–2026 | **REJECT** (3/9; exp_2026-11-05T18-20-38-363385Z) | Fails Sharpe 0.925/PF 1.214/worst-regime -1.396/benchmark p=1.0/perturbation 0.319 (lookback fragility); better than random exposure but not cost-robust vs buy-hold SPY on OOS |
 
 **Cycle 9 required next.** Perform a fresh new-family discovery cycle per directive §4: reconcile lineage to H94, search >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, pre-register highest-information feasible candidate as H95 with smallest decisive test. Reassess NF-04/05/11/12/16 decisive risks with concrete evidence (NF-16 runner-up, FX/macro USD — pre-register with UUP tracking/FX-equity instability falsifiers if selected). `src/qtr` unchanged. No gate weakening; no published/certified artifact modification.
+
+## Cycle 9 (2026-11-05) — H95 execution (NF-20261105-16 USD strength macro risk timing)
+
+H94 (NF-20261105-14, credit risk-premium / flight-to-quality) **REJECTED** 3/9, `exp_2026-11-05T18-20-38-363385Z` — better than random exposure but not cost-robust vs buy-hold SPY; perturbation/benchmark/worst-regime failures. Per directive §4/§6, a fresh mechanism search produced >=3 repo-new candidates across >=3 broad categories, scored honestly, with NF-04/05/11/12/16 decisive risks reassessed.
+
+### Deferred candidates reassessed (concrete evidence, cycle 9)
+
+- **NF-20261105-04 (commodity carry, roll proxy) — remains DEFERRED.** yfinance/DataFetcher pipeline provides continuous/front proxies only; no free point-in-time deferred/term-structure/second-month series. Continuous-only carry requires splice/roll assumptions not pre-specified as point-in-time and risks roll/regime leakage. ETF proxies (DBC/USO/GLD) confound roll/flows/equity beta. Blocker: data/point-in-time term-structure construction.
+- **NF-20261105-05 (short-term CS reversal, liquidity provision) — remains DEFERRED.** Liquid sector-ETF universe is free/point-in-time feasible, but 1-day daily cross-sectional rebalancing implies very high turnover; under CostModel equity defaults, cost drag is decisive. Any turnover cap/entry threshold/lower frequency materially changes mechanism and must be pre-registered. Blocker: execution/net-of-cost realism under pre-registered turnover assumptions.
+- **NF-20261105-11 (Treasury term-spread regime timing) — remains DEFERRED.** `^IRX` blocked by `DataFetcher._reject_non_positive_prices` (non-positive history observed in prior checks); FRED series not in pipeline. Free ETF/yield proxies are ambiguous and risk mechanism adjacency to prior vol/macro timing without a clean point-in-time term-spread observable. Blocker: free point-in-time rates/term-spread data quality/construction.
+- **NF-20261105-12 (cross-sectional equity dispersion regime) — remains DEFERRED.** Free data feasible, but dispersion measurement + regime-to-portfolio mapping is complex and turnover/capacity risks resemble CS families; lower expected information than a small single-asset timing test. Blocker: execution/complexity vs smallest decisive test.
+- **NF-20261105-16 (USD strength macro risk timing, cycle-8 runner-up) — SELECTED as H95.** Free/point-in-time feasible via SPY+UUP (yfinance). Pre-registered with falsifiers for UUP tracking/FX-equity instability: inverse-signal ablation, random-exposure ablation, buy-hold SPY benchmark, perturbation, worst-regime, subperiod stability. UUP is a futures-based basket (not spot DXY) — documented as confounder, not silently ignored.
+
+### Cycle 9 candidates (scored honestly; 3 candidates, 3 broad categories)
+
+| Candidate | Mechanism category | Novelty (25%) | Plaus (25%) | Data (20%) | Falsif (15%) | Exec (10%) | Support (5%) | Weighted |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261105-16 USD strength macro risk timing (UUP → SPY) — **H95** | Global macro / FX risk transmission | 4 | 3 | 5 | 5 | 5 | 3 | **4.05** |
+| NF-20261105-15 Equity-bond return correlation-regime timing (SPY/TLT rolling corr → SPY) | Cross-asset diversification / correlation-regime risk premium | 3 | 3 | 5 | 5 | 5 | 3 | **3.80** |
+| NF-20261105-17 Cross-sectional volume-shock reversal (sector ETFs, 1-day high-volume reversal proxy) | Liquidity provision / order-flow proxy (cross-sectional, constrained turnover) | 3 | 2 | 5 | 5 | 3 | 2 | **3.25** |
+
+**Scoring notes.** NF-15 novelty discounted (3) because instruments overlap H92 (SPY/TLT) though mechanism differs (second-moment co-movement/diversification breakdown vs relative cumulative return momentum); still repo-new as a correlation-regime family but instrument-adjacent. NF-17 proposed as a materially different CS variant from deferred NF-05 by pre-registering a *high-volume shock* filter to constrain turnover; plausibility/support/execution reduced due to daily ETF proxy noise and cost sensitivity, and any execution simplification must remain pre-registered. NF-16 selected as highest-information feasible small test (2 symbols, free/point-in-time, clear falsifiers).
+
+### NF-20261105-16 / H95 — USD strength macro risk timing (EXECUTED REJECT)
+
+**Temporary lineage ID:** NF-20261105-16. **H-ID:** H95.
+
+**Mechanism.** USD strength (UUP) proxies global financial-conditions tightening/risk-off. Trailing UUP cumulative-return z-score (lookback 63/126/252, 252-day z-score window) with hysteresis (`entry_z` flat, `exit_z` long) gates vol-targeted long SPY. Engine `signals.shift(1)` gives t→t+1 causality. Distinct from H94 (credit HYG-IEF), H92 (SPY-TLT relative momentum), H86/H89 (vol-surface/tail-shape). New repo root family dimension: global macro / FX risk transmission.
+
+**Data/splits.** SPY,UUP daily yfinance 2010-01-01→2026-10-31 (4233 rows). Train 2010–2019 (2516), Val 2020–2022 (756), Test protected 2023–2026 (961). Grid 36. Selection = best train-only 4-fold WF Sharpe; gates on OOS Val+Test.
+
+**Implementation/execution.** Runner `run_nf_20261105_16_usd_macro.py` + tests `tests/test_nf_20261105_16_usd_macro.py` (10 tests, all passed). Lint/format clean. `src/qtr` unchanged. Initial hysteresis assignment bug fixed (evidence-based) before recording verdict; corrected run executed as `exp_2026-11-05T19-09-07-377344Z`, artifact `.experiments/nf_runs/nf_20261105_16_usd_macro/summary.json`. Selected `lookback=63, entry_z=2.0, exit_z=0.5, vol_target=0.15` (train WF 1.334).
+
+**Result — REJECT (3/9 gates).** OOS Val+Test: Sharpe 0.814 (fail), PF 1.169 (fail), max DD -13.36% (pass), trades 88 (fail), WF stability 1.415 (pass; train 0.912, val 0.380, test 1.290), worst-regime rolling-252 Sharpe -1.187 (fail), benchmark p=1.0 vs buy-hold SPY (fail), IR -0.280 (fail), perturbation min ratio 0.911 (pass). Ablations: random-exposure-matched Sharpe -0.389/PF 0.892 (774 trades) — gating better than random exposure; buy-hold SPY Sharpe 0.798/PF 1.165/DD -17.97%; inverse-signal (long when USD strong) Sharpe -0.125/PF 0.904 (44 trades), directionally consistent with risk-off interpretation. No gate weakened.
+
+**Verdict rationale.** USD-strength timing shows risk-off directionality and beats random exposure, but fails absolute/statistical gates (Sharpe/PF/trades/worst-regime/benchmark/IR). Low trade count (88) and catastrophic worst-regime indicate unstable/incomplete event capture. UUP tracking/roll characteristics and unstable FX-equity regimes remain confounders; the family is not supported by this free, point-in-time test.
+
+**Lineage map (H95 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| USD strength macro risk timing | H95 (NF-20261105-16) | Vol-targeted long SPY when trailing UUP strength z-score neutral/weak (hysteresis), else flat | SPY, UUP daily (yfinance), 2010–2026 | **REJECT** (3/9; exp_2026-11-05T19-09-07-377344Z) | Fails Sharpe 0.814/PF 1.169/trades 88/worst-regime -1.187/benchmark p=1.0/IR -0.280; inverse ablation negative (directional) but edge not robust; UUP basket tracking and FX-equity regime instability confound |
+
+**Cycle 10 required next.** Perform a fresh new-family discovery cycle per directive §4: reconcile lineage to H95, search >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, pre-register highest-information feasible candidate as H96 with smallest decisive test. Reassess NF-04/05/11/12/15/17 decisive risks with concrete evidence (NF-15 instrument-adjacent to H92 but correlation-regime mechanism; NF-17 turnover/cost-sensitive). `src/qtr` unchanged. No gate weakening; no published/certified artifact modification.
