@@ -125,6 +125,14 @@ METRIC_KEYS = (
 # is re-derived (it is in the list above); §H51 already disclosed its
 # container-dependent ddof split, and H53 extends that disclosure to the
 # eight H28 causal re-certification runs §H51 did not cover.
+#
+# NF-07..13 (H89/H90/H91/H92/H93) publish `worst_regime_sharpe` as a rolling-252
+# Sharpe diagnostic on the OOS window (no VIX regime mapping, no committed VIX
+# series). Re-deriving it from the frozen equity curve is possible but H53's
+# regime path is VIX-based; these values are disclosed as not re-derived here
+# (the metric is present and the gate reads it, but the convention differs from
+# VIX-regime families). H9's `regime_sharpes`/`worst_regime_sharpe` remain the
+# only truly undeterminable values (missing VIX input).
 NOT_RE_DERIVABLE_REASON = {
     "regime_sharpes": "the producer's VIX input was never committed",
     "worst_regime_sharpe": "the producer's VIX input was never committed",
@@ -361,6 +369,128 @@ FAMILY_RECIPES = {
         val_sharpe="val-window",
         wf_tail=True,
         wf_mode="test_over_train",
+        equity="best_equity.parquet",
+        vix=None,
+    ),
+    # NF-20261105-06 (H88, amended option b): Gold–oil relative-value spread
+    # mean reversion (GLD/USO ETF proxy). Date splits 2018-12-31/2022-12-31
+    # (train<=2018, val<=2022, test>2022), ndarray Sharpe ddof=0, OOS PF/trades,
+    # benchmark on FULL series (IR/p re-derive from full strategy+benchmark
+    # returns; compare_to_benchmark is container-invariant), no regime/VIX,
+    # val-window Sharpe. wf_stability published as 0.0 (runner test/train ratio
+    # fallback when train_sr<=0 / not positive-finite), not fold-based.
+    "nf_20261105_06_gold_oil_rv": dict(
+        split=("date", "2018-12-31", "2022-12-31"),
+        sharpe_ddof=0,
+        pf_scope="oos",
+        trades_scope="oos",
+        regime_scope=None,
+        bench_scope="full",
+        bench_ddof=0,
+        val_sharpe="val-window",
+        wf_tail=True,
+        wf_mode="zero",
+        equity="best_equity.parquet",
+        vix=None,
+    ),
+    # NF-20261105-07 (H89): CBOE SKEW tail-risk regime equity timing. Date splits
+    # 2019-12-31/2022-12-31, ddof=0, OOS PF/trades, benchmark on FULL series,
+    # val-window Sharpe. wf_stability = test_sharpe/train_sharpe (ratio). Runner
+    # read compare_to_benchmark `p_value` (not returned) -> published benchmark_p_value 1.0.
+    # worst_regime_sharpe = min rolling-252 Sharpe on OOS (diagnostic; no VIX).
+    "nf_20261105_07_skew_tail_timing": dict(
+        bench_p_published_default=True,
+        split=("date", "2019-12-31", "2022-12-31"),
+        sharpe_ddof=0,
+        pf_scope="oos",
+        trades_scope="oos",
+        regime_scope=None,
+        bench_scope="full",
+        bench_ddof=0,
+        val_sharpe="val-window",
+        wf_tail=True,
+        wf_mode="test_over_train",
+        worst_regime_mode="rolling252_oos",
+        equity="best_equity.parquet",
+        vix=None,
+    ),
+    # NF-20261105-08 (H90): FOMC pre-announcement event drift. Date splits
+    # 2019-12-31/2022-12-31, ddof=0, OOS PF/trades, benchmark on FULL series,
+    # val-window Sharpe. wf_stability published as 0.0. Runner published
+    # benchmark_p_value default (p_value key mismatch).
+    "nf_20261105_08_fomc_event_drift": dict(
+        bench_p_published_default=True,
+        split=("date", "2019-12-31", "2022-12-31"),
+        sharpe_ddof=0,
+        pf_scope="oos",
+        trades_scope="oos",
+        regime_scope=None,
+        bench_scope="full",
+        bench_ddof=0,
+        val_sharpe="val-window",
+        wf_tail=True,
+        wf_mode="zero",
+        worst_regime_mode="rolling252_oos",
+        equity="best_equity.parquet",
+        vix=None,
+    ),
+    # NF-20261105-09 (H91): turn-of-month equity calendar seasonality. Date splits
+    # 2019-12-31/2022-12-31, ddof=0, OOS PF/trades, benchmark on FULL series,
+    # val-window Sharpe. wf_stability = test_sharpe/train_sharpe. Published
+    # benchmark_p_value default (p_value key mismatch).
+    "nf_20261105_09_turn_of_month": dict(
+        bench_p_published_default=True,
+        split=("date", "2019-12-31", "2022-12-31"),
+        sharpe_ddof=0,
+        pf_scope="oos",
+        trades_scope="oos",
+        regime_scope=None,
+        bench_scope="full",
+        bench_ddof=0,
+        val_sharpe="val-window",
+        wf_tail=True,
+        wf_mode="test_over_train",
+        worst_regime_mode="rolling252_oos",
+        equity="best_equity.parquet",
+        vix=None,
+    ),
+    # NF-20261105-10 (H92): equity-bond relative momentum rotation. Date splits
+    # 2019-12-31/2022-12-31, ddof=0, OOS PF/trades, benchmark on FULL series,
+    # val-window Sharpe. wf_stability = test_sharpe/train_sharpe. Published
+    # benchmark_p_value default (p_value key mismatch).
+    "nf_20261105_10_equity_bond_relmom": dict(
+        bench_p_published_default=True,
+        split=("date", "2019-12-31", "2022-12-31"),
+        sharpe_ddof=0,
+        pf_scope="oos",
+        trades_scope="oos",
+        regime_scope=None,
+        bench_scope="full",
+        bench_ddof=0,
+        val_sharpe="val-window",
+        wf_tail=True,
+        wf_mode="test_over_train",
+        worst_regime_mode="rolling252_oos",
+        equity="best_equity.parquet",
+        vix=None,
+    ),
+    # NF-20261105-13 (H93): cross-sectional idiosyncratic volatility L/S. Date
+    # splits 2019-12-31/2022-12-31, ddof=0, OOS PF/trades, benchmark on FULL
+    # series, val-window Sharpe. wf_stability = test_sharpe/train_sharpe.
+    # Published benchmark_p_value default (p_value key mismatch).
+    "nf_20261105_13_idiosyncratic_vol": dict(
+        bench_p_published_default=True,
+        split=("date", "2019-12-31", "2022-12-31"),
+        sharpe_ddof=0,
+        pf_scope="oos",
+        trades_scope="oos",
+        regime_scope=None,
+        bench_scope="full",
+        bench_ddof=0,
+        val_sharpe="val-window",
+        wf_tail=True,
+        wf_mode="test_over_train",
+        worst_regime_mode="rolling252_oos",
         equity="best_equity.parquet",
         vix=None,
     ),
@@ -709,6 +839,8 @@ def rederive(
         out["wf_stability"] = (
             float(test_sr / train_sr) if train_sr > 0 and np.isfinite(train_sr) else 0.0
         )
+    elif wf_mode == "zero":
+        out["wf_stability"] = 0.0
     else:
         tail = recipe["wf_tail"] if fold_tail is None else fold_tail
         splitter = _walk_forward_splits_tail_absorbing if tail else _walk_forward_splits
@@ -746,6 +878,15 @@ def rederive(
             worst = min(worst, value)
         out["regime_sharpes"] = regime_sharpes
         out["worst_regime_sharpe"] = float(worst) if worst != np.inf else 0.0
+    elif recipe.get("worst_regime_mode") == "rolling252_oos":
+        # NF-07..13 (H89/H90/H91/H92/H93): worst rolling-252 Sharpe on OOS window
+        # (diagnostic, no VIX regime mapping). Re-derivable from frozen equity.
+        oos_ret = returns[oos_mask].dropna()
+        if len(oos_ret) >= 252:
+            roll = oos_ret.rolling(252).apply(lambda x: _sharpe(x.values, 0), raw=False)
+            out["worst_regime_sharpe"] = float(roll.min()) if roll.notna().any() else 0.0
+        else:
+            out["worst_regime_sharpe"] = float(_sharpe(oos_ret.values, 0)) if len(oos_ret) > 1 else 0.0
 
     benchmark = _benchmark_returns(directory)
     if recipe["bench_scope"] == "oos":
@@ -860,7 +1001,7 @@ _UNDETERMINABLE = _undeterminable()
 class TestH53PublishedMetrics:
     # -- the record --------------------------------------------------------
     def test_h53_metrics_summary_count_pinned(self):
-        assert len(_ENTRIES) == 43, len(_ENTRIES)
+        assert len(_ENTRIES) == 54, len(_ENTRIES)
 
     def test_h53_metrics_keys_union_pinned(self):
         keys = set()
@@ -892,7 +1033,7 @@ class TestH53PublishedMetrics:
             assert entry["producer"] in FAMILY_RECIPES, entry["artifact_id"]
 
     def test_h53_published_value_count_pinned(self):
-        assert len(_published_key_values()) == 510, len(_published_key_values())
+        assert len(_published_key_values()) == 630, len(_published_key_values())
 
     # -- the re-derivation -------------------------------------------------
     def test_every_published_value_re_derives(self):
@@ -933,10 +1074,15 @@ class TestH53PublishedMetrics:
         for entry in _ENTRIES:
             vix_file = entry["recipe"]["vix"]
             if vix_file is None:
-                # NF families: no vix and no regime block published (regime_scope None).
-                # H9 family: vix missing but regime block published (undeterminable).
+                # NF families: no vix and no VIX regime block published (regime_scope None).
+                # NF-07..13 may publish worst_regime_sharpe as rolling252_oos diagnostic
+                # (re-derivable via worst_regime_mode). H9 family: vix missing but
+                # VIX regime block published (undeterminable).
                 if entry["recipe"].get("regime_scope") is None:
-                    assert "worst_regime_sharpe" not in entry["published"]
+                    if entry["recipe"].get("worst_regime_mode") == "rolling252_oos":
+                        assert "worst_regime_sharpe" in _REDERIVED[entry["artifact_id"]]
+                    else:
+                        assert "worst_regime_sharpe" not in entry["published"]
                 else:
                     assert not (entry["directory"] / "vix_hourly.parquet").exists()
                     assert not (entry["directory"] / "vix_close.parquet").exists()

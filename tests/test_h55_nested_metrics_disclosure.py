@@ -28,7 +28,8 @@ between the two.
 
 What §H55 measured
 ------------------
-**736** published leaf values across **27** summaries. The record splits into
+**1188** published leaf values across **44** summaries. The record splits into
+
 three re-derivation routes, and the split is a *finding*, not a convenience:
 
 1. **The committed ablation equity curves** (20 summaries: H9 x3, H10 x2,
@@ -202,12 +203,18 @@ ABLATION_SHAPES = {
     "h17_vrp": "oos_metrics",
     "h19_volume_predictive": "oos_metrics",
     "h20_signed_volume": "oos_metrics",
-    # NF families (H85/H86/H87): 7-key period_metrics ablations
+    # NF families (H85–H93): 7-key period_metrics ablations
     # (sharpe,max_drawdown,profit_factor,trades,gross_profit,gross_loss,n_periods);
     # no per-ablation equity artifacts and no rederivation helper committed.
     "nf_20261104_01_vix_termstructure": "nf_period_metrics",
     "nf_20261104_02_cross_asset_leadlag": "nf_period_metrics",
     "nf_20261105_01_opening_gap": "nf_period_metrics",
+    "nf_20261105_06_gold_oil_rv": "nf_period_metrics",
+    "nf_20261105_07_skew_tail_timing": "nf_period_metrics",
+    "nf_20261105_08_fomc_event_drift": "nf_period_metrics",
+    "nf_20261105_09_turn_of_month": "nf_period_metrics",
+    "nf_20261105_10_equity_bond_relmom": "nf_period_metrics",
+    "nf_20261105_13_idiosyncratic_vol": "nf_period_metrics",
 }
 
 #: The H9 family names its ablation artifacts after the *variant*, not after
@@ -622,16 +629,16 @@ class TestTheRecord:
             for key in NESTED_KEYS + ("top_level_perturbation",)
         }
         assert counts == {
-            "ablations": 33,
-            "perturbation": 13,
+            "ablations": 44,
+            "perturbation": 24,
             "perturbation_min_ratio": 7,
             "cross_validation": 2,
             "top_level_perturbation": 5,
         }
-        assert len(NESTED) == 33
+        assert len(NESTED) == 44
 
     def test_the_published_leaf_count_is_pinned(self):
-        assert len(TABLE.leaves) == 908
+        assert len(TABLE.leaves) == 1188
 
     def test_every_published_leaf_is_accounted_for(self):
         for experiment_id, record in NESTED.items():
@@ -658,6 +665,12 @@ class TestTheRecord:
             "nf_20261104_01_vix_termstructure",
             "nf_20261104_02_cross_asset_leadlag",
             "nf_20261105_01_opening_gap",
+            "nf_20261105_06_gold_oil_rv",
+            "nf_20261105_07_skew_tail_timing",
+            "nf_20261105_08_fomc_event_drift",
+            "nf_20261105_09_turn_of_month",
+            "nf_20261105_10_equity_bond_relmom",
+            "nf_20261105_13_idiosyncratic_vol",
         ]
 
 
@@ -682,8 +695,8 @@ class TestReDerivation:
         assert min(residuals) == 0.0
 
     def test_the_rederivable_and_disclosed_counts_are_pinned(self):
-        assert len(TABLE.rederived) == 616
-        assert len(TABLE.not_rederivable) == 292
+        assert len(TABLE.rederived) == 627
+        assert len(TABLE.not_rederivable) == 561
 
     def test_every_disclosed_leaf_names_its_reason(self):
         for leaf in TABLE.not_rederivable:
@@ -727,6 +740,17 @@ class TestReDerivation:
         leaves = [leaf for leaf in TABLE.leaves if leaf.block == "top_level_perturbation"]
         assert len(leaves) == 25  # 5 summaries x (4 variants + the ratio)
         assert all(leaf.status == "rederived" for leaf in leaves)
+
+    def test_nf_period_metrics_ablations_are_disclosed_not_rederived(self):
+        nf = [
+            leaf
+            for leaf in TABLE.leaves
+            if leaf.block == "ablations"
+            and PRODUCER_NAMES[leaf.experiment_id].startswith("nf_")
+        ]
+        assert nf
+        assert all(leaf.status == "not_rederivable" for leaf in nf)
+        assert all("NF family" in leaf.reason or "not rederived" in leaf.reason.lower() for leaf in nf)
 
 
 class TestConventions:
@@ -928,7 +952,11 @@ class TestBlastRadius:
             assert len(ratio_leaves) == 1
             assert ratio_leaves[0].status == "rederived"
             checked += 1
-        assert checked == 25
+        assert checked == 36
+        assert sorted(without_values) == [
+            "exp_2026-10-14T07-12-35-292010Z",
+            "exp_2026-10-14T07-12-59-473353Z",
+        ]
         # Two H22 summaries publish the perturbation *gate* but not the
         # perturbation *values*: the gate is a published boolean whose
         # evidence was never published.
