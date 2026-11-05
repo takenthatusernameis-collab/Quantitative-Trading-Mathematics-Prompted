@@ -300,3 +300,81 @@ Ablations: long-only Sharpe −0.118, PF 0.974; inverse signal Sharpe +0.118, PF
 #### Next candidate: none remaining in current ranked set
 
 NF-01 is the second-highest ranked candidate from the initial three (NF-02 done, NF-01 done, NF-03 deferred). No other pre-registered NF candidates remain. Per directive §6, need to search for new mechanisms if queue exhausted. Current state: H1–H30 exhausted, H85/H86 rejected. Next unused H-ID is H87 (H24, H68–H73, H76–H79 unassigned; next sequential unused is H87). Must perform new mechanism search before selecting next experiment.
+
+---
+
+## 7. New-family discovery cycle 2 (2026-11-05) — mechanism search
+
+Queue of pre-registered NF candidates exhausted after H85/H86 rejections. Per directive §4.1 and §6, a fresh mechanism search across new broad categories is required before any further experiment. Three candidates spanning three distinct mechanism categories, none overlapping prior root families (TSMOM, CS-momentum, regime-gated vol, VRP, overnight/intraday, volume-predictive, order-flow, lead-lag, VIX slope timing, basis MR).
+
+### NF-20261105-01: Opening-Gap Fill / Overnight Information (Equity Index)
+
+**Category:** Event / auction mechanisms
+**Mechanism:** Overnight price gaps between prior close and next open contain information not yet absorbed by intraday participants; partial gap fill occurs as liquidity returns at the open. Long/short the gap direction with a defined holding period (intraday to next close), mean-reversion of gap.
+**Observable:** SPY daily open/close (yfinance). Gap = open[t] - close[t-1]. Signal sign.
+**Distinct from:** H18 overnight/intraday decomposition (tested close-to-close sign, not gap-fill holding); H19/H20 volume/order-flow (different information).
+**Null:** Gap size does not predict intraday mean-reversion beyond costs.
+**Rejection:** OOS Sharpe < 0.5, PF < 1.1, max DD > 15%.
+**Data:** yfinance daily SPY 2015→2026, free. Costs: equity model. Capacity: high.
+**Scores:** novelty 4, plausibility 3, data 5, falsifiability 5, execution 4, support 3 → weighted 4.05.
+
+### NF-20261105-02: Carry / Term-Structure in Commodity Futures (Roll Yield)
+
+**Category:** Carry and term structure
+**Mechanism:** Commodity futures in backwardation earn positive roll yield (carry); in contango earn negative. Long commodities in backwardation, short in contango, rebalanced monthly.
+**Observable:** Continuous futures (CL=F, GC=F, ZC=F, etc.) daily settle + front/back month; yfinance limited but free daily front-month available.
+**Distinct from:** H17 VRP (volatility, not commodity carry); no prior commodity carry family.
+**Null:** Roll-yield signal does not predict next-month returns after costs.
+**Rejection:** OOS Sharpe < 0.5, PF < 1.1, max DD > 15%.
+**Data:** yfinance daily futures 2015→2026, free; point-in-time monthly rebalance. Costs: futures model. Capacity: moderate.
+**Scores:** novelty 4, plausibility 4, data 4, falsifiability 4, execution 3, support 4 → weighted 3.95.
+
+### NF-20261105-03: Liquidity Provision / Reversal on Large Daily Moves
+
+**Category:** Liquidity provision and order-flow effects
+**Mechanism:** Extreme daily returns are followed by short-term reversal as liquidity providers absorb order flow and prices revert. Long assets with largest negative daily return, short largest positive, 1-day holding.
+**Observable:** Daily returns across a cross-section (ETFs/stocks), yfinance.
+**Distinct from:** H2/H16 CS momentum (trend, opposite direction); reversal is a distinct mechanism.
+**Null:** Extreme-move reversal does not produce net-of-cost alpha.
+**Rejection:** OOS Sharpe < 0.5, PF < 1.1, max DD > 15%.
+**Data:** yfinance daily 2015→2026, free. Costs: equity model, high turnover. Capacity: moderate.
+**Scores:** novelty 3, plausibility 3, data 5, falsifiability 5, execution 3, support 3 → weighted 3.60.
+
+### Ranking (cycle 2)
+
+| Candidate | Weighted total |
+|---|---|
+| NF-20261105-01 Opening-gap fill | 4.05 |
+| NF-20261105-02 Commodity carry | 3.95 |
+| NF-20261105-03 Extreme-move reversal | 3.60 |
+
+**Selection:** NF-20261105-01 (opening-gap fill) scores highest. Pre-register as H87.
+
+## 8. Pre-registration: NF-20261105-01 (Opening-Gap Fill) — H87
+
+**Temporary ID:** NF-20261105-01
+**Proposed H-ID:** H87 (pending formal registration in HYPOTHESIS_SPEC.md)
+
+**Hypothesis:** "Overnight gaps in SPY partially fill intraday: a positive gap (open > prior close) is followed by negative intraday return (close < open) and vice versa, because overnight information is overreacted and liquidity returns at the open."
+
+**Mechanism:** Event/auction mechanisms (broad category per directive §4.1).
+
+**Null:** Gap sign/size does not predict intraday return beyond costs.
+
+**Observable:** SPY daily open and close, yfinance, known at close t (open[t], close[t], close[t-1]).
+
+**Data:** yfinance daily SPY, 2015-01-01 → 2026-10-31. Train 2015-01-01→2020-12-31, Val 2021-01-01→2023-12-31, Test 2024-01-01→2026-10-31 (protected holdout final ~20%). Point-in-time: gap computed from close[t-1] and open[t], both known at open[t]; intraday return close[t]/open[t] earned after entry at open.
+
+**Construction:** Daily. Signal = sign(open[t] - close[t-1]) (or z-scored gap). Long SPY if gap negative (expect fill up), short if gap positive (expect fill down), held intraday open→close, vol-targeted to 15% ann. Costs: equity model (1 bp commission + 0.5 bp spread + 0.1 bp impact per 1% ADV). Turnover ~1×/day.
+
+**Grid:** lookback in {1,5,21} for z-score normalization, zscore threshold in {0.0,0.5,1.0}, vol_target in {0.10,0.15,0.20} (27 combos). Selection by train-only walk-forward Sharpe; Test protected.
+
+**Explicit rejection:** OOS Sharpe < 0.5, PF < 1.1, < 200 OOS trades, max DD > 15%.
+
+**Capacity:** SPY highly liquid; not binding.
+
+**Closest prior family:** H18 (overnight/intraday decomposition). **Distinction:** H18 tested whether overnight return sign predicts next-day *intraday* direction (close[t]→close[t+1] style); H87 tests same-day gap fill (open→close) holding intraday only, a distinct timing and holding horizon. Different causal claim (overreaction fill vs overnight information persistence).
+
+**Confounders/leakage:** open prices on yfinance are adjusted for splits/dividends consistently with close; gap computed with no look-ahead (open known at entry). Slippage at open may exceed model; treat as lower bound. Falsification: random-entry control and gap-magnitude monotonicity.
+
+**Next task:** Implement `run_nf_20261105_01_opening_gap.py` + focused tests; formalize H87 in HYPOTHESIS_SPEC.md; run pinned gates. Next unused H-ID after H87 is H88.
