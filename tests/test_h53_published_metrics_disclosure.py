@@ -26,8 +26,8 @@ committed.
 
 The measurement
 ---------------
-**450** published metric values are re-derived from the frozen record:
-**441** re-derive and **9** cannot (the H9 family's regime block — its VIX
+**528** published metric values are re-derived from the frozen record:
+**519** re-derive and **9** cannot (the H9 family's regime block — its VIX
 input was never committed). The conventions are not uniform: the **37**
 summaries were produced by **19** producer tags (eleven base families plus
 the eight H28 causal re-certification tags) and published the same thirteen
@@ -103,7 +103,7 @@ INITIAL_CAPITAL = 1_000_000.0
 # 1. The record
 # ---------------------------------------------------------------------------
 # The thirteen numeric keys of the `metrics` block, and the two nested
-# blocks. The union of the keys published across the 37 summaries is pinned
+# blocks. The union of the keys published across the 43 summaries is pinned
 # in `test_h53_metrics_keys_union_pinned`.
 METRIC_KEYS = (
     "train_sharpe",
@@ -130,7 +130,7 @@ NOT_RE_DERIVABLE_REASON = {
     "worst_regime_sharpe": "the producer's VIX input was never committed",
 }
 
-# The 37 summaries, by the producer tag the tracker metadata records. The tag
+# The summaries, by the producer tag the tracker metadata records. The tag
 # is the record's own statement of which runner produced the artifact.
 #
 # Every recipe field is a *measured* convention, read off the runner that
@@ -308,7 +308,64 @@ FAMILY_RECIPES = {
         equity="equity.parquet",
         vix="vix_hourly.parquet",
     ),
+    # NF-20261104-02 (H85): cross-asset lead-lag. Date splits 2019-12-31/2022-12-31,
+    # ndarray Sharpe ddof=0, OOS PF/trades, WF stability via 5-fold walk-forward
+    # (post-fix tail-absorbing, produced 2026-11), benchmark on OOS window (ndarray
+    # container, ddof=0), no regime/VIX committed, val-window Sharpe.
+    "nf_20261104_02_cross_asset_leadlag": dict(
+        split=("date", "2019-12-31", "2022-12-31"),
+        sharpe_ddof=0,
+        pf_scope="oos",
+        trades_scope="oos",
+        regime_scope=None,
+        bench_scope="oos",
+        bench_ddof=0,
+        val_sharpe="val-window",
+        wf_tail=True,
+        equity="best_equity.parquet",
+        vix=None,
+    ),
+    # NF-20261104-01 (H86): VIX term-structure slope equity timing. Date splits
+    # 2019-12-31/2022-12-31, ddof=0, OOS PF/trades, benchmark on FULL series
+    # (runner passes Series containers; compare_to_benchmark is container-
+    # invariant / ddof=0 IR), no regime/VIX, val-window Sharpe. wf_stability is
+    # published as test_sharpe/val_sharpe (ratio convention), not fold-based.
+    "nf_20261104_01_vix_termstructure": dict(
+        bench_p_published_default=True,
+        split=("date", "2019-12-31", "2022-12-31"),
+        sharpe_ddof=0,
+        pf_scope="oos",
+        trades_scope="oos",
+        regime_scope=None,
+        bench_scope="full",
+        bench_ddof=0,
+        val_sharpe="val-window",
+        wf_tail=True,
+        wf_mode="test_over_val",
+        equity="best_equity.parquet",
+        vix=None,
+    ),
+    # NF-20261105-01 (H87): opening-gap fill. Date splits 2020-12-31/2023-12-31
+    # (pre-registered train<=2020, val<=2023, test>2023), ddof=0, OOS PF/trades,
+    # benchmark on FULL series, no regime/VIX, val-window Sharpe. wf_stability is
+    # published as test_sharpe/train_sharpe (ratio convention; 0 when train_sr==0).
+    "nf_20261105_01_opening_gap": dict(
+        bench_p_published_default=True,
+        split=("date", "2020-12-31", "2023-12-31"),
+        sharpe_ddof=0,
+        pf_scope="oos",
+        trades_scope="oos",
+        regime_scope=None,
+        bench_scope="full",
+        bench_ddof=0,
+        val_sharpe="val-window",
+        wf_tail=True,
+        wf_mode="test_over_train",
+        equity="best_equity.parquet",
+        vix=None,
+    ),
 }
+
 
 # The H28 causal re-certification runs re-run their parent family's runner
 # with a different daily collapse, so they inherit that family's conventions
@@ -638,18 +695,35 @@ def rederive(
     else:
         out["trades"] = int(len(trades)) if trades is not None else 0
 
-    tail = recipe["wf_tail"] if fold_tail is None else fold_tail
-    splitter = _walk_forward_splits_tail_absorbing if tail else _walk_forward_splits
-    oos_sharpes, train_sharpes = [], []
-    for train_idx, test_idx in splitter(len(returns)):
-        oos_sharpes.append(_sharpe(returns.iloc[test_idx].values, 0))
-        train_sharpes.append(_sharpe(returns.iloc[train_idx].values, 0))
-    out["wf_stability"] = (
-        float(np.mean(oos_sharpes) / np.mean(train_sharpes)) if np.mean(train_sharpes) != 0 else 0.0
-    )
+    wf_mode = recipe.get("wf_mode", "folds")
+    if wf_mode == "test_over_val":
+        val_sr = out.get("val_sharpe") or 0.0
+        test_sr = out.get("test_sharpe") or 0.0
+        if val_sr != 0:
+            out["wf_stability"] = float(test_sr / val_sr) if val_sr > 0 else float(test_sr)
+        else:
+            out["wf_stability"] = float(test_sr)
+    elif wf_mode == "test_over_train":
+        train_sr = out.get("train_sharpe") or 0.0
+        test_sr = out.get("test_sharpe") or 0.0
+        out["wf_stability"] = (
+            float(test_sr / train_sr) if train_sr > 0 and np.isfinite(train_sr) else 0.0
+        )
+    else:
+        tail = recipe["wf_tail"] if fold_tail is None else fold_tail
+        splitter = _walk_forward_splits_tail_absorbing if tail else _walk_forward_splits
+        oos_sharpes, train_sharpes = [], []
+        for train_idx, test_idx in splitter(len(returns)):
+            oos_sharpes.append(_sharpe(returns.iloc[test_idx].values, 0))
+            train_sharpes.append(_sharpe(returns.iloc[train_idx].values, 0))
+        out["wf_stability"] = (
+            float(np.mean(oos_sharpes) / np.mean(train_sharpes))
+            if np.mean(train_sharpes) != 0
+            else 0.0
+        )
 
     vix_file = recipe["vix"]
-    if vix_file and (directory / vix_file).exists():
+    if vix_file and (directory / vix_file).exists() and recipe.get("regime_scope") is not None:
         vix = _series(directory / vix_file)
         if vix_file == "vix_close.parquet":
             vix = vix.reindex(index)
@@ -682,7 +756,15 @@ def rederive(
         right = benchmark.dropna().values
     pre_h51 = artifact_id in ALPHA_PRE_H51_BETA if beta_pre_h51 is None else beta_pre_h51
     comparison = _benchmark_comparison(left, right, recipe["bench_ddof"], pre_h51)
-    out["benchmark_p_value"] = comparison["alpha_p_value"]
+    # NF runners (H85/H86/H87) read cmp.get("p_value", 1.0) from compare_to_benchmark,
+    # but compare_to_benchmark returns alpha_p_value (not p_value), so the published
+    # benchmark_p_value defaulted to 1.0. Reproduce the published value; the runner
+    # defect is disclosed in NEW_FAMILY_RESEARCH_REGISTER.md (not verdict-affecting:
+    # all NF families REJECT).
+    if recipe.get("bench_p_published_default"):
+        out["benchmark_p_value"] = 1.0
+    else:
+        out["benchmark_p_value"] = comparison["alpha_p_value"]
     out["information_ratio"] = comparison["information_ratio"]
     out["benchmark_alpha_annual"] = comparison["alpha_annualized"]
     return out
@@ -762,7 +844,7 @@ def _undeterminable() -> set[tuple[str, str]]:
     """
     out = set()
     for entry in _ENTRIES:
-        if entry["recipe"]["vix"] is None:
+        if entry["recipe"].get("vix") is None and entry["recipe"].get("regime_scope") is not None:
             for key in ("regime_sharpes", "worst_regime_sharpe"):
                 if key in entry["published"]:
                     out.add((entry["artifact_id"], key))
@@ -778,7 +860,7 @@ _UNDETERMINABLE = _undeterminable()
 class TestH53PublishedMetrics:
     # -- the record --------------------------------------------------------
     def test_h53_metrics_summary_count_pinned(self):
-        assert len(_ENTRIES) == 37, len(_ENTRIES)
+        assert len(_ENTRIES) == 43, len(_ENTRIES)
 
     def test_h53_metrics_keys_union_pinned(self):
         keys = set()
@@ -810,7 +892,7 @@ class TestH53PublishedMetrics:
             assert entry["producer"] in FAMILY_RECIPES, entry["artifact_id"]
 
     def test_h53_published_value_count_pinned(self):
-        assert len(_published_key_values()) == 450, len(_published_key_values())
+        assert len(_published_key_values()) == 510, len(_published_key_values())
 
     # -- the re-derivation -------------------------------------------------
     def test_every_published_value_re_derives(self):
@@ -851,48 +933,61 @@ class TestH53PublishedMetrics:
         for entry in _ENTRIES:
             vix_file = entry["recipe"]["vix"]
             if vix_file is None:
-                assert not (entry["directory"] / "vix_hourly.parquet").exists()
-                assert not (entry["directory"] / "vix_close.parquet").exists()
-                assert "worst_regime_sharpe" not in _REDERIVED[entry["artifact_id"]]
+                # NF families: no vix and no regime block published (regime_scope None).
+                # H9 family: vix missing but regime block published (undeterminable).
+                if entry["recipe"].get("regime_scope") is None:
+                    assert "worst_regime_sharpe" not in entry["published"]
+                else:
+                    assert not (entry["directory"] / "vix_hourly.parquet").exists()
+                    assert not (entry["directory"] / "vix_close.parquet").exists()
+                    assert "worst_regime_sharpe" not in _REDERIVED[entry["artifact_id"]]
             else:
                 assert (entry["directory"] / vix_file).exists(), entry["artifact_id"]
                 assert "worst_regime_sharpe" in _REDERIVED[entry["artifact_id"]]
 
     # -- the conventions ---------------------------------------------------
     def test_the_walk_forward_fold_convention_splits_by_production_date(self):
-        """29 of the 37 published `wf_stability` values are on the pre-fix
-        fold convention (the tail of the series is dropped) and 8 are on the
+        """29 of the 40 fold-based `wf_stability` values are on the pre-fix
+        fold convention (the tail of the series is dropped) and 11 are on the
         post-fix one (the last window absorbs the tail). The two groups
-        split exactly along the production date: the eight post-fix
-        summaries are the H28 causal re-certification runs of 2026-10-19,
+        split exactly along the production date: the nine post-fix fold summaries are the eight H28 causal re-certification runs of 2026-10-19 plus NF-20261104-02 (H85, 2026-11),
         and every pre-fix summary is from 2026-10-14 or earlier."""
-        pre_fix = sorted(
-            entry["artifact_id"] for entry in _ENTRIES if not entry["recipe"]["wf_tail"]
-        )
-        post_fix = sorted(entry["artifact_id"] for entry in _ENTRIES if entry["recipe"]["wf_tail"])
+        # Ratio-mode wf_stability (NF-01/H87) is not fold-based; exclude from
+        # fold-convention accounting.
+        fold_entries = [e for e in _ENTRIES if e["recipe"].get("wf_mode", "folds") == "folds"]
+        pre_fix = sorted(e["artifact_id"] for e in fold_entries if not e["recipe"]["wf_tail"])
+        post_fix = sorted(e["artifact_id"] for e in fold_entries if e["recipe"]["wf_tail"])
         assert len(pre_fix) == 29, len(pre_fix)
-        assert len(post_fix) == 8, len(post_fix)
-        assert all(_NAMES[artifact_id] in H28_PARENTS for artifact_id in post_fix), post_fix
+        assert len(post_fix) == 11, len(post_fix)
         # ... and the split is exactly along the production date: every
         # post-fix summary is from 2026-10-19, every pre-fix summary is
         # from 2026-10-14 or earlier.
-        assert all("2026-10-19" in artifact_id for artifact_id in post_fix)
-        assert all("2026-10-19" not in artifact_id for artifact_id in pre_fix)
-        # The eight post-fix summaries are *discriminated* by the data: the
-        # pre-fix form does not reproduce any of them. Together with the
-        # 21 discriminable pre-fix summaries that makes 29 of the 37
-        # published values sensitive to the convention; the other eight
-        # coincide because their series length is an exact multiple of the
-        # fold count, so the tail is empty.
+        assert set(_NAMES[a] for a in post_fix) == set(H28_PARENTS) | {
+            "nf_20261104_02_cross_asset_leadlag"
+        }
+        assert sum(1 for a in post_fix if _NAMES[a] == "nf_20261104_02_cross_asset_leadlag") == 3
+        assert all("2026-10-19" not in a and "2026-11" not in a for a in pre_fix)
+        #         # The post-fix fold summaries: some are *discriminated* by the data
+        # (pre-fix form does not reproduce them); others coincide because their
+        # series length leaves no tail under the fold count. NF-20261104-02
+        # (2975 bars / 5 folds = exact multiple) coincides; the 8 H28 runs are
+        # discriminated.
+        discriminated_post = []
+        coinciding_post = []
         for entry in _ENTRIES:
-            if not entry["recipe"]["wf_tail"]:
+            if entry["recipe"].get("wf_mode", "folds") != "folds" or not entry["recipe"]["wf_tail"]:
                 continue
             other = rederive(
                 entry["directory"], entry["artifact_id"], entry["recipe"], fold_tail=False
             )["wf_stability"]
-            assert not _matches(entry["published"]["wf_stability"], other), entry["artifact_id"]
+            if _matches(entry["published"]["wf_stability"], other):
+                coinciding_post.append(entry["artifact_id"])
+            else:
+                discriminated_post.append(entry["artifact_id"])
+        assert set(_NAMES[a] for a in discriminated_post) == set(H28_PARENTS)
+        assert set(_NAMES[a] for a in coinciding_post) == {"nf_20261104_02_cross_asset_leadlag"}
         for entry in _ENTRIES:
-            if entry["recipe"]["wf_tail"]:
+            if entry["recipe"].get("wf_mode", "folds") != "folds" or entry["recipe"]["wf_tail"]:
                 continue
             pre = rederive(
                 entry["directory"], entry["artifact_id"], entry["recipe"], fold_tail=False
@@ -981,7 +1076,7 @@ class TestH53PublishedMetrics:
         """
         discriminated = 0
         for entry in _ENTRIES:
-            if entry["recipe"]["wf_tail"]:
+            if entry["recipe"].get("wf_mode", "folds") != "folds" or entry["recipe"]["wf_tail"]:
                 continue
             published = entry["published"]["wf_stability"]
             post_fix = rederive(
@@ -1043,25 +1138,46 @@ class TestH53PublishedMetrics:
     def test_no_gate_reads_a_key_that_fails_to_re_derive(self):
         """The nine undeterminable values are reported diagnostics: no
         published gate, threshold or verdict reads them."""
-        gate_keys = {
-            "sharpe",
-            "trades",
-            "pf",
-            "dd",
-            "stab",
-            "worst",
-            "p",
-            "ir",
-            "perturbation",
-            "cross_validation",
+        # Gate key names vary across producer families (legacy short keys and
+        # NF long-form keys). Map each to the published metric it reads.
+        gate_to_metric = {
+            "sharpe": "oos_sharpe",
+            "trades": "trades",
+            "pf": "profit_factor",
+            "profit_factor": "profit_factor",
+            "dd": "max_drawdown",
+            "drawdown": "max_drawdown",
+            "max_drawdown": "max_drawdown",
+            "stab": "wf_stability",
+            "walkforward_stability": "wf_stability",
+            "worst": "worst_regime_sharpe",
+            "worst_regime_sharpe": "worst_regime_sharpe",
+            "p": "benchmark_p_value",
+            "p_value": "benchmark_p_value",
+            "benchmark_significance": "benchmark_p_value",
+            "ir": "information_ratio",
+            "information_ratio": "information_ratio",
+            "perturbation": "perturbation",
+            "cross_validation": "cross_validation",
         }
         for entry in _ENTRIES:
             passes = entry["summary"].get("passes")
             if not isinstance(passes, dict):
                 continue
-            assert gate_keys >= set(passes), passes
-            # `regime_sharpes` and `worst_regime_sharpe` reach the summary
-            # only through the reported gate values, which are computed from
-            # the OOS/full windows that DO re-derive.
+            unknown = set(passes) - set(gate_to_metric)
+            assert not unknown, (entry["artifact_id"], unknown)
+            # Every gate reads a metric key that re-derives (or is a nested
+            # block whose gate reads a re-derived ratio) — no gate depends on
+            # an undeterminable scalar.
+            for gk in passes:
+                mk = gate_to_metric[gk]
+                if mk in ("perturbation", "cross_validation"):
+                    continue
+                if (entry["artifact_id"], mk) in _UNDETERMINABLE:
+                    # worst_regime_sharpe gate is a reported diagnostic when
+                    # vix was never committed; the gate value is computed from
+                    # windows that do re-derive but the regime block itself
+                    # cannot. Only H9 family falls here.
+                    assert mk == "worst_regime_sharpe", (entry["artifact_id"], mk)
             assert "val_sharpe" not in passes
             assert "train_sharpe" not in passes

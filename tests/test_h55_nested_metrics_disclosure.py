@@ -202,6 +202,12 @@ ABLATION_SHAPES = {
     "h17_vrp": "oos_metrics",
     "h19_volume_predictive": "oos_metrics",
     "h20_signed_volume": "oos_metrics",
+    # NF families (H85/H86/H87): 7-key period_metrics ablations
+    # (sharpe,max_drawdown,profit_factor,trades,gross_profit,gross_loss,n_periods);
+    # no per-ablation equity artifacts and no rederivation helper committed.
+    "nf_20261104_01_vix_termstructure": "nf_period_metrics",
+    "nf_20261104_02_cross_asset_leadlag": "nf_period_metrics",
+    "nf_20261105_01_opening_gap": "nf_period_metrics",
 }
 
 #: The H9 family names its ablation artifacts after the *variant*, not after
@@ -387,9 +393,21 @@ def _rederive_from_equity(table: Table) -> None:
         if not prices_path.exists():
             continue
         prices = read_parquet_safe(prices_path)
+        if shape == "oos_metrics":
+            continue
+        if shape == "nf_period_metrics":
+            for ablation, published_block in ablations.items():
+                for key, published in _flatten(published_block):
+                    table.add(
+                        experiment_id=experiment_id,
+                        block="ablations",
+                        path=f"ablations.{ablation}.{key}",
+                        published=published,
+                        status="not_rederivable",
+                        reason="no per-ablation equity artifact or rederivation helper committed for NF family",
+                    )
+            continue
         for ablation, published_block in ablations.items():
-            if shape == "oos_metrics":
-                continue
             derived = _ablation_derived_values(directory, ablation, shape, prices)
             for key, published in published_block.items():
                 path = f"ablations.{ablation}.{key}"
@@ -462,6 +480,8 @@ def _rederive_from_inputs(table: Table) -> None:
 
 def outcome_reason(producer: str) -> str:
     """Why a family's block cannot be re-derived from the record."""
+    if producer.startswith("nf_"):
+        return "no per-ablation equity artifact or rederivation helper committed for NF family"
     if producer == "h20_signed_volume":
         return (
             "the daily OHLC panel the signal builder reads was never committed; "
@@ -481,8 +501,8 @@ def _rederive_perturbation(table: Table) -> None:
             if not block:
                 continue
             producer = PRODUCER_NAMES[experiment_id]
-            published_variants = block["variants"]
-            published_ratio = block["min_perturbed_sharpe_ratio"]
+            published_variants = block.get("variants", {})
+            published_ratio = block.get("min_perturbed_sharpe_ratio", 0.0)
 
             # The ratio is a function of the published variants and the
             # published base OOS Sharpe alone -- it re-derives in every
@@ -520,6 +540,16 @@ def _rederive_perturbation(table: Table) -> None:
                         published=published,
                         rederived=variants[name],
                     )
+
+            if "ratios" in block:
+                table.add(
+                    experiment_id=experiment_id,
+                    block=block_name,
+                    path="ratios",
+                    published=block["ratios"],
+                    status="not_rederivable",
+                    reason="auxiliary perturbation ratios list; not re-derived",
+                )
 
 
 def _rederive_perturbation_min_ratio(table: Table) -> None:
@@ -592,16 +622,16 @@ class TestTheRecord:
             for key in NESTED_KEYS + ("top_level_perturbation",)
         }
         assert counts == {
-            "ablations": 27,
-            "perturbation": 7,
+            "ablations": 33,
+            "perturbation": 13,
             "perturbation_min_ratio": 7,
             "cross_validation": 2,
             "top_level_perturbation": 5,
         }
-        assert len(NESTED) == 27
+        assert len(NESTED) == 33
 
     def test_the_published_leaf_count_is_pinned(self):
-        assert len(TABLE.leaves) == 736
+        assert len(TABLE.leaves) == 908
 
     def test_every_published_leaf_is_accounted_for(self):
         for experiment_id, record in NESTED.items():
@@ -625,6 +655,9 @@ class TestTheRecord:
             "h23_crypto_futures_tsmom",
             "h25_futures_tsmom_pfmargin",
             "h9_intraday_tsmom_ctexits_v2",
+            "nf_20261104_01_vix_termstructure",
+            "nf_20261104_02_cross_asset_leadlag",
+            "nf_20261105_01_opening_gap",
         ]
 
 
@@ -649,8 +682,8 @@ class TestReDerivation:
         assert min(residuals) == 0.0
 
     def test_the_rederivable_and_disclosed_counts_are_pinned(self):
-        assert len(TABLE.rederived) == 610
-        assert len(TABLE.not_rederivable) == 126
+        assert len(TABLE.rederived) == 616
+        assert len(TABLE.not_rederivable) == 292
 
     def test_every_disclosed_leaf_names_its_reason(self):
         for leaf in TABLE.not_rederivable:
@@ -895,7 +928,7 @@ class TestBlastRadius:
             assert len(ratio_leaves) == 1
             assert ratio_leaves[0].status == "rederived"
             checked += 1
-        assert checked == 19
+        assert checked == 25
         # Two H22 summaries publish the perturbation *gate* but not the
         # perturbation *values*: the gate is a published boolean whose
         # evidence was never published.
