@@ -506,3 +506,55 @@ Queue exhausted after H87 (REJECT). Per directive §4.1 and §6, fresh mechanism
 | Gold–oil relative-value spread mean reversion | H88 (NF-20261105-06) | Log(GOLD/OIL) z-score dislocation mean reversion; long/short spread, vol-targeted | GLD/USO daily ETF proxy (yfinance), amended 2026-11-05 from GC=F/CL=F | **REJECTED** (1/9; OOS Sharpe −0.535, PF 0.866, DD −34.5%, WF 0, pert 0) | Spread highly persistent (acf1≈0.999); convergence not realized net of costs; USO ETF roll/tracking basis may distort oil leg; original CL=F futures blocked by non-positive 2020-04-21 bar |
 
 **Next candidate decision (directive §6):** H88 rejected under amended ETF-proxy construction. NF-20261105-04 (commodity carry, roll-proxy point-in-time risk) and NF-20261105-05 (short-term CS reversal, high turnover/net-of-cost risk) remain deferred from cycle 3. Next unused H-ID is H89. New mechanism search/decision-ready selection required before implementation.
+
+
+## 13. New-family discovery cycle 4 (2026-11-05) — H89 selection (post H88 REJECT)
+
+H85–H88 rejected (H88: GLD/USO amended, 1/9, exp `exp_2026-11-05T12-24-33-350043Z`; original GC=F/CL=F blocked by CL=F non-positive 2020-04-21). Per directive §4/§6, reassess deferred candidates with decisive-risk evidence, add a third materially distinct mechanism, rank, and pre-register/select H89.
+
+### Decisive-risk reassessment (evidenced)
+
+**NF-20261105-04 (commodity carry, roll proxy) — remains DEFERRED (decisive risk unresolved).** Evidence (2026-11-05): yfinance in current pipeline provides continuous front-month futures and ETFs; no free point-in-time deferred/term-structure/second-month series is available through `DataFetcher.fetch_yahoo/fetch_futures`. CL=F continuous shows a non-positive bar in 2012–2026 direct check (`rows=3729, nonpos=1`), consistent with fail-closed `_reject_non_positive_prices` behavior observed in H88's CL=F window; GC/SI/HG/NG/ZC/ZS/ZW continuous had 0 non-positive in that spot check but carry measurement still requires a documented point-in-time term slope/roll proxy. Constructing carry from continuous-only series requires splice/roll assumptions that were not pre-specified as point-in-time and can leak roll/regime artifacts. ETF proxies (DBC/USO/GLD) embed roll/flows/equity-beta confounds and do not provide a clean commodity term-structure carry observable. **Blocker:** data/point-in-time construction for term structure; do not execute without an explicitly pre-registered, point-in-time roll-proxy design.
+
+**NF-20261105-05 (short-term cross-sectional reversal, liquidity provision) — remains DEFERRED (net-of-cost decisive risk unresolved).** Evidence (2026-11-05): liquid sector-ETF universe (SPY, XLK, XLF, XLE, XLV, XLI, XLP, XLU, XLB, XLY, XLC) is free/point-in-time feasible (XLC shorter history but others full 2015–2026; no non-positive). Mechanism is repo-new as a *reversal* family distinct from H2/H16 CS momentum, but the decisive risk is unchanged: 1-day holding with daily cross-sectional rebalancing implies very high turnover. Under `CostModel` equity defaults (commission ~1 bps + spread ~1 bps + impact per side), round-trip/allocation churn can dominate expected microstructure alpha in liquid ETFs. Any turnover cap, entry threshold, or lower rebalance frequency is a design choice that materially changes the mechanism and must be pre-registered before execution; it cannot be tuned post hoc. **Blocker:** execution/net-of-cost realism under pre-registered turnover assumptions.
+
+### NF-20261105-07 (third candidate): CBOE SKEW tail-risk regime equity timing — H89 pre-registration target
+
+**Category:** Volatility/convexity premia — option-implied tail/distribution asymmetry (distinct broad signal dimension from VIX level/slope). Spans a different mechanism category emphasis than deferred NF-04/NF-05.
+**Mechanism:** CBOE SKEW (`^SKEW`) measures the implied skewness/tail risk of the S&P 500 return distribution from OTM option prices. Elevated SKEW indicates richer pricing of downside tail protection (crashophobia/hedging demand) relative to ATM volatility; low SKEW indicates complacent tail pricing. The strategy uses SKEW's trailing z-score as a *regime* signal for SPY exposure: reduce or invert equity exposure when tail-risk pricing is unusually elevated (risk-off regime) and allow normal/targeted long exposure when tail pricing is not stressed, harvesting the equity risk premium in non-tail-stress regimes while avoiding fragile periods. Causal path: observable option-implied tail premium at close t → position for t+1.
+**Distinct from prior families:** H86 (VIX term structure *slope* VIX3M/VIX equity timing) uses ATM vol term structure/contango; H17 (VRP) trades SVXY gated by VIX *level*/contango; H3/H5/H6 gate momentum by VIX level/regime. NF-07 uses a different observable (`^SKEW`, implied skewness/tail shape) and a different mechanism (tail-risk premium/complacency regime) on a different option-surface dimension. Instrument overlaps H86 (SPY) but signal and mechanism differ; novelty scored honestly below a wholly new instrument.
+**Observables (point-in-time):** `^SKEW` and `SPY` daily close via yfinance/`DataFetcher.fetch_yahoo`. Verified 2026-11-05: `^SKEW` 2918 rows 2015–2026, no non-positive; SPY 2975 rows; aligned overlap 2918 rows; SKEW range ~110–183.
+**Null:** Trailing SKEW regime does not improve SPY risk-adjusted returns net of costs relative to buy-and-hold SPY.
+**Rejection (pre-registered for H89):** OOS Sharpe < 0.5, PF < 1.1, max DD > 15%, < 200 OOS trades, or fails pre-registered PROMPT_V2-style gates applied to OOS Val+Test.
+**Data/splits:** 2015-01-01→2026-10-31, train 2015-01-01→2019-12-31, val 2020-01-01→2022-12-31, test 2023-01-01→2026-10-31 (protected holdout). Free/public. Equity costs via `CostModel`/`AssetClass.EQUITY`.
+**Feasibility:** Small grid (48 valid combos), daily, two symbols, no `src/qtr` change expected. Capacity high (SPY). Key risk: SKEW is widely followed; signal may be weak/unstable or direction ambiguous — addressed by pre-registering direction and falsifiers.
+
+### Ranking (cycle 4, 1–5)
+
+| Candidate | Mechanism category | Novelty | Plaus | Data | Falsif | Exec | Support | Weighted |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261105-07 SKEW tail-risk timing (H89) | Vol/convexity premia (implied tail/skew) | 3 | 3 | 5 | 5 | 5 | 3 | **3.80** |
+| NF-20261105-05 Short-term CS reversal | Liquidity provision / order-flow | 3 | 3 | 5 | 5 | 2 | 3 | **3.35** |
+| NF-20261105-04 Commodity carry (roll proxy) | Carry / term structure | 4 | 4 | 2 | 4 | 3 | 4 | **3.35** |
+
+Scoring notes: NF-07 novelty reduced because instrument (SPY timing) overlaps H86; signal/mechanism are distinct but adjacent to prior VIX-family work. NF-04 data/execution reduced to 2/3 due evidenced point-in-time term-structure/roll-proxy gap and CL=F non-positive history. NF-05 execution remains 2 due decisive turnover/net-of-cost risk. No novelty/plausibility inflation; NF-07 selected as highest *expected-information feasible* free-data test.
+
+**Selection:** **NF-20261105-07 → H89** (smallest decisive test, clean point-in-time observables, no `src/qtr` change). NF-04/NF-05 remain deferred until decisive risks are explicitly pre-registered and evidenced.
+
+## 14. NF-20261105-07 / H89 execution outcome (2026-11-05) — REJECTED (4/9)
+
+**H89 executed:** `exp_2026-11-05T12-36-06-158635Z` (`nf_20261105_07_skew_tail_timing`, completed). Command: `PYTHONPATH=src python run_nf_20261105_07_skew_tail_timing.py`. `^SKEW`/`SPY` daily 2015-01-01→2026-10-31 (2918 aligned rows), train/val/test 1241/743/934, grid 48 (5.1s). Selected (train-only WF): lookback=63, entry_z=0.5, exit_z=-0.5, vol_target=0.10.
+
+**OOS (Val+Test):** Sharpe 0.524, PF 1.140, max DD −8.53%, trades 368, WF stability 1.800 (train 0.427, val 0.309, test 0.768), worst-regime rolling-252 Sharpe −0.623, benchmark p=1.000 / IR −0.634 vs buy-hold SPY (Sharpe 0.735), perturbation min ratio 0.746. Ablations: random-state Sharpe −0.371/PF 0.913; inverse-threshold ablation produced 0 OOS trades under long/flat construction (recorded). Gates **4/9 pass** (trades, max DD, WF stability, perturbation). Verdict **REJECT**.
+
+**Protected holdout:** used only in pre-registered OOS (Val+Test) gate evaluation after selection; no holdout feedback in discovery/selection/implementation.
+
+**Verification (this session):** `python -m ruff check run_nf_20261105_07_skew_tail_timing.py tests/test_nf_20261105_07_skew_tail_timing.py` and global `python -m ruff check src tests run_*.py` → All checks passed. `python -m ruff format --check src tests run_*.py` → 115 files already formatted. `PYTHONPATH=src python -m pytest tests/test_nf_20261105_07_skew_tail_timing.py -q` → **10 passed**. `src/qtr` not modified; full pinned coverage/`-W error` suite not re-run.
+
+**Lineage update:**
+
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| CBOE SKEW tail-risk regime equity timing | H89 (NF-20261105-07) | Trailing `^SKEW` z-score long/flat SPY timing (tail-risk/complacency regime), causal 1-bar delay, vol-targeted | `^SKEW`, SPY daily (yfinance), 2015–2026 | **REJECTED** (4/9; OOS Sharpe 0.524, PF 1.140, bench p=1.000/IR −0.634, worst-regime −0.623) | SKEW regime not additive vs buy-hold SPY net of gates; risk-off gating reduces DD but underperforms benchmark; tail signal may be crowded/collinear with broader vol stress |
+
+**Next candidate decision (directive §6):** H85–H89 rejected. NF-20261105-04 and NF-20261105-05 remain deferred with decisive risks documented (NF-04 point-in-time term-structure/roll proxy unavailable in current free pipeline; NF-05 turnover/net-of-cost under pre-registered daily CS reversal). Next unused H-ID **H90**. New mechanism search must propose at least a third candidate if NF-04/NF-05 remain infeasible; prefer a small, free, point-in-time test in a materially distinct category (e.g., event/auction/calendar-seasonality with pre-registered ex-ante dates — checked for novelty; or bond/equity cross-asset risk-premium signal distinct from H86/VIX families; or volume/dispersion observable with clear mechanism). Do not execute NF-04/NF-05 without resolving decisive risks in a pre-registered, point-in-time design.

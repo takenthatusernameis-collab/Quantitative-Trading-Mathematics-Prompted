@@ -5232,3 +5232,39 @@ Universe GLD/USO (4233 rows), train/val/test 2264/1008/961. Grid 18 (train-only 
 **Cause:** CL=F continuous front-month includes non-positive prices around the 2020-04-20 WTI negative-settlement episode (4 bars). Data-construction/feasibility blocker for the original GC=F/CL=F universe under the engine's fail-closed price guard. **No `src/qtr` change.**
 
 **Not evaluated:** grid, OOS metrics, gates, verdict — **protected holdout untouched**. Blocked ≠ rejected. Resolved by 2026-11-05 option-(b) GLD/USO re-specification above.
+
+## H89 — NF-20261105-07: CBOE SKEW tail-risk regime equity timing (pre-registered 2026-11-05)
+
+**Temporary lineage ID:** NF-20261105-07 (cycle 4, post H88 REJECT). Next unused H-ID: H89.
+
+**Statement.** CBOE SKEW's trailing z-score (implied S&P 500 return-distribution tail risk / skewness) provides a point-in-time regime signal for SPY exposure. A simple, pre-registered rule reduces SPY exposure (flat) when SKEW is unusually elevated relative to its trailing window and holds a vol-targeted long SPY position otherwise. The mechanism is tail-risk premium/complacency regime information, distinct from VIX level (H3/H5/H6/H17) and VIX term-structure slope (H86).
+
+**Null (H0).** Trailing SKEW regime does not improve risk-adjusted SPY returns net of costs relative to buy-and-hold SPY on OOS Val+Test.
+
+**Mechanism / causal chain.** `^SKEW` is computed from OTM S&P 500 option prices and reflects implied tail fatness/skewness. Elevated SKEW at close t indicates richer crash-protection pricing/tail stress; the pre-registered rule sets position for t+1 (1-bar delay), so no look-ahead. Observable at close t → regime classification → target weight applied to return t+1.
+
+**Construction (daily, causal).**
+1. Compute `z_t = (SKEW_t - rolling_mean(SKEW, L)) / rolling_std(SKEW, L)` with trailing window `L` and minimum periods (point-in-time).
+2. If `z_t >= entry_z`: target = 0 (risk-off / elevated tail pricing).
+3. If `z_t <= exit_z`: target = 1 (normal long exposure); hysteresis between `exit_z` and `entry_z` retains prior state.
+4. Apply vol targeting to SPY returns (trailing realized vol, annualized target) and cap `|position| <= 0.5`. No short leg in baseline (long/flat) to keep mechanism clean.
+5. Engine applies `position_{t-1}` to `return_t`.
+
+**Universe / data (free).** `^SKEW`, `SPY` daily adjusted close via `DataFetcher.fetch_yahoo`, 2015-01-01→2026-10-31. Feasibility verified 2026-11-05: `^SKEW` 2918 rows, 0 non-positive; SPY 2975 rows; aligned 2918 rows.
+
+**Splits (pre-registered, protected holdout).** Train 2015-01-01→2019-12-31, Val 2020-01-01→2022-12-31, Test (protected holdout) 2023-01-01→2026-10-31. Selection uses train-only walk-forward Sharpe; gates evaluated on OOS Val+Test after selection. No holdout feedback.
+
+**Costs / constraints.** `AssetClass.EQUITY`, `CostModel` defaults, daily bar engine, max position 0.5, no short. SPY capacity not binding.
+
+**Grid (small, train-only selection).** `lookback L ∈ {63,126,252}`, `entry_z ∈ {0.5,1.0,1.5}`, `exit_z ∈ {-0.5,0.0,0.5}` with `exit_z < entry_z`, `vol_target ∈ {0.10,0.15}`. 48 valid combos.
+
+**Gates (OOS Val+Test).** Sharpe >= 1.0, >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability (test >= 0.7×train when train>0), benchmark p <= 0.05 vs buy-hold SPY, IR >= 0, perturbation min ratio >= 0.5 (OAT ±20% on L/entry_z).
+
+**Rejection.** OOS Sharpe < 0.5, PF < 1.1, max DD > 15%, < 200 OOS trades, or unstable perturbation/benchmark failure indicating no edge.
+
+**Closest prior family / distinction.** H86 (NF-20261104-01) times SPY using VIX term-structure slope (VIX3M/VIX, contango/backwardation). H17 trades SVXY on VRP with VIX level/contango gates. H89 uses `^SKEW` (implied tail skewness), a different options-surface observable and tail-risk/complacency mechanism; not a parameter/threshold variant of H86/H17.
+
+**Confounders / falsifiers.** SKEW is widely published; regime effect may be crowded or collinear with VIX stress. Falsifiers: (1) randomized/shifted SKEW signal ablation; (2) inverse rule ablation; (3) buy-hold SPY benchmark comparison; (4) subperiod stability (Val vs Test). No claim of novelty/profit/robustness from backtest mechanics alone.
+### Result (exp `exp_2026-11-05T12-36-06-158635Z`, 2026-11-05) — **REJECTED (4/9 gates)**
+
+Universe `^SKEW`/`SPY` (2918 aligned rows), train/val/test 1241/743/934. Grid 48 (train-only WF selection). Selected: lookback=63, entry_z=0.5, exit_z=-0.5, vol_target=0.10. OOS Val+Test (1677 periods, 368 trades): Sharpe 0.524, PF 1.140, max DD −8.53%, WF stability 1.800 (train 0.427, val 0.309, test 0.768), worst-regime rolling-252 Sharpe −0.623, benchmark p=1.000 / IR −0.634 vs buy-hold SPY, perturbation min ratio 0.746. Ablations: SPY benchmark Sharpe 0.735/PF 1.150; random-state Sharpe −0.371/PF 0.913 (906 trades); inverse-threshold rule produced 0 OOS trades under long/flat implementation (no short exposure) — recorded as implemented, not evidence of inverse edge. Passes: trades, max DD, WF stability, perturbation. Fails: Sharpe, PF, worst-regime, p-value, information ratio. Artifact: `.experiments/artifacts/exp_2026-11-05T12-36-06-158635Z/summary.json`. Protected holdout used only in pre-registered OOS gate evaluation after selection; no holdout feedback.

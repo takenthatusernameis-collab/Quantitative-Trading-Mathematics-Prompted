@@ -1,0 +1,15 @@
+{
+  "shape": [
+    2918,
+    2
+  ],
+  "columns": [
+    "^SKEW",
+    "SPY"
+  ],
+  "dtypes": {
+    "^SKEW": "float64",
+    "SPY": "float64"
+  },
+  "index_type": "datetime64[s]"
+}
