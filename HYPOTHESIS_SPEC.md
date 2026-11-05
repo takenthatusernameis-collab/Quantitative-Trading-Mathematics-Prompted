@@ -5268,3 +5268,25 @@ Universe GLD/USO (4233 rows), train/val/test 2264/1008/961. Grid 18 (train-only 
 ### Result (exp `exp_2026-11-05T12-36-06-158635Z`, 2026-11-05) — **REJECTED (4/9 gates)**
 
 Universe `^SKEW`/`SPY` (2918 aligned rows), train/val/test 1241/743/934. Grid 48 (train-only WF selection). Selected: lookback=63, entry_z=0.5, exit_z=-0.5, vol_target=0.10. OOS Val+Test (1677 periods, 368 trades): Sharpe 0.524, PF 1.140, max DD −8.53%, WF stability 1.800 (train 0.427, val 0.309, test 0.768), worst-regime rolling-252 Sharpe −0.623, benchmark p=1.000 / IR −0.634 vs buy-hold SPY, perturbation min ratio 0.746. Ablations: SPY benchmark Sharpe 0.735/PF 1.150; random-state Sharpe −0.371/PF 0.913 (906 trades); inverse-threshold rule produced 0 OOS trades under long/flat implementation (no short exposure) — recorded as implemented, not evidence of inverse edge. Passes: trades, max DD, WF stability, perturbation. Fails: Sharpe, PF, worst-regime, p-value, information ratio. Artifact: `.experiments/artifacts/exp_2026-11-05T12-36-06-158635Z/summary.json`. Protected holdout used only in pre-registered OOS gate evaluation after selection; no holdout feedback.
+
+## H90 — NF-20261105-08: Pre-scheduled FOMC announcement event drift (pre-registered 2026-11-05; decision-ready, implementation pending)
+
+**Status.** Pre-registered only. Implementation/execution deferred pending point-in-time FOMC calendar coverage validation and turnover/cost design. No experiment run yet.
+
+**NF temp ID.** NF-20261105-08.
+
+**Mechanism (event/auction).** Pre-scheduled macro announcements (FOMC statement release at 14:00 ET) create a predictable information shock; prices may drift in the direction implied by the announcement in a short post-event window. Distinct from H18 (overnight/intraday persistence on arbitrary days) and H87 (opening-gap fill): H90 conditions on a pre-specified calendar event, not on price gaps or session returns.
+
+**Observables.** FOMC meeting dates (public Fed calendar, ex-ante known point-in-time), SPY daily returns, VIX level optional gate. Entry at close of announcement day or next open; hold 1–5 days.
+
+**Construction.** Long/flat SPY (no short) over event windows around FOMC dates; vol-targeted; skip if VIX above threshold (optional pre-registered). Costs: daily bar engine defaults + slippage; turnover concentrated around events.
+
+**Splits.** Train 2015–2019, Val 2020–2022, Test (protected) 2023–2026.
+
+**Gates.** Same as standard: Sharpe >= 1.0, >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7, benchmark p <= 0.05 vs buy-hold SPY, IR >= 0, perturbation min ratio >= 0.5.
+
+**Null / rejection.** OOS Sharpe < 0.5, PF < 1.1, < 200 trades, or benchmark failure.
+
+**Closest prior family / distinction.** H18 overnight/intraday persistence (not scheduled macro-event windows); H87 opening-gap fill. H90 conditions on ex-ante calendar event, not price-derived signals.
+
+**Blockers.** (1) Need point-in-time FOMC date list verified against current pipeline (hardcoded from public Fed calendar acceptable but must be audited for survivorship/revision). (2) Event-window construction must pre-register exact entry/exit timing to avoid look-ahead. (3) Turnover/cost realism around concentrated event windows. Until (1)–(3) evidenced, keep deferred; do not execute.
