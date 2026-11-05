@@ -5324,7 +5324,7 @@ Universe `^SKEW`/`SPY` (2918 aligned rows), train/val/test 1241/743/934. Grid 48
 Universe SPY (4233 rows), train/val/test 2516/756/961. Grid 10 (train-only WF selection). Selected: head_days=5, vol_target=0.15 (best train-WF Sharpe 0.854). OOS Val+Test (1717 periods, 190 trades): Sharpe 0.784, PF 1.296, max DD −9.35%, WF stability 1.144 (train 0.446, val 1.048, test 0.521), worst-regime rolling-252 Sharpe −1.73, benchmark p=1.000 / IR −0.639 vs buy-hold SPY, perturbation min ratio 0.941. Ablations: SPY benchmark Sharpe 0.727/PF 1.149; random-window Sharpe 0.041/PF 1.022 (297 trades); always-flat Sharpe 0.0. Passes: max_drawdown, walkforward_stability, perturbation. Fails: Sharpe (0.784<1.0), PF (1.296<1.3), trades (190<200), worst-regime, p-value, information ratio. Artifact: `.experiments/artifacts/exp_2026-11-05T13-32-55-648939Z/summary.json`. Protected holdout used only in pre-registered OOS gate evaluation after selection; no holdout feedback.
 
 
-## H92 — NF-20261105-10: Equity/bond relative-momentum risk-premium timing (pre-registered 2026-11-05; executed pending)
+## H92 — NF-20261105-10: Equity/bond relative-momentum risk-premium timing (executed 2026-11-05; REJECTED 3/9)
 
 **Temporary lineage ID:** NF-20261105-10 (cycle 6, post H91 REJECT). H-ID: H92.
 
@@ -5368,3 +5368,34 @@ Universe SPY (4233 rows), train/val/test 2516/756/961. Grid 10 (train-only WF se
 Ablations: SPY buy-hold benchmark Sharpe 0.727 (DD -18.2%) — the strategy underperformed buy-hold on OOS; random-direction ablation matched the strategy exactly (Sharpe 0.447, same DD/trades/PF), i.e. the vol-targeted *long-only flat* path carries no directional information beyond the SPY benchmark; `allow_short=True` ablation Sharpe -0.092 (DD -28.2%, PF 0.984) — shorting on negative relmom destroys value, consistent with equity-bond correlation regime shifts (2022 inflation shock: equities and bonds fell together, so relmom stayed near zero and shorts were entered at the wrong time).
 
 **Verdict rationale.** The equity-bond relative-momentum risk-premium timing mechanism does not survive OOS Val+Test gates. Train Sharpe 0.325 → Val 0.067 → Test 0.881 (test recovery is noise on 961 bars; OOS Val+Test pooled Sharpe 0.447 is below the 0.5 rejection floor). The signal is indistinguishable from a vol-scaled long-only SPY exposure (random-direction ablation identical), and the short side is decisively value-destroying. No gate was weakened; no published/certified artifact was modified.
+
+
+## H93 — NF-20261105-13: Idiosyncratic-volatility cross-section timing (pre-registered 2026-11-05; executed pending)
+
+**Temporary lineage ID:** NF-20261105-13 (cycle 7, post H92 REJECT). H-ID: H93 (next unused after H92; H24/H68-H73/H76-H79 remain unassigned but are not recycled per directive §3).
+
+**Statement.** Lottery-demand / low-idiosyncratic-volatility premium: investors overpay for lottery-like high-idiosyncratic-volatility names, so high idiosyncratic volatility predicts low future risk-adjusted returns. Monthly, rank liquid ETFs by trailing idiosyncratic volatility vs SPY (rolling residual std of symbol-minus-SPY daily returns); long the low-IVOL quintile, short the high-IVOL quintile, equal-weight within legs, vol-targeted to `vol_target` annualized; net OOS (Val+Test) Sharpe ≥ 1.0 with ≥ 200 trades, PF ≥ 1.3, max DD ≤ 15%, worst-regime Sharpe ≥ 0.3, perturbation robust, significant positive alpha vs equal-weight universe benchmark (p < 0.05, IR > 0).
+
+**Null (H0).** Cross-sectional IVOL ranking has no predictive power for next-month ETF returns beyond random chance after costs.
+
+**Mechanism / causal chain.** ivol[s][t] = rolling std of (rets[s] − rets[SPY]) over ivol_lookback × sqrt(252), computed from prices through close t (past-only). At each month-end (last trading day) symbols are ranked by current IVOL; bottom quintile_share → side +1, top quintile_share → side −1, middle → 0; weights held until next month-end. Per-symbol scale = vol_target / trailing 21-day realized vol (past-only), clipped to [0, MAX_POS]. Engine applies signals.shift(1): target at close t earns return t→t+1 — strictly causal, no same-day look-ahead.
+
+**Universe / data (free).** SPY (market proxy only, not traded) + 12 liquid ETFs (QQQ, IWM, EFA, EEM, VWO, TLT, AGG, HYG, GLD, USO, VNQ, XLB) daily adjusted close via DataFetcher.fetch_yahoo, 2010-01-01→2026-10-31. Point-in-time: only published daily closes; IVOL uses only trailing residuals.
+
+**Splits (pre-registered, protected holdout).** Train 2010-01-01→2019-12-31; Val 2020-01-01→2022-12-31; Test (protected) 2023-01-01→2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test. No holdout feedback.
+
+**Grid (train-only selection).** ivol_lookback ∈ {63,126,252} × quintile_share ∈ {0.2,0.33} × vol_target ∈ {0.10,0.15} = 12 combos.
+
+**Costs / constraints.** AssetClass.EQUITY, CostModel defaults (1 bp commission + 0.5 bp spread + 0.1 bp impact per 1% ADV), daily bar engine, max position 0.5 per name, max leverage 1.0, shorts allowed, monthly rebalance (~12 rebalances/yr). Capacity not binding at research scale.
+
+**Gates (OOS Val+Test).** Sharpe ≥ 1.0, ≥ 200 trades, PF ≥ 1.3, max DD ≤ 15%, WF stability (test ≥ 0.7×train when train>0), worst-regime rolling-252 Sharpe ≥ 0.3, benchmark p ≤ 0.05 vs equal-weight universe buy-hold, IR ≥ 0, perturbation min ratio ≥ 0.5 (OAT ±20% on ivol_lookback/quintile_share/vol_target for selected config).
+
+**Rejection.** OOS Sharpe < 0.5, PF < 1.1, < 200 OOS trades, max DD > 15%, or perturbation/benchmark failure. No gate weakening.
+
+**Runner.** run_nf_20261105_13_idiosyncratic_vol.py. Tests: tests/test_nf_20261105_13_idiosyncratic_vol.py. Deterministic seed 42. Compute budget ≤ 2 CPU-h (expected << 1 min).
+
+**Closest prior family / distinction.** H2/H16 rank equities by own past returns (cross-sectional momentum trend); H93 ranks by idiosyncratic *volatility* (a risk/lottery measure, opposite sign: low IVOL favored) — different observable, mechanism, and causal path. H17 times a single vol vehicle (SVXY) by spot-VIX level; H86/H89 use vol-surface/tail-shape signals on SPY; H91 uses ex-ante calendar boundaries. H93 is cross-sectional IVOL — a new root family dimension not previously tested.
+
+**Confounders / falsifiers.** (1) random-side ablation matched on long/short exposure frequency; (2) long-only low-IVOL ablation; (3) equal-weight universe buy-hold benchmark; (4) perturbation min ratio; (5) subperiod stability (Val vs Test). IVOL is known to be crowded/decayed post-2000s; no claim of profit from backtest mechanics alone. No claim of novelty beyond this repository.
+
+**Execution.** Not yet executed. Next task: run lint/focused tests, execute `PYTHONPATH=src python run_nf_20261105_13_idiosyncratic_vol.py`, then record outcome in NEW_FAMILY_RESEARCH_REGISTER.md cycle 7 and update NEXT_TASK.md.
