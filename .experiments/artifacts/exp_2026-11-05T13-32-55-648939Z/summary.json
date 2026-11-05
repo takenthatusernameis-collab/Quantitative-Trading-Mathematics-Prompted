@@ -1,0 +1,85 @@
+{
+  "experiment_id": "exp_2026-11-05T13-32-55-648939Z",
+  "hypothesis": "NF-20261105-09/H91",
+  "selected_config": {
+    "head_days": 5,
+    "vol_target": 0.15
+  },
+  "selection_rule": "best train-only walk-forward Sharpe; Test protected; gates on OOS Val+Test",
+  "grid_size": 10,
+  "n_evaluated": 10,
+  "grid_elapsed_sec": 0.3,
+  "total_elapsed_sec": 1.2,
+  "compute_cpu_hours": 0.0,
+  "calendar": {
+    "source": "ex-ante month boundaries (turn-of-month window)",
+    "coverage": [
+      "2010-01-01",
+      "2026-10-31"
+    ]
+  },
+  "metrics": {
+    "train_sharpe": 0.4455147673276019,
+    "val_sharpe": 1.0481673799619255,
+    "test_sharpe": 0.5205326725426085,
+    "oos_sharpe": 0.7844411099225702,
+    "profit_factor": 1.2962152231777375,
+    "max_drawdown": -0.09352302029367932,
+    "trades": 190,
+    "wf_stability": 1.1683847780512366,
+    "benchmark_p_value": 1.0,
+    "information_ratio": -0.5170717510566004,
+    "worst_regime_sharpe": -1.4475623573259158,
+    "perturbation": {
+      "variants": {
+        "head_days=4": 0.7380850653361533,
+        "head_days=6": 0.8328117743182002,
+        "vol_target=0.12": 0.8708722191984027,
+        "vol_target=0.18": 0.7467007100514191
+      },
+      "min_perturbed_sharpe_ratio": 0.9409056409715796
+    },
+    "ablations": {
+      "spy_benchmark": {
+        "sharpe": 0.7265532171000195,
+        "max_drawdown": -0.18206356730445683,
+        "profit_factor": 1.1489898603066666,
+        "trades": 0,
+        "gross_profit": 3.819564264794159,
+        "gross_loss": 3.3242802193003804,
+        "n_periods": 1717
+      },
+      "random_window_days": {
+        "sharpe": -0.2508655005225697,
+        "max_drawdown": -0.11495755538457497,
+        "profit_factor": 0.9225595509685605,
+        "trades": 724,
+        "gross_profit": 0.976369802824636,
+        "gross_loss": 1.0583271310774272,
+        "n_periods": 1717
+      },
+      "always_flat": {
+        "sharpe": 0.0,
+        "max_drawdown": 0.0,
+        "profit_factor": Infinity,
+        "trades": 0,
+        "gross_profit": 0.0,
+        "gross_loss": 0.0,
+        "n_periods": 1717
+      }
+    }
+  },
+  "passes": {
+    "sharpe": false,
+    "trades": false,
+    "profit_factor": false,
+    "max_drawdown": true,
+    "walkforward_stability": true,
+    "worst_regime_sharpe": false,
+    "p_value": false,
+    "information_ratio": false,
+    "perturbation": true
+  },
+  "all_pass": false,
+  "verdict": "REJECT"
+}

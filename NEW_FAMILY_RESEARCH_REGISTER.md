@@ -569,3 +569,51 @@ Scoring notes: NF-07 novelty reduced because instrument (SPY timing) overlaps H8
 - **OOS metrics (Val+Test):** Sharpe -0.633, PF 0.582, maxDD -6.57%, trades 110, WF stability 0, bench p 1.0, IR -0.859, worst-regime -2.268, perturbation min ratio 0. Passes 1/9 (max_drawdown only). Train/Val/Test Sharpe -0.872/-0.886/-0.379. Ablations: SPY benchmark 0.727; random event dates -0.353; no-VIX-gate same.
 - **Verdict:** REJECT. Mechanism does not show positive OOS event drift after costs in this pre-registered design; negative edge across Train/Val/Test.
 - **Next:** Do not re-optimize same family without a materially different, pre-registered mechanism (e.g., intraday post-announcement window with point-in-time timestamps — only if free/causal data available; not a parameter tweak). Continue new-family discovery.
+
+## Cycle 5 (2026-11-05) — post-H90 mechanism search → NF-20261105-09 / H91 selection
+
+H85–H90 rejected (H90 FOMC event drift 1/9). NF-20261105-04 (commodity carry roll proxy) and NF-20261105-05 (short-term CS reversal) remain deferred with decisive risks documented (NF-04: point-in-time term-structure/roll proxy unavailable in the free pipeline; NF-05: daily turnover/net-of-cost under pre-registered CS reversal). Per directive §4/§6, a fresh mechanism search across new broad categories was required. Three candidates spanning three distinct mechanism categories, checked against the full lineage map (H1–H90), no overlap with any exhausted root family:
+
+| Candidate | Mechanism category | Novelty | Plaus | Data | Falsif | Exec | Support | Weighted |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261105-09 Turn-of-month equity seasonality (SPY) | Calendar-seasonality / supply-flow constraints | 4 | 4 | 5 | 5 | 5 | 3 | **4.15** |
+| NF-20261105-10 Cross-sectional return dispersion (equity) | Dispersion / cross-section risk premium | 3 | 3 | 5 | 4 | 4 | 3 | 3.35 |
+| NF-20261105-11 Treasury term-spread regime timing | Bond/equity cross-asset risk premium | 3 | 3 | 3 | 4 | 3 | 3 | 3.25 |
+
+**Selection:** NF-20261105-09 (turn-of-month equity seasonality) scores highest (4.15). It is the smallest decisive test: single symbol SPY, fixed ex-ante calendar rule (no parameter search on price), low turnover, clean falsification, no `src/qtr` change. Pre-registered as H91. NF-010/NF-011 remain deferred pending decisive-risk resolution.
+
+### NF-20261105-09 / H91 — Turn-of-month equity seasonality (pre-registered; execution pending)
+
+**Temporary lineage ID:** NF-20261105-09. **Proposed H-ID:** H91 (next unused after H90).
+
+**Statement.** Recurring turn-of-month liquidity/flow effects (pension contributions, index rebalancing, window dressing) elevate equity returns around month boundaries. Vol-targeted long SPY during the ex-ante turn-of-month window (last trading day of month m + first `head_days` trading days of month m+1), flat otherwise, clears the PROMPT_V2 gates on OOS Val+Test.
+
+**Mechanism / causal chain.** Month membership and within-month trading-day rank are calendar-known at close t; `build_turn_window_mask` derives membership from the DatetimeIndex alone (last trading day of month m OR first `head_days` trading days of month m+1). Engine applies `signals.shift(1)`: target at close t earns return t→t+1 — strictly causal, no same-day look-ahead. Vol target scales by trailing 21-day realized SPY vol (past-only), capped at `MAX_POS=0.5`, long-only. New family dimension: calendar-seasonality / supply-flow constraints — distinct from all exhausted families.
+
+**Null (H0).** Turn-of-month window membership has no predictive power for next-day SPY returns beyond random chance after costs.
+
+**Universe / data (free).** SPY daily adjusted close via `DataFetcher.fetch_yahoo`, 2010-01-01→2026-10-31; SPY verified clean (no non-positive prices). Single instrument; SPY capacity not binding.
+
+**Splits (pre-registered, protected holdout).** Train 2010-01-01→2019-12-31; Val 2020-01-01→2022-12-31; Test (protected) 2023-01-01→2026-10-31. Selection = train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test; no holdout feedback.
+
+**Costs / constraints.** `AssetClass.EQUITY`, `CostModel` defaults, daily bar engine, max position 0.5, long-only, low month-turn turnover.
+
+**Grid.** `head_days ∈ {1,2,3,4,5}` × `tail=1` (fixed) × `vol_target ∈ {0.10,0.15}` = 10 combos. Selection by train-only WF Sharpe; Test protected.
+
+**Gates (OOS Val+Test).** Sharpe ≥ 1.0, ≥ 200 trades, PF ≥ 1.3, max DD ≤ 15%, WF stability ≥ 0.7×train, worst-regime rolling-252 Sharpe ≥ 0.3, benchmark p ≤ 0.05 vs buy-hold SPY, IR ≥ 0, perturbation min ratio ≥ 0.5 (OAT ±20% on head_days/vol_target).
+
+**Rejection.** OOS Sharpe < 0.5, PF < 1.1, < 200 OOS trades, max DD > 15%, or perturbation/benchmark failure. No gate weakening.
+
+**Runner.** `run_nf_20261105_09_turn_of_month.py` (written, execution pending). Isolated per-experiment cache, grid + WF selection, gate evaluation, perturbation eval, ablations (random-window same-frequency, always-flat, SPY benchmark), artifact + summary.json logging. Deterministic seed 42; compute budget ≤ 2 CPU-h (expected << 1 min).
+
+**Closest prior family / distinction.** H87 (opening-gap fill) and H90 (FOMC event drift) are event/auction families but condition on price gaps or scheduled macro dates, not recurring monthly calendar membership. H18 conditions on returns. H91 is mechanism-distinct: ex-ante calendar month boundaries only.
+
+**Falsifiers.** Random-window ablation matched on window-day frequency; always-flat ablation; SPY buy-hold benchmark; perturbation min ratio; subperiod stability (Val vs Test).
+
+**Status.** Runner + focused tests written; lint/format clean; focused tests 8/8 passed; experiment executed `exp_2026-11-05T13-32-55-648939Z` (2026-11-05). **Verdict: REJECT (3/9 gates)** — OOS Sharpe 0.784 (<1.0), PF 1.296 (<1.3), trades 190 (<200); passes max_drawdown, walkforward_stability, perturbation. Pre-registration recorded in HYPOTHESIS_SPEC.md §H91 and this register cycle 5.
+
+**Lineage map update (H91 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Turn-of-month equity seasonality | H91 (NF-20261105-09) | Vol-targeted long SPY during ex-ante turn-of-month window (last trading day of month m + first head_days days of month m+1); calendar-seasonality / supply-flow constraints | SPY daily (yfinance), 2010–2026 | **REJECTED** (3/9; OOS Sharpe 0.784, PF 1.296, DD −9.4%, trades 190) | Calendar anomaly weak/crowded after costs; train→OOS decay; underperforms SPY benchmark (IR −0.639) |

@@ -5290,3 +5290,35 @@ Universe `^SKEW`/`SPY` (2918 aligned rows), train/val/test 1241/743/934. Grid 48
 **Closest prior family / distinction.** H18 overnight/intraday persistence (not scheduled macro-event windows); H87 opening-gap fill. H90 conditions on ex-ante calendar event, not price-derived signals.
 
 **Execution (2026-11-05).** Grid 32 (hold_days={1,2,3,5}, vix_gate={None,20,25,30}, vol_target={0.10,0.15}); selection=best train-only WF Sharpe (protected Test; gates on OOS Val+Test). Selected hold_days=1,vix_gate=None,vol_target=0.10. OOS Sharpe=-0.633, PF=0.582, maxDD=-6.57%, trades=110, train=-0.872, val=-0.886, test=-0.379, WF stability=0, bench p=1.0, IR=-0.859, worst-regime=-2.268, perturbation min ratio=0. Ablations: SPY benchmark Sharpe=0.727, random event dates=-0.353, no-VIX-gate same as selected. Verdict: REJECT (1/9; only max_drawdown passed).
+
+## H91 — NF-20261105-09: Turn-of-month equity seasonality on SPY (executed 2026-11-05; REJECTED 3/9)
+
+**Temporary lineage ID:** NF-20261105-09 (cycle 5, post H90 REJECT). H-ID: H91.
+
+**Statement.** Recurring turn-of-month liquidity/flow effects (pension contributions, index rebalancing, window dressing) elevate equity returns around month boundaries. A vol-targeted long SPY position during the ex-ante turn-of-month window (last trading day of month m + first `head_days` trading days of month m+1), flat otherwise, generates net pooled OOS (Val+Test) Sharpe ≥ 1.0 with ≥ 200 trades, PF ≥ 1.3, max DD ≤ 15%, WF stability ≥ 0.7 vs train, robust to ±20% perturbation (OOS Sharpe ≥ 0.5×optimum), and significant vs buy-hold SPY (p < 0.05, IR ≥ 0). Calendar-seasonality / supply-flow constraints mechanism — new family dimension distinct from all exhausted families (trend/TSMOM, CS momentum, regime-gated vol, VRP, overnight/intraday, volume, order-flow, lead-lag, VIX slope timing, basis MR, opening-gap fill, SKEW tail regime, FOMC event drift).
+
+**Null (H0).** Turn-of-month calendar window membership has no predictive power for next-day SPY returns beyond random chance after costs; any observed edge is a calendar artifact / data mining.
+
+**Mechanism / causal chain.** Month membership and within-month trading-day rank are calendar-known at close t; no price-derived or future information enters. `build_turn_window_mask` computes membership from the DatetimeIndex alone (last trading day of month m OR first `head_days` trading days of month m+1). The engine applies `signals.shift(1)`: target set at close t earns the return t→t+1 — strictly causal, no same-day look-ahead. Vol target scales position by trailing 21-day realized SPY vol (past-only), capped at `MAX_POS=0.5`, long-only.
+
+**Universe / data (free).** `SPY` daily adjusted close via `DataFetcher.fetch_yahoo`, 2010-01-01→2026-10-31. Verified clean: no non-positive prices; SPY usable. `^IRX` blocked by fetcher guard (non-positive) — not needed; single-instrument SPY design.
+
+**Splits (pre-registered, protected holdout).** Train 2010-01-01→2019-12-31, Val 2020-01-01→2022-12-31, Test (protected holdout) 2023-01-01→2026-10-31. Selection uses train-only 4-fold walk-forward Sharpe; gates evaluated on OOS Val+Test after selection. No holdout feedback into selection.
+
+**Costs / constraints.** `AssetClass.EQUITY`, `CostModel` defaults (1 bp commission + 0.5 bp spread + 0.1 bp impact per 1% ADV), daily bar engine, max position 0.5, long-only, no leverage beyond target vol scaling. Turnover concentrated at month turns (low). SPY capacity not binding.
+
+**Grid (train-only selection).** `head_days ∈ {1,2,3,4,5}` × `tail=1` (fixed, last trading day of month) × `vol_target ∈ {0.10,0.15}` = 10 combos. Selection = best train-only walk-forward Sharpe; Test protected; gates on OOS Val+Test.
+
+**Gates (OOS Val+Test).** Sharpe ≥ 1.0, ≥ 200 trades, PF ≥ 1.3, max DD ≤ 15%, WF stability (test ≥ 0.7×train when train>0), worst-regime rolling-252 Sharpe ≥ 0.3, benchmark p ≤ 0.05 vs buy-hold SPY, IR ≥ 0, perturbation min ratio ≥ 0.5 (OAT ±20% on head_days/vol_target).
+
+**Rejection.** OOS Sharpe < 0.5, PF < 1.1, < 200 OOS trades, max DD > 15%, or perturbation/benchmark failure indicating no edge. No gate weakening permitted.
+
+**Runner.** `run_nf_20261105_09_turn_of_month.py` — full pipeline: isolated per-experiment cache, grid search + WF selection, gate evaluation, perturbation eval (head_days/vol_target × {0.8,1.2}), ablations (random-window same-frequency, always-flat, SPY benchmark), artifact + summary.json logging, tracker finish. Deterministic seed 42. Compute budget ≤ 2 CPU-h (expected << 1 min: 10 grid combos on a single symbol).
+
+**Closest prior family / distinction.** Calendar-seasonality / supply-flow constraints. No prior repository family conditions purely on ex-ante month boundaries. H87 (opening-gap fill) and H90 (FOMC event drift) are event/auction families but condition on price gaps or scheduled macro dates, not recurring monthly calendar membership. H18 (overnight/intraday) conditions on returns. H91 is mechanism-distinct: ex-ante calendar month boundaries only.
+
+**Confounders / falsifiers.** Turn-of-month is a widely documented anomaly; effect may be crowded or weak after costs. Falsifiers: (1) random-window ablation matched on window-day frequency; (2) always-flat ablation; (3) SPY buy-hold benchmark comparison; (4) perturbation min ratio gate; (5) subperiod stability (Val vs Test). No claim of profit/robustness from backtest mechanics alone.
+
+### Result (exp `exp_2026-11-05T13-32-55-648939Z`, 2026-11-05) — **REJECTED (3/9 gates)**
+
+Universe SPY (4233 rows), train/val/test 2516/756/961. Grid 10 (train-only WF selection). Selected: head_days=5, vol_target=0.15 (best train-WF Sharpe 0.854). OOS Val+Test (1717 periods, 190 trades): Sharpe 0.784, PF 1.296, max DD −9.35%, WF stability 1.144 (train 0.446, val 1.048, test 0.521), worst-regime rolling-252 Sharpe −1.73, benchmark p=1.000 / IR −0.639 vs buy-hold SPY, perturbation min ratio 0.941. Ablations: SPY benchmark Sharpe 0.727/PF 1.149; random-window Sharpe 0.041/PF 1.022 (297 trades); always-flat Sharpe 0.0. Passes: max_drawdown, walkforward_stability, perturbation. Fails: Sharpe (0.784<1.0), PF (1.296<1.3), trades (190<200), worst-regime, p-value, information ratio. Artifact: `.experiments/artifacts/exp_2026-11-05T13-32-55-648939Z/summary.json`. Protected holdout used only in pre-registered OOS gate evaluation after selection; no holdout feedback.
