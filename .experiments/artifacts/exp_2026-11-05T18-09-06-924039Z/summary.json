@@ -1,0 +1,85 @@
+{
+  "experiment_id": "exp_2026-11-05T18-09-06-924039Z",
+  "hypothesis": "NF-20261105-13/H93",
+  "selected_config": {
+    "ivol_lookback": 126,
+    "quintile_share": 0.2,
+    "vol_target": 0.1
+  },
+  "selection_rule": "best train-only walk-forward Sharpe; Test protected; gates on OOS Val+Test",
+  "grid_size": 12,
+  "n_evaluated": 12,
+  "grid_elapsed_sec": 2.9,
+  "total_elapsed_sec": 10.4,
+  "compute_cpu_hours": 0.003,
+  "signal": {
+    "type": "idiosyncratic volatility vs SPY cross-section (long low-IVOL, short high-IVOL)",
+    "causal": "month-end IVOL and realized vol knowable at that close; engine shift(1) earns t->t+1"
+  },
+  "metrics": {
+    "train_sharpe": 0.647654526986039,
+    "val_sharpe": 0.3468651419588637,
+    "test_sharpe": 0.34465232073615676,
+    "oos_sharpe": 0.3433187238195669,
+    "profit_factor": 1.0631511586959264,
+    "max_drawdown": -0.20794559629301834,
+    "trades": 345,
+    "wf_stability": 0.5321545768236191,
+    "benchmark_p_value": 1.0,
+    "information_ratio": -0.015920213598815208,
+    "worst_regime_sharpe": -1.710731842692529,
+    "perturbation": {
+      "variants": {
+        "ivol_lookback=101": 0.3695698729883056,
+        "ivol_lookback=151": 0.37175442372738926,
+        "vol_target=0.08000000000000002": 0.37391316561729676,
+        "vol_target=0.12": 0.2997319382208812,
+        "quintile_share=0.16000000000000003": 0.3433187238195669,
+        "quintile_share=0.24": 0.20711967553244992
+      },
+      "min_perturbed_sharpe_ratio": 0.6032868619228086
+    },
+    "ablations": {
+      "equal_weight_universe_benchmark": {
+        "sharpe": 0.5184101067003302,
+        "max_drawdown": -0.2735623476455521,
+        "profit_factor": 1.1026688686516335,
+        "trades": 0,
+        "gross_profit": 5.341962406186273,
+        "gross_loss": 4.844575337216635,
+        "n_periods": 1717
+      },
+      "random_side": {
+        "sharpe": 0.33902594589548574,
+        "max_drawdown": -0.23957823416308677,
+        "profit_factor": 1.0621294768922473,
+        "trades": 509,
+        "gross_profit": 4.956702407922251,
+        "gross_loss": 4.666759105891105,
+        "n_periods": 1717
+      },
+      "long_only_low_ivol": {
+        "sharpe": 0.5744797833168399,
+        "max_drawdown": -0.2786898373367619,
+        "profit_factor": 1.1097211014499837,
+        "trades": 115,
+        "gross_profit": 6.825758044765384,
+        "gross_loss": 6.150877040949039,
+        "n_periods": 1717
+      }
+    }
+  },
+  "passes": {
+    "sharpe": false,
+    "trades": true,
+    "profit_factor": false,
+    "max_drawdown": false,
+    "walkforward_stability": false,
+    "worst_regime_sharpe": false,
+    "p_value": false,
+    "information_ratio": false,
+    "perturbation": true
+  },
+  "all_pass": false,
+  "verdict": "REJECT"
+}

@@ -183,9 +183,9 @@ def build_ivol_targets(
     shifts targets by one bar so close t targets earn t -> t+1.
     """
     idx = prices.index
-    targets = pd.DataFrame(0.0, index=idx, columns=TRADEABLE)
+    targets = pd.DataFrame(np.nan, index=idx, columns=TRADEABLE)
     if SPY not in prices.columns:
-        return targets
+        return targets.fillna(0.0)
     ivol_lookback = int(max(10, ivol_lookback))
     vol_target = float(max(0.01, vol_target))
     quintile_share = float(max(0.05, min(0.5, quintile_share)))
@@ -209,26 +209,30 @@ def build_ivol_targets(
             continue
         row = ivol_df.loc[d].dropna()
         if len(row) < 4:
+            rebalance_row = pd.Series(0.0, index=TRADEABLE)
+            targets.loc[d] = rebalance_row
             continue
         k = max(1, int(round(len(row) * quintile_share)))
         ranked = row.sort_values()
         long_syms = list(ranked.index[:k])
         short_syms = list(ranked.index[-k:])
         day_realized = realized.loc[d] if d in realized.index else pd.Series(dtype=float)
+        rebalance_row = pd.Series(0.0, index=TRADEABLE)
         for s in long_syms:
             scale = (
                 float(vol_target / day_realized[s])
                 if s in day_realized.index and np.isfinite(day_realized[s]) and day_realized[s] > 0
                 else 0.0
             )
-            targets.loc[d, s] = float(np.clip(scale, 0.0, MAX_POS))
+            rebalance_row[s] = float(np.clip(scale, 0.0, MAX_POS))
         for s in short_syms:
             scale = (
                 float(vol_target / day_realized[s])
                 if s in day_realized.index and np.isfinite(day_realized[s]) and day_realized[s] > 0
                 else 0.0
             )
-            targets.loc[d, s] = -float(np.clip(scale, 0.0, MAX_POS))
+            rebalance_row[s] = -float(np.clip(scale, 0.0, MAX_POS))
+        targets.loc[d] = rebalance_row
 
     targets = targets.reindex(idx).ffill().fillna(0.0)
     return targets

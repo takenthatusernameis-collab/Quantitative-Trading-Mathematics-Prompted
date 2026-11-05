@@ -645,8 +645,37 @@ H85–H91 rejected (H91 turn-of-month 3/9, `exp_2026-11-05T13-32-55-648939Z`). N
 
 **Execution status (2026-11-05T15:24Z).** EXECUTED → **REJECT (3/9 gates)**. Experiment `exp_2026-11-05T15-40-24-218763Z`; artifact `.experiments/artifacts/exp_2026-11-05T15-40-24-218763Z/summary.json`. Selected `lookback=63, vol_target=0.10, allow_short=False`. OOS Sharpe 0.447 (fail), PF 1.089 (fail), max DD -16.9% (fail), trades 313 (pass), WF stability 2.708 (pass), worst-regime Sharpe -1.778 (fail), bench p=1.0 (fail), IR -0.673 (fail), perturbation min ratio 0.958 (pass). Failure modes confirmed by ablations: (a) random-direction ablation identical to strategy (Sharpe 0.447, same DD/PF/trades) → long-only vol-scaled SPY exposure carries no directional information; (b) `allow_short=True` Sharpe -0.092, DD -28.2% → shorting on negative relmom is value-destroying, consistent with equity-bond correlation regime shifts (2022 inflation shock: equities + bonds fell together). SPY buy-hold benchmark OOS Sharpe 0.727 outperformed the strategy. No gate weakened; no published/certified artifact modified.
 
-**Lineage map (provisional, pending execution):**
+**Lineage map (H92 REJECT):**
 
 | Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
 |---|---|---|---|---|---|
-| Equity/bond relative-momentum risk-premium timing | H92 (NF-20261105-10) | Trailing SPY-vs-TLT relative momentum; vol-targeted SPY long/flat(/short) | SPY, TLT daily (yfinance), 2010–2026 | **REJECT** (3/9; exp_2026-11-05T15-40-24-218763Z) | OOS Sharpe 0.447, PF 1.089, DD -16.9%; random-direction ablation identical (no directional edge); allow_short=True Sharpe -0.092 (regime-shift risk); equity-bond correlation breaks persistence in 2022 |
+| Equity/bond relative-momentum risk-premium timing | H92 (NF-20261105-10) | Trailing SPY-vs-TLT relative momentum; vol-targeted SPY long/flat(/short) | SPY, TLT daily (yfinance), 2010–2026 | **REJECT** (3/9; exp_2026-11-05T18-05-46-174209Z / summary artifact `exp_2026-11-05T15-40-24-218763Z`) | OOS Sharpe 0.447, PF 1.089, DD -16.9%; random-direction ablation identical (no directional edge); allow_short=True Sharpe -0.092 (regime-shift risk); equity-bond correlation breaks persistence in 2022 |
+
+
+## Cycle 7 (2026-11-05) — H93 execution (NF-20261105-13 idiosyncratic-volatility cross-section)
+
+H92 (NF-20261105-10, equity/bond relative momentum) **REJECTED** 3/9, `exp_2026-11-05T18-05-46-174209Z` — no directional edge (random-direction ablation identical), short side value-destroying. NF-20261105-13 (IVOL cross-section, limits-of-arbitrage/lottery-demand premium) was pre-registered as H93 in cycle 6 pre-work and executed this session.
+
+### NF-20261105-13 / H93 — Idiosyncratic-volatility cross-section timing (EXECUTED REJECT)
+
+**Temporary lineage ID:** NF-20261105-13. **H-ID:** H93.
+
+**Mechanism.** Lottery-demand / low-IVOL premium (Ang, Hodrick, Xing & Zhang 2006). Monthly rank 12 liquid ETFs by trailing IVOL vs SPY (rolling residual std of symbol−SPY daily returns, past-only); long low-IVOL quintile, short high-IVOL quintile, vol-targeted. Engine `signals.shift(1)` gives t→t+1 causality. Root family distinct from H2/H16 (cross-sectional *return* momentum, opposite sign/observable), H17 (SVXY VRP timing), H86/H89 (SPY vol-surface/tail-shape), H91 (calendar).
+
+**Data/splits.** SPY proxy + 12 ETFs (QQQ,IWM,EFA,EEM,VWO,TLT,AGG,HYG,GLD,USO,VNQ,XLB) daily yfinance 2010-01-01→2026-10-31 (4233 bars). Train 2010–2019 (2516), Val 2020–2022 (756), Test protected 2023–2026 (961). Grid 12: ivol_lookback {63,126,252} × quintile_share {0.2,0.33} × vol_target {0.10,0.15}. Selection = best train-only 4-fold WF Sharpe; gates on OOS Val+Test.
+
+**In-session runner fix (evidence-based).** `build_ivol_targets` was corrected to assign an explicit target row on *every* month-end (NaN-init + rebalance row including flat when IVOL insufficient), so `ffill` holds weights between month ends. Prior implementation left non-rebalance rows at 0, causing `ffill` to flatten intra-month. Focused tests caught the bug (2 failures → fixed) and pass 9/9; ruff clean. The fix preserves causality (month-end info only) and was necessary for the pre-registered monthly-hold mechanism.
+
+**Execution.** `exp_2026-11-05T18-09-06-924039Z`, artifact `.experiments/artifacts/exp_2026-11-05T18-09-06-924039Z/summary.json`. 12 combos, 2.9s grid, 0.2 min total. Selected `ivol_lookback=126, quintile_share=0.2, vol_target=0.10`.
+
+**Result — REJECT (2/9 gates).** OOS Sharpe 0.343 (fail, reject <0.5), PF 1.063 (fail), max DD -20.8% (fail), trades 345 (pass), WF stability 0.532 (fail; train 0.648→test 0.345), worst-regime 252d Sharpe -1.711 (fail), benchmark p=1.0 vs equal-weight universe (fail), IR -0.016 (fail), perturbation min ratio 0.603 (pass). Ablations: random-side Sharpe 0.339 (≈strategy, no IVOL information), equal-weight benchmark 0.518 (outperforms), long-only low-IVOL 0.574 (short leg not edge source). No gate weakened.
+
+**Verdict rationale.** IVOL ranking adds no directional information beyond random assignment/exposure in this liquid ETF universe after costs; train→OOS decay and catastrophic worst-regime indicate crowding/decay of the low-IVOL/lottery premium. Family exhausted for this free, point-in-time ETF test.
+
+**Lineage map (H93 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Idiosyncratic-volatility cross-section timing | H93 (NF-20261105-13) | Monthly long low-IVOL / short high-IVOL ETFs vs SPY (residual-vol ranking), vol-targeted | 12 ETFs + SPY proxy daily (yfinance), 2010–2026 | **REJECT** (2/9; exp_2026-11-05T18-09-06-924039Z) | Random-side ablation ≈ strategy (Sharpe 0.339 vs 0.343); underperforms equal-weight benchmark (0.518) and long-only (0.574); train→OOS decay, worst-regime -1.711; IVOL premium crowded/decayed post-publication |
+
+**Cycle 8 required next.** Perform a fresh new-family discovery cycle per directive §4: build/reconcile lineage to latest H93, search ≥3 repo-new mechanism candidates across ≥3 broad mechanism categories, score honestly, pre-register highest-information feasible candidate as H94 with smallest decisive test. Reassess NF-04/05/11/12 decisive risks with concrete evidence (do not silently drop). `src/qtr` unchanged. No gate weakening; no published/certified artifact modification.

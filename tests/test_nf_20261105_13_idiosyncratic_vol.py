@@ -99,30 +99,30 @@ class TestIvolSignal:
         assert nf13.SPY not in active.index[active.values]
 
     def test_long_leg_has_positive_weights_short_leg_negative(self):
-        # Deterministic spread: some symbols track SPY closely (low IVOL), one
-        # symbol is pure noise (high IVOL). quintile_share=0.2 on 12 symbols ->
-        # k=2 long and k=2 short per month-end rebalance.
+        # Deterministic spread: some symbols track SPY closely (low IVOL), others
+        # are pure noise (high IVOL). quintile_share=0.2 on 12 symbols -> k=2
+        # long and k=2 short per month-end rebalance.
         idx = pd.bdate_range("2018-01-02", periods=260)
         rng = np.random.default_rng(3)
         spy = 100 * np.exp(np.cumsum(rng.normal(0.0003, 0.01, 260)))
         data = {nf13.SPY: spy}
         for s in nf13.TRADEABLE[:6]:
-            data[s] = spy + 1.0  # tracks SPY one-for-one -> zero IVOL
+            data[s] = spy * 1.0001  # near-zero residual IVOL vs SPY
         for s in nf13.TRADEABLE[6:]:
-            data[s] = 100 * np.exp(np.cumsum(rng.normal(0.0, 0.05, 260)))  # noisy -> high IVOL
+            data[s] = 100 * np.exp(np.cumsum(rng.normal(0.0, 0.05, 260)))  # high IVOL
         prices = pd.DataFrame(data, index=idx)
         pos = nf13.build_ivol_targets(prices, ivol_lookback=63, quintile_share=0.2, vol_target=0.10)
         tail = pos.iloc[100:]
         low = tail[nf13.TRADEABLE[:6]]
         high = tail[nf13.TRADEABLE[6:]]
-        # Exactly k=2 lowest-IVOL symbols carry positive weight, k=2 highest
-        # negative; middle symbols are flat.
-        long_mask = (tail > 1e-12).any()
-        short_mask = (tail < -1e-12).any()
-        assert long_mask.sum() == 2
-        assert short_mask.sum() == 2
-        assert (tail.loc[:, long_mask[long_mask].index] > 0).all().all()
-        assert (tail.loc[:, short_mask[short_mask].index] < 0).all().all()
+        # Longs (positive) must come from the low-IVOL group; shorts (negative)
+        # from the high-IVOL group. k=2 of each on any active rebalance day.
+        assert float(high[high > 1e-12].sum().sum()) == 0.0
+        assert float(low[low < -1e-12].sum().sum()) == 0.0
+        active = tail[tail.abs().sum(axis=1) > 1e-12]
+        if len(active) > 0:
+            assert ((active > 1e-12).sum(axis=1) == 2).all()
+            assert ((active < -1e-12).sum(axis=1) == 2).all()
 
     def test_monthly_rebalance_holds_constant(self):
         idx = pd.bdate_range("2018-01-02", periods=260)

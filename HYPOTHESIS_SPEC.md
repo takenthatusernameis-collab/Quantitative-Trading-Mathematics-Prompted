@@ -5370,7 +5370,7 @@ Ablations: SPY buy-hold benchmark Sharpe 0.727 (DD -18.2%) — the strategy unde
 **Verdict rationale.** The equity-bond relative-momentum risk-premium timing mechanism does not survive OOS Val+Test gates. Train Sharpe 0.325 → Val 0.067 → Test 0.881 (test recovery is noise on 961 bars; OOS Val+Test pooled Sharpe 0.447 is below the 0.5 rejection floor). The signal is indistinguishable from a vol-scaled long-only SPY exposure (random-direction ablation identical), and the short side is decisively value-destroying. No gate was weakened; no published/certified artifact was modified.
 
 
-## H93 — NF-20261105-13: Idiosyncratic-volatility cross-section timing (pre-registered 2026-11-05; executed pending)
+## H93 — NF-20261105-13: Idiosyncratic-volatility cross-section timing (pre-registered 2026-11-05; EXECUTED REJECT 2026-11-05)
 
 **Temporary lineage ID:** NF-20261105-13 (cycle 7, post H92 REJECT). H-ID: H93 (next unused after H92; H24/H68-H73/H76-H79 remain unassigned but are not recycled per directive §3).
 
@@ -5398,4 +5398,19 @@ Ablations: SPY buy-hold benchmark Sharpe 0.727 (DD -18.2%) — the strategy unde
 
 **Confounders / falsifiers.** (1) random-side ablation matched on long/short exposure frequency; (2) long-only low-IVOL ablation; (3) equal-weight universe buy-hold benchmark; (4) perturbation min ratio; (5) subperiod stability (Val vs Test). IVOL is known to be crowded/decayed post-2000s; no claim of profit from backtest mechanics alone. No claim of novelty beyond this repository.
 
-**Execution.** Not yet executed. Next task: run lint/focused tests, execute `PYTHONPATH=src python run_nf_20261105_13_idiosyncratic_vol.py`, then record outcome in NEW_FAMILY_RESEARCH_REGISTER.md cycle 7 and update NEXT_TASK.md.
+**Execution (exp `exp_2026-11-05T18-09-06-924039Z`):** EXECUTED 2026-11-05, `run_nf_20261105_13_idiosyncratic_vol.py` (fixed in-session: month-end rebalance targets now assigned on every month-end row — NaN-init + explicit rebalance row including flat on insufficient IVOL — so ffill holds the intended weight between month ends; previous behavior left non-rebalance rows at 0 causing ffill to flatten). Data 4233 daily bars (13 symbols), Train 2516 / Val 756 / Test 961. Grid 12 combos in 2.9s (total 0.2 min). Artifact: `.experiments/artifacts/exp_2026-11-05T18-09-06-924039Z/summary.json`.
+
+**Result — REJECT (2/9 gates).** Selected config (train-only 4-fold WF Sharpe): `ivol_lookback=126, quintile_share=0.2, vol_target=0.10`. OOS Val+Test metrics:
+- OOS Sharpe 0.343 (gate ≥1.0 → **FAIL**)
+- Profit factor 1.063 (gate ≥1.3 → **FAIL**)
+- Max DD -20.8% (gate ≤15% → **FAIL**)
+- Trades 345 (gate ≥200 → PASS)
+- WF stability 0.532 (gate ≥0.7 → **FAIL**; train 0.648 → test 0.345)
+- Worst-regime rolling-252 Sharpe -1.711 (gate ≥0.3 → **FAIL**)
+- Benchmark p-value 1.0 vs equal-weight universe buy-hold (gate ≤0.05 → **FAIL**)
+- Information ratio -0.016 (gate ≥0 → **FAIL**)
+- Perturbation min ratio 0.603 (gate ≥0.5 → PASS)
+
+Ablations: equal-weight universe benchmark OOS Sharpe 0.518 (DD -27.4%, PF 1.103) — strategy underperformed the simple benchmark on Sharpe/PF and had similar drawdown risk; random-side ablation Sharpe 0.339 (DD -24.0%, PF 1.062, 509 trades) — nearly identical to strategy, indicating the IVOL ranking adds no directional cross-sectional information beyond exposure/random selection; long-only low-IVOL ablation Sharpe 0.574 (DD -27.9%, PF 1.110, 115 trades) — the short high-IVOL leg is not the source of edge and the long-only slice merely resembles beta/buy-hold exposure.
+
+**Verdict rationale.** Cross-sectional IVOL timing does not survive OOS gates. The signal is indistinguishable from random-side assignment (Sharpe 0.339 vs 0.343) and underperforms the equal-weight universe benchmark (Sharpe 0.518) and the long-only low-IVOL slice (Sharpe 0.574). Train→OOS decay (0.648 train / 0.347 val / 0.345 test) and catastrophic worst-regime Sharpe (-1.711) indicate no persistent IVOL premium in this liquid ETF universe after costs. Consistent with the known crowding/decay of the low-IVOL/lottery-demand premium post-publication (Ang et al. 2006). No gate was weakened; no published/certified artifact was modified.
