@@ -5414,3 +5414,34 @@ Ablations: SPY buy-hold benchmark Sharpe 0.727 (DD -18.2%) — the strategy unde
 Ablations: equal-weight universe benchmark OOS Sharpe 0.518 (DD -27.4%, PF 1.103) — strategy underperformed the simple benchmark on Sharpe/PF and had similar drawdown risk; random-side ablation Sharpe 0.339 (DD -24.0%, PF 1.062, 509 trades) — nearly identical to strategy, indicating the IVOL ranking adds no directional cross-sectional information beyond exposure/random selection; long-only low-IVOL ablation Sharpe 0.574 (DD -27.9%, PF 1.110, 115 trades) — the short high-IVOL leg is not the source of edge and the long-only slice merely resembles beta/buy-hold exposure.
 
 **Verdict rationale.** Cross-sectional IVOL timing does not survive OOS gates. The signal is indistinguishable from random-side assignment (Sharpe 0.339 vs 0.343) and underperforms the equal-weight universe benchmark (Sharpe 0.518) and the long-only low-IVOL slice (Sharpe 0.574). Train→OOS decay (0.648 train / 0.347 val / 0.345 test) and catastrophic worst-regime Sharpe (-1.711) indicate no persistent IVOL premium in this liquid ETF universe after costs. Consistent with the known crowding/decay of the low-IVOL/lottery-demand premium post-publication (Ang et al. 2006). No gate was weakened; no published/certified artifact was modified.
+
+
+## H94 — NF-20261105-14: Credit risk-premium / flight-to-quality regime timing (pre-registered 2026-11-05)
+
+**Temporary lineage ID:** NF-20261105-14 (cycle 8, post H93 REJECT). H-ID: H94 (next unused after H93; H24/H68-H73/H76-H79 remain unassigned and are not recycled per directive §3).
+
+**Statement.** Credit stress — high-yield underperformance vs Treasuries — proxies tightening financial conditions and flight-to-quality; benign credit conditions support the equity risk premium. A vol-targeted long SPY position when the trailing HYG-vs-IEF credit excess return is benign (signal >= 0, sign or z-score mode selected on train-only WF) earns net pooled OOS (Val+Test) Sharpe >= 1.0 with >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 vs buy-hold SPY, IR >= 0, and perturbation min ratio >= 0.5.
+
+**Null (H0).** Trailing HYG-vs-IEF credit excess return has no predictive power for next-day SPY returns beyond random chance after costs.
+
+**Mechanism / causal chain.** credit_excess[t] = (HYG cumulative return over lookback ending at close t) − (IEF cumulative return over same lookback), computed from close-to-close returns using prices through close t only (past-only). sign mode: long SPY when credit_excess >= 0. zscore mode: long SPY when rolling 252-day z-score of credit_excess (past-only, min_periods=lookback) >= 0. Vol target scales by trailing 21-day realized SPY vol (past-only), clipped to MAX_POS=0.5. Engine applies `signals.shift(1)`: target at close t earns return t→t+1 — strictly causal, no same-day look-ahead.
+
+**Universe / data (free).** `SPY`, `HYG`, `IEF` daily adjusted close via `DataFetcher.fetch_yahoo` (with `_reject_non_positive_prices`), 2010-01-01→2026-10-31. Point-in-time: only published daily closes. Feasibility spot-checked 2026-11-05 (yfinance 2010–2026): SPY/HYG/IEF 4233 rows, 0 non-positive.
+
+**Splits (pre-registered, protected holdout).** Train 2010-01-01→2019-12-31; Val 2020-01-01→2022-12-31; Test (protected) 2023-01-01→2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test. No holdout feedback.
+
+**Grid (train-only selection).** `lookback ∈ {21,63,126}` × `vol_target ∈ {0.10,0.15}` × `signal_mode ∈ {"sign","zscore"}` = 12 combos.
+
+**Costs / constraints.** `AssetClass.EQUITY`, `CostModel` defaults (1 bp commission + 0.5 bp spread + 0.1 bp impact per 1% ADV), daily bar engine, max position 0.5, max leverage 1.0, long-only. SPY/HYG/IEF capacity not binding.
+
+**Gates (OOS Val+Test).** Sharpe >= 1.0, >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability (test >= 0.7×train when train>0), worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 vs buy-hold SPY, IR >= 0, perturbation min ratio >= 0.5 (OAT ±20% on lookback/vol_target for selected config).
+
+**Rejection.** OOS Sharpe < 0.5, PF < 1.1, < 200 OOS trades, max DD > 15%, or perturbation/benchmark failure. No gate weakening.
+
+**Runner.** `run_nf_20261105_14_credit_regime.py`. Tests: `tests/test_nf_20261105_14_credit_regime.py`. Deterministic seed 42. Compute budget <= 2 CPU-h (expected << 1 min).
+
+**Closest prior family / distinction.** H92 uses SPY-vs-TLT *equity-vs-duration* relative cumulative momentum (and was REJECT 3/9 with no directional edge). H94 uses HYG-vs-IEF *credit/default-risk vs intermediate Treasuries* excess return — a different asset class, different observable, and a flight-to-quality/credit-stress causal channel rather than equity-vs-duration momentum. H86/H89 use vol-surface/tail-shape signals; H91 uses ex-ante calendar boundaries; H87/H88/H90 are event/auction/relative-value families. No prior repository family uses credit-ETF excess returns (HYG-IEF) as the timing observable.
+
+**Confounders / falsifiers.** HYG embeds equity beta and spread-duration; the signal may proxy equity momentum or general risk-off rather than credit-specific stress. Falsifiers: (1) random-exposure-matched ablation; (2) SPY buy-hold benchmark; (3) perturbation min ratio; (4) subperiod stability (Val vs Test); (5) worst-regime rolling-252 Sharpe. No claim of profit/robustness from backtest mechanics alone.
+
+**Status.** Pre-registered 2026-11-05 (cycle 8). Runner + focused tests written; lint/format clean; focused tests 10/10 passed. Execution pending (compute budget small; execute as next bounded step when decision-ready).

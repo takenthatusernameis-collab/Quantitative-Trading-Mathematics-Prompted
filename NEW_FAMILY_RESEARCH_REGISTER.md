@@ -679,3 +679,47 @@ H92 (NF-20261105-10, equity/bond relative momentum) **REJECTED** 3/9, `exp_2026-
 | Idiosyncratic-volatility cross-section timing | H93 (NF-20261105-13) | Monthly long low-IVOL / short high-IVOL ETFs vs SPY (residual-vol ranking), vol-targeted | 12 ETFs + SPY proxy daily (yfinance), 2010–2026 | **REJECT** (2/9; exp_2026-11-05T18-09-06-924039Z) | Random-side ablation ≈ strategy (Sharpe 0.339 vs 0.343); underperforms equal-weight benchmark (0.518) and long-only (0.574); train→OOS decay, worst-regime -1.711; IVOL premium crowded/decayed post-publication |
 
 **Cycle 8 required next.** Perform a fresh new-family discovery cycle per directive §4: build/reconcile lineage to latest H93, search ≥3 repo-new mechanism candidates across ≥3 broad mechanism categories, score honestly, pre-register highest-information feasible candidate as H94 with smallest decisive test. Reassess NF-04/05/11/12 decisive risks with concrete evidence (do not silently drop). `src/qtr` unchanged. No gate weakening; no published/certified artifact modification.
+
+
+## Cycle 8 (2026-11-05) — H94 execution (NF-20261105-14 credit risk-premium / flight-to-quality timing)
+
+H93 (NF-20261105-13, idiosyncratic-volatility cross-section) **REJECTED** 2/9, `exp_2026-11-05T18-09-06-924039Z` — random-side ablation ≈ strategy, underperformed equal-weight benchmark; IVOL premium crowded/decayed. Per directive §4/§6, a fresh mechanism search produced >=3 repo-new candidates across >=3 broad categories, scored honestly, with NF-04/05/11/12 decisive risks reassessed.
+
+### Deferred candidates reassessed (concrete evidence)
+
+- **NF-20261105-04 (commodity carry, roll proxy) — remains DEFERRED.** yfinance/DataFetcher pipeline provides continuous/front proxies only; no free point-in-time deferred/term-structure/second-month series. Continuous-only carry requires splice/roll assumptions not pre-specified as point-in-time and risks roll/regime leakage. ETF proxies (DBC/USO/GLD) confound roll/flows/equity beta. Blocker: data/point-in-time term-structure construction.
+- **NF-20261105-05 (short-term CS reversal, liquidity provision) — remains DEFERRED.** Liquid sector-ETF universe is free/point-in-time feasible, but 1-day daily cross-sectional rebalancing implies very high turnover; under CostModel equity defaults, cost drag is the decisive risk. Any turnover cap/entry threshold/lower frequency materially changes mechanism and must be pre-registered; cannot tune post hoc. Blocker: execution/net-of-cost realism under pre-registered turnover assumptions.
+- **NF-20261105-11 (Treasury term-spread regime timing) — remains DEFERRED.** `^IRX` blocked by `DataFetcher._reject_non_positive_prices` (non-positive history observed in prior checks); FRED series not in pipeline. Free ETF/yield proxies are ambiguous and risk mechanism adjacency to prior vol/macro timing without a clean point-in-time term-spread observable. Blocker: free point-in-time rates/term-spread data quality/construction.
+- **NF-20261105-12 (cross-sectional equity dispersion regime) — remains DEFERRED.** Free data feasible, but dispersion measurement + regime-to-portfolio mapping is more complex and turnover/capacity risks resemble CS families; lower expected information than a small single-asset timing test. Blocker: execution/complexity vs smallest decisive test.
+
+### Cycle 8 candidates (scored honestly; 3 candidates, 3 broad categories)
+
+| Candidate | Mechanism category | Novelty (25%) | Plaus (25%) | Data (20%) | Falsif (15%) | Exec (10%) | Support (5%) | Weighted |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261105-14 Credit risk-premium / flight-to-quality timing (HYG-IEF → SPY) — **H94** | Credit risk premium / cross-asset flight-to-quality | 4 | 3 | 5 | 5 | 5 | 3 | **4.05** |
+| NF-20261105-15 Equity-bond return correlation-regime timing (SPY/TLT rolling corr → SPY) | Cross-asset diversification / correlation-regime risk premium | 3 | 3 | 5 | 5 | 5 | 3 | **3.80** |
+| NF-20261105-16 USD strength macro risk timing (UUP → SPY) | Global macro / FX risk transmission | 4 | 3 | 5 | 5 | 5 | 3 | **4.05** |
+
+**Scoring notes.** NF-15 novelty discounted (3) because assets overlap H92 (SPY/TLT) though the observable/mechanism differs: H92 used *relative cumulative return momentum* (equity-vs-duration directional spread), NF-15 would use *second-moment co-movement* (rolling return correlation / diversification breakdown) — repo-new as a correlation-regime family but mechanism-adjacent in instruments. NF-14/NF-16 tie (4.05); **NF-14 selected** for a cleaner, more direct flight-to-quality/credit-stress causal channel using distinct instruments (HYG,IEF) from prior SPY/TLT-only timing, and smallest decisive test (3 symbols). NF-16 deferred as runner-up (UUP ETF basket/tracking and unstable FX-equity link are risks to document in pre-registration).
+
+### NF-20261105-14 / H94 — Credit risk-premium / flight-to-quality regime timing (EXECUTED REJECT)
+
+**Temporary lineage ID:** NF-20261105-14. **H-ID:** H94 (next unused).
+
+**Mechanism.** Credit stress (HYG underperformance vs IEF) proxies tightening financial conditions and flight-to-quality; benign credit supports the equity risk premium. Trailing HYG-vs-IEF cumulative excess return (lookback 21/63/126), sign or 252-day z-score mode, gates vol-targeted long SPY (flat in stress). Engine `signals.shift(1)` gives t→t+1 causality. Distinct from H92 (SPY-vs-TLT *equity-vs-duration* relative momentum, REJECT 3/9, no directional edge): H94 uses a *credit/default-risk vs intermediate Treasuries* channel (HYG,IEF), different asset class/observable/mechanism. Distinct from H86/H89 (vol-surface/tail-shape), H91 (calendar), H87/H88/H90 (event/auction/relative-value).
+
+**Data/splits.** SPY,HYG,IEF daily yfinance 2010-01-01→2026-10-31 (4233 rows, 0 non-positive, feasibility spot-checked). Train 2010–2019 (2516), Val 2020–2022 (756), Test protected 2023–2026 (961). Grid 12: lookback {21,63,126} × vol_target {0.10,0.15} × signal_mode {sign,zscore}. Selection = best train-only 4-fold WF Sharpe; gates on OOS Val+Test.
+
+**Implementation/execution.** Runner `run_nf_20261105_14_credit_regime.py` + tests `tests/test_nf_20261105_14_credit_regime.py` (10 tests, all passed). Lint/format clean. `src/qtr` unchanged. Executed `exp_2026-11-05T18-20-38-363385Z`, artifact `.experiments/nf_runs/nf_20261105_14_credit_regime/summary.json`. Selected `lookback=21, vol_target=0.10, signal_mode=sign` (train-only WF Sharpe 1.277).
+
+**Result — REJECT (3/9 gates).** OOS Val+Test: Sharpe 0.925 (fail, ≥1.0), PF 1.214 (fail, ≥1.3), max DD -13.19% (pass), trades 318 (pass), WF stability 1.715 (pass; train 0.745, val 0.598, test 1.277), worst-regime rolling-252 Sharpe -1.396 (fail), benchmark p=1.0 vs buy-hold SPY (fail), IR -0.478 (fail), perturbation min ratio 0.319 (fail, lookback=17 drops OOS Sharpe to 0.295). Ablations: random-exposure-matched Sharpe 0.153/PF 1.049 (605 trades) — credit gating is better than random exposure, but does not clear gates; buy-hold SPY OOS Sharpe 0.798/PF 1.165/DD -17.97%. No gate weakened.
+
+**Verdict rationale.** Credit-regime timing shows some conditional exposure benefit vs random assignment but is not robust: fails Sharpe/PF/worst-regime/benchmark/perturbation gates, and the small perturbation (lookback 21→17) collapses OOS Sharpe (0.925→0.295), indicating parameter fragility. The signal does not deliver a statistically significant, cost-robust edge over buy-hold SPY on protected OOS evaluation. Family not supported by this free, point-in-time test.
+
+**Lineage map (H94 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Credit risk-premium / flight-to-quality timing | H94 (NF-20261105-14) | Vol-targeted long SPY when trailing HYG-vs-IEF credit excess return benign (sign/z-score), else flat | SPY, HYG, IEF daily (yfinance), 2010–2026 | **REJECT** (3/9; exp_2026-11-05T18-20-38-363385Z) | Fails Sharpe 0.925/PF 1.214/worst-regime -1.396/benchmark p=1.0/perturbation 0.319 (lookback fragility); better than random exposure but not cost-robust vs buy-hold SPY on OOS |
+
+**Cycle 9 required next.** Perform a fresh new-family discovery cycle per directive §4: reconcile lineage to H94, search >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, pre-register highest-information feasible candidate as H95 with smallest decisive test. Reassess NF-04/05/11/12/16 decisive risks with concrete evidence (NF-16 runner-up, FX/macro USD — pre-register with UUP tracking/FX-equity instability falsifiers if selected). `src/qtr` unchanged. No gate weakening; no published/certified artifact modification.
