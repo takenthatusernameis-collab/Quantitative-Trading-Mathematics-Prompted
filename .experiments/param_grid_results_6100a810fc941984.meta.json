@@ -1,0 +1,29 @@
+{
+  "shape": [
+    16,
+    9
+  ],
+  "columns": [
+    "lookback",
+    "vol_target",
+    "allow_short",
+    "selection_train_wf_sharpe",
+    "train_sharpe",
+    "val_sharpe",
+    "train_trades",
+    "val_trades",
+    "train_pf"
+  ],
+  "dtypes": {
+    "lookback": "int64",
+    "vol_target": "float64",
+    "allow_short": "bool",
+    "selection_train_wf_sharpe": "float64",
+    "train_sharpe": "float64",
+    "val_sharpe": "float64",
+    "train_trades": "int64",
+    "val_trades": "int64",
+    "train_pf": "float64"
+  },
+  "index_type": "int64"
+}

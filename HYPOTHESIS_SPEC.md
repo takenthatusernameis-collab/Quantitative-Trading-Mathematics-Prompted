@@ -5352,4 +5352,19 @@ Universe SPY (4233 rows), train/val/test 2516/756/961. Grid 10 (train-only WF se
 
 **Confounders / falsifiers.** Equity-bond correlation regimes shift (e.g., inflation shocks where bonds and equities fall together), which can break relative-momentum persistence. Falsifiers: (1) random-direction ablation matched on exposure frequency; (2) opposite `allow_short` ablation; (3) SPY buy-hold benchmark; (4) perturbation min ratio; (5) subperiod stability (Val vs Test). No claim of profit/robustness from backtest mechanics alone.
 
-**Execution (exp `pending`):** Not yet executed in this session if data fetch/execution is infeasible; record status truthfully. If executed, update with experiment ID, metrics, and verdict.
+**Execution (exp `exp_2026-11-05T15-24-22-849461Z`):** EXECUTED 2026-11-05T15:24Z, `run_nf_20261105_10_equity_bond_relmom.py` (runner API fixed this session: `fetch_yahoo` returns dict-of-DataFrames; `start_experiment` uses `name`/`description`/`config`/`data_sources`/`compute_budget`/`random_seeds` — not `parameters`/`tags`). Artifact: `.experiments/artifacts/exp_2026-11-05T15-24-22-849461Z/summary.json`.
+
+**Result — REJECT (3/9 gates).** Selected config: `lookback=63, vol_target=0.10, allow_short=False` (best train-only 4-fold WF Sharpe; train WF Sharpe 0.325). OOS Val+Test metrics:
+- OOS Sharpe 0.447 (gate ≥1.0 → **FAIL**)
+- Profit factor 1.089 (gate ≥1.3 → **FAIL**)
+- Max DD -16.9% (gate ≤15% → **FAIL**)
+- Trades 313 (gate ≥200 → PASS)
+- WF stability 2.708 (gate ≥0.7 → PASS)
+- Worst-regime rolling-252 Sharpe -1.778 (gate ≥0.3 → **FAIL**)
+- Benchmark p-value 1.0 vs buy-hold SPY (gate ≤0.05 → **FAIL**)
+- Information ratio -0.673 (gate ≥0 → **FAIL**)
+- Perturbation min ratio 0.958 (gate ≥0.5 → PASS)
+
+Ablations: SPY buy-hold benchmark Sharpe 0.727 (DD -18.2%) — the strategy underperformed buy-hold on OOS; random-direction ablation matched the strategy exactly (Sharpe 0.447, same DD/trades/PF), i.e. the vol-targeted *long-only flat* path carries no directional information beyond the SPY benchmark; `allow_short=True` ablation Sharpe -0.092 (DD -28.2%, PF 0.984) — shorting on negative relmom destroys value, consistent with equity-bond correlation regime shifts (2022 inflation shock: equities and bonds fell together, so relmom stayed near zero and shorts were entered at the wrong time).
+
+**Verdict rationale.** The equity-bond relative-momentum risk-premium timing mechanism does not survive OOS Val+Test gates. Train Sharpe 0.325 → Val 0.067 → Test 0.881 (test recovery is noise on 961 bars; OOS Val+Test pooled Sharpe 0.447 is below the 0.5 rejection floor). The signal is indistinguishable from a vol-scaled long-only SPY exposure (random-direction ablation identical), and the short side is decisively value-destroying. No gate was weakened; no published/certified artifact was modified.

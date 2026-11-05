@@ -302,10 +302,14 @@ def main():
     cache = DataCache(cache_dir=cache_dir)
     fetcher = DataFetcher(cache=cache)
 
-    prices = fetcher.fetch_yahoo(UNIVERSE, start=DATA_START, end=DATA_END)
-    if isinstance(prices.columns, pd.MultiIndex):
-        prices = prices.xs("close", axis=1, level=0)
-    prices = prices.dropna(subset=[SPY, TLT]).sort_index()
+    data = fetcher.fetch_yahoo(UNIVERSE, start=DATA_START, end=DATA_END)
+    prices_list = []
+    for sym in UNIVERSE:
+        df = data.get(sym, pd.DataFrame())
+        if len(df) == 0:
+            raise RuntimeError(f"no data for universe symbol {sym}")
+        prices_list.append(df["close"].rename(sym))
+    prices = pd.concat(prices_list, axis=1, sort=True).sort_index().dropna(how="any")
     print(f"  Prices: {prices.shape}")
 
     spy_prices = prices[[SPY]]
@@ -315,9 +319,9 @@ def main():
 
     tracker = get_tracker()
     exp_id = tracker.start_experiment(
-        EXPERIMENT_NAME,
-        EXPERIMENT_DESC,
-        parameters={
+        name=EXPERIMENT_NAME,
+        description=EXPERIMENT_DESC,
+        config={
             "hypothesis": "NF-20261105-10/H92 equity-bond relative-momentum risk-premium timing",
             "universe": UNIVERSE,
             "data_window": [DATA_START, DATA_END],
@@ -333,10 +337,12 @@ def main():
             },
             "selection": "best train-only walk-forward Sharpe; Test protected; gates on OOS Val+Test",
             "gates": GATES,
-            "seed": SEED,
         },
-        tags=["nf-20261105-10", "h92", "relmom", "equity-bond", "new-family-discovery"],
+        data_sources={"source": "yahoo_daily_cached", "symbols": UNIVERSE, "interval": "1d"},
+        compute_budget={"max_cpu_hours": 2.0, "grid_size": len(LOOKBACKS) * len(VOL_TARGETS) * len(ALLOW_SHORT)},
+        random_seeds={"numpy": SEED, "python": SEED},
     )
+    print(f"[NF-10/H92] started {exp_id}")
 
     try:
         bench_pos = pd.DataFrame(1.0, index=spy_prices.index, columns=[SPY])

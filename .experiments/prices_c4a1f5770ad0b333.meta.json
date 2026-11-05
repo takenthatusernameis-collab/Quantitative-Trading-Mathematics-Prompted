@@ -1,0 +1,15 @@
+{
+  "shape": [
+    4233,
+    2
+  ],
+  "columns": [
+    "SPY",
+    "TLT"
+  ],
+  "dtypes": {
+    "SPY": "float64",
+    "TLT": "float64"
+  },
+  "index_type": "datetime64[s]"
+}
