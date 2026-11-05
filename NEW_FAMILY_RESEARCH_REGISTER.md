@@ -767,3 +767,16 @@ H94 (NF-20261105-14, credit risk-premium / flight-to-quality) **REJECTED** 3/9, 
 | USD strength macro risk timing | H95 (NF-20261105-16) | Vol-targeted long SPY when trailing UUP strength z-score neutral/weak (hysteresis), else flat | SPY, UUP daily (yfinance), 2010–2026 | **REJECT** (3/9; exp_2026-11-05T19-09-07-377344Z) | Fails Sharpe 0.814/PF 1.169/trades 88/worst-regime -1.187/benchmark p=1.0/IR -0.280; inverse ablation negative (directional) but edge not robust; UUP basket tracking and FX-equity regime instability confound |
 
 **Cycle 10 required next.** Perform a fresh new-family discovery cycle per directive §4: reconcile lineage to H95, search >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, pre-register highest-information feasible candidate as H96 with smallest decisive test. Reassess NF-04/05/11/12/15/17 decisive risks with concrete evidence (NF-15 instrument-adjacent to H92 but correlation-regime mechanism; NF-17 turnover/cost-sensitive). `src/qtr` unchanged. No gate weakening; no published/certified artifact modification.
+
+## Cycle 10 (2026-11-05) — post-H95 mechanism search → NF-20261105-15 / H96 selection
+H95 (NF-20261105-16 USD strength macro timing) REJECTED 3/9. Fresh mechanism search produced >=3 repo-new candidates across >=3 broad categories; NF-04/05/11/12/17 decisive risks reassessed (all remain deferred, see below). H96 pre-registered for NF-20261105-15 (equity-bond return-correlation regime timing). Not yet executed.
+
+Deferred risks (cycle 10): NF-04 commodity carry roll proxy unavailable (free point-in-time); NF-05 short-term CS reversal daily turnover/cost; NF-11 Treasury term-spread `^IRX` blocked; NF-12 dispersion complexity/turnover; NF-17 volume-shock CS reversal turnover/cost-sensitive.
+
+| Candidate | Category | Novelty | Plausibility | Data | Falsifiability | Exec/Cap | Empirical | Score |
+|---|---|---|---|---|---|---|---|---|
+| NF-20261105-15 Equity-bond return-correlation regime timing (H96) | Cross-asset diversification / correlation regime | 4 | 3 | 5 | 5 | 5 | 3 | **4.05** |
+| NF-20261105-17 Cross-sectional volume-shock reversal (sector ETFs) | Liquidity provision / order-flow | 3 | 2 | 5 | 5 | 3 | 2 | 3.25 |
+| NF-20261105-04 Commodity carry (roll yield) | Carry / term structure | 3 | 4 | 2 | 4 | 3 | 3 | 3.10 |
+
+**Selection:** NF-20261105-15 (H96). Smallest decisive test: 2 symbols (SPY, TLT), daily, free yfinance, 36-combo grid, no `src/qtr` change. Distinct from H92 (relative momentum level). NF-17/NF-04 deferred.

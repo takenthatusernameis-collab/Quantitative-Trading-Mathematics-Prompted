@@ -5492,3 +5492,33 @@ Ablations: equal-weight universe benchmark OOS Sharpe 0.518 (DD -27.4%, PF 1.103
 Ablations: random-exposure-matched OOS Sharpe -0.389 (PF 0.892, 774 trades, DD -19.69%) — USD gating is far better than random exposure; buy-hold SPY OOS Sharpe 0.798 (PF 1.165, DD -17.97%) — strategy slightly above raw buy-hold Sharpe but fails absolute/statistical gates and has far fewer trades; inverse-signal (long when USD strong, `z>=entry_z`) OOS Sharpe -0.125 (PF 0.904, 44 trades) — consistent with USD-strength-as-risk-off direction, but the main strategy still lacks a robust, cost/statistically significant edge.
 
 **Verdict rationale.** USD-strength regime timing shows the intended risk-off direction (inverse ablation negative) and beats random exposure, but is not a validated edge: it fails Sharpe/PF/trade-count/worst-regime/benchmark/IR gates and does not demonstrate statistically significant outperformance vs buy-hold SPY on protected OOS. The low trade count (88 OOS) and worst-regime -1.187 indicate unstable/insufficient event coverage under the pre-registered design. UUP tracking and FX-equity regime instability remain key confounders. No gate was weakened; no published/certified artifact was modified.
+
+## H96 — NF-20261105-15: Equity-bond return-correlation regime timing (pre-registered 2026-11-05)
+
+**Temporary lineage ID:** NF-20261105-15 (cycle 10, post H95 REJECT; cycle-9 runner-up, mechanism distinct from H92 relative momentum). H-ID: H96 (next unused after H95).
+
+**Statement.** Trailing rolling correlation between SPY and TLT daily returns proxies a diversification/correlation regime. A vol-targeted long SPY position when trailing SPY-TLT correlation is below `exit_z` (diversification regime / correlation breakdown, risk-on persistence), flat when at/above `entry_z` (high correlation / risk-off), with hysteresis and 1-bar delay, earns net pooled OOS (Val+Test) Sharpe >= 1.0 with >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 vs buy-hold SPY, IR >= 0, and perturbation min ratio >= 0.5.
+
+**Null (H0).** Trailing SPY-TLT return correlation has no predictive power for next-day SPY returns beyond random chance after costs.
+
+**Mechanism / causal chain.** `corr_window[t]` = rolling correlation of daily SPY vs TLT returns over `lookback` bars ending at close t (past-only, `min_periods=lookback`). `z[t]` = rolling z-score of `corr_window` over 252 bars (past-only). Hysteresis state: `z[t] >= entry_z` → flat (high correlation/risk-off); `z[t] <= exit_z` → long (low correlation/diversification); `exit_z < z[t] < entry_z` → hold previous state; NaN → flat. Vol target scales by trailing 21-day realized SPY vol (past-only), clipped to `MAX_POS=0.5`. Engine applies `signals.shift(1)`: target at close t earns return t→t+1 — strictly causal, no same-day look-ahead. Distinct from H92 (SPY-vs-TLT relative *momentum* level, not correlation regime).
+
+**Universe / data (free).** `SPY`, `TLT` daily adjusted close via `DataFetcher.fetch_yahoo`, 2010-01-01→2026-10-31. Point-in-time: only published daily closes.
+
+**Splits (pre-registered, protected holdout).** Train 2010-01-01→2019-12-31; Val 2020-01-01→2022-12-31; Test (protected) 2023-01-01→2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test. No holdout feedback.
+
+**Grid (train-only selection).** `lookback ∈ {63,126,252}` × `entry_z ∈ {1.0,1.5,2.0}` × `exit_z ∈ {0.0,0.5}` × `vol_target ∈ {0.10,0.15}` = 36 combos.
+
+**Costs / constraints.** `AssetClass.EQUITY`, `CostModel` defaults, daily bar engine, max position 0.5, max leverage 1.0, long-only. SPY/TLT capacity not binding.
+
+**Gates (OOS Val+Test).** Sharpe >= 1.0, >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability (test >= 0.7×train when train>0), worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 vs buy-hold SPY, IR >= 0, perturbation min ratio >= 0.5 (OAT ±20% on lookback/entry_z/exit_z/vol_target for selected config).
+
+**Rejection.** OOS Sharpe < 0.5, PF < 1.1, < 200 OOS trades, max DD > 15%, or perturbation/benchmark failure. No gate weakening.
+
+**Runner.** `run_nf_20261105_15_corr_regime.py` (to be implemented). Tests: `tests/test_nf_20261105_15_corr_regime.py`. Deterministic seed 42. Compute budget <= 2 CPU-h (expected << 1 min).
+
+**Closest prior family / distinction.** H92 uses SPY-vs-TLT relative *momentum* level; H96 uses rolling *correlation* regime — a different observable (second moment vs first moment) and causal path (diversification breakdown vs relative performance). No prior repository family uses SPY-TLT correlation as the timing observable.
+
+**Confounders / falsifiers.** SPY-TLT correlation is unstable across rate regimes (2022 breakdown); TLT duration risk; correlation measured on daily returns is noisy. Falsifiers/ablations: random-exposure-matched ablation; buy-hold SPY benchmark; inverse-signal ablation (long when correlation high); perturbation min ratio; subperiod stability; worst-regime rolling-252 Sharpe.
+
+**Deferred risks reassessed (cycle 10).** NF-04 (commodity carry roll proxy) remains deferred — free point-in-time term-structure/roll proxy unavailable. NF-05 (short-term CS reversal) remains deferred — daily turnover/net-of-cost risk. NF-11 (Treasury term-spread regime timing) remains deferred — `^IRX` blocked by non-positive history; FRED absent. NF-12 (cross-sectional equity dispersion) remains deferred — complexity/turnover. NF-17 (volume-shock CS reversal) remains deferred — turnover/cost-sensitive; pre-register constrained design only if pursued. NF-15 (this H96) selected as highest-information feasible candidate: free data (SPY/TLT), 2-symbol, small grid, mechanism distinct from H92.
