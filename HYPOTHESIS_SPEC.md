@@ -5031,7 +5031,7 @@ and by the benchmark itself. Recorded as a negative result per PROMPT_V2.md Phas
 
 **Family:** NEW-FAMILY DISCOVERY MODE per STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §4.
 **Temporary lineage key:** NF-20261104-01 (see NEW_FAMILY_RESEARCH_REGISTER.md §2).
-**Status:** PRE-REGISTERED; not yet implemented.
+**Status:** REJECTED (2/9 gates). Experiment `exp_2026-11-05T01-24-02-934356Z`.
 
 ### Mechanism (volatility and convexity premia)
 
@@ -5059,3 +5059,51 @@ Ablations: long-only Sharpe −0.118, PF 0.974; inverse signal Sharpe +0.118, PF
 ### Verdict
 
 REJECTED. VIX term structure slope timing of SPY shows no monetisable edge on free daily data over 2015–2026; signal is weak and underperforms the benchmark. Recorded as a negative result per PROMPT_V2.md Phase 6.
+
+
+## H87 — NF-20261105-01: Opening-Gap Fill / Overnight Information (pre-registered 2026-11-05)
+
+**Family:** NEW-FAMILY DISCOVERY MODE per STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §4.
+**Temporary lineage key:** NF-20261105-01 (see NEW_FAMILY_RESEARCH_REGISTER.md §8).
+**Status:** PRE-REGISTERED; not yet implemented.
+
+### Mechanism (event/auction mechanisms)
+
+Overnight price gaps between prior close and next open contain information not yet
+absorbed by intraday participants; partial gap fill occurs as liquidity returns at the
+open. Long SPY if gap negative (expect fill up), short if gap positive (expect fill down),
+held intraday open→close.
+
+### Distinction from prior repository families
+
+- H18 (overnight/intraday decomposition) tested whether overnight return sign predicts
+  next-day *intraday* direction in a different construction; H87 tests same-day gap fill
+  (open→close) holding intraday only, a distinct timing and holding horizon.
+- No other family tests pure opening-gap mean reversion with intraday open→close holding.
+
+### Pre-registered construction
+
+Daily at open context. Gap = open[t] - close[t-1]. Signal = sign(gap) (or
+z-scored gap). Long if gap < 0, short if gap > 0, flat if zero. Hold intraday
+open→close. Vol-targeted to 15% ann. Universe: SPY daily OHLC from yfinance.
+Train 2015-01-01 → 2020-12-31, Val 2021-01-01 → 2023-12-31, Test 2024-01-01 →
+2026-10-31 (protected holdout final ~20%). Grid: lookback in {1,5,21} for
+z-score normalization, zscore threshold in {0.0,0.5,1.0}, vol_target in
+{0.10,0.15,0.20} (27 combos). Selection by train-only walk-forward Sharpe; Test protected.
+
+### Data
+
+yfinance daily SPY (Open, High, Low, Close), 2015-01-01 → 2026-10-31. Costs:
+equity model (1 bp commission + 0.5 bp spread + 0.1 bp impact per 1% ADV). Point-in-time:
+gap computed from close[t-1] and open[t], both known at open[t].
+
+### Rejection / Gates (per pre-registration)
+
+OOS Sharpe < 0.5, PF < 1.1, < 200 OOS trades, max DD > 15%. Apply PROMPT_V2
+Phase 4 gates on OOS (Val+Test).
+
+### Confounders / Leakage
+
+Open prices adjusted consistently with close on yfinance. Gap uses no look-ahead.
+Slippage at open may exceed model; treated as lower bound. Falsification via
+random-entry control and gap-magnitude monotonicity.

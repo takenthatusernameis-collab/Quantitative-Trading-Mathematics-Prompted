@@ -1,0 +1,23 @@
+{
+  "shape": [
+    2975,
+    6
+  ],
+  "columns": [
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume",
+    "adj_close"
+  ],
+  "dtypes": {
+    "open": "float64",
+    "high": "float64",
+    "low": "float64",
+    "close": "float64",
+    "volume": "int64",
+    "adj_close": "float64"
+  },
+  "index_type": "datetime64[s]"
+}

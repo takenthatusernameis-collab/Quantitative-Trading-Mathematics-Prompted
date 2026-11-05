@@ -1,0 +1,83 @@
+{
+  "experiment_id": "exp_2026-11-05T02-51-06-343400Z",
+  "hypothesis": "H87",
+  "temporary_id": "NF-20261105-01",
+  "selected_config": {
+    "lookback": 1,
+    "zscore_thresh": 0.0,
+    "vol_target": 0.1
+  },
+  "selection_rule": "best train-only walk-forward Sharpe; Test protected; gates on OOS Val+Test",
+  "grid_size": 27,
+  "n_evaluated": 27,
+  "grid_elapsed_sec": 0.2,
+  "total_elapsed_sec": 1.0,
+  "compute_cpu_hours": 0.0,
+  "metrics": {
+    "train_sharpe": 0.0,
+    "val_sharpe": 0.0,
+    "test_sharpe": 0.0,
+    "oos_sharpe": 0.0,
+    "profit_factor": Infinity,
+    "max_drawdown": 0.0,
+    "trades": 0,
+    "wf_stability": 0.0,
+    "benchmark_p_value": 1.0,
+    "information_ratio": -0.716589671260883,
+    "perturbation": {
+      "min_perturbed_sharpe_ratio": 0.0,
+      "ratios": []
+    },
+    "ablations": {
+      "random_entry": {
+        "sharpe": 0.16376816565895336,
+        "max_drawdown": -0.25705817947609333,
+        "profit_factor": 1.034839611222491,
+        "trades": 971,
+        "gross_profit": 3.6108789374665626,
+        "gross_loss": 3.489312641599513,
+        "n_periods": 1464
+      },
+      "long_only_negative_gaps": {
+        "sharpe": 0.0,
+        "max_drawdown": 0.0,
+        "profit_factor": Infinity,
+        "trades": 0,
+        "gross_profit": 0.0,
+        "gross_loss": 0.0,
+        "n_periods": 1464
+      },
+      "short_only_positive_gaps": {
+        "sharpe": 0.0,
+        "max_drawdown": 0.0,
+        "profit_factor": Infinity,
+        "trades": 0,
+        "gross_profit": 0.0,
+        "gross_loss": 0.0,
+        "n_periods": 1464
+      },
+      "spy_benchmark": {
+        "sharpe": 0.8119516768535284,
+        "max_drawdown": -0.2536057358303705,
+        "profit_factor": 1.154810084809507,
+        "trades": 0,
+        "gross_profit": 5.8482337597004275,
+        "gross_loss": 5.0642385589013355,
+        "n_periods": 1464
+      }
+    }
+  },
+  "passes": {
+    "sharpe": false,
+    "trades": false,
+    "profit_factor": true,
+    "drawdown": true,
+    "walkforward_stability": false,
+    "worst_regime_sharpe": false,
+    "benchmark_significance": false,
+    "information_ratio": false,
+    "perturbation": false
+  },
+  "all_pass": false,
+  "verdict": "REJECT"
+}
