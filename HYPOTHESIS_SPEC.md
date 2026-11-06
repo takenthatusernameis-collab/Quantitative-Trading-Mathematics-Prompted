@@ -5960,3 +5960,47 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 | FXY JPY safe-haven / funding-unwind stress timing | H106 (NF-20261106-14) | Continuous vol-targeted long SPY reduced when trailing FXY momentum z-score elevated (JPY strength / carry-unwind stress), 1-bar delay | SPY (traded), FXY (signal) daily (yfinance), 2010–2026 | **REJECT** (4/8; exp_2026-11-06T13-53-01-203238Z) | Fails Sharpe 0.832/PF 1.165/worst-regime -0.754/benchmark-p null/IR -0.377; DD improved and beats random exposure but no risk-adjusted edge vs buy-hold; FX adjacency to H95/H103 |
 
 **Cycle 21 required next.** H85–H106 all rejected. Perform fresh discovery per directive §4: reconcile lineage to H106, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess deferred candidates NF-04/05/07/08/10/11/13/15/17/20/21 and NF-11r (TNX-FVX slope, data-resolved but **same root mechanism as NF-11 — treat as NF-11 resolution path with honest novelty if pursued, not a new root family**) with concrete evidence (no silent drops). NF-06-11 CBOE PC ratio infeasible (no free yfinance data). Pre-register highest-information feasible candidate as H107 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
+
+## H107 (NF-20261106-16): KRE regional-bank stress transmission timing for SPY
+
+**Status:** Pre-registered and executed 2026-11-06 (Cycle 21 discovery, NF-20261106-16). **REJECT (4/8).** Free/public yfinance, no `src/qtr` change.
+
+**Statement.** Trailing KRE (regional bank ETF) underperformance provides a point-in-time banking/funding/intermediation-stress signal for SPY exposure. A vol-targeted, continuously scaled long SPY position reduced when trailing KRE momentum z-score is abnormally weak (stress; `z <= -entry_scale`) earns net pooled OOS (Val+Test) Sharpe >= 1.0 with >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 vs buy-hold SPY with IR >= 0, and perturbation min ratio >= 0.5.
+
+**Null (H0).** Trailing KRE banking-stress state has no predictive power for next-day SPY returns beyond random chance after costs.
+
+**Mechanism / causal chain.** KRE underperformance can reflect regional-bank funding/liquidity stress, deposit/credit impairment, or balance-sheet/rate risk. Banking/intermediation stress can tighten financial conditions and propagate to equity risk premia (systemic spillover). A trailing KRE return z-score (lookback momentum, past-only `min_periods`) maps to reduced SPY exposure when KRE is weak (`z <= -entry_scale` -> lower exposure) and higher exposure when calm. Vol target scales by trailing 21-day realized SPY vol, clipped, × `MAX_POS=0.5`. Engine applies `signals.shift(1)`: target at close t earns return t→t+1 — strictly causal.
+
+**Novelty (repo-relative).** Repo-new root family: **financial intermediation / regional-bank liquidity-stress transmission** via bank-equity proxy (KRE). Distinct from H94 (HYG-IEF credit spread/flight-to-quality; credit-market observable, not bank-equity stress), H96 (realized cross-asset correlation regime), FX families H95/H103/H106 (currency observables/mechanisms), rates/vol families H100/H104/H105/H89/H17 (implied vol/rates observables), H101 (HG/GC growth regime), and H85–H93 event/relative calendar families. Uses KRE equity stress as a transmission channel, not credit spreads or implied vol.
+
+**Data.** yfinance daily `KRE`, `SPY` adjusted close, 2010-01-01 → 2026-10-31. Free, point-in-time. Feasibility verified 2026-11-06 (KRE/SPY 4233 rows, 0 non-positive).
+
+**Universe/splits (protected holdout).** Trade `SPY`; signal `KRE`. Train 2010-01-01 → 2019-12-31; Val 2020-01-01 → 2022-12-31; Test (protected) 2023-01-01 → 2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+
+**Grid (bounded).** `lookback ∈ {21,63}` × `z_window ∈ {126,252}` × `entry_scale ∈ {1.0,1.5,2.0}` × `vol_target ∈ {0.10,0.15}` (24 combos). `max_position=0.5`, long-only.
+
+**Costs/constraints.** Equity `CostModel` defaults (1 bp commission + 0.5 bp spread + 0.1 bp impact per 1% ADV).
+
+**Gates (OOS Val+Test).** Sharpe >= 1.0, >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0, perturbation min ratio >= 0.5.
+
+**Runner.** `run_nf_20261106_16_kre_stress.py`. **Tests.** `tests/test_nf_20261106_16_kre_stress.py` (10 tests).
+
+### H107 execution outcome (2026-11-06, REAL)
+
+**Experiment:** `exp_2026-11-06T14-35-47-117897Z` (3.44s). Artifact: `.experiments/nf_runs/nf_20261106_16_kre_stress/summary.json`. `src/qtr` unchanged.
+
+**Selected (train-only 4-fold WF, best 1.348):** `lookback=63, z_window=126, entry_scale=2.0, vol_target=0.15`.
+
+**OOS Val+Test (1127 trades):** Sharpe **0.952** (fail), PF **1.190** (fail), max DD **-7.60%** (pass), trades **1127** (pass), WF stability **1.140** (pass), worst-regime rolling-252 Sharpe **-0.997** (fail), benchmark p **null** (fail, gate requires p<=0.05), IR **-0.292** (fail), perturbation min ratio **0.961** (pass). Train Sharpe 0.835.
+
+**Ablations (OOS).** Buy-hold SPY 0.720/1.148/DD -18.21%/1. Random-exposure-matched 0.549/1.129/DD -7.24%/1717 (strategy beats random on Sharpe/PF in this run and reduces DD vs buy-hold). Inverse-stress-long 0.264/1.087/DD -16.45%/1126.
+
+**Verdict rationale.** **REJECT (4/8).** KRE regional-bank stress timing reduces drawdown and is perturbation-stable, but fails Sharpe/PF/worst-regime/benchmark-p/IR vs buy-hold on pre-registered OOS gates. No validated net edge. No gate weakened; no published/certified artifact modified. Do not re-run H107 without a materially different, pre-registered mechanism.
+
+**Lineage map (H107 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known failure modes |
+|---|---|---|---|---|---|
+| Financial intermediation / regional-bank liquidity-stress transmission | H107 (NF-20261106-16) | Continuous vol-targeted long SPY reduced when trailing KRE momentum z-score abnormally weak (banking/funding stress), 1-bar delay | SPY (traded), KRE (signal) daily (yfinance), 2010–2026 | **REJECT** (4/8; exp_2026-11-06T14-35-47-117897Z) | Fails Sharpe 0.952/PF 1.190/worst-regime -0.997/benchmark-p null/IR -0.292; DD improved and beats random exposure but no risk-adjusted edge vs buy-hold |
+
+**Cycle 22 required next.** H85–H107 all rejected. Perform fresh discovery per directive §4: reconcile lineage to H107, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess deferred candidates NF-04/05/07/08/10/11/13/15/17/20/21 and NF-11r (TNX-FVX, **NF-11 data-resolution path, honest novelty — not a new root family**) with concrete evidence (no silent drops). NF-06-11 CBOE PC ratio infeasible. Pre-register highest-information feasible candidate as H108 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
