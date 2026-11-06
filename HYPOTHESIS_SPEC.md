@@ -6047,4 +6047,46 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 |---|---|---|---|---|---|
 | Credit-quality dispersion / IG-vs-HY transmission (inside corporate credit) | H108 (NF-20261106-19) | Continuous vol-targeted long SPY reduced when trailing LQD/HYG ratio momentum z-score abnormally weak, 1-bar delay | SPY (traded), LQD/HYG (signal) daily (yfinance), 2010–2026 | **REJECT** (4/8; exp_2026-11-06T14-46-17-382075Z) | Fails Sharpe 0.849/PF 1.164/WF 0.674/worst-regime -0.996/benchmark-p null/IR -0.365; DD improved but no risk-adjusted edge vs buy-hold; specific ratio-weakness mapping as pre-registered |
 
-**Cycle 23 required next.** H85–H108 all rejected. Perform fresh discovery per directive §4: reconcile lineage to H108, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess deferred candidates NF-04/05/07/08/10/11/13/15/17/20/21 and NF-11r/NF-06-18 (TNX-FVX, **NF-11 data-resolution path, same root mechanism — honest novelty, not a new root family**) with concrete evidence (no silent drops). NF-06-11 CBOE PC ratio infeasible. Pre-register highest-information feasible candidate as H109 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
+## H109 (NF-20261106-17): XOP/XLE energy-sector relative-strength supply-shock timing for SPY
+
+**Status:** Pre-registered and executed 2026-11-06 (Cycle 23 discovery, NF-20261106-17). **REJECT (4/8).** Free/public yfinance, no `src/qtr` change.
+
+**Statement.** Trailing XOP/XLE (energy-sector ETF) relative-strength z-score provides a point-in-time sectoral supply-shock / energy-stress signal for SPY exposure. A vol-targeted, continuously scaled long SPY position reduced when trailing XOP/XLE ratio momentum z-score is abnormally weak (`z <= -entry_scale`) earns net pooled OOS (Val+Test) Sharpe >= 1.0 with >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 vs buy-hold SPY with IR >= 0, and perturbation min ratio >= 0.5.
+
+**Null (H0).** Trailing XOP/XLE energy-sector relative-strength state has no predictive power for next-day SPY returns beyond random chance after costs.
+
+**Mechanism / causal chain (pre-registered).** Energy-sector equity weakness (E&P relative to the broader energy sector) transmits oil-supply / real-economy stress into equity risk premia: an abnormally weak XOP/XLE ratio flags sectoral supply-shock transmission, so reduce SPY exposure; when calm, maintain vol-targeted long SPY exposure. Vol target scales by trailing 21-day realized SPY vol, clipped, × `MAX_POS=0.5`. Engine applies `signals.shift(1)`: target at close t earns return t→t+1 — strictly causal. This tests the directional mapping (energy weakness reduces exposure); it does not test all energy-sector constructions.
+
+**Novelty (repo-relative).** Repo-new root family candidate: **sectoral supply-shock / real-economy transmission via energy-sector equity relative strength**. Distinct from H98 (CL=F oil realized-vol stress; commodity futures vol, not equity relative strength), H101 (HG/GC commodity growth-ratio regime; commodity price ratio), H108/H94 (credit-quality/corporate-credit observables), H107 (bank-equity intermediation stress), H96 (realized correlation), and FX/rates/vol families. XOP/XLE is an energy-equity relative-strength observable, not a commodity vol or commodity ratio.
+
+**Data.** yfinance daily `XOP`, `XLE`, `SPY` adjusted close, 2010-01-01 → 2026-10-31. Free, point-in-time. Feasibility verified 2026-11-06 (4233 rows each, 0 non-positive).
+
+**Universe/splits (protected holdout).** Trade `SPY`; signal `XOP/XLE`. Train 2010-01-01 → 2019-12-31; Val 2020-01-01 → 2022-12-31; Test (protected) 2023-01-01 → 2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+
+**Grid (bounded).** `lookback ∈ {21,63}` × `z_window ∈ {126,252}` × `entry_scale ∈ {1.0,1.5,2.0}` × `vol_target ∈ {0.10,0.15}` (24 combos). `max_position=0.5`, long-only.
+
+**Costs/constraints.** Equity `CostModel` defaults (1 bp commission + 0.5 bp spread + 0.1 bp impact per 1% ADV).
+
+**Gates (OOS Val+Test).** Sharpe >= 1.0, >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0, perturbation min ratio >= 0.5.
+
+**Runner.** `run_nf_20261106_17_xop_xle_energy.py`. **Tests.** `tests/test_nf_20261106_17_xop_xle_energy.py` (10 tests).
+
+### H109 execution outcome (2026-11-06, REAL)
+
+**Experiment:** `exp_2026-11-06T15-35-20-311536Z` (3.35s). Artifact: `.experiments/nf_runs/nf_20261106_17_xop_xle_energy/summary.json`. `src/qtr` unchanged.
+
+**Selected (train-only 4-fold WF):** `lookback=63, z_window=126, entry_scale=2.0, vol_target=0.15`.
+
+**OOS Val+Test (1162 trades):** Sharpe **0.815** (fail), PF **1.159** (fail), max DD **-8.07%** (pass), trades **1162** (pass), WF stability **0.881** (pass), worst-regime rolling-252 Sharpe **-1.007** (fail), benchmark p **null** (fail, gate requires p<=0.05), IR **-0.386** (fail), perturbation min ratio **0.978** (pass). Train Sharpe 0.925.
+
+**Ablations (OOS).** Buy-hold SPY 0.720/1.148/DD -18.21%/1. Random-exposure-matched 0.549/1.129/DD -7.24%/1717. Inverse-stress-long 0.354/1.120/DD -14.09%/1161.
+
+**Verdict rationale.** **REJECT (4/8).** XOP/XLE energy-sector relative-strength supply-shock timing reduces drawdown (better than buy-hold DD -18.21%), is perturbation-stable, and beats random exposure, but fails Sharpe/PF/worst-regime/benchmark-p/IR vs buy-hold on pre-registered OOS gates. No validated net edge vs buy-hold. The executed directional mapping (energy weakness reduces exposure) is the specific pre-registered construction tested; this does not test all energy-sector constructions. No gate weakened; no published/certified artifact modified. Do not re-run H109 without a materially different, pre-registered mechanism.
+
+**Lineage map (H109 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known failure modes |
+|---|---|---|---|---|---|
+| Sectoral supply-shock / real-economy transmission via energy-sector equity relative strength | H109 (NF-20261106-17) | Continuous vol-targeted long SPY reduced when trailing XOP/XLE ratio momentum z-score abnormally weak, 1-bar delay | SPY (traded), XOP/XLE (signal) daily (yfinance), 2010–2026 | **REJECT** (4/8; exp_2026-11-06T15-35-20-311536Z) | Fails Sharpe 0.815/PF 1.159/worst-regime -1.007/benchmark-p null/IR -0.386; DD improved and perturbation-stable but no risk-adjusted edge vs buy-hold; specific energy-weakness mapping as pre-registered |
+
+**Cycle 24 required next.** H85–H109 all rejected/recorded. Perform fresh discovery per directive §4: reconcile lineage to H109, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess deferred candidates NF-04/05/07/08/10/11/13/15/17/20/21 and NF-11r/NF-06-18 (TNX-FVX, **NF-11 data-resolution path, same root mechanism — honest novelty, not a new root family**) with concrete evidence (no silent drops). NF-06-11 CBOE PC ratio infeasible. Pre-register highest-information feasible candidate as H110 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
