@@ -1,5 +1,5 @@
-# NEXT_TASK — Cycle 31 discovery / pre-register & execute H117
+# NEXT_TASK — Cycle 32 discovery / pre-register & execute H118
 
-Cycle 30 executed H116 (NF-20261106-31 ITA/SPY aerospace-defense fiscal/geopolitical spending-cycle leadership timing SPY) — **REJECT 4/8** (exp_2026-11-06T23-40-35-522405Z). `src/qtr` unchanged.
+Cycle 31 discovery completed: pre-registered H117 (NF-20261106-34, cross-sectional sector correlation regime timing for SPY) in HYPOTHESIS_SPEC.md. Execution deferred pending data feasibility. H85–H117 all rejected/recorded (H117 not yet executed).
 
-H85–H116 all rejected/recorded. Cycle 31 discovery per directive §4: reconcile lineage to H116 (next unused H-ID **H117**; H24/H68–H73/H76–H79 unassigned, not recycled). Propose >=3 repo-new mechanism candidates across >=3 broad categories; reassess NF-04/05/07/08/10/11/13/15/17/20/21, NF-11r/NF-06-18, NF-20261106-03/21/23/24/28/30/32/33 with concrete evidence (no silent drops; NF-11r is NF-11 resolution path, **SAME root mechanism — not a new root family**; NF-06-11 CBOE PC infeasible; NF-04 still blocked by no free point-in-time term-structure/roll proxy). Score honestly (25/25/20/15/10/5). Select smallest decisive/highest-information feasible test. Pre-register H117 before validation outcomes. Implement runner+tests, ruff + focused pytest, execute, record verdict. Free/public data only; no gate weakening; no published artifact changes; no commit/push; `src/qtr` unchanged unless evidenced defect.
+Next unused H-ID **H118**. Next session: verify data feasibility (sector ETFs + SPY, 2010-2026, 0 non-positive), implement runner+tests, ruff + focused pytest, execute, record verdict. Preserve gates, src/qtr unchanged unless evidenced defect. No commit/push.

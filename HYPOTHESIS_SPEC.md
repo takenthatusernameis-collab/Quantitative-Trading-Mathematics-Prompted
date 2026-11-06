@@ -6395,3 +6395,23 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 | Root family | H-IDs | Mechanism | Markets / data | Status | Known failure modes |
 |---|---|---|---|---|---|
 | Fiscal/geopolitical spending-cycle / defense-sector reallocation transmission via ITA/SPY leadership | H116 (NF-20261106-31) | Continuous vol-targeted long SPY reduced when trailing ITA/SPY ratio momentum z-score abnormally strong (defense leadership), 1-bar delay | SPY (traded), ITA (signal) daily (yfinance), 2010–2026 | **REJECT** (4/8; exp_2026-11-06T23-40-35-522405Z) | Fails Sharpe 0.706/PF 1.131/worst-regime -1.175/benchmark-p 1.0/IR -0.501; perturbation-stable but no risk-adjusted edge vs buy-hold; sector-ratio adjacency acknowledged |
+
+## H117 / NF-20261106-34 — Cross-sectional sector correlation regime timing for SPY (pre-registered Cycle 31)
+
+**NF-ID / H-ID.** NF-20261106-34 / H117 (next unused H-ID; H24/H68-H73/H76-H79 unassigned, not recycled).
+
+**Mechanism (new root family).** Market-wide correlation regime: when average pairwise correlation of broad sector ETFs rises abnormally (risk-off contagion / correlation spike), reduce vol-targeted SPY exposure with 1-bar delay. Distinct from trend/beta/sector-ratio families; uses cross-sectional dispersion, not single-pair ratio.
+
+**Data.** yfinance daily adjusted close for sector ETFs XLK, XLF, XLE, XLV, XLI, XLC, XLY, XLP, XLU, XLB, XLF? and SPY (traded), 2010-01-01 → 2026-10-31. Feasibility to be verified before execution.
+
+**Universe/splits (protected holdout).** Trade SPY; signal = z-score of 21-day rolling average pairwise correlation of sector daily returns over 252-day window. Train 2010-01-01 → 2019-12-31; Val 2020-01-01 → 2022-12-31; Test (protected) 2023-01-01 → 2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+
+**Grid (bounded).** lookback ∈ {21,63} × z_window ∈ {126,252} × entry_scale ∈ {1.0,1.5,2.0} × vol_target ∈ {0.10,0.15} (24 combos). max_position=0.5, long-only SPY only.
+
+**Costs/constraints.** Equity CostModel defaults. Free/public data only. src/qtr unchanged unless evidenced defect.
+
+**Gates (OOS Val+Test).** Sharpe >= 1.0, >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0, perturbation min ratio >= 0.5.
+
+**Runner (planned).** run_nf_20261106_34_sector_corr_regime.py. Tests (planned). tests/test_nf_20261106_34_sector_corr_regime.py. ruff check/format clean. src/qtr unchanged.
+
+**Status.** Pre-registered only (Cycle 31). Execution deferred to next session pending data feasibility verification.
