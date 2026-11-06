@@ -886,7 +886,9 @@ def rederive(
             roll = oos_ret.rolling(252).apply(lambda x: _sharpe(x.values, 0), raw=False)
             out["worst_regime_sharpe"] = float(roll.min()) if roll.notna().any() else 0.0
         else:
-            out["worst_regime_sharpe"] = float(_sharpe(oos_ret.values, 0)) if len(oos_ret) > 1 else 0.0
+            out["worst_regime_sharpe"] = (
+                float(_sharpe(oos_ret.values, 0)) if len(oos_ret) > 1 else 0.0
+            )
 
     benchmark = _benchmark_returns(directory)
     if recipe["bench_scope"] == "oos":

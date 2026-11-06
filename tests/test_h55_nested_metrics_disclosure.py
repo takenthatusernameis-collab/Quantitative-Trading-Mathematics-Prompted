@@ -745,12 +745,13 @@ class TestReDerivation:
         nf = [
             leaf
             for leaf in TABLE.leaves
-            if leaf.block == "ablations"
-            and PRODUCER_NAMES[leaf.experiment_id].startswith("nf_")
+            if leaf.block == "ablations" and PRODUCER_NAMES[leaf.experiment_id].startswith("nf_")
         ]
         assert nf
         assert all(leaf.status == "not_rederivable" for leaf in nf)
-        assert all("NF family" in leaf.reason or "not rederived" in leaf.reason.lower() for leaf in nf)
+        assert all(
+            "NF family" in leaf.reason or "not rederived" in leaf.reason.lower() for leaf in nf
+        )
 
 
 class TestConventions:
