@@ -6205,20 +6205,20 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 
 ### H112 execution outcome (2026-11-06, REAL)
 
-**Experiment:** TBD. Artifact: `.experiments/nf_runs/nf_20261106_25_max_lottery/summary.json`. `src/qtr` unchanged.
+**Experiment:** `exp_2026-11-06T16-36-24-805357Z` (1.26s). Artifact: `.experiments/nf_runs/nf_20261106_25_max_lottery/summary.json`. `src/qtr` unchanged.
 
-**Selected (train-only 4-fold WF):** TBD.
+**Selected (train-only 4-fold WF):** `lookback=21, z_window=252, entry_scale=2.0, vol_target=0.15` (selection WF mean 1.430).
 
-**OOS Val+Test:** TBD.
+**OOS Val+Test (145 trades):** Sharpe **0.800** (fail), PF **1.152** (fail), max DD **-13.67%** (pass), trades **145** (fail, <200), WF stability **1.081** (pass), worst-regime rolling-252 Sharpe min **-0.928** (fail; worst quartile -0.207), benchmark p **1.0** / IR **-0.116** (fail), perturbation min ratio **0.950** (pass). Train Sharpe 0.740.
 
-**Ablations (OOS):** TBD.
+**Ablations (OOS).** Buy-hold SPY 0.720/1.148/DD -18.21%/1. Random-exposure-matched 0.549/1.129/DD -7.24%/1717. Inverse-stress-long 0.112/1.103/DD -10.58%/144.
 
-**Verdict rationale.** TBD.
+**Verdict rationale.** **REJECT (3/8).** Cross-sectional MAX/lottery-demand timing is perturbation-stable, beats random exposure and inverse-stress ablation, and has positive WF stability, but fails Sharpe/PF/trade-count/worst-regime/benchmark-p/IR vs buy-hold on pre-registered OOS gates. No validated net edge vs buy-hold. The executed elevated-MAX risk-reduction mapping is the specific pre-registered construction tested; it does not test all lottery-demand/MAX constructions (e.g., cross-sectional long-short, different universes, or different timing rules). No gate weakened; no published/certified artifact modified. Do not re-run H112 without a materially different, pre-registered mechanism.
 
-**Lineage map (H112):**
+**Lineage map (H112 REJECT):**
 
 | Root family | H-IDs | Mechanism | Markets / data | Status | Known failure modes |
 |---|---|---|---|---|---|
-| Investor attention / lottery-demand (MAX) transmission via cross-sectional equity maximum daily return | H112 (NF-20261106-25) | Continuous vol-targeted long SPY reduced when trailing cross-sectional mean of max daily return z-score abnormally high (lottery demand/overheating), 1-bar delay | SPY (traded), 15 signal ETFs (signal) daily (yfinance), 2010–2026 | TBD | TBD |
+| Investor attention / lottery-demand (MAX) transmission via cross-sectional equity maximum daily return | H112 (NF-20261106-25) | Continuous vol-targeted long SPY reduced when trailing cross-sectional mean of max daily return z-score abnormally high (lottery demand/overheating), 1-bar delay | SPY (traded), 15 signal ETFs (signal) daily (yfinance), 2010–2026 | **REJECT** (3/8; exp_2026-11-06T16-36-24-805357Z) | Fails Sharpe 0.800/PF 1.152/trades 145/worst-regime min -0.928/benchmark-p 1.0/IR -0.116; perturbation-stable but no risk-adjusted edge vs buy-hold; low trade count suggests infrequent regime shifts; specific elevated-MAX mapping as pre-registered |
 
-**Cycle 27 required next.** TBD after H112 verdict. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
+**Cycle 27 required next.** H85–H112 all rejected/recorded. Fresh discovery per directive §4: reconcile lineage to H112, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess NF-04/05/07/08/10/11/13/15/17/20/21 and NF-11r/NF-06-18 (TNX-FVX, **NF-11 data-resolution path, same root mechanism — honest novelty, not a new root family**) with concrete evidence (no silent drops). NF-06-11 CBOE PC ratio infeasible. NF-20261106-03/21/23/24 deferred. Pre-register highest-information feasible candidate as H113 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.

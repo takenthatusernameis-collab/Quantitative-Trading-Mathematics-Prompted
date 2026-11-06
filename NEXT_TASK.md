@@ -1,4 +1,4 @@
-# NEXT_TASK.md — Cycle 26 discovery / pre-registration of H112
+# NEXT_TASK.md — Cycle 27 discovery / pre-registration of H113
 
 Cycle 25 executed H111 (NF-20261106-22 SMH/QQQ semiconductor capex-cycle leadership timing SPY) — REJECT 4/8 (exp_2026-11-06T15-52-07-899045Z). src/qtr unchanged.
 
