@@ -1183,3 +1183,14 @@ Tie-break: NF-06 selected over NF-07 for highest expected information on the FX 
 **Verdict rationale.** Reduces drawdown and beats random exposure, but no validated risk-adjusted edge vs buy-hold on pre-registered OOS gates (fails Sharpe/PF/worst-regime/benchmark-p/IR). No gate weakened.
 
 **Cycle 19 required next.** H85–H105 all rejected. Fresh discovery per directive §4: reconcile lineage to H105, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess NF-04/05/11r/12/17/20/21/07/08/10/11 with concrete evidence (no silent drops). Pre-register highest-information feasible candidate as H106. `src/qtr` unchanged unless evidenced defect.
+
+## Cycle 19 (2026-11-06) — Discovery (deferred implementation)
+
+Candidate proposals (repo-new root families, not parameter/instrument variants):
+1. NF-20261106-11 — Options volume/put-call skew flow (CBOE PC ratio) timing SPY (options flow / sentiment).
+2. NF-20261106-12 — Treasury yield-curve slope (10Y-2Y) regime timing SPY (rates macro).
+3. NF-20261106-13 — Gold/real-yield (TIP) relative strength timing SPY (inflation/real-rate).
+
+All deferred pending point-in-time data feasibility and a pre-registered decisive construction. No H106 pre-registered this cycle; src/qtr unchanged.
+
+**Cycle 20 required next.** Pre-register one feasible candidate as H106 with smallest decisive test.
