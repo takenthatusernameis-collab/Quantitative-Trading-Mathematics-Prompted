@@ -5354,7 +5354,7 @@ Universe SPY (4233 rows), train/val/test 2516/756/961. Grid 10 (train-only WF se
 
 **Confounders / falsifiers.** Equity-bond correlation regimes shift (e.g., inflation shocks where bonds and equities fall together), which can break relative-momentum persistence. Falsifiers: (1) random-direction ablation matched on exposure frequency; (2) opposite `allow_short` ablation; (3) SPY buy-hold benchmark; (4) perturbation min ratio; (5) subperiod stability (Val vs Test). No claim of profit/robustness from backtest mechanics alone.
 
-**Execution (exp `exp_2026-11-05T18-12-36-229696Z`):** EXECUTED 2026-11-05T15:40Z, `run_nf_20261105_10_equity_bond_relmom.py` (runner API fixed this session: `fetch_yahoo` returns dict-of-DataFrames; `start_experiment` uses `name`/`description`/`config`/`data_sources`/`compute_budget`/`random_seeds` — not `parameters`/`tags`). Artifact: `.experiments/artifacts/exp_2026-11-05T18-12-36-229696Z/summary.json`.
+**Execution (exp `exp_2026-11-06T03-00-20-108391Z`):** EXECUTED 2026-11-05T15:40Z, `run_nf_20261105_10_equity_bond_relmom.py` (runner API fixed this session: `fetch_yahoo` returns dict-of-DataFrames; `start_experiment` uses `name`/`description`/`config`/`data_sources`/`compute_budget`/`random_seeds` — not `parameters`/`tags`). Artifact: `.experiments/artifacts/exp_2026-11-06T03-00-20-108391Z/summary.json`.
 
 **Result — REJECT (3/9 gates).** Selected config: `lookback=63, vol_target=0.10, allow_short=False` (best train-only 4-fold WF Sharpe; train WF Sharpe 0.325). OOS Val+Test metrics:
 - OOS Sharpe 0.447 (gate ≥1.0 → **FAIL**)
