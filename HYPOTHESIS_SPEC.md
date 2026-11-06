@@ -5734,17 +5734,17 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 
 ## H102 (NF-20261106-05): Bitcoin/bond risk-appetite regime equity timing
 
-**Status:** Pre-registered 2026-11-06 (Cycle 15 discovery, NF-20261106-05). Decision-ready, free/public yfinance, no `src/qtr` change.
+**Status:** Executed 2026-11-06 (Cycle 15 discovery, NF-20261106-05). **REJECT (6/9 gates).** Free/public yfinance, no `src/qtr` change.
 
-**Statement.** Trailing BTC-USD-vs-TLT relative strength regime provides a point-in-time cross-asset risk-appetite signal for SPY exposure. A vol-targeted long SPY position is held when the trailing BTC/TLT relative z-score is elevated (crypto outperforming bonds = risk appetite), flat when falling (risk-off), with hysteresis and a 1-bar execution delay.
+**Statement.** Trailing BTC-USD-vs-TLT relative strength regime provides a point-in-time cross-asset risk-appetite signal for SPY exposure. A vol-targeted long SPY position is held when the trailing log(BTC-USD/TLT) z-score is elevated (crypto outperforming bonds = risk appetite), flat when falling (risk-off), with hysteresis and a 1-bar execution delay.
 
 **Mechanism / causal chain.** BTC-USD is a high-beta risk asset; TLT is a duration/risk-free safe-haven. The BTC/TLT relative price is a cross-asset risk-appetite barometer: rising ratio → investors rotating out of bonds into risky assets → equity tailwinds; falling ratio → flight-to-safety → equity headwinds. Trailing z-score of log(BTC/TLT) classifies regime at close t (past-only windows, min_periods), state machine with hysteresis, signals shifted 1 bar so target at close t earns return t→t+1 — no look-ahead. Vol targeting uses trailing 21-day realized SPY vol.
 
 **Novelty (repo-relative).** Repo-new root family: cross-asset risk-appetite / safe-haven-rotation timing via crypto-vs-bond relative strength. Distinct from H92 (SPY-vs-TLT equity/bond relative momentum — same bond leg but the risky leg is equity, and H92 tested relative momentum of equity itself, not a cross-asset risk proxy); H95 (UUP USD strength macro); H96 (SPY-TLT realized correlation regime); H94 (HYG-IEF credit flight-to-quality); H100 (MOVE rates-vol); H101 (HG=F/GC=F industrial-vs-precious growth regime). No prior repository family uses crypto as the risk leg of a safe-haven-relative timing observable.
 
-**Data.** yfinance daily `BTC-USD`, `TLT`, `SPY`, 2010-01-01 → 2026-10-31. Feasibility verified 2026-11-06: BTC-USD 4427 rows (from 2014-09-17, 0 non-positive), TLT 4233 rows (0 non-positive), SPY 4233 rows (0 non-positive). Alignment: inner join/dropna on all three; BTC history shorter than TLT/SPY so the effective panel starts 2014-09-17. All values point-in-time at daily close.
+**Data.** yfinance daily `BTC-USD`, `TLT`, `SPY`, 2010-01-01 → 2026-10-31. Feasibility verified 2026-11-06: BTC-USD 4427 rows (from 2014-09-17, 0 non-positive), TLT 4233 rows (0 non-positive), SPY 4233 rows (0 non-positive). Effective aligned panel 5611 rows (inner join/ffill/dropna across calendar-union; BTC history shorter) — train 3116, val 1096, test 1399. All values point-in-time at daily close.
 
-**Universe/splits (protected holdout).** Trade `SPY`; signal ratio BTC-USD/TLT. Train 2010-01-01 → 2019-12-31; Val 2020-01-01 → 2022-12-31; Test (protected) 2023-01-01 → 2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+**Universe/splits (protected holdout).** Trade `SPY`; signal log(BTC-USD/TLT). Train 2010-01-01 → 2019-12-31; Val 2020-01-01 → 2022-12-31; Test (protected) 2023-01-01 → 2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
 
 **Causality.** Ratio z-score at close t uses prices through close t only (trailing windows, min_periods). Signals shifted by 1 bar.
 
@@ -5758,4 +5758,24 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 
 **Falsifiers/ablations.** Random-exposure-matched (same active bars, shuffled side), inverse-signal (long when BTC/TLT falling / risk-off), buy-hold SPY benchmark, OAT ±20% perturbation on grid params, Val/Test subperiods.
 
-**Runner.** `run_nf_20261106_05_btc_bond.py`. **Tests.** `tests/test_nf_20261106_05_btc_bond.py`.
+**Runner.** `run_nf_20261106_05_btc_bond.py`. **Tests.** `tests/test_nf_20261106_05_btc_bond.py` (10 tests, ruff/format/pytest clean).
+
+### H102 execution outcome (2026-11-06, REAL)
+
+**Experiment:** `exp_2026-11-06T12-34-38-533699Z` (1.72s). Artifact: `.experiments/nf_runs/nf_20261106_05_btc_bond/summary.json`. `src/qtr` unchanged.
+
+**Selected (train-only 4-fold WF, best 1.055):** `lookback=252, entry_z=1.0, exit_z=0.5, vol_target=0.15`.
+
+**OOS Val+Test (2495 periods, 19 trades):** Sharpe **1.173** (pass), PF **1.428** (pass), max DD **-4.63%** (pass), trades **19** (fail, <<200), WF stability **2.317** (pass), worst-regime rolling-252 Sharpe **-2.009** (fail), benchmark p **0.0473** vs buy-hold SPY (pass), IR **-0.420** (fail), perturbation min ratio **0.905** (pass). Train/Val/Test Sharpe 0.520 / 1.136 / 1.205.
+
+**Ablations.** Random-exposure-matched 1.001 / 1.526 / DD -2.76% / 558 trades (random timing with same on-bars comparable on Sharpe/PF, far more trades); buy-hold SPY 0.662 / 1.165 / DD -17.97%; inverse risk-off long 0.236 / 1.076 / DD -12.79% / 113 trades (opposite direction weak).
+
+**Verdict rationale.** REJECT (6/9). The hysteresis+high-entry regime rule is extremely sparse (19 OOS trades) — fails the pre-registered >=200 trades gate decisively and is not a trade-rich, testable timing edge under this design. Fails worst-regime (-2.009) and IR (-0.420 vs buy-hold SPY). Passes Sharpe/PF/DD/stability/benchmark-p/perturbation, but random-exposure-matched ablation achieves similar Sharpe/PF with much higher activity, and sparsity means the edge (if any) is not statistically robust on trade count. No gate weakened; no published/certified artifact modified. Do not re-run NF-05/H102 without a materially different, pre-registered mechanism that addresses sparsity/turnover honestly.
+
+**Lineage map (H102 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known failure modes |
+|---|---|---|---|---|---|
+| Crypto-vs-bond cross-asset risk-appetite regime equity timing | H102 (NF-20261106-05) | Vol-targeted long SPY when trailing log(BTC-USD/TLT) z-score risk-on (hysteresis), else flat; 1-bar delay | SPY (traded), BTC-USD/TLT (signal) daily (yfinance), 2010–2026 (effective from BTC start) | **REJECT** (6/9; exp_2026-11-06T12-34-38-533699Z) | Fails trades 19 (<<200), worst-regime -2.009, IR -0.420; regime rule extremely sparse at selected thresholds; random-exposure-matched comparable on Sharpe/PF with far more trades; not a robust/trade-rich edge |
+
+**Cycle 16 required next.** H85–H102 all rejected. Perform fresh discovery per directive §4: reconcile lineage to H102, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess deferred candidates NF-04/05/11r/12/17/20/21/03 with concrete evidence (no silent drops). Pre-register highest-information feasible candidate as H103 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.

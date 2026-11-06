@@ -1,0 +1,480 @@
+{
+  "experiment": "nf_20261106_05_btc_bond",
+  "family_id": "NF-20261106-05",
+  "hypothesis_id": "H102",
+  "verdict": "REJECT",
+  "description": "NF-20261106-05/H102: Bitcoin/bond risk-appetite regime equity timing. Vol-targeted long SPY when trailing log(BTC-USD/TLT) z-score is risk-on (crypto outperforming bonds), flat when risk-off, hysteresis + 1-bar delay. Grid search on Train/WF; Test protected; gates on OOS Val+Test.",
+  "universe": [
+    "BTC-USD",
+    "TLT",
+    "SPY"
+  ],
+  "data": {
+    "start": "2010-01-01",
+    "end": "2026-10-31",
+    "rows": 5611
+  },
+  "splits": {
+    "train_end": "2019-12-31",
+    "val_end": "2022-12-31",
+    "train_rows": 3116,
+    "val_rows": 1096,
+    "test_rows": 1399
+  },
+  "selected": {
+    "lookback": 252,
+    "entry_z": 1.0,
+    "exit_z": 0.5,
+    "vol_target": 0.15,
+    "train_wf_sharpe": 1.0550432115839097
+  },
+  "grid_rows": [
+    {
+      "lookback": 63,
+      "entry_z": 1.0,
+      "exit_z": 0.0,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.4181182729969487
+    },
+    {
+      "lookback": 63,
+      "entry_z": 1.0,
+      "exit_z": 0.0,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.4181182729969487
+    },
+    {
+      "lookback": 63,
+      "entry_z": 1.0,
+      "exit_z": 0.5,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.4541108174843027
+    },
+    {
+      "lookback": 63,
+      "entry_z": 1.0,
+      "exit_z": 0.5,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.4541108174843027
+    },
+    {
+      "lookback": 63,
+      "entry_z": 1.5,
+      "exit_z": 0.0,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.5469982723690079
+    },
+    {
+      "lookback": 63,
+      "entry_z": 1.5,
+      "exit_z": 0.0,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.5469982723690079
+    },
+    {
+      "lookback": 63,
+      "entry_z": 1.5,
+      "exit_z": 0.5,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.5831947892296543
+    },
+    {
+      "lookback": 63,
+      "entry_z": 1.5,
+      "exit_z": 0.5,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.5831947892296543
+    },
+    {
+      "lookback": 63,
+      "entry_z": 2.0,
+      "exit_z": 0.0,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.4591265991698815
+    },
+    {
+      "lookback": 63,
+      "entry_z": 2.0,
+      "exit_z": 0.0,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.4591265991698815
+    },
+    {
+      "lookback": 63,
+      "entry_z": 2.0,
+      "exit_z": 0.5,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.4848751049863857
+    },
+    {
+      "lookback": 63,
+      "entry_z": 2.0,
+      "exit_z": 0.5,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.4848751049863857
+    },
+    {
+      "lookback": 126,
+      "entry_z": 1.0,
+      "exit_z": 0.0,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.5681877453258605
+    },
+    {
+      "lookback": 126,
+      "entry_z": 1.0,
+      "exit_z": 0.0,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.5697661162563679
+    },
+    {
+      "lookback": 126,
+      "entry_z": 1.0,
+      "exit_z": 0.5,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.391228630776727
+    },
+    {
+      "lookback": 126,
+      "entry_z": 1.0,
+      "exit_z": 0.5,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.391228630776727
+    },
+    {
+      "lookback": 126,
+      "entry_z": 1.5,
+      "exit_z": 0.0,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.647612706375476
+    },
+    {
+      "lookback": 126,
+      "entry_z": 1.5,
+      "exit_z": 0.0,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.6491910773059834
+    },
+    {
+      "lookback": 126,
+      "entry_z": 1.5,
+      "exit_z": 0.5,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.3705794631064041
+    },
+    {
+      "lookback": 126,
+      "entry_z": 1.5,
+      "exit_z": 0.5,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.3705794631064041
+    },
+    {
+      "lookback": 126,
+      "entry_z": 2.0,
+      "exit_z": 0.0,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.6021140749484913
+    },
+    {
+      "lookback": 126,
+      "entry_z": 2.0,
+      "exit_z": 0.0,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.6036924458789987
+    },
+    {
+      "lookback": 126,
+      "entry_z": 2.0,
+      "exit_z": 0.5,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.35012825807240516
+    },
+    {
+      "lookback": 126,
+      "entry_z": 2.0,
+      "exit_z": 0.5,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.35012825807240516
+    },
+    {
+      "lookback": 252,
+      "entry_z": 1.0,
+      "exit_z": 0.0,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.7658184909813788
+    },
+    {
+      "lookback": 252,
+      "entry_z": 1.0,
+      "exit_z": 0.0,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.7668430918493432
+    },
+    {
+      "lookback": 252,
+      "entry_z": 1.0,
+      "exit_z": 0.5,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 1.0538597637611915
+    },
+    {
+      "lookback": 252,
+      "entry_z": 1.0,
+      "exit_z": 0.5,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 1.0550432115839097
+    },
+    {
+      "lookback": 252,
+      "entry_z": 1.5,
+      "exit_z": 0.0,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.7401348521263613
+    },
+    {
+      "lookback": 252,
+      "entry_z": 1.5,
+      "exit_z": 0.0,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.7409059081056188
+    },
+    {
+      "lookback": 252,
+      "entry_z": 1.5,
+      "exit_z": 0.5,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.71789709377332
+    },
+    {
+      "lookback": 252,
+      "entry_z": 1.5,
+      "exit_z": 0.5,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.7187555964749669
+    },
+    {
+      "lookback": 252,
+      "entry_z": 2.0,
+      "exit_z": 0.0,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.6071721833998719
+    },
+    {
+      "lookback": 252,
+      "entry_z": 2.0,
+      "exit_z": 0.0,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.6085408250349881
+    },
+    {
+      "lookback": 252,
+      "entry_z": 2.0,
+      "exit_z": 0.5,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.5683335828180635
+    },
+    {
+      "lookback": 252,
+      "entry_z": 2.0,
+      "exit_z": 0.5,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.5700439852796756
+    }
+  ],
+  "gates": {
+    "min_sharpe": 1.0,
+    "min_trades": 200,
+    "min_profit_factor": 1.3,
+    "max_drawdown": 0.15,
+    "min_walkforward_stability": 0.7,
+    "min_worst_regime_sharpe": 0.3,
+    "max_p_value": 0.05,
+    "min_information_ratio": 0.0,
+    "min_perturbed_sharpe_ratio": 0.5
+  },
+  "gate_eval": {
+    "oos_metrics": {
+      "sharpe": 1.1729399196578925,
+      "max_drawdown": -0.046319623792978604,
+      "profit_factor": 1.4280945417125046,
+      "trades": 19,
+      "gross_profit": 1.377353482605256,
+      "gross_loss": 0.9644693977708211,
+      "n_periods": 2495
+    },
+    "train_sharpe": 0.5198733399848227,
+    "val_sharpe": 1.1359331576475793,
+    "test_metrics": {
+      "sharpe": 1.204730010800796,
+      "max_drawdown": -0.03738341490919883,
+      "profit_factor": 1.3761389180581052,
+      "trades": 13,
+      "gross_profit": 0.9340607601262786,
+      "gross_loss": 0.6787547011927755,
+      "n_periods": 1399
+    },
+    "wf_stability": 2.317352936074712,
+    "worst_regime_sharpe": -2.0090758800587443,
+    "benchmark_p": 0.04732800825548784,
+    "information_ratio": -0.42045000448465725,
+    "passes": {
+      "sharpe": true,
+      "trades": false,
+      "profit_factor": true,
+      "max_drawdown": true,
+      "walkforward_stability": true,
+      "worst_regime_sharpe": false,
+      "p_value": true,
+      "information_ratio": false,
+      "perturbation": true
+    },
+    "gate_pass_count": 6,
+    "perturbation": {
+      "rows": [
+        {
+          "lookback": 202,
+          "sharpe": 1.1102357015761728,
+          "max_drawdown": -0.0479019137302934,
+          "profit_factor": 1.3940481108149327,
+          "trades": 19,
+          "gross_profit": 1.4489791548730744,
+          "gross_loss": 1.0394039801295165,
+          "n_periods": 2495
+        },
+        {
+          "lookback": 302,
+          "sharpe": 1.0781624910115293,
+          "max_drawdown": -0.050726579163371865,
+          "profit_factor": 1.373361771070461,
+          "trades": 17,
+          "gross_profit": 1.476667821659344,
+          "gross_loss": 1.0752212947564148,
+          "n_periods": 2495
+        },
+        {
+          "entry_z": 0.8,
+          "sharpe": 1.1060854338107036,
+          "max_drawdown": -0.05782451127184174,
+          "profit_factor": 1.3806973615394396,
+          "trades": 31,
+          "gross_profit": 1.4829700193255453,
+          "gross_loss": 1.074073189849566,
+          "n_periods": 2495
+        },
+        {
+          "entry_z": 1.2,
+          "sharpe": 1.061777813740662,
+          "max_drawdown": -0.040165786276940785,
+          "profit_factor": 1.3888266597486796,
+          "trades": 19,
+          "gross_profit": 1.288927102409075,
+          "gross_loss": 0.9280690958526946,
+          "n_periods": 2495
+        },
+        {
+          "exit_z": 0.4,
+          "sharpe": 1.1834496751196502,
+          "max_drawdown": -0.0479019137302934,
+          "profit_factor": 1.418889175064523,
+          "trades": 17,
+          "gross_profit": 1.483097142930844,
+          "gross_loss": 1.045252278327799,
+          "n_periods": 2495
+        },
+        {
+          "exit_z": 0.6,
+          "sharpe": 1.1477352039670716,
+          "max_drawdown": -0.046319623792978604,
+          "profit_factor": 1.4232011585065185,
+          "trades": 19,
+          "gross_profit": 1.3505246363353796,
+          "gross_loss": 0.9489344694973376,
+          "n_periods": 2495
+        },
+        {
+          "vol_target": 0.12,
+          "sharpe": 1.1729399196578925,
+          "max_drawdown": -0.046319623792978604,
+          "profit_factor": 1.4280945417125046,
+          "trades": 19,
+          "gross_profit": 1.377353482605256,
+          "gross_loss": 0.9644693977708211,
+          "n_periods": 2495
+        },
+        {
+          "vol_target": 0.18,
+          "sharpe": 1.1729399196578925,
+          "max_drawdown": -0.046319623792978604,
+          "profit_factor": 1.4280945417125046,
+          "trades": 19,
+          "gross_profit": 1.377353482605256,
+          "gross_loss": 0.9644693977708211,
+          "n_periods": 2495
+        }
+      ],
+      "min_sharpe_ratio": 0.9052277921023842
+    },
+    "ablations": {
+      "random_exposure_matched": {
+        "sharpe": 1.0007213550984766,
+        "max_drawdown": -0.02755420510865214,
+        "profit_factor": 1.5263280034749203,
+        "trades": 558,
+        "gross_profit": 0.7233090614032149,
+        "gross_loss": 0.47388835149226816,
+        "n_periods": 2495
+      },
+      "buy_hold_spy": {
+        "sharpe": 0.6617887652028173,
+        "max_drawdown": -0.17971876634967865,
+        "profit_factor": 1.1650650991679732,
+        "trades": 0,
+        "gross_profit": 3.8288861155446523,
+        "gross_loss": 3.2864138821762294,
+        "n_periods": 2495
+      },
+      "inverse_risk_off_long": {
+        "sharpe": 0.2360508222828748,
+        "max_drawdown": -0.127942509262028,
+        "profit_factor": 1.0764708271951118,
+        "trades": 113,
+        "gross_profit": 2.02148438174041,
+        "gross_loss": 1.877881249237062,
+        "n_periods": 2495
+      }
+    }
+  },
+  "subperiods": {
+    "train": {
+      "sharpe": 0.5198733399848227,
+      "max_drawdown": -0.06523931502932678,
+      "profit_factor": 1.2296717584922547,
+      "trades": 10,
+      "gross_profit": 0.9570667263802975,
+      "gross_loss": 0.7783107319255602,
+      "n_periods": 3116
+    },
+    "val": {
+      "sharpe": 1.1359331576475793,
+      "max_drawdown": -0.046319623792978604,
+      "profit_factor": 1.5515222975514245,
+      "trades": 6,
+      "gross_profit": 0.44329272247897733,
+      "gross_loss": 0.28571469657804555,
+      "n_periods": 1096
+    },
+    "test": {
+      "sharpe": 1.204730010800796,
+      "max_drawdown": -0.03738341490919883,
+      "profit_factor": 1.3761389180581052,
+      "trades": 13,
+      "gross_profit": 0.9340607601262786,
+      "gross_loss": 0.6787547011927755,
+      "n_periods": 1399
+    }
+  },
+  "elapsed_seconds": 1.72,
+  "tracker_error": "'ExperimentTracker' object has no attribute 'log_config'",
+  "experiment_id": "exp_2026-11-06T12-34-38-533699Z"
+}

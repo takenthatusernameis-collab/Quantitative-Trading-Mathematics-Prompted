@@ -1045,11 +1045,11 @@ Checked against root families H1–H99 (no parameter/instrument/universe/timefra
 
 ---
 
-## Cycle 15 (2026-11-06) — Discovery / Pre-registration of H102
+## Cycle 15 (2026-11-06) — Discovery / Execution of H102 (NF-20261106-05)
 
-**Lineage reconciled to H101 (H85–H101 all rejected).** Next unused H-ID **H102** assigned.
+**Lineage reconciled to H101 (H85–H101 all rejected).** Next unused H-ID **H102** assigned and executed.
 
-**Candidate selected (repo-new root family):** NF-20261106-05 / H102 — Bitcoin/bond risk-appetite regime equity timing (BTC-USD vs TLT relative strength regime → SPY exposure). Rationale: free/public yfinance (BTC-USD, TLT, SPY), point-in-time, no `src/qtr` change, bounded 36-combo grid, causal trailing relative-strength z-score with 1-bar delay.
+**Candidate selected (repo-new root family):** NF-20261106-05 / H102 — Bitcoin/bond risk-appetite regime equity timing (log(BTC-USD/TLT) relative-strength regime → SPY exposure). Rationale: free/public yfinance (BTC-USD, TLT, SPY), point-in-time, no `src/qtr` change, bounded 36-combo grid, causal trailing z-score with 1-bar delay. Data feasibility verified (BTC-USD 4427 rows from 2014-09-17, 0 non-positive; TLT/SPY 4233 rows).
 
 **Deferred candidates reassessed (not silently dropped):**
 - NF-20261105-04 (commodity carry): still blocked — point-in-time term-structure/roll proxy unavailable on free yfinance; unchanged.
@@ -1061,4 +1061,16 @@ Checked against root families H1–H99 (no parameter/instrument/universe/timefra
 - NF-20261105-21 (month-end pension rebalancing): weak evidence/adjacency risk; deferred.
 - NF-20261106-03 (VVIX vol-of-vol): VIX-complex adjacency; scored novelty 3; deferred.
 
-**Next task:** Implement `run_nf_20261106_05_btc_bond.py` + focused tests following H101 template, run ruff + focused pytest, execute, record verdict. No gate weakening; src/qtr unchanged.
+### NF-20261106-05 / H102 execution outcome (2026-11-06)
+
+**Runner:** `run_nf_20261106_05_btc_bond.py`. **Tests:** `tests/test_nf_20261106_05_btc_bond.py` (10 tests). Lint/format/focused pytest clean. `src/qtr` unchanged.
+
+**Execution.** `exp_2026-11-06T12-34-38-533699Z`, 1.72s. Effective panel 5611 rows (train 3116 / val 1096 / test 1399). Selected (train-only WF 1.055): `lookback=252, entry_z=1.0, exit_z=0.5, vol_target=0.15`. Artifact `.experiments/nf_runs/nf_20261106_05_btc_bond/summary.json`.
+
+**Result — REJECT (6/9 gates).** OOS Val+Test (2495 periods, **19 trades**): Sharpe 1.173 (pass), PF 1.428 (pass), max DD -4.63% (pass), trades 19 (fail <<200), WF stability 2.317 (pass), worst-regime rolling-252 Sharpe -2.009 (fail), benchmark p=0.0473 (pass), IR -0.420 (fail), perturbation min ratio 0.905 (pass). Train/Val/Test Sharpe 0.520/1.136/1.205.
+
+**Ablations.** Random-exposure-matched 1.001/1.526/DD -2.76%/558 trades (comparable Sharpe/PF with far more trades); buy-hold SPY 0.662/1.165/DD -17.97%; inverse risk-off long 0.236/1.076/DD -12.79%/113 trades.
+
+**Verdict rationale.** Regime rule extremely sparse (19 OOS trades) — fails pre-registered trade-count/worst-regime/IR; not a robust, trade-rich edge. No gate weakened.
+
+**Cycle 16 required next.** H85–H102 all rejected. Fresh discovery per directive §4: reconcile lineage to H102, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess NF-04/05/11r/12/17/20/21/03 with concrete evidence (no silent drops). Pre-register highest-information feasible candidate as H103 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
