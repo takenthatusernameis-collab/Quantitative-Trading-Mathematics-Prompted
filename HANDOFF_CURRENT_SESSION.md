@@ -26,3 +26,28 @@
 
 ## One precise next task
 Cycle 27 discovery per `HANDOFF_NEXT.md`/`NEXT_TASK.md` intent: reconcile lineage to H112 (next H113), propose >=3 repo-new mechanism candidates across >=3 broad categories, reassess NF-04/05/07/08/10/11/13/15/17/20/21, NF-11r/NF-06-18, NF-20261106-03/21/23/24 with concrete evidence (no silent drops; NF-11r is NF-11 resolution path, not new root family; NF-06-11 infeasible), score honestly (25/25/20/15/10/5), pre-register H113 smallest decisive test, implement runner+tests, run ruff + focused pytest, execute, record verdict. Free/public data only; no gate weakening; no published artifact changes; no commit/push; `src/qtr` unchanged unless evidenced defect.
+
+
+---
+## Cycle 28 (2026-11-06) — Discovery / Pre-registration & Execution of H114 (NF-20261106-27)
+
+### What changed
+- **Discovery (directive §4):** Reconciled lineage to H113 (H85–H113 REJECTED). Proposed/scored 3 candidates across >=3 broad categories: NF-20261106-27 SPHB/SPLV high-beta vs low-vol style-preference leadership timing SPY (style/volatility-preference transmission, 3.70, selected/executed as H114), NF-20261106-28 JNK/LQD HY vs IG credit leadership (3.55, deferred — credit adjacency to H94/H108), NF-20261106-29 RSP/SPY breadth/participation (3.35, deferred — adjacency/exploratory). Reassessed deferred NFs with concrete evidence (no silent drops): NF-04 blocked (no free point-in-time term-structure/roll proxy), NF-05/07/08/10/11/13/15/17/20/21 deferred, NF-11r/NF-06-18 TNX-FVX data-resolved but NF-11 resolution path (SAME root, not repo-new), NF-06-11 CBOE PC ratio infeasible, NF-20261106-03/21/23/24/28 deferred (adjacency/weak separation).
+- **H114 pre-registered/executed (NF-20261106-27):** Added `run_nf_20261106_27_sphb_splv_style.py`, `tests/test_nf_20261106_27_sphb_splv_style.py` (10 tests), updated `HYPOTHESIS_SPEC.md` §H114 from pre-registered to recorded outcome, appended `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 28. `src/qtr` unchanged.
+
+### Verified
+- `python -m ruff check run_nf_20261106_27_sphb_splv_style.py tests/test_nf_20261106_27_sphb_splv_style.py` — All checks passed.
+- `python -m ruff format --check ...` — 2 files already formatted.
+- `PYTHONPATH=src python -m pytest -q tests/test_nf_20261106_27_sphb_splv_style.py` — **10 passed**.
+- `PYTHONPATH=src python run_nf_20261106_27_sphb_splv_style.py` — **REJECT 2/8**, `exp_2026-11-06T23-06-21-278809Z`, 2.75s, artifact `.experiments/nf_runs/nf_20261106_27_sphb_splv_style/summary.json`.
+- Data: SPHB/SPLV/SPY aligned 3896 rows (2011-05-05–2026-10-30, SPHB/SPLV start later than SPY; cached yfinance).
+
+### H114 result (REAL, pre-registered gates)
+- Selected (train-only 4-fold WF): `lookback=63, z_window=126, entry_scale=2.0, vol_target=0.15` (train Sharpe 0.917).
+- OOS Val+Test (412 trades): Sharpe **0.684** fail, PF **1.130** fail, DD **-17.00%** fail, trades **412** pass, WF **0.746** pass, worst-regime rolling-252 min **-0.723** fail, benchmark-p **0.351**/IR **-0.153** fail, perturbation **0.906** pass.
+- Ablations (OOS): buy-hold SPY 0.720/1.148/DD -18.21%; random-exposure-matched 0.549/1.129/DD -7.24%; inverse-stress-long 0.346/1.126/DD -10.86%.
+- Verdict: REJECT (2/8). Perturbation-stable and beats random/inverse ablations, but no validated risk-adjusted edge vs buy-hold. Specific pre-registered defensive-rotation mapping tested. No gate weakened.
+
+### Unresolved / constraints
+- H85–H114 all REJECTED. Lineage gaps H24/H68–H73/H76–H79 remain unassigned (not recycled).
+- No commit/push performed (not requested). Published/certified artifacts and thresholds unchanged. `src/qtr` unchanged. New NF-27 files and uncommitted experiment artifacts remain local.

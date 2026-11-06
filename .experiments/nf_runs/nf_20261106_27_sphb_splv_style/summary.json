@@ -1,0 +1,257 @@
+{
+  "experiment": "nf_20261106_27_sphb_splv_style",
+  "nf_id": "NF-20261106-27",
+  "hypothesis": "H114",
+  "verdict": "REJECT",
+  "passed_gates": "2/8",
+  "experiment_id": "exp_2026-11-06T23-06-21-278809Z",
+  "elapsed_s": 2.75,
+  "data": {
+    "rows": 3896,
+    "train": 2179,
+    "val": 756,
+    "test": 961,
+    "start": "2011-05-05",
+    "end": "2026-10-30"
+  },
+  "selected_params": {
+    "lookback": 63,
+    "z_window": 126,
+    "entry_scale": 2.0,
+    "vol_target": 0.15
+  },
+  "selection_wf_mean_sharpe": 1.2102970200933518,
+  "train_metrics": {
+    "total_return": 0.5651765659891241,
+    "annualized_return": 0.05317642590132787,
+    "annualized_volatility": 0.0544212053277029,
+    "sharpe": 0.9795773596846991,
+    "sortino": 1.3875588861832144,
+    "max_drawdown": -0.06553826371809894,
+    "max_drawdown_duration": 297.0,
+    "profit_factor": 1.2071596950310144,
+    "num_trades": 457.0,
+    "avg_trade_cost": 1.474713386404263e-05,
+    "calmar": 0.8113798395706164
+  },
+  "oos_metrics": {
+    "total_return": 0.3913487009870633,
+    "annualized_return": 0.049667517926892835,
+    "annualized_volatility": 0.0750454420976451,
+    "sharpe": 0.6837303903470128,
+    "sortino": 0.9495836867664301,
+    "max_drawdown": -0.1699853321795654,
+    "max_drawdown_duration": 612.0,
+    "profit_factor": 1.1297072313355503,
+    "num_trades": 412.0,
+    "avg_trade_cost": 1.385713085476651e-05,
+    "calmar": 0.2921870804383648
+  },
+  "benchmark_oos_metrics": {
+    "total_return": 0.5782505212863698,
+    "annualized_return": 0.06926613122857761,
+    "annualized_volatility": 0.10006513829841053,
+    "sharpe": 0.7196479968603375,
+    "sortino": 1.015118488542091,
+    "max_drawdown": -0.18206356730445697,
+    "max_drawdown_duration": 488.0,
+    "profit_factor": 1.147548731399346,
+    "num_trades": 1.0,
+    "avg_trade_cost": 0.0001,
+    "calmar": 0.3804502584130238
+  },
+  "ablations": {
+    "buy_hold_spy": {
+      "total_return": 0.5782505212863698,
+      "annualized_return": 0.06926613122857761,
+      "annualized_volatility": 0.10006513829841053,
+      "sharpe": 0.7196479968603375,
+      "sortino": 1.015118488542091,
+      "max_drawdown": -0.18206356730445697,
+      "max_drawdown_duration": 488.0,
+      "profit_factor": 1.147548731399346,
+      "num_trades": 1.0,
+      "avg_trade_cost": 0.0001,
+      "calmar": 0.3804502584130238
+    },
+    "random_exposure_matched": {
+      "total_return": 0.22790438976165772,
+      "annualized_return": 0.030591292797433445,
+      "annualized_volatility": 0.05797088640622984,
+      "sharpe": 0.5488796313399449,
+      "sortino": 0.8194260893277215,
+      "max_drawdown": -0.072449092985455,
+      "max_drawdown_duration": 787.0,
+      "profit_factor": 1.1293590338874813,
+      "num_trades": 1717.0,
+      "avg_trade_cost": 3.30499587756008e-05,
+      "calmar": 0.42224535238246536
+    },
+    "inverse_stress_long": {
+      "total_return": 0.12348402291693805,
+      "annualized_return": 0.01723567699102002,
+      "annualized_volatility": 0.06261337728751114,
+      "sharpe": 0.304309852695001,
+      "sortino": 0.4410477539126068,
+      "max_drawdown": -0.12361365233620286,
+      "max_drawdown_duration": 311.0,
+      "profit_factor": 1.2041844346138244,
+      "num_trades": 412.0,
+      "avg_trade_cost": 1.3614412408165054e-05,
+      "calmar": 0.1394318237935616
+    }
+  },
+  "gates": {
+    "sharpe_ge_1_0": {
+      "value": 0.6837303903470128,
+      "threshold": 1.0,
+      "pass": false
+    },
+    "trades_ge_200": {
+      "value": 412,
+      "threshold": 200,
+      "pass": true
+    },
+    "profit_factor_ge_1_3": {
+      "value": 1.1297072313355503,
+      "threshold": 1.3,
+      "pass": false
+    },
+    "max_drawdown_le_15pct": {
+      "value": 0.1699853321795654,
+      "threshold": 0.15,
+      "pass": false
+    },
+    "walkforward_stability_ge_0_7": {
+      "value": 0.6979850887602058,
+      "threshold": 0.7,
+      "pass": false
+    },
+    "worst_regime_rolling252_sharpe_ge_0_3": {
+      "value": -1.3760809671888965,
+      "threshold": 0.3,
+      "pass": false
+    },
+    "benchmark_p_le_0_05_ir_ge_0": {
+      "value": {
+        "p_value": 1.0,
+        "information_ratio": NaN
+      },
+      "threshold": {
+        "p": 0.05,
+        "ir": 0.0
+      },
+      "pass": false
+    },
+    "perturbation_min_ratio_ge_0_5": {
+      "value": 0.8670305187706641,
+      "threshold": 0.5,
+      "pass": true
+    }
+  },
+  "comparison": {},
+  "selection_table_top10": [
+    {
+      "lookback": 63,
+      "z_window": 126,
+      "entry_scale": 2.0,
+      "vol_target": 0.15,
+      "wf_mean_sharpe": 1.2102970200933518
+    },
+    {
+      "lookback": 63,
+      "z_window": 252,
+      "entry_scale": 2.0,
+      "vol_target": 0.15,
+      "wf_mean_sharpe": 1.2043218371175444
+    },
+    {
+      "lookback": 63,
+      "z_window": 252,
+      "entry_scale": 2.0,
+      "vol_target": 0.1,
+      "wf_mean_sharpe": 1.1680628668950293
+    },
+    {
+      "lookback": 63,
+      "z_window": 126,
+      "entry_scale": 2.0,
+      "vol_target": 0.1,
+      "wf_mean_sharpe": 1.1633712088849772
+    },
+    {
+      "lookback": 21,
+      "z_window": 252,
+      "entry_scale": 1.5,
+      "vol_target": 0.15,
+      "wf_mean_sharpe": 1.149149310313673
+    },
+    {
+      "lookback": 21,
+      "z_window": 252,
+      "entry_scale": 1.5,
+      "vol_target": 0.1,
+      "wf_mean_sharpe": 1.1258650585356382
+    },
+    {
+      "lookback": 63,
+      "z_window": 252,
+      "entry_scale": 1.5,
+      "vol_target": 0.15,
+      "wf_mean_sharpe": 1.091999324310096
+    },
+    {
+      "lookback": 21,
+      "z_window": 126,
+      "entry_scale": 1.5,
+      "vol_target": 0.15,
+      "wf_mean_sharpe": 1.0229605066440661
+    },
+    {
+      "lookback": 21,
+      "z_window": 126,
+      "entry_scale": 1.0,
+      "vol_target": 0.15,
+      "wf_mean_sharpe": 1.0084843586254317
+    },
+    {
+      "lookback": 21,
+      "z_window": 126,
+      "entry_scale": 1.5,
+      "vol_target": 0.1,
+      "wf_mean_sharpe": 1.004014875915472
+    }
+  ],
+  "config": {
+    "gates": {
+      "min_sharpe": 1.0,
+      "min_trades": 200,
+      "min_profit_factor": 1.3,
+      "max_drawdown": 0.15,
+      "min_walkforward_stability": 0.7,
+      "min_worst_regime_sharpe": 0.3,
+      "max_p_value": 0.05,
+      "min_information_ratio": 0.0,
+      "min_perturbed_sharpe_ratio": 0.5
+    },
+    "grid": {
+      "lookbacks": [
+        21,
+        63
+      ],
+      "z_windows": [
+        126,
+        252
+      ],
+      "entry_scales": [
+        1.0,
+        1.5,
+        2.0
+      ],
+      "vol_targets": [
+        0.1,
+        0.15
+      ]
+    }
+  }
+}

@@ -6266,3 +6266,48 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 | Volatility term-structure / near-term fear transmission via VIX9D/VIX (short-dated vs spot) | H113 (NF-20261106-26) | Continuous vol-targeted long SPY reduced when trailing VIX9D/VIX ratio momentum z-score abnormally high (front-end stress), 1-bar delay | SPY (traded), ^VIX9D/^VIX (signal) daily (yfinance), 2011–2026 (aligned ~3982 rows) | **REJECT** (3/8; exp_2026-11-06T21-57-20-802037Z) | Fails Sharpe 0.811/PF 1.152/trades 117/worst-regime min -0.717/benchmark-p 1.0/IR -0.085; perturbation-stable but no risk-adjusted edge vs buy-hold; low trade count; specific front-end mapping as pre-registered |
 
 **Cycle 28 required next.** H85–H113 all rejected/recorded. Fresh discovery per directive §4: reconcile lineage to H113, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess deferred candidates NF-04/05/07/08/10/11/13/15/17/20/21 and NF-11r/NF-06-18 with concrete evidence (no silent drops). NF-06-11 CBOE PC ratio infeasible. NF-20261106-03/21/23/24/27/28 deferred. Pre-register highest-information feasible candidate as H114 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
+
+
+## H114 (NF-20261106-27): SPHB/SPLV high-beta vs low-volatility style leadership timing for SPY
+
+**Status:** Pre-registered (Cycle 28 discovery, NF-20261106-27). Free/public yfinance, no `src/qtr` change. Not yet executed in this session.
+
+**Statement.** The ratio of high-beta equities (SPHB) to low-volatility equities (SPLV) measures style/volatility-preference leadership. When low-volatility leads high-beta (ratio weakens / SPHB underperforms SPLV, risk aversion / rotation into defensives), reduce vol-targeted long SPY exposure; otherwise maintain normal exposure. Net pooled OOS (Val+Test) Sharpe >= 1.0 with >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 vs buy-hold SPY with IR >= 0, and perturbation min ratio >= 0.5.
+
+**Null (H0).** Trailing SPHB/SPLV style leadership has no predictive power for next-day SPY returns beyond random chance after costs.
+
+**Mechanism / causal chain (pre-registered).** Compute ratio `r_t = SPHB_t / SPLV_t` (adjusted close). Take trailing momentum z-score `z_t` of log(r_t) over trailing `z_window` using past-only windows (`min_periods`), with lookback `lookback` for the momentum calculation of the ratio. When the ratio is abnormally weak (style rotation into defensives / low-vol leads; `z_t <= -entry_scale`), reduce SPY exposure continuously (regime of defensive leadership) via vol targeting; otherwise allow normal exposure. `MAX_POS=0.5`, long-only SPY only. Engine applies `signals.shift(1)`: target at close t earns return t→t+1 — strictly causal. This tests the defensive-rotation mapping (ratio-weakness reduces exposure); it does not test all style/volatility-preference constructions.
+
+**Novelty (repo-relative).** Repo-new root family candidate: **cross-sectional/style-preference transmission via SPHB/SPLV (high-beta vs low-volatility leadership)**. Distinct from H16 (factor timing rotation between factors with different portfolio construction) and H110 (consumer XLY/XLP cyclical-vs-defensive), H109 (energy supply-shock), credit/rates/vol families. SPHB/SPLV is a direct pairwise style leadership observable between high-beta and low-volatility equity styles; mechanism is volatility-preference/flight-to-quality within equities (style rotation) rather than cross-asset rates/credit/commodity channels.
+
+**Data.** yfinance daily adjusted close for `SPHB`, `SPLV`, `SPY` (traded), 2010-01-01 → 2026-10-31. SPHB/SPLV have history from 2011-05-05; alignment from common start gives ~3896 rows (sufficient). Verify no non-positive values; use close prices consistently.
+
+**Universe/splits (protected holdout).** Trade `SPY`; signal `SPHB/SPLV`. Train from common start → 2019-12-31; Val 2020-01-01 → 2022-12-31; Test (protected) 2023-01-01 → 2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+
+**Grid (bounded).** `lookback ∈ {21,63}` × `z_window ∈ {126,252}` × `entry_scale ∈ {1.0,1.5,2.0}` × `vol_target ∈ {0.10,0.15}` (24 combos). `max_position=0.5`, long-only SPY only.
+
+**Costs/constraints.** Equity `CostModel` defaults. No live trading. Use free/public data only.
+
+**Gates (OOS Val+Test).** Sharpe >= 1.0, >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0, perturbation min ratio >= 0.5.
+
+**Runner.** `run_nf_20261106_27_sphb_splv_style.py` (to be created). **Tests.** `tests/test_nf_20261106_27_sphb_splv_style.py` (to be created).
+
+### H114 execution outcome (2026-11-06, REAL)
+
+**Experiment:** `exp_2026-11-06T23-06-21-278809Z` (2.75s). Artifact: `.experiments/nf_runs/nf_20261106_27_sphb_splv_style/summary.json`. `src/qtr` unchanged.
+
+**Selected (train-only 4-fold WF):** `lookback=63, z_window=126, entry_scale=2.0, vol_target=0.15`.
+
+**OOS Val+Test (412 trades):** Sharpe **0.684** (fail), PF **1.130** (fail), max DD **-17.00%** (fail), trades **412** (pass), WF stability **0.746** (pass), worst-regime rolling-252 Sharpe min **-0.723** (fail), benchmark p **0.351** / IR **-0.153** (fail), perturbation min ratio **0.906** (pass). Train Sharpe 0.917.
+
+**Ablations (OOS).** Buy-hold SPY 0.720/1.148/DD -18.21%/1. Random-exposure-matched 0.549/1.129/DD -7.24%/1717. Inverse-stress-long 0.346/1.126/DD -10.86%/411.
+
+**Verdict rationale.** **REJECT (2/8).** SPHB/SPLV style-preference/defensive-rotation timing is perturbation-stable and beats random/inverse ablations, but fails Sharpe/PF/maxDD/worst-regime/benchmark-p/IR on pre-registered OOS gates vs buy-hold; no validated net risk-adjusted edge. The executed ratio-weakness mapping is the specific pre-registered construction tested; this does not test all style/volatility-preference constructions. No gate weakened; no published/certified artifact modified.
+
+**Lineage map (H114 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known failure modes |
+|---|---|---|---|---|---|
+| Cross-sectional/style-preference transmission via SPHB/SPLV (high-beta vs low-volatility leadership) | H114 (NF-20261106-27) | Continuous vol-targeted long SPY reduced when trailing SPHB/SPLV ratio momentum z-score abnormally weak (defensive rotation), 1-bar delay | SPY (traded), SPHB/SPLV (signal) daily (yfinance), 2011–2026 (aligned ~3896 rows) | **REJECT** (2/8; exp_2026-11-06T23-06-21-278809Z) | Fails Sharpe 0.684/PF 1.130/DD -17.00%/worst-regime -0.723/benchmark-p 0.351/IR -0.153; perturbation-stable but no risk-adjusted edge vs buy-hold; specific defensive-rotation mapping as pre-registered |
+
+**Cycle 29 required next.** H85–H114 all rejected/recorded. Fresh discovery per directive §4: reconcile lineage to H114, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess NF-04/05/07/08/10/11/13/15/17/20/21 and NF-11r/NF-06-18 (TNX-FVX, **NF-11 data-resolution path, same root mechanism — honest novelty, not a new root family**) with concrete evidence (no silent drops). NF-06-11 CBOE PC ratio infeasible. NF-20261106-03/21/23/24/28/29 deferred. Pre-register highest-information feasible candidate as H115 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
