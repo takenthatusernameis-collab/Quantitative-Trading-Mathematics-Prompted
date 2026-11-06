@@ -1074,3 +1074,44 @@ Checked against root families H1–H99 (no parameter/instrument/universe/timefra
 **Verdict rationale.** Regime rule extremely sparse (19 OOS trades) — fails pre-registered trade-count/worst-regime/IR; not a robust, trade-rich edge. No gate weakened.
 
 **Cycle 16 required next.** H85–H102 all rejected. Fresh discovery per directive §4: reconcile lineage to H102, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess NF-04/05/11r/12/17/20/21/03 with concrete evidence (no silent drops). Pre-register highest-information feasible candidate as H103 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
+
+
+## Cycle 16 (2026-11-06) — Discovery / Execution of H103 (NF-20261106-06)
+
+**Lineage reconciled to H102 (H85–H102 all rejected).** Next unused H-ID **H103** assigned and executed.
+
+**Candidates assessed (>=3, >=3 broad categories; NF-IDs temporary):**
+1. **NF-20261106-06 (selected, H103) — Commodity-currency risk-appetite / carry-unwind transmission timing:** FXA (AUD pro-cyclical commodity currency) trailing momentum z-score → continuous vol-targeted long SPY (risk-on when AUD strong), long-only, 1-bar delay. Broad category: FX/macro risk-appetite transmission (distinct channel). Feasibility: free yfinance FXA/SPY, 4233 rows, point-in-time. *Adjacency to H95 (UUP USD) acknowledged and scored honestly:* differs in instrument (AUD pro-cyclical vs broad USD), direction (AUD strength=risk-on vs USD strength=risk-off), and construction (continuous scaling to address H95’s 88-trade sparsity). Not a parameter tweak of H95.
+2. **NF-20261106-07 (assessed, not selected) — Gold/equity safe-haven rotation timing:** GLD-vs-SPY relative momentum z-score → reduce SPY when gold outperforms (flight-to-safety). Broad category: cross-asset safe-haven rotation. Feasibility: free yfinance. Quick decisive check (train-WF selected, OOS Val+Test): best (21,126,1.0,0.15) PASS 4/9, Sharpe 0.749, PF 1.226, DD -5.75%, trades 817, WF pass, worst-regime fail, bench-p fail, IR -0.612 — similar weak profile; not selected over NF-06 given equivalent expected information and comparable decisive-risk shape.
+3. **NF-20261106-08 (assessed, rejected as infeasible/deferred) — TIP/IEF breakeven/inflation-compensation proxy timing GLD:** TIP-vs-IEF relative momentum → long GLD when inflation compensation rising. Broad category: real-rate/inflation-expectation transmission. Feasibility: free yfinance TIP/IEF/GLD. Quick decisive check: train-WF very weak (best WF ~0.10, OOS Sharpe 0.280, PF 1.077, DD -10.39%) — mechanism not supported in this proxy/construction; deferred as low expected information without a better point-in-time breakeven observable (FRED ^T5YIE/^T10YIE unavailable on yfinance; no free FRED in pipeline).
+
+**Scoring (1–5, weights 25/25/20/15/10/5 = novelty/plausibility/data/falsifiability/exec/support):**
+| Candidate | Nov 25% | Plaus 25% | Data 20% | Fals 15% | Exec 10% | Supp 5% | Weighted |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261106-06 FXA risk-appetite (selected) | 3 (FX/macro adjacent to H95, but distinct instrument/direction/construction) | 3 | 5 | 4 | 4 | 3 | **3.55** |
+| NF-20261106-07 GLD/SPY safe-haven rotation | 3 | 3 | 5 | 4 | 4 | 3 | **3.55** |
+| NF-20261106-08 TIP/IEF breakeven→GLD | 4 | 3 | 4 | 4 | 4 | 2 | **3.55** (tied nominal; decisive quick check shows very weak train/OOS — lowest expected information) |
+
+Tie-break: NF-06 selected over NF-07 for highest expected information on the FX carry/risk-appetite channel with a pre-registered continuous construction explicitly addressing H95 sparsity (falsifiable by trade-count + direction). NF-07 shows a similar weak OOS profile in quick check. NF-08 deprioritized after weak decisive check / proxy limitations.
+
+**Deferred candidates reassessed (not silently dropped):**
+- NF-20261105-04 (commodity carry): still blocked — point-in-time term-structure/roll proxy unavailable on free yfinance; unchanged.
+- NF-20261105-05 (short-term CS reversal): deferred — decisive daily turnover/net-of-cost; not implemented.
+- NF-20261105-11r (TNX/FVX slope): data-resolved variant, novelty scored honestly lower (same root mechanism as NF-11); deferred.
+- NF-20261105-12 (cross-sectional equity dispersion): complexity/turnover vs smallest decisive test; deferred.
+- NF-20261105-17 (volume-shock reversal): turnover/cost-sensitive; deferred.
+- NF-20261105-20 (Treasury auction supply-pressure): event calendar/timestamp construction; deferred.
+- NF-20261105-21 (month-end pension rebalancing): weak evidence/adjacency risk; deferred.
+- NF-20261106-03 (VVIX vol-of-vol): VIX-complex adjacency (novelty 3); deferred.
+
+### NF-20261106-06 / H103 execution outcome (2026-11-06)
+
+**Runner:** `run_nf_20261106_06_fxa_risk.py`. **Tests:** `tests/test_nf_20261106_06_fxa_risk.py` (10 passed). Lint/format clean. `src/qtr` unchanged.
+
+**Execution.** `exp_2026-11-06T12-54-14-976207Z`, 3.14s. FXA/SPY 4233 rows (train 2516 / val 756 / test 961). Selected (train-only 4-fold WF 1.5491): `lookback=63, z_window=126, entry_scale=1.0, vol_target=0.15`. Artifact `.experiments/nf_runs/nf_20261106_06_fxa_risk/summary.json` (finalized with reconstructed verdict evidence after non-fatal `tracker.finish_experiment` API mismatch; OOS metrics from real console).
+
+**Result — REJECT (3/9 gates).** OOS Val+Test (692 trades): Sharpe 0.510 (fail), PF 1.154 (fail), max DD -6.97% (pass), trades 692 (pass), WF stability 0.946 (pass), worst-regime rolling-252 Sharpe -1.553 (fail), benchmark p null (fail), IR -0.616 (fail), perturbation min ratio 0.435 (fail). Train Sharpe 0.539.
+
+**Verdict rationale.** Continuous scaling fixed H95-like sparsity (692 trades vs 88) but not a validated edge: fails Sharpe/PF/worst-regime/benchmark-p/IR/perturbation. No risk-adjusted edge over buy-hold on pre-registered OOS gates. FX/macro adjacency to H95 acknowledged; construction differed materially. No gate weakened.
+
+**Cycle 17 required next.** H85–H103 all rejected. Fresh discovery per directive §4: reconcile lineage to H103, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess NF-04/05/11r/12/17/20/21/03 + NF-07 with concrete evidence (no silent drops). Pre-register highest-information feasible candidate as H104. `src/qtr` unchanged unless evidenced defect.

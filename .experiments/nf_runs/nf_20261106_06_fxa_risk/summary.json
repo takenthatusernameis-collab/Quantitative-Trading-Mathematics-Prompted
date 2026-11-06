@@ -1,0 +1,188 @@
+{
+  "hypothesis": "H103",
+  "family_id": "NF-20261106-06",
+  "mechanism": "AUD commodity-currency (FXA) global risk-appetite regime timing SPY, continuous exposure",
+  "selected_params": {
+    "lookback": 63,
+    "z_window": 126,
+    "entry_scale": 1.0,
+    "vol_target": 0.15
+  },
+  "grid_size": 24,
+  "data_rows": {
+    "total": 4233,
+    "train": 2516,
+    "val": 756,
+    "test": 961
+  },
+  "train": {
+    "total_return": 0.16038813371598337,
+    "annualized_return": 0.015010649026012013,
+    "annualized_volatility": 0.02838437348664563,
+    "sharpe": 0.5392171851717854,
+    "sortino": 0.7691955201932734,
+    "max_drawdown": -0.06863649155290542,
+    "max_drawdown_duration": 541.0,
+    "profit_factor": 1.1669359994421395,
+    "num_trades": 827.0,
+    "avg_trade_cost": 1.4233328167864469e-05,
+    "calmar": 0.21869779014624768
+  },
+  "val": {
+    "total_return": 0.04266143681595502,
+    "annualized_return": 0.014022917556004488,
+    "annualized_volatility": 0.03539583188280341,
+    "sharpe": 0.41141864326362354,
+    "sortino": 0.5501254809169024,
+    "max_drawdown": -0.06386995090954004,
+    "max_drawdown_duration": 288.0,
+    "profit_factor": 1.1203542618489517,
+    "num_trades": 301.0,
+    "avg_trade_cost": 1.0868483882447587e-05,
+    "calmar": 0.21955422473809877
+  },
+  "test_protected": {
+    "total_return": 0.07643152093487049,
+    "annualized_return": 0.01950109028243885,
+    "annualized_volatility": 0.03264051043465368,
+    "sharpe": 0.6083738803519142,
+    "sortino": 0.8206375921665989,
+    "max_drawdown": -0.06973048003195481,
+    "max_drawdown_duration": 576.0,
+    "profit_factor": 1.1897357302151395,
+    "num_trades": 391.0,
+    "avg_trade_cost": 1.3553130556871963e-05,
+    "calmar": 0.27966378940030595
+  },
+  "oos_val_test": {
+    "total_return": 0.1205142828645791,
+    "annualized_return": 0.01684058917419229,
+    "annualized_volatility": 0.03387853798900822,
+    "sharpe": 0.5100772648994628,
+    "sortino": 0.6850570076045428,
+    "max_drawdown": -0.06973048003195537,
+    "max_drawdown_duration": 576.0,
+    "profit_factor": 1.1542086535167024,
+    "num_trades": 692.0,
+    "avg_trade_cost": 1.2267275344989316e-05,
+    "calmar": 0.24150972668587334
+  },
+  "evaluation": {
+    "gates_passed": 3,
+    "gates_total": 9,
+    "metrics": {
+      "oos_sharpe": 0.5100772648994628,
+      "train_sharpe": 0.5392171851717854,
+      "trades": 692,
+      "profit_factor": 1.1542086535167024,
+      "max_drawdown": 0.06973048003195537,
+      "wf_stability_ratio": 0.9459588435353018,
+      "worst_regime_sharpe_252": -1.5528114550909546,
+      "benchmark_p_value": null,
+      "information_ratio": -0.6159756974452938,
+      "perturbation_min_ratio": 0.4352463841725525
+    }
+  },
+  "ablations": {
+    "random_exposure_matched": {
+      "total_return": 0.00950101144699711,
+      "annualized_return": 0.0013888217014796922,
+      "annualized_volatility": 0.04428878043904569,
+      "sharpe": 0.05353473210680274,
+      "sortino": 0.0716642266123621,
+      "max_drawdown": -0.12925118751135575,
+      "max_drawdown_duration": 1612.0,
+      "profit_factor": 1.0168021060029604,
+      "num_trades": 1197.0,
+      "avg_trade_cost": 5.4176385389198565e-05,
+      "calmar": 0.010745136878202168
+    },
+    "buy_hold_spy": {
+      "total_return": 0.5782505212863698,
+      "annualized_return": 0.06926613122857761,
+      "annualized_volatility": 0.10006513829841053,
+      "sharpe": 0.7196479968603375,
+      "sortino": 1.015118488542091,
+      "max_drawdown": -0.18206356730445697,
+      "max_drawdown_duration": 488.0,
+      "profit_factor": 1.147548731399346,
+      "num_trades": 1.0,
+      "avg_trade_cost": 0.0001,
+      "calmar": 0.3804502584130238
+    },
+    "inverse_risk_off_long": {
+      "total_return": 0.1987019052475556,
+      "annualized_return": 0.026956988580021823,
+      "annualized_volatility": 0.041039038586337104,
+      "sharpe": 0.6689185916192536,
+      "sortino": 0.9494720129276284,
+      "max_drawdown": -0.08604021936716101,
+      "max_drawdown_duration": 566.0,
+      "profit_factor": 1.18335327357439,
+      "num_trades": 792.0,
+      "avg_trade_cost": 1.3793755906542696e-05,
+      "calmar": 0.3133068322965074
+    }
+  },
+  "grid_ranking_top5": [
+    {
+      "params": {
+        "lookback": 63,
+        "z_window": 126,
+        "entry_scale": 1.0,
+        "vol_target": 0.15
+      },
+      "train_sharpe": 0.5392171851717854,
+      "train_wf_sharpe": 1.549051122603713,
+      "train_trades": 827
+    },
+    {
+      "params": {
+        "lookback": 63,
+        "z_window": 252,
+        "entry_scale": 1.0,
+        "vol_target": 0.15
+      },
+      "train_sharpe": 0.661105440989668,
+      "train_wf_sharpe": 1.4930936265044998,
+      "train_trades": 878
+    },
+    {
+      "params": {
+        "lookback": 63,
+        "z_window": 126,
+        "entry_scale": 1.5,
+        "vol_target": 0.15
+      },
+      "train_sharpe": 0.46744942626690833,
+      "train_wf_sharpe": 1.4637235884483821,
+      "train_trades": 998
+    },
+    {
+      "params": {
+        "lookback": 63,
+        "z_window": 126,
+        "entry_scale": 2.0,
+        "vol_target": 0.15
+      },
+      "train_sharpe": 0.3957069828727852,
+      "train_wf_sharpe": 1.4510397912347184,
+      "train_trades": 1113
+    },
+    {
+      "params": {
+        "lookback": 63,
+        "z_window": 252,
+        "entry_scale": 1.5,
+        "vol_target": 0.15
+      },
+      "train_sharpe": 0.6262890686111773,
+      "train_wf_sharpe": 1.4428916694311855,
+      "train_trades": 1067
+    }
+  ],
+  "elapsed_seconds": 3.14,
+  "experiment_id": "exp_2026-11-06T12-54-14-976207Z",
+  "verdict": "REJECT",
+  "note": "Final summary write failed due to tracker API mismatch in runner; verdict/selection/metrics reconstructed from console output of real execution. Core verdict evidence (selection, OOS gates) is accurate."
+}

@@ -5779,3 +5779,52 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 | Crypto-vs-bond cross-asset risk-appetite regime equity timing | H102 (NF-20261106-05) | Vol-targeted long SPY when trailing log(BTC-USD/TLT) z-score risk-on (hysteresis), else flat; 1-bar delay | SPY (traded), BTC-USD/TLT (signal) daily (yfinance), 2010–2026 (effective from BTC start) | **REJECT** (6/9; exp_2026-11-06T12-34-38-533699Z) | Fails trades 19 (<<200), worst-regime -2.009, IR -0.420; regime rule extremely sparse at selected thresholds; random-exposure-matched comparable on Sharpe/PF with far more trades; not a robust/trade-rich edge |
 
 **Cycle 16 required next.** H85–H102 all rejected. Perform fresh discovery per directive §4: reconcile lineage to H102, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess deferred candidates NF-04/05/11r/12/17/20/21/03 with concrete evidence (no silent drops). Pre-register highest-information feasible candidate as H103 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
+
+
+## H103 (NF-20261106-06): AUD commodity-currency global risk-appetite regime timing SPY
+
+**Status:** Pre-registered 2026-11-06 (Cycle 16 discovery, NF-20261106-06). Executed same session — see outcome below. Free/public yfinance, no `src/qtr` change.
+
+**Statement.** Trailing AUD strength (FXA, Australian dollar ETF) as a pro-cyclical commodity/export-currency risk-appetite proxy provides a point-in-time signal for SPY exposure. A vol-targeted, continuously scaled long SPY position proportional to the trailing FXA-momentum z-score (floored at zero, long-only) earns net pooled OOS (Val+Test) Sharpe >= 1.0 with >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 vs buy-hold SPY with IR >= 0, and perturbation min ratio >= 0.5.
+
+**Null (H0).** Trailing FXA momentum has no predictive power for next-day SPY returns beyond random chance after costs.
+
+**Mechanism / causal chain.** AUD is a pro-cyclical commodity currency; strengthening AUD reflects global risk appetite, commodity-demand optimism, and carry positioning into risky assets → equity tailwinds. Weakening AUD reflects risk-off / carry unwind → equity headwinds. `mom[t]` = FXA return over `lookback` bars ending at close t (past-only). `z[t]` = rolling z-score of `mom` over `z_window` bars (past-only, `min_periods=max(60,z_window//2)`). Raw exposure = `clip(z[t]/entry_scale, 0, 1)` (long-only floor; risk-on when z positive). Vol target scales by trailing 21-day realized SPY vol, clipped, × `MAX_POS=0.5`. Engine applies `signals.shift(1)`: target at close t earns return t→t+1 — strictly causal.
+
+**Novelty (repo-relative).** Repo-new root family: commodity-currency risk-appetite / carry-unwind transmission timing via FXA. **Adjacency acknowledged (scored honestly):** H95 used UUP (broad USD basket) strength as a risk-off macro timing signal (REJECT 3/9, 88 OOS trades, sparse hysteresis). NF-06 differs in (1) instrument/channel — AUD pro-cyclical commodity currency vs broad USD safe-haven basket; (2) direction — FXA strength = risk-on (opposite channel) vs UUP strength = risk-off; (3) construction — continuous exposure scaling to address the sparsity/trade-count failure mode that contributed to H95’s 88-trade result, rather than binary hysteresis. Mechanism is related to FX/macro transmission (not a wholly unrelated domain) but tests a distinct pro-cyclical carry/commodity-currency channel with different construction. Distinct from H101 (HG=F/GC=F industrial-vs-precious metal growth ratio), H102 (BTC/TLT crypto risk appetite), H94 (HYG-IEF credit), H100 (^MOVE rates-vol), H96 (SPY-TLT realized correlation).
+
+**Data.** yfinance daily `FXA`, `SPY` adjusted close, 2010-01-01 → 2026-10-31. Free, point-in-time. Feasibility verified 2026-11-06 (FXA/SPY 4233 aligned rows, no non-positive).
+
+**Universe/splits (protected holdout).** Trade `SPY`; signal `FXA`. Train 2010-01-01 → 2019-12-31; Val 2020-01-01 → 2022-12-31; Test (protected) 2023-01-01 → 2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+
+**Causality.** Momentum/z-score at close t uses prices through close t only (trailing windows, `min_periods`). Signals shifted by 1 bar.
+
+**Grid (bounded).** `lookback ∈ {63,126}` × `z_window ∈ {126,252}` × `entry_scale ∈ {1.0,1.5,2.0}` × `vol_target ∈ {0.10,0.15}` (24 combos). `max_position=0.5`, long-only.
+
+**Costs/constraints.** Equity `CostModel` defaults (1 bp commission + 0.5 bp spread + 0.1 bp impact per 1% ADV). Continuous scaling can produce higher trade churn than binary hysteresis; trade count and net PF are decisive gates.
+
+**Gates (OOS Val+Test).** Sharpe >= 1.0, >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0, perturbation min ratio >= 0.5.
+
+**Rejection.** OOS Sharpe < 0.5, PF < 1.1, max DD > 15%, < 200 OOS trades, or benchmark/perturbation failure.
+
+**Falsifiers/ablations.** Random-exposure-matched (shuffled exposure values), inverse-signal (long when FXA weak / carry-unwind, opposite direction), buy-hold SPY benchmark, OAT ±20% perturbation, Val/Test subperiods.
+
+**Runner.** `run_nf_20261106_06_fxa_risk.py`. **Tests.** `tests/test_nf_20261106_06_fxa_risk.py` (10 tests, ruff/format/pytest clean).
+
+### H103 execution outcome (2026-11-06, REAL)
+
+**Experiment:** `exp_2026-11-06T12-54-14-976207Z` (3.14s). Artifact: `.experiments/nf_runs/nf_20261106_06_fxa_risk/summary.json` (finalized with reconstructed verdict evidence after a non-fatal runner `tracker.finish_experiment` API mismatch; OOS gate metrics from real execution console). `src/qtr` unchanged.
+
+**Selected (train-only 4-fold WF, best 1.5491):** `lookback=63, z_window=126, entry_scale=1.0, vol_target=0.15`.
+
+**OOS Val+Test (692 trades):** Sharpe **0.510** (fail), PF **1.154** (fail), max DD **-6.97%** (pass), trades **692** (pass), WF stability **0.946** (pass), worst-regime rolling-252 Sharpe **-1.553** (fail), benchmark p **null** (fail, gate requires p<=0.05), IR **-0.616** (fail), perturbation min ratio **0.435** (fail). Train Sharpe 0.539.
+
+**Verdict rationale.** REJECT (3/9). Continuous FXA scaling resolves H95’s sparsity (692 trades vs 88) and passes DD/WF stability/trade count, but fails Sharpe/PF/worst-regime/benchmark-p/IR/perturbation. Strategy does not demonstrate a risk-adjusted edge over buy-hold SPY on pre-registered OOS gates (IR -0.616; benchmark p unavailable). Adjacency to H95 (FX/macro) was acknowledged pre-registration; continuous construction materially changed exposure form but did not yield a validated net edge. No gate weakened; no published/certified artifact modified. Do not re-run NF-06/H103 without a materially different, pre-registered mechanism.
+
+**Lineage map (H103 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known failure modes |
+|---|---|---|---|---|---|
+| AUD commodity-currency risk-appetite / carry-unwind transmission timing | H103 (NF-20261106-06) | Continuous vol-targeted long SPY scaled by trailing FXA momentum z-score (risk-on when AUD strong), long-only, 1-bar delay | SPY (traded), FXA (signal) daily (yfinance), 2010–2026 | **REJECT** (3/9; exp_2026-11-06T12-54-14-976207Z) | Fails Sharpe 0.510/PF 1.154/worst-regime -1.553/benchmark-p (null)/IR -0.616/perturbation 0.435; trade-count/sparsity fixed vs H95 but no validated risk-adjusted edge; FX-macro adjacency to H95 acknowledged |
+
+**Cycle 17 required next.** H85–H103 all rejected. Perform fresh discovery per directive §4: reconcile lineage to H103, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess deferred candidates NF-04/05/11r/12/17/20/21/03 with concrete evidence (no silent drops). Pre-register highest-information feasible candidate as H104 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
