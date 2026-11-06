@@ -6178,3 +6178,47 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 | Technology capex-cycle / innovation-supply-chain leadership via semiconductor-vs-broad-tech equity relative strength | H111 (NF-20261106-22) | Continuous vol-targeted long SPY reduced when trailing SMH/QQQ ratio momentum z-score abnormally weak (semiconductor capex-cycle stress), 1-bar delay | SPY (traded), SMH/QQQ (signal) daily (yfinance), 2010–2026 | **REJECT** (4/8; exp_2026-11-06T15-52-07-899045Z) | Fails Sharpe 0.805/PF 1.149/worst-regime min -1.062/benchmark-p 1.0/IR -0.242; DD improved and perturbation-stable but no risk-adjusted edge vs buy-hold; specific semiconductor-weakness mapping as pre-registered |
 
 **Cycle 26 required next.** H85–H111 all rejected/recorded. Perform fresh discovery per directive §4: reconcile lineage to H111, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess deferred candidates NF-04/05/07/08/10/11/13/15/17/20/21 and NF-11r/NF-06-18 (TNX-FVX, **NF-11 data-resolution path, same root mechanism — honest novelty, not a new root family**) with concrete evidence (no silent drops). NF-06-11 CBOE PC ratio infeasible. NF-20261106-03 VVIX deferred (VIX-complex adjacency). NF-20261106-21 RSP/SPY breadth deferred. NF-20261106-23 XHB/XLU, NF-20261106-24 XBI/XLV deferred (Cycle 25). Pre-register highest-information feasible candidate as H112 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
+
+## H112 (NF-20261106-25): Cross-sectional MAX / lottery-demand regime timing for SPY
+
+**Status:** Pre-registered and executed 2026-11-06 (Cycle 26 discovery, NF-20261106-25). Free/public yfinance, no `src/qtr` change.
+
+**Statement.** Cross-sectional lottery demand (the equal-weighted average of each liquid ETF's max daily return over a trailing lookback — the "MAX" anomaly of Bali, Cakici & Whitelaw 2011) provides a point-in-time investor-attention/overheating regime signal for SPY exposure. When market-level MAX is abnormally high relative to its own trailing z-score (lottery demand elevated / risk appetite overheated), reduce vol-targeted long SPY exposure; otherwise maintain normal exposure. Net pooled OOS (Val+Test) Sharpe >= 1.0 with >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 vs buy-hold SPY with IR >= 0, and perturbation min ratio >= 0.5.
+
+**Null (H0).** Trailing cross-sectional MAX lottery-demand state has no predictive power for next-day SPY returns beyond random chance after costs.
+
+**Mechanism / causal chain (pre-registered).** Investors overpay for lottery-like payoffs (high max daily return), temporarily inflating prices; elevated cross-sectional MAX signals overheated risk appetite and predicts low subsequent equity returns. For each day t, compute each signal ETF's max daily return over the trailing `lookback` window (past-only `min_periods`, returns through t-1), take the cross-sectional mean ("market MAX"), z-score it over a trailing `z_window`, and scale SPY exposure down continuously when z > entry_scale (stress = clip((z - entry_scale)/entry_scale, 0, 1); calm = 1 - 0.5*stress). Vol target scales by trailing 21-day realized SPY vol, clipped, × `MAX_POS=0.5`. Engine applies `signals.shift(1)`: target at close t earns return t→t+1 — strictly causal. This tests the directional mapping (elevated MAX reduces exposure); it does not test all lottery-demand constructions.
+
+**Novelty (repo-relative).** Repo-new root family candidate: **investor attention / lottery-demand (MAX) transmission via cross-sectional equity maximum daily return**. Distinct from H2/H16 (cross-sectional momentum — own-past-return *trend*), H93 (idiosyncratic-*volatility* level — dispersion of vol, not max return / lottery demand), H95/H97 (USD/concentration), H17/H86/H104/H105 (volatility level/slope/tail families), H91 (calendar seasonality), H90 (FOMC event drift), H85 (lead-lag), H87 (gap fill), and all TSMOM/regime/credit/currency/sector-leadership families. Market MAX is a higher-moment cross-sectional observable, not a vol level, trend, regime, calendar, or event signal.
+
+**Data.** yfinance daily adjusted close for SPY (traded) and 15 liquid signal ETFs (QQQ, IWM, EFA, EEM, XLE, XLF, XLV, XLI, XLB, XLP, XLU, XLY, XLK, GLD, TLT), 2010-01-01 → 2026-10-31. Free, point-in-time. Feasibility verified 2026-11-06 (4233 rows each, 0 non-positive, 2010-01-04 → 2026-10-30; XLC excluded due shorter 2018 start).
+
+**Universe/splits (protected holdout).** Trade `SPY`; signal = cross-sectional MAX of the 15 signal ETFs. Train 2010-01-01 → 2019-12-31; Val 2020-01-01 → 2022-12-31; Test (protected) 2023-01-01 → 2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+
+**Grid (bounded).** `lookback ∈ {21,63}` × `z_window ∈ {126,252}` × `entry_scale ∈ {1.0,1.5,2.0}` × `vol_target ∈ {0.10,0.15}` (24 combos). `max_position=0.5`, long-only SPY only.
+
+**Costs/constraints.** Equity `CostModel` defaults (2 bp commission; spread/impact configurable at 0 unless set). Low turnover: market-level SPY timing with continuous scaling, no cross-sectional rebalancing.
+
+**Gates (OOS Val+Test).** Sharpe >= 1.0, >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0, perturbation min ratio >= 0.5.
+
+**Runner.** `run_nf_20261106_25_max_lottery.py`. **Tests.** `tests/test_nf_20261106_25_max_lottery.py` (focused).
+
+### H112 execution outcome (2026-11-06, REAL)
+
+**Experiment:** TBD. Artifact: `.experiments/nf_runs/nf_20261106_25_max_lottery/summary.json`. `src/qtr` unchanged.
+
+**Selected (train-only 4-fold WF):** TBD.
+
+**OOS Val+Test:** TBD.
+
+**Ablations (OOS):** TBD.
+
+**Verdict rationale.** TBD.
+
+**Lineage map (H112):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known failure modes |
+|---|---|---|---|---|---|
+| Investor attention / lottery-demand (MAX) transmission via cross-sectional equity maximum daily return | H112 (NF-20261106-25) | Continuous vol-targeted long SPY reduced when trailing cross-sectional mean of max daily return z-score abnormally high (lottery demand/overheating), 1-bar delay | SPY (traded), 15 signal ETFs (signal) daily (yfinance), 2010–2026 | TBD | TBD |
+
+**Cycle 27 required next.** TBD after H112 verdict. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
