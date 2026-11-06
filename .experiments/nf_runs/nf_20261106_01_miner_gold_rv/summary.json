@@ -1,0 +1,144 @@
+{
+  "experiment": "nf_20261106_01_miner_gold_rv",
+  "hypothesis": "H99",
+  "family": "NF-20261106-01",
+  "mechanism": "gold-miner vs gold real-optionality spread mean-reversion timing (GDX/GLD log spread z-score, long GDX vol-targeted)",
+  "verdict": "REJECT",
+  "reject_reasons": [
+    "sharpe",
+    "profit_factor",
+    "worst_regime_sharpe",
+    "p_value",
+    "information_ratio"
+  ],
+  "data": {
+    "source": "yfinance",
+    "universe": [
+      "GDX",
+      "GLD"
+    ],
+    "start": "2012-01-01",
+    "end": "2026-10-31",
+    "rows": 3729,
+    "non_positive_rows_dropped": 0,
+    "train_rows": 2012,
+    "val_rows": 756,
+    "test_rows": 960
+  },
+  "selection": {
+    "method": "train-only 4-fold walk-forward Sharpe",
+    "best_params": {
+      "lookback": 252,
+      "entry_z": 2.0,
+      "exit_z": 0.5,
+      "vol_target": 0.08
+    },
+    "best_train_wf_sharpe": 0.4374714660431478,
+    "grid_size": 36
+  },
+  "gate_result": {
+    "gate": {
+      "sharpe": false,
+      "trades": true,
+      "profit_factor": false,
+      "max_drawdown": true,
+      "walkforward_stability": true,
+      "worst_regime_sharpe": false,
+      "p_value": false,
+      "information_ratio": false,
+      "perturbation": true
+    },
+    "gate_pass_count": 4,
+    "gate_count": 9,
+    "oos_metrics": {
+      "sharpe": 0.3287462321927934,
+      "profit_factor": 1.0653598197547436,
+      "max_drawdown": -0.12473658486911526,
+      "trades": 1286,
+      "total_return": 0.15945978601115152
+    },
+    "train_sharpe": -0.09008339553485965,
+    "test_wf_sharpes": [
+      -0.18028098912067067,
+      0.6251344996421807,
+      0.9775665598027323,
+      0.5229315568293257
+    ],
+    "test_wf_mean": 0.48633790678839195,
+    "walkforward_stability": 1.0,
+    "benchmark_p": 0.12302079894192407,
+    "information_ratio": -0.5916358635035259,
+    "worst_regime_sharpe": -1.0457292931327749,
+    "benchmark_comparison": {
+      "information_ratio": -0.5916358635035259,
+      "alpha_annualized": -0.007030509690750633,
+      "beta": 0.1321485080027279,
+      "alpha_t_stat": -1.542977632312527,
+      "alpha_p_value": 0.12302079894192407,
+      "alpha_p_value_one_sided": 0.938489600529038,
+      "win_rate": 0.4897959183673469,
+      "excess_return_annual": -0.21424472603061473,
+      "excess_vol_annual": 0.3621226150184824
+    },
+    "perturbation": {
+      "base_sharpe": 0.3287462321927934,
+      "min_perturbed_sharpe_ratio": 0.9367834193030221,
+      "pass": true
+    }
+  },
+  "perturbation_detail_count": 12,
+  "subperiod_oos": {
+    "val_metrics": {
+      "sharpe": -0.012054050801569323,
+      "profit_factor": 0.9978480821718445,
+      "max_drawdown": -0.12473658486911463,
+      "trades": 660,
+      "total_return": -0.013130668471095897
+    },
+    "test_metrics": {
+      "sharpe": 0.6533579216417533,
+      "profit_factor": 1.1355307523660703,
+      "max_drawdown": -0.0839828951859725,
+      "trades": 712,
+      "total_return": 0.18953571605856734
+    }
+  },
+  "ablations": [
+    {
+      "label": "random_exposure_matched",
+      "sharpe": 0.7632136267047201,
+      "profit_factor": 1.1727551021159432,
+      "max_drawdown": -0.10200346131100482,
+      "trades": 1607,
+      "total_return": 0.5597128844943973
+    },
+    {
+      "label": "inverse_signal_miners_rich",
+      "sharpe": 0.24311842676021636,
+      "profit_factor": 1.0474147246854018,
+      "max_drawdown": -0.18747876323756973,
+      "trades": 1342,
+      "total_return": 0.11408997997257941
+    },
+    {
+      "label": "buy_hold_gdx",
+      "sharpe": 0.5779426575056141,
+      "profit_factor": 1.1069255454512528,
+      "max_drawdown": -0.49790276570782244,
+      "trades": 1701,
+      "total_return": 1.8297899020312052
+    }
+  ],
+  "gates": {
+    "min_sharpe": 1.0,
+    "min_trades": 200,
+    "min_profit_factor": 1.3,
+    "max_drawdown": 0.15,
+    "min_walkforward_stability": 0.7,
+    "min_worst_regime_sharpe": 0.3,
+    "max_p_value": 0.05,
+    "min_information_ratio": 0.0,
+    "min_perturbed_sharpe_ratio": 0.5
+  },
+  "runtime_sec": 10.75
+}

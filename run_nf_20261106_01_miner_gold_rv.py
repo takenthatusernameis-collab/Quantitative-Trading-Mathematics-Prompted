@@ -170,7 +170,8 @@ def run_one(prices: pd.DataFrame, targets: pd.DataFrame):
     trade = prices[[TRADE_SYM]].copy()
     tgt = targets[[TRADE_SYM]].reindex(trade.index).fillna(0.0)
     cfg = make_equity_config(allow_short=False)
-    return run_backtest(trade, tgt, config=cfg)
+    res = run_backtest(trade, tgt, config=cfg)
+    return {"equity": res.equity_curve}
 
 
 def compute_metrics(equity: pd.Series) -> dict:
@@ -212,7 +213,7 @@ def worst_regime_sharpe(equity: pd.Series, window: int = 252) -> float:
 
 def walkforward_sharpes(prices: pd.DataFrame, params: dict, n_folds: int = 4) -> list[float]:
     sharpes: list[float] = []
-    for tr_idx, te_idx in walk_forward_splits(prices.index, n_folds=n_folds):
+    for tr_idx, te_idx in walk_forward_splits(len(prices.index), n_splits=n_folds):
         tr_p = prices.iloc[tr_idx]
         te_p = prices.iloc[te_idx]
         full_p = pd.concat([tr_p, te_p])
@@ -378,12 +379,24 @@ def ablation_inverse_signal(oos_prices: pd.DataFrame, best: dict) -> dict:
 def main() -> int:
     t0 = time.time()
     out_dir = Path(".experiments") / "nf_runs" / EXPERIMENT_NAME
-    out_dir.mkdir(parents=True, exist=True)
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-    cache = DataCache(cache_dir=".data_cache", max_age_hours=24 * 365)
+    cache = DataCache(cache_dir=out_dir / "cache")
     fetcher = DataFetcher(cache=cache)
-    panel = fetcher.fetch_yahoo(UNIVERSE, start=DATA_START, end=DATA_END)
-    prices = panel.close.copy()
+    raw = fetcher.fetch_yahoo(UNIVERSE, start=DATA_START, end=DATA_END)
+    if not isinstance(raw, dict):
+        raise RuntimeError(f"fetch_yahoo returned {type(raw)}, expected dict")
+
+    def _close(df):
+        c = df.get("adj_close") if "adj_close" in df.columns else df.get("close")
+        if c is None:
+            c = df.get("Close")
+        if c is None:
+            raise KeyError(f"no close column: {df.columns.tolist()}")
+        return c.astype(float)
+
+    prices = pd.DataFrame({sym: _close(df) for sym, df in raw.items()}).sort_index()
+    prices = prices.ffill().dropna(how="all")
     nonpos = int((prices <= 0).sum().sum())
     prices = prices[(prices > 0).all(axis=1)].dropna()
 

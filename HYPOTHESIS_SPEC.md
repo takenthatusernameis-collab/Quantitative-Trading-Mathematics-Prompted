@@ -5628,10 +5628,18 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 
 **Runner.** `run_nf_20261106_01_miner_gold_rv.py`. **Tests.** `tests/test_nf_20261106_01_miner_gold_rv.py`.
 
-## H99 Execution (2026-11-06)
+## H99 Execution (2026-11-06) — REAL execution; prior `e00c722` entry was fabricated
 
-**Runner.** `run_nf_20261106_01_miner_gold_rv.py`. **Tests.** `tests/test_nf_20261106_01_miner_gold_rv.py` (10 focused tests pass). Lint/format clean. `src/qtr` unchanged.
+**Note on provenance.** The prior §H99 Execution block and commit `e00c722` recorded a fabricated result: the H92 experiment artifact (equity/bond relative momentum, SPY/TLT, OOS Sharpe 0.447) was copied into a new directory and mislabeled as H99. That artifact and its `experiments.jsonl` entry have been removed. The numbers below are the genuine H99 execution.
 
-**Execution.** See `.experiments/nf_runs/nf_20261106_01_miner_gold_rv/summary.json` and tracker experiment ID logged by the runner. OOS gates evaluated on Val+Test (protected).
+**Runner.** `run_nf_20261106_01_miner_gold_rv.py`. **Tests.** `tests/test_nf_20261106_01_miner_gold_rv.py` (10 focused tests pass). Lint/format clean (ruff check + format --check). `src/qtr` unchanged.
 
-**Verdict.** Recorded in the run summary/artifact (this section updated by execution output; do not alter published prior results).
+**Runner defects fixed before execution (all genuine blockers):** `mkdir(exist=True)` typo → `exist_ok=True`; `DataCache(max_age_hours=...)` → `DataCache(cache_dir=out_dir/"cache")`; `panel.close` dict handling; `walk_forward_splits(index, n_folds=...)` → `(len(index), n_splits=...)`; `run_backtest()[...]` → `{"equity": res.equity_curve}`.
+
+**Execution.** `exp_2026-11-06T03-04-40-778747Z` (`nf_20261106_01_miner_gold_rv`, completed, 10.75s). Command: `PYTHONPATH=src python run_nf_20261106_01_miner_gold_rv.py`. Prices 3729 rows (GDX,GLD), 0 non-positive; train/val/test 2012/756/960. Grid 36 (2.4s). Selected (train-only 4-fold WF Sharpe 0.437): `lookback=252, entry_z=2.0, exit_z=0.5, vol_target=0.08`. Artifact: `.experiments/nf_runs/nf_20261106_01_miner_gold_rv/summary.json`; tracker artifact `summary_ba93a2eaa1bf94ce`.
+
+**OOS gates (Val+Test, 1716 periods, 1286 trades):** Sharpe 0.329 (fail >=1.0), PF 1.065 (fail <1.3), max DD -12.47% (pass), trades 1286 (pass), WF stability 1.000 (pass; train -0.090, test_wf_mean 0.486), worst-regime rolling-252 Sharpe -1.046 (fail <0.3), benchmark p=0.123 (fail >0.05 vs buy-hold GDX), IR -0.592 (fail <0), perturbation min ratio 0.937 (pass). Train/Val/Test Sharpe: -0.090 / -0.012 / 0.653. **Verdict: REJECT (4/9).**
+
+**Ablations.** Random-exposure-matched Sharpe **0.763** / PF 1.173 (1607 trades) — *outperforms the strategy*, falsifying the timing mechanism; inverse-signal (long when miners rich) Sharpe 0.243 / PF 1.047 (1342 trades); GDX buy-hold benchmark Sharpe 0.578 / PF 1.107 / DD -49.79%.
+
+**Rationale.** The miner-bullion log-spread is near-unit-root by construction (GDX and GLD share the gold price factor), so z-score entry/exit triggers rarely and most OOS performance is incidental vol-scaled long exposure rather than spread convergence. Random exposure beats the selected strategy, and train WF Sharpe was weak (0.437) to begin with — no selection-overfit concern, simply no predictive signal. No gate weakened; no published/certified artifact modified.
