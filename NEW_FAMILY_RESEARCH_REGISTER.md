@@ -1265,3 +1265,35 @@ Tie-break: H107 selected as highest-expected-information **repo-new** root mecha
 **Verdict rationale.** Reduces drawdown and is perturbation-stable, but no validated risk-adjusted edge vs buy-hold on pre-registered OOS gates (fails Sharpe/PF/worst-regime/benchmark-p/IR). Adjacency to H94 (credit spreads) scored honestly; mechanism uses bank-equity stress, not credit observable. No gate weakened.
 
 **Cycle 22 required next.** H85–H107 all rejected. Fresh discovery per directive §4: reconcile lineage to H107, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess NF-04/05/07/08/10/11/13/15/17/20/21 and NF-11r (TNX-FVX, **NF-11 data-resolution path, honest novelty — not a new root family**) with concrete evidence (no silent drops). NF-06-11 CBOE PC ratio infeasible. Pre-register H108 with smallest decisive test. `src/qtr` unchanged unless evidenced defect.
+
+## Cycle 22 (2026-11-06) — Discovery / Pre-registration & Execution of H108 (NF-20261106-19)
+
+**Lineage reconciled to H107 (H85–H107 all rejected).** Next unused H-ID **H108** (H24/H68–H73/H76–H79 still unassigned). `src/qtr` unchanged.
+
+**Candidates assessed (>=3, >=3 broad categories; NF-IDs temporary; no protected-test selection):**
+1. **NF-20261106-19 (selected/executed, H108) — LQD-HYG credit-quality dispersion / IG-vs-HY transmission timing SPY:** trailing LQD/HYG ratio momentum z-score (IG-vs-HY credit-quality dispersion inside corporate credit) → continuous vol-targeted long SPY reduced when ratio abnormally weak (`z <= -entry_scale`), 1-bar delay. Broad category: **credit-quality dispersion / credit-beta transmission**. Feasibility: free yfinance LQD/HYG/SPY, 4233 rows each (2010–2026), 0 non-positive, point-in-time (verified 2026-11-06). *Adjacency (honest):* distinct from H94 (HYG-IEF credit spread vs Treasuries / flight-to-quality across credit+risk-free; different observable/mechanism) and H107 (KRE bank-equity/intermediation stress). Specific ratio-weakness mapping pre-registered/tested; not all IG/HY constructions.
+2. **NF-20261106-17 (reassessed, deferred) — XOP/XLE energy-sector relative-strength / supply-shock transmission timing SPY:** XOP vs XLE (or energy equity relative strength) regime as sectoral supply-shock/energy-stress signal → SPY timing. Broad category: **sectoral supply-shock / real-economy transmission**. Feasibility: free yfinance XOP/XLE/SPY (4233 rows, verified 2026-11-06). Adjacency risk to H98 (CL=F oil realized-vol stress, commodity domain) and H101 (HG/GC growth regime); sector-equity relative strength is a different observable but requires decisive pre-registration separating sector channel from commodity-vol/growth channels. Deferred.
+3. **NF-20261106-18 (reassessed, deferred — NF-11r resolution path, NOT repo-new root family) — TNX-FVX Treasury term-slope regime timing SPY:** 10y-5y slope z-score → SPY timing. Broad category: **rates term-structure / macro slope regime**. Feasibility: free yfinance ^TNX/^FVX (4231 rows, 0 non-positive). **Novelty honest/lower (SAME root mechanism as NF-11/NF-11r; data-resolution variant, not a repo-new root family).** May be pursued only as explicit NF-11 resolution path with honest novelty scoring.
+
+**Deferred candidates reassessed (no silent drops):** NF-04 commodity carry **still blocked** (no free point-in-time term-structure/roll proxy on yfinance). NF-05 short-term CS reversal **deferred** (turnover/net-of-cost). NF-07 GLD/SPY safe-haven rotation **deferred** (weak Cycle 16 quick check). NF-08 TIP/IEF breakeven→GLD **deferred** (weak proxy; TIP/IEF feasible). NF-10 SI/GC risk sentiment **deferred** (adjacency to H101/inconclusive). NF-11 TLT/IWM growth-liquidity rotation **deferred** (adjacency to H85/H86/H99). NF-11r/NF-06-18 TNX-FVX slope **data-resolved but NF-11 resolution path (same root mechanism) — reassessed, deferred with honest novelty**. NF-13 GLD/TIP real-rate **deferred** (adjacency/weak proxy history). NF-15 EEM/EFA global risk-appetite **deferred** (weak exploratory check). NF-17 volume-shock reversal **deferred** (turnover/cost). NF-20 Treasury auction supply-pressure **deferred** (event calendar/timestamp). NF-21 month-end pension rebalancing **deferred** (weak evidence/adjacency). NF-06-11 CBOE PC ratio **infeasible** (no free yfinance). NF-17 (XOP/XLE, NF-20261106-17) **reassessed/deferred**.
+
+**Scoring (1–5, 25/25/20/15/10/5 = novelty/plausibility/data/falsifiability/exec/support):**
+| Candidate | Nov 25% | Plaus 25% | Data 20% | Fals 15% | Exec 10% | Supp 5% | Weighted |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261106-19 LQD-HYG credit-quality dispersion (executed H108) | 4 (IG-vs-HY inside corporate credit; distinct from H94 credit-vs-Treasury) | 3 | 5 | 4 | 4 | 3 | **3.80** |
+| NF-20261106-17 XOP/XLE energy supply-shock (deferred) | 3 (sector/commodity adjacency to H98/H101) | 3 | 5 | 4 | 4 | 3 | **3.55** |
+| NF-20261106-18 TNX-FVX slope (deferred, NF-11r) | 2 (**SAME root mechanism as NF-11; data-resolution, not new root family**) | 3 | 5 | 5 | 5 | 3 | **3.55** (not selected as repo-new root family) |
+
+### NF-20261106-19 / H108 execution outcome (2026-11-06, REAL)
+
+**Runner:** `run_nf_20261106_19_lqd_hyg_quality.py`. **Tests:** `tests/test_nf_20261106_19_lqd_hyg_quality.py` (10 passed). `ruff check/format --check` clean. `src/qtr` unchanged.
+
+**Execution.** `exp_2026-11-06T14-46-17-382075Z`, 4.34s. LQD/HYG/SPY aligned 4233 rows (train 2516 / val 756 / test 961). Selected (train-only 4-fold WF): `lookback=21, z_window=252, entry_scale=2.0, vol_target=0.15`. Artifact `.experiments/nf_runs/nf_20261106_19_lqd_hyg_quality/summary.json`.
+
+**Result — REJECT (4/8 gates).** OOS Val+Test (1276 trades): Sharpe **0.849** (fail), PF **1.164** (fail), max DD **-8.27%** (pass), trades **1276** (pass), WF stability **0.674** (fail), worst-regime rolling-252 Sharpe **-0.996** (fail), benchmark p **null** (fail), IR **-0.365** (fail), perturbation min ratio **0.914** (pass). Train Sharpe 1.259.
+
+**Ablations (OOS).** Buy-hold SPY 0.720/1.148/DD -18.21%/1. Random-exposure-matched 0.571/1.133/DD -8.32%/1717. Inverse-stress-long 0.344/1.098/DD -15.90%/1122.
+
+**Verdict rationale.** Reduces drawdown and is perturbation-stable, but no validated risk-adjusted edge vs buy-hold on pre-registered OOS gates (fails Sharpe/PF/WF stability/worst-regime/benchmark-p/IR). The executed ratio-weakness mapping is the specific pre-registered construction tested; this does not test all IG/HY constructions. No gate weakened.
+
+**Cycle 23 required next.** H85–H108 all rejected. Fresh discovery per directive §4: reconcile lineage to H108, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess NF-04/05/07/08/10/11/13/15/17/20/21 and NF-11r/NF-06-18 (TNX-FVX, **NF-11 data-resolution path, same root mechanism — honest novelty, not a new root family**) with concrete evidence (no silent drops). NF-06-11 CBOE PC ratio infeasible. Pre-register H109 with smallest decisive test. `src/qtr` unchanged unless evidenced defect.

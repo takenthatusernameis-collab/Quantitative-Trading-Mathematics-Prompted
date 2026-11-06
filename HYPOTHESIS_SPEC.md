@@ -6004,3 +6004,47 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 | Financial intermediation / regional-bank liquidity-stress transmission | H107 (NF-20261106-16) | Continuous vol-targeted long SPY reduced when trailing KRE momentum z-score abnormally weak (banking/funding stress), 1-bar delay | SPY (traded), KRE (signal) daily (yfinance), 2010–2026 | **REJECT** (4/8; exp_2026-11-06T14-35-47-117897Z) | Fails Sharpe 0.952/PF 1.190/worst-regime -0.997/benchmark-p null/IR -0.292; DD improved and beats random exposure but no risk-adjusted edge vs buy-hold |
 
 **Cycle 22 required next.** H85–H107 all rejected. Perform fresh discovery per directive §4: reconcile lineage to H107, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess deferred candidates NF-04/05/07/08/10/11/13/15/17/20/21 and NF-11r (TNX-FVX, **NF-11 data-resolution path, honest novelty — not a new root family**) with concrete evidence (no silent drops). NF-06-11 CBOE PC ratio infeasible. Pre-register highest-information feasible candidate as H108 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
+
+## H108 (NF-20261106-19): LQD-HYG credit-quality dispersion stress timing for SPY
+
+**Status:** Pre-registered and executed 2026-11-06 (Cycle 22 discovery, NF-20261106-19). **REJECT (4/8).** Free/public yfinance, no `src/qtr` change.
+
+**Statement.** Trailing LQD/HYG (investment-grade vs high-yield credit ETF) ratio momentum provides a point-in-time credit-quality dispersion signal for SPY exposure. A vol-targeted, continuously scaled long SPY position reduced when trailing LQD/HYG ratio momentum z-score is abnormally weak (`z <= -entry_scale`) earns net pooled OOS (Val+Test) Sharpe >= 1.0 with >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 vs buy-hold SPY with IR >= 0, and perturbation min ratio >= 0.5.
+
+**Null (H0).** Trailing LQD/HYG credit-quality dispersion state has no predictive power for next-day SPY returns beyond random chance after costs.
+
+**Mechanism / causal chain (as pre-registered/executed).** IG/HY relative dynamics can reflect credit-beta stress, default/loss expectations, and funding conditions. A trailing LQD/HYG ratio return z-score (lookback momentum, past-only `min_periods`) maps to reduced SPY exposure when the ratio is abnormally weak (`z <= -entry_scale` -> lower exposure) and higher exposure otherwise. *Honest note:* the executed directional mapping reduces exposure on ratio weakness (LQD underperforming HYG) as the pre-registered stress proxy; this is a specific, testable construction and does not equate to all HY-stress regimes. Vol target scales by trailing 21-day realized SPY vol, clipped, × `MAX_POS=0.5`. Engine applies `signals.shift(1)`: target at close t earns return t→t+1 — strictly causal.
+
+**Novelty (repo-relative).** Repo-new root family candidate: **credit-quality dispersion / IG-vs-HY transmission inside corporate credit**. Distinct from H94 (HYG-IEF credit spread vs Treasuries / flight-to-quality across credit and risk-free rates; different observable and mechanism), H107 (KRE regional-bank equity/intermediation stress), H96 (realized correlation), and FX/rates/vol families. LQD/HYG measures IG-vs-HY quality dispersion, not credit-vs-Treasury or bank equity.
+
+**Data.** yfinance daily `LQD`, `HYG`, `SPY` adjusted close, 2010-01-01 → 2026-10-31. Free, point-in-time. Feasibility verified 2026-11-06 (4233 rows each, 0 non-positive).
+
+**Universe/splits (protected holdout).** Trade `SPY`; signal `LQD/HYG`. Train 2010-01-01 → 2019-12-31; Val 2020-01-01 → 2022-12-31; Test (protected) 2023-01-01 → 2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+
+**Grid (bounded).** `lookback ∈ {21,63}` × `z_window ∈ {126,252}` × `entry_scale ∈ {1.0,1.5,2.0}` × `vol_target ∈ {0.10,0.15}` (24 combos). `max_position=0.5`, long-only.
+
+**Costs/constraints.** Equity `CostModel` defaults (1 bp commission + 0.5 bp spread + 0.1 bp impact per 1% ADV).
+
+**Gates (OOS Val+Test).** Sharpe >= 1.0, >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0, perturbation min ratio >= 0.5.
+
+**Runner.** `run_nf_20261106_19_lqd_hyg_quality.py`. **Tests.** `tests/test_nf_20261106_19_lqd_hyg_quality.py` (10 tests).
+
+### H108 execution outcome (2026-11-06, REAL)
+
+**Experiment:** `exp_2026-11-06T14-46-17-382075Z` (4.34s). Artifact: `.experiments/nf_runs/nf_20261106_19_lqd_hyg_quality/summary.json`. `src/qtr` unchanged.
+
+**Selected (train-only 4-fold WF):** `lookback=21, z_window=252, entry_scale=2.0, vol_target=0.15`.
+
+**OOS Val+Test (1276 trades):** Sharpe **0.849** (fail), PF **1.164** (fail), max DD **-8.27%** (pass), trades **1276** (pass), WF stability **0.674** (fail), worst-regime rolling-252 Sharpe **-0.996** (fail), benchmark p **null** (fail, gate requires p<=0.05), IR **-0.365** (fail), perturbation min ratio **0.914** (pass). Train Sharpe 1.259.
+
+**Ablations (OOS).** Buy-hold SPY 0.720/1.148/DD -18.21%/1. Random-exposure-matched 0.571/1.133/DD -8.32%/1717. Inverse-stress-long 0.344/1.098/DD -15.90%/1122.
+
+**Verdict rationale.** **REJECT (4/8).** LQD/HYG credit-quality dispersion timing reduces drawdown and is perturbation-stable, but fails Sharpe/PF/WF stability/worst-regime/benchmark-p/IR vs buy-hold on pre-registered OOS gates. No validated net edge. The executed directional mapping is a specific pre-registered construction (ratio-momentum weakness reduces exposure); failure does not test all IG/HY constructions but records this decisive test. No gate weakened; no published/certified artifact modified. Do not re-run H108 without a materially different, pre-registered mechanism.
+
+**Lineage map (H108 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known failure modes |
+|---|---|---|---|---|---|
+| Credit-quality dispersion / IG-vs-HY transmission (inside corporate credit) | H108 (NF-20261106-19) | Continuous vol-targeted long SPY reduced when trailing LQD/HYG ratio momentum z-score abnormally weak, 1-bar delay | SPY (traded), LQD/HYG (signal) daily (yfinance), 2010–2026 | **REJECT** (4/8; exp_2026-11-06T14-46-17-382075Z) | Fails Sharpe 0.849/PF 1.164/WF 0.674/worst-regime -0.996/benchmark-p null/IR -0.365; DD improved but no risk-adjusted edge vs buy-hold; specific ratio-weakness mapping as pre-registered |
+
+**Cycle 23 required next.** H85–H108 all rejected. Perform fresh discovery per directive §4: reconcile lineage to H108, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess deferred candidates NF-04/05/07/08/10/11/13/15/17/20/21 and NF-11r/NF-06-18 (TNX-FVX, **NF-11 data-resolution path, same root mechanism — honest novelty, not a new root family**) with concrete evidence (no silent drops). NF-06-11 CBOE PC ratio infeasible. Pre-register highest-information feasible candidate as H109 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
