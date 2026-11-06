@@ -5324,7 +5324,7 @@ Universe `^SKEW`/`SPY` (2918 aligned rows), train/val/test 1241/743/934. Grid 48
 Universe SPY (4233 rows), train/val/test 2516/756/961. Grid 10 (train-only WF selection). Selected: head_days=5, vol_target=0.15 (best train-WF Sharpe 0.854). OOS Val+Test (1717 periods, 190 trades): Sharpe 0.784, PF 1.296, max DD −9.35%, WF stability 1.144 (train 0.446, val 1.048, test 0.521), worst-regime rolling-252 Sharpe −1.73, benchmark p=1.000 / IR −0.639 vs buy-hold SPY, perturbation min ratio 0.941. Ablations: SPY benchmark Sharpe 0.727/PF 1.149; random-window Sharpe 0.041/PF 1.022 (297 trades); always-flat Sharpe 0.0. Passes: max_drawdown, walkforward_stability, perturbation. Fails: Sharpe (0.784<1.0), PF (1.296<1.3), trades (190<200), worst-regime, p-value, information ratio. Artifact: `.experiments/artifacts/exp_2026-11-05T13-32-55-648939Z/summary.json`. Protected holdout used only in pre-registered OOS gate evaluation after selection; no holdout feedback.
 
 
-## H92 — NF-20261105-10: Equity/bond relative-momentum risk-premium timing (executed 2026-11-05; REJECTED 3/9)
+## H92 — NF-20261105-10: Equity/bond relative-momentum risk-premium timing (executed 2026-11-06; REJECTED 4/9)
 
 **Temporary lineage ID:** NF-20261105-10 (cycle 6, post H91 REJECT). H-ID: H92.
 
@@ -5343,6 +5343,8 @@ Universe SPY (4233 rows), train/val/test 2516/756/961. Grid 10 (train-only WF se
 **Costs / constraints.** `AssetClass.EQUITY`, `CostModel` defaults (1 bp commission + 0.5 bp spread + 0.1 bp impact per 1% ADV), daily bar engine, max position 0.5, max leverage 1.0. SPY/TLT capacity not binding.
 
 **Gates (OOS Val+Test).** Sharpe ≥ 1.0, ≥ 200 trades, PF ≥ 1.3, max DD ≤ 15%, WF stability (test ≥ 0.7×train when train>0), worst-regime rolling-252 Sharpe ≥ 0.3, benchmark p ≤ 0.05 vs buy-hold SPY, IR ≥ 0, perturbation min ratio ≥ 0.5 (OAT ±20% on lookback/vol_target for selected config).
+
+**Execution.** exp_2026-11-06T02-17-43-039138Z. Selected {'lookback':63,'vol_target':0.1,'allow_short':False}. OOS Val+Test: Sharpe 0.447 (fail), PF 1.089 (fail), DD -16.9% (fail), trades 313 (pass), WF stability 2.707 (pass), worst-regime rolling-252 Sharpe -1.778 (fail), bench p 0.0058 (pass), IR -0.673 (fail), perturbation min ratio 0.958 (pass). Verdict REJECT 4/9. Train/Val/Test Sharpe 0.325/0.067/0.881.
 
 **Rejection.** OOS Sharpe < 0.5, PF < 1.1, < 200 OOS trades, max DD > 15%, or perturbation/benchmark failure. No gate weakening.
 
