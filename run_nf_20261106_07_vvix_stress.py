@@ -381,7 +381,9 @@ def main() -> dict:
         }
 
     summary = {
-        "experiment_id": (tracker.current_experiment.experiment_id if tracker.current_experiment else None),
+        "experiment_id": (
+            tracker.current_experiment.experiment_id if tracker.current_experiment else None
+        ),
         "name": EXPERIMENT_NAME,
         "hypothesis": "H104",
         "family": "NF-20261106-07",

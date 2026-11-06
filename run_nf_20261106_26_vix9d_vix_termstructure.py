@@ -181,7 +181,13 @@ def evaluate_gates(oos_res, train_res, bench_res, prices, oos_mask, params, cfg)
         pret = run_backtest(
             prices.loc[oos_mask, [SPY]],
             pd.DataFrame(
-                {SPY: np.clip(oos_res.positions[SPY].values * (1 + rng.uniform(-0.1, 0.1, len(rets))), 0, MAX_POS)},
+                {
+                    SPY: np.clip(
+                        oos_res.positions[SPY].values * (1 + rng.uniform(-0.1, 0.1, len(rets))),
+                        0,
+                        MAX_POS,
+                    )
+                },
                 index=prices.loc[oos_mask].index,
             ),
             cfg,
@@ -199,13 +205,17 @@ def evaluate_gates(oos_res, train_res, bench_res, prices, oos_mask, params, cfg)
     pass_dd = dd <= GATES["max_drawdown"]
     pass_wf = wf_stab >= GATES["min_walkforward_stability"] if sr_train > 0 else wf_stab >= 0
     pass_reg = (regime >= GATES["min_worst_regime_sharpe"]) if not np.isnan(regime) else False
-    pass_bench = (pval <= GATES["max_p_value"] and ir >= GATES["min_information_ratio"])
+    pass_bench = pval <= GATES["max_p_value"] and ir >= GATES["min_information_ratio"]
     pass_pert = pert >= GATES["min_perturbed_sharpe_ratio"]
 
     gates = {
         "oos_sharpe_ge_1_0": {"value": sr_oos, "threshold": GATES["min_sharpe"], "pass": pass_sr},
         "trades_ge_200": {"value": trades, "threshold": GATES["min_trades"], "pass": pass_tr},
-        "profit_factor_ge_1_3": {"value": pf, "threshold": GATES["min_profit_factor"], "pass": pass_pf},
+        "profit_factor_ge_1_3": {
+            "value": pf,
+            "threshold": GATES["min_profit_factor"],
+            "pass": pass_pf,
+        },
         "max_drawdown_le_0_15": {"value": dd, "threshold": GATES["max_drawdown"], "pass": pass_dd},
         "walkforward_stability_ge_0_7": {
             "value": wf_stab,
@@ -230,7 +240,13 @@ def evaluate_gates(oos_res, train_res, bench_res, prices, oos_mask, params, cfg)
     }
     passed = sum(1 for g in gates.values() if g["pass"])
     verdict = "PASS" if passed == len(gates) else "REJECT"
-    return {"verdict": verdict, "passed": passed, "total": len(gates), "gates": gates, "comparison": cmp}
+    return {
+        "verdict": verdict,
+        "passed": passed,
+        "total": len(gates),
+        "gates": gates,
+        "comparison": cmp,
+    }
 
 
 def _select_on_train(prices: pd.DataFrame, train_mask: pd.Series, cfg: BacktestConfig):
@@ -246,18 +262,26 @@ def _select_on_train(prices: pd.DataFrame, train_mask: pd.Series, cfg: BacktestC
                     except Exception:
                         continue
                     try:
-                        tr_rets = run_backtest(tr_prices, sig.loc[train_mask], cfg).returns.fillna(0.0).values
+                        tr_rets = (
+                            run_backtest(tr_prices, sig.loc[train_mask], cfg)
+                            .returns.fillna(0.0)
+                            .values
+                        )
                     except Exception:
                         continue
                     fold_sh = []
                     try:
-                        for tr_i, te_i in walk_forward_splits(len(tr_rets), n_splits=WF_FOLDS_SELECTION):
+                        for tr_i, te_i in walk_forward_splits(
+                            len(tr_rets), n_splits=WF_FOLDS_SELECTION
+                        ):
                             if len(te_i) < 30:
                                 continue
                             fold_sh.append(float(sharpe_ratio(tr_rets[te_i])))
                     except Exception:
                         continue
-                    rows.append({**params, "wf_mean_sharpe": float(np.mean(fold_sh)) if fold_sh else -9.0})
+                    rows.append(
+                        {**params, "wf_mean_sharpe": float(np.mean(fold_sh)) if fold_sh else -9.0}
+                    )
     if not rows:
         raise RuntimeError("No valid train-selection candidates")
     df = pd.DataFrame(rows).sort_values("wf_mean_sharpe", ascending=False)
@@ -359,7 +383,15 @@ def main():
         "gates": eval_out["gates"],
         "comparison": eval_out["comparison"],
         "selection_table_top10": selection_df.head(10).to_dict(orient="records"),
-        "config": {"gates": GATES, "grid": {"lookbacks": LOOKBACKS, "z_windows": Z_WINDOWS, "entry_scales": ENTRY_SCALES, "vol_targets": VOL_TARGETS}},
+        "config": {
+            "gates": GATES,
+            "grid": {
+                "lookbacks": LOOKBACKS,
+                "z_windows": Z_WINDOWS,
+                "entry_scales": ENTRY_SCALES,
+                "vol_targets": VOL_TARGETS,
+            },
+        },
     }
 
     out_dir = Path(__file__).parent / ".experiments" / "nf_runs" / EXPERIMENT_NAME
