@@ -5828,3 +5828,11 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 | AUD commodity-currency risk-appetite / carry-unwind transmission timing | H103 (NF-20261106-06) | Continuous vol-targeted long SPY scaled by trailing FXA momentum z-score (risk-on when AUD strong), long-only, 1-bar delay | SPY (traded), FXA (signal) daily (yfinance), 2010–2026 | **REJECT** (3/9; exp_2026-11-06T12-54-14-976207Z) | Fails Sharpe 0.510/PF 1.154/worst-regime -1.553/benchmark-p (null)/IR -0.616/perturbation 0.435; trade-count/sparsity fixed vs H95 but no validated risk-adjusted edge; FX-macro adjacency to H95 acknowledged |
 
 **Cycle 17 required next.** H85–H103 all rejected. Perform fresh discovery per directive §4: reconcile lineage to H103, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess deferred candidates NF-04/05/11r/12/17/20/21/03 with concrete evidence (no silent drops). Pre-register highest-information feasible candidate as H104 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
+
+## H104 (NF-20261106-07): Cross-asset volatility-of-volatility / VIX-of-VIX (VVIX) stress-timing for SPY
+
+**Mechanism.** VVIX measures implied volatility of VIX options and spikes when demand for volatility protection accelerates; elevated VVIX indicates a stress regime in which subsequent equity returns have historically been depressed. Strategy: vol-targeted long SPY when VVIX z-score is low (calm vol-of-vol), flat when elevated (stress), hysteresis + 1-bar delay. Distinct from H17 VRP (VIX term structure), H89 VIX level, H100 ^MOVE rates-vol.
+
+**Data.** yfinance ^VVIX + SPY daily, free. Splits train/val/test as prior. Protected holdout not used for selection.
+
+**Gates.** Same OOS Val+Test gates. No src/qtr change. Implementation pending.
