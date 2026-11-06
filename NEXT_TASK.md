@@ -1,15 +1,9 @@
-# NEXT_TASK.md — post H98 (H99 Cycle 12 pre-selection)
+# NEXT_TASK.md — post H99 (Cycle 13 new-family discovery)
 
 ## State
-- H97 (NF-20261105-18) EXECUTED and REJECTED (4/9). See HYPOTHESIS_SPEC.md §H97 and NEW_FAMILY_RESEARCH_REGISTER.md §12.
-- H98 (NF-20261105-19, PEAD post-earnings announcement drift) EXECUTED and REJECTED (5/9), `exp_2026-11-06T01-30-29-259047Z`.
-  - OOS Val+Test (1212 periods, 775 trades): Sharpe 0.768 (fail ≥1.0), PF 1.169 (fail <1.3), max DD -4.40% (pass ≤15%), trades 775 (pass ≥200), WF stability 1.311 (pass ≥0.7), worst-regime rolling-252 Sharpe -0.749 (fail <0.3), bench p=0.026 (pass ≤0.05 vs EW buy-hold), IR -0.852 (fail <0), perturbation min ratio 0.632 (pass ≥0.5).
-  - Train/Val/Test Sharpe: 1.047 / -0.614 / 1.373. Inverse-surprise-sign falsifier Sharpe -0.829 (direction confirmed). Random-exposure-matched Sharpe 0.275. SPY benchmark OOS Sharpe 0.666, DD -30.8%.
-  - Runner `run_nf_20261105_19_pead.py` + `tests/test_nf_20261105_19_pead.py` (7 tests) committed; lint/format clean; `src/qtr` unchanged.
-- H85–H98 all rejected. No pre-registered NF candidates remain executable without resolving a documented decisive risk. Next unused H-ID: **H99** (H24/H68–H73/H76–H79 unassigned, not recycled).
-- This session also fixed a vacuous-gate defect: 11 runners read a non-existent `p_value` key from `compare_to_benchmark` (it returns `alpha_p_value`). Changed `cmp.get("p_value", 1.0)` → `cmp.get("alpha_p_value", 1.0)` (behavior-preserving; `alpha_p_value` was already the primary key). `test_every_call_site_reads_only_keys_the_library_returns` now passes.
-- Pre-existing failure (present at HEAD, NOT fixed here): `test_no_runner_compares_a_p_value_against_max_p_value_directly` — 11 runners compare `bench_p <= GATES["max_p_value"]` directly instead of via `benchmark_significance_gate`. Left unfixed because re-routing through the helper changes gate semantics (adds IR>0) and would alter published per-gate results/verdicts, which are frozen.
+- H99 (NF-20261106-01 miner/gold RV) EXECUTED and REJECTED (4/9), exp_2026-11-06T03-04-40-778747Z. Random-exposure-matched ablation (0.763) outperformed strategy (0.329) — mechanism falsified. src/qtr unchanged.
+- H85–H99 all rejected. Deferred candidates (NF-04/05/11/12/16/17/20/21) remain documented with blockers.
+- Next unused H-ID: H100.
 
-## Next task (Cycle 12 per STRATEGY_FAMILY_EXPANSION_DIRECTIVE §4/§6)
-Perform a fresh new-family discovery cycle: reconcile lineage to H98, propose ≥3 repo-new mechanism candidates spanning ≥3 broad mechanism categories (checked against H1–H98 root families; do not recycle parameter/instrument/universe/timeframe variants or audits), score each 1–5 with the directive weights (novelty 25%, plausibility 25%, data 20%, falsifiability 15%, execution 10%, support 5%), reassess deferred candidates NF-20261105-04/05/11/12/16/17/20/21 with concrete evidence (do not silently drop), pre-register the highest-expected-information feasible candidate as **H99** with the smallest decisive test, then implement `run_nf_*_*.py` + focused tests, run lint/format/pytest, and execute gates on OOS Val+Test.
-Constraints: `src/qtr` unchanged unless a genuine defect requires it; free/public data only (yfinance); protected holdout never used for selection; no gate weakening; no changes to published results/artifacts/verdicts; preserve 100% src/qtr coverage. Assign next unused H-ID only upon formal registration in HYPOTHESIS_SPEC.md; keep the NF-ID as the family-level lineage key. Record all candidates and the decision in NEW_FAMILY_RESEARCH_REGISTER.md Cycle 12.
+## Next task (Cycle 13)
+Perform fresh new-family discovery per STRATEGY_FAMILY_EXPANSION_DIRECTIVE §4/§6: reconcile lineage to H99, propose ≥3 repo-new mechanism candidates spanning ≥3 broad categories, score 1–5 with directive weights, reassess deferred candidates with concrete evidence, pre-register highest-information feasible candidate as H100 with smallest decisive test, implement runner + tests, run lint/format/pytest, execute OOS Val+Test gates. Keep src/qtr unchanged unless genuine defect; free data only; no gate weakening; no published artifact changes. Record all in NEW_FAMILY_RESEARCH_REGISTER.md Cycle 13.
