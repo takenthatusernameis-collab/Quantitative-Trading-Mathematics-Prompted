@@ -5872,3 +5872,48 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 | VVIX volatility-of-volatility stress timing | H104 (NF-20261106-07) | Continuous vol-targeted long SPY reduced when trailing ^VVIX z-score elevated (stress), 1-bar delay | SPY (traded), ^VVIX (signal) daily (yfinance), 2010–2026 | **REJECT** (4/9; exp_2026-11-06T13-35-05-405528Z) | Fails Sharpe 0.783/PF 1.158/worst-regime -0.921/benchmark-p null/IR -0.425; DD improved and beats random exposure but no risk-adjusted edge vs buy-hold |
 
 **Cycle 18 required next.** H85–H104 all rejected. Perform fresh discovery per directive §4: reconcile lineage to H104, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess deferred candidates NF-04/05/11r/12/17/20/21/03 and NF-07/NF-08 assessed in Cycle 16 with concrete evidence (no silent drops). Pre-register highest-information feasible candidate as H105 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
+
+## H105 (NF-20261106-09): CBOE SKEW tail-risk pricing stress-timing for SPY
+
+**Status:** Pre-registered and executed 2026-11-06 (Cycle 18 discovery, NF-20261106-09). **REJECT (4/9).** Free/public yfinance, no `src/qtr` change.
+
+**Statement.** Trailing ^SKEW (CBOE S&P 500 option skew / tail-risk pricing index) provides a point-in-time tail-risk pricing signal for SPY exposure. A vol-targeted, continuously scaled long SPY position reduced when trailing SKEW z-score is elevated earns net pooled OOS (Val+Test) Sharpe >= 1.0 with >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 vs buy-hold SPY with IR >= 0, and perturbation min ratio >= 0.5.
+
+**Null (H0).** Trailing SKEW tail-risk pricing state has no predictive power for next-day SPY returns beyond random chance after costs.
+
+**Mechanism / causal chain.** ^SKEW reflects the relative pricing of OTM S&P 500 puts vs calls (tail/skew). Elevated SKEW indicates expensive downside tail protection and heightened perceived crash/tail risk, which may coincide with or precede equity drawdowns/liquidity stress. A trailing smoothed SKEW level z-score (past-only, `min_periods`) maps to reduced exposure when tail-risk pricing is elevated (`z >= entry_scale` -> flat) and higher exposure when calm. Vol target scales by trailing 21-day realized SPY vol, clipped, × `MAX_POS=0.5`. Engine applies `signals.shift(1)`: target at close t earns return t→t+1 — strictly causal.
+
+**Novelty (repo-relative).** Repo-new root family: options tail-risk pricing / crash-risk premium transmission via CBOE ^SKEW. Distinct from H104 ^VVIX (volatility-of-volatility, implied vol of VIX options, second-order), H89 (VIX level regime), H17 (VIX term structure/VRP carry), H100 (^MOVE Treasury implied vol/rates-vol). SKEW measures option skew/tail pricing, not vol level, vol-of-vol, term structure, or rates vol.
+
+**Data.** yfinance daily `^SKEW`, `SPY` adjusted close, 2010-01-01 → 2026-10-31. Free, point-in-time. Feasibility verified 2026-11-06 (^SKEW/SPY aligned 4171 rows, 2010-01-04→2026-10-30).
+
+**Universe/splits (protected holdout).** Trade `SPY`; signal `^SKEW`. Train 2010-01-01 → 2019-12-31; Val 2020-01-01 → 2022-12-31; Test (protected) 2023-01-01 → 2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+
+**Grid (bounded).** `lookback ∈ {21,63}` × `z_window ∈ {126,252}` × `entry_scale ∈ {1.0,1.5,2.0}` × `vol_target ∈ {0.10,0.15}` (24 combos). `max_position=0.5`, long-only. Shorter lookback included (vs H104) for decisive sensitivity to SKEW dynamics.
+
+**Costs/constraints.** Equity `CostModel` defaults (1 bp commission + 0.5 bp spread + 0.1 bp impact per 1% ADV).
+
+**Gates (OOS Val+Test).** Sharpe >= 1.0, >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0, perturbation min ratio >= 0.5.
+
+**Runner.** `run_nf_20261106_09_skew_tail_timing.py`. **Tests.** `tests/test_nf_20261106_09_skew_tail_timing.py` (10 tests).
+
+
+### H105 execution outcome (2026-11-06, REAL)
+
+**Experiment:** `exp_2026-11-06T13-41-05-311612Z` (3.6s). Artifact: `.experiments/nf_runs/nf_20261106_09_skew_tail_timing/summary.json`. `src/qtr` unchanged.
+
+**Selected (train-only 4-fold WF, best 1.620):** `lookback=63, z_window=252, entry_scale=1.0, vol_target=0.15`.
+
+**OOS Val+Test (814 trades):** Sharpe **0.676** (fail), PF **1.162** (fail), max DD **-9.83%** (pass), trades **814** (pass), WF stability **0.839** (pass), worst-regime rolling-252 Sharpe **-1.227** (fail), benchmark p **null** (fail, gate requires p<=0.05), IR **-0.521** (fail), perturbation min ratio **0.837** (pass). Train Sharpe 0.805.
+
+**Ablations (OOS).** Buy-hold SPY 0.720 Sharpe/1.148 PF/DD -18.21%/1 trade. Random-exposure-matched 0.477/1.119/DD -11.70%/946 trades (signal beats random exposure). Inverse-stress-long 0.567/1.142/DD -8.50%/550 trades.
+
+**Verdict rationale.** **REJECT (4/9).** ^SKEW tail-risk pricing stress timing reduces drawdown and beats random exposure but fails Sharpe/PF/worst-regime/benchmark-p/IR vs buy-hold on pre-registered OOS gates. No validated net edge. No gate weakened; no published/certified artifact modified. Do not re-run H105 without a materially different, pre-registered mechanism.
+
+**Lineage map (H105 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known failure modes |
+|---|---|---|---|---|---|
+| CBOE SKEW tail-risk pricing stress timing | H105 (NF-20261106-09) | Continuous vol-targeted long SPY reduced when trailing ^SKEW tail-risk pricing z-score elevated (stress), 1-bar delay | SPY (traded), ^SKEW (signal) daily (yfinance), 2010–2026 | **REJECT** (4/9; exp_2026-11-06T13-41-05-311612Z) | Fails Sharpe 0.676/PF 1.162/worst-regime -1.227/benchmark-p null/IR -0.521; DD improved and beats random exposure but no risk-adjusted edge vs buy-hold |
+
+**Cycle 19 required next.** H85–H105 all rejected. Perform fresh discovery per directive §4: reconcile lineage to H105, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess NF-04/05/11r/12/17/20/21/07/08/10 with concrete evidence (no silent drops; NF-09 executed as H105). Pre-register highest-information feasible candidate as H106 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.

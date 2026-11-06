@@ -1,0 +1,196 @@
+{
+  "hypothesis_id": "H105",
+  "experiment_name": "nf_20261106_09_skew_tail_timing",
+  "experiment_id": "exp_2026-11-06T13-41-05-311612Z",
+  "best_params": {
+    "lookback": 63,
+    "z_window": 252,
+    "entry_scale": 1.0,
+    "vol_target": 0.15
+  },
+  "selection": {
+    "method": "train_only_4fold_walkforward_sharpe",
+    "top5": [
+      {
+        "lookback": 63,
+        "z_window": 252,
+        "entry_scale": 1.0,
+        "vol_target": 0.15,
+        "train_sharpe": 0.8054129119302599,
+        "selection_wf_sharpe": 1.6203037752366038,
+        "train_trades": 1009
+      },
+      {
+        "lookback": 63,
+        "z_window": 252,
+        "entry_scale": 1.5,
+        "vol_target": 0.15,
+        "train_sharpe": 0.862574922462428,
+        "selection_wf_sharpe": 1.5952298505007632,
+        "train_trades": 1225
+      },
+      {
+        "lookback": 63,
+        "z_window": 126,
+        "entry_scale": 1.0,
+        "vol_target": 0.15,
+        "train_sharpe": 0.7884579320985241,
+        "selection_wf_sharpe": 1.566393210809004,
+        "train_trades": 915
+      },
+      {
+        "lookback": 63,
+        "z_window": 252,
+        "entry_scale": 2.0,
+        "vol_target": 0.15,
+        "train_sharpe": 0.8956790299045654,
+        "selection_wf_sharpe": 1.5414997956003988,
+        "train_trades": 1376
+      },
+      {
+        "lookback": 63,
+        "z_window": 126,
+        "entry_scale": 1.5,
+        "vol_target": 0.15,
+        "train_sharpe": 0.8054903193500212,
+        "selection_wf_sharpe": 1.5158305312405693,
+        "train_trades": 1099
+      }
+    ]
+  },
+  "data": {
+    "rows": 4233,
+    "train_rows": 2516,
+    "val_rows": 756,
+    "test_rows": 961,
+    "date_start": "2010-01-04",
+    "date_end": "2026-10-30"
+  },
+  "splits": {
+    "train_end": "2019-12-31",
+    "val_end": "2022-12-31",
+    "protected_holdout": "test_2023-01-01_to_2026-10-31"
+  },
+  "results": {
+    "train": {
+      "total_return": 0.4498627355892657,
+      "annualized_return": 0.037906751303732555,
+      "annualized_volatility": 0.047616701759323705,
+      "sharpe": 0.8054129119302599,
+      "sortino": 1.1226778903946835,
+      "max_drawdown": -0.07928250058009625,
+      "max_drawdown_duration": 303.0,
+      "profit_factor": 1.1956670524010031,
+      "num_trades": 1009.0,
+      "avg_trade_cost": 3.5139967623052373e-06,
+      "calmar": 0.4781225494450283
+    },
+    "val": {
+      "total_return": -0.006506218078382253,
+      "annualized_return": -0.0021734598648223136,
+      "annualized_volatility": 0.05239612047454804,
+      "sharpe": -0.015347514640987811,
+      "sortino": -0.021002600627168074,
+      "max_drawdown": -0.09826407731591953,
+      "max_drawdown_duration": 250.0,
+      "profit_factor": 0.9965455745255415,
+      "num_trades": 427.0,
+      "avg_trade_cost": 2.5643901387829405e-06,
+      "calmar": -0.022118559744214852
+    },
+    "test_protected": {
+      "total_return": 0.24590505527586815,
+      "annualized_return": 0.05934816062995041,
+      "annualized_volatility": 0.04357702674111056,
+      "sharpe": 1.3456403062216085,
+      "sortino": 2.036939467435168,
+      "max_drawdown": -0.0403262883054406,
+      "max_drawdown_duration": 205.0,
+      "profit_factor": 1.3425728459809385,
+      "num_trades": 387.0,
+      "avg_trade_cost": 2.9212488557056652e-06,
+      "calmar": 1.4716990609310177
+    },
+    "oos_val_test_pooled": {
+      "total_return": 0.23577037601433615,
+      "annualized_return": 0.03155761402426416,
+      "annualized_volatility": 0.047688516157083125,
+      "sharpe": 0.6755933044433003,
+      "sortino": 0.9674344850055625,
+      "max_drawdown": -0.09826407731591953,
+      "max_drawdown_duration": 630.0,
+      "profit_factor": 1.1623216389939757,
+      "num_trades": 814.0,
+      "avg_trade_cost": 2.6336421852547347e-06,
+      "calmar": 0.3211510745967345
+    },
+    "benchmark_spy_buy_hold_oos": {
+      "total_return": 0.5782505212863698,
+      "annualized_return": 0.06926613122857761,
+      "annualized_volatility": 0.10006513829841053,
+      "sharpe": 0.7196479968603375,
+      "sortino": 1.015118488542091,
+      "max_drawdown": -0.18206356730445697,
+      "max_drawdown_duration": 488.0,
+      "profit_factor": 1.147548731399346,
+      "num_trades": 1.0,
+      "avg_trade_cost": 0.0001,
+      "calmar": 0.3804502584130238
+    },
+    "random_exposure_matched_oos": {
+      "total_return": 0.19917292328743663,
+      "annualized_return": 0.02701620416914019,
+      "annualized_volatility": 0.05966552309454088,
+      "sharpe": 0.4767939950662791,
+      "sortino": 0.6694357776520127,
+      "max_drawdown": -0.11704158881016209,
+      "max_drawdown_duration": 901.0,
+      "profit_factor": 1.119356133359321,
+      "num_trades": 946.0,
+      "avg_trade_cost": 3.649042258146082e-05,
+      "calmar": 0.23082567866503978
+    },
+    "inverse_stress_long_oos": {
+      "total_return": 0.18358935750930017,
+      "annualized_return": 0.025046445402728823,
+      "annualized_volatility": 0.04550092842455028,
+      "sharpe": 0.5666433425299109,
+      "sortino": 0.7709607019837247,
+      "max_drawdown": -0.08496511120104121,
+      "max_drawdown_duration": 427.0,
+      "profit_factor": 1.1419802659267744,
+      "num_trades": 550.0,
+      "avg_trade_cost": 3.005667869029376e-06,
+      "calmar": 0.29478505999321153
+    }
+  },
+  "verdict": {
+    "metrics": {
+      "oos_sharpe": 0.6755933044433003,
+      "train_sharpe": 0.8054129119302599,
+      "trades": 814,
+      "profit_factor": 1.1623216389939757,
+      "max_drawdown": 0.09826407731591953,
+      "wf_stability": 0.8388160835715526,
+      "worst_regime_sharpe": -1.2273823007037885,
+      "benchmark_p_value": null,
+      "information_ratio": -0.5208949882909275,
+      "perturbation_min_ratio": 0.8368989463228296
+    },
+    "gates": {
+      "sharpe>=1.0": false,
+      "trades>=200": true,
+      "pf>=1.3": false,
+      "max_dd<=15%": true,
+      "wf_stability>=0.7*train": true,
+      "worst_regime_sharpe>=0.3": false,
+      "benchmark_p<=0.05": false,
+      "ir>=0": false,
+      "perturbation_min_ratio>=0.5": true
+    },
+    "passed": 4,
+    "total": 9,
+    "verdict": "REJECT"
+  },
+  "elapsed_seconds": 3.6
+}

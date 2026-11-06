@@ -1149,3 +1149,37 @@ Tie-break: NF-06 selected over NF-07 for highest expected information on the FX 
 **Verdict rationale.** Reduces drawdown and beats random exposure, but no validated risk-adjusted edge vs buy-hold on pre-registered OOS gates (fails Sharpe/PF/worst-regime/benchmark-p/IR). No gate weakened.
 
 **Cycle 18 required next.** H85–H104 all rejected. Fresh discovery per directive §4: reconcile lineage to H104, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess NF-04/05/11r/12/17/20/21/07/08/09/10 with concrete evidence (no silent drops). Prioritize NF-09 (^SKEW tail-risk pricing) as a high-expected-information deferred candidate if pre-registered with a decisive, cost-aware construction. Pre-register highest-information feasible candidate as H105. `src/qtr` unchanged unless evidenced defect.
+
+---
+
+## Cycle 18 (2026-11-06) — Discovery / Execution of H105 (NF-20261106-09)
+
+**Lineage reconciled to H104 (H85–H104 all rejected).** Next unused H-ID **H105** (H24/H68–H73/H76–H79 still unassigned). `src/qtr` unchanged.
+
+**Candidates assessed (>=3, >=3 broad categories; NF-IDs temporary; no protected-test selection):**
+1. **NF-20261106-09 (selected/executed, H105) — CBOE ^SKEW tail-risk pricing stress timing SPY:** trailing smoothed ^SKEW level z-score (option skew/tail-risk pricing) → continuous vol-targeted long SPY reduced when tail-risk pricing elevated, 1-bar delay. Broad category: **options tail-risk pricing / crash-risk premium transmission**. Feasibility: free yfinance ^SKEW/SPY, 4171–4233 aligned rows (2010–2026), point-in-time, verified 2026-11-06. *Adjacency acknowledged:* distinct from H104 ^VVIX (implied vol of VIX options, second-order vol-of-vol), H89 (VIX level), H17 (VIX term structure/VRP carry), H100 (^MOVE rates implied vol). SKEW measures OTM skew/tail pricing, different observable/mechanism.
+2. **NF-20261106-10 (assessed, deferred/low expected info) — Silver/Gold (SI=F/GC=F) industrial-vs-monetary risk-sentiment timing SPY:** SI/GC ratio regime → SPY risk-on. Broad category: **cross-commodity monetary/industrial risk-sentiment transmission**. Feasibility: free yfinance futures proxies. Cycle 17 exploratory check inconclusive/adjacency risk to H101 (HG=F/GC=F growth ratio); novelty/plausibility limited. Deferred pending a cleaner decisive construction.
+3. **NF-20261106-11 (assessed, deferred) — TLT/IWM (bond-vs-small-cap) growth/liquidity risk-off rotation timing SPY:** relative strength/regime between long Treasuries and small caps as liquidity/growth stress signal → reduce SPY when stress indicated. Broad category: **cross-asset growth/liquidity regime rotation** (equity microstructure/breadth-adjacent risk-off channel). Feasibility: free yfinance TLT/IWM/SPY, point-in-time. Mechanically plausible but adjacency risk to existing equity/bond relative regimes (H85/H86) and H99 (HYG/IEF credit-regime adjacency) — requires honest novelty check and decisive pre-registration to avoid variant.
+
+**Scoring (1–5, 25/25/20/15/10/5 = novelty/plausibility/data/falsifiability/exec/support):**
+| Candidate | Nov 25% | Plaus 25% | Data 20% | Fals 15% | Exec 10% | Supp 5% | Weighted |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261106-09 ^SKEW tail-risk pricing (executed H105) | 4 | 3 | 5 | 4 | 4 | 3 | **3.80** (prioritized as Cycle 17/18 high-expected-information deferred; decisive 24-combo train-only WF test executed) |
+| NF-20261106-10 SI/GC risk sentiment (deferred) | 3 | 2 | 5 | 3 | 4 | 2 | **3.20** (adjacency to H101, inconclusive exploratory check) |
+| NF-20261106-11 TLT/IWM growth-liquidity rotation (deferred) | 3 | 3 | 5 | 4 | 4 | 3 | **3.55** (adjacency risk to H85/H86/H99; deferred for novelty/falsifiability workup) |
+
+**Deferred candidates reassessed (no silent drops):** NF-04 commodity carry **still blocked** (no free point-in-time term-structure/roll proxy on yfinance). NF-05 short-term CS reversal **deferred** (decisive turnover/net-of-cost). NF-11r TNX/FVX slope **deferred** (data-resolved variant, novelty honest/lower; same root mechanism as NF-11). NF-12 cross-sectional equity dispersion **deferred** (complexity/turnover vs smallest decisive test). NF-17 volume-shock reversal **deferred** (turnover/cost-sensitive). NF-20 Treasury auction supply-pressure **deferred** (event calendar/timestamp construction). NF-21 month-end pension rebalancing **deferred** (weak evidence/adjacency). NF-07 GLD/SPY safe-haven rotation **deferred** (Cycle 16 quick check weak 4/9). NF-08 TIP/IEF breakeven→GLD **deferred** (weak proxy/decisive check). NF-09 **superseded by H105 execution**. NF-10 **assessed/deferred** (this cycle).
+
+### NF-20261106-09 / H105 execution outcome (2026-11-06, REAL)
+
+**Runner:** `run_nf_20261106_09_skew_tail_timing.py`. **Tests:** `tests/test_nf_20261106_09_skew_tail_timing.py` (10 passed). `ruff check/format --check` clean. `src/qtr` unchanged.
+
+**Execution.** `exp_2026-11-06T13-41-05-311612Z`, 3.6s. ^SKEW/SPY aligned 4233 rows (train 2516 / val 756 / test 961). Selected (train-only 4-fold WF, 1.620): `lookback=63, z_window=252, entry_scale=1.0, vol_target=0.15`. Artifact `.experiments/nf_runs/nf_20261106_09_skew_tail_timing/summary.json`. (Historical `run_nf_20261105_07_skew_tail_timing.py` exists in repo — not modified; H105 uses the 20261106_09 runner with full pre-registration/WF selection/gates.)
+
+**Result — REJECT (4/9 gates).** OOS Val+Test (814 trades): Sharpe **0.676** (fail), PF **1.162** (fail), max DD **-9.83%** (pass), trades **814** (pass), WF stability **0.839** (pass), worst-regime rolling-252 Sharpe **-1.227** (fail), benchmark p **null** (fail), IR **-0.521** (fail), perturbation min ratio **0.837** (pass). Train Sharpe 0.805.
+
+**Ablations (OOS).** Buy-hold SPY 0.720/1.148/DD -18.21%/1. Random-exposure-matched 0.477/1.119/DD -11.70%/946 (beats random). Inverse-stress-long 0.567/1.142/DD -8.50%/550.
+
+**Verdict rationale.** Reduces drawdown and beats random exposure, but no validated risk-adjusted edge vs buy-hold on pre-registered OOS gates (fails Sharpe/PF/worst-regime/benchmark-p/IR). No gate weakened.
+
+**Cycle 19 required next.** H85–H105 all rejected. Fresh discovery per directive §4: reconcile lineage to H105, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess NF-04/05/11r/12/17/20/21/07/08/10/11 with concrete evidence (no silent drops). Pre-register highest-information feasible candidate as H106. `src/qtr` unchanged unless evidenced defect.
