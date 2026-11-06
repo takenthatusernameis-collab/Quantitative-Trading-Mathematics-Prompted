@@ -6353,3 +6353,45 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 | Root family | H-IDs | Mechanism | Markets / data | Status | Known failure modes |
 |---|---|---|---|---|---|
 | Market-breadth / participation transmission via RSP/SPY (equal-weight vs cap-weight leadership) | H115 (NF-20261106-29) | Continuous vol-targeted long SPY reduced when trailing RSP/SPY ratio momentum z-score abnormally weak (breadth narrowing), 1-bar delay | SPY (traded), RSP (signal) daily (yfinance), 2010–2026 | **REJECT** (3/8; exp_2026-11-06T23-32-03-009243Z) | Fails Sharpe 0.647/PF 1.127/worst-regime -1.093/benchmark-p 1.0/IR -0.388; perturbation-stable but no risk-adjusted edge vs buy-hold; specific breadth-narrowing mapping as pre-registered |
+
+## H116 (NF-20261106-31): ITA/SPY aerospace-defense fiscal/geopolitical spending-cycle leadership timing for SPY
+
+**Status:** Pre-registered & executed (Cycle 30 discovery, NF-20261106-31). Free/public yfinance, no `src/qtr` change.
+
+**Statement.** The ratio of aerospace/defense equities (ITA) to the broad equity market (SPY) measures defense-sector leadership. When defense abnormally leads SPY (ITA/SPY ratio momentum z-score elevated; geopolitical/fiscal spending-cycle reallocation or defensive rotation toward defense contractors), reduce vol-targeted long SPY exposure; otherwise maintain normal exposure. Net pooled OOS (Val+Test) Sharpe >= 1.0 with >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 vs buy-hold SPY with IR >= 0, and perturbation min ratio >= 0.5.
+
+**Null (H0).** Trailing ITA/SPY defense-sector leadership has no predictive power for next-day SPY returns beyond random chance after costs.
+
+**Mechanism / causal chain (pre-registered).** Compute ratio `r_t = ITA_t / SPY_t` (adjusted close). Take trailing momentum z-score `z_t` of log(r_t) over trailing `z_window` using past-only windows (`min_periods=max(30,z_window//2)`), with lookback `lookback` for ratio momentum. When defense leadership is abnormally strong (`z_t >= entry_scale`, defense outperformance/geopolitical-fiscal stress reallocation), reduce SPY exposure continuously via `stress = clip(z_t - entry_scale, 0, 1)`, `exposure = MAX_POS * (1-stress) * vol_scale`. Vol target scales by trailing 63-day (min 21) realized SPY vol, clipped, × `vol_target`. `MAX_POS=0.5`, long-only SPY only. Engine applies `signals.shift(1)`: target at close t earns return t→t+1 — strictly causal. This tests the defense-leadership stress-reduction mapping; it does not test all defense/geopolitical constructions.
+
+**Novelty (repo-relative).** Repo-new root family candidate: **fiscal/geopolitical spending-cycle / defense-sector reallocation transmission via ITA/SPY leadership**. *Adjacency (honest):* related to other sector-relative leadership families (H107 KRE bank intermediation, H109 XOP/XLE energy supply-shock, H110 XLY/XLP consumer demand-cycle, H111 SMH/QQQ tech capex-cycle, H114 SPHB/SPLV style-preference) in that it uses an equity sector ratio as a timing observable — but the **mechanism** is defense procurement/geopolitical spending-cycle reallocation rather than financial intermediation, energy supply shocks, consumer demand, semiconductor capex, or high-beta/low-vol style preference. Observable and causal channel differ; scored with honest sector-ratio adjacency.
+
+**Data.** yfinance daily adjusted close for `ITA`, `SPY` (traded), 2010-01-01 → 2026-10-31. Feasibility verified 2026-11-06: ITA 4233 rows 2010-01-04→2026-10-30, SPY 4233, 0 non-positive. Point-in-time.
+
+**Universe/splits (protected holdout).** Trade `SPY`; signal `ITA/SPY`. Train 2010-01-01 → 2019-12-31; Val 2020-01-01 → 2022-12-31; Test (protected) 2023-01-01 → 2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+
+**Grid (bounded).** `lookback ∈ {21,63}` × `z_window ∈ {126,252}` × `entry_scale ∈ {1.0,1.5,2.0}` × `vol_target ∈ {0.10,0.15}` (24 combos). `max_position=0.5`, long-only SPY only.
+
+**Costs/constraints.** Equity `CostModel` defaults. No live trading. Use free/public data only.
+
+**Gates (OOS Val+Test).** Sharpe >= 1.0, >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0, perturbation min ratio >= 0.5.
+
+**Runner.** `run_nf_20261106_31_ita_spy_defense.py`. **Tests.** `tests/test_nf_20261106_31_ita_spy_defense.py` (10 passed). `ruff check/format` clean. `src/qtr` unchanged.
+
+### H116 execution outcome (2026-11-06, REAL)
+
+**Experiment:** `exp_2026-11-06T23-40-35-522405Z` (2.10s). Artifact: `.experiments/nf_runs/nf_20261106_31_ita_spy_defense/summary.json`. `src/qtr` unchanged.
+
+**Selected (train-only 4-fold WF):** `lookback=63, z_window=252, entry_scale=2.0, vol_target=0.15` (selection WF mean 1.321).
+
+**OOS Val+Test (779 trades):** Sharpe **0.706** (fail), PF **1.131** (fail), max DD **-11.44%** (pass), trades **779** (pass), WF stability **1.011** (pass), worst-regime rolling-252 Sharpe min **-1.175** (fail), benchmark p **1.0** / IR **-0.501** (fail), perturbation min ratio **0.944** (pass). Train Sharpe 0.698.
+
+**Ablations (OOS).** Buy-hold SPY 0.720/1.148/DD -18.21%/1. Random-exposure-matched 0.998/1.193/DD -16.34%/778. Inverse-stress-long 0.490/1.202/DD -7.67%/778.
+
+**Verdict rationale.** **REJECT (4/8).** ITA/SPY defense-leadership timing is perturbation-stable, has ample trades/WF stability, and reduces drawdown vs buy-hold, but fails Sharpe/PF/worst-regime/benchmark-p/IR on pre-registered OOS gates. No validated risk-adjusted edge vs buy-hold. The executed defense-leadership stress-reduction mapping is the specific pre-registered construction tested; this does not test all defense/geopolitical constructions. Honest sector-ratio adjacency to H107/H109/H110/H111/H114/H115 was pre-registered. No gate weakened; no published/certified artifact modified. Do not re-run H116 without a materially different, pre-registered mechanism.
+
+**Lineage map (H116 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known failure modes |
+|---|---|---|---|---|---|
+| Fiscal/geopolitical spending-cycle / defense-sector reallocation transmission via ITA/SPY leadership | H116 (NF-20261106-31) | Continuous vol-targeted long SPY reduced when trailing ITA/SPY ratio momentum z-score abnormally strong (defense leadership), 1-bar delay | SPY (traded), ITA (signal) daily (yfinance), 2010–2026 | **REJECT** (4/8; exp_2026-11-06T23-40-35-522405Z) | Fails Sharpe 0.706/PF 1.131/worst-regime -1.175/benchmark-p 1.0/IR -0.501; perturbation-stable but no risk-adjusted edge vs buy-hold; sector-ratio adjacency acknowledged |
