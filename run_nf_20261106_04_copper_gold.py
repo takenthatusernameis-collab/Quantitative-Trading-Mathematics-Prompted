@@ -273,3 +273,208 @@ def full_gate_eval(result, oos_mask, val_mask, test_mask, prices, bench_result):
         "passes": passes,
         "gate_pass_count": sum(passes.values()),
     }
+
+
+def main() -> int:
+    t0 = time.time()
+    run_dir = Path(".experiments") / "nf_runs" / EXPERIMENT_NAME
+    run_dir.mkdir(parents=True, exist_ok=True)
+    cache = DataCache(cache_dir=run_dir / "cache")
+    fetcher = DataFetcher(cache=cache)
+    raw = fetcher.fetch_yahoo(UNIVERSE, start=DATA_START, end=DATA_END)
+    if not isinstance(raw, dict):
+        raise RuntimeError(f"fetch_yahoo returned {type(raw)}, expected dict")
+
+    def _close(df):
+        c = df.get("adj_close") if "adj_close" in df.columns else df.get("close")
+        if c is None:
+            c = df.get("Close")
+        if c is None:
+            raise KeyError(f"no close column: {df.columns.tolist()}")
+        return c.astype(float)
+
+    prices = pd.DataFrame({sym: _close(df) for sym, df in raw.items()}).sort_index()
+    prices = prices.ffill().dropna(how="all")
+
+    train_mask, val_mask, test_mask = _splits(prices)
+    oos_mask = val_mask | test_mask
+    bench_pos = pd.DataFrame({SPY: 1.0}, index=prices.index)
+    bench_result = run_backtest(prices[[SPY]], bench_pos, make_equity_config())
+
+    grid = [
+        (lb, ez, xz, vt)
+        for lb in LOOKBACKS
+        for ez in ENTRY_ZS
+        for xz in EXIT_ZS
+        for vt in VOL_TARGETS
+    ]
+    rows = []
+    best = None
+    for lookback, entry_z, exit_z, vol_target in grid:
+        pos = build_copper_gold_targets(prices, lookback, entry_z, exit_z, vol_target)
+        res = run_backtest(prices[[SPY]], pos[[SPY]], make_equity_config())
+        sel = train_only_wf_sharpe(res.returns, train_mask)
+        row = {
+            "lookback": lookback,
+            "entry_z": entry_z,
+            "exit_z": exit_z,
+            "vol_target": vol_target,
+            "train_wf_sharpe": sel,
+        }
+        rows.append(row)
+        if best is None or sel > best[0]:
+            best = (sel, row, res)
+
+    if best is None:
+        raise RuntimeError("no grid results")
+    _, best_row, best_res = best
+    gate = full_gate_eval(best_res, oos_mask, val_mask, test_mask, prices, bench_result)
+
+    pert_rows = []
+    for lb in sorted({max(2, int(round(best_row["lookback"] * m))) for m in [0.8, 1.2]}):
+        pos = build_copper_gold_targets(
+            prices, lb, best_row["entry_z"], best_row["exit_z"], best_row["vol_target"]
+        )
+        res = run_backtest(prices[[SPY]], pos[[SPY]], make_equity_config())
+        pm = _period_metrics(
+            res.returns[oos_mask].dropna(), _count_in(res.trades, oos_mask, prices)
+        )
+        pert_rows.append({"lookback": lb, **pm})
+    for ez in sorted({round(best_row["entry_z"] * m, 4) for m in [0.8, 1.2]}):
+        pos = build_copper_gold_targets(
+            prices, best_row["lookback"], ez, best_row["exit_z"], best_row["vol_target"]
+        )
+        res = run_backtest(prices[[SPY]], pos[[SPY]], make_equity_config())
+        pm = _period_metrics(
+            res.returns[oos_mask].dropna(), _count_in(res.trades, oos_mask, prices)
+        )
+        pert_rows.append({"entry_z": ez, **pm})
+    for xz in sorted({round(best_row["exit_z"] * m, 4) for m in [0.8, 1.2]}):
+        pos = build_copper_gold_targets(
+            prices, best_row["lookback"], best_row["entry_z"], xz, best_row["vol_target"]
+        )
+        res = run_backtest(prices[[SPY]], pos[[SPY]], make_equity_config())
+        pm = _period_metrics(
+            res.returns[oos_mask].dropna(), _count_in(res.trades, oos_mask, prices)
+        )
+        pert_rows.append({"exit_z": xz, **pm})
+    for vt in sorted({round(best_row["vol_target"] * m, 4) for m in [0.8, 1.2]}):
+        pos = build_copper_gold_targets(
+            prices, best_row["lookback"], best_row["entry_z"], best_row["exit_z"], vt
+        )
+        res = run_backtest(prices[[SPY]], pos[[SPY]], make_equity_config())
+        pm = _period_metrics(
+            res.returns[oos_mask].dropna(), _count_in(res.trades, oos_mask, prices)
+        )
+        pert_rows.append({"vol_target": vt, **pm})
+    opt_sr = gate["oos_metrics"]["sharpe"]
+    pert_sharpes = [r["sharpe"] for r in pert_rows]
+    min_ratio = (min(pert_sharpes) / opt_sr) if (opt_sr > 0 and pert_sharpes) else 0.0
+    gate["passes"]["perturbation"] = min_ratio >= GATES["min_perturbed_sharpe_ratio"]
+    gate["gate_pass_count"] = sum(gate["passes"].values())
+    gate["perturbation"] = {"rows": pert_rows, "min_sharpe_ratio": min_ratio}
+
+    rng = np.random.default_rng(SEED)
+    active = (best_res.positions.abs().sum(axis=1) > 0).astype(float)
+    rand_side = pd.Series(
+        rng.choice([0.0, 1.0], size=len(prices), p=[0.5, 0.5]), index=prices.index
+    )
+    rand_pos = pd.DataFrame({SPY: active * rand_side}, index=prices.index)
+    rand_res = run_backtest(prices[[SPY]], rand_pos, make_equity_config())
+    rand_m = _period_metrics(
+        rand_res.returns[oos_mask].dropna(), _count_in(rand_res.trades, oos_mask, prices)
+    )
+    bench_m = _period_metrics(
+        bench_result.returns[oos_mask].dropna(), _count_in(bench_result.trades, oos_mask, prices)
+    )
+    gate["ablations"] = {"random_exposure_matched": rand_m, "buy_hold_spy": bench_m}
+
+    # Inverse-signal falsifier: long SPY when copper/gold ratio falling (growth fear),
+    # i.e. z <= exit_z regime — opposite of the pre-registered risk-on rule.
+    inv_pos = pd.DataFrame(0.0, index=prices.index, columns=[SPY])
+    if SPY in prices.columns and COPPER in prices.columns and GOLD in prices.columns:
+        ratio = (prices[COPPER].astype(float) / prices[GOLD].astype(float))
+        mu = ratio.rolling(best_row["lookback"], min_periods=best_row["lookback"]).mean()
+        sd = ratio.rolling(best_row["lookback"], min_periods=best_row["lookback"]).std()
+        z = (ratio - mu) / sd.replace(0, np.nan)
+        realized = prices[SPY].astype(float).pct_change().rolling(
+            21, min_periods=21
+        ).std() * np.sqrt(252)
+        scale = (
+            (best_row["vol_target"] / realized.replace(0, np.nan)).clip(upper=MAX_POS).fillna(0.0)
+        )
+        inv_side = (z <= best_row["exit_z"]).astype(float)
+        inv_side = inv_side.where(z.notna(), 0.0)
+        inv_pos[SPY] = (inv_side * scale).clip(0.0, MAX_POS)
+    inv_res = run_backtest(prices[[SPY]], inv_pos[[SPY]], make_equity_config())
+    inv_m = _period_metrics(
+        inv_res.returns[oos_mask].dropna(), _count_in(inv_res.trades, oos_mask, prices)
+    )
+    gate["ablations"]["inverse_growth_fear_long"] = inv_m
+
+    verdict = "PASS" if gate["gate_pass_count"] == len(gate["passes"]) else "REJECT"
+    summary = {
+        "experiment": EXPERIMENT_NAME,
+        "family_id": "NF-20261106-04",
+        "hypothesis_id": "H101",
+        "verdict": verdict,
+        "description": EXPERIMENT_DESC,
+        "universe": UNIVERSE,
+        "data": {"start": DATA_START, "end": DATA_END, "rows": len(prices)},
+        "splits": {
+            "train_end": TRAIN_END,
+            "val_end": VAL_END,
+            "train_rows": int(train_mask.sum()),
+            "val_rows": int(val_mask.sum()),
+            "test_rows": int(test_mask.sum()),
+        },
+        "selected": best_row,
+        "grid_rows": rows,
+        "gates": GATES,
+        "gate_eval": gate,
+        "subperiods": {
+            "train": _period_metrics(
+                best_res.returns[train_mask].dropna(),
+                _count_in(best_res.trades, train_mask, prices),
+            ),
+            "val": _period_metrics(
+                best_res.returns[val_mask].dropna(),
+                _count_in(best_res.trades, val_mask, prices),
+            ),
+            "test": gate["test_metrics"],
+        },
+        "elapsed_seconds": round(time.time() - t0, 2),
+    }
+    (run_dir / "summary.json").write_text(json.dumps(summary, indent=2, default=str) + "\n")
+
+    try:
+        tracker = get_tracker()
+        exp = tracker.start_experiment(EXPERIMENT_NAME, EXPERIMENT_DESC)
+        tracker.log_config(exp, summary["selected"])
+        tracker.log_result(exp, gate["oos_metrics"], status=verdict.lower())
+        tracker.save_artifact(exp, run_dir / "summary.json", artifact_type="summary")
+        tracker.finalize_experiment(exp, status=verdict.lower())
+        summary["experiment_id"] = exp
+        (run_dir / "summary.json").write_text(json.dumps(summary, indent=2, default=str) + "\n")
+    except Exception as exc:  # pragma: no cover
+        summary["tracker_error"] = str(exc)
+        (run_dir / "summary.json").write_text(json.dumps(summary, indent=2, default=str) + "\n")
+
+    print(
+        json.dumps(
+            {
+                "experiment": EXPERIMENT_NAME,
+                "verdict": verdict,
+                "gate_pass_count": gate["gate_pass_count"],
+                "selected": best_row,
+                "oos": gate["oos_metrics"],
+            },
+            indent=2,
+            default=str,
+        )
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
