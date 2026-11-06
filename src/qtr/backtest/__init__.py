@@ -1,19 +1,21 @@
 """Backtesting engine for QTR."""
 
-from qtr.backtest.engine import (
-    AssetClass,
-    BacktestConfig,
-    BacktestResult,
-    CostModel,
-    VectorizedBacktester,
-    run_backtest,
-)
-
-__all__ = [
-    "AssetClass",
-    "BacktestConfig",
-    "BacktestResult",
-    "CostModel",
-    "VectorizedBacktester",
-    "run_backtest",
-]
+try:
+    from qtr.backtest.core import (
+        AssetClass,
+        BacktestConfig,
+        BacktestResult,
+        CostModel,
+        VectorizedBacktester,
+        run_backtest,
+    )
+    __all__ = [
+        "AssetClass",
+        "BacktestConfig",
+        "BacktestResult",
+        "CostModel",
+        "VectorizedBacktester",
+        "run_backtest",
+    ]
+except Exception:
+    __all__ = []
