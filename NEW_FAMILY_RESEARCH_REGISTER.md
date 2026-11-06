@@ -1042,3 +1042,23 @@ Checked against root families H1–H99 (no parameter/instrument/universe/timefra
 - NF-20261106-03 (VVIX vol-of-vol): VIX-complex adjacency; scored novelty 3; deferred.
 
 **Next task:** Implement `run_nf_20261106_04_copper_gold.py` + focused tests following H100 template, run ruff + focused pytest, execute, record verdict. No gate weakening; src/qtr unchanged.
+
+---
+
+## Cycle 15 (2026-11-06) — Discovery / Pre-registration of H102
+
+**Lineage reconciled to H101 (H85–H101 all rejected).** Next unused H-ID **H102** assigned.
+
+**Candidate selected (repo-new root family):** NF-20261106-05 / H102 — Bitcoin/bond risk-appetite regime equity timing (BTC-USD vs TLT relative strength regime → SPY exposure). Rationale: free/public yfinance (BTC-USD, TLT, SPY), point-in-time, no `src/qtr` change, bounded 36-combo grid, causal trailing relative-strength z-score with 1-bar delay.
+
+**Deferred candidates reassessed (not silently dropped):**
+- NF-20261105-04 (commodity carry): still blocked — point-in-time term-structure/roll proxy unavailable on free yfinance; unchanged.
+- NF-20261105-05 (short-term CS reversal): deferred — decisive daily turnover/net-of-cost; not implemented this cycle.
+- NF-20261105-11r (TNX/FVX slope): data-resolved variant, novelty scored honestly lower (same root mechanism as NF-11); deferred.
+- NF-20261105-12 (cross-sectional equity dispersion): complexity/turnover vs smallest decisive test; deferred.
+- NF-20261105-17 (volume-shock reversal): turnover/cost-sensitive; deferred.
+- NF-20261105-20 (Treasury auction supply-pressure): event calendar/timestamp construction; deferred.
+- NF-20261105-21 (month-end pension rebalancing): weak evidence/adjacency risk; deferred.
+- NF-20261106-03 (VVIX vol-of-vol): VIX-complex adjacency; scored novelty 3; deferred.
+
+**Next task:** Implement `run_nf_20261106_05_btc_bond.py` + focused tests following H101 template, run ruff + focused pytest, execute, record verdict. No gate weakening; src/qtr unchanged.

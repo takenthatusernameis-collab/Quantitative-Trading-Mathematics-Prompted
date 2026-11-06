@@ -179,7 +179,7 @@ def build_copper_gold_targets(
     exit_z = float(exit_z)
     vol_target = float(max(0.01, vol_target))
 
-    ratio = (prices[COPPER].astype(float) / prices[GOLD].astype(float))
+    ratio = prices[COPPER].astype(float) / prices[GOLD].astype(float)
     mu = ratio.rolling(lookback, min_periods=lookback).mean()
     sd = ratio.rolling(lookback, min_periods=lookback).std()
     z = (ratio - mu) / sd.replace(0, np.nan)
@@ -393,7 +393,7 @@ def main() -> int:
     # i.e. z <= exit_z regime — opposite of the pre-registered risk-on rule.
     inv_pos = pd.DataFrame(0.0, index=prices.index, columns=[SPY])
     if SPY in prices.columns and COPPER in prices.columns and GOLD in prices.columns:
-        ratio = (prices[COPPER].astype(float) / prices[GOLD].astype(float))
+        ratio = prices[COPPER].astype(float) / prices[GOLD].astype(float)
         mu = ratio.rolling(best_row["lookback"], min_periods=best_row["lookback"]).mean()
         sd = ratio.rolling(best_row["lookback"], min_periods=best_row["lookback"]).std()
         z = (ratio - mu) / sd.replace(0, np.nan)
