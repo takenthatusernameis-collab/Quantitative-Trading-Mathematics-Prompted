@@ -1,0 +1,244 @@
+{
+  "experiment_id": "exp_2026-11-06T13-35-05-405528Z",
+  "name": "nf_20261106_07_vvix_stress",
+  "hypothesis": "H104",
+  "family": "NF-20261106-07",
+  "mechanism": "VVIX volatility-of-volatility stress-timing SPY",
+  "verdict": "REJECT",
+  "gates_passed": "4/9",
+  "gates": {
+    "sharpe>=1.0": false,
+    "trades>=200": true,
+    "pf>=1.3": false,
+    "max_dd<=15%": true,
+    "wf_stability>=0.7*train": true,
+    "worst_regime_sharpe>=0.3": false,
+    "benchmark_p<=0.05": false,
+    "ir>=0": false,
+    "perturbation_min_ratio>=0.5": true
+  },
+  "gate_metrics": {
+    "oos_sharpe": 0.783076310884848,
+    "train_sharpe": 0.8039443127531014,
+    "trades": 977,
+    "profit_factor": 1.15784854298379,
+    "max_drawdown": 0.06362282705842688,
+    "wf_stability": 0.974042975940969,
+    "worst_regime_sharpe": -0.9208365584808593,
+    "benchmark_p_value": null,
+    "information_ratio": -0.4249929037666347,
+    "perturbation_min_ratio": 0.8863302948864525
+  },
+  "best_params": {
+    "lookback": 63,
+    "z_window": 252,
+    "entry_scale": 1.5,
+    "vol_target": 0.15
+  },
+  "top_grid": [
+    {
+      "lookback": 63,
+      "z_window": 252,
+      "entry_scale": 1.5,
+      "vol_target": 0.15,
+      "train_sharpe": 0.8039443127531014,
+      "selection_wf_sharpe": 1.2789887158358886,
+      "train_trades": 867
+    },
+    {
+      "lookback": 63,
+      "z_window": 252,
+      "entry_scale": 2.0,
+      "vol_target": 0.15,
+      "train_sharpe": 0.8293139841879102,
+      "selection_wf_sharpe": 1.2704750433465661,
+      "train_trades": 1013
+    },
+    {
+      "lookback": 63,
+      "z_window": 252,
+      "entry_scale": 1.0,
+      "vol_target": 0.15,
+      "train_sharpe": 0.7827623123152677,
+      "selection_wf_sharpe": 1.2540130819181303,
+      "train_trades": 677
+    },
+    {
+      "lookback": 63,
+      "z_window": 126,
+      "entry_scale": 1.0,
+      "vol_target": 0.15,
+      "train_sharpe": 0.9504568847220076,
+      "selection_wf_sharpe": 1.2272162563974691,
+      "train_trades": 628
+    },
+    {
+      "lookback": 63,
+      "z_window": 252,
+      "entry_scale": 1.5,
+      "vol_target": 0.1,
+      "train_sharpe": 0.7177467758180585,
+      "selection_wf_sharpe": 1.1694026215299533,
+      "train_trades": 1413
+    },
+    {
+      "lookback": 63,
+      "z_window": 126,
+      "entry_scale": 1.5,
+      "vol_target": 0.15,
+      "train_sharpe": 0.9435041711061514,
+      "selection_wf_sharpe": 1.1652801120551557,
+      "train_trades": 859
+    },
+    {
+      "lookback": 63,
+      "z_window": 252,
+      "entry_scale": 2.0,
+      "vol_target": 0.1,
+      "train_sharpe": 0.7452495184093153,
+      "selection_wf_sharpe": 1.1579914742430164,
+      "train_trades": 1559
+    },
+    {
+      "lookback": 63,
+      "z_window": 252,
+      "entry_scale": 1.0,
+      "vol_target": 0.1,
+      "train_sharpe": 0.6864786153515425,
+      "selection_wf_sharpe": 1.148945155203394,
+      "train_trades": 1223
+    },
+    {
+      "lookback": 63,
+      "z_window": 126,
+      "entry_scale": 1.0,
+      "vol_target": 0.1,
+      "train_sharpe": 0.8316872034647211,
+      "selection_wf_sharpe": 1.138655064937102,
+      "train_trades": 1134
+    },
+    {
+      "lookback": 63,
+      "z_window": 126,
+      "entry_scale": 2.0,
+      "vol_target": 0.15,
+      "train_sharpe": 0.930059672438297,
+      "selection_wf_sharpe": 1.1383170497816524,
+      "train_trades": 1113
+    }
+  ],
+  "splits": {
+    "train": {
+      "rows": 2516,
+      "metrics": {
+        "total_return": 0.4343269243378667,
+        "annualized_return": 0.03678742097840049,
+        "annualized_volatility": 0.0462827214729149,
+        "sharpe": 0.8039443127531014,
+        "sortino": 1.1165190853812155,
+        "max_drawdown": -0.08245049350158275,
+        "max_drawdown_duration": 446.0,
+        "profit_factor": 1.176825721855213,
+        "num_trades": 867.0,
+        "avg_trade_cost": 2.4716967552545404e-06,
+        "calmar": 0.4461758737404562
+      }
+    },
+    "val": {
+      "rows": 756,
+      "metrics": {
+        "total_return": 0.11162409951654673,
+        "annualized_return": 0.03590354155172171,
+        "annualized_volatility": 0.05439025721620134,
+        "sharpe": 0.6762092157621643,
+        "sortino": 0.951871217861326,
+        "max_drawdown": -0.06362282705842688,
+        "max_drawdown_duration": 182.0,
+        "profit_factor": 1.1383171778728376,
+        "num_trades": 504.0,
+        "avg_trade_cost": 2.6505051221260326e-06,
+        "calmar": 0.5643185506162801
+      }
+    },
+    "test": {
+      "rows": 961,
+      "metrics": {
+        "total_return": 0.17492935364500628,
+        "annualized_return": 0.04317930200510922,
+        "annualized_volatility": 0.04903096757721107,
+        "sharpe": 0.8872035573823419,
+        "sortino": 1.2733844122591125,
+        "max_drawdown": -0.0594153711974011,
+        "max_drawdown_duration": 308.0,
+        "profit_factor": 1.1764363671633207,
+        "num_trades": 473.0,
+        "avg_trade_cost": 2.6782640975143734e-06,
+        "calmar": 0.7267362154761382
+      }
+    },
+    "oos_val_test": {
+      "rows": 1717,
+      "metrics": {
+        "total_return": 0.30393933435316023,
+        "annualized_return": 0.03971917148665027,
+        "annualized_volatility": 0.05144952186480099,
+        "sharpe": 0.783076310884848,
+        "sortino": 1.1130700824671047,
+        "max_drawdown": -0.06362282705842688,
+        "max_drawdown_duration": 308.0,
+        "profit_factor": 1.15784854298379,
+        "num_trades": 977.0,
+        "avg_trade_cost": 2.580286941714192e-06,
+        "calmar": 0.6242912068364218
+      }
+    }
+  },
+  "ablations": {
+    "buy_hold_spy_oos": {
+      "total_return": 0.5782505212863698,
+      "annualized_return": 0.06926613122857761,
+      "annualized_volatility": 0.10006513829841053,
+      "sharpe": 0.7196479968603375,
+      "sortino": 1.015118488542091,
+      "max_drawdown": -0.18206356730445697,
+      "max_drawdown_duration": 488.0,
+      "profit_factor": 1.147548731399346,
+      "num_trades": 1.0,
+      "avg_trade_cost": 0.0001,
+      "calmar": 0.3804502584130238
+    },
+    "random_exposure_matched_oos": {
+      "total_return": 0.2132974568385062,
+      "annualized_return": 0.028782762040381327,
+      "annualized_volatility": 0.06240704157170519,
+      "sharpe": 0.4860782782274052,
+      "sortino": 0.678088594870551,
+      "max_drawdown": -0.1138447075489969,
+      "max_drawdown_duration": 512.0,
+      "profit_factor": 1.100545464637188,
+      "num_trades": 1142.0,
+      "avg_trade_cost": 3.803116802716792e-05,
+      "calmar": 0.25282477033896106
+    },
+    "inverse_stress_long_oos": {
+      "total_return": 0.12210275237548918,
+      "annualized_return": 0.017052026716916302,
+      "annualized_volatility": 0.0368521334653866,
+      "sharpe": 0.4773990349883956,
+      "sortino": 0.6619591487565523,
+      "max_drawdown": -0.07291989507945426,
+      "max_drawdown_duration": 685.0,
+      "profit_factor": 1.1408464419591073,
+      "num_trades": 831.0,
+      "avg_trade_cost": 2.5089469049518864e-06,
+      "calmar": 0.23384601278342818
+    }
+  },
+  "data": {
+    "rows": 4233,
+    "start": "2010-01-04",
+    "end": "2026-10-30"
+  },
+  "elapsed_sec": 2.82,
+  "src_qtr_changed": false
+}

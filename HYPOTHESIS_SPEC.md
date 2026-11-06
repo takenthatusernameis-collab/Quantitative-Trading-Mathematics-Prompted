@@ -5827,12 +5827,48 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 |---|---|---|---|---|---|
 | AUD commodity-currency risk-appetite / carry-unwind transmission timing | H103 (NF-20261106-06) | Continuous vol-targeted long SPY scaled by trailing FXA momentum z-score (risk-on when AUD strong), long-only, 1-bar delay | SPY (traded), FXA (signal) daily (yfinance), 2010–2026 | **REJECT** (3/9; exp_2026-11-06T12-54-14-976207Z) | Fails Sharpe 0.510/PF 1.154/worst-regime -1.553/benchmark-p (null)/IR -0.616/perturbation 0.435; trade-count/sparsity fixed vs H95 but no validated risk-adjusted edge; FX-macro adjacency to H95 acknowledged |
 
-**Cycle 17 required next.** H85–H103 all rejected. Perform fresh discovery per directive §4: reconcile lineage to H103, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess deferred candidates NF-04/05/11r/12/17/20/21/03 with concrete evidence (no silent drops). Pre-register highest-information feasible candidate as H104 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
+**Cycle 17 completed (H104 executed REJECT 4/9).** Cycle 18 discovery required — see H104 section.
 
-## H104 (NF-20261106-07): Cross-asset volatility-of-volatility / VIX-of-VIX (VVIX) stress-timing for SPY
+## H104 (NF-20261106-07): VVIX volatility-of-volatility stress-timing for SPY
 
-**Mechanism.** VVIX measures implied volatility of VIX options and spikes when demand for volatility protection accelerates; elevated VVIX indicates a stress regime in which subsequent equity returns have historically been depressed. Strategy: vol-targeted long SPY when VVIX z-score is low (calm vol-of-vol), flat when elevated (stress), hysteresis + 1-bar delay. Distinct from H17 VRP (VIX term structure), H89 VIX level, H100 ^MOVE rates-vol.
+**Status:** Pre-registered and executed 2026-11-06 (Cycle 17 discovery, NF-20261106-07). **REJECT (4/9).** Free/public yfinance, no `src/qtr` change.
 
-**Data.** yfinance ^VVIX + SPY daily, free. Splits train/val/test as prior. Protected holdout not used for selection.
+**Statement.** Trailing ^VVIX (implied volatility of VIX options, second-order vol stress) provides a point-in-time stress signal for SPY exposure. A vol-targeted, continuously scaled long SPY position reduced when trailing VVIX z-score is elevated earns net pooled OOS (Val+Test) Sharpe >= 1.0 with >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 vs buy-hold SPY with IR >= 0, and perturbation min ratio >= 0.5.
 
-**Gates.** Same OOS Val+Test gates. No src/qtr change. Implementation pending.
+**Null (H0).** Trailing VVIX stress state has no predictive power for next-day SPY returns beyond random chance after costs.
+
+**Mechanism / causal chain.** VVIX spikes when demand for volatility protection/vol-of-vol convexity accelerates, indicating stress in volatility markets that may coincide with/precede equity drawdowns. A trailing smoothed VVIX level z-score (past-only, `min_periods`) maps to reduced exposure when stress is elevated (`z >= entry_scale` -> flat) and higher exposure when calm. Vol target scales by trailing 21-day realized SPY vol, clipped, × `MAX_POS=0.5`. Engine applies `signals.shift(1)`: target at close t earns return t→t+1 — strictly causal.
+
+**Novelty (repo-relative).** Repo-new root family: volatility-of-volatility / second-order implied-vol stress timing via ^VVIX. Distinct from H17 (VRP / VIX term-structure carry), H89 (VIX level regime), H100 (^MOVE Treasury implied-vol/rates-vol). VVIX is implied volatility of VIX options (second-order), not spot VIX level, VIX term structure, or rates vol.
+
+**Data.** yfinance daily `^VVIX`, `SPY` adjusted close, 2010-01-01 → 2026-10-31. Free, point-in-time. Feasibility verified 2026-11-06 (^VVIX 4224 rows, SPY 4233; aligned 4224).
+
+**Universe/splits (protected holdout).** Trade `SPY`; signal `^VVIX`. Train 2010-01-01 → 2019-12-31; Val 2020-01-01 → 2022-12-31; Test (protected) 2023-01-01 → 2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+
+**Grid (bounded).** `lookback ∈ {63,126}` × `z_window ∈ {126,252}` × `entry_scale ∈ {1.0,1.5,2.0}` × `vol_target ∈ {0.10,0.15}` (24 combos). `max_position=0.5`, long-only.
+
+**Costs/constraints.** Equity `CostModel` defaults (1 bp commission + 0.5 bp spread + 0.1 bp impact per 1% ADV).
+
+**Gates (OOS Val+Test).** Sharpe >= 1.0, >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0, perturbation min ratio >= 0.5.
+
+**Runner.** `run_nf_20261106_07_vvix_stress.py`. **Tests.** `tests/test_nf_20261106_07_vvix_stress.py` (10 tests, ruff/format/pytest clean).
+
+### H104 execution outcome (2026-11-06, REAL)
+
+**Experiment:** `exp_2026-11-06T13-35-05-405528Z` (2.7s). Artifact: `.experiments/nf_runs/nf_20261106_07_vvix_stress/summary.json`. `src/qtr` unchanged.
+
+**Selected (train-only 4-fold WF):** `lookback=63, z_window=252, entry_scale=1.5, vol_target=0.15`.
+
+**OOS Val+Test (977 trades):** Sharpe **0.783** (fail), PF **1.158** (fail), max DD **-6.36%** (pass), trades **977** (pass), WF stability **0.974** (pass), worst-regime rolling-252 Sharpe **-0.921** (fail), benchmark p **null** (fail, gate requires p<=0.05), IR **-0.425** (fail), perturbation min ratio **0.886** (pass). Train Sharpe 0.804.
+
+**Ablations (OOS).** Buy-hold SPY Sharpe 0.798, PF 1.149, DD -17.97%, 1 trade. Random-exposure-matched 0.066, PF 1.008, DD -14.65%, 818 trades (gating beats random exposure). Inverse-stress-long 0.281, PF 1.054, DD -13.68%, 621 trades.
+
+**Verdict rationale.** **REJECT (4/9).** Strategy reduces drawdown and beats random exposure, but fails Sharpe/PF/worst-regime/benchmark-p/IR vs buy-hold on pre-registered OOS gates. No validated net edge. No gate weakened; no published/certified artifact modified. Do not re-run H104 without a materially different, pre-registered mechanism.
+
+**Lineage map (H104 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known failure modes |
+|---|---|---|---|---|---|
+| VVIX volatility-of-volatility stress timing | H104 (NF-20261106-07) | Continuous vol-targeted long SPY reduced when trailing ^VVIX z-score elevated (stress), 1-bar delay | SPY (traded), ^VVIX (signal) daily (yfinance), 2010–2026 | **REJECT** (4/9; exp_2026-11-06T13-35-05-405528Z) | Fails Sharpe 0.783/PF 1.158/worst-regime -0.921/benchmark-p null/IR -0.425; DD improved and beats random exposure but no risk-adjusted edge vs buy-hold |
+
+**Cycle 18 required next.** H85–H104 all rejected. Perform fresh discovery per directive §4: reconcile lineage to H104, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess deferred candidates NF-04/05/11r/12/17/20/21/03 and NF-07/NF-08 assessed in Cycle 16 with concrete evidence (no silent drops). Pre-register highest-information feasible candidate as H105 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.

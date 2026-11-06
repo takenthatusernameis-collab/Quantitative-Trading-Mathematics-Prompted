@@ -1115,3 +1115,37 @@ Tie-break: NF-06 selected over NF-07 for highest expected information on the FX 
 **Verdict rationale.** Continuous scaling fixed H95-like sparsity (692 trades vs 88) but not a validated edge: fails Sharpe/PF/worst-regime/benchmark-p/IR/perturbation. No risk-adjusted edge over buy-hold on pre-registered OOS gates. FX/macro adjacency to H95 acknowledged; construction differed materially. No gate weakened.
 
 **Cycle 17 required next.** H85–H103 all rejected. Fresh discovery per directive §4: reconcile lineage to H103, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess NF-04/05/11r/12/17/20/21/03 + NF-07 with concrete evidence (no silent drops). Pre-register highest-information feasible candidate as H104. `src/qtr` unchanged unless evidenced defect.
+
+---
+
+## Cycle 17 (2026-11-06) — Discovery / Execution of H104 (NF-20261106-07)
+
+**Lineage reconciled to H103 (H85–H103 all rejected).** Next unused H-ID **H104** (H24/H68–H73/H76–H79 still unassigned). `src/qtr` unchanged.
+
+**Candidates assessed (>=3, >=3 broad categories; NF-IDs temporary; exploratory feasibility only, no protected-test selection):**
+1. **NF-20261106-07 (selected/executed, H104) — VVIX volatility-of-volatility stress timing SPY:** ^VVIX trailing smoothed-level z-score (second-order implied vol) → continuous vol-targeted long SPY reduced when VVIX elevated (stress), 1-bar delay. Broad category: volatility-of-volatility / second-order implied-vol risk-premium/stress transmission. Feasibility: free yfinance ^VVIX/SPY, 4224 aligned rows (2010–2026), point-in-time. *Adjacency acknowledged:* distinct from H17 (VIX term structure/VRP carry), H89 (VIX level), H100 (^MOVE rates-vol); VVIX is implied vol of VIX options (second-order), different observable/mechanism.
+2. **NF-20261106-09 (assessed, deferred) — SKEW tail-risk pricing stress timing SPY:** ^SKEW (CBOE skew/tail-risk option pricing) trailing z-score → reduce SPY when tail-risk pricing elevated. Broad category: options tail-risk pricing / crash-risk premium transmission. Feasibility: free yfinance ^SKEW/SPY (4171 rows). Exploratory OOS quick check (unselected fixed params, not holdout-selected): z_window 126, threshold 1.5 gave OOS Sharpe ~0.94 / 733 trades — promising but **not** a pre-registered result; would require full Cycle 18 pre-registration, train-only WF selection, and full gate evaluation. Deferred as next candidate with **positive expected information** if mechanism survives costs/IR/benchmark gates.
+3. **NF-20261106-10 (assessed, deferred/low expected info) — Silver/Gold ratio industrial-vs-monetary risk-sentiment timing SPY:** SI=F/GC=F ratio regime → SPY risk-on. Broad category: cross-commodity monetary/industrial risk-sentiment transmission. Feasibility: free yfinance. Exploratory check had implementation noise and unclear directional edge; adjacency risk to H101 (HG=F/GC=F growth ratio). Deferred pending cleaner decisive test; novelty/plausibility lower than NF-09.
+
+**Scoring (1–5, 25/25/20/15/10/5 = novelty/plausibility/data/falsifiability/exec/support):**
+| Candidate | Nov 25% | Plaus 25% | Data 20% | Fals 15% | Exec 10% | Supp 5% | Weighted |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261106-07 ^VVIX vol-of-vol (executed H104) | 4 | 3 | 5 | 4 | 4 | 3 | **3.80** |
+| NF-20261106-09 ^SKEW tail-risk pricing (deferred) | 4 | 3 | 5 | 4 | 4 | 3 | **3.80** (tie nominal; selected H104 per pre-existing NEXT_TASK/pre-registration skeleton and clear decisive implementation; NF-09 remains highest-info deferred for Cycle 18) |
+| NF-20261106-10 SI/GC risk sentiment (deferred) | 3 | 2 | 5 | 3 | 4 | 2 | **3.20** |
+
+**Deferred candidates reassessed (no silent drops):** NF-04 commodity carry **still blocked** (no free point-in-time term-structure/roll proxy on yfinance). NF-05 short-term CS reversal **deferred** (decisive turnover/net-of-cost). NF-11r TNX/FVX slope **deferred** (data-resolved variant, novelty honest/lower; same root mechanism as NF-11). NF-12 cross-sectional equity dispersion **deferred** (complexity/turnover vs smallest decisive test). NF-17 volume-shock reversal **deferred** (turnover/cost-sensitive). NF-20 Treasury auction supply-pressure **deferred** (event calendar/timestamp construction). NF-21 month-end pension rebalancing **deferred** (weak evidence/adjacency). NF-03 VVIX vol-of-vol **superseded by H104 execution** (assessed/executed as NF-20261106-07). NF-07 GLD/SPY safe-haven rotation **deferred** (Cycle 16 quick check weak 4/9 profile). NF-08 TIP/IEF breakeven→GLD **deferred** (weak proxy/decisive check).
+
+### NF-20261106-07 / H104 execution outcome (2026-11-06, REAL)
+
+**Runner:** `run_nf_20261106_07_vvix_stress.py`. **Tests:** `tests/test_nf_20261106_07_vvix_stress.py` (10 passed). `ruff check/format --check` clean. `src/qtr` unchanged.
+
+**Execution.** `exp_2026-11-06T13-35-05-405528Z`, 2.7s. ^VVIX/SPY aligned 4224 rows (train 2516 / val 753 / test 955). Selected (train-only 4-fold WF): `lookback=63, z_window=252, entry_scale=1.5, vol_target=0.15`. Artifact `.experiments/nf_runs/nf_20261106_07_vvix_stress/summary.json`.
+
+**Result — REJECT (4/9 gates).** OOS Val+Test (977 trades): Sharpe **0.783** (fail), PF **1.158** (fail), max DD **-6.36%** (pass), trades **977** (pass), WF stability **0.974** (pass), worst-regime rolling-252 Sharpe **-0.921** (fail), benchmark p **null** (fail), IR **-0.425** (fail), perturbation min ratio **0.886** (pass). Train Sharpe 0.804.
+
+**Ablations (OOS).** Buy-hold SPY 0.720 Sharpe/1.149 PF/DD -17.97%/1 trade. Random-exposure-matched 0.486/1.008/DD -14.65%/818 trades (gating beats random). Inverse-stress-long 0.281/1.054/DD -13.68%/621 trades.
+
+**Verdict rationale.** Reduces drawdown and beats random exposure, but no validated risk-adjusted edge vs buy-hold on pre-registered OOS gates (fails Sharpe/PF/worst-regime/benchmark-p/IR). No gate weakened.
+
+**Cycle 18 required next.** H85–H104 all rejected. Fresh discovery per directive §4: reconcile lineage to H104, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess NF-04/05/11r/12/17/20/21/07/08/09/10 with concrete evidence (no silent drops). Prioritize NF-09 (^SKEW tail-risk pricing) as a high-expected-information deferred candidate if pre-registered with a decisive, cost-aware construction. Pre-register highest-information feasible candidate as H105. `src/qtr` unchanged unless evidenced defect.
