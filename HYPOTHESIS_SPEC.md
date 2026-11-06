@@ -6222,3 +6222,47 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 | Investor attention / lottery-demand (MAX) transmission via cross-sectional equity maximum daily return | H112 (NF-20261106-25) | Continuous vol-targeted long SPY reduced when trailing cross-sectional mean of max daily return z-score abnormally high (lottery demand/overheating), 1-bar delay | SPY (traded), 15 signal ETFs (signal) daily (yfinance), 2010–2026 | **REJECT** (3/8; exp_2026-11-06T16-36-24-805357Z) | Fails Sharpe 0.800/PF 1.152/trades 145/worst-regime min -0.928/benchmark-p 1.0/IR -0.116; perturbation-stable but no risk-adjusted edge vs buy-hold; low trade count suggests infrequent regime shifts; specific elevated-MAX mapping as pre-registered |
 
 **Cycle 27 required next.** H85–H112 all rejected/recorded. Fresh discovery per directive §4: reconcile lineage to H112, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess NF-04/05/07/08/10/11/13/15/17/20/21 and NF-11r/NF-06-18 (TNX-FVX, **NF-11 data-resolution path, same root mechanism — honest novelty, not a new root family**) with concrete evidence (no silent drops). NF-06-11 CBOE PC ratio infeasible. NF-20261106-03/21/23/24 deferred. Pre-register highest-information feasible candidate as H113 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
+
+## H113 (NF-20261106-26): VIX9D/VIX short-term volatility term-structure timing for SPY
+
+**Status:** Pre-registered (Cycle 27 discovery, NF-20261106-26). Free/public yfinance, no `src/qtr` change. Not yet executed in this session.
+
+**Statement.** The ratio of short-dated volatility (^VIX9D, 9-day) to spot volatility (^VIX) measures the slope of the very near-term equity volatility term structure. When front-end fear is abnormally elevated relative to the spot VIX (ratio high / front-end inversion/stress), reduce vol-targeted long SPY exposure; otherwise maintain normal exposure. Net pooled OOS (Val+Test) Sharpe >= 1.0 with >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 vs buy-hold SPY with IR >= 0, and perturbation min ratio >= 0.5.
+
+**Null (H0).** Trailing VIX9D/VIX short-term term-structure state has no predictive power for next-day SPY returns beyond random chance after costs.
+
+**Mechanism / causal chain (pre-registered).** A steepening front-end relative to spot (^VIX9D/^VIX high) reflects heightened near-term tail/fear demand (term-structure shape shift) and can coincide with elevated downside risk premia / liquidity stress; reducing equity exposure in such states may improve risk-adjusted returns. Compute ratio `r_t = ^VIX9D_t / ^VIX_t`, take trailing lookback momentum z-score `z_t` of log(r_t) (or level) over trailing `z_window` using past-only windows (`min_periods`), scale SPY exposure down continuously when front-end is abnormally elevated (`z >= entry_scale` in the high-fear direction -> stress increases), with vol targeting and `MAX_POS=0.5`. Engine applies `signals.shift(1)`: target at close t earns return t→t+1 — strictly causal. This tests the directional mapping (elevated front-end stress reduces exposure); it does not test all VIX term-structure constructions.
+
+**Novelty (repo-relative).** Repo-new root family candidate: **volatility term-structure / near-term fear transmission via VIX9D/VIX (short-dated vs spot)**. Distinct from H86 (VIX3M/VIX slope/contango — different maturity, 3-month vs spot; H86 executed REJECT), H104 (VVIX vol-of-vol), H89 (^SKEW implied tail shape), H17 (SVXY VRP with VIX gates), and H100 (rates-vol MOVE). Front-end vs spot is a different maturity segment and observable shape of the equity vol term structure than medium-dated (VIX3M) slope.
+
+**Data.** yfinance daily adjusted close/index values for `^VIX9D`, `^VIX`, `SPY` (traded), 2010-01-01 → 2026-10-31. Free, point-in-time. ^VIX9D starts 2011-01-04; alignment from common start gives ~3980 rows (sufficient). Verify no non-positive values; use close/index series consistently.
+
+**Universe/splits (protected holdout).** Trade `SPY`; signal `^VIX9D/^VIX`. Train 2010-01-01 → 2019-12-31 (or common-start equivalent, pre-registered to use available aligned history); Val 2020-01-01 → 2022-12-31; Test (protected) 2023-01-01 → 2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+
+**Grid (bounded).** `lookback ∈ {21,63}` × `z_window ∈ {126,252}` × `entry_scale ∈ {1.0,1.5,2.0}` × `vol_target ∈ {0.10,0.15}` (24 combos). `max_position=0.5`, long-only SPY only.
+
+**Costs/constraints.** Equity `CostModel` defaults. No live trading. Use free/public data only.
+
+**Gates (OOS Val+Test).** Sharpe >= 1.0, >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0, perturbation min ratio >= 0.5.
+
+**Runner.** `run_nf_20261106_26_vix9d_vix_termstructure.py` (to be created). **Tests.** `tests/test_nf_20261106_26_vix9d_vix_termstructure.py` (to be created).
+
+### H113 execution outcome (2026-11-06, REAL)
+
+**Experiment:** `exp_2026-11-06T21-57-20-802037Z` (1.01s). Artifact: `.experiments/nf_runs/nf_20261106_26_vix9d_vix_termstructure/summary.json`. `src/qtr` unchanged.
+
+**Selected (train-only 4-fold WF):** `lookback=21, z_window=126, entry_scale=1.5, vol_target=0.15`.
+
+**OOS Val+Test (117 trades):** Sharpe **0.811** (fail), PF **1.152** (fail), max DD **-13.15%** (pass), trades **117** (fail, <200), WF stability **1.145** (pass), worst-regime rolling-252 Sharpe min **-0.717** (fail), benchmark p **1.0** / IR **-0.085** (fail), perturbation min ratio **0.992** (pass). Train Sharpe 0.709.
+
+**Ablations (OOS).** Buy-hold SPY 0.720/1.148/DD -18.21%/1. Random-exposure-matched 0.549/1.129/DD -7.24%/1717. Inverse-stress-long 0.234/1.116/DD -10.33%/117.
+
+**Verdict rationale.** **REJECT (3/8).** VIX9D/VIX short-term term-structure timing is perturbation-stable, beats random/inverse ablations, reduces drawdown vs buy-hold, but fails Sharpe/PF/trade-count/worst-regime/benchmark-p/IR on pre-registered OOS gates. No validated net edge vs buy-hold. The executed front-end elevation mapping is the specific pre-registered construction tested; this does not test all short-dated term-structure constructions. No gate weakened; no published/certified artifact modified.
+
+**Lineage map (H113 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known failure modes |
+|---|---|---|---|---|---|
+| Volatility term-structure / near-term fear transmission via VIX9D/VIX (short-dated vs spot) | H113 (NF-20261106-26) | Continuous vol-targeted long SPY reduced when trailing VIX9D/VIX ratio momentum z-score abnormally high (front-end stress), 1-bar delay | SPY (traded), ^VIX9D/^VIX (signal) daily (yfinance), 2011–2026 (aligned ~3982 rows) | **REJECT** (3/8; exp_2026-11-06T21-57-20-802037Z) | Fails Sharpe 0.811/PF 1.152/trades 117/worst-regime min -0.717/benchmark-p 1.0/IR -0.085; perturbation-stable but no risk-adjusted edge vs buy-hold; low trade count; specific front-end mapping as pre-registered |
+
+**Cycle 28 required next.** H85–H113 all rejected/recorded. Fresh discovery per directive §4: reconcile lineage to H113, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess deferred candidates NF-04/05/07/08/10/11/13/15/17/20/21 and NF-11r/NF-06-18 with concrete evidence (no silent drops). NF-06-11 CBOE PC ratio infeasible. NF-20261106-03/21/23/24/27/28 deferred. Pre-register highest-information feasible candidate as H114 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
