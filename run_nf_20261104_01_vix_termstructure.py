@@ -243,7 +243,7 @@ def full_gate_eval(result, oos_mask, val_mask, test_mask, prices, bench_result):
     ir = 0.0
     try:
         cmp = compare_to_benchmark(rets, bench_result.returns)
-        bench_p = float(cmp.get("p_value", 1.0))
+        bench_p = float(cmp.get("alpha_p_value", 1.0))
         ir = float(cmp.get("information_ratio", 0.0))
     except Exception:
         pass
