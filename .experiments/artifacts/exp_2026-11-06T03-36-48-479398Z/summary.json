@@ -1,0 +1,83 @@
+{
+  "experiment_id": "exp_2026-11-06T03-36-48-479398Z",
+  "hypothesis": "NF-20261105-10/H92",
+  "selected_config": {
+    "lookback": 63,
+    "vol_target": 0.1,
+    "allow_short": false
+  },
+  "selection_rule": "best train-only walk-forward Sharpe; Test protected; gates on OOS Val+Test",
+  "grid_size": 16,
+  "n_evaluated": 16,
+  "grid_elapsed_sec": 1.0,
+  "total_elapsed_sec": 2.6,
+  "compute_cpu_hours": 0.001,
+  "signal": {
+    "type": "equity-bond relative momentum (SPY trailing return minus TLT trailing return)",
+    "causal": "relmom at close t uses prices through t; engine shift(1) earns t->t+1"
+  },
+  "metrics": {
+    "train_sharpe": 0.3254332169048069,
+    "val_sharpe": 0.06701202531980933,
+    "test_sharpe": 0.8811030020822579,
+    "oos_sharpe": 0.4470493302379563,
+    "profit_factor": 1.0889802170091316,
+    "max_drawdown": -0.16908874545610364,
+    "trades": 313,
+    "wf_stability": 2.7074771606365893,
+    "benchmark_p_value": 0.005822770948177806,
+    "information_ratio": -0.6732544526196753,
+    "worst_regime_sharpe": -1.7783458596319175,
+    "perturbation": {
+      "variants": {
+        "lookback=50": 0.5146199379680171,
+        "lookback=76": 0.671184979816671,
+        "vol_target=0.08000000000000002": 0.46262453459435005,
+        "vol_target=0.12": 0.42812191768486363
+      },
+      "min_perturbed_sharpe_ratio": 0.9576614675990724
+    },
+    "ablations": {
+      "spy_benchmark": {
+        "sharpe": 0.7265532171000195,
+        "max_drawdown": -0.18206356730445683,
+        "profit_factor": 1.1489898603066666,
+        "trades": 0,
+        "gross_profit": 3.819564264794159,
+        "gross_loss": 3.3242802193003804,
+        "n_periods": 1717
+      },
+      "random_direction": {
+        "sharpe": 0.4470493302379563,
+        "max_drawdown": -0.16908874545610364,
+        "profit_factor": 1.0889802170091316,
+        "trades": 313,
+        "gross_profit": 2.4058224933999544,
+        "gross_loss": 2.2092435251096765,
+        "n_periods": 1717
+      },
+      "allow_short=True": {
+        "sharpe": -0.09220429745467458,
+        "max_drawdown": -0.28161860486112944,
+        "profit_factor": 0.9842511435388056,
+        "trades": 474,
+        "gross_profit": 3.0908792106453653,
+        "gross_loss": 3.140335910134,
+        "n_periods": 1717
+      }
+    }
+  },
+  "passes": {
+    "sharpe": false,
+    "trades": true,
+    "profit_factor": false,
+    "max_drawdown": false,
+    "walkforward_stability": true,
+    "worst_regime_sharpe": false,
+    "p_value": true,
+    "information_ratio": false,
+    "perturbation": true
+  },
+  "all_pass": false,
+  "verdict": "REJECT"
+}
