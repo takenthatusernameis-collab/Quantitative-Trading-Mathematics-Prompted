@@ -5344,7 +5344,7 @@ Universe SPY (4233 rows), train/val/test 2516/756/961. Grid 10 (train-only WF se
 
 **Gates (OOS Val+Test).** Sharpe ≥ 1.0, ≥ 200 trades, PF ≥ 1.3, max DD ≤ 15%, WF stability (test ≥ 0.7×train when train>0), worst-regime rolling-252 Sharpe ≥ 0.3, benchmark p ≤ 0.05 vs buy-hold SPY, IR ≥ 0, perturbation min ratio ≥ 0.5 (OAT ±20% on lookback/vol_target for selected config).
 
-**Execution.** exp_2026-11-06T03-36-48-479398Z. Selected {'lookback':63,'vol_target':0.1,'allow_short':False}. OOS Val+Test: Sharpe 0.447 (fail), PF 1.089 (fail), DD -16.9% (fail), trades 313 (pass), WF stability 2.707 (pass), worst-regime rolling-252 Sharpe -1.778 (fail), bench p 0.0058 (pass), IR -0.673 (fail), perturbation min ratio 0.958 (pass). Verdict REJECT 4/9. Train/Val/Test Sharpe 0.325/0.067/0.881.
+**Execution.** exp_2026-11-06T04-23-47-511988Z. Selected {'lookback':63,'vol_target':0.1,'allow_short':False}. OOS Val+Test: Sharpe 0.447 (fail), PF 1.089 (fail), DD -16.9% (fail), trades 313 (pass), WF stability 2.707 (pass), worst-regime rolling-252 Sharpe -1.778 (fail), bench p 0.0058 (pass), IR -0.673 (fail), perturbation min ratio 0.958 (pass). Verdict REJECT 4/9. Train/Val/Test Sharpe 0.325/0.067/0.881.
 
 **Rejection.** OOS Sharpe < 0.5, PF < 1.1, < 200 OOS trades, max DD > 15%, or perturbation/benchmark failure. No gate weakening.
 
