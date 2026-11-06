@@ -5643,3 +5643,43 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 **Ablations.** Random-exposure-matched Sharpe **0.763** / PF 1.173 (1607 trades) — *outperforms the strategy*, falsifying the timing mechanism; inverse-signal (long when miners rich) Sharpe 0.243 / PF 1.047 (1342 trades); GDX buy-hold benchmark Sharpe 0.578 / PF 1.107 / DD -49.79%.
 
 **Rationale.** The miner-bullion log-spread is near-unit-root by construction (GDX and GLD share the gold price factor), so z-score entry/exit triggers rarely and most OOS performance is incidental vol-scaled long exposure rather than spread convergence. Random exposure beats the selected strategy, and train WF Sharpe was weak (0.437) to begin with — no selection-overfit concern, simply no predictive signal. No gate weakened; no published/certified artifact modified.
+
+## H100 (NF-20261106-02): Rates-vol / Treasury implied-vol stress transmission timing
+
+**Status:** Pre-registered 2026-11-06 (Cycle 13 discovery, NF-20261106-02). Decision-ready, free/public yfinance, no `src/qtr` change.
+
+**Mechanism.** ICE BofA MOVE (`^MOVE`) reflects implied volatility of US Treasury options and proxies rates uncertainty / fixed-income market stress. Elevated trailing MOVE can tighten financial conditions and impair equity risk premia. The rule holds vol-targeted long SPY when trailing MOVE z-score is benign (<= `exit_z`), goes flat when elevated (>= `entry_z`), with hysteresis and 1-bar execution delay.
+
+**Novelty (repo-relative).** Repo-new root family (cross-asset rates-volatility stress transmission). Distinct from H86 (equity VIX term-structure slope ^VIX/^VIX3M, REJECT 2/9) and H89 (CBOE SKEW implied tail shape, REJECT 1/9): different underlying market (Treasury options / rates volatility vs equity index options) and mechanism (rates-vol/liquidity stress transmission vs equity vol carry/tail pricing). Distinct from H96 (SPY/TLT realized return-correlation regime, REJECT 4/9): different observable (implied rates-vol level vs realized cross-asset correlation). Distinct from H94 (credit HYG-IEF) and H95 (USD UUP macro). NF-20261106-03 (VVIX vol-of-vol) deferred as adjacency to VIX-complex ecosystem (scored honestly lower).
+
+**Data.** yfinance daily `^MOVE`, `SPY` (free, point-in-time, adjusted close), 2010-01-01 -> 2026-10-31. Feasibility verified 2026-11-06: `^MOVE` 4149 rows, 0 non-positive; SPY 4233 rows. Non-positive rows dropped fail-closed by fetch path; inner join/dropna used.
+
+**Universe/splits (protected holdout).** Trade `SPY`, signal `^MOVE`. Train 2010-01-01 -> 2019-12-31; Val 2020-01-01 -> 2022-12-31; Test (protected) 2023-01-01 -> 2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+
+**Causality.** MOVE z-score at close t uses prices through close t only (trailing windows, `min_periods`). Signals shifted by 1 bar (`signals.shift(1)`) so target at close t earns return t -> t+1.
+
+**Grid (bounded).** `lookback ∈ {63,126,252}` × `entry_z ∈ {1.0,1.5,2.0}` × `exit_z ∈ {0.0,0.5}` × `vol_target ∈ {0.10,0.15}` (36 combos). `max_position=0.5`, `zscore_window=252`.
+
+**Costs/constraints.** Equity `CostModel` defaults (1 bp commission + 0.5 bp spread + 0.1 bp impact per 1% ADV), long-only, no leverage.
+
+**Gates (OOS Val+Test, PROMPT_V2 Phase 4).** Sharpe >= 1.0, >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train (when train>0), worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 vs buy-hold SPY with IR >= 0 (direction-aware), perturbation min ratio >= 0.5 (OAT ±20% on grid params). Fail-closed.
+
+**Rejection.** OOS Sharpe < 0.5, PF < 1.1, max DD > 15%, < 200 OOS trades, or benchmark/perturbation failure.
+
+**Falsifiers/ablations.** Random-exposure-matched (same on-bars, shuffled), inverse-signal (long when MOVE elevated/risk-off inverted), buy-hold SPY benchmark, OAT perturbation, Val/Test subperiods.
+
+**Runner.** `run_nf_20261106_02_move_rates_vol.py`. **Tests.** `tests/test_nf_20261106_02_move_rates_vol.py`.
+
+## H100 Execution (2026-11-06)
+
+**Runner.** `run_nf_20261106_02_move_rates_vol.py`. **Tests.** `tests/test_nf_20261106_02_move_rates_vol.py` (10 focused tests pass). Lint/format clean (ruff check + format --check). `src/qtr` unchanged.
+
+**Data/splits.** `^MOVE`, `SPY` daily yfinance 2010-01-01 -> 2026-10-31 (4233 aligned rows, 0 non-positive). Train 2010-01-01 -> 2019-12-31 (2516); Val 2020-01-01 -> 2022-12-31 (756); Test protected 2023-01-01 -> 2026-10-31 (961). Grid 36. Selection = best train-only 4-fold WF Sharpe; gates on OOS Val+Test.
+
+**Execution.** `exp_2026-11-06T04-36-03-876862Z` (`nf_20261106_02_move_rates_vol`, completed, 2.25s). Command: `PYTHONPATH=src python3 run_nf_20261106_02_move_rates_vol.py`. Selected (train-only WF Sharpe 0.929): `lookback=252, entry_z=1.0, exit_z=0.0, vol_target=0.10`. Artifact: `.experiments/nf_runs/nf_20261106_02_move_rates_vol/summary.json`.
+
+**OOS gates (Val+Test, 1717 periods, 199 trades):** Sharpe 1.003 (pass >=1.0), PF 1.227 (fail <1.3), max DD -9.14% (pass), trades 199 (fail <200), WF stability 2.015 (pass; train 0.497, val 1.011, test 1.001), worst-regime rolling-252 Sharpe -1.002 (fail <0.3), benchmark p=0.0299 (pass <=0.05 vs buy-hold SPY, evaluated by runner's direct `p <= max_p_value` check consistent with NF runner pattern), IR -0.530 (fail <0), perturbation min ratio 0.925 (pass). Train/Val/Test Sharpe: 0.497 / 1.011 / 1.001. **Verdict: REJECT (5/9).**
+
+**Ablations.** Random-exposure-matched Sharpe -0.080 / PF 0.976 (603 trades) — MOVE gating beats random exposure; buy-hold SPY OOS Sharpe 0.798 / PF 1.165 / DD -17.97% (strategy has lower DD but fails IR/trades/PF/worst-regime gates); inverse-signal (long when MOVE elevated) Sharpe 0.042 / PF 1.015 (250 trades), near-zero — consistent with risk-off interpretation but not a strong inverse edge.
+
+**Rationale.** Rates-vol stress timing shows conditional value vs random exposure and passes Sharpe/maxDD/stability/benchmark-p/perturbation, but fails profit factor, trade count (199, just below 200), worst-regime, and information ratio. The signal is not a validated cost-robust edge under pre-registered gates: trade count is borderline, PF below gate, and worst-regime drawdown/IR indicate the exposure profile does not reliably add risk-adjusted value over buy-hold SPY on protected OOS. No gate weakened; no published/certified artifact modified.

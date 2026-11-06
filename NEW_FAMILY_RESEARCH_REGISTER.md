@@ -934,3 +934,91 @@ No deferred candidates silently dropped.
 | Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
 |---|---|---|---|---|---|
 | Gold-miner vs gold real-optionality spread MR | H99 (NF-20261106-01) | Long GDX vol-targeted when trailing log(GDX/GLD) z-score low (miners cheap), flat when high; hysteresis + 1-bar delay | GDX (traded), GLD (signal) daily (yfinance), 2012–2026 | **REJECT** (4/9; exp_2026-11-06T03-04-40-778747Z) | OOS Sharpe 0.329, PF 1.065, worst-regime -1.046, bench p=0.123, IR -0.592; random-exposure-matched ablation (0.763) outperforms strategy — no spread-timing information; log-spread near-unit-root, z-score triggers rarely; GDX buy-hold DD -49.8% but Sharpe 0.578 |
+
+
+## Cycle 13 (2026-11-06) — post-H99 mechanism search → NF-20261106-02 / H100 pre-registration
+
+H85–H99 all rejected (H99 NF-20261106-01 gold-miner vs gold real-optionality spread MR REJECT 4/9, `exp_2026-11-06T03-04-40-778747Z`; random-exposure-matched ablation 0.763 outperformed strategy 0.329 — timing falsified; log(GDX/GLD) near-unit-root). No pre-registered NF candidates remain executable without resolving a documented decisive risk. Next unused H-ID: **H100** (H24/H68–H73/H76–H79 unassigned, not recycled).
+
+### Deferred candidates reassessed (concrete evidence, Cycle 13; none silently dropped)
+
+- **NF-20261105-04 (commodity carry, roll proxy) — remains DEFERRED.** yfinance/DataFetcher provide continuous/front proxies only; no free point-in-time deferred/term-structure/second-month series. Continuous-only carry requires pre-registered splice/roll assumptions (roll/regime leakage risk). ETF proxies (DBC/USO/GLD) confound roll, flows, and equity beta. Spot check (2026-11-06 context consistent with prior): broad commodity ETFs feasible as price series but do not yield a clean point-in-time carry/term-structure observable. **Blocker:** point-in-time term-structure/roll proxy construction; do not execute without an explicitly pre-registered, point-in-time design.
+- **NF-20261105-05 (short-term CS reversal, liquidity provision) — remains DEFERRED.** 1-day daily cross-sectional rebalancing => very high turnover; equity default costs make net-of-cost decisive. Any turnover cap/threshold/lower frequency materially changes the mechanism and must be pre-registered. **Blocker:** net-of-cost under pre-registered turnover assumptions.
+- **NF-20261105-11 (Treasury term-spread regime timing) — PARTIALLY RESOLVED for data, mechanism-adjacency risk remains.** Prior blocker: `^IRX` blocked by `_reject_non_positive_prices` (7 non-positive bars 2020-03-19/20/23 in yfinance history, min -0.105) and FRED absent from pipeline. Concrete 2026-11-06 spot check: `^TNX` (10y), `^FVX` (5y), `^TYX` (30y) each have 4231–4987 rows 2010–2026 with **0 non-positive** (TNX min 0.499, FVX min 0.195) — feasible as a point-in-time 5y-10y/10y-30y slope proxy via yfinance. However, this tests the same root mechanism NF-11 identified (term-spread/slope regime timing), not a repo-new family; it is a data-resolution variant of a previously identified but unexecuted mechanism. If pursued, it must be pre-registered as a resolution of NF-11's blocker with explicit novelty separation (scored honestly) and not presented as a new root family. **Status:** data blocker resolved for TNX/FVX; NF-11 mechanism remains an unexecuted identified candidate (not selected this cycle in favor of a clearer repo-new mechanism).
+- **NF-20261105-12 (cross-sectional equity dispersion regime) — remains DEFERRED.** Free data feasible, but dispersion + regime-to-portfolio mapping is complex; a CS portfolio risks turnover/capacity issues resembling CS families. A simplified dispersion->SPY timing mapping is possible but mechanism/complexity tradeoff remains; lower expected information than a small 2-symbol timing test. **Blocker:** execution/complexity vs smallest decisive test.
+- **NF-20261105-17 (cross-sectional volume-shock reversal) — remains DEFERRED.** Turnover/cost-sensitive; pre-register constrained design only if pursued. **Blocker:** net-of-cost under daily ETF turnover.
+- **NF-20261105-20 (Treasury auction supply-pressure, event-driven) — remains DEFERRED.** Auction calendar/free data conceptually feasible but implementation heavier (event calendar construction, point-in-time announcement/auction timestamps, execution mapping). Not the smallest decisive test this cycle. **Blocker:** event-data construction/point-in-time timestamps.
+- **NF-20261105-21 (month-end pension rebalancing, calendar/flow) — remains DEFERRED.** Weak independent evidence and adjacency risk to calendar/flow timing families (H91 turn-of-month REJECT 3/9 tested a related calendar window but different mechanism; pension rebalancing is flow-driven — adjacency must be scored honestly if ever pursued). **Blocker:** weak mechanism/evidence separation.
+
+No deferred candidates silently dropped.
+
+### Cycle 13 candidates (scored honestly; >=3 candidates, >=3 broad categories)
+
+Checked against root families H1–H99 (no parameter/instrument/universe/timeframe variants or audits). Adjacency scored honestly where instruments or data complexes overlap.
+
+| Candidate | Mechanism category | Novelty (25%) | Plaus (25%) | Data (20%) | Falsif (15%) | Exec (10%) | Support (5%) | Weighted |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261106-02 Rates-vol / Treasury implied-vol stress transmission timing (^MOVE → SPY) — **H100** | Cross-asset rates-volatility stress transmission | 4 | 3 | 5 | 5 | 5 | 3 | **4.05** |
+| NF-20261106-03 Vol-of-vol / implied-vol uncertainty regime timing (^VVIX → SPY) | Volatility uncertainty / second-order vol premia | 3 | 3 | 5 | 5 | 5 | 3 | **3.80** |
+| NF-20261105-11r 5y-10y Treasury slope regime timing (^TNX-^FVX → SPY), NF-11 data-resolution variant | Rates term-structure / macro slope regime | 2 | 3 | 5 | 5 | 5 | 3 | **3.55** |
+
+**Scoring notes.**
+- **NF-20261106-02 (H100, selected).** Novelty 4 (repo-new root family): uses ICE BofA MOVE (Treasury options implied volatility, `^MOVE`) as a cross-asset rates-vol stress signal for SPY. Distinct from H86 (equity VIX term-structure slope ^VIX/^VIX3M, REJECT 2/9) and H89 (CBOE SKEW implied tail shape, REJECT 1/9) — different underlying market (rates/Treasury options vs equity index options) and mechanism (rates-vol/liquidity stress transmission vs equity vol carry/tail pricing). Distinct from H96 (SPY/TLT rolling *return correlation* regime, REJECT 4/9) — different observable (implied rates vol level vs realized cross-asset correlation). Distinct from H94 (credit HYG-IEF) and H95 (USD UUP). Data 5: yfinance `^MOVE` 4149 rows 2010–2026, 0 non-positive; SPY 4233 rows; aligned. Exec 5: 2 symbols, single traded instrument, slow-moving regime, no `src/qtr`. Plausibility/support 3: rates-vol stress can transmit to equities, but MOVE-equity linkage is regime-dependent and MOVE construction/availability caveats apply (documented). Falsifiability 5: random exposure, inverse signal, buy-hold SPY, perturbation, worst-regime, subperiods.
+- **NF-20261106-03.** Novelty 3 (honest adjacency): ^VVIX is volatility of VIX — a second-order vol/uncertainty observable. Mechanistically distinct from VIX level (H3/H5/H6/H17 VRP-related), VIX slope (H86), and SKEW (H89), but all draw from the same VIX-complex options ecosystem; scored lower for adjacency. Data/exec 5 (4224 rows since 2010, 0 non-positive). Deferred in favor of cleaner separation.
+- **NF-20261105-11r.** Novelty 2: same root mechanism as deferred NF-11 (term-spread/slope regime timing), now feasible via ^TNX/^FVX (0 non-positive). This is a data-resolution variant, not a new root family; it should be treated as an NF-11 execution path if prioritized later. Scored honestly low on novelty. Deferred: less expected information than testing a repo-new rates-vol transmission mechanism.
+
+### NF-20261106-02 / H100 — Rates-vol / Treasury implied-vol stress transmission timing (PRE-REGISTERED)
+
+**Temporary lineage ID:** NF-20261106-02. **H-ID:** H100 (next unused; H24/H68–H73/H76–H79 unassigned, not recycled).
+
+**Statement.** Trailing MOVE (Treasury implied volatility) regime provides a point-in-time cross-asset stress signal for SPY exposure. A simple, pre-registered rule reduces SPY exposure (flat) when MOVE is unusually elevated relative to its trailing window and holds a vol-targeted long SPY position otherwise. The mechanism is rates-volatility / fixed-income liquidity-stress transmission to equity risk premia, distinct from equity VIX/SKEW families and from H96 equity-bond return-correlation timing.
+
+**Null (H0).** Trailing MOVE regime does not improve risk-adjusted SPY returns net of costs relative to buy-and-hold SPY on OOS Val+Test.
+
+**Mechanism / causal chain.** `^MOVE` reflects implied volatility of US Treasury options and proxies rates uncertainty and fixed-income market stress. Elevated MOVE at close t indicates rates-vol/liquidity stress that can tighten financial conditions and impair equity risk premia; the pre-registered rule sets position for t+1 (1-bar delay), so no look-ahead. Observable at close t → regime classification (trailing z-score/hysteresis) → target weight applied to return t+1.
+
+**Construction (daily, causal).**
+1. Compute `z_t = (MOVE_t - rolling_mean(MOVE, L)) / rolling_std(MOVE, L)` with trailing window `L` and `min_periods=L` (point-in-time).
+2. Hysteresis state machine: if `z_t >= entry_z` → flat (risk-off); if `z_t <= exit_z` → long (risk-on); otherwise retain prior state. Initial state long.
+3. Apply vol targeting to SPY returns: `w_t = vol_target / rolling_realized_vol(SPY, 21, min_periods=21) * state_t`, clipped to `[0, max_position]`.
+4. Engine applies `position_{t-1}` to `return_t` (shift(1) equivalent in runner backtest).
+
+**Universe / data (free).** `^MOVE`, `SPY` daily adjusted close via `DataFetcher.fetch_yahoo`, 2010-01-01→2026-10-31. Feasibility verified 2026-11-06: `^MOVE` 4149 rows, 0 non-positive; SPY 4233 rows; aligned rows after inner join/dropna expected ~4149.
+
+**Splits (protected holdout).** Train 2010-01-01→2019-12-31; Val 2020-01-01→2022-12-31; Test (protected) 2023-01-01→2026-10-31. Grid selection = best train-only 4-fold walk-forward Sharpe (bounded grid below). Gates evaluated on OOS Val+Test only. No holdout feedback in selection or debugging.
+
+**Grid (bounded, pre-registered).** `lookback ∈ {63,126,252}` × `entry_z ∈ {1.0,1.5,2.0}` × `exit_z ∈ {0.0,0.5}` × `vol_target ∈ {0.10,0.15}` (36 combos). `max_position=0.5`.
+
+**Costs/constraints.** Equity `CostModel` defaults (1 bp commission + 0.5 bp spread + 0.1 bp impact per 1% ADV), long-only, no leverage.
+
+**Gates (OOS Val+Test, PROMPT_V2 Phase 4).** Sharpe >= 1.0, >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train (when train>0), worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 vs buy-hold SPY with IR >= 0 (direction-aware), perturbation min ratio >= 0.5 (OAT ±20% on grid params). All gates evaluated fail-closed on pre-registered OOS Val+Test.
+
+**Rejection/falsifiers.** OOS Sharpe < 0.5, PF < 1.1, max DD > 15%, < 200 OOS trades, or benchmark/perturbation failure => reject mechanism. Ablations: random-exposure-matched (same on-bars, shuffled), inverse-signal (long when MOVE elevated / risk-off inverted), buy-hold SPY benchmark, OAT perturbation, Val/Test subperiods. No gate weakening.
+
+**Runner.** `run_nf_20261106_02_move_rates_vol.py` (to be implemented this session if feasible). **Tests.** `tests/test_nf_20261106_02_move_rates_vol.py`.
+
+**Lineage map (H100 pre-registered):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known risks |
+|---|---|---|---|---|---|
+| Rates-vol / Treasury implied-vol stress transmission timing | H100 (NF-20261106-02) | Vol-targeted long SPY when trailing MOVE z-score benign (hysteresis), else flat; 1-bar delay | SPY (traded), ^MOVE (signal) daily (yfinance), 2010–2026 | **PRE-REGISTERED / EXECUTED BELOW** | MOVE-equity linkage regime-dependent; MOVE index construction/availability caveats; adjacency to macro stress but observable/mechanism distinct from H86/H89/H94/H95/H96 |
+
+### NF-20261106-02 / H100 execution outcome (2026-11-06)
+
+**Runner:** `run_nf_20261106_02_move_rates_vol.py`. **Tests:** `tests/test_nf_20261106_02_move_rates_vol.py` (10 tests). Lint/format clean. `src/qtr` unchanged.
+
+**Execution.** `exp_2026-11-06T04-36-03-876862Z`, completed 2.25s. `^MOVE`+`SPY` 2010–2026, 4233 rows. Selected (train-only WF 0.929): `lookback=252, entry_z=1.0, exit_z=0.0, vol_target=0.10`.
+
+**Result — REJECT (5/9 gates).** OOS Val+Test (1717 periods, 199 trades): Sharpe 1.003 (pass), PF 1.227 (fail), max DD -9.14% (pass), trades 199 (fail), WF stability 2.015 (pass), worst-regime rolling-252 Sharpe -1.002 (fail), benchmark p=0.0299 (pass, runner direct check), IR -0.530 (fail), perturbation min ratio 0.925 (pass). Train/Val/Test Sharpe 0.497/1.011/1.001.
+
+**Ablations.** Random-exposure-matched -0.080/0.976 (603 trades) — gating beats random exposure; buy-hold SPY 0.798/1.165/DD -17.97%; inverse MOVE-elevated long 0.042/1.015 (250 trades).
+
+**Verdict rationale.** MOVE rates-vol stress timing shows conditional benefit vs random exposure and passes several gates, but fails PF/trades (borderline 199)/worst-regime/IR; not a validated cost-robust edge under pre-registered gates. No gate weakened.
+
+**Lineage map (H100 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Rates-vol / Treasury implied-vol stress transmission timing | H100 (NF-20261106-02) | Vol-targeted long SPY when trailing ^MOVE z-score benign (hysteresis), else flat; 1-bar delay | SPY (traded), ^MOVE (signal) daily (yfinance), 2010–2026 | **REJECT** (5/9; exp_2026-11-06T04-36-03-876862Z) | Fails PF 1.227/trades 199/worst-regime -1.002/IR -0.530; beats random exposure (-0.080) and SPY DD but not robust on pre-registered gates; MOVE-equity linkage regime-dependent |
+
+**Cycle 14 required next.** H85–H100 all rejected. Perform fresh discovery per directive §4: reconcile lineage to H100, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess NF-04/05/11r(11 data-resolved variant)/12/17/20/21/03 with concrete evidence (no silent drops). Pre-register highest-information feasible candidate as H101 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.

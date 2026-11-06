@@ -1,0 +1,468 @@
+{
+  "experiment": "nf_20261106_02_move_rates_vol",
+  "family_id": "NF-20261106-02",
+  "hypothesis_id": "H100",
+  "verdict": "REJECT",
+  "description": "NF-20261106-02/H100: rates-vol/Treasury implied-vol stress transmission timing. Vol-targeted long SPY when trailing ^MOVE z-score is below exit_z, flat when above entry_z (hysteresis), 1-bar execution delay. Grid search on Train/WF; Test protected; gates on OOS Val+Test.",
+  "universe": [
+    "SPY",
+    "^MOVE"
+  ],
+  "data": {
+    "start": "2010-01-01",
+    "end": "2026-10-31",
+    "rows": 4233
+  },
+  "splits": {
+    "train_end": "2019-12-31",
+    "val_end": "2022-12-31",
+    "train_rows": 2516,
+    "val_rows": 756,
+    "test_rows": 961
+  },
+  "selected": {
+    "lookback": 252,
+    "entry_z": 1.0,
+    "exit_z": 0.0,
+    "vol_target": 0.1,
+    "train_wf_sharpe": 0.9290776968042955
+  },
+  "grid_rows": [
+    {
+      "lookback": 63,
+      "entry_z": 1.0,
+      "exit_z": 0.0,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.5196433475249058
+    },
+    {
+      "lookback": 63,
+      "entry_z": 1.0,
+      "exit_z": 0.0,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.5264386136505891
+    },
+    {
+      "lookback": 63,
+      "entry_z": 1.0,
+      "exit_z": 0.5,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.4342143866550264
+    },
+    {
+      "lookback": 63,
+      "entry_z": 1.0,
+      "exit_z": 0.5,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.4134275087536049
+    },
+    {
+      "lookback": 63,
+      "entry_z": 1.5,
+      "exit_z": 0.0,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.6303069504886503
+    },
+    {
+      "lookback": 63,
+      "entry_z": 1.5,
+      "exit_z": 0.0,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.6314208475171879
+    },
+    {
+      "lookback": 63,
+      "entry_z": 1.5,
+      "exit_z": 0.5,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.5178034861445121
+    },
+    {
+      "lookback": 63,
+      "entry_z": 1.5,
+      "exit_z": 0.5,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.4793029958049212
+    },
+    {
+      "lookback": 63,
+      "entry_z": 2.0,
+      "exit_z": 0.0,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.6592685966019823
+    },
+    {
+      "lookback": 63,
+      "entry_z": 2.0,
+      "exit_z": 0.0,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.6495900386181095
+    },
+    {
+      "lookback": 63,
+      "entry_z": 2.0,
+      "exit_z": 0.5,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.5835253576676456
+    },
+    {
+      "lookback": 63,
+      "entry_z": 2.0,
+      "exit_z": 0.5,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.5707349489798975
+    },
+    {
+      "lookback": 126,
+      "entry_z": 1.0,
+      "exit_z": 0.0,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.529371755423392
+    },
+    {
+      "lookback": 126,
+      "entry_z": 1.0,
+      "exit_z": 0.0,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.5199951998799285
+    },
+    {
+      "lookback": 126,
+      "entry_z": 1.0,
+      "exit_z": 0.5,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.5375677607875948
+    },
+    {
+      "lookback": 126,
+      "entry_z": 1.0,
+      "exit_z": 0.5,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.5655245473562736
+    },
+    {
+      "lookback": 126,
+      "entry_z": 1.5,
+      "exit_z": 0.0,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.6982258748622794
+    },
+    {
+      "lookback": 126,
+      "entry_z": 1.5,
+      "exit_z": 0.0,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.6879345566958628
+    },
+    {
+      "lookback": 126,
+      "entry_z": 1.5,
+      "exit_z": 0.5,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.7702966440119046
+    },
+    {
+      "lookback": 126,
+      "entry_z": 1.5,
+      "exit_z": 0.5,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.7972924515375217
+    },
+    {
+      "lookback": 126,
+      "entry_z": 2.0,
+      "exit_z": 0.0,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.7519140170779726
+    },
+    {
+      "lookback": 126,
+      "entry_z": 2.0,
+      "exit_z": 0.0,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.7391773752340404
+    },
+    {
+      "lookback": 126,
+      "entry_z": 2.0,
+      "exit_z": 0.5,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.7054019437514887
+    },
+    {
+      "lookback": 126,
+      "entry_z": 2.0,
+      "exit_z": 0.5,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.7280566239376254
+    },
+    {
+      "lookback": 252,
+      "entry_z": 1.0,
+      "exit_z": 0.0,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.9290776968042955
+    },
+    {
+      "lookback": 252,
+      "entry_z": 1.0,
+      "exit_z": 0.0,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.9163410549603632
+    },
+    {
+      "lookback": 252,
+      "entry_z": 1.0,
+      "exit_z": 0.5,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.8234250581346992
+    },
+    {
+      "lookback": 252,
+      "entry_z": 1.0,
+      "exit_z": 0.5,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.8169014868173937
+    },
+    {
+      "lookback": 252,
+      "entry_z": 1.5,
+      "exit_z": 0.0,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.9078505212388648
+    },
+    {
+      "lookback": 252,
+      "entry_z": 1.5,
+      "exit_z": 0.0,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.9001850511342387
+    },
+    {
+      "lookback": 252,
+      "entry_z": 1.5,
+      "exit_z": 0.5,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.6143174998477343
+    },
+    {
+      "lookback": 252,
+      "entry_z": 1.5,
+      "exit_z": 0.5,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.6098015384992381
+    },
+    {
+      "lookback": 252,
+      "entry_z": 2.0,
+      "exit_z": 0.0,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.8666023369649212
+    },
+    {
+      "lookback": 252,
+      "entry_z": 2.0,
+      "exit_z": 0.0,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.8612184854493335
+    },
+    {
+      "lookback": 252,
+      "entry_z": 2.0,
+      "exit_z": 0.5,
+      "vol_target": 0.1,
+      "train_wf_sharpe": 0.552310666715043
+    },
+    {
+      "lookback": 252,
+      "entry_z": 2.0,
+      "exit_z": 0.5,
+      "vol_target": 0.15,
+      "train_wf_sharpe": 0.5469268151994554
+    }
+  ],
+  "gates": {
+    "min_sharpe": 1.0,
+    "min_trades": 200,
+    "min_profit_factor": 1.3,
+    "max_drawdown": 0.15,
+    "min_walkforward_stability": 0.7,
+    "min_worst_regime_sharpe": 0.3,
+    "max_p_value": 0.05,
+    "min_information_ratio": 0.0,
+    "min_perturbed_sharpe_ratio": 0.5
+  },
+  "gate_eval": {
+    "oos_metrics": {
+      "sharpe": 1.0029567463837543,
+      "max_drawdown": -0.09135787247798888,
+      "profit_factor": 1.2270303033144736,
+      "trades": 199,
+      "gross_profit": 2.141489423580297,
+      "gross_loss": 1.7452620508195047,
+      "n_periods": 1717
+    },
+    "train_sharpe": 0.49706781524191734,
+    "val_sharpe": 1.0110163102983942,
+    "test_metrics": {
+      "sharpe": 1.0013913673455694,
+      "max_drawdown": -0.09135787247798854,
+      "profit_factor": 1.1988761823916487,
+      "trades": 49,
+      "gross_profit": 1.412361932286017,
+      "gross_loss": 1.1780715582058554,
+      "n_periods": 961
+    },
+    "wf_stability": 2.0145970763731773,
+    "worst_regime_sharpe": -1.0019900517195868,
+    "benchmark_p": 0.029901822298064883,
+    "information_ratio": -0.5300436102134826,
+    "passes": {
+      "sharpe": true,
+      "trades": false,
+      "profit_factor": false,
+      "max_drawdown": true,
+      "walkforward_stability": true,
+      "worst_regime_sharpe": false,
+      "p_value": true,
+      "information_ratio": false,
+      "perturbation": true
+    },
+    "gate_pass_count": 5,
+    "perturbation": {
+      "rows": [
+        {
+          "lookback": 202,
+          "sharpe": 0.92739949556306,
+          "max_drawdown": -0.09969599410415053,
+          "profit_factor": 1.212741101744851,
+          "trades": 204,
+          "gross_profit": 2.030476768715539,
+          "gross_loss": 1.6742870888058115,
+          "n_periods": 1717
+        },
+        {
+          "lookback": 302,
+          "sharpe": 1.1299360405447338,
+          "max_drawdown": -0.0916447230023032,
+          "profit_factor": 1.259751767763807,
+          "trades": 169,
+          "gross_profit": 2.148640806931275,
+          "gross_loss": 1.7056065027361225,
+          "n_periods": 1717
+        },
+        {
+          "entry_z": 0.8,
+          "sharpe": 1.0184061453258593,
+          "max_drawdown": -0.07005095807198347,
+          "profit_factor": 1.2384081268271476,
+          "trades": 193,
+          "gross_profit": 1.9721981900999468,
+          "gross_loss": 1.5925268474721652,
+          "n_periods": 1717
+        },
+        {
+          "entry_z": 1.2,
+          "sharpe": 1.043649404995962,
+          "max_drawdown": -0.08577837973278124,
+          "profit_factor": 1.2319599971209385,
+          "trades": 196,
+          "gross_profit": 2.2338721179151335,
+          "gross_loss": 1.813266764453099,
+          "n_periods": 1717
+        },
+        {
+          "exit_z": 0.0,
+          "sharpe": 1.0029567463837543,
+          "max_drawdown": -0.09135787247798888,
+          "profit_factor": 1.2270303033144736,
+          "trades": 199,
+          "gross_profit": 2.141489423580297,
+          "gross_loss": 1.7452620508195047,
+          "n_periods": 1717
+        },
+        {
+          "vol_target": 0.08,
+          "sharpe": 0.9716634251429843,
+          "max_drawdown": -0.08200591637532006,
+          "profit_factor": 1.2170589674554324,
+          "trades": 361,
+          "gross_profit": 2.0280408408907546,
+          "gross_loss": 1.6663455881113827,
+          "n_periods": 1717
+        },
+        {
+          "vol_target": 0.12,
+          "sharpe": 1.0197593419292272,
+          "max_drawdown": -0.0965162234754261,
+          "profit_factor": 1.232588091936398,
+          "trades": 110,
+          "gross_profit": 2.1945719401158303,
+          "gross_loss": 1.7804584958046723,
+          "n_periods": 1717
+        }
+      ],
+      "min_sharpe_ratio": 0.9246654942068814
+    },
+    "ablations": {
+      "random_exposure_matched": {
+        "sharpe": -0.08045490441743022,
+        "max_drawdown": -0.08759193162255863,
+        "profit_factor": 0.9762535715768306,
+        "trades": 603,
+        "gross_profit": 0.948051540679723,
+        "gross_loss": 0.971111981847548,
+        "n_periods": 1717
+      },
+      "buy_hold_spy": {
+        "sharpe": 0.7980694248564935,
+        "max_drawdown": -0.17971877121085744,
+        "profit_factor": 1.1650650714355237,
+        "trades": 0,
+        "gross_profit": 3.8288879074866795,
+        "gross_loss": 3.286415498465637,
+        "n_periods": 1717
+      },
+      "inverse_move_elevated_long": {
+        "sharpe": 0.04201575722115422,
+        "max_drawdown": -0.09135642821690249,
+        "profit_factor": 1.0151910630807828,
+        "trades": 250,
+        "gross_profit": 0.9094522348855277,
+        "gross_loss": 0.895843420967112,
+        "n_periods": 1717
+      }
+    }
+  },
+  "subperiods": {
+    "train": {
+      "sharpe": 0.49706781524191734,
+      "max_drawdown": -0.1137131612005241,
+      "profit_factor": 1.1207403120410693,
+      "trades": 119,
+      "gross_profit": 2.222715253399269,
+      "gross_loss": 1.9832562722325082,
+      "n_periods": 2516
+    },
+    "val": {
+      "sharpe": 1.0110163102983942,
+      "max_drawdown": -0.0463489635988934,
+      "profit_factor": 1.2855072516015125,
+      "trades": 150,
+      "gross_profit": 0.7291274912942801,
+      "gross_loss": 0.5671904926136492,
+      "n_periods": 756
+    },
+    "test": {
+      "sharpe": 1.0013913673455694,
+      "max_drawdown": -0.09135787247798854,
+      "profit_factor": 1.1988761823916487,
+      "trades": 49,
+      "gross_profit": 1.412361932286017,
+      "gross_loss": 1.1780715582058554,
+      "n_periods": 961
+    }
+  },
+  "elapsed_seconds": 2.25,
+  "tracker_error": "'ExperimentTracker' object has no attribute 'log_config'"
+}
