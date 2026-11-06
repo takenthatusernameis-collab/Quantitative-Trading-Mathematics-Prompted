@@ -1022,3 +1022,23 @@ Checked against root families H1–H99 (no parameter/instrument/universe/timefra
 | Rates-vol / Treasury implied-vol stress transmission timing | H100 (NF-20261106-02) | Vol-targeted long SPY when trailing ^MOVE z-score benign (hysteresis), else flat; 1-bar delay | SPY (traded), ^MOVE (signal) daily (yfinance), 2010–2026 | **REJECT** (5/9; exp_2026-11-06T04-36-03-876862Z) | Fails PF 1.227/trades 199/worst-regime -1.002/IR -0.530; beats random exposure (-0.080) and SPY DD but not robust on pre-registered gates; MOVE-equity linkage regime-dependent |
 
 **Cycle 14 required next.** H85–H100 all rejected. Perform fresh discovery per directive §4: reconcile lineage to H100, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess NF-04/05/11r(11 data-resolved variant)/12/17/20/21/03 with concrete evidence (no silent drops). Pre-register highest-information feasible candidate as H101 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
+
+---
+
+## Cycle 14 (2026-11-06) — Discovery / Pre-registration of H101
+
+**Lineage reconciled to H100 (H85–H100 all rejected).** Next unused H-ID H101 assigned.
+
+**Candidate selected (repo-new root family):** NF-20261106-04 / H101 — Copper/Gold ratio macro growth-regime equity timing (cross-asset macro growth regime; distinct from H94 credit, H95 USD, H96 realized correlation, H100 rates-vol). Rationale: free/public yfinance (HG=F, GC=F, SPY), point-in-time, no src/qtr change, bounded 36-combo grid, causal trailing z-score with 1-bar delay.
+
+**Deferred candidates reassessed (not silently dropped):**
+- NF-20261105-04 (commodity carry): still blocked — point-in-time term-structure/roll proxy unavailable on free yfinance; unchanged.
+- NF-20261105-05 (short-term CS reversal): deferred — decisive daily turnover/net-of-cost; not implemented this cycle.
+- NF-20261105-11r (TNX/FVX slope): data-resolved variant, novelty scored honestly lower (same root mechanism as NF-11); deferred.
+- NF-20261105-12 (cross-sectional equity dispersion): complexity/turnover vs smallest decisive test; deferred.
+- NF-20261105-17 (volume-shock reversal): turnover/cost-sensitive; deferred.
+- NF-20261105-20 (Treasury auction supply-pressure): event calendar/timestamp construction; deferred.
+- NF-20261105-21 (month-end pension rebalancing): weak evidence/adjacency risk; deferred.
+- NF-20261106-03 (VVIX vol-of-vol): VIX-complex adjacency; scored novelty 3; deferred.
+
+**Next task:** Implement `run_nf_20261106_04_copper_gold.py` + focused tests following H100 template, run ruff + focused pytest, execute, record verdict. No gate weakening; src/qtr unchanged.

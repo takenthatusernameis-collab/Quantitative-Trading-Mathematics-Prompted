@@ -5683,3 +5683,29 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 **Ablations.** Random-exposure-matched Sharpe -0.080 / PF 0.976 (603 trades) — MOVE gating beats random exposure; buy-hold SPY OOS Sharpe 0.798 / PF 1.165 / DD -17.97% (strategy has lower DD but fails IR/trades/PF/worst-regime gates); inverse-signal (long when MOVE elevated) Sharpe 0.042 / PF 1.015 (250 trades), near-zero — consistent with risk-off interpretation but not a strong inverse edge.
 
 **Rationale.** Rates-vol stress timing shows conditional value vs random exposure and passes Sharpe/maxDD/stability/benchmark-p/perturbation, but fails profit factor, trade count (199, just below 200), worst-regime, and information ratio. The signal is not a validated cost-robust edge under pre-registered gates: trade count is borderline, PF below gate, and worst-regime drawdown/IR indicate the exposure profile does not reliably add risk-adjusted value over buy-hold SPY on protected OOS. No gate weakened; no published/certified artifact modified.
+
+## H101 (NF-20261106-04): Copper/Gold ratio macro growth-regime equity timing
+
+**Status:** Pre-registered 2026-11-06 (Cycle 14 discovery, NF-20261106-04). Decision-ready, free/public yfinance, no `src/qtr` change.
+
+**Mechanism.** Copper/gold ratio (HG=F / GC=F) proxies global growth expectations and risk appetite: rising ratio = growth optimism → equity tailwinds; falling ratio = growth fear → equity headwinds. Rule holds vol-targeted long SPY when trailing ratio z-score is rising/benign, flat when falling, with hysteresis and 1-bar delay. Distinct root family (cross-asset macro growth-regime timing) vs H94 credit, H95 USD, H96 realized correlation, H100 rates-vol.
+
+**Novelty (repo-relative).** Repo-new macro growth-regime family. Distinct from H95 (UUP dollar macro), H94 (HYG-IEF credit), H96 (SPY/TLT realized correlation), H100 (MOVE rates-vol). Different observable (industrial-metal vs precious-metal relative price as growth proxy).
+
+**Data.** yfinance daily `HG=F`, `GC=F`, `SPY`, 2010-01-01 -> 2026-10-31. Feasibility verified at registration (free, point-in-time adjusted close).
+
+**Universe/splits (protected holdout).** Trade `SPY`, signal ratio. Train 2010-01-01 -> 2019-12-31; Val 2020-01-01 -> 2022-12-31; Test (protected) 2023-01-01 -> 2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+
+**Causality.** Ratio z-score at close t uses prices through close t only (trailing windows, `min_periods`). Signals shifted by 1 bar (`signals.shift(1)`).
+
+**Grid (bounded).** `lookback ∈ {63,126,252}` × `entry_z ∈ {1.0,1.5,2.0}` × `exit_z ∈ {0.0,0.5}` × `vol_target ∈ {0.10,0.15}` (36 combos). `max_position=0.5`, `zscore_window=252`.
+
+**Costs/constraints.** Equity `CostModel` defaults.
+
+**Gates (OOS Val+Test).** Sharpe >= 1.0, >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0, perturbation min ratio >= 0.5.
+
+**Rejection.** OOS Sharpe < 0.5, PF < 1.1, max DD > 15%, < 200 OOS trades, or benchmark/perturbation failure.
+
+**Falsifiers/ablations.** Random-exposure-matched, inverse-signal, buy-hold SPY, OAT perturbation, Val/Test subperiods.
+
+**Runner.** `run_nf_20261106_04_copper_gold.py`. **Tests.** `tests/test_nf_20261106_04_copper_gold.py`.
