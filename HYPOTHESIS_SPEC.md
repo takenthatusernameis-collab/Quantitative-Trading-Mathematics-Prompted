@@ -6090,3 +6090,47 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 | Sectoral supply-shock / real-economy transmission via energy-sector equity relative strength | H109 (NF-20261106-17) | Continuous vol-targeted long SPY reduced when trailing XOP/XLE ratio momentum z-score abnormally weak, 1-bar delay | SPY (traded), XOP/XLE (signal) daily (yfinance), 2010–2026 | **REJECT** (4/8; exp_2026-11-06T15-35-20-311536Z) | Fails Sharpe 0.815/PF 1.159/worst-regime -1.007/benchmark-p null/IR -0.386; DD improved and perturbation-stable but no risk-adjusted edge vs buy-hold; specific energy-weakness mapping as pre-registered |
 
 **Cycle 24 required next.** H85–H109 all rejected/recorded. Perform fresh discovery per directive §4: reconcile lineage to H109, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess deferred candidates NF-04/05/07/08/10/11/13/15/17/20/21 and NF-11r/NF-06-18 (TNX-FVX, **NF-11 data-resolution path, same root mechanism — honest novelty, not a new root family**) with concrete evidence (no silent drops). NF-06-11 CBOE PC ratio infeasible. Pre-register highest-information feasible candidate as H110 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
+
+## H110 (NF-20261106-20): XLY/XLP consumer cyclical-vs-defensive leadership timing for SPY
+
+**Status:** Pre-registered and executed 2026-11-06 (Cycle 24 discovery, NF-20261106-20). **PENDING EXECUTION** in spec pre-registration; outcome recorded below after execution. Free/public yfinance, no `src/qtr` change.
+
+**Statement.** Trailing XLY/XLP (consumer discretionary vs staples) ratio momentum provides a point-in-time consumer demand-cycle leadership signal for SPY exposure. A vol-targeted, continuously scaled long SPY position reduced when trailing XLY/XLP ratio momentum z-score is abnormally weak (`z <= -entry_scale`, defensives leading / demand-cycle stress) earns net pooled OOS (Val+Test) Sharpe >= 1.0 with >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 vs buy-hold SPY with IR >= 0, and perturbation min ratio >= 0.5.
+
+**Null (H0).** Trailing XLY/XLP consumer cyclical-vs-defensive leadership state has no predictive power for next-day SPY returns beyond random chance after costs.
+
+**Mechanism / causal chain (pre-registered).** Consumer discretionary (XLY) leadership over staples (XLP) can reflect pro-cyclical household demand / risk appetite; defensive leadership can reflect demand-cycle stress. A trailing `log(XLY/XLP)` lookback-momentum z-score (past-only `min_periods`) maps to reduced SPY exposure when the ratio is abnormally weak (`z <= -entry_scale` -> lower exposure) and higher exposure otherwise. Vol target scales by trailing 21-day realized SPY vol, clipped, × `MAX_POS=0.5`. Engine applies `signals.shift(1)`: target at close t earns return t→t+1 — strictly causal. This tests the directional mapping (defensives leading reduces exposure); it does not test all consumer-sector constructions.
+
+**Novelty (repo-relative).** Repo-new root family candidate: **sectoral growth-cycle / consumer-demand transmission via consumer cyclical-defensive equity leadership**. Distinct from H109 (energy supply-shock via XOP/XLE, production/commodity channel), H107 (KRE bank intermediation stress), H94/H108 (credit observables), H101 (HG/GC commodity futures growth ratio), H98 (oil realized-vol stress), H2/H16 (cross-sectional momentum portfolio ranking across assets, different construction/mechanism), and vol/rates/FX families. XLY/XLP is a consumer demand-cycle leadership observable, not a commodity, credit, bank, or cross-sectional ranking portfolio.
+
+**Data.** yfinance daily `XLY`, `XLP`, `SPY` adjusted close, 2010-01-01 → 2026-10-31. Free, point-in-time. Feasibility verified 2026-11-06 (4233 rows each, 0 non-positive).
+
+**Universe/splits (protected holdout).** Trade `SPY`; signal `XLY/XLP`. Train 2010-01-01 → 2019-12-31; Val 2020-01-01 → 2022-12-31; Test (protected) 2023-01-01 → 2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+
+**Grid (bounded).** `lookback ∈ {21,63}` × `z_window ∈ {126,252}` × `entry_scale ∈ {1.0,1.5,2.0}` × `vol_target ∈ {0.10,0.15}` (24 combos). `max_position=0.5`, long-only.
+
+**Costs/constraints.** Equity `CostModel` defaults (1 bp commission + 0.5 bp spread + 0.1 bp impact per 1% ADV).
+
+**Gates (OOS Val+Test).** Sharpe >= 1.0, >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0, perturbation min ratio >= 0.5.
+
+**Runner.** `run_nf_20261106_20_xly_xlp_consumer.py`. **Tests.** `tests/test_nf_20261106_20_xly_xlp_consumer.py` (10 tests).
+
+### H110 execution outcome (2026-11-06, REAL)
+
+**Experiment:** `exp_2026-11-06T15-41-44-600009Z` (4.11s). Artifact: `.experiments/nf_runs/nf_20261106_20_xly_xlp_consumer/summary.json`. `src/qtr` unchanged.
+
+**Selected (train-only 4-fold WF):** `lookback=21, z_window=252, entry_scale=2.0, vol_target=0.15`.
+
+**OOS Val+Test (1170 trades):** Sharpe **0.789** (fail), PF **1.151** (fail), max DD **-8.20%** (pass), trades **1170** (pass), WF stability **0.792** (pass), worst-regime rolling-252 Sharpe **-0.977** (fail), benchmark p **null** (fail, gate requires p<=0.05), IR **-0.405** (fail), perturbation min ratio **0.877** (pass). Train Sharpe 0.995.
+
+**Ablations (OOS).** Buy-hold SPY 0.720/1.148/DD -18.21%/1. Random-exposure-matched 0.549/1.129/DD -7.24%/1717. Inverse-stress-long 0.374/1.119/DD -10.27%/1057.
+
+**Verdict rationale.** **REJECT (4/8).** XLY/XLP consumer cyclical-defensive leadership timing reduces drawdown, is perturbation-stable, and passes WF stability, but fails Sharpe/PF/worst-regime/benchmark-p/IR vs buy-hold on pre-registered OOS gates. No validated net edge vs buy-hold. The executed defensives-leading mapping is the specific pre-registered construction tested; this does not test all consumer-sector constructions. No gate weakened; no published/certified artifact modified. Do not re-run H110 without a materially different, pre-registered mechanism.
+
+**Lineage map (H110 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known failure modes |
+|---|---|---|---|---|---|
+| Sectoral growth-cycle / consumer-demand transmission via consumer cyclical-defensive equity leadership | H110 (NF-20261106-20) | Continuous vol-targeted long SPY reduced when trailing XLY/XLP ratio momentum z-score abnormally weak (defensives leading), 1-bar delay | SPY (traded), XLY/XLP (signal) daily (yfinance), 2010–2026 | **REJECT** (4/8; exp_2026-11-06T15-41-44-600009Z) | Fails Sharpe 0.789/PF 1.151/worst-regime -0.977/benchmark-p null/IR -0.405; DD improved and perturbation-stable but no risk-adjusted edge vs buy-hold; specific defensives-leading mapping as pre-registered |
+
+**Cycle 25 required next.** H85–H110 all rejected/recorded. Perform fresh discovery per directive §4: reconcile lineage to H110, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess deferred candidates NF-04/05/07/08/10/11/13/15/17/20/21 and NF-11r/NF-06-18 (TNX-FVX, **NF-11 data-resolution path, same root mechanism — honest novelty, not a new root family**) with concrete evidence (no silent drops). NF-06-11 CBOE PC ratio infeasible. Pre-register highest-information feasible candidate as H111 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
