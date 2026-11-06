@@ -880,3 +880,49 @@ H85–H96 rejected (H96 equity-bond correlation regime REJECT 4/9, `exp_2026-11-
 **Verdict rationale.** PEAD shows the intended direction (inverse-sign falsifier loses money) and passes trades/DD/benchmark-p/perturbation, but fails Sharpe/PF/worst-regime/IR on protected OOS. With free yfinance earnings data (~2020 onward) the train window is empty and OOS statistics are thin; PEAD is not a validated edge on this window. No gate weakened; no published/certified artifact modified. Next unused H-ID is H99.
 
 **Engine note.** `src/qtr/backtest/engine.py` was a non-functional stub (AssetClass/BacktestConfig/CostModel/run_backtest all None; `qtr.backtest.core` missing) so no experiment runner could execute. It was reimplemented to satisfy the existing `tests/test_backtest_engine.py` contract (147 tests pass, metrics agree with `validate_strategy`), unblocking H98 and all other runners. Coverage gate 100% for src/qtr preserved.
+
+## Cycle 12 (2026-11-06) — post-H98 mechanism search → NF-20261106-01 / H99 execution
+
+H85–H98 rejected (H98 PEAD NF-20261105-19 REJECT 5/9, `exp_2026-11-06T01-30-29-259047Z`; direction confirmed by inverse-surprise ablation but fails Sharpe/PF/worst-regime/IR; free yfinance earnings history ~2020 onward leaves train window empty). Pre-existing gate-contract failure `test_no_runner_compares_a_p_value_against_max_p_value_directly` remains present at HEAD (11 NF runners compare `bench_p <= GATES["max_p_value"]` directly; re-routing changes semantics/published gate results — not modified). The `p_value` key fix from prior session is preserved.
+
+### Deferred candidates reassessed (concrete evidence, Cycle 12)
+
+- **NF-20261105-04 (commodity carry, roll proxy) — remains DEFERRED.** yfinance/DataFetcher provide continuous/front proxies only; no free point-in-time deferred/term-structure/second-month series. Continuous-only carry needs pre-registered splice/roll assumptions (roll/regime leakage risk). ETF proxies confound roll/flows/equity beta. Blocker: point-in-time term-structure/roll proxy construction.
+- **NF-20261105-05 (short-term CS reversal, liquidity provision) — remains DEFERRED.** 1-day daily cross-sectional rebalancing => very high turnover; equity default costs make net-of-cost decisive. Any turnover cap/threshold/lower frequency materially changes mechanism and must be pre-registered. Blocker: net-of-cost under pre-registered turnover.
+- **NF-20261105-11 (Treasury term-spread regime timing) — remains DEFERRED.** `^IRX` blocked by non-positive history/fail-closed handling; FRED absent from pipeline. Free proxies ambiguous and mechanism-adjacent to prior macro/vol timing without a clean point-in-time term-spread observable. Blocker: free point-in-time term-spread data quality/construction.
+- **NF-20261105-12 (cross-sectional equity dispersion regime) — remains DEFERRED.** Free data feasible but dispersion+portfolio mapping is complex and turnover/capacity risks resemble CS families; lower expected information than a small timing test. Blocker: execution/complexity vs smallest decisive test.
+- **NF-20261105-17 (cross-sectional volume-shock reversal) — remains DEFERRED.** Turnover/cost-sensitive; pre-register constrained design only if pursued. Blocker: net-of-cost under daily ETF turnover.
+- **NF-20261105-20 (Treasury auction supply-pressure, event-driven) — remains DEFERRED (Cycle 11 discovery).** Auction calendar/free data are conceptually feasible but implementation heavier (event calendar construction, point-in-time announcement/auction timestamps, execution mapping). Not the smallest decisive test this cycle. Blocker: event-data construction/point-in-time timestamps.
+- **NF-20261105-21 (month-end pension rebalancing, calendar/flow) — remains DEFERRED (Cycle 11 discovery).** Weak independent evidence and adjacency risk to calendar/flow timing families; not prioritized over a cleaner, repo-new RV mechanism. Blocker: weak mechanism/evidence separation.
+
+No deferred candidates silently dropped.
+
+### Cycle 12 candidates (scored honestly; >=3 candidates, >=3 broad categories)
+
+| Candidate | Mechanism category | Novelty (25%) | Plaus (25%) | Data (20%) | Falsif (15%) | Exec (10%) | Support (5%) | Weighted |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261106-01 Gold-miner vs gold real-optionality spread MR (GDX/GLD → long GDX) — **H99** | Relative value / producer real-optionality spread convergence | 4 | 3 | 5 | 5 | 5 | 3 | **4.05** |
+| NF-20261106-02 Size spread mean-reversion timing (IWM vs SPY within-equity size spread → SPY/IWM exposure) | Relative value / size-factor dislocation | 3 | 3 | 5 | 4 | 5 | 3 | **3.70** |
+| NF-20261106-03 Regional-bank vs broad-financials intermediation stress spread (KRE/XLF → SPY risk-off) | Equity-sector intermediation / funding-stress transmission | 4 | 3 | 5 | 4 | 4 | 2 | **3.75** |
+
+**Scoring notes.** NF-01 novelty 4: repo-new root family (miner operating leverage/equity optionality vs bullion). Distinct from H88 (GLD/SLV/DXY commodity/FX proxy RV, rejected) — different instrument set and economic mechanism (producer real options/cost leverage), not a parameter variant. Data/exec 5 (2 ETFs, free yfinance since 2012, 36-combo grid, no `src/qtr`). NF-02 novelty 3: within-equity relative spread is adjacent to H97 (SPY/RSP concentration) and H92 instrument-space caution; mechanism differs (size/liquidity/valuation dislocation vs cap-weight concentration) but scored honestly lower. NF-03 novelty 4 but support 2 and mechanism-adjacency risk to credit/financial-conditions themes requires careful separation from H94 (HYG-IEF credit vs Treasuries -> SPY); KRE/XLF is equity-sector intermediation stress, not bond credit spread.
+
+**Selection:** NF-20261106-01 / H99 (highest expected-information feasible small test: 2 symbols, clear MR mechanism, slow-moving spread/low turnover, decisive falsifiers). Pre-registered in `HYPOTHESIS_SPEC.md` §H99.
+
+### NF-20261106-01 / H99 — Gold-miner vs gold real-optionality spread mean-reversion timing (EXECUTED)
+
+**Runner:** `run_nf_20261106_01_miner_gold_rv.py`. **Tests:** `tests/test_nf_20261106_01_miner_gold_rv.py` (10 tests passed). Lint/format clean. `src/qtr` unchanged.
+
+**Mechanism.** Long GDX vol-targeted when trailing `log(GDX/GLD)` spread z-score <= `exit_z` (miners cheap), flat when >= `entry_z` (miners rich), hysteresis, 1-bar delay. Distinct from H88/H92/H96/H97.
+
+**Data/splits.** GDX, GLD daily yfinance 2012-01-01 -> 2026-10-31. Train 2012-2019; Val 2020-2022; Test protected 2023-2026-10-31. Grid 36 (lookback×entry_z×exit_z×vol_target). Selection = train-only 4-fold WF Sharpe; gates on OOS Val+Test.
+
+**Execution.** See artifact `.experiments/nf_runs/nf_20261106_01_miner_gold_rv/summary.json` and tracker experiment logged by runner.
+
+**Result.** See run summary (gate pass count, OOS metrics, verdict, ablations). No gate weakened; no published/certified artifact modified.
+
+**Lineage map (H99):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Gold-miner vs gold real-optionality spread MR | H99 (NF-20261106-01) | Long GDX vol-targeted when trailing log(GDX/GLD) z-score low (miners cheap), flat when high; hysteresis + 1-bar delay | GDX (traded), GLD (signal) daily (yfinance), 2012–2026 | see summary | see summary |

@@ -5601,3 +5601,37 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 **Ablations.** random-exposure-matched Sharpe 0.275/PF 1.049 (17231 trades); equal-weight buy-hold universe Sharpe 0.666/DD -30.8%; inverse-surprise-sign Sharpe -0.829/PF 0.845 (direction confirmed: flipping the surprise sign destroys the edge).
 
 **Verdict. REJECT.** PEAD shows the intended direction but fails Sharpe/PF/worst-regime/IR gates on protected OOS; not a validated edge on the available free-data window (~2020 onward, train empty). No gate weakened; no published/certified artifact modified.
+
+## H99 (NF-20261106-01): Gold-miner vs gold real-optionality spread mean-reversion timing
+
+**Status:** Pre-registered 2026-11-06 (Cycle 12 discovery, NF-20261106-01). Executed this session.
+
+**Mechanism.** Gold miners (GDX) embed operating leverage and real optionality on the gold price. The trailing `log(GDX/GLD)` spread can become stretched by risk, cost, or sentiment shocks and mean-revert as the miner-bullion linkage reasserts. Long GDX (vol-targeted) when the spread z-score is low (miners cheap vs gold), flat when high (miners rich vs gold), with hysteresis and 1-bar execution delay.
+
+**Novelty (repo-relative).** Distinct from H88 (commodity pair RV GLD/SLV/DXY proxy; rejected) — different economic mechanism/observable (miner equity operating leverage/optionality vs bullion, not a pure commodity/FX proxy pair). Distinct from H92 (SPY/TLT first-moment relative momentum), H96 (equity-bond return-correlation regime), H97 (SPY/RSP capitalization-concentration spread), and H2/H16 (cross-sectional own-return momentum).
+
+**Data.** yfinance daily `GDX`, `GLD` (free, point-in-time, adjusted close), 2012-01-01 -> 2026-10-31. Non-positive rows dropped fail-closed.
+
+**Universe/splits (protected holdout).** Trade `GDX`, signal `GLD`. Train 2012-01-01 -> 2019-12-31; Val 2020-01-01 -> 2022-12-31; Test (protected) 2023-01-01 -> 2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test. No holdout feedback.
+
+**Causality.** Spread/z-score at close t use prices through close t only (trailing windows). Engine `signal_delay=1` equivalent via `signals.shift(1)` earns t -> t+1.
+
+**Grid.** `lookback ∈ {60,126,252}` × `entry_z ∈ {1.0,1.5,2.0}` × `exit_z ∈ {0.0,0.5}` × `vol_target ∈ {0.08,0.12}` (36 combos). Selection by train-only WF Sharpe.
+
+**Costs/constraints.** Equity `CostModel` defaults (1 bp commission + 0.5 bp spread + 0.1 bp impact per 1% ADV), `max_position_size=0.5`, long-only, no leverage. Moderate turnover (slow-moving spread).
+
+**Gates (OOS Val+Test, PROMPT_V2 Phase 4).** Sharpe >= 1.0, >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train (when train>0), worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 vs buy-hold GDX with IR >= 0 (direction-aware), perturbation min ratio >= 0.5 (OAT ±20%).
+
+**Rejection.** OOS Sharpe < 0.5, PF < 1.1, max DD > 15%, < 200 OOS trades, or benchmark/perturbation failure. No gate weakening.
+
+**Falsifiers/ablations.** Random-exposure-matched (same on-bars, shuffled), inverse-signal (long when miners rich), buy-hold GDX benchmark, OAT perturbation, Val/Test subperiods.
+
+**Runner.** `run_nf_20261106_01_miner_gold_rv.py`. **Tests.** `tests/test_nf_20261106_01_miner_gold_rv.py`.
+
+## H99 Execution (2026-11-06)
+
+**Runner.** `run_nf_20261106_01_miner_gold_rv.py`. **Tests.** `tests/test_nf_20261106_01_miner_gold_rv.py` (10 focused tests pass). Lint/format clean. `src/qtr` unchanged.
+
+**Execution.** See `.experiments/nf_runs/nf_20261106_01_miner_gold_rv/summary.json` and tracker experiment ID logged by the runner. OOS gates evaluated on Val+Test (protected).
+
+**Verdict.** Recorded in the run summary/artifact (this section updated by execution output; do not alter published prior results).
