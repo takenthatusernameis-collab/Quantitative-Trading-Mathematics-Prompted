@@ -5585,3 +5585,17 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 **Gates.** Standard PROMPT_V2 Phase 4 OOS Val+Test.
 
 **Closest prior.** None event-driven; distinct from TSMOM/CS momentum (price-based) and volume-predictive (flow-based).
+
+## H98 Execution (2026-11-06)
+
+**Runner.** `run_nf_20261105_19_pead.py`. **Tests.** `tests/test_nf_20261105_19_pead.py` (7 tests, all pass). Lint/format clean.
+
+**Data/splits.** 20 large-cap US equities, daily yfinance 2015-01-01 -> 2026-10-31; earnings dates + EPS estimate/reported via yfinance `Ticker.earnings_dates`. Pre-registered windows retained (Train 2015-2019; Val 2020-2022; Test protected 2023-2026), but free yfinance earnings data only covers announced earnings from ~2020 onward, so the train window carries no positions. 480 earnings events across the universe (all 20 symbols have earnings data).
+
+**Execution.** `exp_2026-11-06T01-30-29-259047Z` (`nf_20261105_19_pead`, completed, 16.9s). Command: `PYTHONPATH=src python run_nf_20261105_19_pead.py`. Artifact: `.experiments/nf_runs/nf_20261105_19_pead/summary.json`.
+
+**OOS Val+Test results (1212 periods, 775 trades).** Sharpe 0.768 (gate >=1.0: FAIL); profit factor 1.169 (gate >=1.3: FAIL); max drawdown -4.40% (gate <=15%: PASS); trades 775 (gate >=200: PASS); walk-forward stability 1.311 (train 1.047 -> test 1.373; gate >=0.7: PASS); worst-regime rolling-252 Sharpe -0.749 (gate >=0.3: FAIL); benchmark p=0.026 (gate <=0.05 vs equal-weight buy-hold universe: PASS); information ratio -0.852 (gate >=0: FAIL); perturbation min ratio 0.632 (gate >=0.5: PASS). Gate pass count 5/9.
+
+**Ablations.** random-exposure-matched Sharpe 0.275/PF 1.049 (17231 trades); equal-weight buy-hold universe Sharpe 0.666/DD -30.8%; inverse-surprise-sign Sharpe -0.829/PF 0.845 (direction confirmed: flipping the surprise sign destroys the edge).
+
+**Verdict. REJECT.** PEAD shows the intended direction but fails Sharpe/PF/worst-regime/IR gates on protected OOS; not a validated edge on the available free-data window (~2020 onward, train empty). No gate weakened; no published/certified artifact modified.

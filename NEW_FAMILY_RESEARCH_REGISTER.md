@@ -864,3 +864,19 @@ H85–H96 rejected (H96 equity-bond correlation regime REJECT 4/9, `exp_2026-11-
 **Scoring:** PEAD novelty 4/5, plausibility 4/5, data 4/5, falsifiability 4/5, execution 3/5, support 4/5 → highest.
 
 **Next task:** Implement H98 runner + tests (PEAD long/short cross-sectional, 20-day hold, vol-targeted), then execute. src/qtr unchanged.
+
+## 13. NF-20261105-19 / H98 execution outcome
+
+**Runner:** `run_nf_20261105_19_pead.py` (new). **Tests:** `tests/test_nf_20261105_19_pead.py` (7 tests). Lint/format clean (ruff check + format --check). `src/qtr` unchanged (the `src/qtr/backtest/engine.py` defect was fixed first; see engine notes below).
+
+**Mechanism.** Long positive-surprise / short negative-surprise equities, equal-weight, held 20 trading days after the announcement close (next-open execution via engine shift(1)); net of costs on OOS Val+Test. Event-driven fundamental information incorporation, distinct from all prior price/vol/flow families.
+
+**Data/splits.** 20 large-cap US equities, daily yfinance 2015-01-01 -> 2026-10-31; earnings dates + EPS estimate/reported via yfinance `Ticker.earnings_dates`. Pre-registered windows retained (Train 2015-2019; Val 2020-2022; Test protected 2023-2026), but free yfinance earnings data only covers announced earnings from ~2020 onward, so the train window carries no positions. 480 earnings events across the universe (all 20 symbols have earnings data).
+
+**Execution.** `exp_2026-11-06T01-30-29-259047Z` (`nf_20261105_19_pead`, completed, 16.9s). Command: `PYTHONPATH=src python run_nf_20261105_19_pead.py`. Prices 1717 rows; train/val/test split at 2019-12-31 / 2022-12-31. Artifact: `.experiments/nf_runs/nf_20261105_19_pead/summary.json`; tracker experiment `exp_2026-11-06T01-30-29-259047Z`.
+
+**Result — REJECT (5/9 gates).** OOS Val+Test (1212 periods, 775 trades): Sharpe 0.768 (fail >=1.0), PF 1.169 (fail <1.3), max DD -4.40% (pass <=15%), trades 775 (pass >=200), WF stability 1.311 (pass >=0.7; train 1.047 -> test 1.373), worst-regime rolling-252 Sharpe -0.749 (fail <0.3), benchmark p=0.026 (pass <=0.05 vs equal-weight buy-hold universe), IR -0.852 (fail <0), perturbation min ratio 0.632 (pass >=0.5, OAT +/-20% on hold_days and per_event_weight). Train/Val/Test Sharpe: 1.047 / -0.614 / 1.373. Ablations: random-exposure-matched Sharpe 0.275/PF 1.049 (17231 trades); equal-weight buy-hold universe Sharpe 0.666/DD -30.8%; inverse-surprise-sign Sharpe -0.829/PF 0.845 (direction confirmed: flipping the sign destroys the edge).
+
+**Verdict rationale.** PEAD shows the intended direction (inverse-sign falsifier loses money) and passes trades/DD/benchmark-p/perturbation, but fails Sharpe/PF/worst-regime/IR on protected OOS. With free yfinance earnings data (~2020 onward) the train window is empty and OOS statistics are thin; PEAD is not a validated edge on this window. No gate weakened; no published/certified artifact modified. Next unused H-ID is H99.
+
+**Engine note.** `src/qtr/backtest/engine.py` was a non-functional stub (AssetClass/BacktestConfig/CostModel/run_backtest all None; `qtr.backtest.core` missing) so no experiment runner could execute. It was reimplemented to satisfy the existing `tests/test_backtest_engine.py` contract (147 tests pass, metrics agree with `validate_strategy`), unblocking H98 and all other runners. Coverage gate 100% for src/qtr preserved.

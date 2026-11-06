@@ -1,0 +1,178 @@
+{
+  "experiment": "nf_20261105_19_pead",
+  "hypothesis": "H98/NF-20261105-19 PEAD cross-sectional long/short",
+  "seed": 42,
+  "data": {
+    "start": "2015-01-01",
+    "end": "2026-10-31",
+    "symbols": [
+      "AAPL",
+      "MSFT",
+      "AMZN",
+      "GOOGL",
+      "META",
+      "NVDA",
+      "TSLA",
+      "JPM",
+      "JNJ",
+      "V",
+      "PG",
+      "UNH",
+      "HD",
+      "MA",
+      "DIS",
+      "PYPL",
+      "ADBE",
+      "NFLX",
+      "XOM",
+      "PEP"
+    ],
+    "note": "free yfinance earnings data covers ~2020 onward; the 2015-2019 train window carries no earnings events or positions",
+    "rows": 2975,
+    "symbols_with_earnings": [
+      "AAPL",
+      "ADBE",
+      "AMZN",
+      "DIS",
+      "GOOGL",
+      "HD",
+      "JNJ",
+      "JPM",
+      "MA",
+      "META",
+      "MSFT",
+      "NFLX",
+      "NVDA",
+      "PEP",
+      "PG",
+      "PYPL",
+      "TSLA",
+      "UNH",
+      "V",
+      "XOM"
+    ]
+  },
+  "splits": {
+    "train_end": "2019-12-31",
+    "val_end": "2022-12-31",
+    "note": "pre-registered Train 2015-2019 / Val 2020-2022 / Test 2023-2026; train window carries no earnings events (data starts ~2020)"
+  },
+  "hold_days": 20,
+  "max_pos": 0.5,
+  "n_symbols": 20,
+  "n_events_total": 480,
+  "gate_eval_oos_val_test": {
+    "oos_metrics": {
+      "sharpe": 0.8261218209295232,
+      "max_drawdown": -0.04404327718310119,
+      "profit_factor": 1.1984967261842432,
+      "trades": 942,
+      "gross_profit": 0.832472984085085,
+      "gross_loss": 0.6945976287607398,
+      "n_periods": 1717
+    },
+    "train_sharpe": 0.0,
+    "val_sharpe": 0.22893889260817574,
+    "test_metrics": {
+      "sharpe": 1.372835337556974,
+      "max_drawdown": -0.025888129629932033,
+      "profit_factor": 1.3022898786124568,
+      "trades": 615,
+      "gross_profit": 0.5159109232076584,
+      "gross_loss": 0.39615674795640965,
+      "n_periods": 961
+    },
+    "wf_stability": 0.0,
+    "worst_regime_sharpe": -0.9555516553846779,
+    "benchmark_p": 0.00019201714487547297,
+    "information_ratio": -1.0869283120776343,
+    "passes": {
+      "sharpe": false,
+      "trades": true,
+      "profit_factor": false,
+      "max_drawdown": true,
+      "walkforward_stability": false,
+      "worst_regime_sharpe": false,
+      "p_value": true,
+      "information_ratio": false,
+      "perturbation": true
+    },
+    "gate_pass_count": 4,
+    "perturbation": {
+      "rows": [
+        {
+          "hold_days": 16,
+          "sharpe": 0.5588300634088518,
+          "max_drawdown": -0.045468620860510955,
+          "profit_factor": 1.1359018046682035,
+          "trades": 942,
+          "gross_profit": 0.6862969699123125,
+          "gross_loss": 0.6041868822567631,
+          "n_periods": 1717
+        },
+        {
+          "hold_days": 24,
+          "sharpe": 0.8938344794913707,
+          "max_drawdown": -0.0438339616780572,
+          "profit_factor": 1.207814548583785,
+          "trades": 942,
+          "gross_profit": 0.9556754311446755,
+          "gross_loss": 0.7912435168670939,
+          "n_periods": 1717
+        },
+        {
+          "per_event_weight": 0.02,
+          "sharpe": 0.826121820929523,
+          "max_drawdown": -0.035341313888119674,
+          "profit_factor": 1.198496726184243,
+          "trades": 942,
+          "gross_profit": 0.665978387268068,
+          "gross_loss": 0.555678103008592,
+          "n_periods": 1717
+        },
+        {
+          "per_event_weight": 0.03,
+          "sharpe": 0.8261218209295234,
+          "max_drawdown": -0.052692009053648015,
+          "profit_factor": 1.1984967261842432,
+          "trades": 942,
+          "gross_profit": 0.9989675809021018,
+          "gross_loss": 0.8335171545128877,
+          "n_periods": 1717
+        }
+      ],
+      "min_sharpe_ratio": 0.6764499487255715
+    },
+    "ablations": {
+      "random_exposure_matched": {
+        "sharpe": 0.3363824955015677,
+        "max_drawdown": -0.3728624135422055,
+        "profit_factor": 1.0660236195781319,
+        "trades": 21532,
+        "gross_profit": 6.735470455417904,
+        "gross_loss": 6.31831258868673,
+        "n_periods": 1717
+      },
+      "equal_weight_buy_hold_universe": {
+        "sharpe": 0.9149241593633495,
+        "max_drawdown": -0.31520644339430404,
+        "profit_factor": 1.1887890489600401,
+        "trades": 0,
+        "gross_profit": 8.639711647967037,
+        "gross_loss": 7.267657500315224,
+        "n_periods": 1717
+      },
+      "inverse_surprise_sign": {
+        "sharpe": -0.8826105998677357,
+        "max_drawdown": -0.14075162587013046,
+        "profit_factor": 0.824062910533846,
+        "trades": 942,
+        "gross_profit": 0.6899093283002583,
+        "gross_loss": 0.8372046836246033,
+        "n_periods": 1717
+      }
+    }
+  },
+  "verdict": "REJECT",
+  "duration_seconds": 16.217
+}
