@@ -1194,3 +1194,38 @@ Candidate proposals (repo-new root families, not parameter/instrument variants):
 All deferred pending point-in-time data feasibility and a pre-registered decisive construction. No H106 pre-registered this cycle; src/qtr unchanged.
 
 **Cycle 20 required next.** Pre-register one feasible candidate as H106 with smallest decisive test.
+
+## Cycle 20 (2026-11-06) — Discovery / Pre-registration & Execution of H106 (NF-20261106-14)
+
+**Lineage reconciled to H105 (H85–H105 all rejected).** Next unused H-ID **H106** (H24/H68–H73/H76–H79 still unassigned). `src/qtr` unchanged.
+
+**Candidates assessed (>=3, >=3 broad categories; NF-IDs temporary; exploratory feasibility only, no protected-test selection):**
+1. **NF-20261106-14 (selected/executed, H106) — FXY JPY safe-haven / funding-currency unwind stress-timing SPY:** trailing FXY momentum z-score → continuous vol-targeted long SPY reduced when JPY strengthens (risk-off/carry-unwind), 1-bar delay. Broad category: **FX safe-haven / funding-currency unwind transmission**. Feasibility: free yfinance FXY/SPY, 4237 rows (2010–2026), point-in-time, verified 2026-11-06. *Adjacency acknowledged (honest):* related to H95 UUP (broad USD, global financial conditions) and H103 FXA (pro-cyclical AUD risk-on) as FX signals, but different currency (JPY safe-haven/funding), different mechanism (carry-unwind/safe-haven demand vs USD basket or commodity risk-on), and stress-timing construction; scored novelty below a wholly new non-FX family.
+2. **NF-20261106-12 (assessed, deferred; data-resolved NF-11r mechanism-adjacency) — TNX-FVX Treasury term-slope regime timing SPY:** 10y-5y slope regime/z-score → SPY timing. Broad category: **rates term-structure / macro slope regime**. Feasibility: free yfinance ^TNX/^FVX (4236 rows, 0 non-positive) — data blocker resolved (prior NF-11 ^IRX blocked). **Novelty honest/lower (same root mechanism as NF-11/NF-11r, data-resolution variant, not a repo-new root family).** Exploratory unselected check suggested potential information (not holdout-selected; not evidence) — deferred pending pre-registration as an explicit NF-11r resolution with honest novelty scoring.
+3. **NF-20261106-15 (assessed, deferred) — EEM/EFA global EM-vs-DM risk-appetite transmission timing SPY:** EEM vs EFA relative momentum → SPY risk-on. Broad category: **global equity risk-appetite / cross-market transmission**. Feasibility: free yfinance EEM/EFA/SPY. Exploratory unselected check weak (~0.42 OOS Sharpe, fixed params, not holdout-selected). Adjacency to broad risk-appetite/relative-momentum themes; lower expected information than NF-14 on quick check.
+
+**Cycle 19 deferred candidates addressed:** NF-20261106-11 (CBOE put-call ^CPC/^CPCE) — **infeasible** (yfinance "Quote not found"/0 rows, verified 2026-11-06); no free point-in-time source in pipeline. NF-20261106-12 (TNX-FVX slope) — data feasible but **mechanism-adjacency to NF-11/NF-11r**; deferred as data-resolution variant with honest novelty. NF-20261106-13 (GLD/TIP real-rate relative strength) — TIP data feasible but **adjacency to NF-08/H101/real-rate themes and Cycle 16 weak TIP/IEF proxy check**; deferred.
+
+**Scoring (1–5, 25/25/20/15/10/5 = novelty/plausibility/data/falsifiability/exec/support):**
+| Candidate | Nov 25% | Plaus 25% | Data 20% | Fals 15% | Exec 10% | Supp 5% | Weighted |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261106-14 FXY JPY safe-haven (executed H106) | 3 (FX-channel adjacency to H95/H103; different currency/mechanism) | 3 | 5 | 4 | 4 | 3 | **3.55** |
+| NF-20261106-12 TNX-FVX slope (deferred, NF-11r variant) | 2 (same root mechanism as NF-11/NF-11r; data-resolution, not new root family) | 3 | 5 | 5 | 5 | 3 | **3.55** (tie nominal; NF-14 selected as repo-newer root mechanism; NF-12 must be treated as NF-11r resolution if pursued) |
+| NF-20261106-15 EEM/EFA global risk-appetite (deferred) | 3 | 2 | 5 | 4 | 4 | 2 | **3.35** (weak exploratory check) |
+
+**Deferred candidates reassessed (no silent drops):** NF-04 commodity carry **still blocked** (no free point-in-time term-structure/roll proxy on yfinance). NF-05 short-term CS reversal **deferred** (turnover/net-of-cost). NF-11r TNX/FVX slope **data-resolved but mechanism-adjacency; deferred as NF-11 resolution path** (not selected as new root family). NF-12 (Cycle 19 label) maps to NF-11r evidence — see above. NF-13 **deferred** (TIP feasible, adjacency/weak proxy history). NF-17 volume-shock reversal **deferred** (turnover/cost). NF-20 Treasury auction supply-pressure **deferred** (event calendar/timestamp). NF-21 month-end pension rebalancing **deferred** (weak evidence/adjacency). NF-07 GLD/SPY safe-haven rotation **deferred** (weak Cycle 16 quick check). NF-08 TIP/IEF breakeven→GLD **deferred** (weak proxy). NF-10 SI/GC risk sentiment **deferred** (adjacency to H101/inconclusive). NF-11 TLT/IWM growth-liquidity rotation **deferred** (adjacency to H85/H86/H99). NF-06-11 CBOE PC ratio **infeasible** (no free yfinance data).
+
+
+### NF-20261106-14 / H106 execution outcome (2026-11-06, REAL)
+
+**Runner:** `run_nf_20261106_14_fxy_safehaven.py`. **Tests:** `tests/test_nf_20261106_14_fxy_safehaven.py` (10 passed). `ruff check/format --check` clean. `src/qtr` unchanged.
+
+**Execution.** `exp_2026-11-06T13-53-01-203238Z`, 3.6s. FXY/SPY aligned 4233 rows (train 2516 / val 756 / test 961). Selected (train-only 4-fold WF, best 1.280): `lookback=63, z_window=126, entry_scale=2.0, vol_target=0.15`. Artifact `.experiments/nf_runs/nf_20261106_14_fxy_safehaven/summary.json`.
+
+**Result — REJECT (4/8 gates).** OOS Val+Test (1049 trades): Sharpe **0.832** (fail), PF **1.165** (fail), max DD **-7.27%** (pass), trades **1049** (pass), WF stability **1.049** (pass), worst-regime rolling-252 Sharpe **-0.754** (fail), benchmark p **null** (fail), IR **-0.377** (fail), perturbation min ratio **0.936** (pass). Train Sharpe 0.794.
+
+**Ablations (OOS).** Buy-hold SPY 0.720/1.148/DD -18.21%/1. Random-exposure-matched 0.549/1.129/DD -7.24%/1717 (beats random). Inverse-stress-long 0.534/1.143/DD -14.83%/1363.
+
+**Verdict rationale.** Reduces drawdown and beats random exposure, but no validated risk-adjusted edge vs buy-hold on pre-registered OOS gates (fails Sharpe/PF/worst-regime/benchmark-p/IR). FX adjacency to H95/H103 scored honestly. No gate weakened.
+
+**Cycle 21 required next.** H85–H106 all rejected. Fresh discovery per directive §4: reconcile lineage to H106, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess NF-04/05/07/08/10/11/13/15/17/20/21 and NF-11r (TNX-FVX, **NF-11 data-resolution path, honest novelty — not a new root family**) with concrete evidence (no silent drops). NF-06-11 CBOE PC ratio infeasible. Pre-register H107 with smallest decisive test. `src/qtr` unchanged unless evidenced defect.
