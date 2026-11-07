@@ -434,7 +434,7 @@ def main():
 
     # Inverse-momentum ablation: long the strongest tercile instead of weakest.
     inv_sig = _inverse_signal(prices, params, oos_mask)
-    inv_res = _run_panel(prices.loc[oos_mask, SECTORS], inv_sig.loc[oos_mask], cfg)
+    inv_res = _run_panel(prices.loc[oos_mask, SECTORS], inv_sig, cfg)
 
     ablations = {
         "buy_hold_spy_oos": bh_spy_oos.metrics,

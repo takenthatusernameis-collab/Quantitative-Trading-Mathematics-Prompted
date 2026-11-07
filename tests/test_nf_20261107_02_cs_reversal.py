@@ -33,7 +33,7 @@ from run_nf_20261107_02_cs_reversal import (  # noqa: E402
 )
 
 
-def _prices(n=900, seed=34):
+def _prices(n=900, seed=34, include_spy=False):
     rng = np.random.default_rng(seed)
     idx = pd.bdate_range("2014-01-01", periods=n)
     data = {}
@@ -42,7 +42,9 @@ def _prices(n=900, seed=34):
         idio = rng.normal(0.0, 0.006 + 0.001 * (i % 3), n)
         ret = 0.6 * common + 0.4 * idio
         data[s] = 100 * np.exp(np.cumsum(ret))
-    return pd.DataFrame(data, index=idx)[SECTORS]
+    if include_spy:
+        data[SPY] = 100 * np.exp(np.cumsum(common * 0.9 + rng.normal(0, 0.002, n)))
+    return pd.DataFrame(data, index=idx)
 
 
 def test_gates_match_preregistration():
@@ -72,7 +74,7 @@ def test_cum_return_rank_causal_and_range():
     valid = rank.dropna(how="all")
     assert len(valid) > 200
     ranks = valid.values[~np.isnan(valid.values)].ravel()
-    assert ((ranks >= 1) & (ranks <= len(SECTORS))).all()
+    assert ((ranks >= 1) & (ranks <= len(p.columns))).all()
 
 
 def test_signal_columns_warmup_and_bounds():
@@ -83,7 +85,7 @@ def test_signal_columns_warmup_and_bounds():
     vals = sig.fillna(0.0)
     assert (vals >= -1e-12).all().all() and (vals <= MAX_POS + 1e-12).all().all()
     row_sums = vals.sum(axis=1)
-    assert (row_sums <= MAX_POS + 1e-12).all()
+    assert (row_sums <= MAX_LEVERAGE + 1e-12).all()
 
 
 def test_signal_causality_no_future_leak():
@@ -103,13 +105,13 @@ def test_weakest_sector_receives_long_exposure():
     weak = SECTORS[0]
     base = p[weak].iloc[-61]
     p.loc[p.index[-60:], weak] = base * np.exp(np.cumsum(np.linspace(-0.04, -0.02, 60)))
-    sig = build_reversal_signal(p, 5, 0.10).fillna(0.0)
+    sig = build_reversal_signal(p, 5, 0.10).ffill().fillna(0.0)
     assert sig[weak].iloc[-1] > 0.0
 
 
 def test_signal_changes_only_on_rebalance_days():
-    sig = build_reversal_signal(_prices(500), 5, 0.10).fillna(0.0)
-    changed = (sig.diff().abs().sum(axis=1) > 1e-8).values
+    sig = build_reversal_signal(_prices(500), 5, 0.10).ffill().fillna(0.0)
+    changed = (sig.diff().abs().sum(axis=1) > 1e-8).values.copy()
     changed[: 5 + 63] = False
     change_idx = np.flatnonzero(changed)
     if len(change_idx):
@@ -132,7 +134,7 @@ def test_max_drawdown_and_vol_scale_bounds():
 
 
 def test_evaluate_gates_returns_expected_keys():
-    p = _prices(1200)
+    p = _prices(1200, include_spy=True)
     cfg = make_equity_config()
     sig = build_reversal_signal(p, 5, 0.10)
     from qtr.backtest.engine import run_backtest

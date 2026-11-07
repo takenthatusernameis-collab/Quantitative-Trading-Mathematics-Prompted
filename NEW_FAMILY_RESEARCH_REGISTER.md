@@ -1649,4 +1649,29 @@ H118 / NF-20261107-01 (cross-sectional sector return dispersion regime timing fo
 |---|---|---|---|---|---|
 | Cross-sectional sector return dispersion regime timing SPY | H118 (NF-20261106-36 / NF-20261107-01) | Continuous vol-targeted long SPY reduced when trailing avg cross-sectional sector-return dispersion z-score abnormally high, 1-bar delay | SPY (traded), 9 sector ETFs (signal) daily (yfinance), 2010–2026 | **REJECT** (4/8; exp_2026-11-07T01-16-32-274332Z) | Fails Sharpe 0.868/PF 1.164/worst-regime -1.215/benchmark-p 1.0/IR -0.369; random-exposure ablation outperforms signal; no risk-adjusted edge vs buy-hold; specific dispersion-z mapping as pre-registered |
 
-**Cycle 33 required next.** H85–H118 all rejected/recorded. Fresh discovery per directive §4: reconcile lineage to H118, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess NF-04/05/07/08/10/11/13/15/17/20/21 and NF-11r/NF-06-18 (TNX-FVX, SAME root mechanism as NF-11 — not a new root family) with concrete evidence (no silent drops). NF-06-11 CBOE PC ratio infeasible. NF-20261106-03/21/23/24/28/29/30/32/33/35/36 deferred. Pre-register highest-information feasible candidate as H119 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
+
+## Cycle 33 (2026-11-07) — Execution of H119 (NF-20261107-02)
+
+H119 / NF-20261107-02 (short-term cross-sectional return reversal among sector ETFs) was pre-registered in `HYPOTHESIS_SPEC.md` §H119 and runner `run_nf_20261107_02_cs_reversal.py` + `tests/test_nf_20261107_02_cs_reversal.py` (16 tests) written; lint/format clean; focused pytest 16 passed after fixing four test-harness bugs (row-sum gross cap used MAX_LEVERAGE not MAX_POS; signal hold semantics via ffill not fillna(0); read-only bool array `.copy()`; benchmark SPY added to test prices). A runner double-index bug (`_inverse_signal` already oos-sliced, then re-indexed by `oos_mask`) was fixed before execution. `src/qtr` unchanged.
+
+**Candidate pool assessed (Cycle 32 carry-forward, no silent drops):** NF-20261107-02 cross-sectional return reversal (selected as H119 — distinct from H2/H16 momentum and H85–H118 SPY-timing families; trades the sector cross-section directly). Deferred NF-04/05/07/08/10/11/13/15/17/20/21 and NF-11r/NF-06-18 (TNX-FVX, NF-11 resolution path, NOT new root family), NF-06-11 infeasible, NF-20261106-03/21/23/24/28/29/30/32/33/35/36 deferred. NF-20261107-02 chosen as highest-expected-information feasible repo-new root family: clean free daily data, full 2010+ splits after XLC/XLRE feasibility adjustment, weekly (5-bar) rebalance caps turnover resolving deferred NF-05's net-of-cost risk, falsifiable ablations, no `src/qtr` change.
+
+### NF-20261107-02 / H119 execution outcome (2026-11-07, REAL) — REJECTED (3/8)
+
+**Runner:** `run_nf_20261107_02_cs_reversal.py`. **Tests:** `tests/test_nf_20261107_02_cs_reversal.py` (16 passed). `ruff check/format --check` clean. `src/qtr` unchanged.
+
+**Execution.** `exp_2026-11-07T02-28-32-224963Z` (`nf_20261107_02_cs_reversal`). 9 sectors + SPY aligned 4233 rows (train 2516 / val 756 / test 961). Selected (train-only 4-fold WF): `lookback=10, vol_target=0.10` (WF mean 1.1807). Train Sharpe 0.7403. Artifact `.experiments/nf_runs/nf_20261107_02_cs_reversal/summary.json`.
+
+**Result — REJECT (3/8 gates).** OOS Val+Test (1494 trades): Sharpe **0.669** (fail ≥1.0), PF **1.123** (fail ≥1.3), max DD **-18.84%** (fail ≤15%), trades **1494** (pass ≥200), WF stability **0.904** (pass ≥0.7), worst-regime rolling-252 Sharpe **-0.436** (fail ≥0.3), benchmark p **1.0** / IR **-0.255** (fail), perturbation min ratio **0.725** (pass ≥0.5). Train Sharpe 0.7403.
+
+**Ablations (OOS).** Buy-hold SPY 0.791/1.164/DD -17.97%/1. Buy-hold equal-weight sectors 0.767/1.165/DD -36.91%/9. Random-side **-0.107/0.957/DD -9.69%/686**. Inverse-momentum-long 0.573/1.109/DD -14.36%/1500.
+
+**Verdict rationale.** Perturbation-stable and trade-rich with WF stability above threshold and random-side below strategy, but no validated cost-robust edge on pre-registered OOS gates (fails Sharpe/PF/max-DD/worst-regime/benchmark-p/IR). The weakest-tercile reversal underperforms buy-hold SPY (IR -0.255). Specific pre-registered construction tested; not all reversal constructions. No gate weakened; no published/certified artifact modified.
+
+**Lineage map (H119 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Short-term cross-sectional return reversal / liquidity provision via sector ETF weakness | H119 (NF-20261107-02) | Weekly long-only weakest-tercile of 9 sector ETFs by trailing cumulative-return rank, equal weight, vol-targeted, 5-bar rebalance cadence, 1-bar engine delay | 9 sector ETFs traded (signal), SPY benchmark (gates) daily (yfinance), 2010–2026 | **REJECT** (3/8; exp_2026-11-07T02-28-32-224963Z) | Fails Sharpe 0.669/PF 1.123/DD -18.84%/worst-regime -0.436/benchmark-p 1.0/IR -0.255; passes trades/WF/perturbation; reversal premium not cost-robust vs buy-hold SPY; weakest-tercile concentration raises idiosyncratic DD |
+
+**Cycle 34 required next.** H85–H119 all rejected/recorded. Fresh discovery per directive §4: reconcile lineage to H119, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly (25/25/20/15/10/5), reassess deferred NF-04/05/07/08/10/11/13/15/17/20/21, NF-11r/NF-06-18 (TNX-FVX, same root as NF-11 — not new root family), NF-06-11 (infeasible), NF-20261106-03/21/23/24/28/29/30/32/33/35/36 with concrete evidence (no silent drops). Pre-register highest-expected-information feasible candidate as H120 (next unused H-ID; H24/H68–H73/H76–H79 unassigned, not recycled) with smallest decisive test. Free/public data only; no gate weakening; no published/certified artifact modification; no commit/push; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).

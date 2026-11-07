@@ -6494,4 +6494,16 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 
 | Root family | H-IDs | Mechanism | Markets / data | Status | Known risks |
 |---|---|---|---|---|---|
-| Short-term cross-sectional return reversal / liquidity provision via sector ETF weakness | H119 (NF-20261107-02) | Weekly long-only weakest-tercile of 9 sector ETFs by trailing cumulative-return rank, equal weight, vol-targeted, 5-bar rebalance cadence, 1-bar engine delay | 9 sector ETFs traded (signal), SPY benchmark (gates) daily (yfinance), 2010–2026 | Pre-registered (Cycle 33), not executed | Weekly turnover/cost drag is the decisive risk (capped by fixed cadence, reported); reversal premium may be crowded/decayed in liquid ETFs; weakest-tercile concentration (3 names) raises idiosyncratic DD risk vs SPY benchmark |
+| Short-term cross-sectional return reversal / liquidity provision via sector ETF weakness | H119 (NF-20261107-02) | Weekly long-only weakest-tercile of 9 sector ETFs by trailing cumulative-return rank, equal weight, vol-targeted, 5-bar rebalance cadence, 1-bar engine delay | 9 sector ETFs traded (signal), SPY benchmark (gates) daily (yfinance), 2010–2026 | REJECT (3/8; exp_2026-11-07T02-28-32-224963Z) | Fails Sharpe 0.669/PF 1.123/DD -18.84%/worst-regime -0.436/benchmark-p 1.0/IR -0.255; passes trades 1494/WF stability 0.904/perturbation 0.725; reversal premium not cost-robust vs buy-hold SPY |
+
+### H119 execution outcome (2026-11-07, REAL)
+
+**Experiment:** `exp_2026-11-07T02-28-32-224963Z`. Artifact: `.experiments/nf_runs/nf_20261107_02_cs_reversal/summary.json`. `src/qtr` unchanged.
+
+**Selected (train-only 4-fold WF):** `lookback=10, vol_target=0.10` (selection WF mean 1.1807). Train Sharpe 0.7403.
+
+**OOS Val+Test (1494 trades):** Sharpe **0.669** (fail ≥1.0), PF **1.123** (fail ≥1.3), max DD **-18.84%** (fail ≤15%), trades **1494** (pass ≥200), WF stability **0.904** (pass ≥0.7×train), worst-regime rolling-252 Sharpe **-0.436** (fail ≥0.3), benchmark p **1.0** / IR **-0.255** (fail), perturbation min ratio **0.725** (pass ≥0.5).
+
+**Ablations (OOS).** Buy-hold SPY 0.791/1.164/DD -17.97%/1. Buy-hold equal-weight sectors 0.767/1.165/DD -36.91%/9. Random-side -0.107/0.957/DD -9.69%/686. Inverse-momentum-long 0.573/1.109/DD -14.36%/1500.
+
+**Verdict rationale.** **REJECT (3/8).** Short-term cross-sectional reversal is perturbation-stable and trade-rich, with WF stability and random-side below strategy, but fails Sharpe/PF/max-DD/worst-regime/benchmark/IR on pre-registered OOS gates. The weakest-tercile reversal does not deliver a cost-robust edge over buy-hold SPY (IR -0.255) in liquid sector ETFs. The executed weakest-tercile mapping is the specific pre-registered construction tested; this does not test all reversal constructions (e.g., long-short, different horizons/universes). No gate weakened; no published/certified artifact modified.

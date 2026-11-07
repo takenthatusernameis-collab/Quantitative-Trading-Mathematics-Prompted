@@ -72,6 +72,31 @@ Cycle 27 discovery per `HANDOFF_NEXT.md`/`NEXT_TASK.md` intent: reconcile lineag
 - Verdict: REJECT (4/8). Perturbation-stable with ample trades/WF stability and DD improvement vs buy-hold, but no validated risk-adjusted edge. Random-exposure ablation outperforms the signal. Specific pre-registered dispersion-z mapping tested; not all dispersion-regime constructions. No gate weakened.
 
 ### Unresolved / constraints
-- H85–H118 all REJECTED/recorded. Lineage gaps H24/H68–H73/H76–H79 remain unassigned (not recycled).
-- No commit/push performed (not requested). Published/certified artifacts and thresholds unchanged. `src/qtr` unchanged. New H118 experiment artifact is uncommitted local change.
-- Next session: Cycle 33 discovery/H119 per `NEXT_TASK.md` and `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §4`.
+- H85–H119 all REJECTED/recorded. Lineage gaps H24/H68–H73/H76–H79 remain unassigned (not recycled).
+- No commit/push performed (not requested). Published/certified artifacts and thresholds unchanged. `src/qtr` unchanged. New H119 experiment artifact and runner/test bug fixes are uncommitted local changes.
+- Next session: Cycle 34 discovery/H120 per `NEXT_TASK.md` and `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §4`.
+
+
+---
+## Cycle 33 (2026-11-07) — Execution of H119 (NF-20261107-02)
+
+### What changed
+- **Execution (directive §4):** Lineage reconciled to H118 (H85–H118 all rejected/recorded). H119 / NF-20261107-02 short-term cross-sectional return reversal among sector ETFs was pre-registered (prior session) and executed this cycle. `src/qtr` unchanged. No new `src/qtr` change.
+- **H119 executed:** Runner `run_nf_20261107_02_cs_reversal.py` and tests `tests/test_nf_20261107_02_cs_reversal.py` (16 tests) pre-existed; four test-harness bugs fixed (row-sum gross cap MAX_LEVERAGE not MAX_POS; signal hold via ffill not fillna(0); read-only bool array `.copy()`; SPY added to test prices) and one runner bug fixed (`_inverse_signal` double `oos_mask` indexing). Lint/format clean, focused pytest 16 passed. Experiment `exp_2026-11-07T02-28-32-224963Z`, artifact `.experiments/nf_runs/nf_20261107_02_cs_reversal/summary.json`. Updated `HYPOTHESIS_SPEC.md` §H119 from pre-registered to recorded outcome; appended `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 33 + H119 outcome/lineage; updated `NEXT_TASK.md` for Cycle 34.
+
+### Verified
+- `python -m ruff check run_nf_20261107_02_cs_reversal.py tests/test_nf_20261107_02_cs_reversal.py` — All checks passed.
+- `python -m ruff format --check ...` — 2 files already formatted.
+- `PYTHONPATH=src python -m pytest -q tests/test_nf_20261107_02_cs_reversal.py` — **16 passed**.
+- `PYTHONPATH=src python run_nf_20261107_02_cs_reversal.py` — **REJECT 3/8**, `exp_2026-11-07T02-28-32-224963Z`.
+
+### H119 result (REAL, pre-registered gates)
+- Selected (train-only 4-fold WF): `lookback=10, vol_target=0.10` (WF mean 1.1807, train Sharpe 0.7403).
+- OOS Val+Test (1494 trades): Sharpe **0.669** fail, PF **1.123** fail, DD **-18.84%** fail, trades **1494** pass, WF **0.904** pass, worst-regime rolling-252 min **-0.436** fail, benchmark-p **1.0**/IR **-0.255** fail, perturbation **0.725** pass.
+- Ablations (OOS): buy-hold SPY 0.791/1.164/DD -17.97%; equal-weight sectors 0.767/1.165/DD -36.91%; random-side -0.107/0.957/DD -9.69%/686; inverse-momentum-long 0.573/1.109/DD -14.36%/1500.
+- Verdict rationale: perturbation-stable, trade-rich, WF stability and random-side below strategy, but no validated cost-robust edge vs buy-hold SPY on pre-registered OOS gates (fails Sharpe/PF/DD/worst-regime/benchmark-p/IR). Specific pre-registered weakest-tercile reversal mapping tested; not all reversal constructions. No gate weakened.
+
+### Unresolved / constraints
+- H85–H119 all REJECTED/recorded. Lineage gaps H24/H68–H73/H76–H79 remain unassigned (not recycled).
+- No commit/push performed (not requested). Published/certified artifacts and thresholds unchanged. `src/qtr` unchanged. New H119 experiment artifact is uncommitted local change.
+- Next session: Cycle 34 discovery/H120 per `NEXT_TASK.md` and `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §4`.
