@@ -6507,3 +6507,45 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 **Ablations (OOS).** Buy-hold SPY 0.791/1.164/DD -17.97%/1. Buy-hold equal-weight sectors 0.767/1.165/DD -36.91%/9. Random-side -0.107/0.957/DD -9.69%/686. Inverse-momentum-long 0.573/1.109/DD -14.36%/1500.
 
 **Verdict rationale.** **REJECT (3/8).** Short-term cross-sectional reversal is perturbation-stable and trade-rich, with WF stability and random-side below strategy, but fails Sharpe/PF/max-DD/worst-regime/benchmark/IR on pre-registered OOS gates. The weakest-tercile reversal does not deliver a cost-robust edge over buy-hold SPY (IR -0.255) in liquid sector ETFs. The executed weakest-tercile mapping is the specific pre-registered construction tested; this does not test all reversal constructions (e.g., long-short, different horizons/universes). No gate weakened; no published/certified artifact modified.
+
+## H120 / NF-20261107-03 — SPY short-term time-series return reversal (single-asset contrarian / overreaction correction) (pre-registered & executed, Cycle 34)
+
+**NF-ID / H-ID.** NF-20261107-03 / H120 (next unused H-ID; H24/H68–H73/H76–H79 unassigned, not recycled).
+
+**Mechanism (new root family relative to repo).** Single-asset short-term overreaction correction / liquidity provision in SPY: after a short window of negative absolute returns, temporary selling pressure / overreaction partially reverses as liquidity providers and contrarian flows absorb imbalances. Signal = SPY trailing `lookback`-day cumulative return (past-only, known at close). Go vol-targeted long SPY when cumulative return < `entry_thr` (recent weakness / oversold, contrarian buy); remain in position while cumulative return < `exit_thr` (hysteresis, ffill); flat otherwise. Engine `signals.shift(1)` gives t→t+1 causality. **Distinct from prior families:** H119 (NF-20261107-02, REJECT 3/8) trades a 9-sector *cross-sectional* portfolio ranked by *relative* weakness (weakest tercile, multi-asset allocation); H120 trades *SPY alone* conditioned on SPY’s own *absolute* trailing return (single instrument, no cross-sectional rank). H1/H4/H8/H9/H10 TSMOM families are *momentum/trend persistence* (opposite predictive direction/horizon construction). H87 opening-gap fill uses overnight gap observable; H18 overnight/intraday decomposition REJECT. H19/H20 volume/order-flow proxies REJECT. No prior repo root family tested single-asset SPY absolute-return contrarian timing with this pre-registered hysteresis/vol-target construction.
+
+**Data.** yfinance daily adjusted close (DataFetcher/cache), 2010-01-01 → 2026-10-31. SPY 4233 aligned rows, 2010-01-04→2026-10-30, 0 non-positive (cache hit verified). Point-in-time. No `src/qtr` change.
+
+**Universe/splits (protected holdout).** Traded/benchmarked on SPY (single asset). Signal = SPY trailing cumulative return with hysteresis entry/exit; vol-targeted long/flat. Train 2010-01-01 → 2019-12-31 (2516 rows); Val 2020-01-01 → 2022-12-31 (756); Test (protected) 2023-01-01 → 2026-10-31 (961). Selection = best train-only 4-fold walk-forward Sharpe (on train window) over the pre-registered grid; gates on OOS Val+Test only. No holdout feedback.
+
+**Grid (bounded, pre-registered before execution).** lookback ∈ {2,3,5} × entry_thr ∈ {-0.005,-0.01,-0.02} × exit_thr ∈ {0.0,-0.005} (only where exit_thr > entry_thr) × vol_target ∈ {0.10,0.15} → 30 combos. Realized-vol scale = vol_target / (63-day rolling std × sqrt(252)), clipped [0,1], fillna 0. max_position 0.5. Long-only SPY; equity CostModel defaults.
+
+**Costs/constraints.** Equity CostModel defaults. Free/public data only. `src/qtr` unchanged.
+
+**Null / explicit falsifiers.** Null: short-term SPY absolute-return reversal produces no net-of-cost alpha after realistic costs. Reject if OOS Sharpe < 0.5, PF < 1.1, trades < 200, max DD > 15%, benchmark p > 0.05 or IR < 0 vs buy-hold SPY, random-exposure-matched ≈ strategy, worst-regime rolling/yearly Sharpe < 0, perturbation (±1 lookback, ±20% vol_target) min Sharpe ratio < 0.5.
+
+**Gates (OOS Val+Test).** Sharpe >= 1.0, >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0, perturbation min ratio >= 0.5.
+
+**Ablations.** buy-hold SPY; random-exposure-matched (permuted nonzero exposures); inverse/no-reversal long (long when signal is flat, vol-targeted).
+
+**Runner.** `run_nf_20261107_03_spy_ts_reversal.py`. **Tests.** `tests/test_nf_20261107_03_spy_ts_reversal.py`.
+
+### H120 execution outcome (2026-11-07, REAL)
+
+**Experiment:** `exp_2026-11-07T03-28-10-187622Z`. Artifact: `.experiments/nf_runs/nf_20261107_03_spy_ts_reversal/summary.json` (+ `grid.csv`). `src/qtr` unchanged.
+
+**Selected (train-only 4-fold WF):** `lookback=5, entry_thr=-0.005, exit_thr=0.0, vol_target=0.15` (selection WF mean **1.340**, folds [1.518, 0.537, 2.653, 0.651]). Train Sharpe **0.627**, train trades **348**.
+
+**OOS Val+Test (277 trades, n=1717):** Sharpe **0.559** (fail ≥1.0), PF **1.194** (fail ≥1.3), max DD **-13.37%** (pass ≤15%), trades **277** (pass ≥200), WF stability **0.891** (pass ≥0.7×train), worst-regime yearly Sharpe **-0.832** (2022; fail ≥0.3), benchmark p **1.0** / IR **-0.783** (fail vs buy-hold SPY), perturbation min ratio **0.518** (pass ≥0.5).
+
+**Yearly OOS Sharpe.** 2020 0.163, 2021 2.248, 2022 -0.832, 2023 1.265, 2024 1.899, 2025 0.556, 2026 1.492.
+
+**Ablations (OOS).** Buy-hold SPY 0.798/1.165/DD -33.72%/1. Random-exposure-matched 0.601/1.219/DD -13.62%/311 (outperforms strategy on Sharpe/PF/DD — timing information not clearly additive). Inverse/no-reversal-long 0.396/1.089/DD -7.61%/327.
+
+**Verdict rationale.** **REJECT (4/8).** Single-asset SPY TS reversal shows bounded drawdown, ample trades, WF stability above threshold, and perturbation stability, but fails Sharpe/PF/worst-regime/benchmark gates and does not outperform buy-hold SPY (IR -0.783). Random-exposure-matched ablation outperforms the selected timing on risk-adjusted metrics, indicating the specific contrarian mapping does not add validated edge beyond exposure/risk management in this construction. The executed hysteresis/vol-target mapping is the specific pre-registered construction tested; not all reversal constructions. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Lineage map (H120 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Single-asset SPY short-term time-series return reversal / overreaction correction | H120 (NF-20261107-03) | Vol-targeted long SPY when trailing 2–5d cumulative return < entry threshold (contrarian), hysteresis exit, 1-bar delay | SPY daily (yfinance), 2010–2026 | **REJECT** (4/8; exp_2026-11-07T03-28-10-187622Z) | Fails Sharpe 0.559/PF 1.194/worst-regime -0.832/benchmark-p 1.0/IR -0.783; random-exposure ablation outperforms timing; no validated edge vs buy-hold SPY; distinct from H119 cross-sectional reversal (relative rank, multi-sector) |
