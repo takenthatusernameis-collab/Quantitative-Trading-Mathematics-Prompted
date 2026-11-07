@@ -6759,3 +6759,35 @@ published/certified artifact modified; `src/qtr` unchanged.
 
 **Lineage map (H128 REJECT):**
 | SPY realized skewness stress timing (realized third-moment crash-risk) | H128 (NF-20261107-28) | Vol-targeted long SPY reduced to flat when z-score of trailing realized SPY skewness <= entry_z, re-enter when z > exit_z; hysteresis, 1-bar delay | SPY daily (yfinance), 2010–2025 | **REJECT** (2/8; `.experiments/nf_runs/nf_20261107_28_realized_skewness_stress/summary.json`) | Fails Sharpe 0.620/PF 1.154/maxDD -22.37%/trades 41/worst-regime -0.375/benchmark-p 0.949/IR -0.734; random-exposure does not outperform but no validated edge vs buy-hold; sparse OOS; repo-new realized-skewness observable, honest adjacency to H89/H122 |
+
+
+### Hypothesis H129: Cross-Sectional Average Sector Beta Regime Timing for SPY (pre-registered, Cycle 43)
+
+**Statement.** Reducing vol-targeted long SPY exposure continuously when the z-score of trailing cross-sectional average sector beta vs SPY is abnormally high improves OOS Val+Test Sharpe ≥1.0 with ≥200 trades, PF≥1.3, maxDD≤15%, WF stability≥0.7, worst-regime yearly Sharpe≥0.3, benchmark p<0.05 with IR≥0, perturbation ratio≥0.5.
+
+**Mechanism (systematic risk / beta-expansion transmission).** Average trailing beta of liquid sector ETFs vs SPY summarizes systematic beta exposure / beta crowding. Abnormally high average beta indicates beta expansion or crowded systematic risk appetite; reducing SPY exposure during beta-expansion regimes may avoid adverse equity drawdowns, while normal/low z supports a vol-targeted long. Signal is point-in-time from trailing returns only (1-bar execution delay via engine `signals.shift(1)`).
+
+**Repo-relative novelty (honest).** Different observable from H117 (NF-20261106-34, REJECT 2/8: average pairwise *sector correlation*, contagion regime) and H96/H127 (pairwise cross-asset correlations). Beta mixes co-movement with relative volatility; the construction class (cross-sectional sector statistic z-score → SPY exposure, 1-bar delay, vol-target, long-only) is adjacent to H117 and is scored honestly lower on novelty. Distinct from H93 (IVOL *level*, REJECT), H124 (MAX/lottery), H128 (realized skewness, single-asset third moment), and TSMOM/regime families. NF-20261107-29 was assessed in Cycle 42 discovery (weighted 3.75, held); selected here as H129 with explicit pre-registration.
+
+**Null (H0).** Trailing average sector-beta regime contains no incremental timing information; OOS gates fail vs buy-hold/random-exposure.
+
+**Pre-registration (executed this cycle).** NF-ID **NF-20261107-29** (Cycle 43). Runner `run_nf_20261107_29_avg_beta_regime.py`; tests `tests/test_nf_20261107_29_avg_beta_regime.py`. Universe SPY (traded) + XLB/XLE/XLF/XLI/XLK/XLP/XLU/XLV/XLY (9 SPDR sectors, signal; XLC/XLRE excluded for 2010+ history, same feasibility as H117). Free yfinance daily auto-adjust close. Sample 2010-01-04→2025-01-03, 3776 aligned rows (all positive), verified 2026-11-07. Train 2010-01-04→2019-12-31 (2516) / Val 2020-01-01→2021-12-31 (505) / Test (protected) 2022-01-03→2025-01-03 (755). Signal: z-score of trailing cross-sectional mean sector beta vs SPY over `beta_window`/`z_window`; continuous stress `(z/entry_scale).clip(0,1)` for `z>0` reduces vol-targeted SPY exposure by `(1-stress)*vol_target*vol_scale`; 1-bar delay; Equity CostModel defaults (1bp commission + 1bp spread); long-only, max exposure `vol_target`. Bounded grid: beta_window {21,63} × z_window {126} × entry_scale {1.0,1.5,2.0} × vol_target {0.10,0.15} (12 combos); train-only 4-fold WF selection by mean fold Sharpe; Test protected. No `src/qtr` change.
+
+**Gates (OOS Val+Test, pre-registered).** Sharpe >= 1.0, trades >= 200, PF >= 1.3, max DD <= 15%, WF stability >= 0.7 (OOS/train Sharpe ratio rule as in runner), worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0 vs buy-hold SPY, perturbation min ratio >= 0.5.
+
+**Ablations (pre-registered).** Buy-hold SPY, random-exposure-matched, inverse beta-regime (long SPY when strategy is flat, vol-targeted).
+
+**Costs/constraints.** Equity CostModel defaults. Free/public data only. `src/qtr` unchanged. No published/certified artifact modified.
+
+**Falsifiers.** Random-exposure comparable or better; inverse not clearly opposite; benchmark fails; fragile to perturbation; worst-regime collapse; sparse OOS trades.
+
+**Executed outcome (2026-11-07, REAL): REJECT (4/8).** Artifact `.experiments/nf_runs/nf_20261107_29_avg_beta_regime/summary.json`. Data SPY + 9 SPDR sectors (XLB/XLE/XLF/XLI/XLK/XLP/XLU/XLV/XLY) yfinance, 3776 aligned rows 2010-01-04→2025-01-03 (train 2516 / val 505 / test 755). Selected (train-only 4-fold WF mean Sharpe 1.563): `beta_window=21, z_window=126, entry_scale=2, vol_target=0.15`.
+
+**Result — REJECT (4/8 gates).** OOS Val+Test (864 trades): Sharpe **0.814** (fail), PF **1.158** (fail), max DD **-2.59%** (pass), trades **864** (pass), WF stability **0.868** (pass), worst-regime rolling-252 Sharpe **-1.206** (fail), benchmark p **1.0** / IR **-0.694** (fail), perturbation min ratio **0.958** (pass).
+
+**Ablations (OOS).** Buy-hold SPY 0.750/1.153/DD -17.97%/1. Random-exposure-matched 0.955/1.192/DD -1.69%/887 (outperforms). Inverse beta-regime 0.819/2.177/DD -1.07%/30.
+
+**Verdict rationale.** Fails Sharpe/PF/worst-regime/benchmark (4/8). OOS Sharpe 0.814 underperforms random-exposure-matched (0.955); benchmark/IR fail decisively — no validated edge from average sector-beta regime timing. Worst-regime collapse (-1.206). Honest adjacency to H117 (sector correlation regime, REJECT 2/8): repo-new beta observable but same cross-sectional sector-statistic construction class; both rejected. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Lineage map (H129 REJECT):**
+| Cross-sectional average sector beta regime timing SPY | H129 (NF-20261107-29) | Vol-targeted long SPY reduced continuously when z-score of trailing cross-sectional mean sector beta vs SPY elevated; 1-bar delay, long-only | SPY + 9 sectors daily (yfinance), 2010–2025 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261107_29_avg_beta_regime/summary.json`) | Fails Sharpe 0.814/PF 1.158/worst-regime -1.206/benchmark-p 1.0/IR -0.694; random-exposure outperforms (0.955); repo-new beta observable, honest adjacency to H117 sector-stat construction |

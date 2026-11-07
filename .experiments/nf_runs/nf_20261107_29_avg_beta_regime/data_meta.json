@@ -1,0 +1,31 @@
+{
+  "start": "2010-01-04",
+  "end": "2025-01-03",
+  "rows": 3776,
+  "universe": [
+    "SPY",
+    "XLB",
+    "XLE",
+    "XLF",
+    "XLI",
+    "XLK",
+    "XLP",
+    "XLU",
+    "XLV",
+    "XLY"
+  ],
+  "sectors": [
+    "XLB",
+    "XLE",
+    "XLF",
+    "XLI",
+    "XLK",
+    "XLP",
+    "XLU",
+    "XLV",
+    "XLY"
+  ],
+  "train_rows": 2516,
+  "val_rows": 505,
+  "test_rows": 755
+}

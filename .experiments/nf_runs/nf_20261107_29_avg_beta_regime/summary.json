@@ -1,0 +1,167 @@
+{
+  "experiment_name": "nf_20261107_29_avg_beta_regime",
+  "nf_id": "NF-20261107-29",
+  "hypothesis_id": "H129",
+  "verdict": "REJECT",
+  "selected_params": {
+    "beta_window": 21,
+    "z_window": 126,
+    "entry_scale": 2.0,
+    "vol_target": 0.15
+  },
+  "selection_score": 1.5633942590301502,
+  "train_metrics": {
+    "total_return": 0.15834525570625146,
+    "annualized_return": 0.01483152909824259,
+    "annualized_volatility": 0.015837857231232672,
+    "sharpe": 0.9377167380474231,
+    "sortino": 1.305275638790402,
+    "max_drawdown": -0.025606110216786642,
+    "max_drawdown_duration": 331.0,
+    "profit_factor": 1.2014992743562019,
+    "num_trades": 1321.0,
+    "avg_trade_cost": 2.5249840355372922e-06,
+    "calmar": 0.5792183573637616
+  },
+  "oos_metrics": {
+    "total_return": 0.07182031267280342,
+    "annualized_return": 0.01396834422101434,
+    "annualized_volatility": 0.01722406141022788,
+    "sharpe": 0.8143193510229226,
+    "sortino": 1.1445512692063493,
+    "max_drawdown": -0.025925271424928197,
+    "max_drawdown_duration": 518.0,
+    "profit_factor": 1.1576390810978214,
+    "num_trades": 864.0,
+    "avg_trade_cost": 1.5210898409035763e-06,
+    "calmar": 0.5387925932217323
+  },
+  "gates_detail": {
+    "verdict": "REJECT",
+    "passed": 4,
+    "total": 8,
+    "gates": {
+      "sharpe_ge_1_0": {
+        "value": 0.8143193510229226,
+        "threshold": 1.0,
+        "pass": false
+      },
+      "trades_ge_200": {
+        "value": 864,
+        "threshold": 200,
+        "pass": true
+      },
+      "profit_factor_ge_1_3": {
+        "value": 1.1576390810978214,
+        "threshold": 1.3,
+        "pass": false
+      },
+      "max_drawdown_le_15pct": {
+        "value": 0.025925271424928197,
+        "threshold": 0.15,
+        "pass": true
+      },
+      "walkforward_stability_ge_0_7": {
+        "value": 0.8684065432366636,
+        "threshold": 0.7,
+        "pass": true
+      },
+      "worst_regime_rolling252_sharpe_ge_0_3": {
+        "value": -1.2057551165202955,
+        "threshold": 0.3,
+        "pass": false
+      },
+      "benchmark_p_le_0_05_ir_ge_0": {
+        "value": {
+          "p_value": 1.0,
+          "information_ratio": -0.6943023260614729
+        },
+        "threshold": {
+          "p": 0.05,
+          "ir": 0.0
+        },
+        "pass": false
+      },
+      "perturbation_min_ratio_ge_0_5": {
+        "value": 0.9576421787090331,
+        "threshold": 0.5,
+        "pass": true
+      }
+    },
+    "comparison": {
+      "information_ratio": -0.6943023260614729,
+      "alpha_annualized": 0.004600888296769802,
+      "beta": 0.11981153232037288,
+      "alpha_t_stat": -1.5518910014392606,
+      "alpha_p_value": 0.12093963029675169,
+      "alpha_p_value_one_sided": 0.9395301848516242,
+      "win_rate": 0.4515873015873016,
+      "excess_return_annual": -0.06459841684707346,
+      "excess_vol_annual": 0.09304076109541073
+    }
+  },
+  "ablations_oos": {
+    "buy_hold_spy": {
+      "sharpe": 0.7497793618903076,
+      "profit_factor": 1.1530839984395174,
+      "max_drawdown": -0.17971878436021965,
+      "trades": 1
+    },
+    "random_exposure_matched": {
+      "sharpe": 0.9550783043154879,
+      "profit_factor": 1.1920776294601698,
+      "max_drawdown": -0.01694606868735499,
+      "trades": 887
+    },
+    "inverse_beta_regime_long": {
+      "sharpe": 0.8194209990915348,
+      "profit_factor": 2.1770625566386994,
+      "max_drawdown": -0.010665397390199796,
+      "trades": 30
+    }
+  },
+  "data": {
+    "start": "2010-01-04",
+    "end": "2025-01-03",
+    "rows": 3776,
+    "universe": [
+      "SPY",
+      "XLB",
+      "XLE",
+      "XLF",
+      "XLI",
+      "XLK",
+      "XLP",
+      "XLU",
+      "XLV",
+      "XLY"
+    ],
+    "sectors": [
+      "XLB",
+      "XLE",
+      "XLF",
+      "XLI",
+      "XLK",
+      "XLP",
+      "XLU",
+      "XLV",
+      "XLY"
+    ],
+    "train_rows": 2516,
+    "val_rows": 505,
+    "test_rows": 755
+  },
+  "grid_size": 12,
+  "gates": {
+    "min_sharpe": 1.0,
+    "min_trades": 200,
+    "min_profit_factor": 1.3,
+    "max_drawdown": 0.15,
+    "min_walkforward_stability": 0.7,
+    "min_worst_regime_sharpe": 0.3,
+    "max_p_value": 0.05,
+    "min_information_ratio": 0.0,
+    "min_perturbed_sharpe_ratio": 0.5
+  },
+  "runtime_sec": 1.968
+}
