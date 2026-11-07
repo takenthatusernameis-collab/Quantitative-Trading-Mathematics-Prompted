@@ -2298,3 +2298,41 @@ Lineage reconciled to H132: H85–H132 all rejected/recorded. Next unused H-ID: 
 | SPY trailing 252d-high distance drawdown-state timing (path-dependence) | H133 (NF-20261107-39) | Continuous vol-targeted long SPY reduced when z-score of trailing distance-from-high is deeply negative; 1-bar delay, long-only | SPY daily (yfinance), 2010–2025 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261107_39_spy_drawdown_state/summary.json`) | Fails Sharpe 0.994/PF 1.201/worst-regime -1.663/benchmark-p 0.891/IR -0.552; no validated edge; standalone SPY price drawdown-state, honest separation from H6 equity-curve DDCV |
 
 **Cycle 47 complete (discovery + H133 execution).** H85–H133 all rejected/recorded. Cycle 48 required next (see `NEXT_TASK.md`/handoff): fresh discovery per directive §4, >=3 repo-new candidates across >=3 broad categories, pre-register and execute **H134**. No gate weakening; no published/certified artifact modification; no commit/push; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
+
+## Cycle 48 (2026-11-07) — Discovery + H134 execution (NF-20261107-43 realized SPY--VIX correlation feedback; REJECT 5/8)
+
+### Cycle 48 discovery (directive §4, >=3 repo-new mechanism candidates across >=3 broad categories)
+
+Lineage reconciled to H133: H85–H133 all rejected/recorded. Next unused H-ID: **H134** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified.
+
+| Cycle-48 candidate | Broad mechanism category | Novelty 25% | Plausibility 25% | Data PIT 20% | Falsifiability 15% | Execution 10% | Ind. support 5% | Weighted |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261107-43 Realized SPY--VIX correlation feedback regime timing for SPY — **H134 (selected/executed)** | Volatility-feedback / cross-asset risk transmission | 4 | 3 | 5 | 4 | 5 | 2 | **3.95** |
+| NF-20261107-44 CPI release post-announcement SPY drift timing | Macro event/auction | 3 | 3 | 2 | 3 | 3 | 2 | **2.80** |
+| NF-20261107-45 Cross-sectional sector IVOL-spread regime timing for SPY | Cross-sectional risk dispersion | 3 | 3 | 4 | 4 | 4 | 2 | **3.40** |
+
+- NF-20261107-43 novelty 4: repo-new as an executed H — no executed H uses *realized SPY--VIX correlation regime* (H123/H126/H131/H104 use VIX level/slope/spread only; H127 is GLD--TLT pair, different mechanism). Honest adjacency to VIX complex acknowledged; scored on correlation-regime observable. Data 5 (SPY+^VIX free PIT yfinance; 3776 aligned rows). Falsifiable bounded 12-combo grid; decisive small test.
+- NF-20261107-44 novelty 3: CPI is a distinct scheduled macro event from FOMC (H90 REJECT 1/9) but same event/auction category; data PIT 2 — inflation-surprise consensus not freely available point-in-time via yfinance, weakens causal test. Deferred (data blocker), not selected.
+- NF-20261107-45 novelty 3: cross-sectional IVOL *spread* (dispersion of sector IVOL) reassesses held NF-20261107-11; adjacent to H118 return dispersion (REJECT 4/8) and H130 IVOL *level* (REJECT) — spread vs level is a different observable but same broad cross-sectional-dispersion neighborhood. Held pending a clearly differentiated design; not selected.
+
+**Deferred reassessment (no silent drops):** NF-04 commodity carry **blocked** (no free PIT term-structure/roll proxy); NF-05 short-term CS reversal **deferred** (turnover/net-of-cost; H119 weekly REJECT 3/8); NF-07/08/10/11/13/15/17/20/21 **deferred**; NF-11r/NF-06-18 TNX-FVX **same root as NF-11** (not new root); NF-06-11 CBOE PC ratio **infeasible**; NF-20261106-03/23/24/28/30/32/33/35 **deferred**; NF-20261107-05 CPI drift **deferred** (adj H90). **Held:** NF-20261107-11 IVOL spread (NF-45 concept; separation from H118/H130), NF-20261107-12 credit-vs-equity vol divergence (sep H94/H100/H125), NF-20261107-14 OVX−VIX (same class as H125/H126 — materially different design required), NF-20261107-31 sector breadth (adj H115 REJECT 1/8), NF-20261107-32 return dispersion (= H118 executed REJECT 4/8 — not repo-new; do not rerun), NF-20261107-36 (= H133 executed REJECT 4/8 — not repo-new), NF-20261107-37/41 EEM/EFA rel strength (sep FX-macro), NF-20261107-40 AR(1) serial dependence (adj diagnostics/H26).
+- **Executed/rejected not rerun:** H85–H134 (lineage gaps H24/H68–H73/H76–H79 unassigned). Higher-moment (H89/H122/H124/H128/H132), IVOL (H93/H130), VIX-term/cross-asset vol/corr (H86/H113/H123/H125/H126/H127/H131), path-dependence (H133), return dispersion (H118), credit/rel-mom/sector-beta/liquidity (H94/H108/H116/H121/H129/H127) all executed/recorded.
+
+**Selection:** NF-20261107-43 → **H134** (highest feasible repo-new, clearly distinct realized-correlation-regime observable; bounded grid, SPY+^VIX free PIT data). Pre-registered in `HYPOTHESIS_SPEC.md` §H134 before validation outcomes.
+
+### NF-20261107-43 / H134 execution outcome (2026-11-07, REAL) — REJECTED (5/8)
+
+**Runner:** `run_nf_20261107_43_spy_vix_corr.py`. **Tests:** `tests/test_nf_20261107_43_spy_vix_corr.py` (7 passed). `ruff check/format` clean. `src/qtr` unchanged.
+
+**Execution.** Artifact `.experiments/nf_runs/nf_20261107_43_spy_vix_corr/summary.json` (1.61s). Data SPY + ^VIX yfinance auto-adjust, 3776 aligned rows 2010-01-01→2025-01-05 (train 2516 / val 505 / test 755). Selected (train-only 4-fold WF mean Sharpe 0.649): `corr_window=126, z_window=126, entry_scale=2, vol_target=0.10`.
+
+**Result — REJECT (5/8 gates).** OOS Val+Test (1373 trades, n=1260): Sharpe **1.098** (pass ≥1.0), PF **1.235** (fail ≥1.3), max DD **-10.53%** (pass ≤15%), trades **1373** (pass ≥200), WF stability **1.367** (pass ≥0.7), worst-regime rolling-252 Sharpe **-1.226** (fail ≥0.3), benchmark p **0.879** / IR **-0.524** (fail), perturbation min ratio **0.999** (pass ≥0.5).
+
+**Ablations (OOS).** Random-exposure-matched Sharpe 0.045 (far weaker — signal not pure noise). Inverse correlation-feedback Sharpe 0.298/PF 1.100/maxDD -16.6%/1373 (no opposite edge).
+
+**Verdict rationale.** Realized SPY--VIX correlation feedback raises raw OOS Sharpe to 1.098 but not significant vs buy-hold (p 0.879, IR -0.524); fails PF/worst-regime/benchmark (5/8). No validated edge. Adds information: correlation regime has predictive content vs random exposure but no benchmark-clearing edge. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Lineage map (H134 REJECT):**
+| Realized SPY--VIX correlation feedback regime timing (volatility-feedback) | H134 (NF-20261107-43) | Continuous vol-targeted long SPY reduced when z-score of trailing realized SPY--VIX correlation rises (fear decoupling); 1-bar delay, long-only | SPY + ^VIX daily (yfinance), 2010–2025 | **REJECT** (5/8; `.experiments/nf_runs/nf_20261107_43_spy_vix_corr/summary.json`) | Fails PF 1.235/worst-regime -1.226/benchmark-p 0.879/IR -0.524; Sharpe 1.098 passes but not significant vs buy-hold; no validated edge |
+
+**Cycle 48 complete (discovery + H134 execution).** H85–H134 all rejected/recorded. Cycle 49 required next: fresh directive §4 discovery, >=3 repo-new candidates across >=3 broad categories, pre-register and execute **H135** (next unused H-ID). No gate weakening; no published/certified artifact modification; no commit/push; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).

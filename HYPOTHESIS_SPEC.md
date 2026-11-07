@@ -6918,3 +6918,34 @@ published/certified artifact modified; `src/qtr` unchanged.
 
 **Lineage map (H133 REJECT):**
 | SPY trailing 252d-high distance drawdown-state timing (path-dependence) | H133 (NF-20261107-39) | Continuous vol-targeted long SPY reduced when z-score of trailing distance-from-high is deeply negative; 1-bar delay, long-only | SPY daily (yfinance), 2010–2025 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261107_39_spy_drawdown_state/summary.json`) | Fails Sharpe 0.994/PF 1.201/worst-regime -1.663/benchmark-p 0.891/IR -0.552; no validated edge; standalone SPY price drawdown-state, honest separation from H6 equity-curve DDCV |
+
+### Hypothesis H134: SPY Timing from Realized SPY--VIX Correlation Feedback (pre-registered, Cycle 48)
+
+**Statement.** Continuously reducing vol-targeted long SPY exposure when the z-score of the trailing realized correlation between SPY returns and VIX returns rises (correlation less negative than usual = fear decoupling / complacency) improves OOS Val+Test Sharpe ≥1.0 with ≥200 trades, PF≥1.3, maxDD≤15%, WF stability≥0.7, worst-regime rolling-252 Sharpe≥0.3, benchmark p≤0.05 with IR≥0, perturbation ratio≥0.5.
+
+**Mechanism (volatility-feedback / cross-asset risk transmission).** VIX is the fear gauge; SPY and VIX normally move inversely (fear-off: VIX spikes as SPY falls, realized correlation ≈ -0.8). When the realized SPY--VIX correlation breaks down toward zero or positive (fear decoupling from price action, complacency), drawdown risk is elevated; a continuous vol-targeted de-risking overlay (1-bar execution delay via engine `signals.shift(1)`) may reduce unfavorable exposure. `corr_t` and `z_t` are past-only; ^VIX and SPY closes are free, point-in-time from yfinance.
+
+**Repo-relative novelty (honest).** Executed H-family uses VIX *level/shape* signals only: VIX9D/VIX fear spread (H123), GVZ-VIX implied-vol spread (H126), VIX term-structure slope (H131), VIX-complex (H104 VVIX). No executed H uses the *realized SPY--VIX correlation regime* as the timing observable. H127 tests GLD--TLT return correlation (different pair, flight-to-quality not fear decoupling). Distinct from higher-moment (H89/H122/H124/H128/H132), IVOL level (H93/H130), return dispersion (H118), path-dependence/drawdown-state (H133), and credit/relative-momentum (H94/H108/H116) families. Adjacency to the VIX complex is acknowledged; novelty scored on the correlation-regime observable, not VIX level.
+
+**Null (H0).** Realized SPY--VIX correlation regime contains no incremental timing information; OOS gates fail vs buy-hold/random-exposure.
+
+**Pre-registration (Cycle 48, decision-ready before validation outcomes).** NF-ID **NF-20261107-43**. Runner `run_nf_20261107_43_spy_vix_corr.py`; tests `tests/test_nf_20261107_43_spy_vix_corr.py`. Universe SPY (signal uses ^VIX as cross-asset observable), yfinance daily auto-adjust Close (free, PIT). Sample 2010-01-01→2025-01-05 (aligned rows 3776). Train 2010-01-04→2019-12-31 / Val 2020-01-01→2021-12-31 / Test (protected) 2022-01-01→2025-01-03. Signal: realized rolling correlation of SPY returns and ^VIX returns over `corr_window`, z-scored over `z_window`; stress `z.clip(0)/entry_scale` clipped to [0,1] reduces vol-targeted long SPY exposure by `(1-stress)*vol_target`; 1-bar delay; Equity CostModel defaults (1bp commission + 1bp spread); long-only, max exposure `vol_target` (scaled to `MAX_POS=0.5`). Bounded grid: `corr_window {63,126,252} × z_window {126} × entry_scale {1.0,1.5,2.0} × vol_target {0.10,0.15}` (12 combos); train-only 4-fold WF selection by mean train Sharpe; Test protected. No `src/qtr` change.
+
+**Gates (OOS Val+Test, pre-registered).** Sharpe >= 1.0, trades >= 200, PF >= 1.3, max DD <= 15%, WF stability >= 0.7, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0 vs buy-hold SPY, perturbation min ratio >= 0.5.
+
+**Ablations (pre-registered).** Buy-hold SPY, random-exposure-matched, inverse correlation-feedback regime.
+
+**Costs/constraints.** Equity CostModel defaults. Free/public data only. `src/qtr` unchanged. No published/certified artifact modified. No gate weakening.
+
+**Falsifiers.** Random-exposure comparable or better; inverse not clearly opposite; benchmark fails; fragile to perturbation; worst-regime collapse.
+
+**Executed outcome (2026-11-07, REAL, Cycle 48): REJECT (5/8).** Artifact `.experiments/nf_runs/nf_20261107_43_spy_vix_corr/summary.json` (`NF-20261107-43/H134`, 1.61s). Data SPY + ^VIX yfinance auto-adjust, 3776 aligned rows 2010-01-01→2025-01-05 (train 2516 / val 505 / test 755). Selected (train-only 4-fold WF mean Sharpe 0.649): `corr_window=126, z_window=126, entry_scale=2, vol_target=0.10`.
+
+**Result — REJECT (5/8 gates).** OOS Val+Test (1373 trades, n=1260): Sharpe **1.098** (pass ≥1.0), PF **1.235** (fail ≥1.3), max DD **-10.53%** (pass ≤15%), trades **1373** (pass ≥200), WF stability **1.367** (pass ≥0.7), worst-regime rolling-252 Sharpe **-1.226** (fail ≥0.3), benchmark p **0.879** / IR **-0.524** (fail, vs buy-hold SPY), perturbation min ratio **0.999** (pass ≥0.5). Mean OOS exposure 0.350.
+
+**Ablations (OOS).** Buy-hold SPY Sharpe 0.760/PF 1.155/maxDD -33.72%/1 trade (from H133-era SPY sample; comparable regime). Random-exposure-matched Sharpe 0.045/PF ~1.0/maxDD deeper/1373-trade exposure-matched baseline (strategy beats random exposure but not buy-hold significantly). Inverse correlation-feedback regime Sharpe 0.298/PF 1.100/maxDD -16.6%/1373 trades (no opposite edge).
+
+**Verdict rationale.** Realized SPY--VIX correlation feedback raises raw OOS Sharpe to 1.098 (just above 1.0) but the edge is not significant vs buy-hold (p 0.879, IR -0.524), profit factor fails (1.235 < 1.3), and worst-regime rolling-252 Sharpe collapses (-1.226). Fails PF/worst-regime/benchmark (5/8). No validated risk-adjusted edge; random exposure is far weaker (0.045) so the signal is not pure noise, but it does not clear the benchmark-gate bar. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Lineage map (H134 REJECT):**
+| Realized SPY--VIX correlation feedback regime timing (volatility-feedback) | H134 (NF-20261107-43) | Continuous vol-targeted long SPY reduced when z-score of trailing realized SPY--VIX correlation rises (fear decoupling); 1-bar delay, long-only | SPY + ^VIX daily (yfinance), 2010–2025 | **REJECT** (5/8; `.experiments/nf_runs/nf_20261107_43_spy_vix_corr/summary.json`) | Fails PF 1.235/worst-regime -1.226/benchmark-p 0.879/IR -0.524; Sharpe 1.098 passes but not significant vs buy-hold; no validated edge |

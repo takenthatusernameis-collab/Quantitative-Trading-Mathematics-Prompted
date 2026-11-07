@@ -1,0 +1,216 @@
+{
+  "experiment": "NF-20261107-43/H134: SPY timing from realized SPY-VIX correlation feedback (volatility-feedback). Continuous de-risking when z-score of trailing realized SPY-VIX correlation rises (fear decoupling). 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "nf_id": "NF-20261107-43",
+  "h_id": "H134",
+  "timestamp": "2026-11-07T18:07:18Z",
+  "runtime_s": 1.61,
+  "data": {
+    "universe": [
+      "SPY",
+      "^VIX"
+    ],
+    "start": "2010-01-01",
+    "end": "2025-01-05",
+    "rows": 3776,
+    "train_end": "2019-12-31",
+    "val_end": "2021-12-31",
+    "train_n": 2516,
+    "val_n": 505,
+    "test_n": 755
+  },
+  "selection": {
+    "grid": [
+      {
+        "corr_window": 63,
+        "z_window": 126,
+        "entry_scale": 1.0,
+        "vol_target": 0.1
+      },
+      {
+        "corr_window": 63,
+        "z_window": 126,
+        "entry_scale": 1.0,
+        "vol_target": 0.15
+      },
+      {
+        "corr_window": 63,
+        "z_window": 126,
+        "entry_scale": 1.5,
+        "vol_target": 0.1
+      },
+      {
+        "corr_window": 63,
+        "z_window": 126,
+        "entry_scale": 1.5,
+        "vol_target": 0.15
+      },
+      {
+        "corr_window": 63,
+        "z_window": 126,
+        "entry_scale": 2.0,
+        "vol_target": 0.1
+      },
+      {
+        "corr_window": 63,
+        "z_window": 126,
+        "entry_scale": 2.0,
+        "vol_target": 0.15
+      },
+      {
+        "corr_window": 126,
+        "z_window": 126,
+        "entry_scale": 1.0,
+        "vol_target": 0.1
+      },
+      {
+        "corr_window": 126,
+        "z_window": 126,
+        "entry_scale": 1.0,
+        "vol_target": 0.15
+      },
+      {
+        "corr_window": 126,
+        "z_window": 126,
+        "entry_scale": 1.5,
+        "vol_target": 0.1
+      },
+      {
+        "corr_window": 126,
+        "z_window": 126,
+        "entry_scale": 1.5,
+        "vol_target": 0.15
+      },
+      {
+        "corr_window": 126,
+        "z_window": 126,
+        "entry_scale": 2.0,
+        "vol_target": 0.1
+      },
+      {
+        "corr_window": 126,
+        "z_window": 126,
+        "entry_scale": 2.0,
+        "vol_target": 0.15
+      },
+      {
+        "corr_window": 252,
+        "z_window": 126,
+        "entry_scale": 1.0,
+        "vol_target": 0.1
+      },
+      {
+        "corr_window": 252,
+        "z_window": 126,
+        "entry_scale": 1.0,
+        "vol_target": 0.15
+      },
+      {
+        "corr_window": 252,
+        "z_window": 126,
+        "entry_scale": 1.5,
+        "vol_target": 0.1
+      },
+      {
+        "corr_window": 252,
+        "z_window": 126,
+        "entry_scale": 1.5,
+        "vol_target": 0.15
+      },
+      {
+        "corr_window": 252,
+        "z_window": 126,
+        "entry_scale": 2.0,
+        "vol_target": 0.1
+      },
+      {
+        "corr_window": 252,
+        "z_window": 126,
+        "entry_scale": 2.0,
+        "vol_target": 0.15
+      }
+    ],
+    "best_params": {
+      "corr_window": 126,
+      "z_window": 126,
+      "entry_scale": 2.0,
+      "vol_target": 0.1
+    },
+    "train_wf_mean_sharpe": 0.6489193238818475
+  },
+  "metrics": {
+    "train": {
+      "sharpe": 0.8033877332598526,
+      "profit_factor": 1.1876787514570677,
+      "max_drawdown": -0.09780396900513733,
+      "trades": 1373,
+      "n": 2516,
+      "total_return": 0.5874422107921009
+    },
+    "val": {
+      "sharpe": 2.117579556890745,
+      "profit_factor": 1.4713174309490087,
+      "max_drawdown": -0.03717117785137458,
+      "trades": 1373,
+      "n": 505,
+      "total_return": 0.29618047347434917
+    },
+    "test": {
+      "sharpe": 0.4211789367373395,
+      "profit_factor": 1.087492594584225,
+      "max_drawdown": -0.10531471577574758,
+      "trades": 1373,
+      "n": 755,
+      "total_return": 0.07543859460856761
+    },
+    "oos_val_test": {
+      "sharpe": 1.0983761648710364,
+      "profit_factor": 1.2347421009101949,
+      "max_drawdown": -0.10531471577574825,
+      "trades": 1373,
+      "n": 1260,
+      "total_return": 0.3939625067523185
+    }
+  },
+  "oos_diagnostics": {
+    "wf_stability_oos_over_train": 1.3671806518805423,
+    "worst_regime_rolling252_sharpe_oos": -1.2263872401154143,
+    "benchmark_buyhold": {
+      "sharpe": 0.7587585266862856,
+      "profit_factor": 1.1549498297175242,
+      "max_drawdown": -0.33717263786002827,
+      "trades": 1
+    },
+    "benchmark_p_le_0_05_and_ir": {
+      "p": 0.8788968019017557,
+      "ir": -0.5234654657188583
+    },
+    "perturbation_min_ratio": 0.9995205387482557,
+    "random_exposure_matched": {
+      "sharpe": 0.04505562805666751,
+      "profit_factor": 1.0144692511682867,
+      "max_drawdown": -0.23066132682868945,
+      "trades": 453
+    },
+    "inverse_regime": {
+      "sharpe": 0.29823431403011386,
+      "profit_factor": 1.084620598412309,
+      "max_drawdown": -0.18259223881970532,
+      "trades": 1374,
+      "n": 1260,
+      "total_return": 0.108471054025987
+    },
+    "mean_exposure_oos": 0.3500140100362258
+  },
+  "gates": {
+    "sharpe_oos_ge_1_0": true,
+    "trades_oos_ge_200": true,
+    "pf_oos_ge_1_3": false,
+    "maxdd_oos_le_15pct": true,
+    "wf_stability_ge_0_7": true,
+    "worst_regime_rolling252_sharpe_ge_0_3": false,
+    "benchmark_p_le_0_05_and_ir_ge_0": false,
+    "perturbation_min_ratio_ge_0_5": true
+  },
+  "gates_passed": 5,
+  "verdict": "REJECT"
+}

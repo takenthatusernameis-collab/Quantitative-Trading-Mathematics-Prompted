@@ -1,0 +1,8 @@
+{
+  "nf_id": "NF-20261107-43",
+  "h_id": "H134",
+  "runner": "run_nf_20261107_43_spy_vix_corr.py",
+  "description": "NF-20261107-43/H134: SPY timing from realized SPY-VIX correlation feedback (volatility-feedback). Continuous de-risking when z-score of trailing realized SPY-VIX correlation rises (fear decoupling). 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "free_data": true,
+  "src_qtr_changed": false
+}
