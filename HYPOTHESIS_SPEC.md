@@ -6467,3 +6467,31 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 **Ablations (OOS).** Buy-hold SPY 0.791/1.164/DD -17.97%/1. Random-exposure-matched 1.391/1.289/DD -14.45%/778. Inverse-stress-long 0.359/1.158/DD -11.37%/778.
 
 **Verdict rationale.** **REJECT (4/8).** Sector-dispersion-regime timing is perturbation-stable, has ample trades/WF stability, and reduces drawdown vs buy-and-hold, but fails Sharpe/PF/worst-regime/benchmark-p/IR on pre-registered OOS gates. The random-exposure-matched ablation outperforms the signal (Sharpe 1.391 vs 0.868), indicating the specific dispersion-z mapping does not add risk-adjusted edge beyond exposure management in this construction. The executed mapping is the specific pre-registered construction tested; this does not test all dispersion-regime constructions. No gate weakened; no published/certified artifact modified.
+
+**Cycle 33 required next.** H85–H118 all rejected/recorded. Fresh discovery per directive §4: reconcile lineage to H118, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly, reassess NF-04/05/07/08/10/11/13/15/17/20/21 and NF-11r/NF-06-18 (TNX-FVX, SAME root mechanism as NF-11 — not a new root family) with concrete evidence (no silent drops). NF-06-11 CBOE PC ratio infeasible. NF-20261106-03/21/23/24/28/29/30/32/33/35/36 deferred with evidence. Pre-register highest-expected-information feasible candidate as H119 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
+
+## H119 / NF-20261107-02 — Short-term cross-sectional return reversal among sector ETFs (liquidity provision / mean reversion) (pre-registered, Cycle 33)
+
+**NF-ID / H-ID.** NF-20261107-02 / H119 (next unused H-ID; H24/H68–H73/H76–H79 unassigned, not recycled).
+
+**Mechanism (new root family).** Short-term cross-sectional reversal / liquidity provision: extreme one-week sector returns partially reverse in the following week as temporary order imbalances clear and prices revert toward equilibrium (overreaction correction; liquidity providers demand compensation for absorbing imbalances). Each week (fixed 5-bar rebalance cadence), rank the 9 sectors by trailing `lookback`-day cumulative return (past-only, known at close); go long-only the weakest tercile (3 sectors), equal weight, each vol-targeted to `vol_target`, max_position 0.5, hold until next weekly rebalance. Engine `signals.shift(1)` gives t→t+1 causality; no position is established before its signal is observable. Distinct from every H1–H118 family: H2/H16 are cross-sectional *momentum* (own-past-return *trend*, multi-week/monthly horizons); H119 is *reversal* (opposite sign, weekly horizon, liquidity-provision causal path); all H85–H118 constructions time *SPY exposure* off a stress/regime signal, whereas H119 trades the sector cross-section directly and never times SPY market exposure.
+
+**Data.** yfinance daily adjusted close (DataFetcher/cache), 2010-01-01 → 2026-10-31. Same verified universe as H117/H118: 9 sectors with full 2010+ history — XLK, XLF, XLE, XLV, XLI, XLY, XLP, XLU, XLB — plus SPY benchmark: 4233 rows each, 2010-01-04→2026-10-30, 0 non-positive (verified via DataFetcher; XLC/XLRE excluded for sample preservation). Point-in-time. No `src/qtr` change.
+
+**Universe/splits (protected holdout).** Trade the 9 sector ETFs; benchmark = buy-hold SPY (program convention, gates evaluated vs SPY); buy-hold equal-weight sector basket reported as an ablation for information only. Signal = cross-sectional rank of trailing cumulative return; weakest tercile selected weekly (rebalance every 5 bars, deterministic cadence, no price-based tuning; n_long fixed at 3). Train 2010-01-01 → 2019-12-31; Val 2020-01-01 → 2022-12-31; Test (protected) 2023-01-01 → 2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+
+**Grid (bounded).** lookback ∈ {5, 10} days × vol_target ∈ {0.10, 0.15} (4 combos). Rebalance cadence fixed at 5 bars (weekly); n_long fixed at 3 (weakest tercile); max_position 0.5; long-only sectors only. Per-sector vol scale: clip(vol_target / realized 63-day vol, 0, 1). Weekly rebalance caps turnover (~at most one rebalance per week per name), resolving the net-of-cost decisive risk documented for deferred NF-05 (daily CS reversal turnover/cost); realized turnover and per-trade costs are reported in the artifact. No shorting (engine allow_short=False); gross leverage capped at 1.0.
+
+**Costs/constraints.** Equity CostModel defaults. Free/public data only. `src/qtr` unchanged.
+
+**Null / explicit falsifiers.** Null: short-term cross-sectional reversal produces no net-of-cost alpha in liquid sector ETFs after realized transaction costs. Explicit results that reject the idea: OOS Sharpe < 0.5; PF < 1.1; OOS trades < 200; max DD > 15%; benchmark p > 0.05 or IR < 0 vs buy-hold SPY; random-side ablation ≈ strategy; worst-regime rolling-252 Sharpe < 0; perturbation (±20% on lookback/vol_target) min Sharpe ratio < 0.5.
+
+**Gates (OOS Val+Test).** Sharpe >= 1.0, >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0, perturbation min ratio >= 0.5.
+
+**Runner.** `run_nf_20261107_02_cs_reversal.py`. **Tests.** `tests/test_nf_20261107_02_cs_reversal.py`.
+
+**Lineage map (H119 pre-registered):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known risks |
+|---|---|---|---|---|---|
+| Short-term cross-sectional return reversal / liquidity provision via sector ETF weakness | H119 (NF-20261107-02) | Weekly long-only weakest-tercile of 9 sector ETFs by trailing cumulative-return rank, equal weight, vol-targeted, 5-bar rebalance cadence, 1-bar engine delay | 9 sector ETFs traded (signal), SPY benchmark (gates) daily (yfinance), 2010–2026 | Pre-registered (Cycle 33), not executed | Weekly turnover/cost drag is the decisive risk (capped by fixed cadence, reported); reversal premium may be crowded/decayed in liquid ETFs; weakest-tercile concentration (3 names) raises idiosyncratic DD risk vs SPY benchmark |
