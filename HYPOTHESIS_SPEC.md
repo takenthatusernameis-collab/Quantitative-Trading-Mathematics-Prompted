@@ -6856,3 +6856,27 @@ published/certified artifact modified; `src/qtr` unchanged.
 
 **Lineage map (H131 REJECT):**
 | VIX term-structure slope (^VIX3M/^VIX) regime timing SPY | H131 (NF-20261107-34) | Continuous vol-targeted long SPY reduced when z-score of trailing ^VIX3M/^VIX elevated; 1-bar delay, long-only | SPY + ^VIX + ^VIX3M daily (yfinance), 2010–2025 | **REJECT** (3/8; `.experiments/nf_runs/nf_20261107_34_vix_termstructure_regime/summary.json`) | Fails Sharpe 0.661/PF 1.147/maxDD -17.97%/worst-regime -0.813/benchmark-p 1.0/IR -0.820; repo-new (VIX term structure) but no validated edge |
+
+### Hypothesis H132: SPY Realized Kurtosis (4th-Moment) Stress Timing (pre-registered, Cycle 46)
+
+**Statement.** Continuously reducing vol-targeted long SPY exposure when the z-score of trailing realized return kurtosis (4th standardized moment) of SPY is abnormally high improves OOS Val+Test Sharpe ≥1.0 with ≥200 trades, PF≥1.3, maxDD≤15%, WF stability≥0.7, worst-regime rolling-252 Sharpe≥0.3, benchmark p≤0.05 with IR≥0, perturbation ratio≥0.5.
+
+**Mechanism (realized higher-moment / tail-clustering stress).** Realized kurtosis measures tail fatness/extreme-return clustering in trailing SPY returns (past-only). Abnormally elevated kurtosis relative to its trailing history proxies regimes with clustered extremes and unstable tail risk; a continuous vol-targeted de-risking overlay (1-bar execution delay via engine `signals.shift(1)`) may avoid adverse exposure. Free, point-in-time from SPY close returns.
+
+**Repo-relative novelty (honest).** H128 (NF-20261107-28, REJECT 2/8) used *realized skewness* (3rd moment, asymmetry/crash-risk direction) — different moment. H122 (NF-20261107-07, REJECT 3/8) used *downside semivariance ratio* (2nd-moment downside asymmetry) — different observable. H124 (NF-20261107-09, REJECT 3/8) used cross-sectional MAX/lottery demand — different construction/universe. H89 (REJECT 4/9) used *implied* SKEW (^SKEW options surface) — different (implied vs realized) observable. H132 uses *realized kurtosis* (4th moment, tail fatness/clustering of SPY itself) — repo-new realized-moment observable; **honest adjacency** to higher-moment/realized-tail stress families (H89/H122/H124/H128) is acknowledged; novelty scored moderately (not a wholly unrelated domain). Distinct from VIX/vol-term-structure families (H86/H113/H123/H131) and correlation/IVOL regimes (H93/H117/H127/H129/H130).
+
+**Null (H0).** Trailing realized kurtosis regime contains no incremental timing information; OOS gates fail vs buy-hold/random-exposure.
+
+**Pre-registration (Cycle 46, decision-ready before validation outcomes).** NF-ID **NF-20261107-35**. Runner `run_nf_20261107_35_spy_realized_kurtosis.py`; tests `tests/test_nf_20261107_35_spy_realized_kurtosis.py`. Universe SPY (traded; signal from SPY returns), yfinance daily auto-adjust Close (free, PIT). Sample aligned to prior pattern: 2010-01-04→2025-01-03 (common rows expected ~3776). Train 2010-01-04→2019-12-31 (2516) / Val 2020-01-01→2021-12-31 (505) / Test (protected) 2022-01-01→2025-01-03 (755). Signal: z-score of trailing rolling realized SPY return kurtosis over `kurt_window`/`z_window` (past-only, `rolling.kurt()`); continuous stress `(z/entry_scale).clip(0,1)` for `z>0` reduces vol-targeted long SPY exposure by `(1-stress)*vol_target`; 1-bar delay; Equity CostModel defaults (1bp commission + 1bp spread); long-only, max exposure `vol_target` (scaled to `MAX_POS=0.5` in signals). Bounded grid: `kurt_window {63,126} × z_window {126} × entry_scale {1.0,1.5,2.0} × vol_target {0.10,0.15}` (12 combos); train-only 4-fold WF selection by mean train Sharpe; Test protected. No `src/qtr` change.
+
+**Gates (OOS Val+Test, pre-registered).** Sharpe >= 1.0, trades >= 200, PF >= 1.3, max DD <= 15%, WF stability >= 0.7, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0 vs buy-hold SPY, perturbation min ratio >= 0.5.
+
+**Ablations (pre-registered).** Buy-hold SPY, random-exposure-matched, inverse kurtosis-stress regime.
+
+**Costs/constraints.** Equity CostModel defaults. Free/public data only. `src/qtr` unchanged. No published/certified artifact modified. No gate weakening.
+
+**Falsifiers.** Random-exposure comparable or better; inverse not clearly opposite; benchmark fails; fragile to perturbation; worst-regime collapse; sparse OOS trades.
+
+**Execution status (2026-11-07, Cycle 46 session).** Runner and focused tests implemented and `py_compile`-checked in this session. **NOT EXECUTED in this environment:** `yfinance`/`pandas`/`numpy`/`scipy`/`pytest`/`ruff` dependencies are unavailable here and the runner requires free yfinance data fetch + `src/qtr` runtime; no OOS/validation outcomes were examined. Next session must run in a prepared environment (install deps / use project venv) and record verdict/artifacts.
+
+**Next step (precise).** In a prepared environment: `python -m ruff check run_nf_20261107_35_spy_realized_kurtosis.py tests/test_nf_20261107_35_spy_realized_kurtosis.py && python -m ruff format --check ... && PYTHONPATH=src python -m pytest -q tests/test_nf_20261107_35_spy_realized_kurtosis.py && PYTHONPATH=src python run_nf_20261107_35_spy_realized_kurtosis.py`, then record verdict in `HYPOTHESIS_SPEC.md`/`NEW_FAMILY_RESEARCH_REGISTER.md`/`NEXT_TASK.md`/handoff with artifact path `.experiments/nf_runs/nf_20261107_35_spy_realized_kurtosis/summary.json`. Do not examine/modify protected holdout selection logic beyond the pre-registered design.

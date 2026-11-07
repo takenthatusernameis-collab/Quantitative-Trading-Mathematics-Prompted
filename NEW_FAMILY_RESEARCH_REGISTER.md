@@ -2192,3 +2192,47 @@ Lineage reconciled to H130: H85–H130 all rejected/recorded. Next unused H-ID: 
 | VIX term-structure slope (^VIX3M/^VIX) regime timing SPY | H131 (NF-20261107-34) | Continuous vol-targeted long SPY reduced when z-score of trailing ^VIX3M/^VIX elevated; 1-bar delay, long-only | SPY + ^VIX + ^VIX3M daily (yfinance), 2010–2025 | **REJECT** (3/8; `.experiments/nf_runs/nf_20261107_34_vix_termstructure_regime/summary.json`) | Fails Sharpe 0.661/PF 1.147/maxDD -17.97%/worst-regime -0.813/benchmark-p 1.0/IR -0.820; repo-new but no validated edge |
 
 **Cycle 45 complete (H131 REJECT 3/8).** H85–H131 all rejected/recorded. Fresh discovery per directive §4 for Cycle 46: reconcile lineage to H131, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly (25/25/20/15/10/5), reassess deferred NF-04/05/07/08/10/11/13/15/17/20/21, NF-11r/NF-06-18 (same root as NF-11), NF-06-11 (infeasible), NF-20261106-03/23/24/28/30/32/33/35, NF-20261107-05 (CPI drift), and held NF-20261107-11/12/14/31/32 with concrete evidence (no silent drops). H93/H130 IVOL tested, VIX term-structure/H125/H126/H127 cross-asset vol/corr heavily tested — require clearly distinct mechanism/design if revisited. Pre-register highest-expected-information feasible candidate as **H132** (next unused H-ID). Free/public data only; no gate weakening; no published/certified artifact modification; no commit/push; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
+
+## Cycle 46 (2026-11-07) — Discovery + H132 pre-registration (NF-20261107-35 realized kurtosis stress; execution pending env deps)
+
+### Cycle 46 discovery (directive §4, >=3 repo-new mechanism candidates across >=3 broad categories)
+
+Lineage reconciled to H131: H85–H131 all rejected/recorded. Next unused H-ID: **H132** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified.
+
+**Candidate pool (scored 25/25/20/15/10/5):**
+
+| Candidate | Mechanism category | Novelty (25%) | Plaus (25%) | Data (20%) | Falsif (15%) | Exec (10%) | Support (5%) | Weighted |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261107-35 SPY trailing realized kurtosis (4th-moment) stress regime timing — **H132 (selected/pre-registered)** | Realized higher-moment / tail-clustering transmission | 4 | 3 | 5 | 4 | 5 | 2 | **4.00** |
+| NF-20261107-36 SPY distance-to-trailing-252d-high drawdown-state timing | Path-dependence / drawdown-state risk transmission | 4 | 3 | 5 | 4 | 4 | 2 | **3.85** |
+| NF-20261107-37 EEM-vs-EFA cross-asset emerging/global risk-appetite relative-strength timing for SPY | Global risk transmission / cross-asset leadership | 3 | 3 | 5 | 4 | 4 | 2 | **3.45** |
+| NF-20261107-38 Overnight-vs-intraday SPY return-state timing (close-to-open vs open-to-close decomposition) | Session microstructure / information-timing transmission | 2 | 3 | 4 | 4 | 4 | 3 | **3.15** |
+
+**Scoring notes (honest).**
+- NF-20261107-35 novelty 4 (moderate, not inflated): repo-new *realized kurtosis* (4th standardized moment, tail fatness/extreme-return clustering) as a continuous SPY regime overlay. Honest adjacency to higher-moment/realized-tail stress families: H128 (NF-20261107-28, REJECT 2/8, realized *skewness* 3rd moment), H122 (NF-20261107-07, REJECT 3/8, downside *semivariance ratio* 2nd-moment asymmetry), H124 (NF-20261107-09, REJECT 3/8, cross-sectional MAX/lottery demand), H89 (REJECT 4/9, *implied* SKEW ^SKEW options surface). Different moment/observable/construction from each; same broad “higher-moment tail risk” neighborhood acknowledged. Data 5 (SPY returns, free PIT yfinance). Falsifiable bounded grid; decisive small test.
+- NF-20261107-36 novelty 4: distance-to-trailing-high/drawdown-state is a path-dependent state variable (not a realized return moment). Repo has 252d rolling max in some contexts (e.g., `run_h6_vix_ddcv_experiment.py` uses `rolling(252).max()` for drawdown calc), but not pre-registered as a *standalone SPY timing signal family* in NF lineage; must be treated as feasible and checked carefully if selected. Held; honest separation required.
+- NF-20261107-37 novelty 3: EEM/EFA relative strength as global risk-appetite timing — adjacent to FX/macro risk channels (H95/H103 REJECT) and cross-asset relative-strength constructions; different instruments (equity ETFs) but overlapping risk-transmission category. Held.
+- NF-20261107-38 novelty 2: overnight/intraday decomposition exists in repo as **H18** (REJECT) and `run_h18_overnight_intraday_experiment.py`; not repo-new root. Not selected.
+
+**Selection:** NF-20261107-35 → **H132** (highest feasible repo-new realized-moment observable with clean separation from tested moments/observables; bounded 12-combo grid, SPY-only, free PIT data). Pre-registered in `HYPOTHESIS_SPEC.md` §H132.
+
+**Deferred candidates reassessed (no silent drops), carried forward:**
+- NF-04 commodity carry **blocked** (no free PIT term-structure/roll proxy).
+- NF-05 short-term CS reversal **deferred** (turnover/net-of-cost; H119 weekly REJECT 3/8).
+- NF-07 GLD/SPY safe-haven **deferred** (weak). NF-08 TIP/IEF breakeven→GLD **deferred** (weak proxy).
+- NF-10 SI/GC risk sentiment **deferred** (adj H101/inconclusive).
+- NF-11 TLT/IWM growth-liquidity **deferred** (adj H85/H86/H99). NF-11r/NF-06-18 TNX-FVX **data-resolved but NF-11 resolution path (SAME root as NF-11) — not a new root family**.
+- NF-13 GLD/TIP real-rate **deferred**. NF-15 EEM/EFA global risk-appetite **deferred** (overlaps NF-37 concept; NF-37 held with separation required). NF-17 volume-shock reversal **deferred** (turnover/cost).
+- NF-20 Treasury auction supply-pressure **deferred** (calendar/timestamp). NF-21 month-end pension rebalancing **deferred** (weak/adj H91).
+- NF-06-11 CBOE PC ratio **infeasible** (no free yfinance/PIT series).
+- NF-20261106-03 VVIX **deferred** (VIX-complex adj H104). NF-20261106-23 XHB/XLU **deferred** (rates adj). NF-20261106-24 XBI/XLV **deferred** (weak separation). NF-20261106-28 JNK/LQD **deferred** (credit adj H94/H108). NF-20261106-30 VNQ/SPY **deferred** (rates/beta adj). NF-20261106-32 DBC/SPY **deferred** (ETF roll/flow confounds). NF-20261106-33 EWH/SPY **deferred** (capital-flow confounds). NF-20261106-35 FXA commodity-currency **deferred** (adj H103). NF-20261107-05 CPI release event drift **deferred** (macro event-calendar adj H90).
+- **Held:** NF-20261107-11 cross-sectional IVOL spread timing (requires PIT construction clearly separating from H93 IVOL level REJECT; larger scope), NF-20261107-12 credit-vs-equity vol divergence (separation from H94/H100/H125), NF-20261107-14 OVX−VIX energy-options spread (same construction class as H125/H126 — **materially different pre-registered design required**), NF-20261107-31 sector breadth (adj H115 RSP/SPY REJECT 1/8; materially different observable/construction), NF-20261107-32 return dispersion (adj dispersion concepts), NF-20261107-36 distance-to-252d-high (check prior runner usage; standalone NF timing not pre-registered), NF-20261107-37 EEM/EFA relative strength (separation from FX-macro risk channels).
+- **Executed/rejected not rerun:** H85–H131 (and lineage gaps H24/H68–H73/H76–H79 unassigned). NF-20261107-28/H128, NF-20261107-29/H129, NF-20261107-30/H130, NF-20261107-34/H131. IVOL-related (H93/H130) tested — require clearly distinct mechanism/design. VIX-term/cross-asset vol/corr (H86/H113/H123/H125/H126/H127/H131) heavily tested — require clearly distinct mechanism/design.
+
+### NF-20261107-35 / H132 status (2026-11-07, Cycle 46) — PRE-REGISTERED, NOT EXECUTED (env deps missing)
+
+**Runner:** `run_nf_20261107_35_spy_realized_kurtosis.py`. **Tests:** `tests/test_nf_20261107_35_spy_realized_kurtosis.py`. `python3 -m py_compile` OK for both. `ruff`/`pytest`/`yfinance`/`pandas`/`numpy`/`scipy` unavailable in this environment (verified); **no execution, no OOS metrics, no validation outcomes examined**. `src/qtr` unchanged.
+
+**Next:** execute in prepared environment per `NEXT_TASK.md`; record verdict/artifact `.experiments/nf_runs/nf_20261107_35_spy_realized_kurtosis/summary.json`. Do not fabricate results.
+
+**Cycle 46 complete (discovery + H132 pre-registration).** Execution deferred to prepared environment. H85–H131 remain REJECTED/recorded; H132 pending real execution.
