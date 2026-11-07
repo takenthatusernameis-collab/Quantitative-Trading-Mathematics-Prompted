@@ -1,24 +1,23 @@
-"""NF-20261107-06 / H122 (pre-registered, Cycle 36): Cross-sectional retail
-flow timing across sector ETFs.
+"""SUPERSEDED UNEXECUTED DRAFT — NOT NF-20261107-06 / H122 EVIDENCE.
 
-Signal = cross-sectional rank of trailing `lookback`-day *signed retail flow*
-(volume * direction), where direction is inferred from the daily price move
-(close vs prior close). Each week (fixed 5-bar rebalance cadence) go long-only
+This file is a renamed, incomplete, test-less draft (previously
+run_nf_20261107_06_cs_retail_flow.py). It was never executed: it has no
+main(), no run_backtest call, no experiment tracking, no focused tests, and no
+committed summary.json artifact. It must not be treated as NF-20261107-06 or
+H122 evidence.
+
+NF-20261107-06 itself (VIX futures term-structure contango/backwardation carry
+timing on SPY, ^VIX/^VIX3M) is a DUPLICATE of H86 (NF-20261104-01, VIX term
+structure slope VIX3M/VIX on SPY, executed REJECT 2/9). It is not a repo-new
+family and must not be pre-registered as H123. See NEW_FAMILY_RESEARCH_REGISTER.md
+Cycle 37.
+
+Original (unexecuted) draft mechanism: cross-sectional rank of trailing
+lookback-day signed retail flow (volume * direction, direction inferred from
+close vs prior close). Each week (fixed 5-bar rebalance cadence) go long-only
 the three sectors with the weakest signed retail flow (most net selling), equal
-weight, each vol-targeted to `vol_target`, max_position 0.5, hold until the next
-weekly rebalance. Engine `signals.shift(1)` gives t->t+1 causality.
-
-Distinct from H119 (cross-sectional reversal on *returns*, liquidity-provision
-mean reversion): H122 ranks on *signed volume flow* (an order-flow proxy), not on
-price return, so the causal path is retail-participant sentiment/positioning
-imbalances rather than price overreaction. Distinct from H20 (order-flow
-imbalance on SPY/QQQ/IWM daily): H20 is single-asset daily; H122 is a
-cross-sectional sector-ETF portfolio with a weekly cadence. Distinct from H2/H16
-CS momentum (own-past-return trend): opposite sign and flow-based, not price-based.
-
-9 sectors with full 2010+ history (XLK,XLF,XLE,XLV,XLI,XLY,XLP,XLU,XLB);
-XLC/XLRE excluded to preserve the 2010+ sample/splits. 4233 aligned rows each,
-0 non-positive, 2010-01-04..2026-10-30 via DataFetcher/cache. No src/qtr change.
+weight, each vol-targeted to vol_target, max_position 0.5, hold until the next
+weekly rebalance. Engine signals.shift(1) gives t->t+1 causality.
 """
 
 import json
