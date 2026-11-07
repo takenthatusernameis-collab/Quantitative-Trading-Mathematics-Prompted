@@ -1852,3 +1852,22 @@ H119 / NF-20261107-02 (short-term cross-sectional return reversal among sector E
 **Deferred candidates reassessed (no silent drops).** All Cycle 37 deferred list carried forward with reasons unchanged (NF-04 blocked; NF-05/07/08/10/11/13/15/17/20/21 deferred; NF-11r same root as NF-11; NF-06-11 infeasible; NF-20261106-03/23/24/28/30/32/33/35 deferred; NF-20261107-05 CPI event drift deferred; NF-20261107-06 dup of H86). NF-20261107-10 and NF-20261107-11 held.
 
 **Selection:** NF-20261107-09 pre-registered as **H124**. Implementation + execution deferred to next cycle (runner + focused tests + ruff clean + execute + record verdict). No `src/qtr` change; no gate weakening; no published/certified artifact modified.
+
+### NF-20261107-09 / H124 execution outcome (2026-11-07, REAL) — REJECTED (3/8)
+
+**Runner:** `run_nf_20261107_09_max_lottery.py`. **Tests:** `tests/test_nf_20261107_09_max_lottery.py` (10 passed). `ruff check/format` clean. `src/qtr` unchanged.
+
+**Execution.** Artifact `.experiments/nf_runs/nf_20261107_09_max_lottery/summary.json` (experiment `exp_2026-11-07T10-42-29-663331Z`, 4.03s). Universe SPY + 15 signal ETFs (yfinance). 3773 rows 2010-01-04→2024-12-30 (train 2516 / val 505 / test 752). Selected (train-only 4-fold WF): `lookback=21, z_window=252, entry_scale=2.0, vol_target=0.15` (train WF mean 1.430; train Sharpe 0.740, 115 trades).
+
+**Result — REJECT (3/8 gates).** OOS Val+Test (119 trades): Sharpe **0.800** (fail ≥1.0), PF **1.147** (fail ≥1.3), max DD **-13.67%** (pass ≤15%), trades **119** (fail ≥200), WF stability **1.082** (pass ≥0.7), worst-regime rolling-252 Sharpe min **-0.928** (fail ≥0.3), benchmark p **1.0** / IR **-0.046** (fail), perturbation min ratio **0.933** (pass ≥0.5).
+
+**Ablations (OOS).** Buy-hold SPY 0.671/1.136/DD -18.21%/1. Random-exposure-matched 0.412/1.093/DD -7.24%/1257. Inverse_stress_long 0.042/1.036/DD -10.58%/118.
+
+**Verdict rationale.** Fails Sharpe/PF/trades/worst-regime/benchmark. OOS Sharpe slightly above buy-hold but not significant and trade gate failed (119 < 200); WF/perturbation/DD robust. No validated lottery-demand timing edge. Executed construction differs from Cycle-38 outline (earlier 2010 start, as-implemented splits) — recorded honestly; no gate weakened; no published/certified artifact modified.
+
+**Lineage map (H124 REJECT):**
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Cross-sectional MAX/lottery-demand timing (higher-moment attention) | H124 (NF-20261107-09) | Vol-targeted long SPY reduced when z-score of cross-sectional mean trailing per-ETF max daily return is elevated; 1-bar delay, long-only | SPY + 15 liquid ETFs daily (yfinance), 2010–2024 | **REJECT** (3/8; exp_2026-11-07T10-42-29-663331Z) | Fails Sharpe 0.800/PF 1.147/trades 119/worst-regime -0.928/benchmark-p 1.0/IR -0.046; stable perturbation/WF but insufficient trades and no validated edge; distinct from H2/H16/H93/H119 |
+
+**Cycle 39 required next.** H85–H124 all rejected/recorded. Fresh discovery per directive §4: reconcile lineage to H124, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly (25/25/20/15/10/5), reassess deferred NF-04/05/07/08/10/11/13/15/17/20/21, NF-11r/NF-06-18 (TNX-FVX same root as NF-11 — not new root), NF-06-11 (infeasible), NF-20261106-03/23/24/28/30/32/33/35, NF-20261107-05 (CPI event drift), and held NF-20261107-10 (^VIX vs ^MOVE cross-asset vol) / NF-20261107-11 (cross-sectional IVOL spread timing) with concrete evidence (no silent drops). NF-20261107-09 (H124) executed/rejected — do not rerun without materially different, pre-registered construction. Pre-register highest-expected-information feasible candidate as **H125** (next unused H-ID). Free/public data only; no gate weakening; no published/certified artifact modification; no commit/push; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
