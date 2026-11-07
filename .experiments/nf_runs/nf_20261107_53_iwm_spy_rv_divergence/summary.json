@@ -1,0 +1,180 @@
+{
+  "experiment": "NF-20261107-53/H139: SPY timing from  IWM-vs-SPY realized-vol divergence (HYG-LQD credit-spread RV relative to SPY RV). Continuous de-risking when z-score of trailing RV divergence ratio rises. 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "nf_id": "NF-20261107-53",
+  "h_id": "H139",
+  "timestamp": "2026-11-07T23:06:29Z",
+  "runtime_s": 3.32,
+  "data": {
+    "universe": [
+      "SPY",
+      "IWM"
+    ],
+    "start": "2010-01-01",
+    "end": "2025-01-05",
+    "rows": 3776,
+    "train_end": "2019-12-31",
+    "val_end": "2021-12-31",
+    "train_n": 2516,
+    "val_n": 505,
+    "test_n": 755
+  },
+  "selection": {
+    "grid": [
+      {
+        "rv_window": 21,
+        "z_window": 126,
+        "entry_scale": 1.0,
+        "vol_target": 0.1
+      },
+      {
+        "rv_window": 21,
+        "z_window": 126,
+        "entry_scale": 1.0,
+        "vol_target": 0.15
+      },
+      {
+        "rv_window": 21,
+        "z_window": 126,
+        "entry_scale": 1.5,
+        "vol_target": 0.1
+      },
+      {
+        "rv_window": 21,
+        "z_window": 126,
+        "entry_scale": 1.5,
+        "vol_target": 0.15
+      },
+      {
+        "rv_window": 21,
+        "z_window": 126,
+        "entry_scale": 2.0,
+        "vol_target": 0.1
+      },
+      {
+        "rv_window": 21,
+        "z_window": 126,
+        "entry_scale": 2.0,
+        "vol_target": 0.15
+      },
+      {
+        "rv_window": 63,
+        "z_window": 126,
+        "entry_scale": 1.0,
+        "vol_target": 0.1
+      },
+      {
+        "rv_window": 63,
+        "z_window": 126,
+        "entry_scale": 1.0,
+        "vol_target": 0.15
+      },
+      {
+        "rv_window": 63,
+        "z_window": 126,
+        "entry_scale": 1.5,
+        "vol_target": 0.1
+      },
+      {
+        "rv_window": 63,
+        "z_window": 126,
+        "entry_scale": 1.5,
+        "vol_target": 0.15
+      },
+      {
+        "rv_window": 63,
+        "z_window": 126,
+        "entry_scale": 2.0,
+        "vol_target": 0.1
+      },
+      {
+        "rv_window": 63,
+        "z_window": 126,
+        "entry_scale": 2.0,
+        "vol_target": 0.15
+      }
+    ],
+    "best_params": {
+      "rv_window": 63,
+      "z_window": 126,
+      "entry_scale": 2.0,
+      "vol_target": 0.15
+    },
+    "train_wf_mean_sharpe": 0.7745333028384684
+  },
+  "metrics": {
+    "train": {
+      "sharpe": 0.8798969675251225,
+      "profit_factor": 1.2118235059150781,
+      "max_drawdown": -0.09748311376268193,
+      "trades": 1383,
+      "n": 2516,
+      "total_return": 0.652897443793627
+    },
+    "val": {
+      "sharpe": 0.6417091590266945,
+      "profit_factor": 1.1739367025222371,
+      "max_drawdown": -0.17971865660412856,
+      "trades": 1383,
+      "n": 505,
+      "total_return": 0.1472163922812353
+    },
+    "test": {
+      "sharpe": 0.29947954943593,
+      "profit_factor": 1.0609704504600186,
+      "max_drawdown": -0.12137343614581297,
+      "trades": 1383,
+      "n": 755,
+      "total_return": 0.06288642373188735
+    },
+    "oos_val_test": {
+      "sharpe": 0.4614131928772946,
+      "profit_factor": 1.1096010828948406,
+      "max_drawdown": -0.17971865660412856,
+      "trades": 1383,
+      "n": 1260,
+      "total_return": 0.2193607284383996
+    }
+  },
+  "oos_diagnostics": {
+    "wf_stability_oos_over_train": 0.5243945710770057,
+    "worst_regime_rolling252_sharpe_oos": -0.7500578629435334,
+    "benchmark_buyhold": {
+      "sharpe": 0.7587586605554973,
+      "profit_factor": 1.1549499105691348,
+      "max_drawdown": -0.337172522508536,
+      "trades": 1
+    },
+    "benchmark_p_le_0_05_and_ir": {
+      "p": 0.9818025918473724,
+      "ir": -0.9371618586870852
+    },
+    "perturbation_min_ratio": 0.923304617125257,
+    "random_exposure_matched": {
+      "sharpe": 0.04195624458991825,
+      "profit_factor": 1.0135278485256343,
+      "max_drawdown": -0.2245070302728408,
+      "trades": 449
+    },
+    "inverse_regime": {
+      "sharpe": 1.0653397128779436,
+      "profit_factor": 1.2247342981024323,
+      "max_drawdown": -0.04709444982438871,
+      "trades": 1384,
+      "n": 1260,
+      "total_return": 0.2341900139731845
+    },
+    "mean_exposure_oos": 0.3447505552159219
+  },
+  "gates": {
+    "sharpe_oos_ge_1_0": false,
+    "trades_oos_ge_200": true,
+    "pf_oos_ge_1_3": false,
+    "maxdd_oos_le_15pct": false,
+    "wf_stability_ge_0_7": false,
+    "worst_regime_rolling252_sharpe_ge_0_3": false,
+    "benchmark_p_le_0_05_and_ir_ge_0": false,
+    "perturbation_min_ratio_ge_0_5": true
+  },
+  "gates_passed": 2,
+  "verdict": "REJECT"
+}

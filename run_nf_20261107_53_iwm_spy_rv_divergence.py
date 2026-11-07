@@ -1,35 +1,32 @@
 """NF-20261107-53 / H139 (pre-registered, Cycle 52): SPY timing from
- IWM-vs-SPY realized-volatility divergence (HYG-LQD credit-spread
-realized vol relative to SPY realized vol).
+IWM-vs-SPY realized-volatility divergence (small-cap vs large-cap
+realized-vol ratio relative to trailing history).
 
 Signal (past-only):
-  r_cs_t   = r_HYG,t - r_LQD,t                         (credit spread proxy)
-  RV_cs_t  = rolling_std(r_cs, rv_window) * sqrt(252)
+  RV_iwm_t = rolling_std(r_iwm, rv_window) * sqrt(252)
   RV_spy_t = rolling_std(r_spy, rv_window) * sqrt(252)
-  d_t      = RV_cs_t / RV_spy_t                         (RV divergence ratio)
+  d_t      = RV_iwm_t / RV_spy_t                         (RV divergence ratio)
   z_t      = (d_t - rolling_mean(d, z_window)) / rolling_std(d, z_window)
-When z rises (credit-spread realized vol abnormally elevated relative to
-equity realized vol vs trailing history, stress/vol-transmission divergence
-state), exposure to vol-targeted long SPY is reduced continuously, with 1-bar
-execution delay (engine signals.shift(1)).
+When z rises (small-cap realized vol abnormally elevated relative to
+large-cap realized vol vs trailing history — size/liquidity
+risk-transmission divergence state), exposure to vol-targeted long SPY is
+reduced continuously, with 1-bar execution delay (engine signals.shift(1)).
 
 Repo-relative novelty (honest). No executed NF/H uses *realized-volatility
-divergence between a credit-spread proxy (HYG-LQD) and equity (SPY)* as the
-timing observable. H94 (NF-20261105-14, REJECT 3/9) used HYG-IEF credit *excess
-return / price* timing; H108 (NF-20261106-19, REJECT 4/8) used LQD/HYG
-*ratio-momentum* (price level z-score) — both are credit *price/momentum*
-observables, not realized-vol divergence. H100 (NF-20261106-02, REJECT 5/9)
-used ^MOVE *implied* rates-vol level; H125 (NF-20261107-10, REJECT 4/8) used
-*implied* VIX−MOVE spread — both implied-vol observables, different
-asset/mechanism. H118 (NF-20261107-01, REJECT 4/8) used cross-sectional sector
-return dispersion (equity cross-section), not cross-asset  IWM-vs-SPY RV
-divergence. H139's observable is the *second-moment (realized vol) divergence
-ratio* between a credit-spread return proxy and SPY — a distinct
-observable/mechanism (credit stress transmitting through realized-vol
-divergence). Honest adjacency to credit (H94/H108) and vol (H100/H118/H125)
-families is acknowledged; novelty scored moderately.
+divergence between IWM (small-cap) and SPY (large-cap)* as the timing
+observable. H118 (NF-20261107-01, REJECT 4/8) used cross-sectional sector
+*return* dispersion (first-moment cross-section), not a cross-asset
+realized-vol *ratio*. H130 (NF-20261107-30, REJECT 3/8) used cross-sectional
+average sector *implied* vol level, not a small-cap/large-cap realized-vol
+ratio. H138 (NF-20261107-51, REJECT 2/8) used credit-spread (HYG-LQD) vs SPY
+realized-vol divergence — a different asset pair and a different
+risk-transmission channel (credit vs size/liquidity). H139's observable is
+the *second-moment (realized vol) divergence ratio* between IWM and SPY — a
+distinct asset-pair/mechanism (size/liquidity risk transmission through
+realized-vol divergence). Honest adjacency to the RV-divergence class
+(H118/H130/H138) is acknowledged; novelty scored moderately.
 
-Data (free, yfinance): SPY, HYG, LQD daily Close (auto_adjust), point-in-time,
+Data (free, yfinance): SPY, IWM daily Close (auto_adjust), point-in-time,
 aligned on common dates.
 
 Splits (pre-registered): Train 2010-01-04->2019-12-31 / Val 2020-01-01->
@@ -424,7 +421,7 @@ def main() -> int:
         "verdict": verdict,
     }
 
-    expdir = ROOT / ".experiments" / "nf_runs" / "nf_20261107_51_iwm_spy_rv_divergence"
+    expdir = ROOT / ".experiments" / "nf_runs" / "nf_20261107_53_iwm_spy_rv_divergence"
     expdir.mkdir(parents=True, exist_ok=True)
     (expdir / "summary.json").write_text(json.dumps(out, indent=2))
     pd.DataFrame([{"params": json.dumps(p), "train_wf_sharpe": s} for s, p in scored]).to_csv(
@@ -433,7 +430,7 @@ def main() -> int:
     meta = {
         "nf_id": "NF-20261107-53",
         "h_id": "H139",
-        "runner": "run_nf_20261107_51_iwm_spy_rv_divergence.py",
+        "runner": "run_nf_20261107_53_iwm_spy_rv_divergence.py",
         "description": EXPERIMENT_DESC,
         "free_data": True,
         "src_qtr_changed": False,
