@@ -1,18 +1,23 @@
-"""NF-20261107-07 / H122 (pre-registered, Cycle 35): SPY Amihud
-semivaruidity-stress regime timing.
+"""NF-20261107-07 / H122 (executed, Cycle 36): SPY realized downside
+semivariance-ratio stress regime timing.
 
-Signal = trailing Amihud semivaruidity = |ret| / dollar_volume (close*volume),
-z-scored over `window`. Reduce vol-targeted long SPY when z > entry_z
-(extreme semivaruidity stress), flat otherwise; hysteresis exit at exit_z.
-Engine signals.shift(1) gives t->t+1 causality. No src/qtr change.
+NOTE (lineage correction, 2026-11-07): an earlier draft header mislabeled this
+mechanism as "Amihud semivariance/semiliquidity". The *executed* implementation
+and recorded verdict use a **realized downside/upside variance ratio** signal:
+`down_var_20 / up_var_20` (20-bar rolling mean of squared negative/positive
+returns), z-scored over `window`; `volume` is fetched but NOT used by the
+signal. Numeric results/artifact verdict preserved unchanged.
 
-Distinct from H117/H118 (cross-sectional correlation/dispersion regime timing
-SPY): H122 uses a single-asset *Amihud semivariance* stress measure on SPY only,
-not multi-sector realized co-movement/dispersion. Distinct from H1/H4/H8/H9/H10
-TSMOM (momentum/trend persistence, opposite direction), H87 opening-gap fill,
-H18 overnight/intraday, H19/H20 volume/order-flow, H90 FOMC event drift, H91
-turn-of-month calendar, H120 SPY absolute-return contrarian. Amihud-specific
-microstructure semivariance stress is a new root family dimension.
+Signal = z-score of trailing realized downside semivariance ratio. Reduce
+vol-targeted long SPY when z > entry_z (downside asymmetry stress), flat
+otherwise; hysteresis exit at exit_z. Engine signals.shift(1) gives t->t+1
+causality. No src/qtr change.
+
+Distinct from H121 (NF-20261107-04, REJECT 4/8, Amihud |ret|/dollar-volume
+liquidity stress): H122 uses price-return asymmetry (downside vs upside realized
+variance), no dollar-volume/Amihud component. Distinct from H117/H118
+(cross-sectional correlation/dispersion regime), H1/H4/H8/H9/H10 TSMOM,
+H18/H87/H90/H91/H119/H120.
 SPY daily adjusted close 2010-01-04..2026-10-30, 4233 rows, 0 non-positive via
 DataFetcher/cache. No src/qtr change.
 """
@@ -43,11 +48,11 @@ from qtr.validation.statistics import (
 
 EXPERIMENT_NAME = "nf_20261107_07_realized_semivariance"
 EXPERIMENT_DESC = (
-    "NF-20261107-07/H122: SPY Amihud semivaruidity-stress regime timing. "
-    "Reduce vol-targeted long SPY when trailing Amihud semivaruidity z-score "
-    "exceeds entry threshold (semivariance-stress risk-off), flat otherwise with "
-    "hysteresis exit. Train-only WF selection; Test protected; OOS gates vs "
-    "buy-hold SPY benchmark."
+    "NF-20261107-07/H122: SPY realized downside semivariance-ratio stress timing. "
+    "Reduce vol-targeted long SPY when z-score of rolling downside/upside "
+    "variance ratio exceeds entry threshold (downside asymmetry stress), flat "
+    "otherwise with hysteresis exit. Volume fetched but unused by signal. "
+    "Train-only WF selection; Test protected; OOS gates vs buy-hold SPY."
 )
 
 SPY = "SPY"

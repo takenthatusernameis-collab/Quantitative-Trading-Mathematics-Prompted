@@ -3,7 +3,7 @@
   "hypothesis": "H122",
   "nf_id": "NF-20261107-07",
   "name": "nf_20261107_07_realized_semivariance",
-  "description": "NF-20261107-07/H122: SPY Amihud semivaruidity-stress regime timing. Reduce vol-targeted long SPY when trailing Amihud semivaruidity z-score exceeds entry threshold (semivariance-stress risk-off), flat otherwise with hysteresis exit. Train-only WF selection; Test protected; OOS gates vs buy-hold SPY benchmark.",
+  "description": "NF-20261107-07/H122 (executed, Cycle 36): SPY realized downside semivariance-ratio stress timing. Signal z-score of rolling downside/upside variance ratio (down_var_20/up_var_20); reduce vol-targeted long SPY when z > entry_z (downside semivariance stress), hysteresis exit. Train-only WF selection; OOS Val+Test gates vs buy-hold SPY. NOTE: runner header originally mislabeled mechanism as Amihud/semivariance; implementation/metrics preserved as executed (downside/upside variance ratio, volume unused).",
   "data": {
     "source": "yfinance via DataFetcher/cache",
     "symbols": [
@@ -1092,5 +1092,6 @@
   },
   "verdict": "REJECT",
   "timing_seconds": 12.34,
-  "src_qtr_changed": false
+  "src_qtr_changed": false,
+  "mechanism_note": "Executed mechanism: down_var(20)/up_var(20) ratio z-score (volume ignored). Distinct from H121 Amihud |ret|/dollar-volume."
 }
