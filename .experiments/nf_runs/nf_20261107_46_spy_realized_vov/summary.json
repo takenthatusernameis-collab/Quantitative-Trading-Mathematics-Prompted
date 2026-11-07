@@ -1,0 +1,150 @@
+{
+  "nf_id": "NF-20261107-46",
+  "h_id": "H135",
+  "experiment": "NF-20261107-46/H135: SPY timing from realized volatility-of-volatility (VoV) stress. Continuous de-risking when z-score of trailing std of trailing realized volatility rises. 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "timestamp_utc": "2026-11-07T18:16:20Z",
+  "runtime_sec": 1.461,
+  "data": {
+    "rows": 3776,
+    "start": "2010-01-04",
+    "end": "2025-01-03",
+    "train_n": 2516,
+    "val_n": 505,
+    "test_n": 755
+  },
+  "selection": {
+    "best_params": {
+      "rv_window": 21,
+      "vov_window": 63,
+      "z_window": 126,
+      "entry_scale": 2.0,
+      "vol_target": 0.1
+    },
+    "wf_scores_top5": [
+      {
+        "params": {
+          "rv_window": 21,
+          "vov_window": 63,
+          "z_window": 126,
+          "entry_scale": 2.0,
+          "vol_target": 0.1
+        },
+        "wf_train_mean_sharpe": 0.6668532917390692
+      },
+      {
+        "params": {
+          "rv_window": 21,
+          "vov_window": 63,
+          "z_window": 126,
+          "entry_scale": 2.0,
+          "vol_target": 0.15
+        },
+        "wf_train_mean_sharpe": 0.6668532917390692
+      },
+      {
+        "params": {
+          "rv_window": 21,
+          "vov_window": 63,
+          "z_window": 126,
+          "entry_scale": 1.5,
+          "vol_target": 0.1
+        },
+        "wf_train_mean_sharpe": 0.5999047250651827
+      },
+      {
+        "params": {
+          "rv_window": 21,
+          "vov_window": 63,
+          "z_window": 126,
+          "entry_scale": 1.5,
+          "vol_target": 0.15
+        },
+        "wf_train_mean_sharpe": 0.5999047250651827
+      },
+      {
+        "params": {
+          "rv_window": 21,
+          "vov_window": 63,
+          "z_window": 126,
+          "entry_scale": 1.0,
+          "vol_target": 0.1
+        },
+        "wf_train_mean_sharpe": 0.5392729472865698
+      }
+    ]
+  },
+  "oos_val_test": {
+    "sharpe": 1.015342389756265,
+    "profit_factor": 1.211504898843743,
+    "max_drawdown": -0.08885306899983103,
+    "trades": 1238,
+    "n": 1260,
+    "total_return": 0.4085859493325734
+  },
+  "val": {
+    "sharpe": 1.5329239617437718,
+    "profit_factor": 1.3272171997530602,
+    "max_drawdown": -0.06374696799571822,
+    "trades": 1238,
+    "n": 505,
+    "total_return": 0.2298879558715501
+  },
+  "test": {
+    "sharpe": 0.6775452297892639,
+    "profit_factor": 1.1388586430410839,
+    "max_drawdown": -0.08885306899982992,
+    "trades": 1238,
+    "n": 755,
+    "total_return": 0.145296156944954
+  },
+  "train": {
+    "sharpe": 0.7993755866836812,
+    "profit_factor": 1.1827866402368743,
+    "max_drawdown": -0.1031561812431564,
+    "trades": 1238,
+    "n": 2516,
+    "total_return": 0.51016297475788
+  },
+  "benchmarks": {
+    "buy_hold_spy": {
+      "sharpe": 0.7587585795035408,
+      "profit_factor": 1.1549498804611475,
+      "max_drawdown": -0.3371725894030084,
+      "trades": 1
+    },
+    "random_exposure_matched": {
+      "sharpe": 0.537873139568811,
+      "profit_factor": 1.1269329990768449,
+      "max_drawdown": -0.3210328428950182,
+      "trades": 231
+    },
+    "inverse_regime": {
+      "sharpe": 0.11190548808493693,
+      "profit_factor": 1.0453117537272318,
+      "max_drawdown": -0.14427492986149693,
+      "trades": 1237,
+      "n": 1260,
+      "total_return": 0.027687889815722233
+    }
+  },
+  "diagnostics": {
+    "wf_stability_oos_over_train": 1.270169375535412,
+    "worst_regime_rolling252_sharpe": -0.6470039559112204,
+    "benchmark_p_value": 1.0,
+    "information_ratio_vs_buyhold": 0.25658381025272425,
+    "perturbation_min_ratio": 0.8283039999173623,
+    "mean_oos_exposure_fraction": 0.7646152606897342
+  },
+  "gates": {
+    "sharpe_gte_1": true,
+    "trades_gte_200": true,
+    "pf_gte_1_3": false,
+    "maxdd_lte_15pct": true,
+    "wf_stability_gte_0_7": true,
+    "worst_regime_gte_0_3": false,
+    "benchmark_p_lte_0_05_ir_gte_0": false,
+    "perturbation_gte_0_5": true
+  },
+  "gates_passed": 5,
+  "verdict": "REJECT"
+}

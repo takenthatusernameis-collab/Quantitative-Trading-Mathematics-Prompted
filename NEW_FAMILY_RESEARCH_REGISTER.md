@@ -2336,3 +2336,45 @@ Lineage reconciled to H133: H85–H133 all rejected/recorded. Next unused H-ID: 
 | Realized SPY--VIX correlation feedback regime timing (volatility-feedback) | H134 (NF-20261107-43) | Continuous vol-targeted long SPY reduced when z-score of trailing realized SPY--VIX correlation rises (fear decoupling); 1-bar delay, long-only | SPY + ^VIX daily (yfinance), 2010–2025 | **REJECT** (5/8; `.experiments/nf_runs/nf_20261107_43_spy_vix_corr/summary.json`) | Fails PF 1.235/worst-regime -1.226/benchmark-p 0.879/IR -0.524; Sharpe 1.098 passes but not significant vs buy-hold; no validated edge |
 
 **Cycle 48 complete (discovery + H134 execution).** H85–H134 all rejected/recorded. Cycle 49 required next: fresh directive §4 discovery, >=3 repo-new candidates across >=3 broad categories, pre-register and execute **H135** (next unused H-ID). No gate weakening; no published/certified artifact modification; no commit/push; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
+
+
+## Cycle 49 (2026-11-07) — Discovery + H135 execution (NF-20261107-46 realized volatility-of-volatility; REJECT 5/8)
+
+### Cycle 49 discovery (directive §4, >=3 repo-new mechanism candidates across >=3 broad categories)
+
+Lineage reconciled to H134: H85–H134 all rejected/recorded. Next unused H-ID: **H135** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified.
+
+| Cycle-49 candidate | Broad mechanism category | Novelty 25% | Plausibility 25% | Data PIT 20% | Falsifiability 15% | Execution 10% | Ind. support 5% | Weighted |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261107-46 SPY realized volatility-of-volatility (std of trailing realized vol) stress timing — **H135 (selected/executed)** | Realized second-order risk / uncertainty-of-risk transmission | 4 | 3 | 5 | 4 | 5 | 2 | **3.95** |
+| NF-20261107-47 SPY trailing lag-1 return autocorrelation (serial-dependence state) regime timing (held NF-20261107-40 concept) | Serial dependence / microstructure-state transmission | 4 | 2 | 5 | 4 | 4 | 2 | **3.60** |
+| NF-20261107-48 OVX−VIX cross-asset energy-vs-equity implied-vol spread timing SPY (held NF-20261107-14 concept, materially distinct framing check) | Cross-asset commodity-options / energy uncertainty transmission | 2 | 3 | 5 | 4 | 4 | 2 | **3.35** |
+| NF-20261107-49 TLT-SPY realized return-correlation regime timing SPY | Rates-equity co-movement / flight-to-quality transmission | 3 | 3 | 5 | 4 | 4 | 3 | **3.60** |
+
+**Scoring notes (honest).**
+- NF-20261107-46 novelty 4 (moderate): repo-new as an executed realized *volatility-of-volatility* observable (std of trailing realized vol of SPY returns). **Honest adjacency to H104** (NF-20261106-07, REJECT 5/9, ^VVIX *implied* vol-of-vol, options/VIX-surface) — same broad “vol-of-vol” concept but different implied-vs-realized observable/market; scored on realized-vs-implied separation, not inflated as wholly unrelated. Distinct from realized higher moments of returns (H122 downside semivariance ratio 2nd-moment asymmetry REJECT 3/8, H128 realized skewness 3rd REJECT 2/8, H132 realized kurtosis 4th REJECT 5/8) — VoV is dispersion/instability of realized volatility itself (second-order risk uncertainty), different construction. Distinct from VIX level/shape families (H86/H113/H123/H126/H131/H134), IVOL (H93/H130), drawdown state (H133), return dispersion (H118). Data 5 (SPY free PIT yfinance). Falsifiable bounded 12-combo grid.
+- NF-20261107-47 novelty 4 but plausibility 2 (weak): held NF-20261107-40. Repo has AR(1)/autocorrelation *diagnostics* (e.g., `run_h26_sharpe_scale_audit.py`, `run_nf_20261105_06_gold_oil_rv.py`) and H26 is a Sharpe annualization-scale audit (not a timing family), but no pre-registered NF SPY AR(1)/lag-1 autocorrelation regime-timing family. Economic persistence weak at daily SPY; held pending decisive separation.
+- NF-20261107-48 novelty 2 (discounted): held NF-20261107-14 OVX−VIX. Same cross-asset IV-spread construction class as H125 (MOVE, REJECT) / H126 (GVZ, REJECT) with heavily tested pattern; register requires **materially different pre-registered design** to revisit — reframing alone is not sufficient. Not selected.
+- NF-20261107-49 novelty 3: TLT-SPY realized correlation regime — adjacent to H127 (GLD–TLT correlation, REJECT 2/8, different pair/rates-commodity) and to H96 (equity-bond correlation family context in spec lineage); cross-asset correlation construction class requires careful separation. Feasible/held, not selected over H135.
+
+**Deferred reassessment (no silent drops):** NF-04 commodity carry **blocked** (no free PIT term-structure/roll proxy); NF-05 short-term CS reversal **deferred** (turnover/net-of-cost; H119 weekly REJECT 3/8); NF-07/08/10/11/13/15/17/20/21 **deferred**; NF-11r/NF-06-18 TNX-FVX **same root as NF-11** (not new root); NF-06-11 CBOE PC ratio **infeasible**; NF-20261106-03/23/24/28/30/32/33/35 **deferred**; NF-20261107-05 CPI drift **deferred** (data blocker, adj H90). **Held:** NF-20261107-11 IVOL spread (NF-20261107-45 concept; separation from H118/H130 REJECTs), NF-20261107-12 credit-vs-equity vol divergence (sep H94/H100/H125), NF-20261107-14/NF-20261107-48 OVX−VIX (same construction class as H125/H126 — **materially different pre-registered design required**), NF-20261107-31 sector breadth (adj H115 REJECT 1/8), NF-20261107-40/NF-20261107-47 AR(1) serial dependence (adj diagnostics/H26; weak plausibility), NF-20261107-49 TLT-SPY corr (adj H127/H96; separation required). NF-20261107-32 (=H118 executed REJECT), NF-20261107-36/NF-20261107-39 (=H133 executed REJECT), NF-20261107-43 (=H134 executed REJECT) not repo-new; do not rerun.
+- **Executed/rejected not rerun:** H85–H135. Higher-moment/realized-tail (H89/H122/H124/H128/H132), vol-of-vol (H104 implied, H135 realized), VIX-term/cross-asset vol/corr (H86/H113/H123/H125/H126/H127/H131/H134), IVOL (H93/H130), drawdown state (H133), return dispersion (H118) all executed/recorded.
+
+**Selection:** NF-20261107-46 → **H135** (highest feasible repo-new realized second-order risk observable with clear implied-vs-realized separation from H104; bounded grid, SPY-only, free PIT data). Pre-registered in `HYPOTHESIS_SPEC.md` §H135 before validation outcomes.
+
+### NF-20261107-46 / H135 execution outcome (2026-11-07, REAL) — REJECTED (5/8)
+
+**Runner:** `run_nf_20261107_46_spy_realized_vov.py`. **Tests:** `tests/test_nf_20261107_46_spy_realized_vov.py` (7 passed). `ruff check/format` clean. `src/qtr` unchanged.
+
+**Execution.** Artifact `.experiments/nf_runs/nf_20261107_46_spy_realized_vov/summary.json` (1.46s). Data SPY yfinance auto-adjust, 3776 aligned rows 2010-01-04→2025-01-03 (train 2516 / val 505 / test 755). Selected (train-only 4-fold WF mean Sharpe 0.667): `rv_window=21, vov_window=63, z_window=126, entry_scale=2, vol_target=0.10`.
+
+**Result — REJECT (5/8 gates).** OOS Val+Test (1238 trades, n=1260): Sharpe **1.015** (pass ≥1.0), PF **1.212** (fail ≥1.3), max DD **-8.89%** (pass ≤15%), trades **1238** (pass), WF stability **1.270** (pass), worst-regime rolling-252 Sharpe **-0.647** (fail ≥0.3), benchmark p **1.000** / IR **+0.257** vs buy-hold (fail, p>0.05), perturbation min ratio **0.828** (pass).
+
+**Ablations (OOS).** Buy-hold SPY 0.759/1.155/maxDD -33.72%/1. Random-exposure-matched 0.538/1.127/maxDD -32.10%/231 (weaker). Inverse VoV-stress 0.112/1.045/maxDD -14.43%/1237 (no opposite edge).
+
+**Verdict rationale.** Realized VoV gives borderline OOS Sharpe 1.015 and much lower DD than buy-hold, beating random exposure, but not significant vs buy-hold (p 1.000) and fails PF/worst-regime/benchmark (5/8). Repo-new *realized* VoV observable with honest adjacency to H104 implied VVIX — no validated benchmark-clearing edge. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Lineage map (H135 REJECT):**
+| SPY realized volatility-of-volatility stress timing (realized 2nd-order risk uncertainty) | H135 (NF-20261107-46) | Continuous vol-targeted long SPY reduced when z-score of trailing std of trailing realized vol elevated; 1-bar delay, long-only | SPY daily (yfinance), 2010–2025 | **REJECT** (5/8; `.experiments/nf_runs/nf_20261107_46_spy_realized_vov/summary.json`) | Fails PF 1.212/worst-regime -0.647/benchmark-p 1.000/IR +0.257; Sharpe 1.015 borderline; beats random exposure but not buy-hold significant; repo-new realized VoV, honest adjacency to H104 implied VVIX |
+
+**Cycle 49 complete (discovery + H135 execution).** H85–H135 all rejected/recorded. Cycle 50 required next: fresh directive §4 discovery, >=3 repo-new candidates across >=3 broad categories, pre-register and execute **H136** (next unused H-ID). No gate weakening; no published/certified artifact modification; no commit/push; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).

@@ -6949,3 +6949,35 @@ published/certified artifact modified; `src/qtr` unchanged.
 
 **Lineage map (H134 REJECT):**
 | Realized SPY--VIX correlation feedback regime timing (volatility-feedback) | H134 (NF-20261107-43) | Continuous vol-targeted long SPY reduced when z-score of trailing realized SPY--VIX correlation rises (fear decoupling); 1-bar delay, long-only | SPY + ^VIX daily (yfinance), 2010–2025 | **REJECT** (5/8; `.experiments/nf_runs/nf_20261107_43_spy_vix_corr/summary.json`) | Fails PF 1.235/worst-regime -1.226/benchmark-p 0.879/IR -0.524; Sharpe 1.098 passes but not significant vs buy-hold; no validated edge |
+
+
+### Hypothesis H135: SPY Timing from Realized Volatility-of-Volatility (VoV) Stress (pre-registered, Cycle 49)
+
+**Statement.** Continuously reducing vol-targeted long SPY exposure when the z-score of trailing realized volatility-of-volatility (std of trailing realized volatility of SPY returns) is abnormally high improves OOS Val+Test Sharpe ≥1.0 with ≥200 trades, PF≥1.3, maxDD≤15%, WF stability≥0.7, worst-regime rolling-252 Sharpe≥0.3, benchmark p≤0.05 with IR≥0, perturbation ratio≥0.5.
+
+**Mechanism (realized second-order risk / uncertainty of risk).** Realized VoV captures instability/dispersion of realized risk itself (`rv_t = rolling_std(r_spy, rv_window)*sqrt(252)`, `vov_t = rolling_std(rv_t, vov_window)`, past-only). Elevated realized VoV may proxy regimes where risk is hard to forecast and equity drawdown risk is higher; a continuous vol-targeted de-risking overlay (1-bar execution delay via engine `signals.shift(1)`) may reduce unfavorable exposure. Free, point-in-time from SPY close.
+
+**Repo-relative novelty (honest).** H104 (NF-20261106-07, REJECT 5/9) used ^VVIX *implied* volatility-of-volatility (options/VIX-surface) — a different observable (implied/derivative vs realized returns). H122 (downside semivariance ratio, 2nd-moment asymmetry, REJECT 3/8), H128 (realized skewness, 3rd, REJECT 2/8), H132 (realized kurtosis, 4th, REJECT 5/8) tested realized higher moments of returns — realized VoV is the *dispersion/instability of realized volatility itself* (second-order realized risk uncertainty), a different observable/mechanism. No executed NF/H uses realized VoV of SPY returns as the timing signal. Honest adjacency to H104 acknowledged (same “vol-of-vol” concept, different implied-vs-realized observable); scored moderately. Distinct from VIX level/shape (H86/H113/H123/H126/H131/H134), IVOL (H93/H130), drawdown state (H133), return dispersion (H118).
+
+**Null (H0).** Trailing realized VoV regime contains no incremental timing information; OOS gates fail vs buy-hold/random-exposure.
+
+**Pre-registration (Cycle 49, decision-ready before validation outcomes).** NF-ID **NF-20261107-46**. Runner `run_nf_20261107_46_spy_realized_vov.py`; tests `tests/test_nf_20261107_46_spy_realized_vov.py`. Universe SPY, yfinance daily auto-adjust Close (free, PIT). Sample 2010-01-01→2025-01-05 (3776 rows). Train 2010-01-04→2019-12-31 (2516) / Val 2020-01-01→2021-12-31 (505) / Test (protected) 2022-01-01→2025-01-03 (755). Signal: z-score of trailing std of trailing 21d realized vol over `vov_window`/`z_window` (past-only); continuous stress `(z.clip(0)/entry_scale).clip(0,1)` reduces vol-targeted long SPY exposure by `(1-stress)*vol_target`; 1-bar delay; Equity CostModel defaults (1bp commission + 1bp spread); long-only, max exposure `vol_target` (scaled to `MAX_POS=0.5`). Bounded grid: `rv_window {21} × vov_window {63,126} × z_window {126} × entry_scale {1.0,1.5,2.0} × vol_target {0.10,0.15}` (12 combos); train-only 4-fold WF selection by mean train Sharpe; Test protected. No `src/qtr` change.
+
+**Gates (OOS Val+Test, pre-registered).** Sharpe >= 1.0, trades >= 200, PF >= 1.3, max DD <= 15%, WF stability >= 0.7, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0 vs buy-hold SPY, perturbation min ratio >= 0.5.
+
+**Ablations (pre-registered).** Buy-hold SPY, random-exposure-matched, inverse VoV-stress regime.
+
+**Costs/constraints.** Equity CostModel defaults. Free/public data only. `src/qtr` unchanged. No published/certified artifact modified. No gate weakening.
+
+**Falsifiers.** Random-exposure comparable or better; inverse not clearly opposite; benchmark fails; fragile to perturbation; worst-regime collapse.
+
+**Executed outcome (2026-11-07, REAL, Cycle 49): REJECT (5/8).** Artifact `.experiments/nf_runs/nf_20261107_46_spy_realized_vov/summary.json` (`NF-20261107-46/H135`, 1.46s). Data SPY yfinance auto-adjust, 3776 aligned rows 2010-01-04→2025-01-03 (train 2516 / val 505 / test 755). Selected (train-only 4-fold WF mean Sharpe 0.667): `rv_window=21, vov_window=63, z_window=126, entry_scale=2, vol_target=0.10`.
+
+**Result — REJECT (5/8 gates).** OOS Val+Test (1238 trades, n=1260): Sharpe **1.015** (pass ≥1.0), PF **1.212** (fail ≥1.3), max DD **-8.89%** (pass ≤15%), trades **1238** (pass ≥200), WF stability **1.270** (pass ≥0.7), worst-regime rolling-252 Sharpe **-0.647** (fail ≥0.3), benchmark p **1.000** / IR **+0.257** vs buy-hold (fail, p>0.05), perturbation min ratio **0.828** (pass ≥0.5). Mean OOS exposure fraction 0.765.
+
+**Ablations (OOS).** Buy-hold SPY Sharpe 0.759/PF 1.155/maxDD -33.72%/1 trade. Random-exposure-matched Sharpe 0.538/PF 1.127/maxDD -32.10%/231 trades (weaker). Inverse VoV-stress regime Sharpe 0.112/PF 1.045/maxDD -14.43%/1237 trades (no opposite edge).
+
+**Verdict rationale.** Realized VoV raises raw OOS Sharpe to 1.015 (borderline pass) and beats random exposure (0.538) with much lower DD (-8.89% vs -33.72% buy-hold), but is not significant vs buy-hold (p 1.000, IR +0.257) and fails PF/worst-regime/benchmark (5/8); worst-regime collapses (-0.647). Honest adjacency to H104 (implied VVIX, REJECT 5/9) — repo-new *realized* VoV observable, no validated benchmark-clearing edge. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Lineage map (H135 REJECT):**
+| SPY realized volatility-of-volatility stress timing (realized 2nd-order risk uncertainty) | H135 (NF-20261107-46) | Continuous vol-targeted long SPY reduced when z-score of trailing std of trailing realized vol elevated; 1-bar delay, long-only | SPY daily (yfinance), 2010–2025 | **REJECT** (5/8; `.experiments/nf_runs/nf_20261107_46_spy_realized_vov/summary.json`) | Fails PF 1.212/worst-regime -0.647/benchmark-p 1.000/IR +0.257; Sharpe 1.015 borderline; beats random exposure (0.538) but not buy-hold significant; repo-new realized VoV, honest adjacency to H104 implied VVIX |
