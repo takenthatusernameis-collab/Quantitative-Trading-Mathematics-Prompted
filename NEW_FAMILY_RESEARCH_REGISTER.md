@@ -1734,3 +1734,23 @@ H119 / NF-20261107-02 (short-term cross-sectional return reversal among sector E
 **Pre-registration H121:** Universe SPY (yfinance daily, cached, 4233 rows 2010-2026). Train 2015-2019 / Val 2020-2021 / Test 2022-2024 (protected holdout). Signal: trailing Amihud illiquidity = |ret|/dollar-volume, z-score over 20d; reduce vol-targeted long SPY when z > entry threshold; hysteresis exit. Grid: window ∈ {10,20,40} × entry_z ∈ {1.0,1.5,2.0} × exit_z ∈ {0.0,0.5,1.0} × vol_target ∈ {0.10,0.15}. Selection train-only 4-fold WF. Gates: OOS Val+Test Sharpe ≥1.0, ≥200 trades, PF≥1.3, maxDD≤15%, WF stability≥0.7, worst-regime yearly Sharpe≥0.3, benchmark p<0.05, perturbation ratio≥0.5. Ablations: buy-hold SPY; random-exposure-matched; inverse (long in high-illiquidity). No src/qtr change. Costs Equity CostModel 1+1bp.
 
 **Next task:** Implement runner `run_nf_20261107_04_amihud_illiq.py` + tests, ruff clean, execute, record verdict. Address H121 trade-sparsity risk (prior sanity ~89 trades at es=1.5) by grid breadth and construction audit; if <200 OOS trades, REJECT on trade gate (no rescue).
+
+### NF-20261107-04 / H121 execution outcome (2026-11-07, REAL) — REJECTED (4/8)
+
+**Runner:** `run_nf_20261107_04_amihud_illiq.py`. **Tests:** `tests/test_nf_20261107_04_amihud_illiq.py` (13 passed). `ruff check/format` clean. `src/qtr` unchanged.
+
+**Execution.** `exp_2026-11-07T04-18-08-373455Z` (`nf_20261107_04_amihud_illiq`). SPY 4233 rows (train 2516 / val 756 / test 961), cache/free yfinance. Selected (train-only 4-fold WF, 54-combo grid): `window=40, entry_z=1.5, exit_z=1.0, vol_target=0.15` (WF mean 1.655, train Sharpe 0.902, 1178 train trades). Artifact `.experiments/nf_runs/nf_20261107_04_amihud_illiq/summary.json` (+ `grid.csv`).
+
+**Result — REJECT (4/8 gates).** OOS Val+Test (971 trades): Sharpe **0.869** (fail ≥1.0), PF **1.176** (fail ≥1.3), max DD **-3.16%** (pass ≤15%), trades **971** (pass ≥200), WF stability **0.963** (pass ≥0.7), worst-regime rolling-252 Sharpe min **-0.919** (fail ≥0.3), benchmark p **1.0** / IR **-0.773** (fail), perturbation min ratio **0.900** (pass ≥0.5).
+
+**Ablations (OOS).** Buy-hold SPY 0.798/1.165/DD -33.72%/1. Random-exposure-matched **0.556/1.127/DD -5.12%/1249**. Inverse/high-illiquidity-long **-0.084/0.966/DD -9.61%/530**.
+
+**Verdict rationale.** Construction resolved prior trade-sparsity concern (971 OOS trades) with bounded DD and stable WF/perturbation, but no pre-registered risk-adjusted edge vs buy-hold SPY (fails Sharpe/PF/worst-regime/benchmark). Inverse ablation is weak/negative as expected directionally, yet the specific Amihud stress-timing mapping does not clear cost-robust gates. Distinct from H117/H118 cross-sectional correlation/dispersion regime timing and generic realized-vol timing (uses `|return|/dollar-volume` liquidity-stress z-score). No gate weakened; no published/certified artifact modified.
+
+**Lineage map (H121 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Market liquidity / Amihud illiquidity-stress regime timing SPY | H121 (NF-20261107-04) | Vol-targeted long SPY reduced/flat when trailing Amihud (`\|ret\|/dollar-volume`) stress z-score exceeds entry threshold, hysteresis exit, 1-bar delay | SPY OHLCV daily (yfinance/cache), 2010–2026 | **REJECT** (4/8; exp_2026-11-07T04-18-08-373455Z) | Fails Sharpe 0.869/PF 1.176/worst-regime -0.919/benchmark-p 1.0/IR -0.773; random-exposure below strategy but no edge vs buy-hold; inverse weak; specific Amihud mapping tested |
+
+**Cycle 36 required next.** H85–H121 all rejected/recorded. Fresh discovery per directive §4: reconcile lineage to H121, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly (25/25/20/15/10/5), reassess deferred NF-04/05/07/08/10/11/13/15/17/20/21, NF-11r/NF-06-18 (TNX-FVX, **SAME root mechanism as NF-11 — not a new root family**), NF-06-11 (infeasible), NF-20261106-03/21/23/24/28/30/32/33/35, NF-20261107-05/06 with concrete evidence (no silent drops). NF-20261107-04 (H121) executed/rejected — do not rerun without materially different, pre-registered construction. Do not rerun other executed/rejected NF families without materially different construction. Pre-register highest-expected-information feasible candidate as **H122** (next unused H-ID; H24/H68–H73/H76–H79 unassigned, not recycled) with smallest decisive test. Free/public data only; no gate weakening; no published/certified artifact modification; no commit/push; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
