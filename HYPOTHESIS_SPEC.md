@@ -6673,3 +6673,36 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 
 **Lineage map (H126 REJECT):**
 | Cross-asset gold-vs-equity implied-vol spread timing (commodity-options / safe-haven uncertainty) | H126 (NF-20261107-13) | Vol-targeted long SPY reduced when z-score of trailing (GVZ − VIX) elevated; hysteresis, 1-bar delay, long-only | SPY + ^VIX/^GVZ daily (yfinance), 2010–2025 | **REJECT** (2/8; `.experiments/nf_runs/nf_20261107_13_gvz_vix_spread/summary.json`) | Fails Sharpe 0.537/PF 1.120/maxDD -15.99%/trades 66/worst-regime -0.853/benchmark-p 0.973/IR -0.864; random-exposure outperforms; no validated edge; repo-new underlying (GVZ gold-options IV) but same spread-construction class as H125 (REJECT 4/8) — honest adjacency |
+
+---
+
+### Hypothesis H127: GLD–TLT Rolling Return-Correlation Regime Timing on SPY
+
+**Statement.** Reducing vol-targeted long SPY exposure to flat when the z-score of the trailing rolling GLD–TLT return correlation exceeds an entry threshold, and re-entering when it falls below an exit threshold (hysteresis), improves OOS Val+Test Sharpe ≥1.0 with ≥200 trades, PF≥1.3, maxDD≤15%, WF stability≥0.7, worst-regime yearly Sharpe≥0.3, benchmark p<0.05 with IR≥0, perturbation ratio≥0.5.
+
+**Mechanism (cross-asset correlation regime / inflation-hedge vs duration transmission).** GLD (gold) and TLT (long-duration Treasuries) have a time-varying correlation driven by real-rate and inflation-expectation regimes. Unusually positive GLD–TLT co-movement can indicate a macro regime where real-rate/inflation dynamics dominate both assets (gold's diversification/hedge role relative to duration weakens) and may coincide with equity risk-premium stress. De-risking SPY when GLD–TLT correlation is abnormally elevated may avoid adverse equity exposure.
+
+**Repo-relative novelty (honest).** H96 (NF-20261105-15, REJECT 4/9) tested *SPY–TLT* realized return-correlation regime timing (equity-vs-bond diversification/co-movement). H127 uses a *different asset pair* (GLD–TLT) and a different causal channel (gold's inflation-hedge vs real-rate/duration sensitivity relative to Treasuries), not equity-bond diversification. Adjacency to the correlation-regime construction class (same z-score/hysteresis/vol-target statistical form as H96/H117/H126-class signal processing) is acknowledged; novelty scored moderately (3/5). The observable pair and mechanism are repo-new.
+
+**Null (H0).** GLD–TLT rolling return-correlation regime contains no incremental timing information; OOS Sharpe/PF/worst-regime/benchmark gates fail vs buy-hold/random-exposure.
+
+**Pre-registration (executed).** NF-ID **NF-20261107-15** (Cycle 41). Runner `run_nf_20261107_15_gld_tlt_corr.py`; tests `tests/test_nf_20261107_15_gld_tlt_corr.py` (8 passed). Universe SPY (traded) with GLD/TLT signal (yfinance daily, auto_adjust close). Common aligned sample 2010-01-04→2025-01-03, 3776 rows (all positive), verified 2026-11-07. Train 2010-01-04→2019-12-31 (2516) / Val 2020-01-01→2021-12-31 (505) / Test (protected) 2022-01-01→2025-01-03 (755). Signal: z-score of trailing GLD–TLT return correlation over `corr_window`/`z_window`; long vol-targeted SPY when `z <= entry_z`, flat when `z > entry_z`, hysteresis re-enter at `z < exit_z`. 1-bar delay via engine position application (`signals.shift(1)` semantics); Equity CostModel (1bp commission + 1bp spread); long-only, max position 0.5. Bounded grid: corr_window {21,63} × z_window {63,126} × entry_z {1.0,1.5,2.0} × exit_z {0.0,0.5} × vol_target {0.10,0.15} (48 combos, exit_z < entry_z); train-only 4-fold WF selection by mean stability+Sharpe. No `src/qtr` change.
+
+**Gates (OOS Val+Test, pre-registered).** Sharpe >= 1.0, trades >= 200, PF >= 1.3, max DD >= -15% (abs DD <= 15%), WF stability >= 0.7, worst-regime yearly Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0 vs buy-hold SPY, perturbation min ratio >= 0.5.
+
+**Ablations (pre-registered).** Buy-hold SPY, random-exposure-matched, inverse-corr-regime-long.
+
+**Costs/constraints.** Equity CostModel defaults. Free/public data only. `src/qtr` unchanged. No published/certified artifact modified.
+
+**Falsifiers.** Random-exposure comparable or better; inverse not clearly opposite; benchmark fails; fragile to perturbation; worst-regime collapse; sparse OOS trades.
+
+**Executed outcome (2026-11-07, REAL): REJECT (2/8).** Artifact `.experiments/nf_runs/nf_20261107_15_gld_tlt_corr/summary.json` (`nf_20261107_15_gld_tlt_corr_1783536988`). Data GLD/TLT/SPY yfinance, 3776 aligned rows 2010-01-04→2025-01-03 (train 2516 / val 505 / test 755). Selected (train-only 4-fold WF): `corr_window=63, z_window=63, entry_z=1.5, exit_z=0.0, vol_target=0.10`.
+
+**Result — REJECT (2/8 gates).** OOS Val+Test (16 trades, n=1260): Sharpe **0.661** (fail ≥1.0), PF **1.142** (fail ≥1.3), max DD **-17.97%** (fail ≤15%), trades **16** (fail ≥200), WF stability **1.0** (pass ≥0.7), worst-regime yearly Sharpe **-0.904** (fail ≥0.3), benchmark p **0.898** / IR **-0.627** (fail), perturbation min ratio **0.861** (pass ≥0.5).
+
+**Ablations (OOS).** Buy-hold SPY 0.759/1.155/DD -17.97%/1. Random-exposure-matched 0.743/1.161/DD -13.30%/1247 (outperforms strategy). Inverse_corr_regime_long 0.168/1.038/DD -27.77%/758.
+
+**Verdict rationale.** Fails Sharpe/PF/maxDD/trades/worst-regime/benchmark (2/8). OOS Sharpe 0.661 underperforms buy-hold SPY (0.759) and random-exposure-matched ablation (0.743), with only 16 OOS trades — no validated edge from GLD–TLT correlation-regime timing in this construction. Robust WF stability/perturbation are not economically decisive given sparsity and benchmark failure. Honest adjacency to H96 (SPY–TLT correlation regime, REJECT 4/9): different asset pair/channel (GLD–TLT inflation-hedge vs duration sensitivity) and repo-new observable, same correlation-regime construction class; both rejected. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Lineage map (H127 REJECT):**
+| Cross-asset gold-duration correlation-regime timing (GLD–TLT) | H127 (NF-20261107-15) | Vol-targeted long SPY reduced when z-score of trailing GLD–TLT return correlation elevated; hysteresis, 1-bar delay, long-only | SPY + GLD/TLT daily (yfinance), 2010–2025 | **REJECT** (2/8; `.experiments/nf_runs/nf_20261107_15_gld_tlt_corr/summary.json`) | Fails Sharpe 0.661/PF 1.142/maxDD -17.97%/trades 16/worst-regime -0.904/benchmark-p 0.898/IR -0.627; random-exposure outperforms; extremely sparse OOS; repo-new GLD–TLT pair but honest adjacency to H96 correlation-regime construction class |

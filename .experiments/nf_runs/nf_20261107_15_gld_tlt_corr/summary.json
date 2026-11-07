@@ -1,0 +1,99 @@
+{
+  "experiment_id": "nf_20261107_15_gld_tlt_corr_1794056060",
+  "hypothesis": "H127",
+  "nf_id": "NF-20261107-15",
+  "description": "NF-20261107-15/H127: SPY timing from GLD-TLT rolling return-correlation regime. Reduce vol-targeted long SPY to flat when z-score of trailing GLD-TLT return correlation > entry_z, re-enter when z < exit_z (hysteresis), 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "runtime_seconds": 1.87,
+  "selected_params": {
+    "corr_window": 21,
+    "z_window": 63,
+    "entry_z": 2.0,
+    "exit_z": 0.5,
+    "vol_target": 0.1
+  },
+  "train_metrics": {
+    "sharpe": 0.907540204147224,
+    "profit_factor": 1.198017049938957,
+    "max_drawdown": -0.11602528654935396,
+    "trades": 53,
+    "n": 2516,
+    "total_return": 0.7485312885705673
+  },
+  "val_metrics": {
+    "sharpe": 0.7818533218772457,
+    "profit_factor": 1.184120085136169,
+    "max_drawdown": -0.17971869397251328,
+    "trades": 53,
+    "n": 505,
+    "total_return": 0.19487858223145138
+  },
+  "test_metrics": {
+    "sharpe": 0.567274528584132,
+    "profit_factor": 1.1073684935003043,
+    "max_drawdown": -0.125208893476216,
+    "trades": 53,
+    "n": 755,
+    "total_return": 0.13912696023204862
+  },
+  "oos_val_test_metrics": {
+    "sharpe": 0.6610951807384252,
+    "profit_factor": 1.141541155785478,
+    "max_drawdown": -0.17971869397251328,
+    "trades": 16,
+    "n": 1260,
+    "total_return": 0.3611184072236924
+  },
+  "wf_stability_train": 1.0,
+  "worst_yearly_sharpe_oos": -0.8144521278033398,
+  "benchmark_vs_buy_hold_spy": {
+    "p_value": 0.9626432169114588,
+    "information_ratio": -0.7980107066151626,
+    "t": -1.783697948764268
+  },
+  "perturbation": {
+    "min_ratio_vs_optimum": 0.5961851425781214
+  },
+  "ablations_oos": {
+    "buy_hold_spy": {
+      "sharpe": 0.7587588146457093,
+      "profit_factor": 1.1549498407886005,
+      "max_drawdown": -0.17971869397251328,
+      "trades": 1,
+      "n": 1260,
+      "total_return": 0.4481012865628402
+    },
+    "random_exposure_matched": {
+      "sharpe": 0.5893492179744705,
+      "profit_factor": 1.1254050280461256,
+      "max_drawdown": -0.12830726229107903,
+      "trades": 931,
+      "n": 1260,
+      "total_return": 0.29359942244600723
+    },
+    "inverse_corr_regime_long": {
+      "sharpe": 0.4252871250187598,
+      "profit_factor": 1.263280166800767,
+      "max_drawdown": -0.02791846252268826,
+      "trades": 373,
+      "n": 1260,
+      "total_return": 0.031974626523382677
+    }
+  },
+  "gates": {
+    "sharpe": false,
+    "trades": false,
+    "profit_factor": false,
+    "max_drawdown": false,
+    "wf_stability": true,
+    "worst_regime": false,
+    "benchmark": false,
+    "perturbation": true
+  },
+  "passed_all_gates": false,
+  "verdict": "REJECT",
+  "data": {
+    "rows": 3776,
+    "start": "2010-01-04",
+    "end": "2025-01-03"
+  }
+}
