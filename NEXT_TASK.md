@@ -1,8 +1,27 @@
-# NEXT_TASK — Cycle 46 execution complete: H132 REJECT; Cycle 47 fresh discovery for H133
+# NEXT_TASK — Cycle 47: discovery, pre-register, implement, execute H133
 
-Cycle 46 execution ran H132 (NF-20261107-35 SPY trailing realized kurtosis stress-regime timing) in prepared env.
-- ruff check/format: pass after formatting 2 files.
-- pytest focused: 7 passed.
-- runner: verdict REJECT, gates_passed 5. Artifact: .experiments/nf_runs/nf_20261107_35_spy_realized_kurtosis/summary.json.
+## State (post Cycle 46)
+- **H85–H132 all REJECTED/recorded.** H132 (NF-20261107-35, SPY trailing realized kurtosis 4th-moment stress regime timing) executed REAL: `nf_20261107_35_spy_realized_kurtosis_1794228254`, verdict **REJECT 5/8** (`.experiments/nf_runs/nf_20261107_35_spy_realized_kurtosis/summary.json`). Selected `kurt_window=126, z_window=126, entry_scale=2, vol_target=0.10`. OOS Val+Test (1284 trades): Sharpe **1.248** (pass), PF **1.277** (fail), maxDD **-11.93%** (pass), trades **1284** (pass), WF stability **1.181** (pass), worst-regime rolling-252 Sharpe **-0.486** (fail), benchmark p **0.833**/IR **-0.433** vs buy-hold (fail), perturbation **0.667** (pass). Ablations: buy-hold 0.759/1.155/DD -33.72%; random-exposure-matched 0.878/1.324/DD -7.99%; inverse -0.145/0.948/DD -17.39%.
+- **Next unused H-ID: H133** (H24/H68–H73/H76–H79 unassigned, not recycled).
+- **Docs recorded:** `HYPOTHESIS_SPEC.md` §H132, `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 46 outcome, `HANDOFF_NEXT_SESSION.md`.
+- **src/qtr unchanged.** No published/certified artifact, verdict, threshold, or frozen number modified.
 
-Next task (Cycle 47): fresh discovery per STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §4 — propose >=3 repo-new candidates across >=3 broad mechanism categories, pre-register H133, add runner + focused tests, execute. src/qtr unchanged.
+## Verified (Cycle 46 close)
+- `python3 -m ruff check run_nf_20261107_35_spy_realized_kurtosis.py tests/test_nf_20261107_35_spy_realized_kurtosis.py` → pass.
+- `python3 -m ruff format --check run_nf_20261107_35_spy_realized_kurtosis.py tests/test_nf_20261107_35_spy_realized_kurtosis.py` → 2 files already formatted.
+- `PYTHONPATH=src python3 -m pytest -q tests/test_nf_20261107_35_spy_realized_kurtosis.py` → **7 passed**.
+- Artifact exists: `.experiments/nf_runs/nf_20261107_35_spy_realized_kurtosis/summary.json` (verdict REJECT, gates_passed 5). Baseline full-suite pinned gates **not rerun** (`src/qtr` unchanged).
+
+## Precise next task (one task)
+**Execute Cycle 47 discovery, pre-register, implement, and run H133** per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §4 and `PROMPT_V2.md` gates:
+1. Reconcile lineage to H132. Propose **>=3 repo-new mechanism candidates across >=3 broad categories** with honest 25/25/20/15/10/5 scoring. **Concrete deferred reassessment (no silent drops):** NF-04 commodity carry **blocked** (no free PIT term-structure/roll proxy); NF-05 short-term CS reversal **deferred** (turnover/net-of-cost; H119 weekly REJECT 3/8); NF-07 GLD/SPY safe-haven **deferred**; NF-08 TIP/IEF breakeven→GLD **deferred** (weak proxy); NF-10 SI/GC risk sentiment **deferred** (adj H101/inconclusive); NF-11 TLT/IWM growth-liquidity **deferred** (adj H85/H86/H99); **NF-11r/NF-06-18 TNX-FVX data-resolved but NF-11 resolution path (SAME root as NF-11) — not a new root family**; NF-13 GLD/TIP real-rate **deferred**; NF-15 EEM/EFA global risk-appetite **deferred** (overlaps NF-20261107-37 concept; require separation); NF-17 volume-shock reversal **deferred** (turnover/cost); NF-20 Treasury auction supply-pressure **deferred** (calendar/timestamp); NF-21 month-end pension rebalancing **deferred** (weak/adj H91); NF-06-11 CBOE PC ratio **infeasible** (no free yfinance/PIT series); NF-20261106-03 VVIX **deferred** (VIX-complex adj H104); NF-20261106-23 XHB/XLU **deferred** (rates adj); NF-20261106-24 XBI/XLV **deferred**; NF-20261106-28 JNK/LQD **deferred** (credit adj H94/H108); NF-20261106-30 VNQ/SPY **deferred** (rates/beta adj); NF-20261106-32 DBC/SPY **deferred** (ETF roll/flow confounds); NF-20261106-33 EWH/SPY **deferred** (capital-flow confounds); NF-20261106-35 FXA commodity-currency **deferred** (adj H103); NF-20261107-05 CPI release event drift **deferred** (macro event-calendar adj H90). **Held (require materially different pre-registered design/observable):** NF-20261107-11 cross-sectional IVOL spread timing (separate from H93/H130 IVOL level/aggregate overlay REJECTs), NF-20261107-12 credit-vs-equity vol divergence (separation from H94/H100/H125), NF-20261107-14 OVX−VIX energy-options spread (**same construction class as H125/H126 — materially different design required**), NF-20261107-31 sector breadth (adj H115 RSP/SPY REJECT 1/8; materially different observable), NF-20261107-32 return dispersion (adj dispersion concepts), **NF-20261107-36 distance-to-252d-high** (drawdown calc exists in `run_h6_vix_ddcv_experiment.py`; **standalone NF timing not pre-registered — requires clear separation from prior drawdown usage**), NF-20261107-37 EEM/EFA relative strength (separation from FX-macro risk channels). **Executed/rejected not rerun:** H85–H132 (lineage gaps H24/H68–H73/H76–H79 unassigned). IVOL-related (H93/H130) tested; VIX-term/cross-asset vol/corr (H86/H113/H123/H125/H126/H127/H131) heavily tested; higher-moment realized/implied (H89/H122/H124/H128/H132) tested — require clearly distinct mechanism/design if revisited.
+2. Select highest-expected-information feasible repo-new candidate. **Pre-register H133** in `HYPOTHESIS_SPEC.md` (§H133, decision-ready before validation outcomes) and record Cycle 47 discovery in `NEW_FAMILY_RESEARCH_REGISTER.md`.
+3. Add `run_nf_*.py` + focused `tests/test_nf_*.py`. Free/public data only (yfinance ok). `src/qtr` unchanged. No paid data/compute, no live trading.
+4. Run: `ruff check/format` on new files, focused `pytest`, execute runner. Record verdict + artifact path in `HYPOTHESIS_SPEC.md`, `NEW_FAMILY_RESEARCH_REGISTER.md`, `NEXT_TASK.md`, `HANDOFF_NEXT_SESSION.md`. **Do not fabricate results.** Do not weaken gates; do not modify published/certified artifacts/thresholds/frozen numbers.
+
+## Pinned gates (only if `src/qtr`/core touched)
+```bash
+python -m ruff check src tests run_*.py
+python -m ruff format --check src tests run_*.py
+PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing
+```

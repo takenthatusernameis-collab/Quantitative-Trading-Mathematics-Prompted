@@ -2229,10 +2229,19 @@ Lineage reconciled to H131: H85–H131 all rejected/recorded. Next unused H-ID: 
 - **Held:** NF-20261107-11 cross-sectional IVOL spread timing (requires PIT construction clearly separating from H93 IVOL level REJECT; larger scope), NF-20261107-12 credit-vs-equity vol divergence (separation from H94/H100/H125), NF-20261107-14 OVX−VIX energy-options spread (same construction class as H125/H126 — **materially different pre-registered design required**), NF-20261107-31 sector breadth (adj H115 RSP/SPY REJECT 1/8; materially different observable/construction), NF-20261107-32 return dispersion (adj dispersion concepts), NF-20261107-36 distance-to-252d-high (check prior runner usage; standalone NF timing not pre-registered), NF-20261107-37 EEM/EFA relative strength (separation from FX-macro risk channels).
 - **Executed/rejected not rerun:** H85–H131 (and lineage gaps H24/H68–H73/H76–H79 unassigned). NF-20261107-28/H128, NF-20261107-29/H129, NF-20261107-30/H130, NF-20261107-34/H131. IVOL-related (H93/H130) tested — require clearly distinct mechanism/design. VIX-term/cross-asset vol/corr (H86/H113/H123/H125/H126/H127/H131) heavily tested — require clearly distinct mechanism/design.
 
-### NF-20261107-35 / H132 status (2026-11-07, Cycle 46) — PRE-REGISTERED, NOT EXECUTED (env deps missing)
+### NF-20261107-35 / H132 execution outcome (2026-11-07, REAL, Cycle 46 prepared env) — REJECTED (5/8)
 
-**Runner:** `run_nf_20261107_35_spy_realized_kurtosis.py`. **Tests:** `tests/test_nf_20261107_35_spy_realized_kurtosis.py`. `python3 -m py_compile` OK for both. `ruff`/`pytest`/`yfinance`/`pandas`/`numpy`/`scipy` unavailable in this environment (verified); **no execution, no OOS metrics, no validation outcomes examined**. `src/qtr` unchanged.
+**Runner:** `run_nf_20261107_35_spy_realized_kurtosis.py`. **Tests:** `tests/test_nf_20261107_35_spy_realized_kurtosis.py` (7 passed). `ruff check/format` clean (2 files formatted). `src/qtr` unchanged.
 
-**Next:** execute in prepared environment per `NEXT_TASK.md`; record verdict/artifact `.experiments/nf_runs/nf_20261107_35_spy_realized_kurtosis/summary.json`. Do not fabricate results.
+**Execution.** Artifact `.experiments/nf_runs/nf_20261107_35_spy_realized_kurtosis/summary.json` (`NF-20261107-35/H132`, 1.85s). Data SPY yfinance auto-adjust, 3776 aligned rows 2010-01-01→2025-01-05 (train 2516 / val 505 / test 755). Selected (train-only 4-fold WF mean Sharpe 0.9709): `kurt_window=126, z_window=126, entry_scale=2, vol_target=0.10`.
 
-**Cycle 46 complete (discovery + H132 pre-registration).** Execution deferred to prepared environment. H85–H131 remain REJECTED/recorded; H132 pending real execution.
+**Result — REJECT (5/8 gates).** OOS Val+Test (1284 trades, n=1260): Sharpe **1.248** (pass), PF **1.277** (fail ≥1.3), max DD **-11.93%** (pass), trades **1284** (pass), WF stability **1.181** (pass), worst-regime rolling-252 Sharpe **-0.486** (fail ≥0.3), benchmark p **0.833** / IR **-0.433** (fail vs buy-hold SPY), perturbation min ratio **0.667** (pass).
+
+**Ablations (OOS).** Buy-hold SPY 0.759/1.155/DD -33.72%/1. Random-exposure-matched 0.878/1.324/DD -7.99%/566 (comparable). Inverse kurtosis-stress -0.145/0.948/DD -17.39%/1285.
+
+**Verdict rationale.** Fails PF/worst-regime/benchmark (5/8). Sharpe 1.248 not significant vs buy-hold (p 0.833, IR -0.433); random-exposure comparable; worst-regime collapses. Repo-new realized-kurtosis (4th moment) observable, honest adjacency to H128 realized skewness (REJECT 2/8), H122 semivariance ratio (REJECT 3/8), H124 MAX/lottery (REJECT 3/8), H89 implied SKEW (REJECT 4/9) — no validated edge. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Lineage map (H132 REJECT):**
+| SPY realized kurtosis stress timing (realized 4th-moment tail-clustering) | H132 (NF-20261107-35) | Continuous vol-targeted long SPY reduced when z-score of trailing realized SPY return kurtosis elevated; 1-bar delay, long-only | SPY daily (yfinance), 2010–2025 | **REJECT** (5/8; `.experiments/nf_runs/nf_20261107_35_spy_realized_kurtosis/summary.json`) | Fails PF 1.277/worst-regime -0.486/benchmark-p 0.833/IR -0.433; Sharpe 1.248 passes but not significant vs buy-hold; random-exposure comparable; repo-new realized-kurtosis observable, honest adjacency to H89/H122/H124/H128 |
+
+**Cycle 46 complete (discovery + H132 execution).** H85–H132 all rejected/recorded. Cycle 47 required next (see `NEXT_TASK.md`/handoff): fresh discovery per directive §4, >=3 repo-new candidates across >=3 broad categories, pre-register and execute **H133**. No gate weakening; no published/certified artifact modification; no commit/push; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
