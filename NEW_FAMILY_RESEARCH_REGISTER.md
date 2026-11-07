@@ -1933,4 +1933,67 @@ H119 / NF-20261107-02 (short-term cross-sectional return reversal among sector E
 |---|---|---|---|---|---|
 | Cross-asset equity-vs-rates implied-vol spread timing (vol transmission) | H125 (NF-20261107-10) | Vol-targeted long SPY reduced when z-score of trailing (VIX − MOVE) elevated; hysteresis, 1-bar delay, long-only | SPY + ^VIX/^MOVE daily (yfinance), 2010–2024 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261107_10_vix_move_spread/summary.json`) | Fails Sharpe 0.967/PF 1.191/worst-regime -0.933/benchmark-p 0.922/IR -0.639; random-exposure comparable; no validated edge; distinct from H100 ^MOVE level (REJECT 4/9) but honest adjacency in stress domain |
 
-**Cycle 40 required next.** H85–H125 all rejected/recorded. Fresh discovery per directive §4: reconcile lineage to H125, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly (25/25/20/15/10/5), reassess deferred NF-04/05/07/08/10/11/13/15/17/20/21, NF-11r/NF-06-18 (TNX-FVX same root as NF-11 — not new root), NF-06-11 (infeasible), NF-20261106-03/23/24/28/30/32/33/35, NF-20261107-05 (CPI drift), and held NF-20261107-11 (cross-sectional IVOL spread timing — requires PIT construction clearly separating from H93) and NF-20261107-12 (credit-vs-equity vol divergence — requires separation from H94/H100/H125) with concrete evidence (no silent drops). NF-20261107-10 (H125) executed/rejected — do not rerun without materially different, pre-registered construction. Pre-register highest-expected-information feasible candidate as **H126** (next unused H-ID). Free/public data only; no gate weakening; no published/certified artifact modification; no commit/push; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
+## Cycle 40 discovery (2026-11-07)
+
+**Lineage reconciliation to H125.** H85–H125 all rejected/recorded (H125: NF-20261107-10 cross-asset equity-vs-rates implied-vol spread timing SPY, VIX−MOVE, REJECT 4/8). Next unused H-ID **H126** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified.
+
+**Repo-new mechanism candidates proposed (>=3 across >=3 broad categories), scored honestly (25/25/20/15/10/5 = novelty/plausibility/data/falsifiability/exec/support):**
+
+| Candidate | Category | Nov | Plaus | Data | Fals | Exec | Supp | Weighted | Disposition |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---|
+| NF-20261107-13 (SELECTED → H126) — cross-asset **gold-vs-equity** implied-vol spread timing SPY (`GVZ − VIX` z-score, hysteresis, vol-targeted long-only) | Cross-asset commodity-options / safe-haven uncertainty transmission | 3 (repo-new observable/underlying: ^GVZ gold-options IV vs equity VIX, different options market from H125 VIX−MOVE rates-vol spread and H86/H123 within-equity VIX term structure; honest adjacency to broad vol-spread/timing family — same statistical construction class as H125, different causal channel/underlying) | 3 | 5 (^GVZ/^VIX/SPY yfinance verified 2026-11-07, 3776 aligned rows 2010-01-04→2025-01-03, PIT, 0 non-positive) | 5 | 5 | 3 | **3.90** | **Selected → H126 (pre-registered, executed this cycle)** |
+| NF-20261107-14 (assessed, held) — cross-asset **energy-vs-equity** implied-vol spread timing SPY (`OVX − VIX` z-score) | Cross-asset commodity-options / energy uncertainty transmission | 3 (repo-new underlying ^OVX oil-options IV; same broad spread-construction class as H125/H126 — honest lower separation; different commodity channel) | 3 | 5 (^OVX/^VIX/SPY yfinance verified, 3776 aligned rows 2010–2025, PIT) | 5 | 5 | 2 | **3.85** | Held — feasible; same construction family as H126; pre-register only with materially different design if H126 rejects |
+| NF-20261107-15 (assessed, held) — **gold-duration correlation regime** timing SPY (rolling GLD–TLT return correlation z-score, hysteresis, vol-targeted long-only) | Cross-asset correlation regime / inflation-hedge vs duration transmission | 3 (different asset pair/channel from H96 SPY–TLT equity-bond correlation REJECT 4/9: GLD–TLT captures gold’s shifting inflation-hedge vs real-rate/duration sensitivity, not equity-bond diversification; **honest adjacency to H96 correlation-regime construction class**) | 3 | 5 (GLD/TLT/SPY yfinance verified, 3776 aligned rows 2010–2025, PIT) | 5 | 5 | 2 | **3.85** | Held — feasible decisive test; adjacent construction to H96 (different pair); pre-register with clear separation if pursued |
+
+**Selection rationale.** NF-20261107-13 selected as highest expected-information *feasible* decisive test among candidates with materially different underlying/options market from prior executed vol-spread families (H125 used rates MOVE; H126 uses gold-options GVZ). Same bounded, falsifiable construction as H125 (appropriate control: change underlying/causal channel, keep test clean). Adjacency scored honestly (3/5 novelty). NF-20261107-14 is feasible but same cross-asset IV-spread construction class (held). NF-20261107-15 is feasible but adjacent to H96 correlation-regime construction (held).
+
+**Deferred candidates reassessed (no silent drops; concrete evidence/reasons):**
+- **NF-04 commodity carry:** still **blocked** (no free PIT term-structure/roll proxy on yfinance; unchanged).
+- **NF-05 short-term CS reversal (root form):** **deferred** (turnover/net-of-cost; H119 tested weekly variant REJECT 3/8 — materially different construction required).
+- **NF-07 GLD/SPY safe-haven:** **deferred** (weak mechanism evidence / prior weak check; NF-20261107-13 tests a different *implied-vol* gold channel, not GLD/SPY price relative momentum).
+- **NF-08 TIP/IEF breakeven→GLD:** **deferred** (weak/inexact breakeven proxy on free daily data).
+- **NF-10 SI/GC risk sentiment:** **deferred** (adjacent to H101/inconclusive; no materially new construction).
+- **NF-11 TLT/IWM growth-liquidity:** **deferred** (adjacent prior lineage).
+- **NF-11r / NF-06-18 TNX-FVX slope:** **deferred, SAME root mechanism as NF-11 — not a new root family** (^TNX/^FVX data feasible 2026-11-07; resolution path remains NF-11’s root, not a separate family).
+- **NF-13 GLD/TIP real-rate:** **deferred** (proxy/causal separation concerns).
+- **NF-15 EEM/EFA global risk-appetite:** **deferred** (weak separation from existing macro/risk families).
+- **NF-17 volume-shock reversal:** **deferred** (turnover/cost).
+- **NF-20 Treasury auction supply-pressure:** **deferred** (calendar/timestamp/audit scope).
+- **NF-21 month-end pension rebalancing:** **deferred** (weak/adjacent to H91 calendar).
+- **NF-06-11 CBOE PC ratio:** **infeasible** (no free yfinance/PIT series).
+- **NF-20261106-03 VVIX:** **deferred** (VIX-complex adjacency to H104 vol-of-vol REJECT 4/9; ^VVIX feasible but same ecosystem).
+- **NF-20261106-23 XHB/XLU:** **deferred** (rates-channel adjacency).
+- **NF-20261106-24 XBI/XLV:** **deferred** (weak mechanism separation).
+- **NF-20261106-28 JNK/LQD:** **deferred** (credit adjacency H94/H108).
+- **NF-20261106-30 VNQ/SPY:** **deferred** (rates/beta adjacency).
+- **NF-20261106-32 DBC/SPY:** **deferred** (ETF roll/flow confounds).
+- **NF-20261106-33 EWH/SPY:** **deferred** (capital-flow/risk-appetite confounds).
+- **NF-20261106-35 FXA commodity-currency:** **deferred** (adjacent H103).
+- **NF-20261107-05 CPI release event drift:** **deferred** (macro event-calendar class adjacent to H90 FOMC REJECT 4/9; feasible with audited BLS schedule but not selected over smaller decisive test).
+- **NF-20261107-11 (cross-sectional IVOL spread timing, held Cycle 39):** **held** (feasible fixed-universe PIT construction possible; requires explicit separation from H93 IVOL level REJECT and larger implementation/turnover scope than single-asset decisive test).
+- **NF-20261107-12 (credit-vs-equity vol divergence, held Cycle 39):** **held** (requires pre-registration proving separation from H94/H100/H125; HYG/IEF/VIX free).
+- **NF-20261107-14 (OVX−VIX energy-options spread, Cycle 40):** **held** (feasible; same construction class as H126).
+- **NF-20261107-15 (GLD–TLT correlation regime, Cycle 40):** **held** (feasible; adjacent to H96 construction, different pair).
+- **NF-20261107-10 (H125):** executed/rejected — **not rerun** without materially different, pre-registered construction.
+- **Executed/rejected, not rerun without materially different pre-registered construction:** NF-20261106-29/31/34/36→H115–H118, NF-20261107-01/02/03/04/07/08/09/10→H118–H125.
+
+**H126 pre-registration summary (see `HYPOTHESIS_SPEC.md`).** NF-20261107-13 tests trailing z-score of `(GVZ − VIX)` as a gold-options fear premium vs equity vol transmission signal timing SPY (hysteresis, vol-targeted, 1-bar delay). Bounded 24-combo grid, train-only 4-fold WF selection, Test protected; OOS Val+Test gates unchanged. Free/public yfinance data only; no `src/qtr` change.
+
+### NF-20261107-13 / H126 execution outcome (2026-11-07, REAL) — REJECTED (2/8)
+
+**Runner:** `run_nf_20261107_13_gvz_vix_spread.py`. **Tests:** `tests/test_nf_20261107_13_gvz_vix_spread.py` (11 passed). `ruff check/format` clean. `src/qtr` unchanged.
+
+**Execution.** Artifact `.experiments/nf_runs/nf_20261107_13_gvz_vix_spread/summary.json` (2.34s runtime reported). Data ^GVZ/^VIX/SPY yfinance, 3776 aligned rows 2010-01-04→2025-01-03 (train 2516 / val 505 / test 755). Selected (train-only 4-fold WF, score 1.0): `window=21, entry_z=1.5, exit_z=0.5, vol_target=0.10` (train Sharpe 0.888, 167 trades).
+
+**Result — REJECT (2/8 gates).** OOS Val+Test (66 trades, n=1260): Sharpe **0.537** (fail), PF **1.120** (fail), max DD **-15.99%** (fail ≤15%), trades **66** (fail ≥200), WF stability **1.0** (pass), worst-regime yearly Sharpe **-0.853** (fail), benchmark p **0.973** / IR **-0.864** (fail), perturbation min ratio **0.904** (pass).
+
+**Ablations (OOS).** Buy-hold SPY 0.759/1.155/DD -17.97%/1. Random-exposure-matched 0.749/1.167/DD -8.23%/1197 (outperforms). Inverse_stress_long 0.386/1.155/DD -3.45%/679.
+
+**Verdict rationale.** Fails Sharpe/PF/maxDD/trades/worst-regime/benchmark (2/8). Underperforms buy-hold SPY and random-exposure-matched ablation; no validated edge from GVZ−VIX timing. Sparse OOS trades (66) and maxDD breach. Robust WF/perturbation but economically negative. Honest adjacency to H125 (VIX−MOVE, REJECT 4/8): repo-new underlying (gold-options GVZ) and channel, same spread-construction class; both rejected. No gate weakened; no published/certified artifact modified.
+
+**Lineage map (H126 REJECT):**
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Cross-asset gold-vs-equity implied-vol spread timing (commodity-options / safe-haven uncertainty) | H126 (NF-20261107-13) | Vol-targeted long SPY reduced when z-score of trailing (GVZ − VIX) elevated; hysteresis, 1-bar delay, long-only | SPY + ^VIX/^GVZ daily (yfinance), 2010–2025 | **REJECT** (2/8; `.experiments/nf_runs/nf_20261107_13_gvz_vix_spread/summary.json`) | Fails Sharpe 0.537/PF 1.120/maxDD -15.99%/trades 66/worst-regime -0.853/benchmark-p 0.973/IR -0.864; random-exposure outperforms; sparse OOS; repo-new GVZ underlying but honest adjacency to H125 spread-construction class |
+
+**Cycle 41 required next.** H85–H126 all rejected/recorded. Fresh discovery per directive §4: reconcile lineage to H126, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly (25/25/20/15/10/5), reassess deferred NF-04/05/07/08/10/11/13/15/17/20/21, NF-11r/NF-06-18 (TNX-FVX same root as NF-11 — not new root), NF-06-11 (infeasible), NF-20261106-03/23/24/28/30/32/33/35, NF-20261107-05 (CPI drift), and held NF-20261107-11 (cross-sectional IVOL spread timing — requires PIT construction clearly separating from H93), NF-20261107-12 (credit-vs-equity vol divergence — requires separation from H94/H100/H125), NF-20261107-14 (OVX−VIX energy-options spread — same construction class as H125/H126; materially different design required), NF-20261107-15 (GLD–TLT correlation regime — adjacent to H96 construction, different pair) with concrete evidence (no silent drops). NF-20261107-13 (H126) executed/rejected — do not rerun without materially different, pre-registered construction. Pre-register highest-expected-information feasible candidate as **H127** (next unused H-ID). Free/public data only; no gate weakening; no published/certified artifact modification; no commit/push; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).

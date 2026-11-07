@@ -6639,3 +6639,37 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 
 **Lineage map (H125 REJECT):**
 | Cross-asset equity-vs-rates implied-vol spread timing (vol transmission) | H125 (NF-20261107-10) | Vol-targeted long SPY reduced when z-score of trailing (VIX − MOVE) is elevated; hysteresis, 1-bar delay, long-only | SPY + ^VIX/^MOVE daily (yfinance), 2010–2024 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261107_10_vix_move_spread/summary.json`) | Fails Sharpe 0.967/PF 1.191/worst-regime -0.933/benchmark-p 0.922/IR -0.639; random-exposure ablation comparable; no validated edge vs buy-hold SPY; distinct observable/channel from H100 ^MOVE level (REJECT 4/9) but same broad stress domain — honest adjacency |
+
+---
+
+### Hypothesis H126: Cross-Asset Gold-vs-Equity Implied-Vol Spread Timing on SPY (GVZ minus VIX)
+
+**Statement.** Reducing vol-targeted long SPY exposure to flat when the z-score of the trailing cross-asset implied-vol spread (GVZ − VIX) exceeds an entry threshold, and re-entering when it falls below an exit threshold (hysteresis), improves OOS Val+Test Sharpe ≥1.0 with ≥200 trades, PF≥1.3, maxDD≤15%, WF stability≥0.7, worst-regime yearly Sharpe≥0.3, benchmark p<0.05 with IR≥0, perturbation ratio≥0.5.
+
+**Mechanism (cross-asset commodity-options / safe-haven uncertainty transmission).** Gold options implied volatility (GVZ, CBOE Gold ETF Volatility Index) elevated relative to equity implied volatility (VIX) proxies gold-uncertainty/safe-haven demand premium rising relative to equity fear — a cross-asset signal of shifting hedging demand, inflation/geopolitical uncertainty, or commodity-safe-haven stress transmission. De-risking SPY when the gold-vs-equity implied-vol premium is abnormally high may avoid adverse equity exposure during regimes where gold optionality/uncertainty dominates.
+
+**Repo-relative novelty (honest).** H125 (NF-20261107-10, REJECT 4/8) tested the cross-asset *equity-vs-rates* implied-vol spread `VIX − MOVE` (MOVE = Treasury/rates options IV) — a different underlying options market and causal channel. H100 tested ^MOVE *level* alone (REJECT 4/9). H86 (REJECT 2/9) and H123 (REJECT 5/8) tested *within-equity* VIX term-structure shape (VIX3M/VIX slope, VIX9D/VIX front-end spread). H104 tested ^VVIX (vol-of-vol, REJECT 4/9). H17 tested VRP/SVXY. H126 uses ^GVZ (gold ETF options implied vol) — a **repo-new underlying options market** (precious metals) — and tests the gold-vs-equity IV premium. Adjacency to the broad vol-spread/timing construction class (same z-score/hysteresis/vol-target form as H125) is acknowledged; novelty scored moderately (3/5), not as a wholly unrelated statistical method. The mechanism/channel (gold-options uncertainty/safe-haven transmission) and observable (GVZ) are repo-new.
+
+**Null (H0).** The GVZ−VIX cross-asset implied-vol spread contains no incremental timing information; OOS Sharpe/PF/worst-regime/benchmark gates fail vs buy-hold/random-exposure.
+
+**Pre-registration (executed).** NF-ID **NF-20261107-13** (Cycle 40). Runner `run_nf_20261107_13_gvz_vix_spread.py`; tests `tests/test_nf_20261107_13_gvz_vix_spread.py`. Universe SPY (traded) with ^GVZ/^VIX signal (yfinance daily, auto_adjust close). Common aligned sample 2010-01-04→2025-01-03, 3776 rows (all positive), verified 2026-11-07. Train 2010-01-04→2019-12-31 (2516) / Val 2020-01-01→2021-12-31 (505) / Test (protected) 2022-01-01→2025-01-03 (755). Signal: z-score of trailing `(GVZ − VIX)` over `window`; long vol-targeted SPY when `z <= entry_z`, flat when `z > entry_z`, hysteresis re-enter at `z < exit_z`. 1-bar delay via engine position application (`signals.shift(1)` semantics in engine); Equity CostModel (1bp commission + 1bp spread); long-only, max position 0.5. Bounded grid: window {21,63} × entry_z {1.0,1.5,2.0} × exit_z {0.0,0.5} × vol_target {0.10,0.15} (24 combos, exit_z < entry_z); train-only 4-fold WF selection by mean stability+Sharpe (same selection logic as prior NF spread runners). No `src/qtr` change.
+
+**Gates (OOS Val+Test, pre-registered).** Sharpe >= 1.0, trades >= 200, PF >= 1.3, max DD >= -15% (abs DD <= 15%), WF stability >= 0.7, worst-regime yearly Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0 vs buy-hold SPY, perturbation min ratio >= 0.5.
+
+**Ablations (pre-registered).** Buy-hold SPY, random-exposure-matched, inverse/high-gold-premium-long.
+
+**Costs/constraints.** Equity CostModel defaults. Free/public data only. `src/qtr` unchanged. No published/certified artifact modified.
+
+**Falsifiers.** Random-exposure comparable or better; inverse not clearly opposite; benchmark fails; fragile to perturbation; worst-regime collapse.
+
+
+**Executed outcome (2026-11-07, REAL): REJECT (2/8).** Artifact `.experiments/nf_runs/nf_20261107_13_gvz_vix_spread/summary.json` (`nf_20261107_13_gvz_vix_spread`, 2.34s). Data ^GVZ/^VIX/SPY yfinance, 3776 aligned rows 2010-01-04→2025-01-03 (train 2516 / val 505 / test 755). Selected (train-only 4-fold WF, score 1.0): `window=21, entry_z=1.5, exit_z=0.5, vol_target=0.10` (train Sharpe 0.888, 167 trades).
+
+**Result — REJECT (2/8 gates).** OOS Val+Test (66 trades, n=1260): Sharpe **0.537** (fail ≥1.0), PF **1.120** (fail ≥1.3), max DD **-15.99%** (fail ≤15%), trades **66** (fail ≥200), WF stability **1.0** (pass ≥0.7), worst-regime yearly Sharpe **-0.853** (fail ≥0.3), benchmark p **0.973** / IR **-0.864** (fail), perturbation min ratio **0.904** (pass ≥0.5).
+
+**Ablations (OOS).** Buy-hold SPY 0.759/1.155/DD -17.97%/1. Random-exposure-matched 0.749/1.167/DD -8.23%/1197 (outperforms strategy on Sharpe/PF). Inverse_stress_long 0.386/1.155/DD -3.45%/679.
+
+**Verdict rationale.** Fails Sharpe/PF/maxDD/trades/worst-regime/benchmark (2/8). OOS Sharpe 0.537 underperforms buy-hold SPY (0.759) and random-exposure-matched ablation (0.749), indicating no validated edge from GVZ−VIX gold-options premium timing; construction is sparse on OOS (66 trades) and breaches maxDD gate. WF stability and perturbation robust but not economically decisive. Honest adjacency to H125 (VIX−MOVE cross-asset vol spread, REJECT 4/8): different underlying/options market (gold GVZ vs rates MOVE) and different channel, same spread-construction class; both independently rejected. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Lineage map (H126 REJECT):**
+| Cross-asset gold-vs-equity implied-vol spread timing (commodity-options / safe-haven uncertainty) | H126 (NF-20261107-13) | Vol-targeted long SPY reduced when z-score of trailing (GVZ − VIX) elevated; hysteresis, 1-bar delay, long-only | SPY + ^VIX/^GVZ daily (yfinance), 2010–2025 | **REJECT** (2/8; `.experiments/nf_runs/nf_20261107_13_gvz_vix_spread/summary.json`) | Fails Sharpe 0.537/PF 1.120/maxDD -15.99%/trades 66/worst-regime -0.853/benchmark-p 0.973/IR -0.864; random-exposure outperforms; no validated edge; repo-new underlying (GVZ gold-options IV) but same spread-construction class as H125 (REJECT 4/8) — honest adjacency |

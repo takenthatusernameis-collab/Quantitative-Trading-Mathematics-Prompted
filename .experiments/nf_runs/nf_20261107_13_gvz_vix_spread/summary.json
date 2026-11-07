@@ -1,0 +1,112 @@
+{
+  "experiment": "nf_20261107_13_gvz_vix_spread",
+  "hypothesis": "H126",
+  "family_id": "NF-20261107-13",
+  "description": "NF-20261107-13/H126: SPY timing from the cross-asset GVZ-VIX implied-vol spread (gold options IV minus equity IV). Reduce vol-targeted long SPY to flat when z-score of trailing (GVZ - VIX) > entry_z, re-enter when z < exit_z (hysteresis), 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "verdict": "REJECT",
+  "passed_gates": false,
+  "gates": {
+    "sharpe": false,
+    "trades": false,
+    "profit_factor": false,
+    "max_drawdown": false,
+    "wf_stability": true,
+    "worst_regime": false,
+    "benchmark": false,
+    "perturbation": true
+  },
+  "best_params": {
+    "window": 21,
+    "entry_z": 1.5,
+    "exit_z": 0.5,
+    "vol_target": 0.1
+  },
+  "selection": {
+    "method": "train_only_4fold_wf_mean_sharpe",
+    "score": 1.0
+  },
+  "metrics": {
+    "train": {
+      "sharpe": 0.8883368157691977,
+      "profit_factor": 1.1986707078956214,
+      "max_drawdown": -0.08365546092619247,
+      "trades": 167,
+      "n": 2516,
+      "total_return": 0.7895525391311644
+    },
+    "val": {
+      "sharpe": 0.5622049389065886,
+      "profit_factor": 1.134233042692801,
+      "max_drawdown": -0.15992784643416336,
+      "trades": 22,
+      "n": 505,
+      "total_return": 0.12853565190219784
+    },
+    "test_protected": {
+      "sharpe": 0.534773746042665,
+      "profit_factor": 1.1083858928799386,
+      "max_drawdown": -0.14004411443461495,
+      "trades": 44,
+      "n": 755,
+      "total_return": 0.12533891440604972
+    },
+    "oos_val_test": {
+      "sharpe": 0.5370961350388721,
+      "profit_factor": 1.1203171916982722,
+      "max_drawdown": -0.15992784643416336,
+      "trades": 66,
+      "n": 1260,
+      "total_return": 0.26998508538014265
+    }
+  },
+  "wf_stability": 1.0,
+  "worst_regime_yearly_sharpe_oos": -0.8534630676514391,
+  "benchmark": {
+    "p_value": 0.9731524676730003,
+    "information_ratio": -0.8639567073455812,
+    "t": -1.931099161860808
+  },
+  "perturbation": {
+    "min_ratio_vs_optimum": 0.9042320137661704
+  },
+  "ablations": {
+    "buy_hold_spy": {
+      "sharpe": 0.7587587365903575,
+      "profit_factor": 1.1549499354546853,
+      "max_drawdown": -0.1797186234612156,
+      "trades": 1,
+      "n": 1260,
+      "total_return": 0.4481012068538137
+    },
+    "random_exposure_matched": {
+      "sharpe": 0.749305691488496,
+      "profit_factor": 1.1672871339621151,
+      "max_drawdown": -0.08225014989736168,
+      "trades": 1197,
+      "n": 1260,
+      "total_return": 0.3740349213418541
+    },
+    "inverse_stress_long": {
+      "sharpe": 0.38581454709102814,
+      "profit_factor": 1.1550378047799756,
+      "max_drawdown": -0.034483781542144154,
+      "trades": 679,
+      "n": 1260,
+      "total_return": 0.037026676560072636
+    }
+  },
+  "data": {
+    "rows": 3776,
+    "start": "2010-01-04",
+    "end": "2025-01-03",
+    "train_end": "2019-12-31",
+    "val_end": "2021-12-31",
+    "symbols": [
+      "SPY",
+      "^VIX",
+      "^GVZ"
+    ]
+  },
+  "runtime_sec": 1.392,
+  "no_src_qtr_changes": true
+}
