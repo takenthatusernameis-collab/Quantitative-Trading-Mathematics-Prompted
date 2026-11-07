@@ -6549,3 +6549,15 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 | Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
 |---|---|---|---|---|---|
 | Single-asset SPY short-term time-series return reversal / overreaction correction | H120 (NF-20261107-03) | Vol-targeted long SPY when trailing 2–5d cumulative return < entry threshold (contrarian), hysteresis exit, 1-bar delay | SPY daily (yfinance), 2010–2026 | **REJECT** (4/8; exp_2026-11-07T03-28-10-187622Z) | Fails Sharpe 0.559/PF 1.194/worst-regime -0.832/benchmark-p 1.0/IR -0.783; random-exposure ablation outperforms timing; no validated edge vs buy-hold SPY; distinct from H119 cross-sectional reversal (relative rank, multi-sector) |
+
+---
+
+### Hypothesis H121: Amihud Illiquidity-Stress Regime Timing on SPY
+
+**Statement.** Reducing vol-targeted long SPY exposure during trailing Amihud-illiquidity stress (z-score of |return|/dollar-volume) improves OOS Val+Test Sharpe ≥1.0 with ≥200 trades, PF≥1.3, maxDD≤15%, WF stability≥0.7, worst-regime yearly Sharpe≥0.3, benchmark p<0.05, perturbation ratio≥0.5.
+
+**Mechanism.** Liquidity deterioration predicts risk-off drawdowns; de-risking in illiquidity-stress regimes avoids adverse selection. Distinct from vol/regime families (H117/H118) by using Amihud specifically.
+
+**Null (H0).** Amihud stress contains no incremental timing information; OOS Sharpe ≤ buy-hold/random-exposure.
+
+**Pre-registration.** Train 2015-2019 / Val 2020-2021 / Test 2022-2024 (protected). Grid window {10,20,40} × entry_z {1.0,1.5,2.0} × exit_z {0.0,0.5,1.0} × vol_target {0.10,0.15}; train-only 4-fold WF selection. 1-bar delay; Equity CostModel. No src/qtr change.

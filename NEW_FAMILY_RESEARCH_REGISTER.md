@@ -1719,3 +1719,18 @@ H119 / NF-20261107-02 (short-term cross-sectional return reversal among sector E
 | Single-asset SPY short-term time-series return reversal / overreaction correction | H120 (NF-20261107-03) | Vol-targeted long SPY when trailing 2–5d cumret < entry thr, hysteresis exit, 1-bar delay | SPY daily (yfinance), 2010–2026 | **REJECT** (4/8; exp_2026-11-07T03-28-10-187622Z) | Fails Sharpe 0.559/PF 1.194/worst-regime -0.832/benchmark-p 1.0/IR -0.783; random-exposure outperforms; no edge vs buy-hold; distinct from H119 CS reversal |
 
 **Cycle 35 required next.** H85–H120 all rejected/recorded. Fresh discovery per directive §4: reconcile lineage to H120, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly (25/25/20/15/10/5), reassess deferred NF-04/05/07/08/10/11/13/15/17/20/21, NF-11r/NF-06-18 (TNX-FVX, same root as NF-11 — not new root family), NF-06-11 (infeasible), NF-20261106-03/21/23/24/28/30/32/33/35, NF-20261107-04/05 with concrete evidence (no silent drops). NF-20261106-29/31/34/36 executed/rejected as H115/H116/H117/H118 (not rerun). NF-20261107-01/02/03 executed/rejected as H118/H119/H120 (not rerun). Pre-register highest-expected-information feasible candidate as **H121** (next unused H-ID; H24/H68–H73/H76–H79 unassigned, not recycled) with smallest decisive test. Free/public data only; no gate weakening; no published/certified artifact modification; no commit/push; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
+
+### Cycle 35 discovery (2026-11-07) — pre-register H121 = NF-20261107-04 (Amihud illiquidity-stress regime timing)
+
+**Lineage reconciled to H120.** H85–H120 all rejected/recorded. Root families tested: momentum (H1–H30), cross-sectional reversal (H119), single-asset TS reversal (H120), regime/vol families (H117/H118). Next repo-new mechanism root not yet tested: market-liquidity / microstructure-stress transmission.
+
+**Candidates (>=3 across >=3 broad categories):**
+1. NF-20261107-04 — SPY Amihud illiquidity-stress regime timing (liquidity/microstructure-stress) — weighted 3.90.
+2. NF-20261107-05 — CPI release event-drift timing (macro event calendar) — weighted 3.55 (deferred: schedule audit).
+3. NF-20261107-06 (NEW) — VIX futures term-structure contango/backwardation carry on SPY (volatility risk premium / term-structure), vol-targeted, 1-bar delay — weighted 3.60. Deferred pending free-data point-in-time ^VIX/^VIX3M verification.
+
+**Selection:** NF-20261107-04 selected as H121 (highest expected information among feasible, no calendar construction risk, clear separation from vol/regime families via Amihud-specific liquidity measure).
+
+**Pre-registration H121:** Universe SPY (yfinance daily, cached, 4233 rows 2010-2026). Train 2015-2019 / Val 2020-2021 / Test 2022-2024 (protected holdout). Signal: trailing Amihud illiquidity = |ret|/dollar-volume, z-score over 20d; reduce vol-targeted long SPY when z > entry threshold; hysteresis exit. Grid: window ∈ {10,20,40} × entry_z ∈ {1.0,1.5,2.0} × exit_z ∈ {0.0,0.5,1.0} × vol_target ∈ {0.10,0.15}. Selection train-only 4-fold WF. Gates: OOS Val+Test Sharpe ≥1.0, ≥200 trades, PF≥1.3, maxDD≤15%, WF stability≥0.7, worst-regime yearly Sharpe≥0.3, benchmark p<0.05, perturbation ratio≥0.5. Ablations: buy-hold SPY; random-exposure-matched; inverse (long in high-illiquidity). No src/qtr change. Costs Equity CostModel 1+1bp.
+
+**Next task:** Implement runner `run_nf_20261107_04_amihud_illiq.py` + tests, ruff clean, execute, record verdict. Address H121 trade-sparsity risk (prior sanity ~89 trades at es=1.5) by grid breadth and construction audit; if <200 OOS trades, REJECT on trade gate (no rescue).

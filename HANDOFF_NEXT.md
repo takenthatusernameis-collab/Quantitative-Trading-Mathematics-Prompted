@@ -1,7 +1,7 @@
-# HANDOFF_NEXT — Cycle 32 discovery pending (2026-11-07)
+# HANDOFF_NEXT — Cycle 35 pre-registration (2026-11-07)
 
-Cycle 32 discovery → pre-register H118 was NOT completed in this session due to scope/time. No src/qtr changes. No new experiment executed.
+Cycle 35 discovery + pre-registration completed (documentation only; no src/qtr changes, no experiment executed).
 
-State: H1–H117 all rejected/recorded. Next unused H-ID H118. Lint (ruff check src tests) passes.
+State: H85–H120 rejected/recorded; H121 pre-registered = NF-20261107-04 Amihud illiquidity-stress regime timing on SPY. Lint passes.
 
-Next task: Perform Cycle 32 discovery per HANDOFF_CURRENT.md §"One precise next task": propose >=3 repo-new mechanism candidates across >=3 categories, reassess deferred list with evidence, score (25/25/20/15/10/5), pre-register highest feasible as H118 in HYPOTHESIS_SPEC.md, record in NEW_FAMILY_RESEARCH_REGISTER.md. Implement/execute only if decision-ready with free data; no gate weakening, no src/qtr change unless evidenced defect.
+Next task: Implement runner `run_nf_20261107_04_amihud_illiq.py` + tests `tests/test_nf_20261107_04_amihud_illiq.py`, ruff check/format clean, execute, record verdict (OOS Val+Test). Address trade-sparsity risk; if <200 OOS trades, REJECT on trade gate without rescue. Do not weaken gates or modify src/qtr.
