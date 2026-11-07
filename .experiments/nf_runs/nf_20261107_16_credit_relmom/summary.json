@@ -1,0 +1,16 @@
+{
+  "params": {
+    "mom_window": 63,
+    "z_window": 63,
+    "entry_z": 1.5,
+    "exit_z": 0.5,
+    "vol_target": 0.1
+  },
+  "oos": {
+    "sharpe": 0.7669350974274668,
+    "profit_factor": 1.2043050393917167,
+    "max_drawdown": -0.1797187593414884,
+    "trades": 121,
+    "n": 1260
+  }
+}
