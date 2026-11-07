@@ -1,5 +1,5 @@
 {
-  "experiment_id": "exp_2026-11-07T03-38-17-251553Z",
+  "experiment_id": "exp_2026-11-07T04-18-08-373455Z",
   "hypothesis": "H121",
   "nf_id": "NF-20261107-04",
   "name": "nf_20261107_04_amihud_illiq",
@@ -1091,6 +1091,6 @@
     "passed": false
   },
   "verdict": "REJECT",
-  "timing_seconds": 13.435,
+  "timing_seconds": 13.032,
   "src_qtr_changed": false
 }

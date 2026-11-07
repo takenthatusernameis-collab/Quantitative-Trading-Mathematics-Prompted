@@ -6561,3 +6561,5 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 **Null (H0).** Amihud stress contains no incremental timing information; OOS Sharpe ≤ buy-hold/random-exposure.
 
 **Pre-registration.** Train 2015-2019 / Val 2020-2021 / Test 2022-2024 (protected). Grid window {10,20,40} × entry_z {1.0,1.5,2.0} × exit_z {0.0,0.5,1.0} × vol_target {0.10,0.15}; train-only 4-fold WF selection. 1-bar delay; Equity CostModel. No src/qtr change.
+
+**Executed outcome (2026-11-07):** REJECT 4/8 gates. Selected window=40, entry_z=1.5, exit_z=1.0, vol_target=0.15. OOS Val+Test (971 trades): Sharpe 0.869 (fail), PF 1.176 (fail), max DD -3.16% (pass), trades 971 (pass), worst-regime rolling-252 Sharpe min -0.919 (fail), benchmark p=1.0 / IR -0.773 (fail), perturbation min ratio 0.900 (pass). Artifact `.experiments/nf_runs/nf_20261107_04_amihud_illiq/summary.json`. Random-exposure ablation not reported; benchmark fails. Do not rerun without materially different construction.
