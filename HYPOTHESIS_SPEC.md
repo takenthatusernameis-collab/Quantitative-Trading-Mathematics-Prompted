@@ -6822,3 +6822,37 @@ published/certified artifact modified; `src/qtr` unchanged.
 
 **Lineage map (H130 REJECT):**
 | Cross-sectional average sector IVOL regime timing SPY | H130 (NF-20261107-30) | Continuous vol-targeted long SPY reduced when z-score of trailing mean sector IVOL (SPY-beta residual std) elevated; 1-bar delay, long-only | SPY + 9 sectors daily (yfinance), 2010–2025 | **REJECT** (3/8; `.experiments/nf_runs/nf_20261107_30_avg_ivol_regime/summary.json`) | Fails Sharpe 0.809/PF 1.163/maxDD -15.40%/worst-regime -1.715/benchmark-p 0.770/IR -0.331; no validated edge vs buy-hold; repo-new aggregate-IVOL overlay, honest adjacency to H93 IVOL-level ranking |
+
+
+### Hypothesis H131: VIX Term-Structure Slope (^VIX3M/^VIX) Regime Timing for SPY (pre-registered, Cycle 45)
+
+**Statement.** Continuously reducing vol-targeted long SPY exposure when the z-score of the VIX term-structure slope (^VIX3M/^VIX, contango/backwardation) is abnormally high improves OOS Val+Test Sharpe ≥1.0 with ≥200 trades, PF≥1.3, maxDD≤15%, WF stability≥0.7, worst-regime rolling-252 Sharpe≥0.3, benchmark p≤0.05 with IR≥0, perturbation ratio≥0.5.
+
+**Mechanism (volatility term structure / variance risk premium).** The VIX measures 30-day implied variance; VIX3M measures ~3-month implied variance. The ratio ^VIX3M/^VIX reflects term-structure shape (ratio>1 = contango/normal upward sloping, ratio<1 = backwardation/inverted) and shifts in variance risk premia/hedging demand. A sharp rise in the slope (z-score elevated relative to trailing history) can signal heightened near-term uncertainty/risk-aversion or term-structure stress; as a continuous SPY de-risking overlay (1-bar delay), reducing exposure in stress states may improve risk-adjusted returns. This is a distinct observable from realized vol levels, from MOVE/GVZ (rates/FX vol, tested H125/H126), from IVOL cross-sectionals (H93/H130), and from cross-asset correlation (H127).
+
+**Repo-relative novelty (honest).** No prior test in repo of VIX term-structure slope (^VIX3M/^VIX) as a continuous regime overlay on SPY. Adjacent to vol-regime ideas but different mechanism/data source (CBOE VIX futures-implied term structure vs realized/sector dispersion/correlation). Free PIT via yfinance.
+
+**Null (H0).** VIX term-structure slope contains no incremental timing information for vol-targeted SPY; OOS gates fail vs buy-hold/random-exposure.
+
+**Pre-registration (to be executed).** NF-ID **NF-20261107-34** (Cycle 45). Runner to be `run_nf_20261107_34_vix_termstructure_regime.py`; tests `tests/test_nf_20261107_34_vix_termstructure_regime.py`. Universe SPY (traded). Signal inputs free yfinance: ^VIX and ^VIX3M (Close). Sample aligned to SPY history availability (expect ~2010+ common sample similar to prior NF tests; use common aligned rows, point-in-time). Splits: Train 2010-01-04→2019-12-31 / Val 2020-01-01→2021-12-31 / Test (protected) 2022-01-01→2025-01-03 (match prior pattern). Signal: compute ratio `r = ^VIX3M/^VIX`; rolling z-score of `r` over `z_window` (trailing, past-only); continuous stress defined for elevated z (de-risk when slope unusually high relative to history) with `entry_scale`; vol-targeted SPY exposure scaled, 1-bar delay; long-only, Equity CostModel defaults (1bp commission + 1bp spread). Bounded grid: `z_window` {63,126} × `entry_scale` {1.0,1.5,2.0} × `vol_target` {0.10,0.15} (12 combos); train-only 4-fold WF selection by train Sharpe; Test protected. No `src/qtr` change.
+
+**Gates (OOS Val+Test, pre-registered).** Sharpe >= 1.0, trades >= 200, PF >= 1.3, max DD <= 15%, WF stability >= 0.7, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0 vs buy-hold SPY, perturbation min ratio >= 0.5.
+
+**Ablations (pre-registered).** Buy-hold SPY, random-exposure-matched, inverse term-structure-regime (opposite exposure rule).
+
+**Costs/constraints.** Equity CostModel defaults. Free/public data only (yfinance). `src/qtr` unchanged. No published/certified artifact modified.
+
+**Falsifiers.** Random-exposure comparable or better; inverse not clearly opposite; benchmark fails; fragile to perturbation; worst-regime collapse; sparse OOS trades.
+
+**Execution:** To be run after implementation; verdict/artifacts to be recorded.
+
+**Executed outcome (2026-11-07, REAL): REJECT (3/8).** Artifact `.experiments/nf_runs/nf_20261107_34_vix_termstructure_regime/summary.json`. Data SPY + ^VIX + ^VIX3M yfinance, common aligned rows (train 2010-01-04→2019-12-31 / val 2020-01-01→2021-12-31 / test 2022-01-03→2025-01-03). Selected (train-only 4-fold WF mean Sharpe ~0.928): `z_window=126, entry_scale=2.0, vol_target=0.10`.
+
+**Result — REJECT (3/8 gates).** OOS Val+Test (2220 trades, n=1260): Sharpe **0.661** (fail ≥1.0), PF **1.147** (fail ≥1.3), max DD **-17.97%** (fail ≤15%), trades **2220** (pass), WF stability **0.712** (pass), worst-regime rolling-252 Sharpe **-0.813** (fail), benchmark p **1.0** / IR **-0.820** (fail), perturbation min ratio **1.000** (pass).
+
+**Ablations (OOS).** Buy-hold SPY 0.759/1.155/DD -33.72%/1. Random-exposure-matched 0.696/1.165/DD -10.45%/937 (lower Sharpe than strategy but much better DD; benchmark fails). Inverse term-structure-regime: not separately run as full ablation in this minimal runner but rule is falsifier direction — overall no validated edge.
+
+**Verdict rationale.** Fails Sharpe/PF/maxDD/worst-regime/benchmark (3/8). VIX term-structure slope (^VIX3M/^VIX) regime overlay on SPY shows no validated edge vs buy-hold; worst-regime collapse (-0.813) and DD breach. Repo-new observable relative to tested families (distinct from MOVE/GVZ/H93/H130/H127), but OOS performance insufficient under pre-registered gates. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Lineage map (H131 REJECT):**
+| VIX term-structure slope (^VIX3M/^VIX) regime timing SPY | H131 (NF-20261107-34) | Continuous vol-targeted long SPY reduced when z-score of trailing ^VIX3M/^VIX elevated; 1-bar delay, long-only | SPY + ^VIX + ^VIX3M daily (yfinance), 2010–2025 | **REJECT** (3/8; `.experiments/nf_runs/nf_20261107_34_vix_termstructure_regime/summary.json`) | Fails Sharpe 0.661/PF 1.147/maxDD -17.97%/worst-regime -0.813/benchmark-p 1.0/IR -0.820; repo-new (VIX term structure) but no validated edge |

@@ -1,0 +1,159 @@
+{
+  "experiment": "NF-20261107-34/H131: SPY timing from VIX term-structure slope (^VIX3M/^VIX). Continuous de-risking when slope z-score elevated; 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "nf_id": "NF-20261107-34",
+  "h_id": "H131",
+  "timestamp": "2026-11-07T14:46:28Z",
+  "data": {
+    "universe": [
+      "SPY",
+      "^VIX",
+      "^VIX3M"
+    ],
+    "start": "2010-01-01",
+    "end": "2025-01-05",
+    "rows": 3776,
+    "train_end": "2019-12-31",
+    "val_end": "2021-12-31",
+    "train_n": 2516,
+    "val_n": 505,
+    "test_n": 755
+  },
+  "selection": {
+    "grid": [
+      {
+        "z_window": 63,
+        "entry_scale": 1.0,
+        "vol_target": 0.1
+      },
+      {
+        "z_window": 63,
+        "entry_scale": 1.0,
+        "vol_target": 0.15
+      },
+      {
+        "z_window": 63,
+        "entry_scale": 1.5,
+        "vol_target": 0.1
+      },
+      {
+        "z_window": 63,
+        "entry_scale": 1.5,
+        "vol_target": 0.15
+      },
+      {
+        "z_window": 63,
+        "entry_scale": 2.0,
+        "vol_target": 0.1
+      },
+      {
+        "z_window": 63,
+        "entry_scale": 2.0,
+        "vol_target": 0.15
+      },
+      {
+        "z_window": 126,
+        "entry_scale": 1.0,
+        "vol_target": 0.1
+      },
+      {
+        "z_window": 126,
+        "entry_scale": 1.0,
+        "vol_target": 0.15
+      },
+      {
+        "z_window": 126,
+        "entry_scale": 1.5,
+        "vol_target": 0.1
+      },
+      {
+        "z_window": 126,
+        "entry_scale": 1.5,
+        "vol_target": 0.15
+      },
+      {
+        "z_window": 126,
+        "entry_scale": 2.0,
+        "vol_target": 0.1
+      },
+      {
+        "z_window": 126,
+        "entry_scale": 2.0,
+        "vol_target": 0.15
+      }
+    ],
+    "best_params": {
+      "z_window": 126,
+      "entry_scale": 2.0,
+      "vol_target": 0.1
+    },
+    "train_wf_mean_sharpe": 0.9393795510539018
+  },
+  "metrics": {
+    "train": {
+      "sharpe": 0.9278550597184616,
+      "profit_factor": 1.2086602803321693,
+      "max_drawdown": -0.09678023062615038,
+      "trades": 2220,
+      "n": 2516,
+      "total_return": 0.7781774614253831
+    },
+    "val": {
+      "sharpe": 0.7056249710898055,
+      "profit_factor": 1.1747269596883854,
+      "max_drawdown": -0.17971869724149248,
+      "trades": 2220,
+      "n": 505,
+      "total_return": 0.16915133030013707
+    },
+    "test": {
+      "sharpe": 0.6433959759226687,
+      "profit_factor": 1.125679684142558,
+      "max_drawdown": -0.11120777996515874,
+      "trades": 2220,
+      "n": 755,
+      "total_return": 0.15600049770285263
+    },
+    "oos_val_test": {
+      "sharpe": 0.6606347173566898,
+      "profit_factor": 1.1474105640959509,
+      "max_drawdown": -0.17971869724149248,
+      "trades": 2220,
+      "n": 1260,
+      "total_return": 0.3515395197169111
+    }
+  },
+  "oos_diagnostics": {
+    "wf_stability_oos_over_train": 0.7120020637244202,
+    "worst_regime_rolling252_sharpe_oos": -0.813270696903155,
+    "benchmark_buyhold": {
+      "sharpe": 0.7587586555160034,
+      "profit_factor": 1.154949868250411,
+      "max_drawdown": -0.3371725882604557,
+      "trades": 1
+    },
+    "benchmark_p_le_0_05_and_ir": {
+      "p": 1.0,
+      "ir": -0.8197088164416523
+    },
+    "perturbation_min_ratio": 0.9999737124246807,
+    "random_exposure_matched": {
+      "sharpe": 0.6956436235972551,
+      "profit_factor": 1.1653630431653432,
+      "max_drawdown": -0.10452845360235041,
+      "trades": 937
+    },
+    "mean_exposure_oos": 0.3914698987913441
+  },
+  "gates": {
+    "sharpe_oos_ge_1_0": false,
+    "trades_oos_ge_200": true,
+    "pf_oos_ge_1_3": false,
+    "maxdd_oos_le_15pct": false,
+    "wf_stability_ge_0_7": true,
+    "worst_regime_rolling252_sharpe_ge_0_3": false,
+    "benchmark_p_le_0_05_and_ir_ge_0": false,
+    "perturbation_min_ratio_ge_0_5": true
+  },
+  "gates_passed": 3,
+  "verdict": "REJECT"
+}

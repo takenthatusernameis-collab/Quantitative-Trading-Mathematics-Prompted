@@ -1,0 +1,8 @@
+{
+  "nf_id": "NF-20261107-34",
+  "h_id": "H131",
+  "runner": "run_nf_20261107_34_vix_termstructure_regime.py",
+  "description": "NF-20261107-34/H131: SPY timing from VIX term-structure slope (^VIX3M/^VIX). Continuous de-risking when slope z-score elevated; 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "free_data": true,
+  "src_qtr_changed": false
+}

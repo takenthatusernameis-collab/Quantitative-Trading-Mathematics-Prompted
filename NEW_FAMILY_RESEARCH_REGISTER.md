@@ -2140,3 +2140,55 @@ Lineage reconciled to H129: H85–H129 all rejected/recorded. Next unused H-ID: 
 | Cross-sectional average sector IVOL regime timing SPY | H130 (NF-20261107-30) | Continuous vol-targeted long SPY reduced when z-score of trailing mean sector IVOL (SPY-beta residual std) elevated; 1-bar delay, long-only | SPY + 9 sectors daily (yfinance), 2010–2025 | **REJECT** (3/8; `.experiments/nf_runs/nf_20261107_30_avg_ivol_regime/summary.json`) | Fails Sharpe 0.809/PF 1.163/maxDD -15.40%/worst-regime -1.715/benchmark-p 0.770/IR -0.331; no validated edge vs buy-hold; repo-new aggregate-IVOL overlay, honest adjacency to H93 |
 
 **Cycle 45 required next.** H85–H130 all rejected/recorded. Fresh discovery per directive §4: reconcile lineage to H130, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly (25/25/20/15/10/5), reassess deferred NF-04/05/07/08/10/11/13/15/17/20/21, NF-11r/NF-06-18 (same root as NF-11), NF-06-11 (infeasible), NF-20261106-03/23/24/28/30/32/33/35, NF-20261107-05 (CPI drift), and held NF-20261107-11/12/14/31/32 with concrete evidence (no silent drops). NF-20261107-30/H130 and NF-20261107-29/H129 executed/rejected — not rerun. H93/H130 IVOL-related constructions tested (ranking vs aggregate overlay) — require clearly distinct mechanism/design if revisited. Pre-register highest-expected-information feasible candidate as **H131**. Free/public data only; no gate weakening; no published/certified artifact modification; no commit/push; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
+
+
+### Cycle 45 discovery (directive §4, >=3 repo-new mechanism candidates across >=3 broad categories)
+
+Lineage reconciled to H130: H85–H130 all rejected/recorded. Next unused H-ID: **H131** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified.
+
+**Candidate pool (scored 25/25/20/15/10/5):**
+
+| Candidate | Mechanism category | Novelty (25%) | Plaus (25%) | Data (20%) | Falsif (15%) | Exec (10%) | Support (5%) | Weighted |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261107-34 VIX term-structure slope (^VIX3M/^VIX) regime timing SPY — **H131 (selected/pre-registered)** | Volatility term structure / variance risk premia | 4 | 4 | 5 | 4 | 4 | 3 | **4.00** |
+| NF-20261107-35 CBOE SKEW (^SKEW) tail-risk regime timing SPY | Tail risk / higher-moment (skew) | 4 | 3 | 5 | 4 | 4 | 3 | **3.80** |
+| NF-20261107-36 TLT-SPY correlation regime timing SPY | Rates-equity co-movement / flight-to-quality transmission | 3 | 3 | 5 | 4 | 4 | 3 | **3.60** |
+| NF-20261107-37 Credit spread slope proxy (HYG/LQD relative level, orthogonalized) timing SPY | Credit risk-appetite / spread structure | 2 | 3 | 5 | 4 | 4 | 2 | **3.25** |
+
+**Scoring notes.**
+- NF-20261107-34 novelty 4: VIX term structure slope (^VIX3M/^VIX, contango/backwardation) is a distinct volatility-premia observable from realized vol, from MOVE/GVZ (H125/H126 tested rates/FX vol levels/ratios in different constructions) and from IVOL cross-sectionals (H93/H130). Repo has no prior test of VIX term-structure slope as a continuous regime overlay on SPY; free PIT via yfinance (^VIX,^VIX3M). Plausible risk-premia/hedging-demand channel. Feasible with same long-only vol-targeted overlay pattern as recent NF tests (bounded grid, 1-bar delay). Expected decisive information if present.
+- NF-20261107-35 novelty 4: ^SKEW (CBOE SKEW Index) measures perceived tail-risk/skewness premium — different from variance level/slope and from dispersion. Free PIT on yfinance (^SKEW) with reasonable history (~2011+). Repo has no test of SKEW regime timing; adjacent to tail-risk ideas but not executed. Plausible de-risking on elevated tail-risk perception.
+- NF-20261107-36 novelty 3: TLT-SPY correlation regime is adjacent to H127 (GLD–TLT correlation REJECT 2/8, different pair/rates-commodity). Rates-equity correlation captures flight-to-quality; different pair from GLD–TLT. Free (TLT, SPY). Plausible but closer in construction class to cross-asset correlation family; needs careful separation from H127. Still repo-new relative to pair tested.
+- NF-20261107-37 novelty 2: HYG/LQD credit spread proxy; repo contains prior `run_nf_20261107_16_credit_relmom.py` / NF-20261107-33 considered (adjacent to H94/H108) with REJECT-like evidence — not repo-new root, lower expected information. Not selected.
+
+**Selection:** NF-20261107-34 → **H131** (highest weighted feasible repo-new mechanism with clean separation from heavily-tested classes; bounded grid, SPY traded, free PIT data). Pre-registered below.
+
+**Deferred candidates reassessed (no silent drops), carried forward:**
+- NF-04 commodity carry **blocked** (no free PIT term-structure/roll proxy).
+- NF-05 short-term CS reversal **deferred** (turnover/net-of-cost; H119 weekly REJECT 3/8).
+- NF-07 GLD/SPY safe-haven **deferred** (weak). NF-08 TIP/IEF breakeven→GLD **deferred** (weak proxy).
+- NF-10 SI/GC risk sentiment **deferred** (adj H101/inconclusive).
+- NF-11 TLT/IWM growth-liquidity **deferred** (adj H85/H86/H99). NF-11r/NF-06-18 TNX-FVX slope **same root as NF-11 (not new root family)**.
+- NF-13 GLD/TIP real-rate **deferred**. NF-15 EEM/EFA global risk-appetite **deferred**. NF-17 volume-shock reversal **deferred** (turnover/cost).
+- NF-20 Treasury auction supply-pressure **deferred** (calendar/timestamp). NF-21 month-end pension rebalancing **deferred** (weak/adj H91).
+- NF-06-11 CBOE PC ratio **infeasible** (no free yfinance/PIT series).
+- NF-20261106-03 VVIX **deferred** (VIX-complex adj H104). NF-20261106-23 XHB/XLU **deferred** (rates adj). NF-20261106-24 XBI/XLV **deferred** (weak separation). NF-20261106-28 JNK/LQD **deferred** (credit adj H94/H108). NF-20261106-30 VNQ/SPY **deferred** (rates/beta adj). NF-20261106-32 DBC/SPY **deferred** (ETF roll/flow confounds). NF-20261106-33 EWH/SPY **deferred** (capital-flow confounds). NF-20261106-35 FXA commodity-currency **deferred** (adj H103). NF-20261107-05 CPI release event drift **deferred** (macro event-calendar adj H90).
+- **Held:** NF-20261107-11 cross-sectional IVOL spread timing (requires PIT construction clearly separating from H93 IVOL level REJECT; larger scope than decisive overlay), NF-20261107-12 credit-vs-equity vol divergence (requires separation from H94/H100/H125), NF-20261107-14 OVX−VIX energy-options spread (same construction class as H125/H126 — **materially different pre-registered design required**), NF-20261107-31 sector breadth (adj H115 RSP/SPY REJECT 1/8; requires materially different observable/construction), NF-20261107-32 return dispersion (adj dispersion concepts). NF-20261107-16/NF-20261107-33 credit-quality HYG-LQD **not selected** (adjacent/previously-artifacted; not repo-new root).
+- Executed/rejected not rerun: NF-20261107-28/H128, NF-20261107-29/H129, NF-20261107-30/H130. IVOL-related (H93/H130) tested — require clearly distinct mechanism/design if revisited. Cross-asset vol-spread/corr families heavily tested (H125 MOVE, H126 GVZ, H127 GLD–TLT) — NF-20261107-34 uses different observable (VIX term structure slope) with clean separation.
+
+### NF-20261107-34 / H131 execution outcome (2026-11-07, REAL) — REJECTED (3/8)
+
+**Runner:** `run_nf_20261107_34_vix_termstructure_regime.py`. **Tests:** `tests/test_nf_20261107_34_vix_termstructure_regime.py` (7 passed). `ruff check/format` clean. `src/qtr` unchanged.
+
+**Execution.** Artifact `.experiments/nf_runs/nf_20261107_34_vix_termstructure_regime/summary.json`. Data SPY + ^VIX + ^VIX3M yfinance, aligned sample ~2010–2025 (train 2516 / val 505 / test 755). Selected (train-only 4-fold WF): `z_window=126, entry_scale=2.0, vol_target=0.10`.
+
+**Result — REJECT (3/8 gates).** OOS Val+Test (2220 trades): Sharpe **0.661** (fail), PF **1.147** (fail), max DD **-17.97%** (fail), trades **2220** (pass), WF stability **0.712** (pass), worst-regime rolling-252 Sharpe **-0.813** (fail), benchmark p **1.0** / IR **-0.820** (fail), perturbation min ratio **1.000** (pass).
+
+**Ablations (OOS).** Buy-hold SPY 0.759/1.155/DD -33.72%/1. Random-exposure-matched 0.696/1.165/DD -10.45%/937. No validated edge.
+
+**Verdict rationale.** Repo-new observable (VIX term-structure slope) distinct from MOVE/GVZ/IVOL/correlation families; however fails Sharpe/PF/DD/worst-regime/benchmark under pre-registered gates. No gate weakening; no published/certified artifact modification; `src/qtr` unchanged.
+
+**Lineage map (H131 REJECT):**
+| VIX term-structure slope (^VIX3M/^VIX) regime timing SPY | H131 (NF-20261107-34) | Continuous vol-targeted long SPY reduced when z-score of trailing ^VIX3M/^VIX elevated; 1-bar delay, long-only | SPY + ^VIX + ^VIX3M daily (yfinance), 2010–2025 | **REJECT** (3/8; `.experiments/nf_runs/nf_20261107_34_vix_termstructure_regime/summary.json`) | Fails Sharpe 0.661/PF 1.147/maxDD -17.97%/worst-regime -0.813/benchmark-p 1.0/IR -0.820; repo-new but no validated edge |
+
+**Cycle 45 complete (H131 REJECT 3/8).** H85–H131 all rejected/recorded. Fresh discovery per directive §4 for Cycle 46: reconcile lineage to H131, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly (25/25/20/15/10/5), reassess deferred NF-04/05/07/08/10/11/13/15/17/20/21, NF-11r/NF-06-18 (same root as NF-11), NF-06-11 (infeasible), NF-20261106-03/23/24/28/30/32/33/35, NF-20261107-05 (CPI drift), and held NF-20261107-11/12/14/31/32 with concrete evidence (no silent drops). H93/H130 IVOL tested, VIX term-structure/H125/H126/H127 cross-asset vol/corr heavily tested — require clearly distinct mechanism/design if revisited. Pre-register highest-expected-information feasible candidate as **H132** (next unused H-ID). Free/public data only; no gate weakening; no published/certified artifact modification; no commit/push; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
