@@ -1,0 +1,99 @@
+{
+  "experiment_id": "nf_20261107_28_realized_skewness_stress_1794059041",
+  "hypothesis": "H128",
+  "nf_id": "NF-20261107-28",
+  "description": "NF-20261107-28/H128: SPY timing from realized skewness stress regime. Reduce vol-targeted long SPY to flat when z-score of trailing realized SPY skewness <= entry_z, re-enter when z > exit_z (hysteresis), 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "runtime_seconds": 1.02,
+  "selected_params": {
+    "lookback": 63,
+    "z_window": 63,
+    "entry_z": -0.5,
+    "exit_z": -1.0,
+    "vol_target": 0.1
+  },
+  "train_metrics": {
+    "sharpe": 1.0205344546335158,
+    "profit_factor": 1.2521231294978694,
+    "max_drawdown": -0.10481576179229501,
+    "trades": 116,
+    "n": 2516,
+    "total_return": 0.7702424515440489
+  },
+  "val_metrics": {
+    "sharpe": 0.38009902184862254,
+    "profit_factor": 1.0957589789702202,
+    "max_drawdown": -0.2236618992423497,
+    "trades": 116,
+    "n": 505,
+    "total_return": 0.07621436216536726
+  },
+  "test_metrics": {
+    "sharpe": 0.9215474139524338,
+    "profit_factor": 1.2109396206457794,
+    "max_drawdown": -0.0806193666459244,
+    "trades": 116,
+    "n": 755,
+    "total_return": 0.2022952688502122
+  },
+  "oos_val_test_metrics": {
+    "sharpe": 0.619709784275527,
+    "profit_factor": 1.1535048295328723,
+    "max_drawdown": -0.2236618992423497,
+    "trades": 41,
+    "n": 1260,
+    "total_return": 0.293927435900071
+  },
+  "wf_stability_train": 1.0,
+  "worst_yearly_sharpe_oos": -0.37508389902112005,
+  "benchmark_vs_buy_hold_spy": {
+    "p_value": 0.9494556719776976,
+    "information_ratio": -0.7340795575422098,
+    "t": -1.64080029269207
+  },
+  "perturbation": {
+    "min_ratio_vs_optimum": 0.6814877068336945
+  },
+  "ablations_oos": {
+    "buy_hold_spy": {
+      "sharpe": 0.7587588233486287,
+      "profit_factor": 1.1549498942512857,
+      "max_drawdown": -0.1797186362656421,
+      "trades": 1,
+      "n": 1260,
+      "total_return": 0.44810118892018025
+    },
+    "random_exposure_matched": {
+      "sharpe": 0.17113868528763257,
+      "profit_factor": 1.0406619748313248,
+      "max_drawdown": -0.1700654651554515,
+      "trades": 1654,
+      "n": 1260,
+      "total_return": 0.057448817571092325
+    },
+    "inverse_skew_stress_long": {
+      "sharpe": 0.36720665634782057,
+      "profit_factor": 1.1193591655796349,
+      "max_drawdown": -0.05980317396221857,
+      "trades": 1079,
+      "n": 1260,
+      "total_return": 0.05702046681549522
+    }
+  },
+  "gates": {
+    "sharpe": false,
+    "trades": false,
+    "profit_factor": false,
+    "max_drawdown": false,
+    "wf_stability": true,
+    "worst_regime": false,
+    "benchmark": false,
+    "perturbation": true
+  },
+  "passed_all_gates": false,
+  "verdict": "REJECT",
+  "data": {
+    "rows": 3776,
+    "start": "2010-01-04",
+    "end": "2025-01-03"
+  }
+}

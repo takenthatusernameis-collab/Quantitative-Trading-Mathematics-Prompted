@@ -6706,3 +6706,56 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 
 **Lineage map (H127 REJECT):**
 | Cross-asset gold-duration correlation-regime timing (GLD–TLT) | H127 (NF-20261107-15) | Vol-targeted long SPY reduced when z-score of trailing GLD–TLT return correlation elevated; hysteresis, 1-bar delay, long-only | SPY + GLD/TLT daily (yfinance), 2010–2025 | **REJECT** (2/8; `.experiments/nf_runs/nf_20261107_15_gld_tlt_corr/summary.json`) | Fails Sharpe 0.661/PF 1.142/maxDD -17.97%/trades 16/worst-regime -0.904/benchmark-p 0.898/IR -0.627; random-exposure outperforms; extremely sparse OOS; repo-new GLD–TLT pair but honest adjacency to H96 correlation-regime construction class |
+
+
+### Hypothesis H128: SPY Realized Skewness Stress Timing (pre-registered, Cycle 42)
+
+**Statement.** Reducing vol-targeted long SPY exposure to flat when the z-score of the trailing rolling realized skewness of SPY daily returns falls at or below an entry threshold, and re-entering when it rises above an exit threshold (exit_z < entry_z, hysteresis), improves OOS Val+Test Sharpe ≥1.0 with ≥200 trades, PF≥1.3, maxDD≤15%, WF stability≥0.7, worst-regime yearly Sharpe≥0.3, benchmark p<0.05 with IR≥0, perturbation ratio≥0.5.
+
+**Mechanism (realized higher-moment / realized crash-risk transmission).** Realized skewness (the third standardized moment of trailing SPY returns) measures asymmetry in the realized return distribution. Abnormally low (negative) realized skewness indicates downside-risk concentration / elevated crash probability; de-risking SPY when realized skewness is abnormally low may avoid adverse equity exposure, while normal/positive skewness supports a vol-targeted long. Signal is computed point-in-time from past returns only (1-bar execution delay via engine shift(1)).
+
+**Repo-relative novelty (honest).** H89 (NF-20261104-10, REJECT) uses the CBOE *implied* SKEW index from option prices — an options-surface tail-risk observable. H128 uses *realized* skewness computed from SPY's own past returns — a different moment (realized 3rd vs implied surface), different observable, and a different causal chain (realized crash-risk build-up vs implied tail-protection demand). H122 (NF-20261107-07, REJECT 3/8) uses downside/upside *variance ratio* (a downside second-moment measure); H128 uses third-moment skewness. H124 (MAX/lottery) is a cross-sectional higher-moment measure; H128 is a time-series realized moment of SPY itself. Honest adjacency to the higher-moment / downside-risk stress families (H89 implied SKEW, H122 semivariance, H124 MAX) is acknowledged and novelty scored moderately (4/5); the realized-skewness observable and construction are repo-new. Realized skewness was scored as NF-20261105-19 in Cycle 11 (weighted 3.70, adjacent to H89/H122) but never selected or executed; H128 uses a fresh NF-ID (NF-20261107-28) to avoid relabeling the historical ID.
+
+**Null (H0).** Trailing realized skewness regime contains no incremental timing information; OOS Sharpe/PF/worst-regime/benchmark gates fail vs buy-hold/random-exposure.
+
+**Pre-registration (not yet executed).** NF-ID **NF-20261107-28** (Cycle 42). Runner `run_nf_20261107_28_realized_skewness_stress.py`; tests `tests/test_nf_20261107_28_realized_skewness_stress.py`. Universe SPY (traded; signal is SPY itself) (yfinance daily, auto_adjust close). Common aligned sample 2010-01-04→2025-01-03, 3776 rows (all positive), verified 2026-11-07. Train 2010-01-04→2019-12-31 (2516) / Val 2020-01-01→2021-12-31 (505) / Test (protected) 2022-01-01→2025-01-03 (755). Signal: z-score of trailing realized SPY skewness over `lookback`/`z_window`; long vol-targeted SPY when `z > entry_z`, flat when `z <= entry_z`, hysteresis re-enter at `z > exit_z` (exit_z < entry_z); 1-bar delay via engine position application (`signals.shift(1)` semantics); Equity CostModel (1bp commission + 1bp spread); long-only, max position 0.5. Bounded grid: lookback {63,126} × z_window {63} × entry_z {0.0,-0.5} × exit_z {-0.5,-1.0} (exit_z < entry_z enforced) × vol_target {0.10,0.15} (12 combos); train-only 4-fold WF selection by mean stability+Sharpe. No `src/qtr` change.
+
+**Gates (OOS Val+Test, pre-registered).** Sharpe >= 1.0, trades >= 200, PF >= 1.3, max DD >= -15% (abs DD <= 15%), WF stability >= 0.7, worst-regime yearly Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0 vs buy-hold SPY, perturbation min ratio >= 0.5.
+
+**Ablations (pre-registered).** Buy-hold SPY, random-exposure-matched, inverse-skew-stress-long (long when realized skewness is abnormally low).
+
+**Costs/constraints.** Equity CostModel defaults. Free/public data only. `src/qtr` unchanged. No published/certified artifact modified.
+
+**Falsifiers.** Random-exposure comparable or better; inverse not clearly opposite; benchmark fails; fragile to perturbation; worst-regime collapse; sparse OOS trades.
+
+
+**Executed outcome (2026-11-07, REAL): REJECT (2/8).** Artifact
+`.experiments/nf_runs/nf_20261107_28_realized_skewness_stress/summary.json`
+(`nf_20261107_28_realized_skewness_stress_1794059041`, 1.02s). Data SPY yfinance,
+3776 aligned rows 2010-01-04→2025-01-03 (train 2516 / val 505 / test 755).
+Selected (train-only 4-fold WF): `lookback=63, z_window=63, entry_z=-0.5,
+exit_z=-1.0, vol_target=0.10` (train Sharpe 1.021, 116 trades).
+
+**Result — REJECT (2/8 gates).** OOS Val+Test (41 trades, n=1260): Sharpe
+**0.620** (fail ≥1.0), PF **1.154** (fail ≥1.3), max DD **-22.37%** (fail ≤15%),
+trades **41** (fail ≥200), WF stability **1.0** (pass ≥0.7), worst-regime yearly
+Sharpe **-0.375** (fail ≥0.3), benchmark p **0.949** / IR **-0.734** (fail),
+perturbation min ratio **0.681** (pass ≥0.5).
+
+**Ablations (OOS).** Buy-hold SPY 0.759/1.155/DD -17.97%/1.
+Random-exposure-matched 0.171/1.041/DD -17.01%/1654 (strategy beats random
+exposure but still fails gates). Inverse_skew_stress_long 0.367/1.119/DD
+-5.98%/1079.
+
+**Verdict rationale.** Fails Sharpe/PF/maxDD/trades/worst-regime/benchmark
+(2/8). OOS Sharpe 0.620 underperforms buy-hold SPY (0.759); extremely sparse
+OOS (41 trades) and maxDD breach (-22.37%). Robust WF stability/perturbation
+are not economically decisive given sparsity, drawdown breach, and benchmark
+failure. No validated edge from realized-skewness stress timing. Honest
+adjacency to H89 (implied SKEW tail regime, REJECT) and H122 (semivariance
+downside risk, REJECT 3/8): realized-vs-implied skew and third-vs-second
+moment distinctions acknowledged, but no validated edge. No gate weakened; no
+published/certified artifact modified; `src/qtr` unchanged.
+
+**Lineage map (H128 REJECT):**
+| SPY realized skewness stress timing (realized third-moment crash-risk) | H128 (NF-20261107-28) | Vol-targeted long SPY reduced to flat when z-score of trailing realized SPY skewness <= entry_z, re-enter when z > exit_z; hysteresis, 1-bar delay | SPY daily (yfinance), 2010–2025 | **REJECT** (2/8; `.experiments/nf_runs/nf_20261107_28_realized_skewness_stress/summary.json`) | Fails Sharpe 0.620/PF 1.154/maxDD -22.37%/trades 41/worst-regime -0.375/benchmark-p 0.949/IR -0.734; random-exposure does not outperform but no validated edge vs buy-hold; sparse OOS; repo-new realized-skewness observable, honest adjacency to H89/H122 |
