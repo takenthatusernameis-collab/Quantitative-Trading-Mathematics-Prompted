@@ -1,0 +1,8 @@
+{
+  "nf_id": "NF-20261107-50",
+  "h_id": "H137",
+  "runner": "run_nf_20261107_50_spy_gld_corr.py",
+  "description": "NF-20261107-50/H137: SPY timing from realized SPY-GLD correlation regime (safe-haven co-movement/diversification transmission). Continuous de-risking when z-score of trailing realized SPY-GLD correlation rises. 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "free_data": true,
+  "src_qtr_changed": false
+}

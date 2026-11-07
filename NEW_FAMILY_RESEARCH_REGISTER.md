@@ -2419,3 +2419,44 @@ Lineage reconciled to H135: H85–H135 all rejected/recorded. Next unused H-ID: 
 | SPY realized lag-1 autocorrelation (AR1) serial-dependence state timing | H136 (NF-20261107-47) | Continuous vol-targeted long SPY reduced when z-score of trailing AR(1) correlation rises; 1-bar delay, long-only | SPY daily (yfinance), 2010–2025 | **REJECT** (2/8; `.experiments/nf_runs/nf_20261107_47_spy_ar1/summary.json`) | Fails Sharpe 0.536/PF 1.128/maxDD -15.53%/WF 0.452/worst-regime -1.066/benchmark-p 1.000/IR -0.223; random-exposure comparable; diagnostic-only AR(1) separation documented, no validated edge |
 
 **Cycle 50 complete (discovery + H136 execution/recording).** H85–H136 all rejected/recorded. Cycle 51 required next: fresh directive §4 discovery, >=3 repo-new candidates across >=3 broad categories, pre-register and execute **H137** (next unused H-ID). No gate weakening; no published/certified artifact modification; no commit/push in this session; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
+
+
+## Cycle 51 (2026-11-07) — Discovery + H137 execution (NF-20261107-50 realized SPY--GLD correlation regime; REJECT 2/8)
+
+### Cycle 51 discovery (directive §4, >=3 repo-new mechanism candidates across >=3 broad categories)
+
+Lineage reconciled to H136: H85–H136 all rejected/recorded. Next unused H-ID: **H137** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified.
+
+| Cycle-51 candidate | Broad mechanism category | Novelty 25% | Plausibility 25% | Data PIT 20% | Falsifiability 15% | Execution 10% | Ind. support 5% | Weighted |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261107-50 Realized SPY--GLD return-correlation regime timing for SPY — **H137 (selected/executed)** | Safe-haven co-movement / diversification transmission | 4 | 3 | 5 | 4 | 5 | 2 | **3.95** |
+| NF-20261107-49 TLT-SPY realized return-correlation regime timing SPY (held) | Rates-equity co-movement / flight-to-quality transmission | 3 | 3 | 5 | 4 | 4 | 3 | **3.60** |
+| NF-20261107-51 Credit-vs-equity realized-vol divergence regime timing SPY (HYG-LQD spread RV vs SPY RV) (held NF-20261107-12 concept, materially distinct *vol-divergence* design) | Credit stress / volatility-transmission divergence | 3 | 3 | 4 | 4 | 4 | 3 | **3.50** |
+| NF-20261107-48 OVX−VIX cross-asset energy-vs-equity IV spread timing SPY (held NF-20261107-14) — **not selected without materially different design** | Cross-asset commodity-options / energy uncertainty transmission | 2 | 3 | 5 | 4 | 4 | 2 | **3.35** |
+
+**Scoring notes (honest).**
+- NF-20261107-50 novelty 4 (moderate): repo-new as an executed *realized SPY--GLD return-correlation* observable. **Honest adjacency** to correlation-regime construction class: H96 (SPY--TLT, REJECT 4/9, equity-bond diversification), H127 (GLD--TLT, REJECT 2/8, gold-duration), H134 (SPY--VIX, REJECT 5/8, fear decoupling) — all different asset pairs/channels. SPY--GLD tests equity-gold diversification/co-movement (safe-haven hedge-effectiveness transmission), a distinct causal channel/pair. Data 5 (SPY+GLD free PIT yfinance, 3776 aligned rows). Falsifiable bounded 12-combo grid.
+- NF-20261107-49 novelty 3: TLT-SPY realized correlation adjacent to H127 (GLD--TLT, different pair) and H96 lineage; feasible but cross-asset correlation construction class requires careful separation of rates-equity co-movement vs flight-to-quality; held.
+- NF-20261107-51 novelty 3: reassesses NF-20261107-12 as *realized-vol divergence* (`RV(HYG-LQD)` vs `RV(SPY)` ratio z-score), distinct from H94/H108 credit *price/momentum* families and H100/H125 implied-vol/spread families; feasibility confirmed (SPY/HYG/LQD 3776 rows). Still adjacent to credit/vol transmission; held pending explicit pre-registration of the vol-divergence observable/construction separation.
+- NF-20261107-48 novelty 2 (discounted): same cross-asset IV-spread construction class as H125/H126 — **materially different pre-registered design required** (not reframing). Not selected.
+
+**Deferred reassessment (no silent drops):** NF-04 commodity carry **blocked** (no free PIT term-structure/roll proxy); NF-05 short-term CS reversal **deferred** (turnover/net-of-cost; H119 weekly REJECT 3/8); NF-07/08/10/11/13/15/17/20/21 **deferred**; NF-11r/NF-06-18 TNX-FVX **same root as NF-11** (not new root); NF-06-11 CBOE PC ratio **infeasible**; NF-20261106-03/23/24/28/30/32/33/35 **deferred**; NF-20261107-05 CPI drift **deferred** (data blocker, adj H90). **Held:** NF-20261107-11 IVOL spread (separation from H118/H130 REJECTs), NF-20261107-12/51 credit-vs-equity vol divergence (distinct realized-vol divergence design required; sep H94/H100/H125), NF-20261107-14/48 OVX−VIX (same construction class as H125/H126 — **materially different pre-registered design required**), NF-20261107-31 sector breadth (adj H115 REJECT 1/8), NF-20261107-49 TLT-SPY corr (adj H127/H96). NF-20261107-32 (=H118), NF-20261107-36/39 (=H133), NF-20261107-43 (=H134), NF-20261107-46 (=H135), NF-20261107-47 (=H136), NF-20261107-50 (=H137) executed — not repo-new; do not rerun.
+
+**Selection:** NF-20261107-50 → **H137** (highest feasible repo-new SPY--GLD correlation pair/channel with clear separation from H96/H127/H134; bounded grid, SPY+GLD free PIT data). Pre-registered in `HYPOTHESIS_SPEC.md` §H137 before validation outcomes.
+
+### NF-20261107-50 / H137 execution outcome (2026-11-07T20:24:07Z, REAL) — REJECTED (2/8)
+
+**Runner:** `run_nf_20261107_50_spy_gld_corr.py`. **Tests:** `tests/test_nf_20261107_50_spy_gld_corr.py` (7 passed). `ruff check/format` clean. `src/qtr` unchanged.
+
+**Execution.** Artifact `.experiments/nf_runs/nf_20261107_50_spy_gld_corr/summary.json` (1.75s). Data SPY+GLD yfinance auto-adjust, 3776 aligned rows 2010-01-04→2025-01-03 (train 2516 / val 505 / test 755). Selected (train-only 4-fold WF mean Sharpe 0.685): `corr_window=252, z_window=126, entry_scale=2, vol_target=0.10`.
+
+**Result — REJECT (2/8 gates).** OOS Val+Test (1437 trades, n=1260): Sharpe **0.152** (fail), PF **1.035** (fail), max DD **-14.41%** (pass), trades **1437** (pass), WF stability **0.161** (fail), worst-regime rolling-252 Sharpe **-0.931** (fail), benchmark p **0.977** / IR **-0.895** (fail), perturbation min ratio **0.243** (fail). Mean OOS exposure 0.284.
+
+**Ablations (OOS).** Buy-hold SPY 0.759/1.155/-33.72%/1. Random-exposure-matched 0.174/1.065/-15.92%/367 (comparable). **Inverse correlation-regime** 0.943/1.250/-8.50%/1437 — outperforms materially; pre-registered falsifier indicates the de-risking-on-elevated-SPY/GLD-correlation mapping is wrong for this construction/sample (not a validated edge under the pre-registered hypothesis).
+
+**Verdict rationale.** Fails 6/8 gates; random-exposure comparable; inverse mapping falsifies pre-registered directional mechanism. Repo-new SPY--GLD pair/channel with honest adjacency to H96/H127/H134 correlation-regime class — no validated edge. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Lineage map (H137 REJECT):**
+| SPY--GLD realized return-correlation regime timing (safe-haven co-movement/diversification) | H137 (NF-20261107-50) | Continuous vol-targeted long SPY reduced when z-score of trailing SPY--GLD return correlation elevated; 1-bar delay, long-only | SPY + GLD daily (yfinance), 2010–2025 | **REJECT** (2/8; `.experiments/nf_runs/nf_20261107_50_spy_gld_corr/summary.json`) | Fails Sharpe 0.152/PF 1.035/WF 0.161/worst-regime -0.931/benchmark-p 0.977/IR -0.895/perturbation 0.243; inverse mapping outperforms (pre-registered falsifier); repo-new pair, honest adjacency to H96/H127/H134 |
+
+**Cycle 51 complete (discovery + H137 execution).** H85–H137 all rejected/recorded. Cycle 52 required next: fresh directive §4 discovery, >=3 repo-new candidates across >=3 broad categories, pre-register and execute **H138** (next unused H-ID). No gate weakening; no published/certified artifact modification; no commit/push in this session; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
