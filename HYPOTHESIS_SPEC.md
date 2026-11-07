@@ -6396,22 +6396,38 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 |---|---|---|---|---|---|
 | Fiscal/geopolitical spending-cycle / defense-sector reallocation transmission via ITA/SPY leadership | H116 (NF-20261106-31) | Continuous vol-targeted long SPY reduced when trailing ITA/SPY ratio momentum z-score abnormally strong (defense leadership), 1-bar delay | SPY (traded), ITA (signal) daily (yfinance), 2010–2026 | **REJECT** (4/8; exp_2026-11-06T23-40-35-522405Z) | Fails Sharpe 0.706/PF 1.131/worst-regime -1.175/benchmark-p 1.0/IR -0.501; perturbation-stable but no risk-adjusted edge vs buy-hold; sector-ratio adjacency acknowledged |
 
-## H117 / NF-20261106-34 — Cross-sectional sector correlation regime timing for SPY (pre-registered Cycle 31)
+## H117 / NF-20261106-34 — Cross-sectional sector correlation regime timing for SPY (pre-registered & executed, Cycle 31)
 
-**NF-ID / H-ID.** NF-20261106-34 / H117 (next unused H-ID; H24/H68-H73/H76-H79 unassigned, not recycled).
+**NF-ID / H-ID.** NF-20261106-34 / H117 (next unused H-ID; H24/H68–H73/H76–H79 unassigned, not recycled).
 
-**Mechanism (new root family).** Market-wide correlation regime: when average pairwise correlation of broad sector ETFs rises abnormally (risk-off contagion / correlation spike), reduce vol-targeted SPY exposure with 1-bar delay. Distinct from trend/beta/sector-ratio families; uses cross-sectional dispersion, not single-pair ratio.
+**Mechanism (new root family).** Market-wide correlation regime: when average pairwise correlation of broad sector ETF daily returns rises abnormally (risk-off contagion / correlation spike), reduce vol-targeted SPY exposure with 1-bar delay (engine `signals.shift(1)`). Distinct from trend/beta/sector-ratio families; uses cross-sectional dispersion/correlation across sectors, not a single-pair ratio.
 
-**Data.** yfinance daily adjusted close for sector ETFs XLK, XLF, XLE, XLV, XLI, XLC, XLY, XLP, XLU, XLB, XLF? and SPY (traded), 2010-01-01 → 2026-10-31. Feasibility to be verified before execution.
+**Data.** yfinance daily adjusted close (DataFetcher/cache), 2010-01-01 → 2026-10-31. **Feasibility adjustment (documented before execution):** used 9 sector ETFs with full 2010+ history — `XLK, XLF, XLE, XLV, XLI, XLY, XLP, XLU, XLB` — and excluded `XLC` (2018-06-19 inception) and `XLRE` (2015-10-08) to preserve the pre-registered 2010+ sample/splits (spec draft listed `XLC` and a typo `XLF?`). Aligned 4233 rows, 2010-01-04→2026-10-30, 0 non-positive. Point-in-time.
 
-**Universe/splits (protected holdout).** Trade SPY; signal = z-score of 21-day rolling average pairwise correlation of sector daily returns over 252-day window. Train 2010-01-01 → 2019-12-31; Val 2020-01-01 → 2022-12-31; Test (protected) 2023-01-01 → 2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+**Universe/splits (protected holdout).** Trade `SPY`; signal = z-score of trailing average pairwise correlation of sector daily returns (`lookback` window) over `z_window` (`min_periods=max(30,z_window//2)`). Train 2010-01-01 → 2019-12-31; Val 2020-01-01 → 2022-12-31; Test (protected) 2023-01-01 → 2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
 
-**Grid (bounded).** lookback ∈ {21,63} × z_window ∈ {126,252} × entry_scale ∈ {1.0,1.5,2.0} × vol_target ∈ {0.10,0.15} (24 combos). max_position=0.5, long-only SPY only.
+**Grid (bounded).** lookback ∈ {21,63} × z_window ∈ {126,252} × entry_scale ∈ {1.0,1.5,2.0} × vol_target ∈ {0.10,0.15} (24 combos). `max_position=0.5`, long-only SPY only. Mapping: `stress = clip(z - entry_scale, 0, 1)`, `exposure = MAX_POS*(1-stress)*vol_scale`.
 
-**Costs/constraints.** Equity CostModel defaults. Free/public data only. src/qtr unchanged unless evidenced defect.
+**Costs/constraints.** Equity CostModel defaults. Free/public data only. `src/qtr` unchanged.
 
 **Gates (OOS Val+Test).** Sharpe >= 1.0, >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0, perturbation min ratio >= 0.5.
 
-**Runner (planned).** run_nf_20261106_34_sector_corr_regime.py. Tests (planned). tests/test_nf_20261106_34_sector_corr_regime.py. ruff check/format clean. src/qtr unchanged.
+**Runner.** `run_nf_20261106_34_sector_corr_regime.py`. **Tests.** `tests/test_nf_20261106_34_sector_corr_regime.py` (11 passed). `ruff check/format` clean.
 
-**Status.** Pre-registered only (Cycle 31). Execution deferred to next session pending data feasibility verification.
+### H117 execution outcome (2026-11-07, REAL)
+
+**Experiment:** `exp_2026-11-07T00-23-49-421603Z` (6.19s). Artifact: `.experiments/nf_runs/nf_20261106_34_sector_corr_regime/summary.json`. `src/qtr` unchanged.
+
+**Selected (train-only 4-fold WF):** `lookback=21, z_window=126, entry_scale=1.5, vol_target=0.15` (selection WF mean 1.613). Train Sharpe 0.943.
+
+**OOS Val+Test (809 trades):** Sharpe **0.918** (fail), PF **1.169** (fail), max DD **-8.93%** (pass), trades **809** (pass), WF stability **0.973** (pass), worst-regime rolling-252 Sharpe min **-0.906** (fail), benchmark p **1.0** / IR **-0.324** (fail), perturbation min ratio **0.939** (pass).
+
+**Ablations (OOS).** Buy-hold SPY 0.791/1.164/DD -17.97%/1. Random-exposure-matched 1.158/1.223/DD -10.89%/808. Inverse-stress-long 0.315/1.143/DD -11.41%/808.
+
+**Verdict rationale.** **REJECT (4/8).** Sector-correlation-regime timing is perturbation-stable, has ample trades/WF stability, and materially reduces drawdown vs buy-and-hold, but fails Sharpe/PF/worst-regime/benchmark-p/IR on pre-registered OOS gates. The random-exposure-matched ablation outperforms the signal, indicating the specific correlation-z mapping does not add risk-adjusted edge beyond exposure management in this construction. The executed mapping is the specific pre-registered construction tested; this does not test all correlation-regime constructions. No gate weakened; no published/certified artifact modified.
+
+**Lineage map (H117 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known failure modes |
+|---|---|---|---|---|---|
+| Cross-sectional sector correlation regime (contagion/risk-off dispersion) timing SPY | H117 (NF-20261106-34) | Continuous vol-targeted long SPY reduced when trailing avg pairwise sector-return correlation z-score abnormally high, 1-bar delay | SPY (traded), 9 sector ETFs (signal) daily (yfinance), 2010–2026 | **REJECT** (4/8; exp_2026-11-07T00-23-49-421603Z) | Fails Sharpe 0.918/PF 1.169/worst-regime -0.906/benchmark-p 1.0/IR -0.324; perturbation-stable/DD-improved but random-exposure ablation outperforms; no risk-adjusted edge vs buy-hold |

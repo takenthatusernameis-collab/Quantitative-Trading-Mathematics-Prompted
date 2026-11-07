@@ -1,0 +1,158 @@
+{
+  "experiment": "nf_20261106_34_sector_corr_regime",
+  "description": "NF-20261106-34/H117: cross-sectional sector correlation regime timing for SPY. Signal = z-score of trailing average pairwise sector return correlation (lookback window) over z_window. When correlation regime is abnormally high (contagion/risk-off), reduce vol-targeted long SPY exposure continuously, 1-bar delay. 9 sectors with full 2010+ history (XLC/XLRE excluded for feasibility). Train-only WF selection; Test protected; OOS gates.",
+  "hypothesis_id": "H117",
+  "nf_id": "NF-20261106-34",
+  "selected_params": {
+    "lookback": 21,
+    "z_window": 126,
+    "entry_scale": 1.5,
+    "vol_target": 0.15
+  },
+  "selection_score_wf_mean_sharpe": 1.6128746474781421,
+  "train_metrics": {
+    "total_return": 0.6680055212350171,
+    "annualized_return": 0.052579903391706484,
+    "annualized_volatility": 0.05601950052226452,
+    "sharpe": 0.9430721867770199,
+    "sortino": 1.311179853651057,
+    "max_drawdown": -0.08801457555776203,
+    "max_drawdown_duration": 346.0,
+    "profit_factor": 1.187861064842253,
+    "num_trades": 753.0,
+    "avg_trade_cost": 3.6470267271125356e-06,
+    "calmar": 0.5973999540246542
+  },
+  "oos_val_test_metrics": {
+    "total_return": 0.49168571168721353,
+    "annualized_return": 0.0604500281905076,
+    "annualized_volatility": 0.06640204671932023,
+    "sharpe": 0.9175061359113673,
+    "sortino": 1.2781573827199952,
+    "max_drawdown": -0.08930976869915155,
+    "max_drawdown_duration": 380.0,
+    "profit_factor": 1.1691446953387135,
+    "num_trades": 809.0,
+    "avg_trade_cost": 2.2726675119023745e-06,
+    "calmar": 0.6768579638151261
+  },
+  "gate_evaluation": {
+    "verdict": "REJECT",
+    "passed": 4,
+    "total": 8,
+    "gates": {
+      "sharpe_ge_1_0": {
+        "value": 0.9175061359113673,
+        "threshold": 1.0,
+        "pass": false
+      },
+      "trades_ge_200": {
+        "value": 809,
+        "threshold": 200,
+        "pass": true
+      },
+      "profit_factor_ge_1_3": {
+        "value": 1.1691446953387135,
+        "threshold": 1.3,
+        "pass": false
+      },
+      "max_drawdown_le_15pct": {
+        "value": 0.08930976869915155,
+        "threshold": 0.15,
+        "pass": true
+      },
+      "walkforward_stability_ge_0_7": {
+        "value": 0.9728906745166291,
+        "threshold": 0.7,
+        "pass": true
+      },
+      "worst_regime_rolling252_sharpe_ge_0_3": {
+        "value": -0.906225589486316,
+        "threshold": 0.3,
+        "pass": false
+      },
+      "benchmark_p_le_0_05_ir_ge_0": {
+        "value": {
+          "p_value": 1.0,
+          "information_ratio": -0.32440959371931666
+        },
+        "threshold": {
+          "p": 0.05,
+          "ir": 0.0
+        },
+        "pass": false
+      },
+      "perturbation_min_ratio_ge_0_5": {
+        "value": 0.9390399159149301,
+        "threshold": 0.5,
+        "pass": true
+      }
+    },
+    "comparison": {
+      "information_ratio": -0.32440959371931666,
+      "alpha_annualized": 0.016195081519023737,
+      "beta": 0.5665674967132069,
+      "alpha_t_stat": -0.8465489208458261,
+      "alpha_p_value": 0.39736463311180986,
+      "alpha_p_value_one_sided": 0.801317683444095,
+      "win_rate": 0.21083284799068142,
+      "excess_return_annual": -0.01800984555257717,
+      "excess_vol_annual": 0.05551576125137508
+    }
+  },
+  "ablations": {
+    "buy_hold_spy_oos": {
+      "total_return": 0.6548146804367234,
+      "annualized_return": 0.07672630500005262,
+      "annualized_volatility": 0.0997776507832545,
+      "sharpe": 0.791152899418426,
+      "sortino": 1.119737177500894,
+      "max_drawdown": -0.1797187110022099,
+      "max_drawdown_duration": 479.0,
+      "profit_factor": 1.1636068324891895,
+      "num_trades": 1.0,
+      "avg_trade_cost": 0.0001,
+      "calmar": 0.42692441188891656
+    },
+    "random_exposure_matched_oos": {
+      "sharpe": 1.1581512286533817,
+      "profit_factor": 1.2228286431937085,
+      "max_drawdown": -0.10888564775180762,
+      "num_trades": 808
+    },
+    "inverse_stress_long_oos": {
+      "total_return": 0.1148724418747209,
+      "annualized_return": 0.016087543447944608,
+      "annualized_volatility": 0.0555357507829029,
+      "sharpe": 0.31519528671035935,
+      "sortino": 0.4568158737276226,
+      "max_drawdown": -0.11410161273298697,
+      "max_drawdown_duration": 759.0,
+      "profit_factor": 1.142804535346393,
+      "num_trades": 808.0,
+      "avg_trade_cost": 2.1517178429814615e-06,
+      "calmar": 0.1409931293924093
+    }
+  },
+  "data": {
+    "start": "2010-01-04",
+    "end": "2026-10-30",
+    "rows": 4233,
+    "train_rows": 2516,
+    "val_rows": 756,
+    "test_rows": 961,
+    "sectors_used": [
+      "XLK",
+      "XLF",
+      "XLE",
+      "XLV",
+      "XLI",
+      "XLY",
+      "XLP",
+      "XLU",
+      "XLB"
+    ],
+    "feasibility_note": "XLC/XLRE excluded (2018/2015 inception); 9 sectors + SPY, 0 non-positive"
+  },
+  "elapsed_s": 6.192
+}
