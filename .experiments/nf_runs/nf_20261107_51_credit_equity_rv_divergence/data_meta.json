@@ -1,0 +1,8 @@
+{
+  "nf_id": "NF-20261107-51",
+  "h_id": "H138",
+  "runner": "run_nf_20261107_51_credit_equity_rv_divergence.py",
+  "description": "NF-20261107-51/H138: SPY timing from credit-vs-equity realized-vol divergence (HYG-LQD credit-spread RV relative to SPY RV). Continuous de-risking when z-score of trailing RV divergence ratio rises. 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "free_data": true,
+  "src_qtr_changed": false
+}

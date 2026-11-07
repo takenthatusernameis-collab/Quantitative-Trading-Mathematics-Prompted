@@ -1,37 +1,43 @@
-# HANDOFF_NEXT_SESSION.md — Cycle 51 complete (H137 REJECT); prepare Cycle 52 discovery/H138
+# HANDOFF_NEXT — After Cycle 52 / H138 (2026-11-07)
 
-## State
-- **H85–H137 all REJECTED/recorded.** H137 (NF-20261107-50, SPY timing from realized SPY--GLD return-correlation regime / safe-haven co-movement-diversification transmission) executed REAL: `.experiments/nf_runs/nf_20261107_50_spy_gld_corr/summary.json` (1.75s), verdict **REJECT 2/8**. **Next unused H-ID: H138** (H24/H68–H73/H76–H79 unassigned, not recycled).
-- **Files (H137):** `run_nf_20261107_50_spy_gld_corr.py`, `tests/test_nf_20261107_50_spy_gld_corr.py` (7 passed), artifact `.experiments/nf_runs/nf_20261107_50_spy_gld_corr/` (`summary.json`, `grid.csv`, `data_meta.json`). Docs updated: `HYPOTHESIS_SPEC.md` §H137, `NEW_FAMILY_RESEARCH_REGISTER.md` (Cycle 51 discovery/scoring/deferred reassessment + H137 outcome), `NEXT_TASK.md` (Cycle 52), `HANDOFF_NEXT.md`, this file. `src/qtr` unchanged. No published/certified artifact/verdict/threshold/frozen number modified except adding H137 records. No secrets/credentials added. No commit/push performed.
-- **Unrelated tracked file present in HEAD/worktree context:** `run_nf_20261107_48_ovx_vix_spread.py` exists as a tracked mislabeled draft (AR(1) body under OVX/H137 name from prior commit `bc4162a`); **not modified/executed by Cycle 51** and not part of H137's validated record. Next session should not treat it as H137 evidence.
+## Completed this cycle
+- **H138 / NF-20261107-51 — Credit-vs-equity realized-vol divergence timing SPY (`RV(HYG-LQD)/RV(SPY)`): REJECT (2/8).**
+  - Artifact: `.experiments/nf_runs/nf_20261107_51_credit_equity_rv_divergence/summary.json` (+ `grid.csv`, `data_meta.json`)
+  - Runner: `run_nf_20261107_51_credit_equity_rv_divergence.py`
+  - Tests: `tests/test_nf_20261107_51_credit_equity_rv_divergence.py` (8 passed)
+  - Data (free/public yfinance, PIT): SPY + HYG + LQD daily auto-adjust Close, 3776 aligned rows 2010-01-04→2025-01-03 (train 2516 / val 505 / test 755).
+  - Selected (train-only 4-fold WF): `rv_window=21, z_window=126, entry_scale=1, vol_target=0.10` (WF mean 0.891).
+  - OOS Val+Test (1218 trades, n=1260): Sharpe **0.389** fail, PF **1.090** fail, max DD **-17.97%** fail, trades **1218** pass, WF stability **0.414** fail, worst-regime rolling-252 **-1.362** fail, benchmark p **0.986** / IR **-0.987** fail, perturbation **0.927** pass → **2/8 REJECT**.
+  - Ablations OOS: buy-hold SPY 0.759/1.155/-33.72%; random-exposure-matched 0.107/1.034/-22.82% (weak); **inverse RV-divergence** 1.155/1.263/-4.59% (materially outperforms — pre-registered falsifier of the directional de-risking mapping; **not** a validated edge under the pre-registered H138 hypothesis).
+  - Honest adjacency: repo-new *realized-vol divergence ratio* observable (second-moment cross-asset). Distinct from H94/H108 (credit *price/momentum*, not RV divergence), H100/H125 (*implied* vol), H118 (equity cross-sectional dispersion). Adjacency acknowledged.
 
-## What changed (Cycle 51)
-- **Directive §4 discovery:** lineage reconciled to H136. >=3 repo-new mechanism candidates across >=3 broad categories scored honestly (25/25/20/15/10/5): NF-20261107-50 SPY--GLD realized return-correlation regime (safe-haven co-movement/diversification transmission) **3.95, selected/executed H137** (repo-new SPY--GLD pair/channel; honest adjacency to H96/H127/H134 correlation-regime construction class); NF-20261107-49 TLT-SPY realized correlation (rates-equity co-movement/flight-to-quality) **3.60, held** (adj H127/H96 separation); NF-20261107-51 credit-vs-equity *realized-vol divergence* `RV(HYG-LQD)` vs `RV(SPY)` (credit stress/volatility transmission, reassessing NF-20261107-12 with distinct design) **3.50, held** (explicit pre-registration of vol-divergence observable/construction separation required; sep H94/H100/H125); NF-20261107-14/48 OVX−VIX **3.35, held/not selected** — same construction class as H125/H126, **materially different pre-registered design required**.
-- **H137 result (REAL, NF-20261107-50):** SPY+GLD 3776 aligned rows 2010-01-04→2025-01-03 (train 2516/val 505/test 755). Selected `corr_window=252, z_window=126, entry_scale=2, vol_target=0.10` (train WF mean 0.685). OOS Val+Test (1437 trades): Sharpe **0.152** (fail), PF **1.035** (fail), maxDD **-14.41%** (pass), trades **1437** (pass), WF stability **0.161** (fail), worst-regime rolling-252 **-0.931** (fail), benchmark p **0.977**/IR **-0.895** (fail), perturbation **0.243** (fail) → **REJECT 2/8**. Ablations: buy-hold 0.759, random-exposure-matched 0.174 (comparable), **inverse 0.943** (materially outperforms — pre-registered falsifier indicates the de-risking-on-elevated-SPY/GLD-correlation mapping is wrong for this construction/sample; not a validated edge under the pre-registered hypothesis).
+## Discovery (Cycle 52, directive §4)
+- Reconciled lineage to H137 (H85–H137 rejected/recorded). Proposed >=3 candidates across >=3 broad categories, scored 25/25/20/15/10/5:
+  - NF-20261107-51 credit-vs-equity *realized-vol divergence* (`RV(HYG-LQD)/RV(SPY)`) — **3.95, selected/executed H138**.
+  - NF-20261107-53 IWM/SPY *realized-vol ratio divergence* (size/liquidity vol transmission) — **3.75, held**.
+  - NF-20261107-49 TLT-SPY realized correlation (rates-equity co-movement) — **3.60, held** (adj correlation-regime construction class H96/H127/H134/H137).
+  - NF-20261107-52 EEM-vs-SPY realized-vol divergence (global risk transmission) — **3.50, held**.
+- Deferred/held reassessed with concrete evidence (no silent drops): NF-04 **blocked**; NF-05 deferred (turnover; H119 REJECT); NF-07/08/10/11/13/15/17/20/21 deferred; NF-11r/NF-06-18 **SAME root as NF-11**; NF-06-11 **infeasible**; NF-20261106-03/23/24/28/30/32/33/35 deferred; NF-20261107-05 CPI deferred (data blocker). Held: NF-20261107-11/14(48)/31/49/52/53. NF-20261107-51 (=H138) and prior NF-20261107-32/36/39/43/46/47/50 executed — not rerun.
 
-## What was actually verified
-- `python3 -m ruff check run_nf_20261107_50_spy_gld_corr.py tests/test_nf_20261107_50_spy_gld_corr.py` → **All checks passed**.
-- `python3 -m ruff format --check run_nf_20261107_50_spy_gld_corr.py tests/test_nf_20261107_50_spy_gld_corr.py` → **2 files already formatted**.
-- `PYTHONPATH=src python3 -m pytest -q tests/test_nf_20261107_50_spy_gld_corr.py` → **7 passed**.
-- `PYTHONPATH=src python3 run_nf_20261107_50_spy_gld_corr.py` → **REJECT 2/8**; artifact `.experiments/nf_runs/nf_20261107_50_spy_gld_corr/summary.json`.
-- Baseline full-suite pinned gates **not rerun** (`src/qtr` unchanged).
+## Invariants preserved
+- `src/qtr` unchanged — pinned 100% coverage suite **not rerun**.
+- No published/certified/frozen artifacts, thresholds, or verdicts modified.
+- Free/public yfinance data only. No gate weakening. No commit/push.
 
-## What remains unresolved
-- **Cycle 52 discovery/H138 (NEXT_TASK):** Fresh directive §4 cycle: >=3 repo-new candidates across >=3 broad categories, honest 25/25/20/15/10/5 scoring, concrete deferred reassessment (no silent drops). Deferred highlights: NF-04 **blocked**; NF-06-11 **infeasible**; NF-11r/NF-06-18 **SAME root as NF-11**; NF-05/07/08/10/11/13/15/17/20/21/NF-20261106-03/23/24/28/30/32/33/35/NF-20261107-05 deferred. Held: NF-20261107-11/12(51)/14(48)/31/49 with separation/design requirements.
-- H85–H137 all rejected; correlation-regime construction class heavily tested across pairs (H96 SPY-TLT, H127 GLD-TLT, H134 SPY-VIX, H137 SPY-GLD) — require clearly distinct mechanism/design if revisited. Do not reframe H137 inverse as a new pass without full pre-registration and gates.
-- Baseline full-suite pinned gates **not rerun** (`src/qtr` unchanged).
+## Verified this session
+- `python3 -m ruff check run_nf_20261107_51_credit_equity_rv_divergence.py tests/test_nf_20261107_51_credit_equity_rv_divergence.py` — clean.
+- `python3 -m ruff format --check ...` — clean.
+- `PYTHONPATH=src python3 -m pytest -q tests/test_nf_20261107_51_credit_equity_rv_divergence.py` — **8 passed**.
+- `PYTHONPATH=src python3 run_nf_20261107_51_credit_equity_rv_divergence.py` — verdict **REJECT 2/8**.
 
-## Approaches already tried / failed (do not blindly repeat)
-- H85–H137 all REJECTED. H137: fails 6/8 gates (Sharpe 0.152, PF 1.035, WF 0.161, worst-regime -0.931, benchmark p 0.977/IR -0.895, perturbation 0.243); random-exposure comparable; inverse mapping outperforms (pre-registered falsifier) — do not rerun same de-risking construction.
-- NF-20261107-32/36/39/43/46/47/50 are duplicates of executed H118/H133/H134/H135/H136/H137 — do not re-execute as "new" without a materially distinct observable/design.
-- NF-20261107-14/48 OVX−VIX: same cross-asset IV-spread construction class as H125/H126 — **materially different pre-registered design required** (not reframing).
+## Unresolved / risks
+- H138 inverse RV-divergence mapping outperformed (1.155/1.263/-4.59%) but was a *pre-registered falsifier*, not a pre-registered acceptance hypothesis — do not promote to PASS without fresh pre-registration/gates.
+- Correlation-regime construction class heavily tested (H96/H127/H134/H137 all rejected); NF-49 needs clearly distinct mechanism/design, not a new pair alone.
+- NF-14/48 OVX−VIX remains held but requires **materially different pre-registered design** (same IV-spread construction class as H125/H126).
 
-## Precise next task (one task)
-**Execute Cycle 52 discovery and implement+run H138** per `NEXT_TASK.md` and `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §4`: reconcile lineage to H137, propose >=3 repo-new candidates across >=3 broad categories with honest 25/25/20/15/10/5 scoring and concrete deferred reassessment (no silent drops), pre-register H138 (smallest decisive feasible test) before validation outcomes, add runner+focused tests, run `ruff check/format`, focused pytest, execute, record verdict in `HYPOTHESIS_SPEC.md`/`NEW_FAMILY_RESEARCH_REGISTER.md`/`NEXT_TASK.md`/handoff. Free/public data only; no gate weakening; no published artifact changes; no commit/push; do not modify `src/qtr` unless an evidenced defect requires it (then rerun pinned full gates).
-
-**Pinned gates (if `src/qtr`/core touched):**
-```bash
-python -m ruff check src tests run_*.py
-python -m ruff format --check src tests run_*.py
-PYTHONPATH=src python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing
-```
+## Precise next task (Cycle 53, directive §4)
+1. Reconcile lineage to H138 (H85–H138 rejected/recorded).
+2. Propose **>=3 repo-new candidates across >=3 broad mechanism categories** with honest 25/25/20/15/10/5 scoring; reassess deferred/held NF-04/05/07/08/10/11/13/15/17/20/21, NF-11r/NF-06-18 (same root as NF-11), NF-06-11, NF-20261106-03/23/24/28/30/32/33/35, NF-20261107-05, NF-20261107-11/14(48)/31/49/52/53 with concrete evidence (no silent drops).
+3. Pre-register highest-expected-information feasible candidate as **H139** with smallest decisive test, PIT timing, costs, splits, gates, ablations, and falsifiers.
+4. Implement runner + focused tests, run ruff, run focused pytest, execute, record verdict/artifacts in `HYPOTHESIS_SPEC.md` and `NEW_FAMILY_RESEARCH_REGISTER.md`, update `NEXT_TASK.md`/handoffs.
+5. Free/public data only; no gate weakening; no published/certified artifact modification; no commit/push. If `src/qtr` touched, rerun pinned 100% coverage suite.
