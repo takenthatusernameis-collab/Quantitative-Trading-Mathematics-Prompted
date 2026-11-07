@@ -1,0 +1,123 @@
+{
+  "experiment": "nf_20261107_03_gld_tlt_regime",
+  "nf_id": "NF-20261107-03",
+  "hypothesis_id": "H120",
+  "description": "NF-20261107-03/H120: GLD/TLT real-asset vs duration relative-strength regime timing SPY. Signal = z-score of trailing GLD/TLT ratio momentum over z_window. When gold leads long Treasuries abnormally, reduce vol-targeted long SPY exposure continuously, 1-bar delay. Train-only WF selection; Test protected; OOS gates.",
+  "data": {
+    "rows": 4233,
+    "start": "2010-01-04",
+    "end": "2026-10-30",
+    "train_rows": 2516,
+    "val_rows": 756,
+    "test_rows": 961,
+    "universe": [
+      "GLD",
+      "TLT",
+      "SPY"
+    ]
+  },
+  "selected_params": {
+    "lookback": 63,
+    "z_window": 252,
+    "entry_scale": 1.0,
+    "vol_target": 0.15
+  },
+  "selection_score_wf_mean_sharpe": 1.6030683899969205,
+  "oos_val_test_metrics": {
+    "sharpe": 0.9358972374223785,
+    "profit_factor": 1.1816233329747674,
+    "max_drawdown": 0.07817213822740605,
+    "n_trades": 857,
+    "total_return": 0.4813419491195732,
+    "ann_return": 0.05936757270087023,
+    "ann_vol": 0.06382506490944446
+  },
+  "train_metrics": {
+    "sharpe": 1.0231485301821965,
+    "total_return": 0.7072509588006131
+  },
+  "gate_evaluation": {
+    "gates": {
+      "sharpe": {
+        "value": 0.9358972374223785,
+        "threshold": 1.0,
+        "pass": false
+      },
+      "profit_factor": {
+        "value": 1.1816233329747674,
+        "threshold": 1.3,
+        "pass": false
+      },
+      "max_drawdown": {
+        "value": 0.07817213822740605,
+        "threshold": 0.15,
+        "pass": true
+      },
+      "trade_count": {
+        "value": 857,
+        "threshold": 200,
+        "pass": true
+      },
+      "walkforward_stability": {
+        "value": 0.9147227502303299,
+        "threshold": 0.7,
+        "pass": true
+      },
+      "worst_regime_sharpe": {
+        "value": -0.8743055429867327,
+        "threshold": 0.3,
+        "pass": false
+      },
+      "benchmark_p_ir": {
+        "p_value": 1.0,
+        "ir": -28.9563894225057,
+        "pass": false
+      },
+      "perturbation": {
+        "min_ratio": 0.9965569957134105,
+        "n": 26,
+        "threshold": 0.5,
+        "pass": true
+      }
+    },
+    "pass_count": 4,
+    "pass_total": 8,
+    "verdict": "REJECT",
+    "train_sharpe": 1.0231485301821965,
+    "oos_sharpe": 0.9358972374223785,
+    "ir": -28.9563894225057,
+    "benchmark_p": 1.0
+  },
+  "ablations": {
+    "buy_hold_spy": {
+      "sharpe": 0.7911531321362185,
+      "pf": 1.1636069581028015,
+      "max_dd": 0.17971872635648412,
+      "n_trades": 1
+    },
+    "random_exposure_matched": {
+      "sharpe": 0.4737487106068458,
+      "pf": 1.102486480077348,
+      "max_dd": 0.18184109201353932,
+      "n_trades": 1226
+    },
+    "inverse_stress_long": {
+      "sharpe": 0.31502217574198027,
+      "pf": 1.1121600757517687,
+      "max_dd": 0.10812820028284435,
+      "n_trades": 858
+    }
+  },
+  "elapsed_s": 3.286,
+  "gates_spec": {
+    "min_sharpe": 1.0,
+    "min_trades": 200,
+    "min_profit_factor": 1.3,
+    "max_drawdown": 0.15,
+    "min_walkforward_stability": 0.7,
+    "min_worst_regime_sharpe": 0.3,
+    "max_p_value": 0.05,
+    "min_information_ratio": 0.0,
+    "min_perturbed_sharpe_ratio": 0.5
+  }
+}

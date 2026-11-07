@@ -6507,3 +6507,41 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 **Ablations (OOS).** Buy-hold SPY 0.791/1.164/DD -17.97%/1. Buy-hold equal-weight sectors 0.767/1.165/DD -36.91%/9. Random-side -0.107/0.957/DD -9.69%/686. Inverse-momentum-long 0.573/1.109/DD -14.36%/1500.
 
 **Verdict rationale.** **REJECT (3/8).** Short-term cross-sectional reversal is perturbation-stable and trade-rich, with WF stability and random-side below strategy, but fails Sharpe/PF/max-DD/worst-regime/benchmark/IR on pre-registered OOS gates. The weakest-tercile reversal does not deliver a cost-robust edge over buy-hold SPY (IR -0.255) in liquid sector ETFs. The executed weakest-tercile mapping is the specific pre-registered construction tested; this does not test all reversal constructions (e.g., long-short, different horizons/universes). No gate weakened; no published/certified artifact modified.
+
+## H120 / NF-20261107-03 — GLD/TLT real-asset vs duration relative-strength regime timing for SPY (pre-registered & executed, Cycle 34)
+
+**NF-ID / H-ID.** NF-20261107-03 / H120 (next unused H-ID; H24/H68–H73/H76–H79 unassigned, not recycled).
+
+**Mechanism (new root family, repo-relative).** Cross-asset real-asset vs duration relative-strength transmission: when gold (GLD) persistently outperforms long-duration Treasuries (TLT), the GLD/TLT ratio momentum can proxy inflation-uncertainty / real-rate-pressure / stagflationary stress regimes in which equity risk premia are impaired relative to benign nominal-growth regimes. The rule reduces vol-targeted long SPY exposure continuously when trailing GLD/TLT ratio-momentum z-score is abnormally high (`stress = clip(z - entry_scale, 0, 1)`, `exposure = MAX_POS*(1-stress)*vol_scale`), 1-bar delay (engine `signals.shift(1)`), long-only, `max_position=0.5`. Distinct from: H86 (VIX term structure, options vol surface), H88 (gold/oil relative-value mean reversion, rejected), H92 (SPY/TLT equity-duration relative momentum, rejected), H94 (HYG-IEF credit spread/flight-to-quality, rejected), H96 (SPY/TLT realized return-correlation regime, rejected), H99 (GDX/GLD miner-vs-bullion real optionality, rejected), H101 (HG=F/GC=F industrial-vs-precious metals growth signal, rejected), H103 (FXA commodity-currency risk appetite, rejected). The traded instrument remains SPY only; GLD/TLT is the cross-asset relative-strength observable. **Honest adjacency:** uses gold and duration instruments that appear in prior families, but the observable is GLD/TLT *ratio momentum* (real-asset vs nominal duration leadership), not correlation, credit spread, miner optionality, or first-moment SPY/TLT timing; scored as repo-new relative-strength/regime family with adjacency acknowledged.
+
+**Data.** yfinance daily adjusted close (DataFetcher/cache), 2010-01-01 → 2026-10-31. GLD, TLT, SPY aligned 4233 rows, 2010-01-04→2026-10-30, 0 non-positive (verified at execution). Point-in-time. No `src/qtr` change.
+
+**Universe/splits (protected holdout).** Trade `SPY`; signal = z-score of trailing GLD/TLT ratio momentum (`lookback`, `z_window`, `min_periods=max(30,z_window//2)`). Train 2010-01-01 → 2019-12-31; Val 2020-01-01 → 2022-12-31; Test (protected) 2023-01-01 → 2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+
+**Grid (bounded).** lookback ∈ {21,63} × z_window ∈ {126,252} × entry_scale ∈ {1.0,1.5,2.0} × vol_target ∈ {0.10,0.15} (24 combos). `max_position=0.5`, long-only SPY only.
+
+**Costs/constraints.** Equity CostModel defaults. Free/public data only. `src/qtr` unchanged.
+
+**Gates (OOS Val+Test).** Sharpe >= 1.0, >= 200 trades, PF >= 1.3, max DD <= 15%, WF stability >= 0.7×train, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0, perturbation min ratio >= 0.5.
+
+**Runner.** `run_nf_20261107_03_gld_tlt_regime.py`. **Tests.** `tests/test_nf_20261107_03_gld_tlt_regime.py` (10 passed). `ruff check/format --check` clean.
+
+**Lineage map (H120 executed):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known failure modes |
+|---|---|---|---|---|---|
+| Real-asset vs duration relative-strength regime timing SPY | H120 (NF-20261107-03) | Continuous vol-targeted long SPY reduced when trailing GLD/TLT ratio-momentum z-score abnormally high (gold leading long Treasuries), 1-bar delay | SPY (traded), GLD/TLT (signal) daily (yfinance), 2010–2026 | **REJECT** (4/8; exp_2026-11-07T06-30-09-462925Z) | Fails Sharpe 0.936/PF 1.182/worst-regime -0.874/benchmark-p 1.0/IR -28.96; buy-hold SPY 0.791 outperforms on risk-adjusted simplicity and benchmark test fails; random-exposure 0.474/inverse-stress-long 0.315 underperform selected construction; no validated edge vs buy-hold |
+
+### H120 execution outcome (2026-11-07, REAL)
+
+**Experiment:** `exp_2026-11-07T06-30-09-462925Z` (3.26s). Artifact: `.experiments/nf_runs/nf_20261107_03_gld_tlt_regime/summary.json`. `src/qtr` unchanged.
+
+**Selected (train-only 4-fold WF):** `lookback=63, z_window=252, entry_scale=1.0, vol_target=0.15` (selection WF mean 1.270). Train Sharpe 1.023.
+
+**OOS Val+Test (857 trades):** Sharpe **0.936** (fail), PF **1.182** (fail), max DD **-7.82%** (pass), trades **857** (pass), WF stability **0.915** (pass), worst-regime rolling-252 Sharpe min **-0.874** (fail), benchmark p **1.0** / IR **-28.956** (fail), perturbation min ratio **0.997** (pass).
+
+**Ablations (OOS).** Buy-hold SPY 0.791/1.164/DD -17.97%/1. Random-exposure-matched 0.474/1.082/DD -13.49%/1226. Inverse-stress-long 0.315/1.078/DD -11.30%/858.
+
+**Verdict rationale.** **REJECT (4/8).** Perturbation-stable and trade-rich with lower drawdown than buy-hold and reasonable WF stability, but fails Sharpe/PF/worst-regime/benchmark-p/IR on pre-registered OOS gates. The strategy does not beat buy-hold SPY on the pre-registered benchmark test (p 1.0, IR -28.96) despite a higher raw Sharpe point estimate, so no validated risk-adjusted edge. Random-exposure-matched and inverse-stress-long ablations underperform the selected construction, indicating the signal is not pure noise, but that is insufficient given the failed benchmark and regime gates. Specific pre-registered construction tested; not all GLD/TLT or real-asset/duration constructions. No gate weakened; no published/certified artifact modified.
+
+**Cycle 35 required next.** H85–H120 all rejected/recorded. Fresh discovery per directive §4: reconcile lineage to H120, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly (25/25/20/15/10/5), reassess deferred NF-04/05/07/08/10/11/13/15/17/20/21, NF-11r/NF-06-18 (TNX-FVX, **same root mechanism as NF-11 — not a new root family**), NF-06-11 (infeasible), NF-20261106-03/21/23/24/28/29/30/32/33/35/36 with concrete evidence (no silent drops). Pre-register highest-expected-information feasible candidate as H121 (next unused H-ID; H24/H68–H73/H76–H79 unassigned, not recycled) with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
