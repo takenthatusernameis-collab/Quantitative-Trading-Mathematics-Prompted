@@ -2245,3 +2245,56 @@ Lineage reconciled to H131: H85–H131 all rejected/recorded. Next unused H-ID: 
 | SPY realized kurtosis stress timing (realized 4th-moment tail-clustering) | H132 (NF-20261107-35) | Continuous vol-targeted long SPY reduced when z-score of trailing realized SPY return kurtosis elevated; 1-bar delay, long-only | SPY daily (yfinance), 2010–2025 | **REJECT** (5/8; `.experiments/nf_runs/nf_20261107_35_spy_realized_kurtosis/summary.json`) | Fails PF 1.277/worst-regime -0.486/benchmark-p 0.833/IR -0.433; Sharpe 1.248 passes but not significant vs buy-hold; random-exposure comparable; repo-new realized-kurtosis observable, honest adjacency to H89/H122/H124/H128 |
 
 **Cycle 46 complete (discovery + H132 execution).** H85–H132 all rejected/recorded. Cycle 47 required next (see `NEXT_TASK.md`/handoff): fresh discovery per directive §4, >=3 repo-new candidates across >=3 broad categories, pre-register and execute **H133**. No gate weakening; no published/certified artifact modification; no commit/push; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
+
+## Cycle 47 (2026-11-07) — Discovery + H133 execution (NF-20261107-39 drawdown-state timing; REJECT 4/8)
+
+### Cycle 47 discovery (directive §4, >=3 repo-new mechanism candidates across >=3 broad categories)
+
+Lineage reconciled to H132: H85–H132 all rejected/recorded. Next unused H-ID: **H133** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified.
+
+**Candidate pool (scored 25/25/20/15/10/5):**
+
+| Candidate | Mechanism category | Novelty (25%) | Plaus (25%) | Data (20%) | Falsif (15%) | Exec (10%) | Support (5%) | Weighted |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261107-39 SPY trailing distance-to-N-day-high (price drawdown-state) timing — **H133 (selected/executed)** | Path-dependence / drawdown-state risk transmission | 4 | 3 | 5 | 4 | 5 | 2 | **3.95** |
+| NF-20261107-40 SPY trailing lag-1 return autocorrelation (serial-dependence state) regime timing | Serial dependence / microstructure-state transmission | 4 | 3 | 5 | 4 | 4 | 2 | **3.85** |
+| NF-20261107-41 EEM-vs-EFA cross-asset relative-strength risk-appetite timing for SPY | Global risk transmission / cross-asset leadership | 3 | 3 | 5 | 4 | 4 | 2 | **3.45** |
+| NF-20261107-42 Overnight-vs-intraday SPY decomposition timing | Session microstructure / information-timing transmission | 2 | 3 | 4 | 4 | 4 | 3 | **3.15** |
+
+**Scoring notes (honest).**
+- NF-20261107-39 novelty 4 (moderate): repo-new as a **standalone NF SPY price** distance-to-trailing-high overlay with this pre-registered design. `run_h6_vix_ddcv_experiment.py` uses `equity / equity.rolling(252).max()-1` as **portfolio-equity DDCV scaling on a futures TSMOM base** (different universe/base, equity-curve interaction) — acknowledged adjacency to path-dependence/drawdown concepts; scored moderately, not inflated. Different from higher-moment families (H89/H122/H124/H128/H132), VIX/vol-term/corr (H86/H113/H123/H125/H126/H127/H131), IVOL (H93/H130). Free PIT, decisive bounded test.
+- NF-20261107-40 novelty 4: repo has autocorrelation *diagnostics* (e.g., `run_h26_sharpe_scale_audit.py`, `run_nf_20261105_06_gold_oil_rv.py`) and H26 is a Sharpe annualization-scale audit (not a timing family), but no pre-registered NF SPY AR(1)/lag-1 autocorrelation regime-timing family. Plausible weak; adjacency to diagnostics acknowledged. Held for future cycle if desired.
+- NF-20261107-41 novelty 3: EEM/EFA relative strength (held NF-20261107-37) overlaps global risk-transmission channels (H95/H103 FX-macro adj); instruments differ but construction/mechanism adjacency. Held.
+- NF-20261107-42 novelty 2: **H18** (REJECT) and `run_h18_overnight_intraday_experiment.py` already cover overnight/intraday decomposition — not repo-new root. Not selected.
+
+**Selection:** NF-20261107-39 → **H133** (highest feasible repo-new path-dependent observable with clear separation from H6 DDCV equity-curve/futures context; bounded 12-combo grid, SPY-only, free PIT data). Pre-registered in `HYPOTHESIS_SPEC.md` §H133.
+
+**Deferred candidates reassessed (no silent drops), carried forward:**
+- NF-04 commodity carry **blocked** (no free PIT term-structure/roll proxy).
+- NF-05 short-term CS reversal **deferred** (turnover/net-of-cost; H119 weekly REJECT 3/8).
+- NF-07 GLD/SPY safe-haven **deferred** (weak). NF-08 TIP/IEF breakeven→GLD **deferred** (weak proxy).
+- NF-10 SI/GC risk sentiment **deferred** (adj H101/inconclusive).
+- NF-11 TLT/IWM growth-liquidity **deferred** (adj H85/H86/H99). NF-11r/NF-06-18 TNX-FVX **data-resolved but NF-11 resolution path (SAME root as NF-11) — not a new root family**.
+- NF-13 GLD/TIP real-rate **deferred**. NF-15 EEM/EFA global risk-appetite **deferred** (overlaps NF-41; NF-41 held with separation required). NF-17 volume-shock reversal **deferred** (turnover/cost).
+- NF-20 Treasury auction supply-pressure **deferred** (calendar/timestamp). NF-21 month-end pension rebalancing **deferred** (weak/adj H91).
+- NF-06-11 CBOE PC ratio **infeasible** (no free yfinance/PIT series).
+- NF-20261106-03 VVIX **deferred** (VIX-complex adj H104). NF-20261106-23 XHB/XLU **deferred** (rates adj). NF-20261106-24 XBI/XLV **deferred** (weak separation). NF-20261106-28 JNK/LQD **deferred** (credit adj H94/H108). NF-20261106-30 VNQ/SPY **deferred** (rates/beta adj). NF-20261106-32 DBC/SPY **deferred** (ETF roll/flow confounds). NF-20261106-33 EWH/SPY **deferred** (capital-flow confounds). NF-20261106-35 FXA commodity-currency **deferred** (adj H103). NF-20261107-05 CPI release event drift **deferred** (macro event-calendar adj H90).
+- **Held:** NF-20261107-11 cross-sectional IVOL spread timing (separation from H93/H130 IVOL REJECTs), NF-20261107-12 credit-vs-equity vol divergence (separation from H94/H100/H125), NF-20261107-14 OVX−VIX energy-options spread (**same construction class as H125/H126 — materially different pre-registered design required**), NF-20261107-31 sector breadth (adj H115 RSP/SPY REJECT 1/8; materially different observable), NF-20261107-32 return dispersion (adj dispersion concepts), NF-20261107-36 (now resolved as NF-20261107-39/H133 executed — REJECT 4/8; standalone price drawdown-state tested), NF-20261107-37/NF-20261107-41 EEM/EFA (separation from FX-macro risk channels), NF-20261107-40 AR(1) serial-dependence timing (adj diagnostics/H26; requires decisive separation).
+- **Executed/rejected not rerun:** H85–H133 (lineage gaps H24/H68–H73/H76–H79 unassigned). NF-20261107-39/H133. Higher-moment realized/implied (H89/H122/H124/H128/H132), IVOL (H93/H130), VIX-term/cross-asset vol/corr (H86/H113/H123/H125/H126/H127/H131) heavily tested — require clearly distinct mechanism/design if revisited.
+
+### NF-20261107-39 / H133 execution outcome (2026-11-07T17:59:27Z, REAL) — REJECTED (4/8)
+
+**Runner:** `run_nf_20261107_39_spy_drawdown_state.py`. **Tests:** `tests/test_nf_20261107_39_spy_drawdown_state.py` (7 passed). `ruff check/format` clean. `src/qtr` unchanged.
+
+**Execution.** Artifact `.experiments/nf_runs/nf_20261107_39_spy_drawdown_state/summary.json` (1.35s). Data SPY yfinance auto-adjust, 3776 aligned rows 2010-01-01→2025-01-05 (train 2516 / val 505 / test 755). Selected (train-only 4-fold WF mean Sharpe 0.446): `high_window=126, z_window=126, entry_scale=2, vol_target=0.10`.
+
+**Result — REJECT (4/8 gates).** OOS Val+Test (1305 trades, n=1260): Sharpe **0.994** (fail ≥1.0), PF **1.201** (fail ≥1.3), max DD **-11.76%** (pass ≤15%), trades **1305** (pass), WF stability **1.672** (pass), worst-regime rolling-252 Sharpe **-1.663** (fail ≥0.3), benchmark p **0.891** / IR **-0.552** (fail), perturbation min ratio **0.995** (pass).
+
+**Ablations (OOS).** Buy-hold SPY 0.759/1.155/DD -33.72%/1. Random-exposure-matched 0.215/1.068/DD -26.76%/490. Inverse drawdown-state 0.330/1.100/DD -16.63%/1305.
+
+**Verdict rationale.** Fails Sharpe (0.994, borderline)/PF/worst-regime/benchmark (4/8). No significant edge vs buy-hold (p 0.891, IR -0.552); worst-regime collapse. Honest separation from H6 DDCV (portfolio-equity scaling on futures TSMOM base) documented; standalone SPY price drawdown-state timing not validated. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Lineage map (H133 REJECT):**
+| SPY trailing 252d-high distance drawdown-state timing (path-dependence) | H133 (NF-20261107-39) | Continuous vol-targeted long SPY reduced when z-score of trailing distance-from-high is deeply negative; 1-bar delay, long-only | SPY daily (yfinance), 2010–2025 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261107_39_spy_drawdown_state/summary.json`) | Fails Sharpe 0.994/PF 1.201/worst-regime -1.663/benchmark-p 0.891/IR -0.552; no validated edge; standalone SPY price drawdown-state, honest separation from H6 equity-curve DDCV |
+
+**Cycle 47 complete (discovery + H133 execution).** H85–H133 all rejected/recorded. Cycle 48 required next (see `NEXT_TASK.md`/handoff): fresh discovery per directive §4, >=3 repo-new candidates across >=3 broad categories, pre-register and execute **H134**. No gate weakening; no published/certified artifact modification; no commit/push; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).

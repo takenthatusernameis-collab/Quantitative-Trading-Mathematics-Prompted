@@ -1,0 +1,8 @@
+{
+  "nf_id": "NF-20261107-39",
+  "h_id": "H133",
+  "runner": "run_nf_20261107_39_spy_drawdown_state.py",
+  "description": "NF-20261107-39/H133: SPY timing from trailing 252d-high distance (drawdown-state). Continuous de-risking when z-score of distance-from-high is deeply negative; 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "free_data": true,
+  "src_qtr_changed": false
+}

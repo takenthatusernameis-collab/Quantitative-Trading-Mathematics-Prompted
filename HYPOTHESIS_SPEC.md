@@ -6887,3 +6887,34 @@ published/certified artifact modified; `src/qtr` unchanged.
 
 **Lineage map (H132 REJECT):**
 | SPY realized kurtosis stress timing (realized 4th-moment tail-clustering) | H132 (NF-20261107-35) | Continuous vol-targeted long SPY reduced when z-score of trailing realized SPY return kurtosis elevated; 1-bar delay, long-only | SPY daily (yfinance), 2010–2025 | **REJECT** (5/8; `.experiments/nf_runs/nf_20261107_35_spy_realized_kurtosis/summary.json`) | Fails PF 1.277/worst-regime -0.486/benchmark-p 0.833/IR -0.433; Sharpe 1.248 passes but not significant vs buy-hold; random-exposure comparable; repo-new realized-kurtosis observable, honest adjacency to H89/H122/H124/H128 |
+
+### Hypothesis H133: SPY Trailing 252d-High Distance (Drawdown-State) Timing (pre-registered, Cycle 47)
+
+**Statement.** Continuously reducing vol-targeted long SPY exposure when the z-score of SPY price distance from its trailing N-day high is deeply negative (abnormal drawdown-from-high state vs trailing history) improves OOS Val+Test Sharpe ≥1.0 with ≥200 trades, PF≥1.3, maxDD≤15%, WF stability≥0.7, worst-regime rolling-252 Sharpe≥0.3, benchmark p≤0.05 with IR≥0, perturbation ratio≥0.5.
+
+**Mechanism (path-dependence / drawdown-state risk transmission).** Distance from trailing high `ddist_t = P_t / max_{i in [t-L+1,t]} P_i - 1` (≤0, past-only) captures path-dependent drawdown state. A deeply negative z-score vs trailing history may proxy adverse regime persistence/liquidity stress; a continuous vol-targeted de-risking overlay (1-bar execution delay via engine `signals.shift(1)`) may reduce unfavorable exposure. Free, point-in-time from SPY close.
+
+**Repo-relative novelty (honest).** `run_h6_vix_ddcv_experiment.py` applies DDCV scaling using *portfolio equity* drawdown `equity / equity.rolling(252).max()-1` as a risk layer on a **futures TSMOM base** (different universe/base, equity-curve interaction, H6 context) — not a pre-registered standalone NF SPY *price* distance-to-trailing-high timing family. NF/H lineage has no prior standalone SPY price distance-to-trailing-high overlay with this NF design. Adjacency to path-dependence/drawdown concepts is acknowledged; novelty scored moderately (not wholly unrelated). Distinct from higher-moment realized/implied families (H89/H122/H124/H128/H132), VIX/vol-term/corr (H86/H113/H123/H125/H126/H127/H131), and IVOL (H93/H130).
+
+**Null (H0).** Trailing distance-to-high state contains no incremental timing information; OOS gates fail vs buy-hold/random-exposure.
+
+**Pre-registration (Cycle 47, decision-ready before validation outcomes).** NF-ID **NF-20261107-39**. Runner `run_nf_20261107_39_spy_drawdown_state.py`; tests `tests/test_nf_20261107_39_spy_drawdown_state.py`. Universe SPY, yfinance daily auto-adjust Close (free, PIT). Sample 2010-01-01→2025-01-05 (rows 3776). Train 2010-01-04→2019-12-31 (2516) / Val 2020-01-01→2021-12-31 (505) / Test (protected) 2022-01-01→2025-01-03 (755). Signal: z-score of trailing distance-from-high over `high_window`/`z_window` (past-only); continuous stress `((-z).clip(0)/entry_scale).clip(0,1)` for deeply negative z reduces vol-targeted long SPY exposure by `(1-stress)*vol_target`; 1-bar delay; Equity CostModel defaults (1bp commission + 1bp spread); long-only, max exposure `vol_target` (scaled to `MAX_POS=0.5`). Bounded grid: `high_window {126,252} × z_window {126} × entry_scale {1.0,1.5,2.0} × vol_target {0.10,0.15}` (12 combos); train-only 4-fold WF selection by mean train Sharpe; Test protected. No `src/qtr` change.
+
+**Gates (OOS Val+Test, pre-registered).** Sharpe >= 1.0, trades >= 200, PF >= 1.3, max DD <= 15%, WF stability >= 0.7, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0 vs buy-hold SPY, perturbation min ratio >= 0.5.
+
+**Ablations (pre-registered).** Buy-hold SPY, random-exposure-matched, inverse drawdown-state regime.
+
+**Costs/constraints.** Equity CostModel defaults. Free/public data only. `src/qtr` unchanged. No published/certified artifact modified. No gate weakening.
+
+**Falsifiers.** Random-exposure comparable or better; inverse not clearly opposite; benchmark fails; fragile to perturbation; worst-regime collapse.
+
+**Executed outcome (2026-11-07T17:59:27Z, REAL, Cycle 47): REJECT (4/8).** Artifact `.experiments/nf_runs/nf_20261107_39_spy_drawdown_state/summary.json` (`NF-20261107-39/H133`, 1.35s). Data SPY yfinance auto-adjust, 3776 aligned rows 2010-01-01→2025-01-05 (train 2516 / val 505 / test 755). Selected (train-only 4-fold WF mean Sharpe 0.446): `high_window=126, z_window=126, entry_scale=2, vol_target=0.10`.
+
+**Result — REJECT (4/8 gates).** OOS Val+Test (1305 trades, n=1260): Sharpe **0.994** (fail ≥1.0), PF **1.201** (fail ≥1.3), max DD **-11.76%** (pass ≤15%), trades **1305** (pass ≥200), WF stability **1.672** (pass ≥0.7), worst-regime rolling-252 Sharpe **-1.663** (fail ≥0.3), benchmark p **0.891** / IR **-0.552** (fail, vs buy-hold SPY), perturbation min ratio **0.995** (pass ≥0.5). Mean OOS exposure 0.392.
+
+**Ablations (OOS).** Buy-hold SPY Sharpe 0.759/PF 1.155/maxDD -33.72%/1 trade. Random-exposure-matched Sharpe 0.215/PF 1.068/maxDD -26.76%/490 trades. Inverse drawdown-state regime Sharpe 0.330/PF 1.100/maxDD -16.63%/1305 trades (no opposite edge).
+
+**Verdict rationale.** Fails Sharpe (0.994, just below)/PF/worst-regime/benchmark (4/8). OOS Sharpe near 1.0 but not significant vs buy-hold (p 0.891, IR -0.552) and worst-regime collapses (-1.663). Path-dependent price distance-to-high overlay shows no validated edge under pre-registered gates. Honest separation from H6 DDCV (portfolio-equity scaling on futures TSMOM base) documented; result does not validate standalone SPY price drawdown-state timing. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Lineage map (H133 REJECT):**
+| SPY trailing 252d-high distance drawdown-state timing (path-dependence) | H133 (NF-20261107-39) | Continuous vol-targeted long SPY reduced when z-score of trailing distance-from-high is deeply negative; 1-bar delay, long-only | SPY daily (yfinance), 2010–2025 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261107_39_spy_drawdown_state/summary.json`) | Fails Sharpe 0.994/PF 1.201/worst-regime -1.663/benchmark-p 0.891/IR -0.552; no validated edge; standalone SPY price drawdown-state, honest separation from H6 equity-curve DDCV |

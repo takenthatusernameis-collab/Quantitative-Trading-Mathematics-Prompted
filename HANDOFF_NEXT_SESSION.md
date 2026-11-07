@@ -1,31 +1,34 @@
-# HANDOFF_NEXT_SESSION.md — Cycle 46 complete (H132 REJECT); prepare Cycle 47 discovery/H133
+# HANDOFF_NEXT_SESSION.md — Cycle 47 complete (H133 REJECT); prepare Cycle 48 discovery/H134
 
 ## State
-- **H85–H132 all REJECTED/recorded.** H132 (NF-20261107-35, SPY trailing realized kurtosis 4th-moment stress regime timing) executed REAL in prepared env: artifact `.experiments/nf_runs/nf_20261107_35_spy_realized_kurtosis/summary.json` (1.85s), verdict **REJECT 5/8**. **Next unused H-ID: H133** (H24/H68–H73/H76–H79 unassigned, not recycled).
-- **Files (H132):** `run_nf_20261107_35_spy_realized_kurtosis.py`, `tests/test_nf_20261107_35_spy_realized_kurtosis.py`. Docs updated: `HYPOTHESIS_SPEC.md` §H132 outcome, `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 46 outcome, `NEXT_TASK.md` (Cycle 47), this handoff.
-- **src/qtr unchanged.** No published/certified artifact, verdict, threshold, or frozen number modified. No secrets/credentials added. No commit/push.
+- **H85–H133 all REJECTED/recorded.** H133 (NF-20261107-39, SPY trailing distance-to-N-day-high drawdown-state timing) executed REAL: artifact `.experiments/nf_runs/nf_20261107_39_spy_drawdown_state/summary.json` (1.35s), verdict **REJECT 4/8**. **Next unused H-ID: H134** (H24/H68–H73/H76–H79 unassigned, not recycled).
+- **Files (H133):** `run_nf_20261107_39_spy_drawdown_state.py`, `tests/test_nf_20261107_39_spy_drawdown_state.py`. Docs updated: `HYPOTHESIS_SPEC.md` §H133, `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 47, `NEXT_TASK.md` (Cycle 48), `HANDOFF_CYCLE46_DISCOVERY.md` reconciled to reflect H132 executed state. `src/qtr` unchanged. No published/certified artifact/verdict/threshold/frozen number modified. No secrets/credentials added. No commit/push.
 
-## What changed (Cycle 46 close / this session)
-- Reconciled docs to executed H132 artifact (evidence existed; spec/register/handoff were stale “not executed”).
-- **H132 result (REAL):** SPY 3776 rows 2010-01-01→2025-01-05 (train 2516/val 505/test 755). Selected `kurt_window=126, z_window=126, entry_scale=2, vol_target=0.10` (train WF mean 0.9709). OOS Val+Test (1284 trades): Sharpe **1.248** (pass), PF **1.277** (fail), maxDD **-11.93%** (pass), trades **1284** (pass), WF stability **1.181** (pass), worst-regime rolling-252 Sharpe **-0.486** (fail), benchmark p **0.833**/IR **-0.433** vs buy-hold SPY (fail), perturbation **0.667** (pass). Ablations: buy-hold 0.759/1.155/DD -33.72%/1; random-exposure-matched 0.878/1.324/DD -7.99%/566; inverse -0.145/0.948/DD -17.39%/1285.
+## What changed (Cycle 47 / this session)
+- **Directive §4 discovery:** lineage reconciled to H132; >=3 repo-new candidates across >=3 broad categories scored (NF-20261107-39 path-dependence/drawdown-state 3.95 **selected/executed H133**; NF-20261107-40 AR(1) serial-dependence 3.85 held; NF-20261107-41 EEM/EFA risk-appetite 3.45 held; NF-20261107-42 overnight/intraday 3.15 not repo-new, H18 exists). Concrete deferred reassessment recorded (no silent drops), including NF-04 blocked, NF-06-11 infeasible, NF-11r/NF-06-18 same root as NF-11.
+- **H133 result (REAL, NF-20261107-39):** SPY 3776 rows 2010-01-01→2025-01-05 (train 2516/val 505/test 755). Selected `high_window=126, z_window=126, entry_scale=2, vol_target=0.10` (train WF mean 0.446). OOS Val+Test (1305 trades): Sharpe **0.994** (fail), PF **1.201** (fail), maxDD **-11.76%** (pass), trades **1305** (pass), WF stability **1.672** (pass), worst-regime rolling-252 Sharpe **-1.663** (fail), benchmark p **0.891**/IR **-0.552** vs buy-hold (fail), perturbation **0.995** (pass). Ablations: buy-hold 0.759/1.155/DD -33.72%/1; random-exposure-matched 0.215/1.068/DD -26.76%/490; inverse 0.330/1.100/DD -16.63%/1305.
+- **Honest separation:** H6 DDCV uses *portfolio equity* drawdown scaling on futures TSMOM base; H133 tests standalone SPY *price* distance-to-trailing-high overlay. No validated edge.
 
 ## What was actually verified
-- `python3 -m ruff check run_nf_20261107_35_spy_realized_kurtosis.py tests/test_nf_20261107_35_spy_realized_kurtosis.py` → **All checks passed**.
-- `python3 -m ruff format --check run_nf_20261107_35_spy_realized_kurtosis.py tests/test_nf_20261107_35_spy_realized_kurtosis.py` → **2 files already formatted**.
-- `PYTHONPATH=src python3 -m pytest -q tests/test_nf_20261107_35_spy_realized_kurtosis.py` → **7 passed**.
-- Artifact read/consistent: `.experiments/nf_runs/nf_20261107_35_spy_realized_kurtosis/summary.json` (verdict REJECT, gates_passed 5).
+- `python3 -m py_compile run_nf_20261107_39_spy_drawdown_state.py` — OK.
+- `python3 -m py_compile tests/test_nf_20261107_39_spy_drawdown_state.py` — OK.
+- `python3 -m ruff check run_nf_20261107_39_spy_drawdown_state.py tests/test_nf_20261107_39_spy_drawdown_state.py` — **All checks passed**.
+- `python3 -m ruff format --check run_nf_20261107_39_spy_drawdown_state.py tests/test_nf_20261107_39_spy_drawdown_state.py` — **2 files already formatted**.
+- `PYTHONPATH=src python3 -m pytest -q tests/test_nf_20261107_39_spy_drawdown_state.py` — **7 passed**.
+- `PYTHONPATH=src python3 run_nf_20261107_39_spy_drawdown_state.py` — executed; verdict **REJECT 4/8**; artifact `.experiments/nf_runs/nf_20261107_39_spy_drawdown_state/summary.json` written.
+- Artifact read consistent (`NF-20261107-39`, `H133`, verdict `REJECT`, gates_passed `4`).
 
 ## What remains unresolved
-- **Cycle 47 discovery/H133 (NEXT_TASK):** Fresh directive §4 cycle: >=3 repo-new mechanism candidates across >=3 broad categories, honest 25/25/20/15/10/5 scoring, concrete deferred reassessment (no silent drops). Deferred highlights (see NEXT_TASK): NF-04 **blocked**; NF-06-11 **infeasible**; NF-11r/NF-06-18 **SAME root as NF-11** (not new root); NF-05/07/08/10/11/13/15/17/20/21/NF-06-03/23/24/28/30/32/33/35/NF-07-05 deferred; held NF-07-11/12/14/31/32/36/37 with separation requirements. NF-07-14 same construction class as H125/H126 — materially different design required. NF-07-36 standalone NF timing not pre-registered (drawdown calc exists in `run_h6_vix_ddcv_experiment.py`).
-- Higher-moment realized/implied (H89/H122/H124/H128/H132), IVOL (H93/H130), VIX-term/cross-asset vol/corr (H86/H113/H123/H125/H126/H127/H131) heavily tested — require clearly distinct mechanism/design if revisited.
+- **Cycle 48 discovery/H134 (NEXT_TASK):** Fresh directive §4 cycle: >=3 repo-new candidates across >=3 broad categories, honest 25/25/20/15/10/5 scoring, concrete deferred reassessment (no silent drops). Deferred highlights (see NEXT_TASK): NF-04 **blocked**; NF-06-11 **infeasible**; NF-11r/NF-06-18 **SAME root as NF-11** (not new root); NF-05/07/08/10/11/13/15/17/20/21/NF-06-03/23/24/28/30/32/33/35/NF-07-05 deferred. Held: NF-07-11/12/14/31/32/37(41)/40 with separation requirements (NF-07-14 same construction class as H125/H126 — materially different design required).
+- Higher-moment realized/implied (H89/H122/H124/H128/H132), IVOL (H93/H130), VIX-term/cross-asset vol/corr (H86/H113/H123/H125/H126/H127/H131), path-dependence drawdown-state (H133) heavily tested — require clearly distinct mechanism/design if revisited.
 - Baseline full-suite pinned gates **not rerun** (`src/qtr` unchanged).
 
 ## Approaches already tried / failed (do not blindly repeat)
-- H85–H132 all REJECTED. H132: Sharpe 1.248 passed but not significant vs buy-hold (p 0.833, IR -0.433); random-exposure comparable (0.878); worst-regime -0.486; PF failed. Do not rerun same SPY realized-kurtosis construction.
-- Higher-moment family: H89 implied SKEW (REJECT 4/9), H122 downside semivariance ratio (REJECT 3/8), H124 MAX/lottery (REJECT 3/8), H128 realized skewness (REJECT 2/8), H132 realized kurtosis (REJECT 5/8) — require clearly distinct mechanism/design, not another moment variant on same SPY overlay form without separation.
+- H85–H133 all REJECTED. H133: Sharpe 0.994 (borderline fail) not significant vs buy-hold (p 0.891, IR -0.552); worst-regime -1.663; PF failed. Do not rerun same SPY distance-to-N-day-high construction.
+- NF-20261107-42 overnight/intraday not repo-new (H18 REJECT). Do not repackage H18 as NF without materially different mechanism.
 
 ## Precise next task (one task)
-**Execute Cycle 47 discovery and implement+run H133** per `NEXT_TASK.md` and `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §4`: reconcile lineage to H132, propose >=3 repo-new candidates across >=3 broad categories with honest 25/25/20/15/10/5 scoring and concrete deferred reassessment (no silent drops), pre-register H133 (smallest decisive feasible test) before validation outcomes, add runner+focused tests, run `ruff check/format`, focused pytest, execute, record verdict in `HYPOTHESIS_SPEC.md`/`NEW_FAMILY_RESEARCH_REGISTER.md`/`NEXT_TASK.md`/handoff. Free/public data only; no gate weakening; no published artifact changes; no commit/push; do not modify `src/qtr` unless an evidenced defect requires it (then rerun pinned full gates).
+**Execute Cycle 48 discovery and implement+run H134** per `NEXT_TASK.md` and `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §4`: reconcile lineage to H133, propose >=3 repo-new candidates across >=3 broad categories with honest 25/25/20/15/10/5 scoring and concrete deferred reassessment (no silent drops), pre-register H134 (smallest decisive feasible test) before validation outcomes, add runner+focused tests, run `ruff check/format`, focused pytest, execute, record verdict in `HYPOTHESIS_SPEC.md`/`NEW_FAMILY_RESEARCH_REGISTER.md`/`NEXT_TASK.md`/handoff. Free/public data only; no gate weakening; no published artifact changes; no commit/push; do not modify `src/qtr` unless an evidenced defect requires it (then rerun pinned full gates).
 
 **Pinned gates (if `src/qtr`/core touched):**
 ```bash
