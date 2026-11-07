@@ -6791,3 +6791,34 @@ published/certified artifact modified; `src/qtr` unchanged.
 
 **Lineage map (H129 REJECT):**
 | Cross-sectional average sector beta regime timing SPY | H129 (NF-20261107-29) | Vol-targeted long SPY reduced continuously when z-score of trailing cross-sectional mean sector beta vs SPY elevated; 1-bar delay, long-only | SPY + 9 sectors daily (yfinance), 2010–2025 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261107_29_avg_beta_regime/summary.json`) | Fails Sharpe 0.814/PF 1.158/worst-regime -1.206/benchmark-p 1.0/IR -0.694; random-exposure outperforms (0.955); repo-new beta observable, honest adjacency to H117 sector-stat construction |
+
+### Hypothesis H130: Cross-Sectional Average Sector IVOL Regime Timing for SPY (pre-registered, Cycle 44)
+
+**Statement.** Continuously reducing vol-targeted long SPY exposure when the z-score of trailing cross-sectional average sector idiosyncratic volatility (IVOL) vs SPY is abnormally high improves OOS Val+Test Sharpe ≥1.0 with ≥200 trades, PF≥1.3, maxDD≤15%, WF stability≥0.7, worst-regime yearly Sharpe≥0.3, benchmark p<0.05 with IR≥0, perturbation ratio≥0.5.
+
+**Mechanism (idiosyncratic-risk / dispersion stress).** For each sector ETF, IVOL is the trailing annualized std of residual returns from a rolling beta regression on SPY (past-only). Cross-sectional mean IVOL summarizes aggregate sector-specific dispersion/risk. Abnormally high mean IVOL proxies fragile risk appetite and elevated stock/sector-specific uncertainty; continuous de-risking may avoid adverse equity exposure, while normal/low z supports a vol-targeted long. Signal is point-in-time from trailing returns only (1-bar execution delay via engine `signals.shift(1)`).
+
+**Repo-relative novelty (honest).** H93 (NF-20261105-13, REJECT 2/9) ranked ETFs by *IVOL level* cross-sectionally (bottom/top quintiles, monthly rebalance, long low-IVOL / short high-IVOL portfolio) — a different construction, objective, and trade structure. H130 uses *aggregate mean IVOL regime* as a continuous z-score overlay on SPY (no cross-sectional ranking portfolio). H117/H129 use sector co-movement/beta statistics (correlation, beta), different observables/mechanisms (systematic co-movement/beta expansion vs residual dispersion). Honest adjacency to H93 (IVOL concept) and to the sector-stat construction class is acknowledged; novelty scored moderately.
+
+**Null (H0).** Trailing average sector-IVOL regime contains no incremental timing information; OOS gates fail vs buy-hold/random-exposure.
+
+**Pre-registration (executed).** NF-ID **NF-20261107-30** (Cycle 44). Runner `run_nf_20261107_30_avg_ivol_regime.py`; tests `tests/test_nf_20261107_30_avg_ivol_regime.py`. Universe SPY (traded) + XLB/XLE/XLF/XLI/XLK/XLP/XLU/XLV/XLY (9 SPDR sectors, signal; XLC/XLRE excluded for 2010+ history, same feasibility as H117/H129). Free yfinance daily auto-adjust close. Sample 2010-01-04→2025-01-03, 3776 aligned rows (all positive). Train 2010-01-04→2019-12-31 (2516) / Val 2020-01-01→2021-12-31 (505) / Test (protected) 2022-01-03→2025-01-03 (755). Signal: z-score of trailing cross-sectional mean sector IVOL (rolling beta residual std) over `beta_window`/`z_window`; continuous stress `(z/entry_scale).clip(0,1)` for `z>0` reduces vol-targeted SPY exposure by `(1-stress)*vol_target`; 1-bar delay; Equity CostModel defaults (1bp commission + 1bp spread); long-only, max exposure `vol_target`. Bounded grid: beta_window {21,63} × z_window {126} × entry_scale {1.0,1.5,2.0} × vol_target {0.10,0.15} (12 combos); train-only 4-fold WF selection by train Sharpe; Test protected. No `src/qtr` change.
+
+**Gates (OOS Val+Test, pre-registered).** Sharpe >= 1.0, trades >= 200, PF >= 1.3, max DD <= 15%, WF stability >= 0.7, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0 vs buy-hold SPY, perturbation min ratio >= 0.5.
+
+**Ablations (pre-registered).** Buy-hold SPY, random-exposure-matched, inverse IVOL-regime (long SPY when strategy is de-risked).
+
+**Costs/constraints.** Equity CostModel defaults. Free/public data only. `src/qtr` unchanged. No published/certified artifact modified.
+
+**Falsifiers.** Random-exposure comparable or better; inverse not clearly opposite; benchmark fails; fragile to perturbation; worst-regime collapse.
+
+**Executed outcome (2026-11-07, REAL): REJECT (3/8).** Artifact `.experiments/nf_runs/nf_20261107_30_avg_ivol_regime/summary.json` (4.25s). Data SPY + 9 SPDR sectors yfinance, 3776 aligned rows 2010-01-04→2025-01-03 (train 2516 / val 505 / test 755). Selected (train-only WF): `beta_window=21, z_window=126, entry_scale=2, vol_target=0.10`.
+
+**Result — REJECT (3/8 gates).** OOS Val+Test (1549 trades, n=1260): Sharpe **0.809** (fail ≥1.0), PF **1.163** (fail ≥1.3), max DD **-15.40%** (fail ≤15%), trades **1549** (pass), WF stability **1.0** (pass), worst-regime rolling-252 Sharpe **-1.715** (fail), benchmark p **0.770** / IR **-0.331** (fail), perturbation min ratio **0.737** (pass).
+
+**Ablations (OOS).** Buy-hold SPY 0.760/1.155/DD -17.92%/1785. Random-exposure-matched 0.796/1.174/DD -15.94%/3343 (comparable/slightly below strategy but benchmark still fails). Inverse IVOL-regime 0.160/1.102/DD -14.79%/246.
+
+**Verdict rationale.** Fails Sharpe/PF/maxDD/worst-regime/benchmark (3/8). OOS Sharpe 0.809 marginally above buy-hold but not significant (p 0.770, IR -0.331) and with worst-regime collapse (-1.715) and maxDD breach; no validated edge from aggregate sector-IVOL regime timing. Honest adjacency to H93 (IVOL level ranking, REJECT 2/9): repo-new aggregate-regime construction but same IVOL concept; both rejected. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Lineage map (H130 REJECT):**
+| Cross-sectional average sector IVOL regime timing SPY | H130 (NF-20261107-30) | Continuous vol-targeted long SPY reduced when z-score of trailing mean sector IVOL (SPY-beta residual std) elevated; 1-bar delay, long-only | SPY + 9 sectors daily (yfinance), 2010–2025 | **REJECT** (3/8; `.experiments/nf_runs/nf_20261107_30_avg_ivol_regime/summary.json`) | Fails Sharpe 0.809/PF 1.163/maxDD -15.40%/worst-regime -1.715/benchmark-p 0.770/IR -0.331; no validated edge vs buy-hold; repo-new aggregate-IVOL overlay, honest adjacency to H93 IVOL-level ranking |

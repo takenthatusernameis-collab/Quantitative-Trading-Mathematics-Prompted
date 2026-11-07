@@ -1,0 +1,133 @@
+{
+  "experiment": "nf_20261107_30_avg_ivol_regime",
+  "hypothesis": "H130",
+  "nf_id": "NF-20261107-30",
+  "description": "NF-20261107-30/H130: SPY timing from cross-sectional average sector IVOL regime. Continuous de-risking when z-score of trailing mean sector IVOL vs SPY is elevated; 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "data": {
+    "source": "yfinance auto_adjust=True",
+    "universe": [
+      "SPY",
+      "XLB",
+      "XLE",
+      "XLF",
+      "XLI",
+      "XLK",
+      "XLP",
+      "XLU",
+      "XLV",
+      "XLY"
+    ],
+    "start": "2010-01-04",
+    "end": "2025-01-03",
+    "rows": 3776
+  },
+  "selected_params": {
+    "beta_window": 21,
+    "z_window": 126,
+    "entry_scale": 2.0,
+    "vol_target": 0.1
+  },
+  "train": {
+    "sharpe": 0.8593234650212912,
+    "profit_factor": 1.1858216977647997,
+    "max_drawdown": -0.12148121093464692,
+    "trades": 1549,
+    "n": 2516,
+    "total_return": 0.5278767149938715
+  },
+  "oos_val_test": {
+    "sharpe": 0.8085648145708189,
+    "profit_factor": 1.1625745347490897,
+    "max_drawdown": -0.15403762282691202,
+    "trades": 1549,
+    "n": 1260,
+    "total_return": 0.30651687761751645
+  },
+  "wf_stability": 1.0,
+  "worst_regime_rolling252_sharpe": -1.7147808202200332,
+  "benchmark": {
+    "p_value": 0.7704178373910754,
+    "information_ratio": -0.33103806105713707
+  },
+  "perturbation_min_ratio": 0.7370088946529326,
+  "ablations": {
+    "buy_hold_spy": {
+      "sharpe": 0.7597063863724213,
+      "profit_factor": 1.155017181906598,
+      "max_drawdown": -0.17916279294726034,
+      "trades": 1785,
+      "n": 1260,
+      "total_return": 0.4479506840936778
+    },
+    "random_exposure_matched": {
+      "sharpe": 0.7956331987684918,
+      "profit_factor": 1.1736967197771317,
+      "max_drawdown": -0.15942717019931674,
+      "trades": 3343
+    },
+    "inverse_ivol_regime": {
+      "sharpe": 0.16040071874646897,
+      "profit_factor": 1.1018617536722595,
+      "max_drawdown": -0.14789546451773083,
+      "trades": 246,
+      "n": 1260,
+      "total_return": 0.04343366768151147
+    }
+  },
+  "gates": {
+    "sharpe_ge_1": false,
+    "trades_ge_200": true,
+    "pf_ge_1_3": false,
+    "max_dd_le_15pct": false,
+    "wf_stability_ge_0_7": true,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_ir_ge_0": false,
+    "perturbation_ge_0_5": true
+  },
+  "gates_passed": 3,
+  "gates_total": 8,
+  "verdict": "REJECT (3/8)",
+  "grid_top5": [
+    {
+      "beta_window": 21,
+      "z_window": 126,
+      "entry_scale": 2.0,
+      "vol_target": 0.1,
+      "train_sharpe": 0.8593234650212912,
+      "wf_stability_train": 1.0
+    },
+    {
+      "beta_window": 21,
+      "z_window": 126,
+      "entry_scale": 2.0,
+      "vol_target": 0.15,
+      "train_sharpe": 0.8593234650212909,
+      "wf_stability_train": 1.0
+    },
+    {
+      "beta_window": 21,
+      "z_window": 126,
+      "entry_scale": 1.5,
+      "vol_target": 0.1,
+      "train_sharpe": 0.8573400582480848,
+      "wf_stability_train": 1.0
+    },
+    {
+      "beta_window": 21,
+      "z_window": 126,
+      "entry_scale": 1.5,
+      "vol_target": 0.15,
+      "train_sharpe": 0.8573400582480848,
+      "wf_stability_train": 1.0
+    },
+    {
+      "beta_window": 21,
+      "z_window": 126,
+      "entry_scale": 1.0,
+      "vol_target": 0.1,
+      "train_sharpe": 0.8555404485331157,
+      "wf_stability_train": 1.0
+    }
+  ],
+  "runtime_sec": 4.25
+}
