@@ -6454,4 +6454,16 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 
 | Root family | H-IDs | Mechanism | Markets / data | Status | Known risks |
 |---|---|---|---|---|---|
-| Cross-sectional sector return dispersion regime timing SPY | H118 (NF-20261107-01) | Continuous vol-targeted long SPY reduced when trailing average cross-sectional sector-return dispersion z-score abnormally high, 1-bar delay | SPY (traded), 9 sector ETFs (signal) daily (yfinance), 2010–2026 | PRE-REGISTERED / PENDING EXECUTION | Adjacency to H117 correlation regime (distinct measure: dispersion vs correlation); honest adjacency scored below wholly new channel |
+| Cross-sectional sector return dispersion regime timing SPY | H118 (NF-20261107-01) | Continuous vol-targeted long SPY reduced when trailing average cross-sectional sector-return dispersion z-score abnormally high, 1-bar delay | SPY (traded), 9 sector ETFs (signal) daily (yfinance), 2010–2026 | REJECT (4/8; exp_2026-11-07T01-16-32-274332Z) | Fails Sharpe 0.868/PF 1.164/worst-regime -1.215/benchmark-p 1.0/IR -0.369; random-exposure ablation (1.391) outperforms signal; no risk-adjusted edge vs buy-hold |
+
+### H118 execution outcome (2026-11-07, REAL)
+
+**Experiment:** `exp_2026-11-07T01-16-32-274332Z` (1.748s). Artifact: `.experiments/nf_runs/nf_20261107_01_sector_dispersion_regime/summary.json`. `src/qtr` unchanged.
+
+**Selected (train-only 4-fold WF):** `lookback=63, z_window=126, entry_scale=2.0, vol_target=0.15` (selection WF mean 1.379). Train Sharpe 0.980.
+
+**OOS Val+Test (779 trades):** Sharpe **0.868** (fail), PF **1.164** (fail), max DD **-10.19%** (pass), trades **779** (pass), WF stability **0.885** (pass), worst-regime rolling-252 Sharpe min **-1.215** (fail), benchmark p **1.0** / IR **-0.369** (fail), perturbation min ratio **0.940** (pass).
+
+**Ablations (OOS).** Buy-hold SPY 0.791/1.164/DD -17.97%/1. Random-exposure-matched 1.391/1.289/DD -14.45%/778. Inverse-stress-long 0.359/1.158/DD -11.37%/778.
+
+**Verdict rationale.** **REJECT (4/8).** Sector-dispersion-regime timing is perturbation-stable, has ample trades/WF stability, and reduces drawdown vs buy-and-hold, but fails Sharpe/PF/worst-regime/benchmark-p/IR on pre-registered OOS gates. The random-exposure-matched ablation outperforms the signal (Sharpe 1.391 vs 0.868), indicating the specific dispersion-z mapping does not add risk-adjusted edge beyond exposure management in this construction. The executed mapping is the specific pre-registered construction tested; this does not test all dispersion-regime constructions. No gate weakened; no published/certified artifact modified.

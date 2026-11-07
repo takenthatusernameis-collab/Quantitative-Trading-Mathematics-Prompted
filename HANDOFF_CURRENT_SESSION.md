@@ -51,3 +51,27 @@ Cycle 27 discovery per `HANDOFF_NEXT.md`/`NEXT_TASK.md` intent: reconcile lineag
 ### Unresolved / constraints
 - H85–H114 all REJECTED. Lineage gaps H24/H68–H73/H76–H79 remain unassigned (not recycled).
 - No commit/push performed (not requested). Published/certified artifacts and thresholds unchanged. `src/qtr` unchanged. New NF-27 files and uncommitted experiment artifacts remain local.
+
+---
+## Cycle 32 (2026-11-07) — Execution of H118 (NF-20261107-01)
+
+### What changed
+- **Execution (directive §4):** Lineage reconciled to H117 (H85–H117 REJECTED). H118 / NF-20261107-01 cross-sectional sector return dispersion regime timing for SPY was pre-registered (prior session) and executed this cycle. `src/qtr` unchanged. No new `src/qtr` change.
+- **H118 executed:** Runner `run_nf_20261107_01_sector_dispersion_regime.py` and tests `tests/test_nf_20261107_01_sector_dispersion_regime.py` (11 tests) pre-existed, lint/format clean, focused pytest 11 passed. Experiment `exp_2026-11-07T01-16-32-274332Z`, 1.748s, artifact `.experiments/nf_runs/nf_20261107_01_sector_dispersion_regime/summary.json`. Updated `HYPOTHESIS_SPEC.md` §H118 from pre-registered to recorded outcome; appended `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 32 + H118 outcome; updated `NEXT_TASK.md` for Cycle 33.
+
+### Verified
+- `python -m ruff check run_nf_20261107_01_sector_dispersion_regime.py tests/test_nf_20261107_01_sector_dispersion_regime.py` — All checks passed.
+- `python -m ruff format --check ...` — 2 files already formatted.
+- `PYTHONPATH=src python -m pytest -q tests/test_nf_20261107_01_sector_dispersion_regime.py` — **11 passed**.
+- `PYTHONPATH=src python run_nf_20261107_01_sector_dispersion_regime.py` — **REJECT 4/8**, `exp_2026-11-07T01-16-32-274332Z`, 1.748s.
+
+### H118 result (REAL, pre-registered gates)
+- Selected (train-only 4-fold WF): `lookback=63, z_window=126, entry_scale=2.0, vol_target=0.15` (WF mean 1.379, train Sharpe 0.980).
+- OOS Val+Test (779 trades): Sharpe **0.868** fail, PF **1.164** fail, DD **-10.19%** pass, trades **779** pass, WF **0.885** pass, worst-regime rolling-252 min **-1.215** fail, benchmark-p **1.0**/IR **-0.369** fail, perturbation **0.940** pass.
+- Ablations (OOS): buy-hold SPY 0.791/1.164/DD -17.97%; random-exposure-matched **1.391/1.289/DD -14.45%**/778 (outperforms strategy — falsifies dispersion-timing information); inverse-stress-long 0.359/1.158/DD -11.37%.
+- Verdict: REJECT (4/8). Perturbation-stable with ample trades/WF stability and DD improvement vs buy-hold, but no validated risk-adjusted edge. Random-exposure ablation outperforms the signal. Specific pre-registered dispersion-z mapping tested; not all dispersion-regime constructions. No gate weakened.
+
+### Unresolved / constraints
+- H85–H118 all REJECTED/recorded. Lineage gaps H24/H68–H73/H76–H79 remain unassigned (not recycled).
+- No commit/push performed (not requested). Published/certified artifacts and thresholds unchanged. `src/qtr` unchanged. New H118 experiment artifact is uncommitted local change.
+- Next session: Cycle 33 discovery/H119 per `NEXT_TASK.md` and `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §4`.
