@@ -1,0 +1,140 @@
+{
+  "experiment": "nf_20261107_10_vix_move_spread",
+  "nf_id": "NF-20261107-10",
+  "h_id": "H125",
+  "description": "NF-20261107-10/H125: SPY timing from the cross-asset VIX-MOVE implied-vol spread. Reduce vol-targeted long SPY to flat when z-score of trailing (VIX - MOVE) > entry_z, re-enter when z < exit_z (hysteresis), 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "verdict": "REJECT",
+  "gate_pass": false,
+  "gates": {
+    "sharpe": false,
+    "trades": true,
+    "profit_factor": false,
+    "max_drawdown": true,
+    "wf_stability": true,
+    "worst_regime": false,
+    "benchmark": false,
+    "perturbation": true
+  },
+  "selected_params": {
+    "window": 63,
+    "entry_z": 2.0,
+    "exit_z": 0.5,
+    "vol_target": 0.1
+  },
+  "train_metrics": {
+    "sharpe": 0.7982738083386469,
+    "profit_factor": 1.166605411385627,
+    "max_drawdown": -0.061434085726013166,
+    "trades": 1325,
+    "n": 2444
+  },
+  "val_metrics": {
+    "sharpe": 1.1686337122608785,
+    "profit_factor": 1.2466698338537112,
+    "max_drawdown": -0.060134710757105414,
+    "trades": 330,
+    "n": 501
+  },
+  "test_metrics": {
+    "sharpe": 0.8277012546226494,
+    "profit_factor": 1.155963204894646,
+    "max_drawdown": -0.0657620287712668,
+    "trades": 560,
+    "n": 747
+  },
+  "oos_val_test_metrics": {
+    "sharpe": 0.9673455666733284,
+    "profit_factor": 1.1907123514747702,
+    "max_drawdown": -0.06576202877126636,
+    "trades": 890,
+    "n": 1248
+  },
+  "wf_stability": 9.618787206140123,
+  "worst_regime_yearly_sharpe": -0.9333429067493172,
+  "benchmark": {
+    "p_value": 0.9224021377062227,
+    "information_ratio": -0.6393688119462846,
+    "t": -1.4222777112742926
+  },
+  "perturbation": {
+    "min_ratio_vs_optimum": 0.9804197522228021
+  },
+  "ablations": {
+    "buy_hold_spy": {
+      "sharpe": 0.7571159015033572,
+      "profit_factor": 1.1547817259723883,
+      "max_drawdown": -0.17971868670159408,
+      "trades": 1,
+      "n": 1248
+    },
+    "random_exposure_matched": {
+      "sharpe": 0.7515604592259516,
+      "profit_factor": 1.1710242360920617,
+      "max_drawdown": -0.08982852777551154,
+      "trades": 1122,
+      "n": 1248
+    },
+    "inverse_stress_long": {
+      "sharpe": 0.16611626222229842,
+      "profit_factor": 1.0736396187122696,
+      "max_drawdown": -0.04477576063131716,
+      "trades": 158,
+      "n": 1248
+    }
+  },
+  "grid_top5": [
+    {
+      "window": 63,
+      "entry_z": 2.0,
+      "exit_z": 0.5,
+      "vol_target": 0.1,
+      "train_sharpe": 0.7982738083386469,
+      "train_trades": 1325,
+      "train_wf": 9.618787206140123
+    },
+    {
+      "window": 63,
+      "entry_z": 1.5,
+      "exit_z": 0.5,
+      "vol_target": 0.1,
+      "train_sharpe": 0.8750765497583466,
+      "train_trades": 1216,
+      "train_wf": 4.942787552779275
+    },
+    {
+      "window": 63,
+      "entry_z": 2.0,
+      "exit_z": 0.0,
+      "vol_target": 0.1,
+      "train_sharpe": 0.8131140658978769,
+      "train_trades": 1238,
+      "train_wf": 4.769226046759199
+    },
+    {
+      "window": 63,
+      "entry_z": 2.0,
+      "exit_z": 0.5,
+      "vol_target": 0.15,
+      "train_sharpe": 0.8449996822864884,
+      "train_trades": 653,
+      "train_wf": 4.434103581294746
+    },
+    {
+      "window": 63,
+      "entry_z": 2.0,
+      "exit_z": 0.0,
+      "vol_target": 0.15,
+      "train_sharpe": 0.876985697211645,
+      "train_trades": 601,
+      "train_wf": 3.6096410426100745
+    }
+  ],
+  "data": {
+    "rows": 3692,
+    "start": "2010-01-04",
+    "end": "2024-12-30"
+  },
+  "timing_seconds": 7.01,
+  "cost_model": "CostModel(equity 1+1bp)",
+  "seed": 42
+}
