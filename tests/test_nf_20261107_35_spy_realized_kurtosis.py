@@ -53,7 +53,9 @@ def test_vol_scale_and_build():
 
 def test_run_one_and_metrics():
     prices = _make_prices()
-    res = mod.run_one(prices, {"kurt_window": 63, "z_window": 126, "entry_scale": 2.0, "vol_target": 0.10})
+    res = mod.run_one(
+        prices, {"kurt_window": 63, "z_window": 126, "entry_scale": 2.0, "vol_target": 0.10}
+    )
     assert "backtest" in res
     tr, va, te = mod._splits(prices.index)
     m = mod.metrics_from(res["backtest"], tr)
@@ -67,17 +69,23 @@ def test_ablation_helpers():
     assert bh["trades"] >= 0
     rm = mod.random_exposure_matched(prices, tr, 0.1, 42)
     assert "sharpe" in rm
-    inv = mod.inverse_regime(prices, {"kurt_window": 63, "z_window": 126, "entry_scale": 2.0, "vol_target": 0.10})
+    inv = mod.inverse_regime(
+        prices, {"kurt_window": 63, "z_window": 126, "entry_scale": 2.0, "vol_target": 0.10}
+    )
     assert "backtest" in inv
 
 
 def test_wf_and_diagnostics():
     prices = _make_prices()
     tr, va, te = mod._splits(prices.index)
-    ws = mod.wf_train_sharpe(prices, tr, {"kurt_window": 63, "z_window": 126, "entry_scale": 2.0, "vol_target": 0.10})
+    ws = mod.wf_train_sharpe(
+        prices, tr, {"kurt_window": 63, "z_window": 126, "entry_scale": 2.0, "vol_target": 0.10}
+    )
     assert isinstance(ws, float)
     r = prices[mod.SPY].pct_change().fillna(0.0)
     wr = mod.worst_regime_rolling_sharpe(r, window=50)
     assert isinstance(wr, float)
-    pt = mod.perturbation_test(prices, {"kurt_window": 63, "z_window": 126, "entry_scale": 2.0, "vol_target": 0.10}, tr)
+    pt = mod.perturbation_test(
+        prices, {"kurt_window": 63, "z_window": 126, "entry_scale": 2.0, "vol_target": 0.10}, tr
+    )
     assert isinstance(pt, float)

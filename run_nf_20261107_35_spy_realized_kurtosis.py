@@ -285,7 +285,12 @@ def random_exposure_matched(
     pf = float(pos / neg) if neg > 1e-12 else (10.0 if pos > 0 else 0.0)
     eq = (1.0 + r).cumprod()
     dd = float((eq / eq.cummax() - 1.0).min())
-    return {"sharpe": sh, "profit_factor": pf, "max_drawdown": dd, "trades": int((np.diff(exp, prepend=0)!=0).sum())}
+    return {
+        "sharpe": sh,
+        "profit_factor": pf,
+        "max_drawdown": dd,
+        "trades": int((np.diff(exp, prepend=0) != 0).sum()),
+    }
 
 
 def inverse_regime(prices: pd.DataFrame, params: dict) -> dict:

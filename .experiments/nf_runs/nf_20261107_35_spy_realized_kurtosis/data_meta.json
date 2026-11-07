@@ -1,0 +1,8 @@
+{
+  "nf_id": "NF-20261107-35",
+  "h_id": "H132",
+  "runner": "run_nf_20261107_35_spy_realized_kurtosis.py",
+  "description": "NF-20261107-35/H132: SPY timing from trailing realized kurtosis (4th moment) stress regime. Continuous de-risking when kurtosis z-score elevated; 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "free_data": true,
+  "src_qtr_changed": false
+}
