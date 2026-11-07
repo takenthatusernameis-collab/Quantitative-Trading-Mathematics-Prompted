@@ -1837,3 +1837,18 @@ H119 / NF-20261107-02 (short-term cross-sectional return reversal among sector E
 | SPY front-end fear-spread timing (VIX9D/VIX near-term vol) | H123 (NF-20261107-08) | Long vol-targeted SPY when z-score of trailing (VIX9D−VIX) spread <= entry_z, flat when z > entry_z, hysteresis re-enter at z < exit_z; 1-bar delay | SPY + ^VIX/^VIX9D daily (yfinance), 2011–2026 (VIX9D-limited) | **REJECT** (5/8; exp_2026-11-07T10-33-55-038242Z) | Fails PF 1.206/worst-regime -1.046/benchmark-p 1.0/IR -0.752; Sharpe 1.038 passes but random-exposure ablation outperforms (1.172); no edge vs buy-hold SPY; adjacent to H86 VIX3M/VIX slope (REJECT 2/9), different maturity segment |
 
 **Cycle 38 required next.** H85–H123 all rejected/recorded. Fresh discovery per directive §4: reconcile lineage to H123, propose >=3 repo-new mechanism candidates across >=3 broad categories, score honestly (25/25/20/15/10/5), reassess deferred NF-04/05/07/08/10/11/13/15/17/20/21, NF-11r/NF-06-18 (TNX-FVX same root as NF-11 — not new root), NF-06-11 (infeasible), NF-20261106-03/23/24/28/30/32/33/35, NF-20261107-05 (CPI event drift), and the two held Cycle-37 candidates NF-20261107-09 (MAX/lottery) and NF-20261107-10 (cross-asset vol ^VIX vs ^MOVE) with concrete evidence (no silent drops). Pre-register highest-expected-information feasible candidate as **H124** (next unused H-ID). Free/public data only; no gate weakening; no published/certified artifact modification; no commit/push; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
+
+---
+
+## Cycle 38 discovery (2026-11-07)
+
+**Lineage reconciliation to H123.** H85–H123 all rejected/recorded. Next unused H-ID **H124**.
+
+**Repo-new mechanism candidates proposed (>=3 across >=3 broad categories):**
+1. **NF-20261107-09 (SELECTED → H124) — Cross-sectional equity MAX/lottery-demand timing.** Category: cross-sectional higher-moment. Rank a fixed liquid stock universe by trailing maximum daily return (lottery/attention); long low-MAX / flat high-MAX, vol-targeted. Distinct from H2/H16 momentum (trend), H93 IVOL (vol level), H119 reversal. Feasible with fixed yfinance stock universe (no PIT earnings). Data verified feasible (free yfinance). Scoring: Nov 5 / Plaus 3 / Data 4 / Fals 4 / Exec 4 / Supp 3 → weighted 3.95. Held from Cycle 37; selected for H124.
+2. **NF-20261107-10 (held) — Cross-asset vol-regime stress timing SPY (^VIX vs ^MOVE).** Weighted 3.90. Distinct from H100/H86/H17. Held for next cycle.
+3. **NF-20261107-11 (new) — Cross-sectional idiosyncratic-vol (IVOL) spread timing SPY.** Category: cross-sectional volatility decomposition. Long low-IVOL / short high-IVOL spread as a market-timing overlay on vol-targeted SPY. Distinct from H93 IVOL (level) and H2/H16 (trend). Feasible with fixed universe. Scoring: Nov 4 / Plaus 3 / Data 4 / Fals 4 / Exec 4 / Supp 3 → 3.70. Held.
+
+**Deferred candidates reassessed (no silent drops).** All Cycle 37 deferred list carried forward with reasons unchanged (NF-04 blocked; NF-05/07/08/10/11/13/15/17/20/21 deferred; NF-11r same root as NF-11; NF-06-11 infeasible; NF-20261106-03/23/24/28/30/32/33/35 deferred; NF-20261107-05 CPI event drift deferred; NF-20261107-06 dup of H86). NF-20261107-10 and NF-20261107-11 held.
+
+**Selection:** NF-20261107-09 pre-registered as **H124**. Implementation + execution deferred to next cycle (runner + focused tests + ruff clean + execute + record verdict). No `src/qtr` change; no gate weakening; no published/certified artifact modified.

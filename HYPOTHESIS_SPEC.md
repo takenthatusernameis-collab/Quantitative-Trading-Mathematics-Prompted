@@ -6594,3 +6594,22 @@ Train/Val/Test Sharpe: 1.213 / 0.587 / 0.893 — train→OOS decay. SPY buy-hold
 
 **Lineage map (H123 REJECT):**
 | SPY front-end fear-spread timing (VIX9D/VIX near-term vol) | H123 (NF-20261107-08) | Long vol-targeted SPY when z-score of trailing (VIX9D−VIX) spread <= entry_z, flat when z > entry_z, hysteresis re-enter at z < exit_z; 1-bar delay | SPY daily + ^VIX/^VIX9D (yfinance), 2011–2026 (VIX9D-limited) | **REJECT** (5/8; exp_2026-11-07T10-33-55-038242Z) | Fails PF 1.206/worst-regime -1.046/benchmark-p 1.0/IR -0.752; Sharpe 1.038 passes but random-exposure ablation outperforms (1.172); no validated edge vs buy-hold SPY; adjacent to H86 VIX3M/VIX slope (REJECT 2/9), different maturity segment |
+
+---
+
+### Hypothesis H124: Cross-Sectional MAX/Lottery-Demand Timing on SPY (pre-registered, Cycle 38)
+
+**Statement.** A vol-targeted long SPY position is reduced/flat when the cross-sectional dispersion of trailing maximum daily returns (MAX/lottery demand) across a fixed liquid stock universe is elevated, generating net pooled OOS (Val+Test) Sharpe ≥ 1.0 with ≥ 200 trades, PF ≥ 1.3, max DD ≤ 15%, worst-regime Sharpe ≥ 0.3, perturbation ≥ 0.5× optimum, and significant vs equal-weight benchmark (p < 0.05).
+
+**Mechanism.** Lottery/attention-driven demand (Bali, Cakici & Whitelaw 2011) concentrates in high-MAX stocks; elevated cross-sectional MAX dispersion proxies retail lottery demand and predicts subsequent underperformance / volatility clustering; timing SPY via this observable exploits a higher-moment cross-sectional signal distinct from trend (H2/H16), IVOL level (H93), and reversal (H119).
+
+**Null (H0).** MAX dispersion has no predictive power; SPY returns follow random walk. Test by rejecting H0 on protected OOS only.
+
+**Pre-registration (outline).**
+- Universe: fixed liquid stock universe via yfinance (free, no PIT earnings needed); SPY traded.
+- Train 2015-01-01 → 2019-12-31; Val 2020-01-01 → 2021-12-31; Test 2022-01-01 → 2024-12-31 (protected holdout).
+- Signal: z-score of cross-sectional MAX dispersion (trailing max daily return), hysteresis entry/exit, 1-bar delay; vol-targeted long SPY, long-only, max_position 0.5, equity costs.
+- Selection: bounded grid, train-only 4-fold WF Sharpe.
+- No `src/qtr` change. Gates unchanged.
+
+**Status.** Pre-registered Cycle 38; implementation/execution pending next cycle.
