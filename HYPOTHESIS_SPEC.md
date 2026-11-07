@@ -6981,3 +6981,34 @@ published/certified artifact modified; `src/qtr` unchanged.
 
 **Lineage map (H135 REJECT):**
 | SPY realized volatility-of-volatility stress timing (realized 2nd-order risk uncertainty) | H135 (NF-20261107-46) | Continuous vol-targeted long SPY reduced when z-score of trailing std of trailing realized vol elevated; 1-bar delay, long-only | SPY daily (yfinance), 2010–2025 | **REJECT** (5/8; `.experiments/nf_runs/nf_20261107_46_spy_realized_vov/summary.json`) | Fails PF 1.212/worst-regime -0.647/benchmark-p 1.000/IR +0.257; Sharpe 1.015 borderline; beats random exposure (0.538) but not buy-hold significant; repo-new realized VoV, honest adjacency to H104 implied VVIX |
+
+### Hypothesis H136: SPY Timing from Realized Lag-1 Return Autocorrelation (AR1) Serial-Dependence State (Cycle 50 execution; recorded post-hoc)
+
+**Statement.** Continuously reducing vol-targeted long SPY exposure when the z-score of trailing realized lag-1 autocorrelation AR(1) of SPY returns is abnormally positive (serial-dependence state vs trailing history) improves OOS Val+Test Sharpe ≥1.0 with ≥200 trades, PF≥1.3, maxDD≤15%, WF stability≥0.7, worst-regime rolling-252 Sharpe≥0.3, benchmark p≤0.05 with IR≥0, perturbation ratio≥0.5.
+
+**Mechanism (serial dependence / microstructure-state transmission).** Trailing AR(1) captures persistence/reversal structure in recent SPY returns (past-only): `ar1_t = rolling_corr(r_t, r_{t-1}, ar_window)`. Elevated AR(1) relative to its trailing history may proxy fragile persistence/liquidity-state regimes; a continuous vol-targeted de-risking overlay (1-bar execution delay via engine `signals.shift(1)`) may reduce unfavorable exposure. Free, point-in-time from SPY close.
+
+**Repo-relative novelty (honest).** The repo contains AR(1)/autocorrelation *diagnostics* (e.g., `run_h26_sharpe_scale_audit.py`, `run_nf_20261105_06_gold_oil_rv.py`) and H26 is a Sharpe annualization-scale audit (not a timing family), but no pre-registered NF SPY AR(1)/lag-1 autocorrelation regime-timing family had been executed as a strategy. Cycle 49 held NF-20261107-47 (NF-20261107-40 concept) with weak economic plausibility and required decisive separation from diagnostic-only AR(1) use. H136 is scored as that pre-registered timing-family execution; adjacency to return-predictability diagnostics is acknowledged (not wholly unrelated). Distinct from VIX/vol-term/corr families (H86/H113/H123/H125/H126/H127/H131/H134), higher moments (H89/H122/H124/H128/H132/H135), IVOL (H93/H130), drawdown state (H133), and return dispersion (H118).
+
+**Null (H0).** Trailing AR(1) serial-dependence state contains no incremental timing information; OOS gates fail vs buy-hold/random-exposure.
+
+**Registration/execution record (Cycle 50, decision-ready design recorded with outcome).** NF-ID **NF-20261107-47**. Runner `run_nf_20261107_47_spy_ar1.py`; tests `tests/test_nf_20261107_47_spy_ar1.py`. Universe SPY, yfinance daily auto-adjust Close (free, PIT). Sample 2010-01-04→2025-01-03 (3776 rows). Train 2010-01-04→2019-12-31 (2516) / Val 2020-01-01→2021-12-31 (505) / Test (protected) 2022-01-01→2025-01-03 (755). Signal: z-score of trailing rolling AR(1) correlation over `ar_window`/`z_window` (past-only); continuous stress `(z.clip(0)/entry_scale).clip(0,1)` for positive z reduces vol-targeted long SPY exposure by `(1-stress)*vol_target`; 1-bar delay; Equity CostModel defaults (1bp commission + 1bp spread); long-only, max exposure `vol_target` (scaled to `MAX_POS=0.5`). `rv_window` retained in grid schema for template compatibility but unused by AR(1). Bounded grid: `rv_window {21} × ar_window {63,126} × z_window {126} × entry_scale {1.0,1.5,2.0} × vol_target {0.10,0.15}` (12 combos); train-only 4-fold WF selection by mean train Sharpe; Test protected. No `src/qtr` change.
+
+**Gates (OOS Val+Test, pre-registered design).** Sharpe >= 1.0, trades >= 200, PF >= 1.3, max DD <= 15%, WF stability >= 0.7, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0 vs buy-hold SPY, perturbation min ratio >= 0.5.
+
+**Ablations (pre-registered design).** Buy-hold SPY, random-exposure-matched, inverse AR(1)-stress regime.
+
+**Costs/constraints.** Equity CostModel defaults. Free/public data only. `src/qtr` unchanged. No published/certified artifact modified. No gate weakening.
+
+**Falsifiers.** Random-exposure comparable or better; inverse not clearly opposite; benchmark fails; fragile to perturbation; worst-regime collapse.
+
+**Executed outcome (2026-11-07T18:56:16Z, REAL, committed artifact): REJECT (2/8).** Artifact `.experiments/nf_runs/nf_20261107_47_spy_ar1/summary.json` (`NF-20261107-47/H136`, 1.515s). Data SPY yfinance auto-adjust, 3776 aligned rows 2010-01-04→2025-01-03 (train 2516 / val 505 / test 755). Selected (train-only 4-fold WF mean Sharpe 1.049): `rv_window=21, ar_window=63, z_window=126, entry_scale=1.5, vol_target=0.10`. **Artifact-integrity note:** the committed summary's `experiment` string was mislabeled as VoV (copy-paste text); the artifact is otherwise treated as immutable evidence of the executed AR(1) run (parameters/code implement AR(1)). Runner header/EXPERIMENT_DESC were corrected in this session without changing mechanism or artifact numbers.
+
+**Result — REJECT (2/8 gates).** OOS Val+Test (1675 trades, n=1260): Sharpe **0.536** (fail), PF **1.128** (fail), max DD **-15.53%** (fail), trades **1675** (pass), WF stability **0.452** (fail), worst-regime rolling-252 Sharpe **-1.066** (fail), benchmark p **1.000** / IR **-0.223** vs buy-hold (fail), perturbation min ratio **0.642** (pass).
+
+**Ablations (OOS).** Buy-hold SPY Sharpe 0.759/PF 1.155/maxDD -33.72%/1. Random-exposure-matched Sharpe 0.772/PF 1.197/maxDD -28.78%/269 (comparable/better risk-adjusted than strategy on this metric). Inverse AR(1)-stress regime Sharpe 0.686/PF 1.199/maxDD -6.55%/1675 (no clear opposite timing edge; better DD but not a validated mirror).
+
+**Verdict rationale.** AR(1) serial-dependence de-risking fails 6 of 8 gates (Sharpe/PF/DD/WF/worst-regime/benchmark). Random-exposure-matched and inverse ablations do not support a specific AR(1)-stress edge. Weak economic plausibility noted in Cycle 49 is confirmed by OOS rejection. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Lineage map (H136 REJECT):**
+| SPY realized lag-1 autocorrelation (AR1) serial-dependence state timing | H136 (NF-20261107-47) | Continuous vol-targeted long SPY reduced when z-score of trailing AR(1) correlation rises; 1-bar delay, long-only | SPY daily (yfinance), 2010–2025 | **REJECT** (2/8; `.experiments/nf_runs/nf_20261107_47_spy_ar1/summary.json`) | Fails Sharpe 0.536/PF 1.128/maxDD -15.53%/WF 0.452/worst-regime -1.066/benchmark-p 1.000/IR -0.223; random-exposure comparable; decisive separation from diagnostic-only AR(1) use documented, no validated edge |

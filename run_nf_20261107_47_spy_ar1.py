@@ -1,38 +1,46 @@
-"""NF-20261107-47 / H136 (pre-registered, Cycle 49): SPY timing from realized
-volatility-of-volatility (VoV) stress (realized second-order risk/uncertainty).
+"""NF-20261107-47 / H136 (Cycle 50): SPY timing from realized lag-1 return
+autocorrelation / serial-dependence state (microstructure-state transmission).
 
-Signal = z-score of the trailing standard deviation of trailing realized
-volatility (realized VoV):
-  rv_t   = rolling_std(r_spy, rv_window) * sqrt(252)               (past-only)
-  vov_t  = rolling_std(rv_t, ar_window)                           (past-only)
-  z_t    = (vov_t - rolling_mean(vov, z_window)) / rolling_std(vov, z_window)
-When z rises (realized risk uncertainty abnormally elevated), vol-targeted
-long SPY exposure is reduced continuously, with 1-bar execution delay
-(engine signals.shift(1)).
+Signal = z-score of trailing realized AR(1) of SPY returns (past-only):
+  r_t   = SPY return_t
+  ar1_t = rolling_corr(r_t, r_{t-1}, ar_window)
+  z_t   = (ar1_t - rolling_mean(ar1, z_window)) / rolling_std(ar1, z_window)
+When z rises (serial dependence abnormally positive vs trailing history),
+vol-targeted long SPY exposure is reduced continuously, with 1-bar execution
+delay (engine signals.shift(1)). `rv_window` is retained in the grid schema
+for structural compatibility with the NF runner template but is not used by the
+AR(1) observable.
 
-Repo-relative novelty (honest). H104 (NF-20261106-07, REJECT 5/9) used ^VVIX
-*implied* volatility-of-volatility (options market, VIX options) — a different
-observable (implied/derivative-surface vs realized returns). H122 (downside
-semivariance ratio, 2nd-moment asymmetry), H128 (realized skewness, 3rd),
-H132 (realized kurtosis, 4th) tested realized higher moments of returns —
-VoV is the *dispersion/instability of realized volatility itself* (second-order
-realized risk uncertainty), a different observable/mechanism. No executed NF/H
-uses realized VoV of SPY returns as the timing signal. Distinct from VIX
-level/shape families (H86/H113/H123/H126/H131/H134), IVOL (H93/H130), drawdown
-state (H133), and return dispersion (H118). Honest adjacency to H104 is
-acknowledged; novelty scored on realized-vs-implied observable separation.
+Repo-relative novelty (honest). The repo contains AR(1)/autocorrelation
+*diagnostics* (e.g. `run_h26_sharpe_scale_audit.py`,
+`run_nf_20261105_06_gold_oil_rv.py`) and H26 is a Sharpe annualization-scale
+audit (not a timing family), but no pre-registered NF SPY AR(1)/lag-1
+autocorrelation regime-timing family had been executed as a strategy. NF-47 was
+held in Cycle 49 (NF-20261107-40 concept) with weak economic plausibility noted;
+decisive separation from diagnostic-only AR(1) use is documented. Adjacency to
+return-predictability/mean-reversion diagnostics is acknowledged; novelty is
+scored on the pre-registered timing-family observable, not as wholly unrelated.
+Distinct from VIX/vol-term/corr families (H86/H113/H123/H125/H126/H127/H131/
+H134), higher moments (H89/H122/H124/H128/H132/H135), IVOL (H93/H130),
+drawdown state (H133), and return dispersion (H118).
 
 Data (free, yfinance): SPY daily Close (auto_adjust), point-in-time.
 
-Splits (pre-registered): Train 2010-01-04->2019-12-31 / Val 2020-01-01->
+Splits (pre-registered design): Train 2010-01-04->2019-12-31 / Val 2020-01-01->
 2021-12-31 / Test (protected) 2022-01-01->2025-01-03.
-Grid (bounded): rv_window {21} x ar_window {63,126} x z_window {126}
-  x entry_scale {1.0,1.5,2.0} x vol_target {0.10,0.15} (12 combos).
-  Selection = best train-only 4-fold walk-forward mean Sharpe; Test protected.
+Grid (bounded): rv_window {21} (unused by AR1) x ar_window {63,126}
+  x z_window {126} x entry_scale {1.0,1.5,2.0} x vol_target {0.10,0.15}
+  (12 combos). Selection = best train-only 4-fold walk-forward mean Sharpe;
+  Test protected.
 Gates on OOS Val+Test: Sharpe>=1.0, trades>=200, PF>=1.3, maxDD<=15%,
   WF stability>=0.7, worst-regime rolling-252 Sharpe>=0.3, benchmark p<=0.05
   with IR>=0, perturbation min ratio>=0.5. Equity CostModel defaults; no
   src/qtr change.
+
+Executed artifact: `.experiments/nf_runs/nf_20261107_47_spy_ar1/summary.json`
+(REJECT 2/8, 2026-11-07T18:56:16Z). The artifact's embedded experiment string
+reflects the original mislabeled text; this source file and the spec/register
+record the corrected AR(1) mechanism.
 """
 
 from __future__ import annotations
@@ -57,9 +65,9 @@ from qtr.backtest.engine import (  # noqa: E402
 from qtr.validation.statistics import sharpe_ratio  # noqa: E402
 
 EXPERIMENT_DESC = (
-    "NF-20261107-47/H136: SPY timing from realized volatility-of-volatility "
-    "(VoV) stress. Continuous de-risking when z-score of trailing std of "
-    "trailing realized volatility rises. 1-bar delay. Train-only WF "
+    "NF-20261107-47/H136: SPY timing from realized lag-1 return "
+    "autocorrelation (AR1) serial-dependence state. Continuous de-risking "
+    "when z-score of trailing AR(1) rises. 1-bar delay. Train-only WF "
     "selection; Test protected; OOS Val+Test gates."
 )
 

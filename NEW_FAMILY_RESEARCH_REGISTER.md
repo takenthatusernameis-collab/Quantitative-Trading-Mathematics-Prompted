@@ -2378,3 +2378,44 @@ Lineage reconciled to H134: H85–H134 all rejected/recorded. Next unused H-ID: 
 | SPY realized volatility-of-volatility stress timing (realized 2nd-order risk uncertainty) | H135 (NF-20261107-46) | Continuous vol-targeted long SPY reduced when z-score of trailing std of trailing realized vol elevated; 1-bar delay, long-only | SPY daily (yfinance), 2010–2025 | **REJECT** (5/8; `.experiments/nf_runs/nf_20261107_46_spy_realized_vov/summary.json`) | Fails PF 1.212/worst-regime -0.647/benchmark-p 1.000/IR +0.257; Sharpe 1.015 borderline; beats random exposure but not buy-hold significant; repo-new realized VoV, honest adjacency to H104 implied VVIX |
 
 **Cycle 49 complete (discovery + H135 execution).** H85–H135 all rejected/recorded. Cycle 50 required next: fresh directive §4 discovery, >=3 repo-new candidates across >=3 broad categories, pre-register and execute **H136** (next unused H-ID). No gate weakening; no published/certified artifact modification; no commit/push; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
+
+## Cycle 50 (2026-11-07) — Discovery + H136 execution (NF-20261107-47 realized AR(1) serial-dependence; REJECT 2/8)
+
+### Cycle 50 discovery (directive §4, >=3 repo-new mechanism candidates across >=3 broad categories)
+
+Lineage reconciled to H135: H85–H135 all rejected/recorded. Next unused H-ID: **H136** (H24/H68–H73/H76–H79 unassigned, not recycled). NF-20261107-47 was held in Cycle 49 (score 3.60, weak plausibility) and is the selected decisive test here because it has the cleanest feasibility/separation profile among held candidates once AR(1) is treated as a *pre-registered timing-family observable* rather than a diagnostic. `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified.
+
+| Cycle-50 candidate | Broad mechanism category | Novelty 25% | Plausibility 25% | Data PIT 20% | Falsifiability 15% | Execution 10% | Ind. support 5% | Weighted |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261107-47 SPY trailing lag-1 return autocorrelation (AR1) serial-dependence state timing — **H136 (selected/executed, committed artifact)** | Serial dependence / microstructure-state transmission | 4 | 2 | 5 | 4 | 5 | 2 | **3.60** |
+| NF-20261107-49 TLT-SPY realized return-correlation regime timing SPY (held) | Rates-equity co-movement / flight-to-quality transmission | 3 | 3 | 5 | 4 | 4 | 3 | **3.60** |
+| NF-20261107-12 Credit-vs-equity volatility-divergence regime timing SPY (HYG/LQD vs SPY realized-vol spread) (held) | Credit stress / volatility-transmission divergence | 3 | 3 | 4 | 4 | 4 | 3 | **3.50** |
+| NF-20261107-48 OVX−VIX cross-asset energy-vs-equity IV spread timing SPY (held NF-20261107-14 concept) — **not selected without materially different design** | Cross-asset commodity-options / energy uncertainty transmission | 2 | 3 | 5 | 4 | 4 | 2 | **3.35** |
+
+**Scoring notes (honest).**
+- NF-20261107-47 novelty 4, plausibility 2 (weak, unchanged from Cycle 49). Repo has AR(1)/autocorrelation *diagnostics* (`run_h26_sharpe_scale_audit.py`, `run_nf_20261105_06_gold_oil_rv.py`) and H26 is an audit, not a timing family; no pre-registered NF SPY AR(1) regime-timing strategy had been executed. Decisive separation is provided by the bounded pre-registered timing design + OOS gates. Economic persistence at daily SPY is weak — selected as a small decisive falsification test given strong data/falsifiability/execution.
+- NF-20261107-49 novelty 3: adjacent to H127 (GLD–TLT correlation, REJECT 2/8, different pair) and H96 lineage; feasible but requires careful separation of rates-equity co-movement vs flight-to-quality; held.
+- NF-20261107-12 novelty 3: adjacent to H94/H100/H125 credit/vol families; needs distinct realized-vol divergence design (not raw spread level) to avoid construction-class overlap; held.
+- NF-20261107-48 novelty 2 (discounted): same cross-asset IV-spread construction class as H125/H126 — **materially different pre-registered design required** (not reframing). Not selected.
+
+**Deferred reassessment (no silent drops):** NF-04 commodity carry **blocked** (no free PIT term-structure/roll proxy); NF-05 short-term CS reversal **deferred** (turnover/net-of-cost; H119 weekly REJECT 3/8); NF-07/08/10/11/13/15/17/20/21 **deferred**; NF-11r/NF-06-18 TNX-FVX **same root as NF-11** (not new root); NF-06-11 CBOE PC ratio **infeasible**; NF-20261106-03/23/24/28/30/32/33/35 **deferred**; NF-20261107-05 CPI drift **deferred** (data blocker, adj H90). **Held:** NF-20261107-11 IVOL spread (separation from H118/H130 REJECTs), NF-20261107-12 credit-vs-equity vol divergence (sep H94/H100/H125), NF-20261107-14/NF-20261107-48 OVX−VIX (same construction class as H125/H126 — **materially different pre-registered design required**), NF-20261107-31 sector breadth (adj H115 REJECT 1/8), NF-20261107-40 (executed as NF-20261107-47/H136 concept), NF-20261107-49 TLT-SPY corr (adj H127/H96). NF-20261107-32 (=H118), NF-20261107-36/39 (=H133), NF-20261107-43 (=H134), NF-20261107-46 (=H135), NF-20261107-47 (=H136) executed — not repo-new; do not rerun.
+- **Executed/rejected not rerun:** H85–H136. Higher-moment/realized-tail (H89/H122/H124/H128/H132), vol-of-vol (H104 implied, H135 realized), VIX-term/cross-asset vol/corr (H86/H113/H123/H125/H126/H127/H131/H134), IVOL (H93/H130), drawdown state (H133), return dispersion (H118), serial-dependence timing (H136 AR1) all executed/recorded.
+
+**Selection:** NF-20261107-47 → **H136** (decisive small falsification of held AR(1) serial-dependence timing; bounded grid, SPY-only, free PIT data). Design recorded in `HYPOTHESIS_SPEC.md` §H136.
+
+### NF-20261107-47 / H136 execution outcome (2026-11-07T18:56:16Z, REAL, committed artifact) — REJECTED (2/8)
+
+**Runner:** `run_nf_20261107_47_spy_ar1.py`. **Tests:** `tests/test_nf_20261107_47_spy_ar1.py` (7 passed). `ruff check/format` clean (after correcting runner header/EXPERIMENT_DESC text in Cycle 50; artifact unchanged). `src/qtr` unchanged.
+
+**Execution.** Artifact `.experiments/nf_runs/nf_20261107_47_spy_ar1/summary.json` (1.515s, committed in prior commit `81d036f`). Data SPY yfinance auto-adjust, 3776 aligned rows 2010-01-04→2025-01-03 (train 2516 / val 505 / test 755). Selected (train-only 4-fold WF mean Sharpe 1.049): `rv_window=21, ar_window=63, z_window=126, entry_scale=1.5, vol_target=0.10`.
+
+**Result — REJECT (2/8 gates).** OOS Val+Test (1675 trades, n=1260): Sharpe **0.536** (fail), PF **1.128** (fail), max DD **-15.53%** (fail), trades **1675** (pass), WF stability **0.452** (fail), worst-regime rolling-252 Sharpe **-1.066** (fail), benchmark p **1.000** / IR **-0.223** (fail), perturbation min ratio **0.642** (pass).
+
+**Ablations (OOS).** Buy-hold 0.759/1.155/maxDD -33.72%/1. Random-exposure-matched 0.772/1.197/maxDD -28.78%/269 (comparable/better). Inverse 0.686/1.199/maxDD -6.55%/1675 (no opposite edge).
+
+**Verdict rationale.** AR(1) serial-dependence de-risking fails 6/8 gates; random-exposure and inverse ablations do not support a specific edge. Weak plausibility from Cycle 49 confirmed. **Artifact-integrity note:** committed summary `experiment` string was mislabeled as VoV; artifact is immutable evidence of the executed AR(1) run (parameters/code are AR(1)). Runner doc text corrected this session; artifact numbers not modified.
+
+**Lineage map (H136 REJECT):**
+| SPY realized lag-1 autocorrelation (AR1) serial-dependence state timing | H136 (NF-20261107-47) | Continuous vol-targeted long SPY reduced when z-score of trailing AR(1) correlation rises; 1-bar delay, long-only | SPY daily (yfinance), 2010–2025 | **REJECT** (2/8; `.experiments/nf_runs/nf_20261107_47_spy_ar1/summary.json`) | Fails Sharpe 0.536/PF 1.128/maxDD -15.53%/WF 0.452/worst-regime -1.066/benchmark-p 1.000/IR -0.223; random-exposure comparable; diagnostic-only AR(1) separation documented, no validated edge |
+
+**Cycle 50 complete (discovery + H136 execution/recording).** H85–H136 all rejected/recorded. Cycle 51 required next: fresh directive §4 discovery, >=3 repo-new candidates across >=3 broad categories, pre-register and execute **H137** (next unused H-ID). No gate weakening; no published/certified artifact modification; no commit/push in this session; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
