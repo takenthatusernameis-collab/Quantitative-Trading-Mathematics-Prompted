@@ -62,8 +62,8 @@ from qtr.backtest.engine import (  # noqa: E402
 from qtr.validation.statistics import sharpe_ratio  # noqa: E402
 
 EXPERIMENT_DESC = (
-    "NF-20261107-53/H139: SPY timing from  IWM-vs-SPY realized-vol "
-    "divergence (HYG-LQD credit-spread RV relative to SPY RV). Continuous "
+    "NF-20261107-53/H139: SPY timing from IWM-vs-SPY realized-vol "
+    "divergence (IWM RV relative to SPY RV). Continuous "
     "de-risking when z-score of trailing RV divergence ratio rises. 1-bar "
     "delay. Train-only WF selection; Test protected; OOS Val+Test gates."
 )

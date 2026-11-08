@@ -2500,3 +2500,43 @@ Lineage reconciled to H137: H85–H137 all rejected/recorded. Next unused H-ID: 
 | Credit-vs-equity realized-vol divergence regime timing (HYG−LQD RV / SPY RV) | H138 (NF-20261107-51) | Continuous vol-targeted long SPY reduced when z-score of trailing credit-spread RV / SPY RV ratio elevated; 1-bar delay, long-only | SPY + HYG + LQD daily (yfinance), 2010–2025 | **REJECT** (2/8; `.experiments/nf_runs/nf_20261107_51_credit_equity_rv_divergence/summary.json`) | Fails Sharpe 0.389/PF 1.090/maxDD -17.97%/WF 0.414/worst-regime -1.362/benchmark-p 0.986/IR -0.987; inverse 1.155/1.263/-4.59% (pre-registered falsifier) — directional mechanism falsified; repo-new RV-divergence observable, honest adjacency to H94/H108/H100/H118/H125 |
 
 **Cycle 52 complete (discovery + H138 execution).** H85–H138 all rejected/recorded. Cycle 53 required next: fresh directive §4 discovery, >=3 repo-new candidates across >=3 broad categories, pre-register and execute **H139** (next unused H-ID). No gate weakening; no published/certified artifact modification; no commit/push in this session; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
+
+## Cycle 53 (2026-11-07) — Discovery + H139 execution (NF-20261107-53 IWM-vs-SPY realized-vol divergence; REJECT 2/8)
+
+### Cycle 53 discovery (directive §4, >=3 repo-new mechanism candidates across >=3 broad categories)
+
+Lineage reconciled to H138: H85–H138 all rejected/recorded. Next unused H-ID: **H139** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified.
+
+| Cycle-53 candidate | Broad mechanism category | Novelty 25% | Plausibility 25% | Data PIT 20% | Falsifiability 15% | Execution 10% | Ind. support 5% | Weighted |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261107-53 IWM/SPY *realized-vol ratio divergence* regime timing SPY (small-cap vs large-cap risk-transmission vol divergence) — **H139 (selected/executed)** | Size / liquidity risk-transmission divergence (equity microstructure-vol, second-moment cross-asset) | 4 | 3 | 5 | 4 | 5 | 2 | **3.75** |
+| NF-20261107-49 TLT-SPY realized return-correlation regime timing SPY (held) | Rates-equity co-movement / flight-to-quality transmission | 3 | 3 | 5 | 4 | 4 | 3 | **3.60** |
+| NF-20261107-52 EEM-vs-SPY *realized-vol ratio divergence* regime timing SPY (global risk-transmission vol divergence) (held) | Global risk transmission / cross-market volatility divergence | 3 | 3 | 5 | 4 | 4 | 2 | **3.50** |
+| NF-20261107-14/48 OVX−VIX cross-asset energy-vs-equity IV spread timing SPY (held) — **not selected without materially different design** | Cross-asset commodity-options / energy uncertainty transmission | 2 | 3 | 5 | 4 | 4 | 2 | **3.35** |
+
+**Scoring notes (honest).**
+- NF-20261107-53 novelty 4 (moderate-high): repo-new as an executed *realized-vol divergence ratio* between IWM (small-cap) and SPY (large-cap) for SPY timing. **Honest adjacency** to H118 (cross-sectional sector return dispersion, REJECT 4/8, first-moment cross-section — different observable), H130 (cross-sectional average sector IVOL, REJECT 3/8, different cross-section/risk observable), and H138 (credit-spread HYG−LQD vs SPY RV divergence, REJECT 2/8, different asset pair/channel — credit stress vs size/liquidity risk transmission). Same z-score/continuous de-risking/vol-target statistical form as H138 (RV-divergence construction class) is acknowledged; novelty scored on the repo-new IWM/SPY pair/size-liquidity channel, not a wholly new method. Data 5 (SPY+IWM free PIT yfinance, 3776 aligned rows). Falsifiable bounded 12-combo grid.
+- NF-20261107-49 novelty 3: TLT-SPY realized correlation adjacent to correlation-regime construction class (H96/H127/H134/H137 all REJECT) — repo-new pair but same statistical form; held pending a clearly distinct mechanism/design.
+- NF-20261107-52 novelty 3: EEM vs SPY RV divergence adjacent to global risk-transmission families and RV-divergence construction class (H138/NF-53) — lower separation than NF-53. Held.
+- NF-20261107-14/48 novelty 2 (discounted): same cross-asset IV-spread construction class as H125/H126 — **materially different pre-registered design required** (not reframing). Not selected.
+
+**Deferred reassessment (no silent drops):** NF-04 commodity carry **blocked** (no free PIT term-structure/roll proxy); NF-05 short-term CS reversal **deferred** (turnover/net-of-cost; H119 weekly REJECT 3/8); NF-07/08/10/11/13/15/17/20/21 **deferred**; NF-11r/NF-06-18 TNX-FVX **same root as NF-11** (not new root); NF-06-11 CBOE PC ratio **infeasible**; NF-20261106-03/23/24/28/30/32/33/35 **deferred**; NF-20261107-05 CPI drift **deferred** (data blocker, adj H90). **Held:** NF-20261107-11 IVOL spread (separation from H118/H130 REJECTs), NF-20261107-14/48 OVX−VIX (same construction class as H125/H126 — **materially different pre-registered design required**), NF-20261107-31 sector breadth (adj H115 REJECT 1/8), NF-20261107-49 TLT-SPY corr (adj H127/H96/H134/H137 construction class), NF-20261107-52 EEM-SPY RV divergence (adj global risk/RV-divergence class). NF-20261107-51 (=H138), NF-20261107-53 (=H139) executed — not rerun. NF-20261107-32/36/39/43/46/47/50 executed — not repo-new; do not rerun.
+
+**Selection:** NF-20261107-53 → **H139** (highest feasible repo-new IWM/SPY size-liquidity RV-divergence pair/channel with explicit separation from H118/H130/H138; bounded grid, SPY+IWM free PIT data). Pre-registered in `HYPOTHESIS_SPEC.md` §H139 before validation outcomes.
+
+### NF-20261107-53 / H139 execution outcome (2026-11-07T23:06:29Z, REAL) — REJECTED (2/8)
+
+**Runner:** `run_nf_20261107_53_iwm_spy_rv_divergence.py`. **Tests:** `tests/test_nf_20261107_53_iwm_spy_rv_divergence.py` (7 passed). `ruff check/format` clean (runner description text corrected in Cycle 53 to remove H138 copy-paste; immutable artifact description strings in `summary.json`/`data_meta.json` retain the copy-paste text — artifact numbers/verdict unchanged). `src/qtr` unchanged.
+
+**Execution.** Artifact `.experiments/nf_runs/nf_20261107_53_iwm_spy_rv_divergence/summary.json` (3.32s). Data SPY+IWM yfinance auto-adjust, 3776 aligned rows 2010-01-04→2025-01-03 (train 2516 / val 505 / test 755). Selected (train-only 4-fold WF mean Sharpe 0.775): `rv_window=63, z_window=126, entry_scale=2, vol_target=0.15`.
+
+**Result — REJECT (2/8 gates).** OOS Val+Test (1383 trades, n=1260): Sharpe **0.461** (fail), PF **1.110** (fail), max DD **-17.97%** (fail), trades **1383** (pass), WF stability **0.524** (fail), worst-regime rolling-252 Sharpe **-0.750** (fail), benchmark p **0.982** / IR **-0.937** (fail), perturbation min ratio **0.923** (pass). Mean OOS exposure 0.345.
+
+**Ablations (OOS).** Buy-hold SPY 0.759/1.155/-33.72%/1. Random-exposure-matched 0.042/1.014/-22.45%/449 (weak). **Inverse RV-divergence regime** 1.065/1.225/-4.71%/1384 — materially outperforms and would pass most gates in this construction; pre-registered falsifier/ablation indicating the selected de-risking-on-elevated-IWM-vs-SPY-RV-divergence mapping is directionally wrong for this sample/construction. **Not** a validated edge under the pre-registered H139 hypothesis (no fresh pre-registration/gates for the inverse mapping).
+
+**Verdict rationale.** Fails 6/8 gates under pre-registered de-risking mapping; inverse mapping falsifies pre-registered directional mechanism. Repo-new IWM/SPY *realized-vol divergence* observable with honest adjacency to H118/H130/H138 — no validated edge. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Lineage map (H139 REJECT):**
+| IWM-vs-SPY realized-vol divergence regime timing (size/liquidity risk transmission) | H139 (NF-20261107-53) | Continuous vol-targeted long SPY reduced when z-score of trailing IWM RV / SPY RV ratio elevated; 1-bar delay, long-only | SPY + IWM daily (yfinance), 2010–2025 | **REJECT** (2/8; `.experiments/nf_runs/nf_20261107_53_iwm_spy_rv_divergence/summary.json`) | Fails Sharpe 0.461/PF 1.110/maxDD -17.97%/WF 0.524/worst-regime -0.750/benchmark-p 0.982/IR -0.937; inverse 1.065/1.225/-4.71% (pre-registered falsifier) — directional mechanism falsified; repo-new IWM/SPY RV-divergence pair, honest adjacency to H118/H130/H138 |
+
+**Cycle 53 complete (discovery + H139 execution).** H85–H139 all rejected/recorded. Cycle 54 required next: fresh directive §4 discovery, >=3 repo-new candidates across >=3 broad categories, pre-register and execute **H140** (next unused H-ID). No gate weakening; no published/certified artifact modification; no commit/push in this session; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
