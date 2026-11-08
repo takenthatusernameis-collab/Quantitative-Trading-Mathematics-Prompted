@@ -13,35 +13,30 @@ import pandas as pd
 import run_nf_20261108_15_es_mm_flow_spy as mod
 
 
-def _fake_prices(n: int = 600, seed: int = 150) -> pd.DataFrame:
-    idx = pd.date_range("2015-01-02", periods=n, freq="B")
+def _fake_inputs(n: int = 2600, seed: int = 150) -> tuple[pd.DataFrame, pd.Series]:
+    idx = pd.date_range("2014-01-02", periods=n, freq="B")
     rng = np.random.default_rng(seed)
-    cols = {}
-    for c in mod.UNIVERSE:
-        vol = 0.012 if c == mod.SPY else 0.010
-        cols[c] = 100 * (1 + pd.Series(rng.normal(0.0002, vol, n), index=idx)).cumprod()
-    return pd.DataFrame(cols, index=idx)
-
-
-def _fake_mm_net(n: int = 600, seed: int = 150) -> pd.Series:
-    idx = pd.date_range("2015-01-02", periods=n, freq="B")
-    rng = np.random.default_rng(seed)
-    return pd.Series(rng.normal(0.0, 1000.0, n), index=idx)
+    spy = 100 * (1 + pd.Series(rng.normal(0.0003, 0.012, n), index=idx)).cumprod()
+    es = 100 * (1 + pd.Series(rng.normal(0.0003, 0.012, n), index=idx)).cumprod()
+    prices = pd.DataFrame({mod.SPY: spy, mod.ES: es}, index=idx)
+    fridays = idx[idx.day_of_week == 4]
+    mm_net = pd.Series(100.0, index=fridays, name="mm_net")
+    mm_net.iloc[len(mm_net) // 2 :] = 1000.0 + 50.0 * rng.standard_normal(len(mm_net) // 2)
+    mm_net = mm_net.astype(float)
+    return prices, mm_net
 
 
 def test_mm_zscore_finite_after_warmup():
-    mm = _fake_mm_net()
-    z = mod._mm_zscore(mm, mm_window=63, z_window=126)
-    assert len(z) == len(mm)
-    assert z.iloc[200:].notna().any()
+    _, mm_net = _fake_inputs()
+    z = mod._mm_zscore(mm_net, mm_window=21, z_window=63)
+    assert len(z) == len(mm_net)
+    assert z.iloc[350:].notna().any()
 
 
-def test_make_signals_bounds_and_signals_zero():
-    df = _fake_prices()
-    mm = _fake_mm_net(len(df))
-    mm = mm.set_axis(df.index)
+def test_make_signals_bounds_and_es_zero():
+    prices, mm_net = _fake_inputs()
     sig = mod.make_signals(
-        df, mm, {"mm_window": 63, "z_window": 126, "entry_scale": 1.5, "vol_target": 0.10}
+        prices, mm_net, {"mm_window": 21, "z_window": 63, "entry_scale": 1.5, "vol_target": 0.10}
     )
     assert list(sig.columns) == list(mod.UNIVERSE)
     assert (sig[mod.ES] == 0.0).all()
@@ -49,55 +44,63 @@ def test_make_signals_bounds_and_signals_zero():
     assert (sig[mod.SPY] <= mod.MAX_POS + 1e-12).all()
 
 
-def test_metrics_from_result_safe():
-    df = _fake_prices()
-    mm = _fake_mm_net(len(df)).set_axis(df.index)
-    out = mod.run_one(
-        df, mm, {"mm_window": 63, "z_window": 126, "entry_scale": 1.5, "vol_target": 0.10}
+def test_make_signals_no_future_look_ahead():
+    prices, mm_net = _fake_inputs()
+    sig = mod.make_signals(
+        prices, mm_net, {"mm_window": 21, "z_window": 63, "entry_scale": 1.5, "vol_target": 0.10}
     )
-    m = mod._metrics_from_result(out["result"], pd.Series(True, index=df.index))
+    z = sig.attrs["z"]
+    # Before the first weekly report, no de-risking (z treated as 0): full vol-targeted exposure.
+    first_report = mm_net.index[0]
+    pre = sig.loc[sig.index < first_report, mod.SPY]
+    assert len(pre) > 0
+    vscale = mod._vol_scale(prices, 0.10).reindex(pre.index).fillna(0.0)
+    expected = (0.10 * vscale).clip(0.0, mod.MAX_POS)
+    assert np.allclose(pre.values, expected.values, atol=1e-9)
+
+
+def test_de_risks_when_mm_net_abnormally_high():
+    prices, mm_net = _fake_inputs()
+    params = {"mm_window": 21, "z_window": 63, "entry_scale": 1.0, "vol_target": 0.15}
+    sig = mod.make_signals(prices, mm_net, params)
+    dates = mm_net.index
+    h = len(dates) // 2
+    z = mod._mm_zscore(mm_net, params["mm_window"], params["z_window"])
+    # z spikes positively right after the crowded long step (finite, elevated).
+    assert float(z.iloc[h : h + 10].mean()) > 1.0
+    # Corresponding daily exposure window de-risks vs pre-step exposure.
+    early = float(sig[mod.SPY].loc[: dates[h - 1]].mean())
+    trans = float(sig[mod.SPY].loc[dates[h] : dates[h + 39]].mean())
+    assert 0.0 < trans < early * 0.7
+
+
+def test_metrics_from_result_safe():
+    prices, mm_net = _fake_inputs()
+    out = mod.run_one(
+        prices, mm_net, {"mm_window": 21, "z_window": 63, "entry_scale": 1.5, "vol_target": 0.10}
+    )
+    m = mod._metrics_from_result(out["result"], pd.Series(True, index=prices.index))
     assert set(m.keys()) == {"n", "sharpe", "profit_factor", "max_drawdown", "trades"}
     assert isinstance(m["trades"], int)
 
 
 def test_inverse_differs_from_base():
-    df = _fake_prices()
-    mm = _fake_mm_net(len(df)).set_axis(df.index)
-    p = {"mm_window": 63, "z_window": 126, "entry_scale": 1.5, "vol_target": 0.10}
-    base = mod.make_signals(df, mm, p)[mod.SPY]
-    z = mod._mm_zscore(mm, p["mm_window"], p["z_window"]).reindex(df.index, method="ffill").fillna(0.0)
-    stress = ((-z).clip(lower=0.0) / p["entry_scale"]).clip(0.0, 1.0)
+    prices, mm_net = _fake_inputs()
+    p = {"mm_window": 21, "z_window": 63, "entry_scale": 1.5, "vol_target": 0.10}
+    base = mod.make_signals(prices, mm_net, p)[mod.SPY]
+    z = mod._mm_zscore(mm_net, p["mm_window"], p["z_window"])
+    z_daily = z.reindex(prices.index, method="ffill").fillna(0.0)
+    # Inverse: de-risk when leveraged-money net is abnormally LOW (negative z).
+    stress = ((-z_daily).clip(lower=0.0) / p["entry_scale"]).clip(0.0, 1.0)
     raw = (1.0 - stress) * p["vol_target"]
-    inv = (raw * mod._vol_scale(df, p["vol_target"])).fillna(0.0).clip(0.0, mod.MAX_POS)
+    inv = (raw * mod._vol_scale(prices, p["vol_target"])).fillna(0.0).clip(0.0, mod.MAX_POS)
     assert not np.allclose(base.values, inv.values)
 
 
 def test_random_and_benchmark():
-    df = _fake_prices()
-    mask = pd.Series(True, index=df.index)
-    r = mod.random_exposure_matched(df, mask, 0.05, 150)
+    prices, mm_net = _fake_inputs()
+    mask = pd.Series(True, index=prices.index)
+    r = mod.random_exposure_matched(prices, mask, 0.05, 150)
     assert "sharpe" in r and "trades" in r
-    b = mod.benchmark_buy_hold(df, mask)
+    b = mod.benchmark_buy_hold(prices, mask)
     assert b["trades"] == 1
-
-
-def test_de_risks_when_es_mm_net_elevated():
-    idx = pd.date_range("2020-01-02", periods=320, freq="B")
-    rng = np.random.default_rng(7)
-    spy = 100 * (1 + pd.Series(rng.normal(0, 0.005, 320), index=idx)).cumprod()
-    es = 100 * (1 + pd.Series(rng.normal(0, 0.004, 320), index=idx)).cumprod()
-    df = pd.DataFrame({mod.SPY: spy, mod.ES: es})
-    mm = pd.Series(
-        np.r_[rng.normal(0, 500, 200), rng.normal(4000, 500, 120)], index=idx
-    )
-    params = {"mm_window": 63, "z_window": 63, "entry_scale": 1.0, "vol_target": 0.15}
-    sig = mod.make_signals(df, mm, params)
-    z = mod._mm_zscore(mm, params["mm_window"], params["z_window"]).reindex(
-        df.index, method="ffill"
-    ).fillna(0.0)
-    onset = slice(200, 230)
-    pre = slice(140, 200)
-    # ES MM net position shock should spike positive z at onset and reduce
-    # exposure vs pre-shock (de-risking on crowding).
-    assert float(z.iloc[onset].mean()) > float(z.iloc[pre].mean()) + 0.2
-    assert float(sig[mod.SPY].iloc[onset].mean()) < float(sig[mod.SPY].iloc[pre].mean())

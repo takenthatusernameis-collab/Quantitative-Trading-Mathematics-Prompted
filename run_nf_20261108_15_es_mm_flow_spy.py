@@ -25,7 +25,7 @@ Pre-registration (Cycle 64, decision-ready before validation outcomes).
 Hypothesis H150. Universe: SPY (traded) + ES=F (signal, yfinance proxy for
 the ES futures price level; the *positioning* signal comes from the CFTC TFF
 CSV). Data: CFTC TFF disaggregated-financial CSV (free, public, weekly,
-2010-2026) + yfinance ES=F/SPY daily auto-adjust Close. Continuous stress on
+2010-2024) + yfinance ES=F/SPY daily auto-adjust Close. Continuous stress on
 positive z = (z.clip(0)/entry_scale).clip(0,1); exposure (1-stress)*vol_target
 *vscale; 1-bar delay; long-only. Bounded grid: mm_window {63,126} x z_window
 {126,252} x entry_scale {1.0,2.0} x vol_target {0.10,0.15} (16 combos);
@@ -46,13 +46,13 @@ Falsifiers: random-exposure comparable or better; inverse outperforms
 from __future__ import annotations
 
 import csv
+import datetime
 import io
 import json
 import sys
 import time
 import zipfile
 from pathlib import Path
-from typing import Optional
 
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
@@ -94,7 +94,11 @@ Z_WINDOWS = [126, 252]
 ENTRY_SCALES = [1.0, 2.0]
 VOL_TARGETS = [0.10, 0.15]
 
-# CFTC Traders-in-Financial-Futures historical compressed zips (free, public).
+# CFTC Traders-in-Financial-Futures (TFF / disaggregated "Commitments of
+# Traders" financial futures) historical compressed zips (free, public,
+# weekly). One zip per report year, 2010-2024. A report's date is the
+# publication date known at that date's close, so forward-filling the series
+# onto the daily calendar is point-in-time safe.
 TFF_ZIPS = [
     "https://www.cftc.gov/files/dea/history/fut_fin_txt_2024.zip",
     "https://www.cftc.gov/files/dea/history/fut_fin_txt_2023.zip",
@@ -112,19 +116,42 @@ TFF_ZIPS = [
     "https://www.cftc.gov/files/dea/history/fut_fin_txt_2011.zip",
     "https://www.cftc.gov/files/dea/history/fut_fin_txt_2010.zip",
 ]
-ES_KEYWORDS = (
-    "E-MINI S&P 500",
-    "S&P 500 CONSOLIDATED",
+
+# CFTC market name for the aggregate of all S&P 500 futures (E-mini, micro,
+# etc.). The TFF file lists overlapping contracts for the same report date
+# (Consolidated, E-mini, Micro E-mini, dividend futures); using only the
+# consolidated aggregate avoids double-counting the same open interest.
+TFF_MARKET_KEY = "S&P 500 Consolidated"
+
+# Leveraged-money position column conventions across report years. Newer
+# files (2013+) use "Lev_Money_Positions_*"; older files (2010-2012) used
+# "M_Money_Positions_*" in some distributions. Both are supported.
+LEVERAGED_MONEY_COLUMNS = (
+    ("Lev_Money_Positions_Long_All", "Lev_Money_Positions_Short_All"),
+    ("M_Money_Positions_Long_All", "M_Money_Positions_Short_All"),
+)
+
+# Date-column conventions across report years. Newer files use ISO
+# "Report_Date_as_YYYY-MM-DD"; older files use "As_of_Date_In_Form_YYMMDD"
+# (e.g. "101228" = 2010-12-28).
+DATE_COLUMNS = (
+    "Report_Date_as_YYYY-MM-DD",
+    "As_of_Date_In_Form_YYMMDD",
 )
 
 
 def _fetch_tff_mm() -> pd.DataFrame:
     """Download CFTC Traders-in-Financial-Futures historical zips (free,
     public, weekly) and return a long-format DataFrame of ES leveraged-money
-    net position (M_Money_Positions_Long_All - M_Money_Positions_Short_All)
-    indexed by report date (Friday).
+    net position (lev_money_long - lev_money_short) indexed by report date.
 
-    PIT: the report is dated Friday; the value is known at Friday's close.
+    PIT: a report's date is the publication date known at that date's close;
+    forward-filling onto the daily calendar never uses a report before its
+    report date. Column conventions changed across report years
+    ("Lev_Money_Positions_*" vs "M_Money_Positions_*", ISO date vs YYMMDD
+    date); both are handled. Only the CFTC "S&P 500 Consolidated" aggregate
+    is used, so overlapping contract rows (E-mini, Micro E-mini, dividend
+    futures) for the same date are not double-counted.
     """
     import urllib.request
 
@@ -146,19 +173,24 @@ def _fetch_tff_mm() -> pd.DataFrame:
                 continue
             txt = zf.read(name).decode("latin-1")
             reader = csv.DictReader(io.StringIO(txt))
+            lev_cols = None
+            for long_c, short_c in LEVERAGED_MONEY_COLUMNS:
+                if long_c in reader.fieldnames and short_c in reader.fieldnames:
+                    lev_cols = (long_c, short_c)
+                    break
+            if lev_cols is None:
+                print(f"[warn] TFF file {name} has no leveraged-money columns")
+                continue
+            lev_long, lev_short = lev_cols
             for rec in reader:
                 market = (rec.get("Market_and_Exchange_Names") or "").strip()
-                if not any(k in market for k in ES_KEYWORDS):
+                if TFF_MARKET_KEY not in market:
                     continue
-                date_str = (rec.get("Report_Date_as_YYYY-MM-DD") or "").strip()
-                if not date_str:
+                date = _parse_report_date(rec)
+                if date is None:
                     continue
-                try:
-                    date = pd.Timestamp(date_str)
-                except Exception:  # noqa: BLE001
-                    continue
-                mm_long = _to_float(rec.get("M_Money_Positions_Long_All"))
-                mm_short = _to_float(rec.get("M_Money_Positions_Short_All"))
+                mm_long = _to_float(rec.get(lev_long))
+                mm_short = _to_float(rec.get(lev_short))
                 if mm_long is None or mm_short is None:
                     continue
                 rows.append(
@@ -170,11 +202,11 @@ def _fetch_tff_mm() -> pd.DataFrame:
                 )
     if not rows:
         raise RuntimeError("no ES TFF rows fetched")
-    df = pd.DataFrame(rows).sort_values("date").drop_duplicates(
-        subset=["date", "market"], keep="last"
+    df = (
+        pd.DataFrame(rows)
+        .sort_values("date")
+        .drop_duplicates(subset=["date", "market"], keep="last")
     )
-    # Aggregate across ES contract names (S&P 500 Consolidated + E-MINI S&P 500)
-    # by summing net position on each report date.
     df = df.groupby("date", as_index=False)["mm_net"].sum()
     df = df.dropna(subset=["mm_net"])
     df["date"] = pd.to_datetime(df["date"])
@@ -184,7 +216,24 @@ def _fetch_tff_mm() -> pd.DataFrame:
     return df
 
 
-def _to_float(v) -> Optional[float]:
+def _parse_report_date(rec) -> pd.Timestamp | None:
+    """Return the report date known at that date's close (PIT-safe). Supports
+    the ISO "Report_Date_as_YYYY-MM-DD" column (2013+) and the
+    "As_of_Date_In_Form_YYMMDD" column (2010-2012, e.g. "101228")."""
+    for col in DATE_COLUMNS:
+        v = (rec.get(col) or "").strip()
+        if not v:
+            continue
+        try:
+            if col == DATE_COLUMNS[1]:
+                return pd.Timestamp(datetime.datetime.strptime(v, "%y%m%d").date())
+            return pd.Timestamp(v)
+        except (ValueError, TypeError):  # noqa: BLE001
+            continue
+    return None
+
+
+def _to_float(v) -> float | None:
     if v is None:
         return None
     s = str(v).strip().replace(",", "")
@@ -199,9 +248,7 @@ def _to_float(v) -> Optional[float]:
 def _fetch_prices() -> pd.DataFrame:
     import yfinance as yf
 
-    raw = yf.download(
-        [SPY, ES], start=DATA_START, end=DATA_END, progress=False, auto_adjust=True
-    )
+    raw = yf.download([SPY, ES], start=DATA_START, end=DATA_END, progress=False, auto_adjust=True)
     if isinstance(raw.columns, pd.MultiIndex):
         close = raw["Close"][[SPY, ES]]
     else:
@@ -318,7 +365,9 @@ def _metrics_from_result(res, mask: pd.Series) -> dict:
     }
 
 
-def wf_train_mean_sharpe(prices: pd.DataFrame, mm_net: pd.Series, params: dict, train_mask: pd.Series) -> float:
+def wf_train_mean_sharpe(
+    prices: pd.DataFrame, mm_net: pd.Series, params: dict, train_mask: pd.Series
+) -> float:
     idx = prices.index[train_mask]
     if len(idx) < 400:
         return float("nan")
@@ -333,7 +382,9 @@ def wf_train_mean_sharpe(prices: pd.DataFrame, mm_net: pd.Series, params: dict, 
     return float(np.mean(sharpes)) if sharpes else float("nan")
 
 
-def perturbation_ratio(prices: pd.DataFrame, mm_net: pd.Series, best: dict, oos_mask: pd.Series) -> float:
+def perturbation_ratio(
+    prices: pd.DataFrame, mm_net: pd.Series, best: dict, oos_mask: pd.Series
+) -> float:
     base = _metrics_from_result(run_one(prices, mm_net, best)["result"], oos_mask)["sharpe"]
     if not np.isfinite(base) or abs(base) < 1e-12:
         return float("nan")
@@ -359,7 +410,9 @@ def perturbation_ratio(prices: pd.DataFrame, mm_net: pd.Series, best: dict, oos_
     return float(np.min(ratios)) if ratios else float("nan")
 
 
-def worst_regime_sharpe(prices: pd.DataFrame, mm_net: pd.Series, best: dict, oos_mask: pd.Series) -> float:
+def worst_regime_sharpe(
+    prices: pd.DataFrame, mm_net: pd.Series, best: dict, oos_mask: pd.Series
+) -> float:
     res = run_one(prices, mm_net, best)["result"]
     eq = res.equity_curve.loc[res.equity_curve.index.intersection(prices.index[oos_mask])]
     ret = eq.pct_change().dropna()
@@ -421,7 +474,9 @@ def inverse_regime(prices: pd.DataFrame, mm_net: pd.Series, params: dict) -> dic
     sig[SPY] = expo
     res = run_backtest(prices, sig, _cfg())
     oos = pd.Series((prices.index > pd.Timestamp(TRAIN_END)), index=prices.index)
-    return _metrics_from_result(res, pd.Series((prices.index > pd.Timestamp(TRAIN_END)), index=prices.index))
+    return _metrics_from_result(
+        res, pd.Series((prices.index > pd.Timestamp(TRAIN_END)), index=prices.index)
+    )
 
 
 def main():
