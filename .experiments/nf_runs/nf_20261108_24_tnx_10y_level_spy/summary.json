@@ -1,0 +1,74 @@
+{
+  "nf_id_exec": "NF-20261108-24",
+  "hypothesis": "H155",
+  "verdict": "REJECT",
+  "gates_passed": "5/8",
+  "gates": {
+    "sharpe_ge_1": true,
+    "trades_ge_200": true,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": true,
+    "wf_stability_ge_0_7": true,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_ir_ge_0": false,
+    "perturbation_ge_0_5": true
+  },
+  "selected_params": {
+    "z_window": 126,
+    "entry_scale": 2.0,
+    "vol_target": 0.15
+  },
+  "selection_wf_train_mean_sharpe": 1.005917214449792,
+  "oos_val_test": {
+    "n": 1259,
+    "sharpe": 1.090772855442967,
+    "profit_factor": 1.2498449990588332,
+    "max_drawdown": -0.026647045387120396,
+    "trades": 3413
+  },
+  "wf_stability_ratio": 1.0843564855777803,
+  "worst_regime_rolling252_sharpe": -0.2892783205526367,
+  "benchmark_buy_hold_spy_oos": {
+    "sharpe": 0.7502689438660206,
+    "profit_factor": 1.1531288549191525,
+    "max_drawdown": -0.33717252250853635,
+    "trades": 1
+  },
+  "benchmark_p": 0.952,
+  "information_ratio_vs_bh": -0.6961043356501118,
+  "perturbation_min_ratio": 0.9902300193661991,
+  "ablations": {
+    "buy_hold_spy": {
+      "sharpe": 0.7502689438660206,
+      "profit_factor": 1.1531288549191525,
+      "max_drawdown": -0.33717252250853635,
+      "trades": 1
+    },
+    "random_exposure_matched": {
+      "sharpe": 0.24689498068556173,
+      "profit_factor": 1.0568597597497822,
+      "max_drawdown": -0.04980018496679979,
+      "trades": 1258
+    },
+    "inverse_regime": {
+      "n": 1259,
+      "sharpe": 0.8373802247919239,
+      "profit_factor": 1.1619054668900202,
+      "max_drawdown": -0.03196316560218007,
+      "trades": 3438
+    }
+  },
+  "timing_seconds": 8.53,
+  "data": {
+    "start": "2010-01-04",
+    "end": "2025-01-03",
+    "rows": 3774
+  },
+  "description": "NF-20261108-24/H155: SPY timing from 10Y Treasury yield level regime (^TNX z-score). Stress on positive z (abnormally high long rate) -> de-risk vol-targeted long SPY. 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates. Maturity-distinct from H154/NF-17 short-rate (SHY) level.",
+  "notes": [
+    "NF-24 was deferred (Cycles 67-68) due to same-root risk vs NF-17/H154 short-rate level; executed here with explicit maturity/instrument/channel separation (10Y yield index level vs SHY short-rate ETF return).",
+    "Honest adjacency: broad rates-level regime domain shared with H154/NF-17 (REJECT 4/8, short end) and H141 term-spread momentum (REJECT 5/8).",
+    "Pre-registered: stress on positive ^TNX z (abnormally high 10Y yield); inverse falsifier stresses negative z.",
+    "src/qtr unchanged; no gate weakening; no published/certified artifact modified."
+  ]
+}

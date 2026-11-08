@@ -1,0 +1,13 @@
+{
+  "universe": [
+    "SPY",
+    "^TNX"
+  ],
+  "train_end": "2019-12-31",
+  "val_end": "2021-12-31",
+  "rows": 3774,
+  "train": 2514,
+  "val": 505,
+  "test": 755,
+  "signal_mapping": "stress on positive z of ^TNX 10Y yield level (abnormally high long rate)"
+}
