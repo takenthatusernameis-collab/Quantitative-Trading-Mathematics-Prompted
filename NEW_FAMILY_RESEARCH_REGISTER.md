@@ -2597,3 +2597,24 @@ Lineage reconciled to H139: H85–H139 all rejected/recorded. Next unused H-ID: 
 | SPY timing from TLT-vs-SHY Treasury term-spread momentum regime (duration-risk / rates term-structure transmission) | H141 (NF-20261108-02) | Continuous vol-targeted long SPY reduced when z-score of trailing TLT-SHY momentum deeply negative; 1-bar delay, long-only | SPY+TLT+SHY daily (yfinance), 2010–2025 | **REJECT** (5/8; `.experiments/nf_runs/nf_20261108_02_tlt_shy_termspread/summary.json`) | Fails PF 1.230/worst-regime -0.640/benchmark-p 0.953/IR -0.714; Sharpe 1.145/maxDD -2.64%/WF 1.159 pass but reflect near-cash exposure (mean 0.50), not timing edge; random-exposure 0.111 much weaker; inverse 0.774 no opposite edge; repo-new TLT-SHY term-spread momentum pair, honest adjacency to NF-11 root/H92/H96 |
 
 **Cycle 55 complete (H141 execution only — discovery deferred to Cycle 56).** H85–H141 all rejected/recorded. Cycle 55 did **not** perform fresh directive §4 discovery (H141 was already pre-registered in Cycle 55's plan and only needed execution + the pandas-3 repair). Next: fresh directive §4 discovery, >=3 repo-new candidates across >=3 broad categories, pre-register and execute the **next unused H-ID after H141** (H24/H68–H73/H76–H79 unassigned, not recycled). Reassess held NF-20261107-49/NF-20261107-52 and deferred pool with concrete evidence (no silent drops); consider mechanism categories not yet executed (e.g., order-flow/auction mechanics, calendar-quarter/holiday, index-rebalance flows) if a feasible free-data test exists. No gate weakening; no published/certified artifact modification; no commit/push in this session; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
+
+
+## Cycle 56 (2026-11-08) — Discovery + H142 pre-registration (NF-20261108-03 turn-of-quarter window dressing)
+
+### Cycle 56 discovery (directive §4, >=3 repo-new mechanism candidates across >=3 broad categories)
+Searched mechanisms not heavily executed as root families (free/PIT feasible): calendar/auction (quarter-end window dressing), options flow/supply constraints (triple witching subclass vs monthly OPX H140), liquidity/microstructure (overnight/intraday flow vs close-close Amihud H121).
+
+| Candidate (NF) | Category | Nov(25%) | Econ(25%) | Data/PIT(20%) | Fals(15%) | Cost/cap(10%) | Indep(5%) | Weighted |
+|---|---|---|---|---|---|---|---|---|
+| NF-20261108-03 Turn-of-quarter window dressing/rebalancing (SPY timing) | Calendar/auction | 4.5 | 4.0 | 5.0 | 4.5 | 5.0 | 3.0 | **4.38** |
+| NF-20261108-04 Triple witching OPX+futures flow/pin proximity (SPY timing) | Options flow/supply | 4.0 | 3.5 | 5.0 | 4.0 | 5.0 | 3.0 | **4.00** |
+| NF-20261108-05 Overnight/intraday return-flow (SPY timing) | Liquidity/microstructure | 3.5 | 3.5 | 5.0 | 3.5 | 4.0 | 2.5 | **3.68** |
+
+**Rationale:**
+- NF-20261108-03: repo-new quarter-end institutional cycle vs turn-of-month H91 (REJECT 3/9). Deterministic free calendar, low turnover, falsifiable (random-window). Honest adjacency to H91 form acknowledged.
+- NF-20261108-04: subclass of options-expiration category (H140 REJECT 4/8 tested monthly OPX generally); triple witching has different flow intensity but needs materially different construction to avoid reusing H140 form.
+- NF-20261108-05: uses OHLC split vs close-close Amihud (H121 REJECT 4/8); plausible but microstructure-noisy, harder decisive test.
+
+**Selection:** NF-20261108-03 → **H142** (highest expected information). Pre-registered in `HYPOTHESIS_SPEC.md` §H142 before validation outcomes. Lineage reconciled to H141 (H85–H141 all rejected/recorded). Next unused H-ID after H141 assigned to H142 (H24/H68–H73/H76–H79 remain unassigned). No gate weakening; no `src/qtr` change; free/public data only.
+
+**Deferred/held reassessed (no silent drops):** NF-49 TLT-SPY corr (same correlation class as H96/H127/H134/H137), NF-52 EEM-SPY RV div (RV-div class), NF-11 IVOL spread, NF-14/48 OVX−VIX need materially different design, NF-31 sector breadth. NF-04 commodity carry blocked (no free PIT term-structure/roll proxy), NF-05 short-term CS reversal deferred (turnover/net-of-cost), others per prior registers remain deferred.
