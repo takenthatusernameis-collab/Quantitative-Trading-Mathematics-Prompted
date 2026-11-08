@@ -1,0 +1,69 @@
+{
+  "nf_id": "NF-20261108-09",
+  "hypothesis": "H144",
+  "verdict": "REJECT",
+  "gates_passed": "3/8",
+  "gates": {
+    "sharpe_ge_1": false,
+    "trades_ge_200": true,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": true,
+    "wf_stability_ge_0_7": false,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_ir_ge_0": false,
+    "perturbation_ge_0_5": true
+  },
+  "selected_params": {
+    "mom_window": 21,
+    "z_window": 126,
+    "entry_scale": 2.0,
+    "vol_target": 0.15
+  },
+  "selection_wf_train_mean_sharpe": 0.9605949414020895,
+  "oos_val_test": {
+    "n": 1259,
+    "sharpe": 0.5368920614321404,
+    "profit_factor": 1.102352112621295,
+    "max_drawdown": -0.038134933004841796,
+    "trades": 3579
+  },
+  "wf_stability_ratio": 0.5589161865130061,
+  "worst_regime_rolling252_sharpe": -1.62724651297794,
+  "benchmark_buy_hold_spy_oos": {
+    "sharpe": 0.7502690781693802,
+    "profit_factor": 1.1531288553862582,
+    "max_drawdown": -0.3371727693638181,
+    "trades": 1
+  },
+  "benchmark_p": 0.957,
+  "information_ratio_vs_bh": -0.7564375191160807,
+  "perturbation_min_ratio": 0.9193089016410302,
+  "ablations": {
+    "buy_hold_spy": {
+      "sharpe": 0.7502690781693802,
+      "profit_factor": 1.1531288553862582,
+      "max_drawdown": -0.3371727693638181,
+      "trades": 1
+    },
+    "random_exposure_matched": {
+      "sharpe": 0.5175641182908448,
+      "profit_factor": 1.1201024367958288,
+      "max_drawdown": -0.05707406443514853,
+      "trades": 1258
+    },
+    "inverse_regime": {
+      "n": 1259,
+      "sharpe": 0.8784174395411948,
+      "profit_factor": 1.1746690318673494,
+      "max_drawdown": -0.022894953431570414,
+      "trades": 3584
+    }
+  },
+  "timing_seconds": 14.24,
+  "data": {
+    "start": "2010-01-04",
+    "end": "2025-01-03",
+    "rows": 3776
+  },
+  "description": "NF-20261108-09/H144: SPY timing from EEM-vs-SPY relative-momentum regime. z-score of trailing (ret(EEM,w)-ret(SPY,w)); de-risk vol-targeted long SPY when EM leadership abnormally weak (negative z). 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates."
+}
