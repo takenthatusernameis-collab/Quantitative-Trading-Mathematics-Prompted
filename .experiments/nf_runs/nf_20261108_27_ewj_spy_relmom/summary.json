@@ -1,0 +1,85 @@
+{
+  "nf_id_exec": "NF-20261108-27",
+  "hypothesis": "H157",
+  "verdict": "REJECT",
+  "gates_passed": "5/8",
+  "gates": {
+    "sharpe_ge_1": true,
+    "trades_ge_200": true,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": true,
+    "wf_stability_ge_0_7": true,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_ir_ge_0": false,
+    "perturbation_ge_0_5": true
+  },
+  "selected_params": {
+    "mom_window": 63,
+    "z_window": 126,
+    "entry_scale": 1.0,
+    "vol_target": 0.15
+  },
+  "selection_wf_train_mean_sharpe": 0.9299292016298676,
+  "oos_val_test": {
+    "n": 1259,
+    "sharpe": 1.2024716467296297,
+    "profit_factor": 1.2725421802149526,
+    "max_drawdown": -0.024741956558107403,
+    "trades": 2846
+  },
+  "train": {
+    "n": 2515,
+    "sharpe": 0.8936030133998991,
+    "profit_factor": 1.2211482051456177,
+    "max_drawdown": -0.035231277246739114,
+    "trades": 2846
+  },
+  "wf_stability_ratio": 1.345644126864093,
+  "worst_regime_rolling252_sharpe": -0.5427639126145837,
+  "benchmark_buy_hold_spy_oos": {
+    "n": 1259,
+    "sharpe": 0.7502684828141488,
+    "profit_factor": 1.1531285928245865,
+    "max_drawdown": -0.3371725559557691,
+    "trades": 1
+  },
+  "benchmark_p": 0.932,
+  "information_ratio_vs_bh": -0.6880284667823253,
+  "perturbation_min_ratio": 0.9880240066675753,
+  "ablations": {
+    "buy_hold_spy": {
+      "n": 1259,
+      "sharpe": 0.7502684828141488,
+      "profit_factor": 1.1531285928245865,
+      "max_drawdown": -0.3371725559557691,
+      "trades": 1
+    },
+    "random_exposure_matched": {
+      "n": 1259,
+      "sharpe": -0.32340916804027087,
+      "profit_factor": 0.873881674380169,
+      "max_drawdown": -0.02589402999040578,
+      "trades": 1120
+    },
+    "inverse_regime": {
+      "n": 1259,
+      "sharpe": 0.2219016475521074,
+      "profit_factor": 1.0453359080760798,
+      "max_drawdown": -0.0384883935128337,
+      "trades": 2950
+    }
+  },
+  "timing_seconds": 13.54,
+  "data": {
+    "start": "2010-01-04",
+    "end": "2025-01-03",
+    "rows": 3776
+  },
+  "description": "NF-20261108-27/H157: SPY timing from EWJ-vs-SPY relative-momentum regime (Japan/developed-market regional leadership transmission). z-score of trailing ret(EWJ,w)-ret(SPY,w); de-risk vol-targeted long SPY when EWJ leadership abnormally weak (negative z). 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "notes": [
+    "Repo-new executed EWJ-vs-SPY relative-momentum (regional developed-market/Japan leadership) SPY-timing observable; EWJ present in H2 universe spec/artifacts but never executed as timing signal.",
+    "Honest adjacency: relmom/z-score construction class adjacent to H144 EEM-SPY (REJECT 3/8, inverse outperformed), H145 GLD-SPY (REJECT 4/8), H152 SLV-GLD relmom\u2192SPY (REJECT 4/8) \u2014 different signal pair/mechanism (regional leadership/funding spillover vs EM/safe-haven/precious metals); distinct from H85 lead-lag form.",
+    "Pre-registered: stress on negative z (EWJ leadership weak); inverse falsifier stresses positive z (EWJ outperforms).",
+    "src/qtr unchanged; no gate weakening; no published/certified artifact modified."
+  ]
+}

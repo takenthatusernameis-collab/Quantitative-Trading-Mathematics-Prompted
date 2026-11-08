@@ -7544,3 +7544,34 @@ published/certified artifact modified; `src/qtr` unchanged.
 
 **Lineage map (H156 REJECT):**
 | SPY timing from UUP realized-volatility stress regime (USD/FX volatility, global financial-conditions uncertainty) | H156 (NF-20261108-28) | Continuous vol-targeted long SPY reduced when z-score of trailing UUP RV abnormally positive (high USD volatility); 1-bar delay, long-only | SPY (traded) + UUP (signal), yfinance daily 2010–2025 | **REJECT** (5/8; `.experiments/nf_runs/nf_20261108_28_uup_rv_stress_spy/summary.json`) | Fails PF 1.262/worst-regime -1.620/benchmark-p 0.948/IR -0.670; Sharpe 1.158/DD -2.21%/trades 2885/WF 1.380/perturbation 0.986 pass; random-exposure 0.229 much weaker (not pure noise); inverse 0.485 much weaker (direction supported, no benchmark edge); repo-new UUP-RV (second-moment) observable, distinct from H95 UUP direction (REJECT 3/9) with honest RV-stress adjacency to H151/H143/H149 |
+
+## H157 — NF-20261108-27: EWJ-vs-SPY relative-momentum regime SPY timing (Cycle 71, executed REJECT 5/8 REAL)
+
+**NF-ID:** NF-20261108-27 (H157). **Status:** Pre-registered and executed REAL 2026-11-08 — **REJECT (5/8 gates)**. `src/qtr` unchanged. Free/public yfinance daily auto-adjust Close only.
+
+**Broad mechanism category:** International equity cross-asset risk-appetite / regional leadership transmission (developed-market/Japan vs US). Repo-new executed observable as SPY timing: *EWJ-vs-SPY relative-momentum z-score*. EWJ appears in the H2 universe specification and in committed `.experiments` price artifacts, but was **never executed as a SPY-timing signal** (NF root verified against executed H-IDs/runners/artifacts before selection).
+
+**Honest adjacency (repo-relative novelty).** Same z-score / relative-momentum de-risking construction class as H144 (EEM-SPY relmom, REJECT 3/8, inverse outperformed pre-registered mapping), H145 (GLD-SPY relmom, REJECT 4/8), and H152 (SLV-GLD relmom→SPY, REJECT 4/8). Different signal pair/mechanism: EWJ (Japan/developed-market equity ETF) vs SPY tests regional developed-market leadership / funding-spillover transmission — not EM leadership (H144), safe-haven/precious metals (H145/H152), or commodity channels. Distinct from H85 cross-asset *lead-lag* form (REJECT). H139 used IWM-vs-SPY realized-vol divergence (second moment), not relative momentum. FX/rates/vol/calendar/RV-stress families are different channels. Novelty scored repo-relative on the executed EWJ-SPY relative-momentum pair; not a wholly new statistical method.
+
+**Statement.** Continuously reduce vol-targeted long SPY exposure when the z-score of trailing EWJ-vs-SPY relative momentum `ret(EWJ,w)-ret(SPY,w)` is abnormally negative (EWJ leadership weak), earning net OOS (Val+Test) Sharpe ≥ 1.0 with ≥200 trades, PF ≥ 1.3, max DD ≤ 15%, WF stability ≥ 0.7, worst-regime rolling-252 Sharpe ≥ 0.3, benchmark p ≤ 0.05 vs buy-hold SPY with IR ≥ 0, and perturbation min ratio ≥ 0.5.
+
+**Null (H0).** Trailing EWJ-vs-SPY relative momentum (z-score) contains no incremental SPY timing information; OOS gates fail vs buy-hold/random-exposure.
+
+**Data / splits (PIT).** SPY, EWJ daily yfinance auto-adjust Close (free). 3776 aligned rows 2010-01-04→2025-01-03 (Train 2516, 2010-01-04→2019-12-31; Val 505, 2020-01-01→2021-12-31; Test 755, 2022-01-01→2025-01-03, protected). `rel_t = pct_change(EWJ,w)-pct_change(SPY,w)`; `z_t = (rel_t - rolling_mean(rel,z_window))/rolling_std(rel,z_window)` past-only; stress on negative z `((-z).clip(0)/entry_scale).clip(0,1)`; exposure `(1-stress)*vol_target*vscale`. 1-bar delay via `BacktestEngine` `signals.shift(1)`. Equity `CostModel` defaults (1bp commission + 1bp spread). Long-only, `MAX_POS=0.5`. Bounded grid: `mom_window {21,63} × z_window {126,252} × entry_scale {1.0,2.0} × vol_target {0.10,0.15}` (16). Train-only 4-fold WF selection by mean train Sharpe. Test protected.
+
+**Falsifiers.** Random-exposure comparable/better; inverse outperforms; benchmark fails; fragile; worst-regime collapse.
+
+**Ablations.** Buy-hold SPY; random-exposure-matched; **inverse regime** (de-risk when EWJ outperforms SPY / positive z — pre-registered falsifier).
+
+**Runner:** `run_nf_20261108_27_ewj_spy_relmom.py`. **Tests:** `tests/test_nf_20261108_27_ewj_spy_relmom.py` (**7 passed**). `ruff check/format` clean.
+
+**Execution.** Artifact `.experiments/nf_runs/nf_20261108_27_ewj_spy_relmom/summary.json` (+ `grid.csv`, `data_meta.json`, 13.54s). Selected (train-only 4-fold WF mean Sharpe 0.930): `mom_window=63, z_window=126, entry_scale=1.0, vol_target=0.15`.
+
+**Result — REJECT (5/8 gates).** OOS Val+Test (2846 engine trades, n=1259): Sharpe **1.202** (pass ≥1.0), PF **1.273** (fail ≥1.3), max DD **-2.47%** (pass ≤15%), trades **2846** (pass ≥200), WF stability **1.346** (pass ≥0.7), worst-regime rolling-252 Sharpe **-0.543** (fail ≥0.3), benchmark p **0.932** / IR **-0.688** (fail), perturbation min ratio **0.988** (pass ≥0.5).
+
+**Ablations (OOS).** Buy-hold SPY 0.750/1.153/-33.72%/1. Random-exposure-matched **-0.323**/0.874/-2.59%/1120 (much weaker — structure present — but no benchmark edge). **Inverse regime** (de-risk when EWJ outperforms / positive z) **0.222**/1.045/-3.85%/2950 — **much weaker than base** (direction supported, no benchmark edge).
+
+**Verdict rationale.** Fails 3/8 gates (PF, worst-regime, benchmark). Passes Sharpe/DD/trades/WF/perturbation. Random exposure much weaker (not pure noise) and inverse much weaker (direction supported), but **no benchmark-significant timing edge** (p=0.932, IR=−0.688) and worst-regime collapses (−0.543); PF 1.273 narrowly misses 1.3. Repo-new executed EWJ-SPY relative-momentum pair (EWJ previously unexecuted as a SPY-timing signal despite H2/artifact presence) with honest adjacency to relmom construction class (H144/H145/H152) — **no validated edge** under pre-registered H157. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Lineage map (H157 REJECT):**
+| SPY timing from EWJ-vs-SPY relative-momentum regime (Japan/developed-market regional leadership / funding-spillover transmission) | H157 (NF-20261108-27) | Continuous vol-targeted long SPY reduced when z-score of trailing (ret(EWJ,w)-ret(SPY,w)) abnormally negative (EWJ leadership weak); 1-bar delay, long-only | SPY (traded) + EWJ (signal), yfinance daily 2010–2025 | **REJECT** (5/8; `.experiments/nf_runs/nf_20261108_27_ewj_spy_relmom/summary.json`) | Fails PF 1.273/worst-regime -0.543/benchmark-p 0.932/IR -0.688; Sharpe 1.202/DD -2.47%/trades 2846/WF 1.346/perturbation 0.988 pass; random-exposure -0.323 much weaker (not pure noise); inverse 0.222 much weaker (direction supported, no benchmark edge); repo-new EWJ-SPY relmom pair (EWJ unexecuted as timing signal despite H2/artifact presence) with honest adjacency to relmom class H144/H145/H152 and H85 lead-lag form |
