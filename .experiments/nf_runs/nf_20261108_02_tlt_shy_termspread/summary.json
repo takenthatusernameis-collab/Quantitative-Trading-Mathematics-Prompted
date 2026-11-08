@@ -2,8 +2,8 @@
   "nf_id": "NF-20261108-02",
   "h_id": "H141",
   "experiment": "NF-20261108-02/H141: SPY timing from TLT-vs-SHY Treasury term-spread momentum regime (TLT-SHY relative momentum). Continuous de-risking when z-score of trailing term-spread momentum is deeply negative (duration selloff/rates-stress proxy). 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
-  "timestamp_utc": "2026-11-08T00:32:50Z",
-  "runtime_sec": 8.691,
+  "timestamp_utc": "2026-11-08T01:09:25Z",
+  "runtime_sec": 8.568,
   "data": {
     "rows": 3776,
     "start": "2010-01-04",
@@ -17,22 +17,13 @@
       "mom_window": 21,
       "z_window": 126,
       "entry_scale": 2.0,
-      "vol_target": 0.1
+      "vol_target": 0.15
     },
-    "best_train_wf_mean_sharpe": 1.0591372858736536,
+    "best_train_wf_mean_sharpe": 1.0164640299160907,
     "grid_size": 12,
     "top5": [
       {
-        "wf": 1.0591372858736536,
-        "params": {
-          "mom_window": 21,
-          "z_window": 126,
-          "entry_scale": 2.0,
-          "vol_target": 0.1
-        }
-      },
-      {
-        "wf": 1.0453435384178278,
+        "wf": 1.0164640299160907,
         "params": {
           "mom_window": 21,
           "z_window": 126,
@@ -41,16 +32,16 @@
         }
       },
       {
-        "wf": 1.0395086480912668,
+        "wf": 0.9963234348405633,
         "params": {
           "mom_window": 21,
           "z_window": 126,
-          "entry_scale": 1.5,
+          "entry_scale": 2.0,
           "vol_target": 0.1
         }
       },
       {
-        "wf": 1.0238381116496387,
+        "wf": 0.9734755684930387,
         "params": {
           "mom_window": 21,
           "z_window": 126,
@@ -59,12 +50,21 @@
         }
       },
       {
-        "wf": 0.9689821140805421,
+        "wf": 0.9580032744427438,
         "params": {
           "mom_window": 21,
           "z_window": 126,
-          "entry_scale": 1.0,
+          "entry_scale": 1.5,
           "vol_target": 0.1
+        }
+      },
+      {
+        "wf": 0.9489780676989465,
+        "params": {
+          "mom_window": 63,
+          "z_window": 126,
+          "entry_scale": 2.0,
+          "vol_target": 0.15
         }
       }
     ]
@@ -72,63 +72,63 @@
   "metrics": {
     "train": {
       "n": 2516,
-      "sharpe": 1.0591372858736536,
-      "profit_factor": 1.2192430741008118,
-      "max_drawdown": 0.014243273279904255,
-      "trades": 3068
+      "sharpe": 0.9880020715816588,
+      "profit_factor": 1.2126866449326714,
+      "max_drawdown": 0.028776385682148402,
+      "trades": 2548
     },
     "val": {
       "n": 505,
-      "sharpe": 1.0591372858736536,
-      "profit_factor": 1.2192430741008118,
-      "max_drawdown": 0.014243273279904255,
-      "trades": 3068
+      "sharpe": 1.160742867062948,
+      "profit_factor": 1.237206668975137,
+      "max_drawdown": 0.02639467676610599,
+      "trades": 2548
     },
     "test": {
       "n": 755,
-      "sharpe": 1.0591372858736536,
-      "profit_factor": 1.2192430741008118,
-      "max_drawdown": 0.014243273279904255,
-      "trades": 3068
+      "sharpe": 1.130771580436652,
+      "profit_factor": 1.2237592039300171,
+      "max_drawdown": 0.020807559751340972,
+      "trades": 2548
     },
     "oos_val_test": {
       "n": 1260,
-      "sharpe": 1.0591372858736536,
-      "profit_factor": 1.2192430741008118,
-      "max_drawdown": 0.014243273279904255,
-      "trades": 3068
+      "sharpe": 1.1451329581729075,
+      "profit_factor": 1.2299696630063506,
+      "max_drawdown": 0.02639467676610599,
+      "trades": 2548
     }
   },
   "ablations": {
     "buy_hold_spy_oos": {
       "n": 1260,
-      "sharpe": 0.8410492794063705,
-      "profit_factor": 1.1720566968946031,
-      "max_drawdown": 0.3371726713072691,
+      "sharpe": 0.7502690954871274,
+      "profit_factor": 1.1531287264242125,
+      "max_drawdown": 0.337172604412794,
       "trades": 1
     },
     "random_exposure_matched_oos": {
       "n": 1260,
-      "sharpe": 0.32102253228314503,
-      "profit_factor": 1.2058374632322009,
-      "max_drawdown": 0.12742743865309586,
-      "trades": 688
+      "sharpe": 0.11101846955609783,
+      "profit_factor": 1.0527486465762455,
+      "max_drawdown": 0.10174285680940756,
+      "trades": 972
     },
     "inverse_regime_oos": {
       "n": 1260,
-      "sharpe": 0.8371489055840587,
-      "profit_factor": 1.1707184466176261,
-      "max_drawdown": 0.018934779377113124,
-      "trades": 2946
+      "sharpe": 0.7744532345929217,
+      "profit_factor": 1.148607202191285,
+      "max_drawdown": 0.0403954695507545,
+      "trades": 2332
     }
   },
   "benchmark": {
-    "ir_vs_buy_hold_oos": -0.7340472333003278,
+    "ir_vs_buy_hold_oos": -0.7142368486522098,
     "bootstrap_p_one_sided_oos": 0.9533333333333334
   },
-  "perturbation_min_ratio": 0.9412136643223474,
-  "wf_stability_ratio_oos_to_train": 1.0,
-  "worst_regime_rolling252_sharpe_oos": -0.6222901184099006,
+  "perturbation_min_ratio": 0.9208024266236445,
+  "wf_stability_ratio_oos_to_train": 1.1590390254341303,
+  "worst_regime_rolling252_sharpe_oos": -0.6397329712960698,
   "gates": {
     "sharpe_ge_1": true,
     "trades_ge_200": true,

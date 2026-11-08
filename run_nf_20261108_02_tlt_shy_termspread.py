@@ -170,9 +170,16 @@ def metrics_from(bt_result, active_mask: pd.Series) -> dict:
     pf = gp / gl if gl > 1e-12 else (20.0 if gp > 0 else 0.0)
     # trades on masked window: count trade entries with dates in mask
     trade_dates = getattr(bt_result, "trades", None)
-    if trade_dates:
+    if trade_dates is not None and len(trade_dates) > 0:
         try:
-            tcount = int(sum(1 for tr in trade_dates if pd.Timestamp(tr.get("date", tr.get("entry_date", tr.get("timestamp")))) in eq.index))
+            tcount = int(
+                sum(
+                    1
+                    for tr in trade_dates
+                    if pd.Timestamp(tr.get("date", tr.get("entry_date", tr.get("timestamp"))))
+                    in eq.index
+                )
+            )
         except Exception:
             tcount = int(len(trade_dates))
     else:
