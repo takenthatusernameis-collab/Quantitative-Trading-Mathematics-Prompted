@@ -1,0 +1,196 @@
+{
+  "experiment": "NF-20261108-01/H140: SPY timing from monthly options-expiration dealer-flow / pin-proximity regime. Continuous de-risking when z-score of trailing days-to-next-OPX flow pressure rises into expiry. 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "nf_id": "NF-20261108-01",
+  "h_id": "H140",
+  "timestamp": "2026-11-08T00:14:51Z",
+  "runtime_s": 16.25,
+  "data": {
+    "universe": [
+      "SPY"
+    ],
+    "start": "2010-01-01",
+    "end": "2025-01-05",
+    "rows": 3776,
+    "train_end": "2019-12-31",
+    "val_end": "2021-12-31",
+    "train_n": 2516,
+    "val_n": 505,
+    "test_n": 755
+  },
+  "selection": {
+    "grid": [
+      {
+        "z_window": 63,
+        "entry_scale": 1.0,
+        "vol_target": 0.1
+      },
+      {
+        "z_window": 63,
+        "entry_scale": 1.0,
+        "vol_target": 0.15
+      },
+      {
+        "z_window": 63,
+        "entry_scale": 1.5,
+        "vol_target": 0.1
+      },
+      {
+        "z_window": 63,
+        "entry_scale": 1.5,
+        "vol_target": 0.15
+      },
+      {
+        "z_window": 63,
+        "entry_scale": 2.0,
+        "vol_target": 0.1
+      },
+      {
+        "z_window": 63,
+        "entry_scale": 2.0,
+        "vol_target": 0.15
+      },
+      {
+        "z_window": 126,
+        "entry_scale": 1.0,
+        "vol_target": 0.1
+      },
+      {
+        "z_window": 126,
+        "entry_scale": 1.0,
+        "vol_target": 0.15
+      },
+      {
+        "z_window": 126,
+        "entry_scale": 1.5,
+        "vol_target": 0.1
+      },
+      {
+        "z_window": 126,
+        "entry_scale": 1.5,
+        "vol_target": 0.15
+      },
+      {
+        "z_window": 126,
+        "entry_scale": 2.0,
+        "vol_target": 0.1
+      },
+      {
+        "z_window": 126,
+        "entry_scale": 2.0,
+        "vol_target": 0.15
+      },
+      {
+        "z_window": 252,
+        "entry_scale": 1.0,
+        "vol_target": 0.1
+      },
+      {
+        "z_window": 252,
+        "entry_scale": 1.0,
+        "vol_target": 0.15
+      },
+      {
+        "z_window": 252,
+        "entry_scale": 1.5,
+        "vol_target": 0.1
+      },
+      {
+        "z_window": 252,
+        "entry_scale": 1.5,
+        "vol_target": 0.15
+      },
+      {
+        "z_window": 252,
+        "entry_scale": 2.0,
+        "vol_target": 0.1
+      },
+      {
+        "z_window": 252,
+        "entry_scale": 2.0,
+        "vol_target": 0.15
+      }
+    ],
+    "best_params": {
+      "z_window": 126,
+      "entry_scale": 2.0,
+      "vol_target": 0.1
+    },
+    "train_wf_mean_sharpe": 1.0025879248629967
+  },
+  "metrics": {
+    "train": {
+      "sharpe": 1.0015392693535354,
+      "profit_factor": 1.2180483345277795,
+      "max_drawdown": -0.0857583009895424,
+      "trades": 1029,
+      "n": 2516,
+      "total_return": 0.8790630185125958
+    },
+    "val": {
+      "sharpe": 1.2207053007533786,
+      "profit_factor": 1.3103886413022743,
+      "max_drawdown": -0.134483787552917,
+      "trades": 1029,
+      "n": 505,
+      "total_return": 0.32345193463602473
+    },
+    "test": {
+      "sharpe": 0.5940231846658293,
+      "profit_factor": 1.1121870004012544,
+      "max_drawdown": -0.11100415740363168,
+      "trades": 1029,
+      "n": 755,
+      "total_return": 0.14400767592851005
+    },
+    "oos_val_test": {
+      "sharpe": 0.8884928175067333,
+      "profit_factor": 1.1963606473692758,
+      "max_drawdown": -0.134483787552917,
+      "trades": 1029,
+      "n": 1260,
+      "total_return": 0.5140391719460515
+    }
+  },
+  "oos_diagnostics": {
+    "wf_stability_oos_over_train": 0.8871272896570792,
+    "worst_regime_rolling252_sharpe_oos": -0.7270546185062766,
+    "benchmark_buyhold": {
+      "sharpe": 0.7587586284305405,
+      "profit_factor": 1.1549497986012347,
+      "max_drawdown": -0.3371728028110652,
+      "trades": 1
+    },
+    "benchmark_p_le_0_05_and_ir": {
+      "p": 0.9138245493378737,
+      "ir": -0.6108969132782441
+    },
+    "perturbation_min_ratio": 0.97034910990009,
+    "random_exposure_matched": {
+      "sharpe": 0.32477862541036673,
+      "profit_factor": 1.0977710278857153,
+      "max_drawdown": -0.27233027707962865,
+      "trades": 560
+    },
+    "inverse_regime": {
+      "sharpe": 0.15771885222861917,
+      "profit_factor": 1.034509076939394,
+      "max_drawdown": -0.07859929555050449,
+      "trades": 1029,
+      "n": 1260,
+      "total_return": 0.024560270604640833
+    },
+    "mean_exposure_oos": 0.4408319037811895
+  },
+  "gates": {
+    "sharpe_oos_ge_1_0": false,
+    "trades_oos_ge_200": true,
+    "pf_oos_ge_1_3": false,
+    "maxdd_oos_le_15pct": true,
+    "wf_stability_ge_0_7": true,
+    "worst_regime_rolling252_sharpe_ge_0_3": false,
+    "benchmark_p_le_0_05_and_ir_ge_0": false,
+    "perturbation_min_ratio_ge_0_5": true
+  },
+  "gates_passed": 4,
+  "verdict": "REJECT"
+}
