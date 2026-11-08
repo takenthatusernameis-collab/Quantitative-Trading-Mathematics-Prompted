@@ -2750,3 +2750,62 @@ Rough sanity checks (2022–2025 slice, **not** holdout-selected, single arbitra
 | SPY timing from EEM-vs-SPY relative-momentum regime (global cross-market leadership transmission) | H144 (NF-20261108-09) | Continuous vol-targeted long SPY reduced when z-score of trailing (ret(EEM,w)-ret(SPY,w)) abnormally negative; 1-bar delay, long-only | SPY+EEM daily (yfinance), 2010–2025 | **REJECT** (3/8; `.experiments/nf_runs/nf_20261108_09_eem_spy_relmom/summary.json`) | Fails Sharpe 0.537/PF 1.102/WF 0.559/worst-regime -1.627/benchmark-p 0.957/IR -0.756; random-exposure 0.518 comparable; inverse 0.878 outperforms pre-registered mapping (direction falsified); repo-new EEM-SPY relative-momentum pair with honest adjacency disclosure |
 
 **Cycle 58 complete (discovery + H144 execution).** H85–H144 all rejected/recorded. Cycle 59 required next: fresh directive §4 discovery, >=3 repo-new candidates across >=3 broad categories, pre-register and execute the **next unused H-ID after H144** (H24/H68–H73/H76–H79 unassigned, not recycled). Justify independence from rejected construction classes (correlation H96/H127/H134/H137; RV-divergence H138/H139; OPX proximity H140; TOQ/H91 calendar; IV spread H125/H126; overnight/gap direction H18/H87; overnight-gap RV H143; Amihud H121; RV term structure H136; EEM-SPY relative-momentum H144). No gate weakening; no published/certified artifact modification; no commit/push; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
+
+## Cycle 59 (2026-11-08) — Discovery + H145 execution (NF-20261108-11 GLD-vs-SPY relative-momentum regime; REJECT 4/8)
+
+### Cycle 59 discovery (directive §4, >=3 repo-new mechanism candidates across >=3 broad mechanism categories)
+
+Lineage reconciled to H144: **H85–H144 all rejected/recorded**. Next unused H-ID: **H145** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified. Selection/validation used no protected-test feedback.
+
+Candidates proposed across >=3 broad categories, scored honestly (25/25/20/15/10/5). Independence justified from rejected construction classes: correlation H96/H127/H134/H137; RV-divergence H138/H139; OPX proximity H140; TOQ/H91 calendar; IV spread H125/H126; overnight/gap direction H18/H87; overnight-gap RV H143; Amihud H121; RV term structure H136; EEM-SPY relative-momentum H144; FX-strength z-score family adjacency H95/H103/H106.
+
+| Cycle-59 candidate | Broad mechanism category | Nov 25% | Econ 25% | Data PIT 20% | Fals 15% | Exec 10% | Ind 5% | Weighted |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261108-11 SPY timing from GLD-vs-SPY relative-momentum regime (safe-haven / real-asset vs equity risk-premium transmission) — **H145 (selected/executed)** | Safe-haven / real-asset vs equity risk-premium transmission | 3 | 3 | 5 | 4 | 5 | 2 | **3.60** |
+| NF-20261108-10 SPY timing from FXE EUR-strength momentum regime (FX macro transmission; reassessed) | FX / macro currency transmission | 3 | 3 | 5 | 4 | 5 | 2 | **3.60** (tied; higher FX-family adjacency H95/H103/H106; rough sanity mixed) |
+| NF-20261108-07 SPY timing from TIP-vs-IEF inflation-compensation (breakeven-proxy) momentum (reassessed NF-08/NF-13 root) | Macro term-premium / inflation-compensation transmission | 3 | 3 | 4 | 4 | 4 | 2 | **3.35** |
+
+**Scoring notes (honest).**
+- NF-20261108-11 novelty 3 (not 4/5): repo-new as an executed *GLD-vs-SPY relative-momentum z-score* SPY-timing observable/pair, but **material adjacency** acknowledged to GLD usage in H88 (GLD/USO gold-oil spread RV, REJECT 1/9; different pair/observable/objective), H99 (GDX timed by GDX/GLD miner-gold spread, REJECT 4/9; different traded asset), H101 (GLD timed by GLD/XLE RV divergence, REJECT 3/9; different observable/pair), H144 (EEM-vs-SPY relmom, REJECT 3/8; different signal asset/mechanism), and to the z-score/relative-momentum de-risking construction class. Novelty scored on the repo-new GLD-SPY relative-momentum pair as an executed decisive test, not a wholly new channel or statistical method.
+- NF-20261108-10 remains deferred (tied score; FX-strength z-score construction class adjacency to H95/H103/H106 REJECTs; rough sanity mixed). Requires materially different FX construction if pursued.
+- NF-20261108-07 remains deferred (NF-08/NF-13 ETF breakeven-proxy root; prior/proxy weakness).
+
+**Held/deferred reassessment (no silent drops):**
+- **NF-04 commodity carry — still BLOCKED** (no free PIT term-structure/roll proxy; DBC/ETF proxies confound roll/flows/equity beta).
+- **NF-05 short-term CS reversal — DEFERRED** (turnover/net-of-cost; H119 weekly REJECT 3/8).
+- **NF-07/08/10/11/13/15/17/20/21 — DEFERRED** (NF-15 EEM/EFA adjacent to H144 but different pair — reassess only with materially different construction).
+- **NF-11r/NF-06-18 TNX-FVX slope — SAME root as NF-11** (ETF TLT-SHY proxy executed H141 REJECT 5/8).
+- **NF-06-11 CBOE PC ratio — INFEASIBLE**.
+- **NF-20261106-03/23/24/28/30/32/33/35 — DEFERRED** (NF-32 confounds).
+- **NF-20261107-05 CPI drift — DEFERRED** (data blocker).
+- **NF-20261107-11 IVOL spread — HELD** (separation from H118/H130).
+- **NF-20261107-14/48 OVX−VIX — HELD, materially different pre-registered design required** (IV-spread class H125/H126).
+- **NF-20261107-31 sector breadth — HELD** (adj H115).
+- **NF-20261107-49 TLT-SPY realized corr — HELD** (correlation class H96/H127/H134/H137).
+- **NF-20261107-52 EEM-SPY RV divergence — HELD** (RV-div class H138/H139).
+- **NF-20261108-04 triple witching OPX+futures — HELD** (subclass of H140).
+- **NF-20261108-05 overnight/intraday return-flow — DEFERRED** (H143 tested overnight-gap RV component).
+- **NF-20261108-07 TIP-IEF breakeven-proxy — DEFERRED** (weak proxy).
+- **NF-20261108-08 DBC-SPY commodity-complex — DEFERRED** (ETF confounds).
+- **NF-20261108-10 FXE EUR momentum — DEFERRED** (FX-family adjacency; mixed sanity).
+
+**Selection:** NF-20261108-11 → **H145** (highest expected-information feasible decisive test among candidates: free PIT, bounded 12-combo grid, repo-new executed GLD-SPY relative-momentum pair with explicit adjacency disclosure). Pre-registered in `HYPOTHESIS_SPEC.md` §H145 before validation outcomes.
+
+### NF-20261108-11 / H145 execution outcome (2026-11-08, REAL) — REJECTED (4/8)
+
+**Runner:** `run_nf_20261108_11_gld_spy_relmom.py`. **Tests:** `tests/test_nf_20261108_11_gld_spy_relmom.py` (5 tests; focused pytest/ruff reported passing by executing agent; not rerun in this session — `pytest`/`ruff` unavailable in environment; `py_compile` clean). `src/qtr` unchanged.
+
+**Integrity note (from H145 record).** An untracked runner/test existed in a broken/inconsistent state (docstring/copy errors, sign mapping inconsistent with pre-registered safe-haven positive-z de-risking, and output-path collision). Repaired to match pre-registered mapping before execution; focused tests passed; stale wrong-output artifact directory removed. Committed artifact is the corrected **REAL** run.
+
+**Execution.** Artifact `.experiments/nf_runs/nf_20261108_11_gld_spy_relmom/summary.json` (14.69s). Data SPY+GLD yfinance auto-adjust, 3776 rows 2010-01-04→2025-01-03 (train 2516 / val 505 / test 755). Selected (train-only 4-fold WF mean Sharpe 0.800): `mom_window=63, z_window=126, entry_scale=2.0, vol_target=0.15`.
+
+**Result — REJECT (4/8 gates).** OOS Val+Test (3455 engine trades, n=1259): Sharpe **0.761** (fail), PF **1.153** (fail), max DD **-3.59%** (pass), trades **3455** (pass), WF stability **0.951** (pass), worst-regime rolling-252 Sharpe **-1.307** (fail), benchmark p **0.948** / IR **-0.720** (fail), perturbation min ratio **0.914** (pass).
+
+**Ablations (OOS).** Buy-hold SPY 0.750/1.153/-33.72%/1. Random-exposure-matched **0.518**/1.120/-5.89%/1258 (weaker than strategy but no benchmark edge). **Inverse regime** (pre-registered falsifier: de-risk when GLD underperforms/negative z) **0.909**/1.177/-2.66%/3515 — stronger than pre-registered mapping; **direction not supported**.
+
+**Verdict rationale.** Fails 4/8 (Sharpe, PF, worst-regime, benchmark). Random-exposure weaker (not pure noise) but no benchmark-significant timing edge and worst-regime collapses. Inverse-regime outperforms pre-registered mapping, undermining the hypothesized safe-haven de-risking direction. Repo-new executed GLD-SPY relative-momentum pair (honest adjacency to H88/H99/H101/H144 and z-score construction class) — **no validated edge** under pre-registered H145. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Lineage map (H145 REJECT):**
+| SPY timing from GLD-vs-SPY relative-momentum regime (safe-haven / real-asset vs equity risk-premium transmission) | H145 (NF-20261108-11) | Continuous vol-targeted long SPY reduced when z-score of trailing (ret(GLD,w)-ret(SPY,w)) abnormally positive (gold flight-to-safety leadership); 1-bar delay, long-only | SPY+GLD daily (yfinance), 2010–2025 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261108_11_gld_spy_relmom/summary.json`) | Fails Sharpe 0.761/PF 1.153/worst-regime -1.307/benchmark-p 0.948/IR -0.720; random-exposure 0.518 weaker (no benchmark edge); inverse 0.909 outperforms pre-registered mapping (direction not supported); repo-new GLD-SPY relative-momentum pair with honest adjacency to H88/H99/H101/H144 |
+
+**Cycle 59 complete (discovery + H145 execution).** H85–H145 all rejected/recorded. Cycle 60 required next: fresh directive §4 discovery, >=3 repo-new candidates across >=3 broad mechanism categories, pre-register and execute the **next unused H-ID after H145** (H24/H68–H73/H76–H79 unassigned, not recycled). Justify independence from rejected construction classes (correlation H96/H127/H134/H137; RV-divergence H138/H139; OPX proximity H140; TOQ/H91 calendar; IV spread H125/H126; overnight/gap direction H18/H87; overnight-gap RV H143; Amihud H121; RV term structure H136; EEM-SPY relative-momentum H144; GLD-SPY relative-momentum H145; FX-strength z-score family adjacency H95/H103/H106). No gate weakening; no published/certified artifact modification; no commit/push; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
