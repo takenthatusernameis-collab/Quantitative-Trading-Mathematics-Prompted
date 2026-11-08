@@ -7341,3 +7341,31 @@ published/certified artifact modified; `src/qtr` unchanged.
 
 **Lineage map (H148 REJECT):**
 | SPY timing from EEM-vs-SPY realized-volatility divergence (cross-asset volatility transmission / global risk) | H148 (NF-20261107-52) | Continuous vol-targeted long SPY reduced when z-score of trailing (rv_EEM − rv_SPY) abnormally positive (EM stress elevated); 1-bar delay, long-only | SPY + EEM daily (yfinance), 2010–2025 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261107_52_eem_spy_rvdiv/summary.json`) | Fails Sharpe 0.946/PF 1.215/worst-regime -0.820/benchmark-p 0.939/IR -0.714; maxdd -2.57%/trades 2757/WF 0.951/perturbation 0.943 pass; random-exposure 0.688 weaker (no benchmark edge); inverse 0.540 weaker (direction supported, unlike H138/H139 inverse outperformance) but no benchmark edge; repo-new EEM/SPY RV-divergence observable with honest adjacency to H138/H139/H144 |
+
+---
+
+## H149 — Cycle 63 pre-registration (NF-20261106-01, GDX-vs-GLD miner gold-beta RV divergence SPY timing)
+
+**Status:** PRE-REGISTERED, NOT YET IMPLEMENTED/EXECUTED (Cycle 63 selection).
+
+**NF-ID:** NF-20261106-01. **Hypothesis ID:** H149 (next unused after H148; H24/H68–H73/H76–H79 unassigned, not recycled).
+
+**Broad mechanism category:** Commodity volatility transmission / sector (gold-miner) risk transmission. Distinct construction class from RV-divergence H138/H139/H148 (different asset pair GLD/GDX, different channel: miner gold-beta equity vol vs bullion vol; pre-registered falsifier: inverse regime).
+
+**Observable (past-only, PIT daily adjusted Close, yfinance):** rv_GDX_t = rolling_std(logret_GDX, rv_window); rv_GLD_t = rolling_std(logret_GLD, rv_window); div_t = rv_GDX_t - rv_GLD_t (miner excess vol vs bullion vol); z_t = (div_t - rolling_mean(div, z_window)) / rolling_std(div, z_window).
+
+**Mechanism:** abnormal GDX-vs-GLD realized-vol divergence (miner equity vol elevated relative to bullion vol, i.e. gold-miner risk-premium / beta dislocation) may proxy commodity-sector stress regimes where broad equity risk is elevated; continuously de-risk a vol-targeted long SPY position when z abnormally positive. 1-bar execution delay via engine signals.shift(1), long-only.
+
+**Honest adjacency (material):** adjacent to H88/H99/H101/H145 (gold-miner / GLD-SPY families) and to RV-divergence class H138/H139/H148. Justified as repo-new executed observable/pair: GDX-vs-GLD RV *difference* z-score (miner vs bullion vol) has not been executed as an SPY timing observable. Independence from H148 (EEM/SPY RV difference) via different asset pair and channel; from H138/H139 via pair and difference (not ratio) construction. Inverse-falsifier retained given H138/H139 inverse outperformance (H148 inverse was weaker — direction supported there).
+
+**Null (H0).** GDX-vs-GLD realized-vol divergence contains no incremental timing information; OOS gates fail vs buy-hold/random-exposure.
+
+**Universe:** SPY (traded) + GDX, GLD (signal). Free/public yfinance daily auto-adjust Close. Sample target 2010-01-04→2025-01-03 (train/val/test splits per standard protocol). `src/qtr` unchanged.
+
+**Gates (OOS Val+Test):** Sharpe>=1.0, trades>=200, PF>=1.3, maxDD<=15%, WF stability>=0.7, worst-regime rolling-252 Sharpe>=0.3, benchmark p<=0.05 with IR>=0, perturbation min ratio>=0.5.
+
+**Ablations:** buy-hold SPY, random-exposure-matched, inverse regime (de-risk when GDX RV abnormally LOW vs GLD / negative z — pre-registered falsifier).
+
+**Falsifiers:** random-exposure comparable or better; inverse not opposite / inverse outperforms (H138/H139 pattern); benchmark fails; fragile; worst-regime collapse.
+
+**Next step:** implement `run_nf_20261106_01_miner_gold_rv.py` + `tests/test_nf_20261106_01_miner_gold_rv.py` following the H148 standard gated/ablation protocol, run ruff + focused pytest, execute, record verdict/artifacts. Do not fabricate results; do not weaken gates; do not modify published/certified artifacts.
