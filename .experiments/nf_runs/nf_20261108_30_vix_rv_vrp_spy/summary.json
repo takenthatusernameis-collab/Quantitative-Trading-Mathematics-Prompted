@@ -1,0 +1,85 @@
+{
+  "nf_id_exec": "NF-20261108-30",
+  "hypothesis": "H158",
+  "verdict": "REJECT",
+  "gates_passed": "4/8",
+  "gates": {
+    "sharpe_ge_1": false,
+    "trades_ge_200": true,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": true,
+    "wf_stability_ge_0_7": true,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_ir_ge_0": false,
+    "perturbation_ge_0_5": true
+  },
+  "selected_params": {
+    "rv_window": 63,
+    "z_window": 126,
+    "entry_scale": 2.0,
+    "vol_target": 0.15
+  },
+  "selection_wf_train_mean_sharpe": 0.8356347491089293,
+  "oos_val_test": {
+    "n": 1259,
+    "sharpe": 0.8248734368467384,
+    "profit_factor": 1.1615553344601706,
+    "max_drawdown": -0.03528978251200981,
+    "trades": 3507
+  },
+  "train": {
+    "n": 2515,
+    "sharpe": 0.8173338250592295,
+    "profit_factor": 1.1673762646756718,
+    "max_drawdown": -0.03267708363408241,
+    "trades": 3507
+  },
+  "wf_stability_ratio": 1.0092246418248536,
+  "worst_regime_rolling252_sharpe": -1.8239344196277099,
+  "benchmark_buy_hold_spy_oos": {
+    "n": 1259,
+    "sharpe": 0.7502686492784174,
+    "profit_factor": 1.1531288314424042,
+    "max_drawdown": -0.33717286856294365,
+    "trades": 1
+  },
+  "benchmark_p": 0.949,
+  "information_ratio_vs_bh": -0.7116467143924612,
+  "perturbation_min_ratio": 0.981304127056616,
+  "ablations": {
+    "buy_hold_spy": {
+      "n": 1259,
+      "sharpe": 0.7502686492784174,
+      "profit_factor": 1.1531288314424042,
+      "max_drawdown": -0.33717286856294365,
+      "trades": 1
+    },
+    "random_exposure_matched": {
+      "n": 1259,
+      "sharpe": -0.12047212294325574,
+      "profit_factor": 0.955655145080664,
+      "max_drawdown": -0.04873533671953839,
+      "trades": 1446
+    },
+    "inverse_regime": {
+      "n": 1259,
+      "sharpe": 0.7041613898610278,
+      "profit_factor": 1.1375029868041784,
+      "max_drawdown": -0.02983280386363513,
+      "trades": 3671
+    }
+  },
+  "timing_seconds": 16.55,
+  "data": {
+    "start": "2010-01-04",
+    "end": "2025-01-03",
+    "rows": 3776
+  },
+  "description": "NF-20261108-30/H158: SPY timing from VIX-implied vs SPY-realized variance risk premium (VRP) regime. z-score of trailing (VIX - realized_vol(SPY)) spread; de-risk vol-targeted long SPY when VIX >> realized vol (fear / variance overpriced). 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "notes": [
+    "Repo-new executed VIX-implied vs SPY-realized variance risk premium (VRP spread) SPY-timing observable.",
+    "Honest adjacency: H17 SVXY VRP harvesting (different instrument/signal/mechanism); H151/H156 absolute realized-vol stress (different observable); z-score/de-risking construction class adjacent to H138/H139/H151/H156.",
+    "Pre-registered: stress on positive z (VIX >> realized vol = fear); inverse falsifier stresses negative z (VIX << realized vol = complacency).",
+    "src/qtr unchanged; no gate weakening; no published/certified artifact modified."
+  ]
+}
