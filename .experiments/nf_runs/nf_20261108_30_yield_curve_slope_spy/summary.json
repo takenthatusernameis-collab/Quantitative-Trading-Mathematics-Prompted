@@ -1,0 +1,84 @@
+{
+  "nf_id_exec": "NF-20261108-30",
+  "hypothesis": "H158",
+  "verdict": "REJECT",
+  "gates_passed": "5/8",
+  "gates": {
+    "sharpe_ge_1": true,
+    "trades_ge_200": true,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": true,
+    "wf_stability_ge_0_7": true,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_ir_ge_0": false,
+    "perturbation_ge_0_5": true
+  },
+  "selected_params": {
+    "z_window": 126,
+    "entry_scale": 2.0,
+    "vol_target": 0.15
+  },
+  "selection_wf_train_mean_sharpe": 0.7667956739777395,
+  "oos_val_test": {
+    "n": 1259,
+    "sharpe": 1.1026217818584032,
+    "profit_factor": 1.2338506052291525,
+    "max_drawdown": -0.0217971773677275,
+    "trades": 3507
+  },
+  "train": {
+    "n": 2513,
+    "sharpe": 0.6758411918322558,
+    "profit_factor": 1.1497088265703166,
+    "max_drawdown": -0.03545608199832981,
+    "trades": 3507
+  },
+  "wf_stability_ratio": 1.6314805832848298,
+  "worst_regime_rolling252_sharpe": -1.612419579837293,
+  "benchmark_buy_hold_spy_oos": {
+    "n": 1259,
+    "sharpe": 0.7502693463245074,
+    "profit_factor": 1.153128826705098,
+    "max_drawdown": -0.3371725225085366,
+    "trades": 1
+  },
+  "benchmark_p": 0.941,
+  "information_ratio_vs_bh": -0.6906345936585353,
+  "perturbation_min_ratio": 0.9790099528789858,
+  "ablations": {
+    "buy_hold_spy": {
+      "n": 1259,
+      "sharpe": 0.7502693463245074,
+      "profit_factor": 1.153128826705098,
+      "max_drawdown": -0.3371725225085366,
+      "trades": 1
+    },
+    "random_exposure_matched": {
+      "n": 1259,
+      "sharpe": 0.4118630927846968,
+      "profit_factor": 1.194609733317894,
+      "max_drawdown": -0.022106729573579804,
+      "trades": 1283
+    },
+    "inverse_regime": {
+      "n": 1259,
+      "sharpe": 0.3596984865666193,
+      "profit_factor": 1.0727998799389198,
+      "max_drawdown": -0.031481537288064805,
+      "trades": 3522
+    }
+  },
+  "timing_seconds": 9.72,
+  "data": {
+    "start": "2010-01-04",
+    "end": "2025-01-03",
+    "rows": 3774
+  },
+  "description": "NF-20261108-30/H158: SPY timing from yield curve slope (10Y-5Y, ^TNX-^FVX) level z-score regime (carry & term structure / macro rate regime). z-score of trailing slope; de-risk vol-targeted long SPY when curve abnormally flat/inverted (negative z). 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "notes": [
+    "Repo-new executed yield curve slope (^TNX-^FVX) level z-score regime SPY-timing observable; distinct from H141 (TLT-SHY spread momentum), H154 (SHY short-rate level), H155 (^TNX long-rate level), H100 (^MOVE implied vol).",
+    "Honest adjacency: same broad rates/macro domain as H141/H154/H155; mechanism is term-spread *level* as leading indicator (Estrella & Hardouvelis), distinct from spread momentum or rate levels.",
+    "Pre-registered: stress on negative z (curve flat/inverted); inverse falsifier stresses positive z (curve steep).",
+    "src/qtr unchanged; no gate weakening; no published/certified artifact modified."
+  ]
+}

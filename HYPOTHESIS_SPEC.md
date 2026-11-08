@@ -7575,3 +7575,34 @@ published/certified artifact modified; `src/qtr` unchanged.
 
 **Lineage map (H157 REJECT):**
 | SPY timing from EWJ-vs-SPY relative-momentum regime (Japan/developed-market regional leadership / funding-spillover transmission) | H157 (NF-20261108-27) | Continuous vol-targeted long SPY reduced when z-score of trailing (ret(EWJ,w)-ret(SPY,w)) abnormally negative (EWJ leadership weak); 1-bar delay, long-only | SPY (traded) + EWJ (signal), yfinance daily 2010–2025 | **REJECT** (5/8; `.experiments/nf_runs/nf_20261108_27_ewj_spy_relmom/summary.json`) | Fails PF 1.273/worst-regime -0.543/benchmark-p 0.932/IR -0.688; Sharpe 1.202/DD -2.47%/trades 2846/WF 1.346/perturbation 0.988 pass; random-exposure -0.323 much weaker (not pure noise); inverse 0.222 much weaker (direction supported, no benchmark edge); repo-new EWJ-SPY relmom pair (EWJ unexecuted as timing signal despite H2/artifact presence) with honest adjacency to relmom class H144/H145/H152 and H85 lead-lag form |
+
+## H158 — NF-20261108-30: Yield curve slope (10Y-5Y) level z-score regime SPY timing (Cycle 72, executed REJECT 5/8 REAL)
+
+**NF-ID:** NF-20261108-30 (H158). **Status:** Pre-registered and executed REAL 2026-11-08 — **REJECT (5/8 gates)**. `src/qtr` unchanged. Free/public yfinance daily auto-adjust Close only.
+
+**Broad mechanism category:** Carry & term structure / macro rate regime (term spread level as leading indicator). Repo-new executed observable as SPY timing: *yield curve slope (^TNX-^FVX) level z-score*. H141 (NF-20261108-02, REJECT 5/8) tested TLT-SHY *term-spread momentum* (first-moment change in spread), not slope *level* as regime. H154 (NF-20261108-17, REJECT 4/8) tested SHY short-rate *level* (short-end monetary tightness). H155 (NF-20261108-24, REJECT 5/8) tested ^TNX 10Y *yield level* (long-end discount rate). H100 (NF-20261105-10, REJECT 5/9) tested ^MOVE implied rates vol. All distinct observable/mechanism/channel. NF root verified against executed H-IDs/artifacts before selection.
+
+**Honest adjacency (repo-relative novelty).** Same broad rates/macro domain as H141/H154/H155. Mechanism framed as term-spread *level* as macro leading indicator (Estrella & Hardouvelis 1991; term spread predicts recession/risk-off), distinct from spread momentum or rate levels. Novelty is repo-relative on the executed ^TNX-^FVX slope level z-score regime; it is not a wholly new statistical method.
+
+**Statement.** Continuously reduce vol-targeted long SPY exposure when the z-score of trailing yield curve slope (^TNX-^FVX) is abnormally low (flat/inverted curve), earning net OOS (Val+Test) Sharpe ≥ 1.0 with ≥200 trades, PF ≥ 1.3, max DD ≤ 15%, WF stability ≥ 0.7, worst-regime rolling-252 Sharpe ≥ 0.3, benchmark p ≤ 0.05 vs buy-hold SPY with IR ≥ 0, and perturbation min ratio ≥ 0.5.
+
+**Null (H0).** Trailing yield curve slope (10Y-5Y) z-score contains no incremental SPY timing information; OOS gates fail vs buy-hold/random-exposure.
+
+**Data / splits (PIT).** SPY, ^TNX, ^FVX daily yfinance auto-adjust Close (free). 3774 aligned rows 2010-01-04→2025-01-03 (Train 2516, 2010-01-04→2019-12-31; Val 505, 2020-01-01→2021-12-31; Test 755, 2022-01-01→2025-01-03, protected). `slope_t = ^TNX_t - ^FVX_t`; `z_t = (slope_t - rolling_mean(slope,z_window))/rolling_std(slope,z_window)` past-only; stress on negative z `((-z).clip(0)/entry_scale).clip(0,1)`; exposure `(1-stress)*vol_target*vscale`. 1-bar delay via `BacktestEngine` `signals.shift(1)`. Equity `CostModel` defaults (1bp commission + 1bp spread). Long-only, `MAX_POS=0.5`. Bounded grid: `z_window {126,252} × entry_scale {1.0,2.0} × vol_target {0.10,0.15}` (12). Train-only 4-fold WF selection by mean train Sharpe. Test protected.
+
+**Falsifiers.** Random-exposure comparable/better; inverse outperforms; benchmark fails; fragile; worst-regime collapse.
+
+**Ablations.** Buy-hold SPY; random-exposure-matched; **inverse regime** (de-risk when curve abnormally steep / positive z — pre-registered falsifier).
+
+**Runner:** `run_nf_20261108_30_yield_curve_slope_spy.py`. **Tests:** `tests/test_nf_20261108_30_yield_curve_slope_spy.py` (**7 passed**). `ruff check/format` clean.
+
+**Execution.** Artifact `.experiments/nf_runs/nf_20261108_30_yield_curve_slope_spy/summary.json` (+ `grid.csv`, `data_meta.json`, 9.72s). Selected (train-only 4-fold WF mean Sharpe 0.767): `z_window=126, entry_scale=2.0, vol_target=0.15`.
+
+**Result — REJECT (5/8 gates).** OOS Val+Test (3507 engine trades, n=1259): Sharpe **1.103** (pass ≥1.0), PF **1.234** (fail ≥1.3), max DD **-2.18%** (pass ≤15%), trades **3507** (pass ≥200), WF stability **1.631** (pass ≥0.7), worst-regime rolling-252 Sharpe **-1.612** (fail ≥0.3), benchmark p **0.941** / IR **-0.691** (fail), perturbation min ratio **0.979** (pass ≥0.5).
+
+**Ablations (OOS).** Buy-hold SPY 0.750/1.153/-33.72%/1. Random-exposure-matched **0.412**/1.195/-2.21%/1283 (much weaker — structure present — but no benchmark edge). **Inverse regime** (de-risk when curve abnormally steep / positive z) **0.360**/1.073/-3.15%/3522 — **much weaker than base** (direction supported, no benchmark edge).
+
+**Verdict rationale.** Fails 3/8 gates (PF, worst-regime, benchmark). Passes Sharpe/DD/trades/WF/perturbation. Random exposure much weaker (not pure noise) and inverse much weaker (direction supported), but **no benchmark-significant timing edge** (p=0.941, IR=−0.691) and worst-regime collapses (−1.612); PF 1.234 narrowly misses 1.3. Repo-new executed yield curve slope (^TNX-^FVX) level z-score regime SPY-timing observable (honest adjacency to H141 spread momentum, H154 short-rate level, H155 long-rate level) — **no validated edge** under pre-registered H158. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Lineage map (H158 REJECT):**
+| SPY timing from yield curve slope regime (10Y-5Y term spread level as macro leading indicator) | H158 (NF-20261108-30) | Continuous vol-targeted long SPY reduced when z-score of trailing (^TNX-^FVX) abnormally low (flat/inverted curve) | SPY (traded) + ^TNX, ^FVX (signal), yfinance daily 2010–2025 | **REJECT** (5/8; `.experiments/nf_runs/nf_20261108_30_yield_curve_slope_spy/summary.json`) | Fails PF 1.234/worst-regime -1.612/benchmark-p 0.941/IR -0.691; Sharpe 1.103/DD -2.18%/trades 3507/WF 1.631/perturbation 0.979 pass; random-exposure 0.412 much weaker (not pure noise); inverse 0.360 much weaker (direction supported, no benchmark edge); repo-new term-spread level observable with honest adjacency to H141/H154/H155 |
