@@ -1,0 +1,69 @@
+{
+  "nf_id_exec": "NF-20261108-26",
+  "hypothesis": "H158",
+  "verdict": "REJECT",
+  "gates_passed": "4/8",
+  "gates": {
+    "sharpe_ge_1": false,
+    "trades_ge_200": true,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": true,
+    "wf_stability_ge_0_7": true,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_ir_ge_0": false,
+    "perturbation_ge_0_5": true
+  },
+  "selected_params": {
+    "rv_window": 63,
+    "z_window": 126,
+    "entry_scale": 2.0,
+    "vol_target": 0.15
+  },
+  "selection_wf_train_mean_sharpe": 0.9125031677174963,
+  "oos_val_test": {
+    "n": 1259,
+    "sharpe": 0.6656102746952949,
+    "profit_factor": 1.1297942183375655,
+    "max_drawdown": -0.027328230285280333,
+    "trades": 3383
+  },
+  "wf_stability_ratio": 0.7294333852672855,
+  "worst_regime_rolling252_sharpe": -1.1233569369950218,
+  "benchmark_buy_hold_spy_oos": {
+    "sharpe": 0.7502688480740654,
+    "profit_factor": 1.153128722803151,
+    "max_drawdown": -0.3371725882604557,
+    "trades": 1
+  },
+  "benchmark_p": 0.948,
+  "information_ratio_vs_bh": -0.7323010663157727,
+  "perturbation_min_ratio": 0.9339307962336921,
+  "ablations": {
+    "buy_hold_spy": {
+      "sharpe": 0.7502688480740654,
+      "profit_factor": 1.153128722803151,
+      "max_drawdown": -0.3371725882604557,
+      "trades": 1
+    },
+    "random_exposure_matched": {
+      "sharpe": 0.2726537070895402,
+      "profit_factor": 1.0617959982273422,
+      "max_drawdown": -0.08142041030082718,
+      "trades": 1258
+    },
+    "inverse_regime": {
+      "n": 1259,
+      "sharpe": 1.1188404898888453,
+      "profit_factor": 1.2370381461191071,
+      "max_drawdown": -0.02095136820861389,
+      "trades": 3470
+    }
+  },
+  "timing_seconds": 14.92,
+  "data": {
+    "start": "2010-01-04",
+    "end": "2025-01-03",
+    "rows": 3776
+  },
+  "description": "NF-20261108-26/H158: SPY timing from GLD realized-volatility stress regime (bond-market vol transmission). z-score of trailing GLD RV; de-risk vol-targeted long SPY when GLD RV abnormally high (positive z). 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates."
+}
