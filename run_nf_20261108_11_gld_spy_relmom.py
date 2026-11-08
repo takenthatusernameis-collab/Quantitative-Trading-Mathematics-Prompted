@@ -1,16 +1,11 @@
 """NF-20261108-11 / H145 (pre-registered, Cycle 58): SPY timing from
-GLD-vs-SPY relative-momentum (EM leadership / global cross-market transmission).
+GLD-vs-SPY relative-momentum (safe-haven / real-asset vs equity risk-premium transmission).
 
 Observable (past-only, PIT daily adjusted Close):
   rel_mom_t = ret(GLD, mom_window)_t - ret(SPY, mom_window)_t
   z_t = (rel_mom_t - rolling_mean(rel_mom, z_window)) / rolling_std(rel_mom, z_window)
 
-Mechanism (global cross-market leadership transmission): GLD outperformance
-vs SPY (positive relative momentum / z) may proxy EM/global risk-on growth
-leadership supporting broad equity risk premia; GLD underperformance
-(negative z, EM lagging US) may proxy risk-off, capital-flight, or global
-growth-stress regimes that reduce SPY tailwinds. Continuously de-risk a
-vol-targeted long SPY position when EM leadership is abnormally weak
+Mechanism (global cross-market leadership transmission): GLD outperformance vs SPY (positive relative momentum / z) may proxy flight-to-safety, inflation/real-rate stress, or risk-off conditions that can pressure equity risk premia; GLD underperformance vs SPY (negative z) may proxy risk-on conditions. Continuously de-risk a vol-targeted long SPY position when gold leadership/flight-to-safety is abnormally strong (positive z)
 (negative z stress); 1-bar execution delay via engine signals.shift(1),
 long-only.
 
@@ -18,18 +13,7 @@ Repo-relative novelty (honest). No executed NF/H uses *GLD-vs-SPY relative
 momentum z-score* as the SPY timing observable. H85 (NF-20261105-01, REJECT)
 tested cross-asset *lead-lag* (lagged leader returns predicting target
 returns, directional information transmission) — different observable/causal
-form (lagged prediction vs trailing relative-momentum spread). NF-15
-(GLD/EFA global EM-vs-DM risk-appetite) was assessed/deferred with a weak
-exploratory check and uses a different pair (GLD vs EFA) and construction;
-**honest adjacency** to the broad EM risk-appetite/global transmission theme
-is acknowledged. H139 (REJECT 2/8) used IWM-vs-SPY *realized-volatility
-divergence* (second moment, size/liquidity) — different pair and observable.
-H97 (REJECT) used SPY/RSP capitalization-concentration spread mean reversion
-(within-US-equity). NF-08/NF-13/TIP-IEF (macro/inflation-comp proxy),
-FX families H95/H103/H106 (REJECT), and commodity/rates/vol families are
-different channels. Novelty scored on the repo-new GLD-SPY relative-momentum
-leadership pair/channel as an executed test, not a wholly new statistical
-method (z-score de-risking construction class adjacency acknowledged).
+form (lagged prediction vs trailing relative-momentum spread). H88 (GLD/USO gold-oil spread RV, REJECT 1/9) traded GLD in a commodity-pair mean-reversion construction (different pair/observable/objective). H99 (REJECT 4/9) timed GDX using the GDX/GLD miner-gold spread (different traded asset/observable). H101 (REJECT 3/9) timed GLD using GLD/XLE RV divergence (different observable/pair). H144 (REJECT 3/8) used EEM-vs-SPY relative momentum (different signal asset/mechanism: EM leadership vs safe-haven). H98 (REJECT 3/9) tested gold momentum as a macro hedge overlay context (different construction). **Honest adjacency** to the z-score/relative-momentum de-risking construction class and to GLD usage in other repo families is acknowledged; novelty scored on the repo-new GLD-SPY relative-momentum pair as an executed SPY-timing test, not a wholly new statistical method.
 
 Null (H0). Trailing GLD-vs-SPY relative momentum contains no incremental
 timing information; OOS gates fail vs buy-hold/random-exposure.
@@ -39,7 +23,7 @@ NF-ID NF-20261108-11. Universe SPY (traded) + GLD (signal), yfinance daily
 auto-adjust Close (free, PIT). Sample 2010-01-04->2025-01-03 (train 2516 /
 val 505 / test 755, aligned). Signal: z-score of trailing
 (ret(GLD,mom_window)-ret(SPY,mom_window)) over z_window (past-only);
-continuous stress on negative z = ((-z).clip(0)/entry_scale).clip(0,1);
+continuous stress on positive z = (z.clip(0)/entry_scale).clip(0,1);
 exposure (1-stress)*vol_target*vscale; 1-bar delay; Equity CostModel defaults
 (1bp commission + 1bp spread); long-only, max exposure vol_target (scaled to
 MAX_POS=0.5). Bounded grid: mom_window {21,63} x z_window {126} x
@@ -51,7 +35,7 @@ WF stability>=0.7, worst-regime rolling-252 Sharpe>=0.3, benchmark p<=0.05
 with IR>=0, perturbation min ratio>=0.5.
 
 Ablations: buy-hold SPY, random-exposure-matched, inverse regime (de-risk
-when EM leadership abnormally strong / positive z — pre-registered falsifier).
+when GLD underperforms SPY (negative z, risk-on) — pre-registered falsifier).
 
 Falsifiers: random-exposure comparable or better; inverse not clearly
 opposite/informative as expected; benchmark fails; fragile; worst-regime
@@ -82,7 +66,7 @@ from qtr.validation.statistics import sharpe_ratio  # noqa: E402
 EXPERIMENT_DESC = (
     "NF-20261108-11/H145: SPY timing from GLD-vs-SPY relative-momentum regime. "
     "z-score of trailing (ret(GLD,w)-ret(SPY,w)); de-risk vol-targeted long SPY "
-    "when EM leadership abnormally weak (negative z). 1-bar delay. Train-only WF "
+    "when gold flight-to-safety leadership is abnormally strong (positive z). 1-bar delay. Train-only WF "
     "selection; Test protected; OOS Val+Test gates."
 )
 
@@ -137,8 +121,8 @@ def relmom_z(prices: pd.DataFrame, mom_window: int, z_window: int) -> pd.Series:
 
 
 def build_exposure(z: pd.Series, entry_scale: float, vol_target: float) -> pd.Series:
-    # de-risk when EM leadership abnormally weak (negative z)
-    stress = ((-z).clip(lower=0.0) / float(entry_scale)).clip(0.0, 1.0)
+    # de-risk when gold leadership/flight-to-safety abnormally strong (positive z)
+    stress = (z.clip(lower=0.0) / float(entry_scale)).clip(0.0, 1.0)
     raw = (1.0 - stress) * float(vol_target)
     return raw.fillna(float(vol_target)).clip(lower=0.0, upper=float(vol_target))
 
@@ -151,7 +135,7 @@ def _vol_scale(prices: pd.DataFrame, vol_target: float, lookback: int = 21) -> p
 
 def make_signals(prices: pd.DataFrame, params: dict) -> pd.DataFrame:
     z = relmom_z(prices, params["mom_window"], params["z_window"])
-    stress = ((-z).clip(lower=0.0) / float(params["entry_scale"])).clip(0.0, 1.0)
+    stress = (z.clip(lower=0.0) / float(params["entry_scale"])).clip(0.0, 1.0)
     raw = (1.0 - stress) * float(params["vol_target"])
     vscale = _vol_scale(prices, params["vol_target"])
     expo = (raw * vscale).fillna(0.0).clip(lower=0.0, upper=MAX_POS)
@@ -308,8 +292,8 @@ def random_exposure_matched(
 
 def inverse_regime(prices: pd.DataFrame, params: dict) -> dict:
     z = relmom_z(prices, params["mom_window"], params["z_window"])
-    # inverse: de-risk when EM leadership abnormally strong (positive z)
-    stress = (z.clip(lower=0.0) / float(params["entry_scale"])).clip(0.0, 1.0)
+    # inverse: de-risk when GLD underperforms SPY (negative z, risk-on)
+    stress = ((-z).clip(lower=0.0) / float(params["entry_scale"])).clip(0.0, 1.0)
     raw = (1.0 - stress) * float(params["vol_target"])
     vscale = _vol_scale(prices, params["vol_target"])
     expo = (raw * vscale).fillna(0.0).clip(lower=0.0, upper=MAX_POS)
@@ -411,7 +395,7 @@ def main():
         "description": EXPERIMENT_DESC,
     }
 
-    outdir = ROOT / ".experiments" / "nf_runs" / "nf_20261108_09_gld_spy_relmom"
+    outdir = ROOT / ".experiments" / "nf_runs" / "nf_20261108_11_gld_spy_relmom"
     outdir.mkdir(parents=True, exist_ok=True)
     (outdir / "summary.json").write_text(json.dumps(summary, indent=2, default=str) + "\n")
     grid_df.to_csv(outdir / "grid.csv", index=False)

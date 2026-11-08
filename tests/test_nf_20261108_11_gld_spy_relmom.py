@@ -52,9 +52,9 @@ def test_inverse_differs_from_base():
     df = _fake_prices()
     p = {"mom_window": 21, "z_window": 126, "entry_scale": 2.0, "vol_target": 0.10}
     base = mod.make_signals(df, p)["SPY"]
-    # inverse construction: stress on positive z
+    # inverse construction: stress on negative z (risk-on / GLD underperforms)
     z = mod.relmom_z(df, p["mom_window"], p["z_window"])
-    stress = (z.clip(lower=0.0) / p["entry_scale"]).clip(0.0, 1.0)
+    stress = ((-z).clip(lower=0.0) / p["entry_scale"]).clip(0.0, 1.0)
     raw = (1.0 - stress) * p["vol_target"]
     inv = (raw * mod._vol_scale(df, p["vol_target"])).fillna(0.0).clip(0.0, mod.MAX_POS)
     assert not np.allclose(base.values, inv.values)
