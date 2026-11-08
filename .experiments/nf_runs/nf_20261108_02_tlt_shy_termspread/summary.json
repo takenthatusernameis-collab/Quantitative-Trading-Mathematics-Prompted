@@ -1,0 +1,150 @@
+{
+  "nf_id": "NF-20261108-02",
+  "h_id": "H141",
+  "experiment": "NF-20261108-02/H141: SPY timing from TLT-vs-SHY Treasury term-spread momentum regime (TLT-SHY relative momentum). Continuous de-risking when z-score of trailing term-spread momentum is deeply negative (duration selloff/rates-stress proxy). 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "timestamp_utc": "2026-11-08T00:32:50Z",
+  "runtime_sec": 8.691,
+  "data": {
+    "rows": 3776,
+    "start": "2010-01-04",
+    "end": "2025-01-03",
+    "train_n": 2516,
+    "val_n": 505,
+    "test_n": 755
+  },
+  "selection": {
+    "best_params": {
+      "mom_window": 21,
+      "z_window": 126,
+      "entry_scale": 2.0,
+      "vol_target": 0.1
+    },
+    "best_train_wf_mean_sharpe": 1.0591372858736536,
+    "grid_size": 12,
+    "top5": [
+      {
+        "wf": 1.0591372858736536,
+        "params": {
+          "mom_window": 21,
+          "z_window": 126,
+          "entry_scale": 2.0,
+          "vol_target": 0.1
+        }
+      },
+      {
+        "wf": 1.0453435384178278,
+        "params": {
+          "mom_window": 21,
+          "z_window": 126,
+          "entry_scale": 2.0,
+          "vol_target": 0.15
+        }
+      },
+      {
+        "wf": 1.0395086480912668,
+        "params": {
+          "mom_window": 21,
+          "z_window": 126,
+          "entry_scale": 1.5,
+          "vol_target": 0.1
+        }
+      },
+      {
+        "wf": 1.0238381116496387,
+        "params": {
+          "mom_window": 21,
+          "z_window": 126,
+          "entry_scale": 1.5,
+          "vol_target": 0.15
+        }
+      },
+      {
+        "wf": 0.9689821140805421,
+        "params": {
+          "mom_window": 21,
+          "z_window": 126,
+          "entry_scale": 1.0,
+          "vol_target": 0.1
+        }
+      }
+    ]
+  },
+  "metrics": {
+    "train": {
+      "n": 2516,
+      "sharpe": 1.0591372858736536,
+      "profit_factor": 1.2192430741008118,
+      "max_drawdown": 0.014243273279904255,
+      "trades": 3068
+    },
+    "val": {
+      "n": 505,
+      "sharpe": 1.0591372858736536,
+      "profit_factor": 1.2192430741008118,
+      "max_drawdown": 0.014243273279904255,
+      "trades": 3068
+    },
+    "test": {
+      "n": 755,
+      "sharpe": 1.0591372858736536,
+      "profit_factor": 1.2192430741008118,
+      "max_drawdown": 0.014243273279904255,
+      "trades": 3068
+    },
+    "oos_val_test": {
+      "n": 1260,
+      "sharpe": 1.0591372858736536,
+      "profit_factor": 1.2192430741008118,
+      "max_drawdown": 0.014243273279904255,
+      "trades": 3068
+    }
+  },
+  "ablations": {
+    "buy_hold_spy_oos": {
+      "n": 1260,
+      "sharpe": 0.8410492794063705,
+      "profit_factor": 1.1720566968946031,
+      "max_drawdown": 0.3371726713072691,
+      "trades": 1
+    },
+    "random_exposure_matched_oos": {
+      "n": 1260,
+      "sharpe": 0.32102253228314503,
+      "profit_factor": 1.2058374632322009,
+      "max_drawdown": 0.12742743865309586,
+      "trades": 688
+    },
+    "inverse_regime_oos": {
+      "n": 1260,
+      "sharpe": 0.8371489055840587,
+      "profit_factor": 1.1707184466176261,
+      "max_drawdown": 0.018934779377113124,
+      "trades": 2946
+    }
+  },
+  "benchmark": {
+    "ir_vs_buy_hold_oos": -0.7340472333003278,
+    "bootstrap_p_one_sided_oos": 0.9533333333333334
+  },
+  "perturbation_min_ratio": 0.9412136643223474,
+  "wf_stability_ratio_oos_to_train": 1.0,
+  "worst_regime_rolling252_sharpe_oos": -0.6222901184099006,
+  "gates": {
+    "sharpe_ge_1": true,
+    "trades_ge_200": true,
+    "profit_factor_ge_1_3": false,
+    "max_dd_le_15pct": true,
+    "wf_stability_ge_0_7": true,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_ir_ge_0": false,
+    "perturbation_ge_0_5": true
+  },
+  "verdict": "REJECT",
+  "passed_gates": 5,
+  "failed_gates": [
+    "profit_factor_ge_1_3",
+    "worst_regime_ge_0_3",
+    "benchmark_p_le_0_05_ir_ge_0"
+  ],
+  "notes": "Repo-new TLT-SHY ETF term-spread momentum observable; honest adjacency to NF-11/NF-11r (unexecuted rate-index slope root) and H92/H96 (TLT vs SPY). Free PIT yfinance data."
+}

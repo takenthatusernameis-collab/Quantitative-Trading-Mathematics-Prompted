@@ -7139,3 +7139,24 @@ published/certified artifact modified; `src/qtr` unchanged.
 
 **Lineage map (H140 REJECT):**
 | SPY timing from monthly options-expiration flow/pin-proximity regime (options flow / supply constraints) | H140 (NF-20261108-01) | Continuous vol-targeted long SPY reduced when z-score of trailing days-to-next-OPX flow pressure elevated; 1-bar delay, long-only | SPY daily + deterministic OPX calendar (yfinance), 2010–2025 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261108_01_spy_opx_flow/summary.json`) | Fails Sharpe 0.888/PF 1.196/worst-regime -0.727/benchmark-p 0.914/IR -0.611; random-exposure 0.325 weaker; inverse 0.158 no opposite edge; repo-new OPX flow-proximity pair, honest adjacency to H138/H139 |
+
+### Hypothesis H141: SPY Timing from TLT-vs-SHY Treasury Term-Spread Momentum Regime (pre-registered, Cycle 55)
+
+**Statement.** Continuously reducing vol-targeted long SPY exposure when the z-score of trailing TLT-vs-SHY Treasury term-spread momentum is deeply negative (long Treasuries underperforming short/cash-like Treasuries relative to trailing history — duration selloff / rates-stress proxy) improves OOS Val+Test Sharpe ≥1.0 with ≥200 trades, PF≥1.3, maxDD≤15%, WF stability≥0.7, worst-regime rolling-252 Sharpe≥0.3, benchmark p≤0.05 with IR≥0, perturbation ratio≥0.5.
+
+**Mechanism (duration-risk / rates term-structure transmission via ETF relative momentum).** Past-only observables:
+`ts_ret_t = r_TLT,t − r_SHY,t`; `mom_t = rolling_sum(ts_ret_t, mom_window)`; `z_t = (mom_t − rolling_mean(mom,z_window))/rolling_std(mom,z_window)`. Deeply negative `z` (TLT underperforming SHY vs trailing history) may proxy duration selloff, rates-tightening stress, or bear-steepening pressure that can transmit to equity risk premia; a continuous vol-targeted de-risking overlay `stress=((−z).clip(0)/entry_scale).clip(0,1)`, exposure `(1-stress)*vol_target` (1-bar execution delay via engine `signals.shift(1)`, long-only, max exposure `vol_target`) may reduce unfavorable exposure. Free, point-in-time from SPY/TLT/SHY closes.
+
+**Repo-relative novelty (honest).** No executed NF/H uses *TLT-vs-SHY ETF term-spread relative momentum* as a SPY timing observable. NF-11 (Treasury term-spread regime, ^IRX blocked) and NF-11r/NF-06-18 (TNX-FVX slope, data-resolved but **SAME root rates-slope mechanism**, never executed) targeted rate-index slope observables — different instruments/construction. The ETF TLT-SHY spread captures duration/term-premium via traded ETF returns (includes price/roll effects) and is a repo-new *executed* observable. H92 (NF-20261105-10, REJECT 3/9) used SPY-vs-TLT *equity-vs-duration* relative momentum (different pair: risky equity vs duration) and found no directional edge; H96 (REJECT 4/9) used SPY-TLT *correlation* (second moment). H94 used HYG-IEF credit excess return. H141 tests a *duration-vs-cash Treasury spread momentum* (TLT-SHY) as a rates-stress transmission signal — different pair, observable, and causal channel. **Honest adjacency** to the unexecuted NF-11 rates-slope root and to TLT-using families (H92/H96) is acknowledged; novelty scored moderately.
+
+**Null (H0).** Trailing TLT-vs-SHY term-spread momentum contains no incremental timing information; OOS gates fail vs buy-hold/random-exposure.
+
+**Pre-registration (Cycle 55, decision-ready before validation outcomes).** NF-ID **NF-20261108-02**. Runner `run_nf_20261108_02_tlt_shy_termspread.py`; tests `tests/test_nf_20261108_02_tlt_shy_termspread.py`. Universe SPY (traded) + TLT/SHY (signal), yfinance daily auto-adjust Close (free, PIT). Sample 2010-01-04→2025-01-03 (train 2516 / val 505 / test 755, aligned). Signal: z-score of trailing `rolling_sum(r_TLT-r_SHY, mom_window)` over `z_window` (past-only); continuous stress on deeply negative z reduces vol-targeted long SPY exposure by `(1-stress)*vol_target`; 1-bar delay; Equity CostModel defaults (1bp commission + 1bp spread); long-only, max exposure `vol_target` (scaled to `MAX_POS=0.5`). Bounded grid: `mom_window {21,63} × z_window {126} × entry_scale {1.0,1.5,2.0} × vol_target {0.10,0.15}` (12 combos); train-only 4-fold WF selection by mean train Sharpe; Test protected. No `src/qtr` change.
+
+**Gates (OOS Val+Test, pre-registered).** Sharpe >= 1.0, trades >= 200, PF >= 1.3, max DD <= 15%, WF stability >= 0.7, worst-regime rolling-252 Sharpe >= 0.3, benchmark p <= 0.05 with IR >= 0 vs buy-hold SPY, perturbation min ratio >= 0.5.
+
+**Ablations (pre-registered).** Buy-hold SPY, random-exposure-matched, inverse regime (de-risk when term-spread momentum strongly positive — pre-registered falsifier).
+
+**Costs/constraints.** Equity CostModel defaults. Free/public data only. `src/qtr` unchanged. No published/certified artifact modified. No gate weakening.
+
+**Falsifiers.** Random-exposure comparable or better; inverse not clearly opposite; benchmark fails; fragile to perturbation; worst-regime collapse.

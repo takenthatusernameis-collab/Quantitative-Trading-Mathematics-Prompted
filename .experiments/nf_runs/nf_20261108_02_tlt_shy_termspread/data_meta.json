@@ -1,0 +1,11 @@
+{
+  "universe": [
+    "SPY",
+    "TLT",
+    "SHY"
+  ],
+  "rows": 3776,
+  "start": "2010-01-04",
+  "end": "2025-01-03",
+  "source": "yfinance auto_adjust"
+}
