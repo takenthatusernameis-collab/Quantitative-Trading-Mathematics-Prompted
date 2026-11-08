@@ -6,8 +6,8 @@ level* (as opposed to a term *spread* or *slope*) as the SPY timing observable.
 H141 (NF-20261108-02, REJECT 5/8) tested TLT-vs-SHY Treasury term-spread
 momentum (duration-vs-cash relative momentum, a *spread*). H92/H96/H145 used
 equity-vs-duration or equity-vs-bond relative momentum / correlation. NF-08-17
-was a deferred/incomplete stub (docstring-only, unverified signal mapping);
-H154 is the first verified execution of the short-rate-level channel.
+was a deferred/incomplete stub (docstring-only / broken runner in HEAD commit);
+H154 completes it with a verified, executable mapping.
 
 Mechanism (short-rate level / monetary-tightness transmission). When the
 short-term risk-free rate is abnormally elevated relative to its trailing
@@ -27,8 +27,8 @@ abnormally weak = yields high/tight) =
 `((-z).clip(0)/entry_scale).clip(0,1)`. Exposure `(1-stress)*vol_target*vscale`.
 
 Note on ^IRX: direct 13-week T-bill yield index is NOT used; yfinance ^IRX has
-non-positive values (min -0.105, 2020) rejected by engine fail-closed
-non-positive-price screen. SHY is clean (3776 rows, 0 non-positive, 2010-2025).
+non-positive values (e.g., 2020) that fail the engine's non-positive-price
+screen. SHY is clean (0 non-positive, 2010-2025, free yfinance).
 
 Null (H0). Trailing short-rate level proxy (SHY cumulative-return z-score)
 contains no incremental SPY timing information; OOS gates fail vs
@@ -37,8 +37,8 @@ buy-hold/random-exposure.
 Pre-registration (Cycle 68, decision-ready before validation outcomes).
 NF-ID NF-20261108-17 (completing deferred stub). Hypothesis H154. Universe SPY
 (traded) + SHY (signal), yfinance daily auto-adjust Close (free, PIT). Sample
-2010-01-04->2025-01-03 (train 2516 / val 505 / test 755, aligned). Selection:
-train-only 4-fold WF mean Sharpe. Test protected. No src/qtr change.
+2010-01-04->2025-01-03 (train <=2019-12-31 / val <=2021-12-31 / test >2021).
+Selection: train-only 4-fold WF mean Sharpe. Test protected. No src/qtr change.
 
 Gates (OOS Val+Test): Sharpe>=1.0, trades>=200, PF>=1.3, maxDD<=15%,
 WF stability>=0.7, worst-regime rolling-252 Sharpe>=0.3, benchmark p<=0.05
@@ -55,416 +55,370 @@ benchmark fails; fragile; worst-regime collapse.
 from __future__ import annotations
 
 import json
+import sys
 import time
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
-import yfinance as yf
-from qtr.config import Settings
-from scipy import stats
+ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT / "src"))
 
-from qtr.backtest.engine import BacktestConfig, BacktestEngine, CostModel
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
+
+from qtr.backtest.engine import (  # noqa: E402
+    AssetClass,
+    BacktestConfig,
+    CostModel,
+    run_backtest,
+)
+from qtr.validation.statistics import sharpe_ratio  # noqa: E402
+
+EXPERIMENT_DESC = (
+    "NF-20261108-17/H154: SPY timing from short-rate level regime via SHY "
+    "cumulative-return z-score. Stress on negative z (tight/high short-rate proxy); "
+    "de-risk vol-targeted long SPY. 1-bar delay. Train-only WF selection; Test "
+    "protected; OOS Val+Test gates. Completes deferred NF-08-17 stub."
+)
 
 SPY = "SPY"
 SHY = "SHY"
 UNIVERSE = [SPY, SHY]
+DATA_START = "2010-01-01"
+DATA_END = "2025-01-05"
 TRAIN_END = "2019-12-31"
-VAL_END = "2022-12-31"
+VAL_END = "2021-12-31"
+SEED = 154
+INITIAL_CAPITAL = 1_000_000.0
 MAX_POS = 0.5
-WF_FOLDS = 4
-REALIZED_VOL_LOOKBACK = 21
-TARGET_VOL_SCALE = 0.10
-GRID = {
-    "shy_window": [21, 63, 126],
-    "z_window": [126, 252],
-    "entry_scale": [1.0, 2.0],
-    "vol_target": [0.10, 0.15],
-}
-BENCH_GATES = {
-    "min_sharpe": 1.0,
-    "min_trades": 200,
-    "min_pf": 1.3,
-    "max_dd": 0.15,
-    "min_wf_stability": 0.7,
-    "min_worst_regime_sharpe": 0.3,
-    "max_benchmark_p": 0.05,
-    "min_perturbation_ratio": 0.5,
-}
+WF_FOLDS_SELECTION = 4
+
+SHY_WINDOWS = [21, 63, 126]
+Z_WINDOWS = [126, 252]
+ENTRY_SCALES = [1.0, 2.0]
+VOL_TARGETS = [0.10, 0.15]
 
 
-def _to_series(obj: pd.Series | pd.DataFrame) -> pd.Series:
-    if isinstance(obj, pd.DataFrame):
-        return obj.iloc[:, 0].astype(float)
-    return obj.astype(float)
+def _fetch() -> pd.DataFrame:
+    import yfinance as yf
+
+    raw = yf.download(UNIVERSE, start=DATA_START, end=DATA_END, progress=False, auto_adjust=True)
+    if isinstance(raw.columns, pd.MultiIndex):
+        close = raw["Close"][UNIVERSE]
+    else:
+        close = raw[UNIVERSE]
+    df = close.dropna().sort_index()
+    df = df[(df > 0).all(axis=1)]
+    if df.empty:
+        raise RuntimeError("empty price data")
+    return df
 
 
-def fetch_data() -> pd.DataFrame:
-    raw = yf.download(
-        UNIVERSE,
-        start="2010-01-01",
-        end="2025-01-05",
-        auto_adjust=True,
-        progress=False,
+def _splits(index: pd.DatetimeIndex):
+    train = pd.Series(index <= pd.Timestamp(TRAIN_END), index=index)
+    val = pd.Series(
+        (index > pd.Timestamp(TRAIN_END)) & (index <= pd.Timestamp(VAL_END)), index=index
     )
-    if raw.empty:
-        raise RuntimeError("yfinance returned empty data")
-    close = raw["Close"] if isinstance(raw.columns, pd.MultiIndex) else raw[["Close"]]
-    if not isinstance(close, pd.DataFrame):
-        close = close.to_frame()
-    close = close.dropna(how="all").ffill().dropna()
-    missing = [c for c in UNIVERSE if c not in close.columns]
-    if missing:
-        raise RuntimeError(f"missing columns: {missing}")
-    close = close[UNIVERSE]
-    if (close <= 0).any().any():
-        bad = close.columns[(close <= 0).any()].tolist()
-        raise RuntimeError(f"non-positive prices: {bad}")
-    return close
+    test = pd.Series(index > pd.Timestamp(VAL_END), index=index)
+    return train, val, test
 
 
-def sharpe(returns: pd.Series) -> float:
-    r = pd.Series(returns).dropna()
-    if len(r) < 20:
-        return 0.0
-    sd = float(r.std(ddof=1))
-    if sd < 1e-12:
-        return 0.0
-    return float(r.mean() / sd * np.sqrt(252))
+def shy_cumret_z(prices: pd.DataFrame, shy_window: int, z_window: int) -> pd.Series:
+    cumret = prices[SHY] / prices[SHY].shift(int(shy_window)) - 1.0
+    mp = max(30, int(z_window) // 2)
+    mu = cumret.rolling(int(z_window), min_periods=mp).mean()
+    sd = cumret.rolling(int(z_window), min_periods=mp).std()
+    return (cumret - mu) / sd.replace(0.0, np.nan)
 
 
-def profit_factor(returns: pd.Series) -> float:
-    r = pd.Series(returns).dropna()
-    gains = float(r[r > 0].sum())
-    losses = float(-r[r < 0].sum())
-    if losses < 1e-12:
-        return float("inf") if gains > 0 else 0.0
-    return gains / losses
+def _vol_scale(prices: pd.DataFrame, vol_target: float, lookback: int = 21) -> pd.Series:
+    rv = prices[SPY].pct_change().rolling(lookback, min_periods=10).std() * np.sqrt(252)
+    scale = (float(vol_target) / rv.replace(0.0, np.nan)).clip(0.0, 3.0)
+    return scale.reindex(prices.index).fillna(0.0)
 
 
-def max_drawdown(equity: pd.Series) -> float:
-    e = pd.Series(equity).dropna()
-    if e.empty:
-        return 0.0
-    peak = e.cummax()
-    dd = (e - peak) / peak.replace(0.0, np.nan)
-    return float(dd.min())
+def make_signals(prices: pd.DataFrame, params: dict) -> pd.DataFrame:
+    z = shy_cumret_z(prices, params["shy_window"], params["z_window"])
+    # pre-registered: stress on negative z (SHY weak = yields high/tight)
+    stress = ((-z).clip(lower=0.0) / float(params["entry_scale"])).clip(0.0, 1.0)
+    raw = (1.0 - stress) * float(params["vol_target"])
+    vscale = _vol_scale(prices, params["vol_target"])
+    expo = (raw * vscale).fillna(0.0).clip(lower=0.0, upper=MAX_POS)
+    sig = pd.DataFrame({SPY: expo, SHY: 0.0}, index=prices.index)
+    sig.attrs["z"] = z
+    return sig
 
 
-def target_vol_scale(spy_close: pd.Series) -> pd.Series:
-    rets = spy_close.pct_change(fill_method=None)
-    rv = rets.rolling(REALIZED_VOL_LOOKBACK).std() * np.sqrt(252)
-    scale = TARGET_VOL_SCALE / rv.replace(0.0, np.nan)
-    return scale.clip(0.1, 2.0).fillna(0.1)
-
-
-def zscore(s: pd.Series, window: int) -> pd.Series:
-    m = s.rolling(window, min_periods=max(20, window // 2)).mean()
-    sd = s.rolling(window, min_periods=max(20, window // 2)).std()
-    return (s - m) / sd.replace(0.0, np.nan)
-
-
-def _regime_labels(spy_close: pd.Series) -> pd.Series:
-    ma = spy_close.rolling(252, min_periods=126).mean()
-    ret63 = spy_close.pct_change(63)
-    return pd.Series(
-        np.select(
-            [spy_close > ma, (spy_close <= ma) & (ret63 > 0), (spy_close <= ma) & (ret63 <= 0)],
-            ["bull", "sideways", "bear"],
-            default="unknown",
-        ),
-        index=spy_close.index,
-    )
-
-
-def worst_regime_sharpe(returns: pd.Series, spy_close: pd.Series) -> float:
-    labels = _regime_labels(spy_close)
-    idx = returns.index.intersection(labels.index)
-    vals = [
-        sharpe(returns.loc[idx][labels.loc[idx] == regime])
-        for regime in ["bull", "sideways", "bear"]
-        if (labels.loc[idx] == regime).sum() >= 30
-    ]
-    return float(min(vals)) if vals else 0.0
-
-
-def make_signals(
-    prices: pd.DataFrame,
-    *,
-    shy_window: int,
-    z_window: int,
-    entry_scale: float,
-    vol_target: float,
-) -> pd.DataFrame:
-    # SHY falls when yields rise (tight). Positive cumret = loose; negative = tight.
-    shy_cumret = prices[SHY] / prices[SHY].shift(shy_window) - 1.0
-    z = zscore(shy_cumret, z_window)
-    # Pre-registered: stress on negative z (tight/abnormally high short rate).
-    stress = ((-z).clip(lower=0.0) / max(entry_scale, 1e-9)).clip(0.0, 1.0)
-    vscale = target_vol_scale(prices[SPY]) * (vol_target / TARGET_VOL_SCALE)
-    exposure = (1.0 - stress) * vscale
-    exposure = exposure.clip(lower=0.0)
-    out = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
-    out[SPY] = exposure.fillna(0.0)
-    return out.clip(-MAX_POS, MAX_POS)
-
-
-def make_signals_inverse(
-    prices: pd.DataFrame,
-    *,
-    shy_window: int,
-    z_window: int,
-    entry_scale: float,
-    vol_target: float,
-) -> pd.DataFrame:
-    shy_cumret = prices[SHY] / prices[SHY].shift(shy_window) - 1.0
-    z = zscore(shy_cumret, z_window)
-    # Inverse falsifier: stress on positive z (loose conditions).
-    stress = (z.clip(lower=0.0) / max(entry_scale, 1e-9)).clip(0.0, 1.0)
-    vscale = target_vol_scale(prices[SPY]) * (vol_target / TARGET_VOL_SCALE)
-    exposure = (1.0 - stress) * vscale
-    exposure = exposure.clip(lower=0.0)
-    out = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
-    out[SPY] = exposure.fillna(0.0)
-    return out.clip(-MAX_POS, MAX_POS)
-
-
-def _slice(prices: pd.DataFrame, start: str | None, end: str | None) -> pd.DataFrame:
-    idx = prices.index
-    m = pd.Series(True, index=idx)
-    if start is not None:
-        m &= idx >= pd.Timestamp(start)
-    if end is not None:
-        m &= idx <= pd.Timestamp(end)
-    return prices.loc[m]
-
-
-def run_bt(prices: pd.DataFrame, signals: pd.DataFrame):
-    cfg = BacktestConfig(
-        initial_cash=1_000_000.0,
-        max_position=MAX_POS,
+def _cfg() -> BacktestConfig:
+    return BacktestConfig(
+        initial_capital=INITIAL_CAPITAL,
+        cost_model=CostModel(equity_commission_bps=1.0, equity_spread_bps=1.0),
+        max_position_size=MAX_POS,
         max_leverage=1.0,
-        cost_model=CostModel(),
+        asset_class=AssetClass.EQUITY,
+        allow_short=False,
     )
-    engine = BacktestEngine(config=cfg, settings=Settings(random_seed=42))
-    aligned = signals.reindex(prices.index).fillna(0.0)
-    return engine.run(prices, aligned)
 
 
-def wf_train_sharpe(prices: pd.DataFrame, params: dict) -> float:
-    train = _slice(prices, None, TRAIN_END)
-    n = len(train)
-    if n < 500:
-        return -9.0
-    fold = n // WF_FOLDS
-    vals = []
-    for i in range(WF_FOLDS):
-        te = train.iloc[i * fold : n if i == WF_FOLDS - 1 else (i + 1) * fold]
-        if len(te) < 120:
-            continue
-        sig = make_signals(te, **params)
-        res = run_bt(te, sig)
-        vals.append(sharpe(res.returns))
-    return float(np.mean(vals)) if vals else -9.0
+def run_one(prices: pd.DataFrame, params: dict):
+    sig = make_signals(prices, params)
+    res = run_backtest(prices, sig, _cfg())
+    return {"result": res, "signals": sig, "z": sig.attrs["z"]}
 
 
-def perturbation_ratio(prices: pd.DataFrame, params: dict, selected_sharpe: float) -> float:
-    oos = _slice(prices, "2020-01-01", None)
-    if abs(selected_sharpe) < 1e-9:
-        return 0.0
+def _metrics_from_result(res, mask: pd.Series) -> dict:
+    eq = res.equity_curve.loc[res.equity_curve.index.intersection(mask.index[mask])]
+    if len(eq) < 30:
+        return {
+            "n": int(len(eq)),
+            "sharpe": float("nan"),
+            "profit_factor": float("nan"),
+            "max_drawdown": float("nan"),
+            "trades": 0,
+        }
+    ret = eq.pct_change().dropna()
+    neg = ret[ret < 0].abs().sum()
+    pf = float(ret[ret > 0].sum() / neg) if neg > 1e-12 else float("inf")
+    peak = eq.cummax()
+    mdd = float(((eq - peak) / peak.replace(0.0, np.nan)).min())
+    trades_df = res.trades
+    if (
+        trades_df is None
+        or (hasattr(trades_df, "empty") and trades_df.empty)
+        or len(trades_df) == 0
+    ):
+        ntr = 0
+    else:
+        td = trades_df
+        if "date" in td.columns:
+            tmask = pd.to_datetime(td["date"]).isin(eq.index)
+            ntr = int(tmask.sum())
+        else:
+            ntr = int(len(td))
+    return {
+        "n": int(len(ret)),
+        "sharpe": float(sharpe_ratio(ret)),
+        "profit_factor": pf,
+        "max_drawdown": mdd,
+        "trades": ntr,
+    }
+
+
+def wf_train_mean_sharpe(prices: pd.DataFrame, params: dict, train_mask: pd.Series) -> float:
+    idx = prices.index[train_mask]
+    if len(idx) < 400:
+        return float("nan")
+    splits = np.array_split(np.arange(len(idx)), WF_FOLDS_SELECTION)
+    sharpes = []
+    for i in range(1, len(splits)):
+        fold_idx = idx[splits[i]]
+        fmask = pd.Series(prices.index.isin(fold_idx), index=prices.index)
+        m = _metrics_from_result(run_one(prices, params)["result"], fmask)
+        if np.isfinite(m["sharpe"]):
+            sharpes.append(m["sharpe"])
+    return float(np.mean(sharpes)) if sharpes else float("nan")
+
+
+def perturbation_ratio(prices: pd.DataFrame, best: dict, oos_mask: pd.Series) -> float:
+    base = _metrics_from_result(run_one(prices, best)["result"], oos_mask)["sharpe"]
+    if not np.isfinite(base) or abs(base) < 1e-12:
+        return float("nan")
     ratios = []
-    for key, deltas in [
-        ("shy_window", [-1, 1]),
-        ("z_window", [-1, 1]),
-        ("entry_scale", [-0.2, 0.2]),
+    for k, delta in [
+        ("shy_window", 5),
+        ("z_window", 21),
+        ("entry_scale", 0.25),
+        ("vol_target", 0.02),
     ]:
-        base = float(params[key])
-        for d in deltas:
-            p = dict(params)
-            p[key] = type(params[key])(base + d)
-            if key != "entry_scale":
-                p[key] = int(max(5, p[key]))
-            else:
-                p[key] = float(max(0.2, p[key]))
-            res = run_bt(oos, make_signals(oos, **p))
-            s = sharpe(res.returns)
-            ratios.append(min(s / selected_sharpe, 2.0))
-    return float(np.min(ratios)) if ratios else 0.0
-
-
-def main() -> None:
-    t0 = time.time()
-    prices = fetch_data()
-    train = _slice(prices, None, TRAIN_END)
-    val = _slice(prices, "2020-01-01", VAL_END)
-    test = _slice(prices, "2023-01-01", None)
-    oos = _slice(prices, "2020-01-01", None)
-
-    rows = []
-    for sw in GRID["shy_window"]:
-        for zw in GRID["z_window"]:
-            if zw < sw:
+        for sign in (-1, 1):
+            p = dict(best)
+            alt = p[k] + sign * delta
+            if k in ("shy_window", "z_window"):
+                alt = int(max(5, round(alt)))
+            p[k] = type(best[k])(alt) if not isinstance(best[k], float) else float(alt)
+            try:
+                s = _metrics_from_result(run_one(prices, p)["result"], oos_mask)["sharpe"]
+            except Exception:
                 continue
-            for es in GRID["entry_scale"]:
-                for vt in GRID["vol_target"]:
-                    params = {
-                        "shy_window": sw,
-                        "z_window": zw,
-                        "entry_scale": es,
-                        "vol_target": vt,
-                    }
-                    wf = wf_train_sharpe(prices, params)
-                    tr = run_bt(train, make_signals(train, **params))
-                    rows.append(
-                        {**params, "wf_train_sharpe": wf, "train_sharpe": sharpe(tr.returns)}
+            if np.isfinite(s):
+                ratios.append(s / base)
+    return float(np.min(ratios)) if ratios else float("nan")
+
+
+def worst_regime_sharpe(prices: pd.DataFrame, best: dict, oos_mask: pd.Series) -> float:
+    res = run_one(prices, best)["result"]
+    eq = res.equity_curve.loc[res.equity_curve.index.intersection(prices.index[oos_mask])]
+    ret = eq.pct_change().dropna()
+    if len(ret) < 252:
+        return float("nan")
+    vals = [float(sharpe_ratio(ret.iloc[i - 252 : i])) for i in range(252, len(ret) + 1)]
+    vals = [v for v in vals if np.isfinite(v)]
+    return float(np.min(vals)) if vals else float("nan")
+
+
+def benchmark_buy_hold(prices: pd.DataFrame, mask: pd.Series) -> dict:
+    p = prices.loc[mask, SPY]
+    ret = p.pct_change().dropna()
+    peak = p.cummax()
+    mdd = float(((p - peak) / peak).min())
+    neg = ret[ret < 0].abs().sum()
+    pf = float(ret[ret > 0].sum() / neg) if neg > 1e-12 else float("inf")
+    return {
+        "sharpe": float(sharpe_ratio(ret)),
+        "profit_factor": pf,
+        "max_drawdown": mdd,
+        "trades": 1,
+    }
+
+
+def random_exposure_matched(
+    prices: pd.DataFrame, mask: pd.Series, mean_expo: float, seed: int
+) -> dict:
+    rng = np.random.default_rng(seed)
+    p = prices.loc[mask, SPY]
+    ret = p.pct_change().dropna()
+    expo = pd.Series(rng.uniform(0, 1, len(ret)), index=ret.index)
+    expo = expo * (mean_expo / expo.mean()) if expo.mean() > 1e-12 else expo
+    expo = expo.clip(0.0, MAX_POS)
+    strat = (ret * expo.shift(1).fillna(0.0)).dropna()
+    peak = (1 + strat).cumprod().cummax()
+    eq = (1 + strat).cumprod()
+    mdd = float(((eq - peak) / peak).min())
+    neg = strat[strat < 0].abs().sum()
+    pf = float(strat[strat > 0].sum() / neg) if neg > 1e-12 else float("inf")
+    ntr = int((expo.diff().abs().fillna(0) > 1e-6).sum())
+    return {
+        "sharpe": float(sharpe_ratio(strat)),
+        "profit_factor": pf,
+        "max_drawdown": mdd,
+        "trades": ntr,
+    }
+
+
+def inverse_regime(prices: pd.DataFrame, params: dict) -> dict:
+    # pre-registered falsifier: de-risk when SHY is strong (positive z = loose)
+    z = shy_cumret_z(prices, params["shy_window"], params["z_window"])
+    stress = (z.clip(lower=0.0) / float(params["entry_scale"])).clip(0.0, 1.0)
+    raw = (1.0 - stress) * float(params["vol_target"])
+    vscale = _vol_scale(prices, params["vol_target"])
+    expo = (raw * vscale).fillna(0.0).clip(lower=0.0, upper=MAX_POS)
+    sig = pd.DataFrame({SPY: expo, SHY: 0.0}, index=prices.index)
+    res = run_backtest(prices, sig, _cfg())
+    oos = pd.Series((prices.index > pd.Timestamp(TRAIN_END)), index=prices.index)
+    return _metrics_from_result(res, oos)
+
+
+def main():
+    t0 = time.time()
+    prices = _fetch()
+    train_m, val_m, test_m = _splits(prices.index)
+    oos_m = val_m | test_m
+
+    grid = []
+    for shy_window in SHY_WINDOWS:
+        for z_window in Z_WINDOWS:
+            if z_window < shy_window:
+                continue
+            for entry_scale in ENTRY_SCALES:
+                for vol_target in VOL_TARGETS:
+                    p = dict(
+                        shy_window=shy_window,
+                        z_window=z_window,
+                        entry_scale=entry_scale,
+                        vol_target=vol_target,
                     )
-
-    grid = pd.DataFrame(rows).sort_values("wf_train_sharpe", ascending=False).reset_index(drop=True)
-    best = grid.iloc[0][["shy_window", "z_window", "entry_scale", "vol_target"]].to_dict()
+                    wf = wf_train_mean_sharpe(prices, p, train_m)
+                    grid.append({**p, "wf_train_mean_sharpe": wf})
+    grid_df = pd.DataFrame(grid).sort_values("wf_train_mean_sharpe", ascending=False)
     best = {
-        "shy_window": int(best["shy_window"]),
-        "z_window": int(best["z_window"]),
-        "entry_scale": float(best["entry_scale"]),
-        "vol_target": float(best["vol_target"]),
+        k: (int(v) if k in ("shy_window", "z_window") else float(v))
+        for k, v in grid_df.iloc[0][["shy_window", "z_window", "entry_scale", "vol_target"]].items()
     }
 
-    oos_sig = make_signals(oos, **best)
-    oos_res = run_bt(oos, oos_sig)
-    oos_ret = oos_res.returns
-    spy_oos_ret = oos[SPY].pct_change(fill_method=None).reindex(oos_ret.index).fillna(0.0)
-    common = pd.concat([oos_ret.rename("strat"), spy_oos_ret.rename("spy")], axis=1).dropna()
-    excess = common["strat"] - common["spy"]
-    ir = (
-        float(excess.mean() / excess.std(ddof=1) * np.sqrt(252))
-        if float(excess.std(ddof=1)) > 1e-12
-        else 0.0
+    oos_res = run_one(prices, best)["result"]
+    oos_met = _metrics_from_result(oos_res, oos_m)
+    bh = benchmark_buy_hold(prices, oos_m)
+    eq = oos_res.equity_curve.loc[oos_res.equity_curve.index.intersection(prices.index[oos_m])]
+    strat_ret = eq.pct_change().dropna()
+    bh_ret = prices.loc[oos_m, SPY].pct_change().reindex(strat_ret.index).dropna()
+    common = strat_ret.index.intersection(bh_ret.index)
+    diff = (strat_ret.loc[common] - bh_ret.loc[common]).values
+    rng = np.random.default_rng(SEED)
+    boots = [rng.choice(diff, size=len(diff), replace=True).mean() * 252 for _ in range(2000)]
+    ir = float(diff.mean() / (diff.std() + 1e-12) * np.sqrt(252))
+    p_bench = float(np.mean(np.array(boots) <= 0.0))
+    wf_stab = (
+        float(oos_met["sharpe"] / grid_df.iloc[0]["wf_train_mean_sharpe"])
+        if np.isfinite(grid_df.iloc[0]["wf_train_mean_sharpe"])
+        and abs(grid_df.iloc[0]["wf_train_mean_sharpe"]) > 1e-12
+        else float("nan")
     )
-    ttest_p = (
-        float(stats.ttest_1samp(excess.values, 0.0, alternative="greater").pvalue)
-        if len(excess) > 20
-        else 1.0
-    )
-
-    wf = float(best_row_wf(grid))
-    worst = worst_regime_sharpe(oos_ret, oos[SPY])
-    sel_oos_sharpe = sharpe(oos_ret)
-    pert = perturbation_ratio(prices, best, sel_oos_sharpe)
-
-    # ablations
-    bh = oos[SPY].pct_change(fill_method=None).dropna()
-    rng = np.random.default_rng(42)
-    rand_exp = pd.Series(
-        rng.uniform(0.0, oos_sig[SPY].max() if oos_sig[SPY].max() > 0 else 0.15, len(oos)),
-        index=oos.index,
-    )
-    rand_sig = pd.DataFrame(0.0, index=oos.index, columns=oos.columns)
-    rand_sig[SPY] = rand_exp
-    rand_res = run_bt(oos, rand_sig)
-    inv_res = run_bt(oos, make_signals_inverse(oos, **best))
-
-    oos_met = {
-        "sharpe": sharpe(oos_ret),
-        "profit_factor": profit_factor(oos_ret),
-        "max_drawdown": max_drawdown(oos_res.equity_curve),
-        "trades": int(oos_res.trade_count),
-        "wf_stability": wf / max(float(grid.iloc[0]["train_sharpe"]), 1e-9)
-        if float(grid.iloc[0]["train_sharpe"]) > 0
-        else 0.0,
-        "worst_regime_sharpe": worst,
-        "benchmark_p": ttest_p,
-        "information_ratio": ir,
-        "perturbation_min_ratio": pert,
-    }
-    # WF stability: OOS-like check vs train; use train sharpe of selected config
-    sel_train = run_bt(train, make_signals(train, **best))
-    sel_val = run_bt(val, make_signals(val, **best))
-    sel_test = run_bt(test, make_signals(test, **best))
-    tr_s = sharpe(sel_train.returns)
-    oos_fold_s = sharpe(pd.concat([sel_val.returns, sel_test.returns]).dropna())
-    oos_met["wf_stability"] = float(oos_fold_s / tr_s) if tr_s > 1e-9 else 0.0
+    worst = worst_regime_sharpe(prices, best, oos_m)
+    pert = perturbation_ratio(prices, best, oos_m)
 
     gates = {
-        "sharpe>=1.0": oos_met["sharpe"] >= BENCH_GATES["min_sharpe"],
-        "trades>=200": oos_met["trades"] >= BENCH_GATES["min_trades"],
-        "profit_factor>=1.3": oos_met["profit_factor"] >= BENCH_GATES["min_pf"],
-        "max_dd<=15%": abs(oos_met["max_drawdown"]) <= BENCH_GATES["max_dd"],
-        "wf_stability>=0.7": oos_met["wf_stability"] >= BENCH_GATES["min_wf_stability"],
-        "worst_regime_sharpe>=0.3": oos_met["worst_regime_sharpe"]
-        >= BENCH_GATES["min_worst_regime_sharpe"],
-        "benchmark_p<=0.05_IR>=0": (oos_met["benchmark_p"] <= BENCH_GATES["max_benchmark_p"])
-        and (oos_met["information_ratio"] >= 0.0),
-        "perturbation_min_ratio>=0.5": oos_met["perturbation_min_ratio"]
-        >= BENCH_GATES["min_perturbation_ratio"],
+        "sharpe_ge_1": oos_met["sharpe"] >= 1.0,
+        "trades_ge_200": oos_met["trades"] >= 200,
+        "pf_ge_1_3": oos_met["profit_factor"] >= 1.3,
+        "maxdd_le_15pct": (abs(oos_met["max_drawdown"]) <= 0.15)
+        if np.isfinite(oos_met["max_drawdown"])
+        else False,
+        "wf_stability_ge_0_7": (wf_stab >= 0.7) if np.isfinite(wf_stab) else False,
+        "worst_regime_ge_0_3": (worst >= 0.3) if np.isfinite(worst) else False,
+        "benchmark_p_le_0_05_ir_ge_0": (p_bench <= 0.05 and ir >= 0.0),
+        "perturbation_ge_0_5": (pert >= 0.5) if np.isfinite(pert) else False,
     }
-    passed = int(sum(gates.values()))
-    verdict = f"REJECT {passed}/8" if passed < 8 else f"PASS {passed}/8"
+    passed = sum(gates.values())
+    verdict = "PASS" if passed == len(gates) else "REJECT"
 
-    ablations = {
-        "buy_hold_spy": {
-            "sharpe": sharpe(bh),
-            "pf": profit_factor(bh),
-            "max_dd": max_drawdown((1 + bh).cumprod()),
-            "trades": 1,
-        },
-        "random_exposure_matched": {
-            "sharpe": sharpe(rand_res.returns),
-            "pf": profit_factor(rand_res.returns),
-            "max_dd": max_drawdown(rand_res.equity_curve),
-            "trades": int(rand_res.trade_count),
-        },
-        "inverse_regime_tightness_falsifier": {
-            "sharpe": sharpe(inv_res.returns),
-            "pf": profit_factor(inv_res.returns),
-            "max_dd": max_drawdown(inv_res.equity_curve),
-            "trades": int(inv_res.trade_count),
-        },
-    }
-
-    outdir = Path(".experiments/nf_runs/nf_20261108_17_short_rate_level")
-    outdir.mkdir(parents=True, exist_ok=True)
-    grid.to_csv(outdir / "grid.csv", index=False)
+    mean_expo = float(make_signals(prices, best)[SPY].loc[oos_m].mean())
     summary = {
+        "nf_id_exec": "NF-20261108-17",
         "hypothesis": "H154",
-        "nf_id": "NF-20261108-17",
         "verdict": verdict,
-        "gates_passed": passed,
-        "gates_total": 8,
-        "gate_detail": gates,
-        "oos_metrics": oos_met,
-        "ablations": ablations,
-        "best_params": best,
-        "selected_train_sharpe": tr_s,
-        "selection_criterion": "max train-only 4-fold walk-forward mean Sharpe",
-        "data": {
-            "source": "yfinance auto_adjust Close",
-            "universe": UNIVERSE,
-            "start": "2010-01-04",
-            "end": "2025-01-03",
-            "rows": int(len(prices)),
-            "train_rows": int(len(train)),
-            "val_rows": int(len(val)),
-            "test_rows": int(len(test)),
+        "gates_passed": f"{passed}/{len(gates)}",
+        "gates": gates,
+        "selected_params": best,
+        "selection_wf_train_mean_sharpe": float(grid_df.iloc[0]["wf_train_mean_sharpe"]),
+        "oos_val_test": oos_met,
+        "wf_stability_ratio": wf_stab,
+        "worst_regime_rolling252_sharpe": worst,
+        "benchmark_buy_hold_spy_oos": bh,
+        "benchmark_p": p_bench,
+        "information_ratio_vs_bh": ir,
+        "perturbation_min_ratio": pert,
+        "ablations": {
+            "buy_hold_spy": bh,
+            "random_exposure_matched": random_exposure_matched(prices, oos_m, mean_expo, SEED),
+            "inverse_regime": inverse_regime(prices, best),
         },
+        "timing_seconds": round(time.time() - t0, 2),
+        "data": {
+            "start": str(prices.index.min().date()),
+            "end": str(prices.index.max().date()),
+            "rows": int(len(prices)),
+        },
+        "description": EXPERIMENT_DESC,
         "notes": [
-            "NF-08-17 was a deferred/incomplete stub (docstring-only, unverified signal mapping); H154 completes it with verified mapping.",
-            "^IRX not used (non-positive values in 2020). SHY used as clean short-rate level proxy.",
-            "Pre-registered mapping: stress on negative SHY cumulative-return z (tight/high-rate proxy); inverse falsifier stresses positive z.",
+            "Completes deferred NF-08-17 stub with verified signal mapping (HEAD runner used invalid BacktestEngine/Settings API).",
+            "^IRX not used (non-positive yfinance values). SHY used as clean short-rate level proxy.",
+            "Pre-registered: stress on negative SHY cumulative-return z (tight/high-rate proxy); inverse falsifier stresses positive z.",
             "Repo-relative novelty honest: short-rate LEVEL vs H141 TLT-SHY spread momentum; rates-domain adjacency disclosed.",
             "src/qtr unchanged; no gate weakening; no published/certified artifact modified.",
         ],
-        "runtime_sec": round(time.time() - t0, 2),
     }
+
+    outdir = ROOT / ".experiments" / "nf_runs" / "nf_20261108_17_short_rate_level"
+    outdir.mkdir(parents=True, exist_ok=True)
     (outdir / "summary.json").write_text(json.dumps(summary, indent=2, default=str) + "\n")
+    grid_df.to_csv(outdir / "grid.csv", index=False)
     meta = {
         "universe": UNIVERSE,
         "train_end": TRAIN_END,
         "val_end": VAL_END,
         "rows": int(len(prices)),
-        "train": int(train.index <= pd.Timestamp(TRAIN_END)).sum()
-        if hasattr(train.index, "__len__")
-        else int(len(train)),
-        "val": int(len(val)),
-        "test": int(len(test)),
+        "train": int(train_m.sum()),
+        "val": int(val_m.sum()),
+        "test": int(test_m.sum()),
         "signal_mapping": "stress on negative z of SHY trailing cumulative return (tight/high-rate proxy)",
     }
     (outdir / "data_meta.json").write_text(json.dumps(meta, indent=2) + "\n")
@@ -475,10 +429,6 @@ def main() -> None:
             default=str,
         )
     )
-
-
-def best_row_wf(grid: pd.DataFrame) -> float:
-    return float(grid.iloc[0]["wf_train_sharpe"])
 
 
 if __name__ == "__main__":

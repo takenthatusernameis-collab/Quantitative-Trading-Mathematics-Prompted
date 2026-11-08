@@ -1,0 +1,76 @@
+{
+  "nf_id_exec": "NF-20261108-17",
+  "hypothesis": "H154",
+  "verdict": "REJECT",
+  "gates_passed": "4/8",
+  "gates": {
+    "sharpe_ge_1": false,
+    "trades_ge_200": true,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": true,
+    "wf_stability_ge_0_7": true,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_ir_ge_0": false,
+    "perturbation_ge_0_5": true
+  },
+  "selected_params": {
+    "shy_window": 21,
+    "z_window": 126,
+    "entry_scale": 1.0,
+    "vol_target": 0.15
+  },
+  "selection_wf_train_mean_sharpe": 1.2340194764761545,
+  "oos_val_test": {
+    "n": 1259,
+    "sharpe": 0.8883722355810074,
+    "profit_factor": 1.199394336234356,
+    "max_drawdown": -0.02664709782693319,
+    "trades": 3119
+  },
+  "wf_stability_ratio": 0.719901308298495,
+  "worst_regime_rolling252_sharpe": -0.8938396064630391,
+  "benchmark_buy_hold_spy_oos": {
+    "sharpe": 0.7502697087565058,
+    "profit_factor": 1.1531289579296475,
+    "max_drawdown": -0.3371727693638181,
+    "trades": 1
+  },
+  "benchmark_p": 0.9455,
+  "information_ratio_vs_bh": -0.715336087014364,
+  "perturbation_min_ratio": 0.6837823542387839,
+  "ablations": {
+    "buy_hold_spy": {
+      "sharpe": 0.7502697087565058,
+      "profit_factor": 1.1531289579296475,
+      "max_drawdown": -0.3371727693638181,
+      "trades": 1
+    },
+    "random_exposure_matched": {
+      "sharpe": 0.7883076616856575,
+      "profit_factor": 1.1826580260427813,
+      "max_drawdown": -0.05700342711514637,
+      "trades": 1258
+    },
+    "inverse_regime": {
+      "n": 1259,
+      "sharpe": 0.6729234819303878,
+      "profit_factor": 1.1433620601405774,
+      "max_drawdown": -0.039384611182339026,
+      "trades": 3102
+    }
+  },
+  "timing_seconds": 20.51,
+  "data": {
+    "start": "2010-01-04",
+    "end": "2025-01-03",
+    "rows": 3776
+  },
+  "description": "NF-20261108-17/H154: SPY timing from short-rate level regime via SHY cumulative-return z-score. Stress on negative z (tight/high short-rate proxy); de-risk vol-targeted long SPY. 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates. Completes deferred NF-08-17 stub.",
+  "notes": [
+    "Completes deferred NF-08-17 stub with verified signal mapping (HEAD runner used invalid BacktestEngine/Settings API).",
+    "^IRX not used (non-positive yfinance values). SHY used as clean short-rate level proxy.",
+    "Pre-registered: stress on negative SHY cumulative-return z (tight/high-rate proxy); inverse falsifier stresses positive z.",
+    "Repo-relative novelty honest: short-rate LEVEL vs H141 TLT-SHY spread momentum; rates-domain adjacency disclosed.",
+    "src/qtr unchanged; no gate weakening; no published/certified artifact modified."
+  ]
+}
