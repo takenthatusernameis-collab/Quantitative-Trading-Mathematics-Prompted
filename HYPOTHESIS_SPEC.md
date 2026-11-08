@@ -7515,3 +7515,32 @@ published/certified artifact modified; `src/qtr` unchanged.
 
 **Lineage map (H155 REJECT):**
 | SPY timing from 10-year Treasury yield-level regime (^TNX, long-end discount-rate/financial-conditions transmission) | H155 (NF-20261108-24) | Continuous vol-targeted long SPY reduced when ^TNX yield-level z-score abnormally positive (high long rate); 1-bar delay, long-only | SPY (traded) + ^TNX (signal), yfinance daily 2010–2025 | **REJECT** (5/8; `.experiments/nf_runs/nf_20261108_24_tnx_10y_level_spy/summary.json`) | Fails PF 1.250/worst-regime -0.289/benchmark-p 0.952/IR -0.696; Sharpe 1.091/DD -2.66%/trades 3413/WF 1.084/perturbation 0.990 pass; random-exposure 0.247 much weaker (not pure noise); inverse 0.837 weaker (direction supported, no benchmark edge); maturity-distinct from H154 short-rate SHY level (REJECT 4/8) with honest rates-domain adjacency; repo-new 10Y yield-level observable, no validated edge |
+
+## H156 — NF-20261108-28: UUP realized-volatility stress regime SPY timing (Cycle 70, executed REJECT 5/8 REAL)
+
+**NF-ID:** NF-20261108-28 (H156). **Status:** Pre-registered and executed REAL 2026-11-08 — **REJECT (5/8 gates)**. `src/qtr` unchanged. Free/public yfinance daily auto-adjust Close only.
+
+**Broad mechanism category:** FX volatility / global financial-conditions uncertainty transmission (second-moment USD risk). Repo-new executed observable as SPY timing: *UUP realized-volatility z-score stress*. Honest adjacency disclosed: H95 (NF-20261105-16, REJECT 3/9, 88 OOS trades, p=1.0/IR<0) used UUP *trailing strength/direction* (cumulative-return z-score with hysteresis) — a **first-moment/directional** FX observable and sparse construction; H156 uses a **second-moment** UUP RV observable (different moment/channel). Same RV-stress/z-score de-risking construction class as H151 (TLT RV, REJECT 5/8), H143 (overnight-gap RV, REJECT 4/8), H149 (GDX-GLD RV difference, REJECT 4/8) but different asset/mechanism (UUP/USD/FX volatility vs bond/miner SPY RV families). Distinct from H100 (MOVE implied rates vol, options-implied), H103/H106 (FXA/FXY directional FX), H95 (UUP direction). Novelty scored repo-relative on the executed UUP-RV observable, not a wholly new statistical method.
+
+**Statement.** Continuously reduce vol-targeted long SPY exposure when the z-score of trailing UUP realized volatility is abnormally elevated (positive z = high USD/FX uncertainty), earning net OOS (Val+Test) Sharpe ≥ 1.0 with ≥200 trades, PF ≥ 1.3, max DD ≤ 15%, WF stability ≥ 0.7, worst-regime rolling-252 Sharpe ≥ 0.3, benchmark p ≤ 0.05 vs buy-hold SPY with IR ≥ 0, and perturbation min ratio ≥ 0.5.
+
+**Null (H0).** Trailing UUP realized volatility (z-score) contains no incremental SPY timing information; OOS gates fail vs buy-hold/random-exposure.
+
+**Data / splits (PIT).** SPY, UUP daily yfinance auto-adjust Close (free). 3776 aligned rows 2010-01-04→2025-01-03 (Train 2516, 2010-01-04→2019-12-31; Val 505, 2020-01-01→2021-12-31; Test 755, 2022-01-01→2025-01-03, protected). `rv_t = rolling_std(pct_change(UUP), rv_window)*sqrt(252)`; `z_t = (rv_t - rolling_mean(rv,z_window))/rolling_std(rv,z_window)` past-only; stress `(z.clip(0)/entry_scale).clip(0,1)`; exposure `(1-stress)*vol_target*vscale`. 1-bar delay via `BacktestEngine` `signals.shift(1)`. Equity `CostModel` defaults (1bp commission + 1bp spread). Long-only, `MAX_POS=0.5`. Bounded grid: `rv_window {21,63} × z_window {126,252} × entry_scale {1.0,2.0} × vol_target {0.10,0.15}` (16). Train-only 4-fold WF selection by mean train Sharpe. Test protected.
+
+**Falsifiers.** Random-exposure comparable/better; inverse outperforms; benchmark fails; fragile; worst-regime collapse.
+
+**Ablations.** Buy-hold SPY; random-exposure-matched; **inverse regime** (de-risk when UUP RV abnormally LOW / negative z — pre-registered falsifier).
+
+**Runner:** `run_nf_20261108_28_uup_rv_stress_spy.py`. **Tests:** `tests/test_nf_20261108_28_uup_rv_stress_spy.py` (**7 passed**). `ruff check/format` clean.
+
+**Execution.** Artifact `.experiments/nf_runs/nf_20261108_28_uup_rv_stress_spy/summary.json` (+ `grid.csv`, `data_meta.json`, 13.24s). Selected (train-only 4-fold WF mean Sharpe 0.970): `rv_window=63, z_window=252, entry_scale=1.0, vol_target=0.15`.
+
+**Result — REJECT (5/8 gates).** OOS Val+Test (2885 engine trades, n=1259): Sharpe **1.158** (pass ≥1.0), PF **1.262** (fail ≥1.3), max DD **-2.21%** (pass ≤15%), trades **2885** (pass ≥200), WF stability **1.380** (pass ≥0.7), worst-regime rolling-252 Sharpe **-1.620** (fail ≥0.3), benchmark p **0.948** / IR **-0.670** (fail), perturbation min ratio **0.986** (pass ≥0.5).
+
+**Ablations (OOS).** Buy-hold SPY 0.750/1.153/-33.72%/1. Random-exposure-matched **0.229**/1.095/-3.27%/1404 (much weaker — structure present — but no benchmark edge). **Inverse regime** **0.485**/1.108/-2.92%/2470 — **much weaker than base** (direction supported, no benchmark edge).
+
+**Verdict rationale.** Fails 3/8 gates (PF, worst-regime, benchmark). Passes Sharpe/DD/trades/WF/perturbation. Random exposure much weaker (not pure noise) and inverse much weaker (direction supported), but **no benchmark-significant timing edge** (p=0.948, IR=−0.670) and worst-regime collapses (−1.620); PF 1.262 narrowly misses 1.3. Repo-new executed UUP realized-volatility observable (second-moment FX uncertainty) with honest adjacency to H95 (UUP direction, REJECT 3/9) and RV-stress construction class (H151/H143/H149) — **no validated edge** under pre-registered H156. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Lineage map (H156 REJECT):**
+| SPY timing from UUP realized-volatility stress regime (USD/FX volatility, global financial-conditions uncertainty) | H156 (NF-20261108-28) | Continuous vol-targeted long SPY reduced when z-score of trailing UUP RV abnormally positive (high USD volatility); 1-bar delay, long-only | SPY (traded) + UUP (signal), yfinance daily 2010–2025 | **REJECT** (5/8; `.experiments/nf_runs/nf_20261108_28_uup_rv_stress_spy/summary.json`) | Fails PF 1.262/worst-regime -1.620/benchmark-p 0.948/IR -0.670; Sharpe 1.158/DD -2.21%/trades 2885/WF 1.380/perturbation 0.986 pass; random-exposure 0.229 much weaker (not pure noise); inverse 0.485 much weaker (direction supported, no benchmark edge); repo-new UUP-RV (second-moment) observable, distinct from H95 UUP direction (REJECT 3/9) with honest RV-stress adjacency to H151/H143/H149 |

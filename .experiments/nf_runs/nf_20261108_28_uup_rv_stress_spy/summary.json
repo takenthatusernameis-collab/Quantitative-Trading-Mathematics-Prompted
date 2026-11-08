@@ -1,0 +1,85 @@
+{
+  "nf_id_exec": "NF-20261108-28",
+  "hypothesis": "H156",
+  "verdict": "REJECT",
+  "gates_passed": "5/8",
+  "gates": {
+    "sharpe_ge_1": true,
+    "trades_ge_200": true,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": true,
+    "wf_stability_ge_0_7": true,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_ir_ge_0": false,
+    "perturbation_ge_0_5": true
+  },
+  "selected_params": {
+    "rv_window": 63,
+    "z_window": 252,
+    "entry_scale": 1.0,
+    "vol_target": 0.15
+  },
+  "selection_wf_train_mean_sharpe": 0.9703905661653803,
+  "oos_val_test": {
+    "n": 1259,
+    "sharpe": 1.1580617123675712,
+    "profit_factor": 1.262179410428977,
+    "max_drawdown": -0.022090450268349684,
+    "trades": 2885
+  },
+  "train": {
+    "n": 2515,
+    "sharpe": 0.8392044631202263,
+    "profit_factor": 1.1897119671883667,
+    "max_drawdown": -0.03527400945099629,
+    "trades": 2885
+  },
+  "wf_stability_ratio": 1.3799518034756502,
+  "worst_regime_rolling252_sharpe": -1.6200824536653036,
+  "benchmark_buy_hold_spy_oos": {
+    "n": 1259,
+    "sharpe": 0.7502692169144282,
+    "profit_factor": 1.1531288034949894,
+    "max_drawdown": -0.3371725063561864,
+    "trades": 1
+  },
+  "benchmark_p": 0.948,
+  "information_ratio_vs_bh": -0.6696752348016627,
+  "perturbation_min_ratio": 0.9864785028672093,
+  "ablations": {
+    "buy_hold_spy": {
+      "n": 1259,
+      "sharpe": 0.7502692169144282,
+      "profit_factor": 1.1531288034949894,
+      "max_drawdown": -0.3371725063561864,
+      "trades": 1
+    },
+    "random_exposure_matched": {
+      "n": 1259,
+      "sharpe": 0.22916890385041483,
+      "profit_factor": 1.0950904083366284,
+      "max_drawdown": -0.03269441661557121,
+      "trades": 1404
+    },
+    "inverse_regime": {
+      "n": 1259,
+      "sharpe": 0.48472816436224836,
+      "profit_factor": 1.108347481370036,
+      "max_drawdown": -0.02915196746989446,
+      "trades": 2470
+    }
+  },
+  "timing_seconds": 13.24,
+  "data": {
+    "start": "2010-01-04",
+    "end": "2025-01-03",
+    "rows": 3776
+  },
+  "description": "NF-20261108-28/H156: SPY timing from UUP realized-volatility stress regime (USD/FX volatility transmission). z-score of trailing UUP RV; de-risk vol-targeted long SPY when UUP RV abnormally high (positive z). 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "notes": [
+    "Repo-new executed UUP realized-volatility (second-moment FX uncertainty) SPY-timing observable; distinct from H95 UUP strength/direction (REJECT 3/9, first moment, 88 trades).",
+    "Honest adjacency: same instrument (UUP) as H95 but different observable/channel; RV-stress construction class adjacent to H151 TLT RV (REJECT 5/8), H143 overnight-gap RV (REJECT 4/8), H149 GDX-GLD RV difference (REJECT 4/8) \u2014 different asset/mechanism (USD/FX volatility).",
+    "Pre-registered: stress on positive UUP RV z (abnormally high USD volatility); inverse falsifier stresses negative z.",
+    "src/qtr unchanged; no gate weakening; no published/certified artifact modified."
+  ]
+}
