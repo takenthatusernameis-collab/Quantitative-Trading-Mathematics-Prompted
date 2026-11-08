@@ -248,7 +248,7 @@ def evaluate_gates(oos_result, train_result, bench_oos, prices, oos_mask, params
     cmp = compare_to_benchmark(oos_result.returns, bench_oos.returns)
     ir = cmp.get("information_ratio")
     ir = 0.0 if ir is None or (isinstance(ir, float) and np.isnan(ir)) else float(ir)
-    pval = cmp.get("p_value")
+    pval = cmp.get("alpha_p_value")
     pval = 1.0 if pval is None or (isinstance(pval, float) and np.isnan(pval)) else float(pval)
     pert = _perturbation(prices.loc[oos_mask], params, cfg)
     pass_sh = bool(oos_sh >= GATES["min_sharpe"])

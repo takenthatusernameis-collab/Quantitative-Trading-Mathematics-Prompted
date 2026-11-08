@@ -351,7 +351,7 @@ def evaluate_gates(train_m, oos_m, wf_ratio, worst_regime, bench, perturb) -> tu
         "max_drawdown": abs(oos_m["max_drawdown"]) <= GATES["max_drawdown"],
         "wf_stability": wf_ratio >= GATES["min_walkforward_stability"],
         "worst_regime": worst_regime >= GATES["min_worst_regime_sharpe"],
-        "benchmark": bench["p_value"] <= GATES["max_p_value"]
+        "benchmark": bench["alpha_p_value"] <= GATES["max_p_value"]
         and bench["information_ratio"] >= GATES["min_information_ratio"],
         "perturbation": perturb["min_ratio_vs_optimum"] >= GATES["min_perturbed_sharpe_ratio"],
     }
@@ -422,10 +422,8 @@ def main() -> int:
     bench = compare_to_benchmark(strat_oos, bh_oos)
     bench_out = {
         "benchmark": f"buy_hold_{BENCHMARK}",
-        "p_value": float(bench.get("p_value", 1.0)),
+        "p_value": float(bench.get("alpha_p_value", 1.0)),
         "information_ratio": float(bench.get("information_ratio", 0.0)),
-        "strategy_sharpe": float(bench.get("strategy_sharpe", 0.0)),
-        "benchmark_sharpe": float(bench.get("benchmark_sharpe", 0.0)),
     }
     perturb = _perturbation(prices, volume, selected, oos_mask, oos_m["sharpe"])
     passed, gates = evaluate_gates(train_m, oos_m, wf_ratio, worst_regime, bench_out, perturb)
@@ -509,7 +507,7 @@ def main() -> int:
             "oos_max_dd": oos_m["max_drawdown"],
             "wf_ratio": wf_ratio,
             "worst_regime": worst_regime,
-            "benchmark_p": bench_out["p_value"],
+            "benchmark_p": bench_out["alpha_p_value"],
             "benchmark_ir": bench_out["information_ratio"],
             "perturb_min_ratio": perturb["min_ratio_vs_optimum"],
             "gates_passed": int(passed),

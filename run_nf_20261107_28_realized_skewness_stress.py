@@ -351,7 +351,7 @@ def evaluate_gates(oos_m, wf, worst, bench, perturb) -> tuple[bool, dict]:
         "max_drawdown": oos_m["max_drawdown"] >= -0.15,
         "wf_stability": wf >= 0.7,
         "worst_regime": worst >= 0.3,
-        "benchmark": bench["p_value"] <= 0.05 and bench["information_ratio"] >= 0.0,
+        "benchmark": bench["alpha_p_value"] <= 0.05 and bench["information_ratio"] >= 0.0,
         "perturbation": perturb["min_ratio_vs_optimum"] >= 0.5,
     }
     return all(gates.values()), gates

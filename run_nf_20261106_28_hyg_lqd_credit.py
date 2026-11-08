@@ -186,7 +186,7 @@ def evaluate_gates(oos_res, train_res, bench_res, prices, oos_mask, params, cfg)
 
     try:
         cmp = compare_to_benchmark(oos_res, bench_res)
-        pval = float(cmp.get("p_value", 1.0))
+        pval = float(cmp.get("alpha_p_value", 1.0))
         ir = float(cmp.get("information_ratio", float("nan")))
     except Exception:
         pval = 1.0

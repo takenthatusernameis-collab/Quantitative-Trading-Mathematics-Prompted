@@ -241,7 +241,7 @@ def evaluate_gates(
     wf = oos_sh / train_sh if train_sh > 0 else 0.0
     worst = _worst_regime_sharpe(oos_result.returns)
     cmp = compare_to_benchmark(oos_result.returns, bench_result.returns)
-    pval = cmp.get("p_value")
+    pval = cmp.get("alpha_p_value")
     ir = cmp.get("information_ratio")
     pert = _perturbation_ratio(prices, oos_mask, best, oos_sh, cfg)
     gates = {

@@ -167,7 +167,7 @@ def evaluate_gates(oos_res, train_res, bench_res, prices, oos_mask, params, cfg)
     wf_stab = (sr_oos / sr_train) if sr_train > 1e-12 else 0.0
     regime = _regime_sharpes(rets)
     cmp = compare_to_benchmark(rets, bench_rets)
-    pval = cmp.get("p_value") if isinstance(cmp, dict) else None
+    pval = cmp.get("alpha_p_value") if isinstance(cmp, dict) else None
     ir = cmp.get("information_ratio") if isinstance(cmp, dict) else None
     if pval is None:
         pval = 1.0

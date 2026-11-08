@@ -184,7 +184,7 @@ def evaluate_gates(oos_res, train_res, benchmark_oos, prices, oos_mask, selected
             oos_res.returns.fillna(0.0),
             benchmark_oos.returns.fillna(0.0),
         )
-        pval = float(cmp.get("p_value", 1.0))
+        pval = float(cmp.get("alpha_p_value", 1.0))
         ir = float(cmp.get("information_ratio", -1.0))
     except Exception:
         cmp = {}
