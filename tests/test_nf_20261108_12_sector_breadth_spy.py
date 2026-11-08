@@ -1,9 +1,81 @@
-import importlib.util
-import pathlib
-import py_compile
+from __future__ import annotations
 
-py_compile.compile("run_nf_20261108_12_sector_breadth_spy.py", doraise=True)
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(ROOT))
+
+import numpy as np
+import pandas as pd
+
+import run_nf_20261108_12_sector_breadth_spy as mod
 
 
-def test_compiles():
-    assert True
+def _fake_prices(n: int = 600, seed: int = 31) -> pd.DataFrame:
+    idx = pd.date_range("2015-01-02", periods=n, freq="B")
+    rng = np.random.default_rng(seed)
+    cols = {}
+    for c in mod.UNIVERSE:
+        cols[c] = 100 * (1 + pd.Series(rng.normal(0.0003, 0.01, n), index=idx)).cumprod()
+    return pd.DataFrame(cols, index=idx)
+
+
+def test_sector_breadth_in_unit_interval():
+    df = _fake_prices()
+    br = mod.sector_breadth(df, ma_window=150)
+    assert len(br) == len(df)
+    v = br.dropna()
+    assert (v >= 0.0).all() and (v <= 1.0).all()
+
+
+def test_breadth_z_finite_after_warmup():
+    df = _fake_prices()
+    br = mod.sector_breadth(df, ma_window=150)
+    z = mod.breadth_z(br, z_window=126)
+    assert len(z) == len(df)
+    assert z.iloc[300:].notna().any()
+
+
+def test_make_signals_bounds_and_sectors_zero():
+    df = _fake_prices()
+    sig = mod.make_signals(
+        df, {"ma_window": 150, "z_window": 126, "entry_scale": 1.5, "vol_target": 0.10}
+    )
+    assert list(sig.columns) == list(mod.UNIVERSE)
+    for a in mod.SECTORS:
+        assert (sig[a] == 0.0).all()
+    assert (sig["SPY"] >= 0.0).all()
+    assert (sig["SPY"] <= mod.MAX_POS + 1e-12).all()
+
+
+def test_metrics_from_result_safe():
+    df = _fake_prices()
+    out = mod.run_one(
+        df, {"ma_window": 150, "z_window": 126, "entry_scale": 1.5, "vol_target": 0.10}
+    )
+    m = mod._metrics_from_result(out["result"], pd.Series(True, index=df.index))
+    assert set(m.keys()) == {"n", "sharpe", "profit_factor", "max_drawdown", "trades"}
+    assert isinstance(m["trades"], int)
+
+
+def test_inverse_differs_from_base():
+    df = _fake_prices()
+    p = {"ma_window": 150, "z_window": 126, "entry_scale": 1.5, "vol_target": 0.10}
+    base = mod.make_signals(df, p)["SPY"]
+    br = mod.sector_breadth(df, p["ma_window"])
+    z = mod.breadth_z(br, p["z_window"])
+    stress = (z.clip(lower=0.0) / p["entry_scale"]).clip(0.0, 1.0)
+    raw = (1.0 - stress) * p["vol_target"]
+    inv = (raw * mod._vol_scale(df, p["vol_target"])).fillna(0.0).clip(0.0, mod.MAX_POS)
+    assert not np.allclose(base.values, inv.values)
+
+
+def test_random_and_benchmark():
+    df = _fake_prices()
+    mask = pd.Series(True, index=df.index)
+    r = mod.random_exposure_matched(df, mask, 0.05, 42)
+    assert "sharpe" in r and "trades" in r
+    b = mod.benchmark_buy_hold(df, mask)
+    assert b["trades"] == 1

@@ -2843,3 +2843,60 @@ Candidates proposed across >=3 broad categories, scored honestly (25/25/20/15/10
 | SPY timing from cross-sectional IVOL dispersion regime (cross-sectional volatility decomposition / higher-moment dispersion) | H146 (NF-20261107-11) | Continuous vol-targeted long SPY reduced when z-score of rolling cross-sectional std of per-asset IVOL (OLS residual vol vs SPY) is abnormally high (idiosyncratic disagreement/stress); 1-bar delay, long-only | SPY + 9 liquid ETFs daily (yfinance), 2010–2025 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261107_11_ivol_spread_spy/summary.json`) | Fails Sharpe 0.962/PF 1.198/worst-regime -1.423/benchmark-p 0.941/IR -0.695; maxdd -2.60%/trades 3205/WF 1.164/perturbation 0.952 pass; random-exposure 0.518 weaker; inverse 0.573 weaker (direction supported but no benchmark edge); repo-new cross-sectional IVOL-dispersion observable with honest adjacency to H93/H122/H125/H126/H144/H145 |
 
 **Cycle 60 complete (discovery + H146 execution).** H85–H146 all rejected/recorded. Cycle 61 required next: fresh directive §4 discovery, >=3 repo-new candidates across >=3 broad categories, pre-register and execute the **next unused H-ID after H146** (H24/H68–H73/H76–H79 unassigned, not recycled). No gate weakening; no published/certified artifact modification; no commit/push; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
+
+## Cycle 61 (2026-11-08) — Discovery + H147 execution (NF-20261108-12 sector participation breadth; REJECT 4/8)
+
+### Cycle 61 discovery (directive §4, >=3 repo-new mechanism candidates across >=3 broad mechanism categories)
+
+Lineage reconciled to H146: **H85–H146 all rejected/recorded**. Next unused H-ID: **H147** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified. Selection/validation used no protected-test feedback. Free/public yfinance data only.
+
+Candidates proposed across >=3 broad categories, scored honestly (25 novelty / 25 plausibility / 20 data+PIT / 15 falsifiability / 10 execution / 5 support). Independence justified from rejected construction classes: correlation H96/H127/H134/H137; RV-divergence H138/H139; OPX proximity H140; TOQ/H91 calendar; IV spread H125/H126; overnight/gap direction H18/H87; overnight-gap RV H143; Amihud H121; RV term structure H136; EEM-SPY relmom H144; GLD-SPY relmom H145; cross-sectional IVOL dispersion H146; FX-strength z-score adjacency H95/H103/H106; RSP/SPY ratio-momentum breadth H115 (H147 uses materially different MA-participation observable).
+
+| Cycle-61 candidate | Broad mechanism category | N 25% | E 25% | D 20% | F 15% | X 10% | S 5% | Weighted |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261108-12 SPY timing from cross-sector MA-participation breadth (fraction of 9 SPDR sector ETFs above trailing MA; de-risk when breadth z abnormally negative) — **H147 (selected/executed)** | Market structure / participation breadth transmission | 3 | 3 | 5 | 4 | 5 | 2 | **3.60** |
+| NF-20261107-52 SPY timing from EEM-vs-SPY realized-vol divergence (de-risk when EM-vs-US RV divergence z abnormally high; reassessed) | Cross-asset volatility transmission / global risk transmission | 3 | 3 | 5 | 4 | 4 | 2 | **3.50** |
+| NF-20261108-07 SPY timing from TIP-vs-IEF inflation-compensation (breakeven-proxy) momentum (reassessed NF-08/NF-13 root) | Macro term-premium / inflation-compensation transmission | 3 | 3 | 4 | 4 | 4 | 2 | **3.35** |
+
+**Scoring notes (honest).**
+- NF-20261108-12 novelty 3 (not 4/5): repo-new as an executed *cross-sector MA-participation count* SPY-timing observable/pair construction (fraction of fixed SPDR sector ETFs above trailing MA, z-scored). **Material adjacency** acknowledged to H115 (NF-20261106-29, RSP/SPY equal-weight-vs-cap-weight ratio-momentum breadth, REJECT 3/8) — explicitly separated by observable/construction (sector-count trend participation vs RSP/SPY ratio momentum) and universe design. Resolves held NF-20261107-31 (sector breadth) with this materially different construction. Adjacency to H97 (cap-concentration mean reversion) and H129 (sector beta dispersion, second-moment) acknowledged; novelty scored on the repo-new MA-participation observable, not a wholly new channel or method.
+- NF-20261107-52 held (3.50): requires concrete separation from RV-divergence construction class H138/H139 (H138 credit-vs-equity RV-div REJECT 2/8; H139 IWM/SPY RV-div REJECT 2/8). Not selected.
+- NF-20261108-07 deferred (3.35): ETF breakeven proxy (NF-08/NF-13 root); prior proxy weakness.
+
+**Held/deferred reassessment (no silent drops):**
+- **NF-04 commodity carry — still BLOCKED** (no free PIT term-structure/roll proxy).
+- **NF-05 short-term CS reversal — DEFERRED** (turnover/net-of-cost; H119 REJECT 3/8).
+- **NF-07/08/10/11/13/15/17/20/21 — DEFERRED**.
+- **NF-11r/NF-06-18 TNX-FVX slope — SAME root as NF-11** (ETF TLT-SHY proxy executed H141).
+- **NF-06-11 CBOE PC ratio — INFEASIBLE**.
+- **NF-20261106-03/23/24/28/30/32/33/35 — DEFERRED**.
+- **NF-20261107-05 CPI drift — DEFERRED** (data blocker).
+- **NF-20261107-14/48 OVX−VIX — HELD** (IV-spread class H125/H126; materially different design required).
+- **NF-20261107-49 TLT-SPY realized corr — HELD** (correlation class H96/H127/H134/H137).
+- **NF-20261107-52 EEM-SPY RV divergence — HELD** (RV-div class H138/H139; reassessed Cycle 61).
+- **NF-20261107-31 sector breadth — EXECUTED as H147 (REJECT 4/8).**
+- **NF-20261108-04 triple witching OPX+futures — HELD** (subclass of H140).
+- **NF-20261108-05 overnight/intraday return-flow — DEFERRED** (H143 tested overnight-gap RV component).
+- **NF-20261108-07 TIP-IEF breakeven-proxy — DEFERRED** (reassessed Cycle 61).
+- **NF-20261108-08 DBC-SPY commodity-complex — DEFERRED**.
+- **NF-20261108-10 FXE EUR momentum — DEFERRED** (FX-family adjacency H95/H103/H106).
+- **Cycle 60 deferred:** RV trend/momentum equity timing (3.40, adjacency H122/H29/H30; needs clearly separated design); cross-sectional idiosyncratic-skew spread timing (3.00, execution complexity/weak evidence).
+
+**Selection:** NF-20261108-12 → **H147** (highest expected-information feasible decisive test: free PIT fixed sector universe, bounded 24-combo grid, repo-new executed cross-sector MA-participation observable with explicit separation from H115 and held NF-20261107-31 resolved). Pre-registered in `HYPOTHESIS_SPEC.md` §H147 before validation outcomes.
+
+### NF-20261108-12 / H147 execution outcome (2026-11-08, REAL) — REJECTED (4/8)
+
+**Runner:** `run_nf_20261108_12_sector_breadth_spy.py`. **Tests:** `tests/test_nf_20261108_12_sector_breadth_spy.py` (6 passed). `py_compile` OK. `ruff check/format` clean. `src/qtr` unchanged.
+
+**Execution.** Artifact `.experiments/nf_runs/nf_20261108_12_sector_breadth_spy/summary.json` (+ `grid.csv`, `data_meta.json`, 9.87s). Data SPY + XLF,XLE,XLV,XLI,XLK,XLY,XLP,XLU,XLB yfinance auto-adjust, 3776 rows 2010-01-04→2025-01-03 (train 2516 / val 505 / test 755). Selected (train-only 4-fold WF mean Sharpe 0.755): `ma_window=200, z_window=252, entry_scale=2.0, vol_target=0.15`.
+
+**Result — REJECT (4/8 gates).** OOS Val+Test (3320 engine trades, n=1259): Sharpe **0.972** (fail ≥1.0), PF **1.199** (fail ≥1.3), max DD **-2.75%** (pass ≤15%), trades **3320** (pass ≥200), WF stability **1.287** (pass ≥0.7), worst-regime rolling-252 Sharpe **-1.852** (fail ≥0.3), benchmark p **0.939** / IR **-0.692** (fail), perturbation min ratio **0.988** (pass ≥0.5).
+
+**Ablations (OOS).** Buy-hold SPY 0.750/1.153/-33.72%/1. Random-exposure-matched **0.518**/1.120/-6.40%/1258 (weaker, no benchmark edge). **Inverse regime** (pre-registered falsifier: de-risk when breadth abnormally strong / positive z) **0.862**/1.168/-2.96%/3587 (weaker Sharpe; direction weakly supported, no benchmark edge).
+
+**Verdict rationale.** Fails 4/8 gates (Sharpe, PF, worst-regime, benchmark). Improves over random exposure but has no benchmark-significant timing edge (p=0.939, IR=−0.692) and worst-regime collapses (−1.852). Repo-new executed cross-sector MA-participation breadth SPY-timing pair (honest separation from H115 RSP/SPY ratio-momentum; adjacency to H97/H129 and z-score construction class) — **no validated edge** under pre-registered H147. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Lineage map (H147 REJECT):**
+| SPY timing from sector participation breadth regime (market structure / participation breadth transmission) | H147 (NF-20261108-12; resolves held NF-20261107-31) | Continuous vol-targeted long SPY reduced when z-score of fraction of 9 SPDR sector ETFs above trailing MA is abnormally negative (narrow participation); 1-bar delay, long-only | SPY + 9 sector ETFs daily (yfinance), 2010–2025 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261108_12_sector_breadth_spy/summary.json`) | Fails Sharpe 0.972/PF 1.199/worst-regime -1.852/benchmark-p 0.939/IR -0.692; maxdd -2.75%/trades 3320/WF 1.287/perturbation 0.988 pass; random-exposure 0.518 weaker (no benchmark edge); inverse 0.862 weaker on Sharpe (direction weakly supported) but no benchmark edge; repo-new cross-sector MA-participation observable with honest separation from H115 RSP/SPY ratio-momentum and adjacency to H97/H129 |
+
+**Cycle 61 complete (discovery + H147 execution).** H85–H147 all rejected/recorded. Cycle 62 required next: fresh directive §4 discovery, >=3 repo-new candidates across >=3 broad categories, pre-register and execute the **next unused H-ID after H147 (H148)** (H24/H68–H73/H76–H79 unassigned, not recycled). Justify independence from rejected construction classes (correlation H96/H127/H134/H137; RV-divergence H138/H139; OPX proximity H140; TOQ/H91; IV spread H125/H126; overnight/gap direction H18/H87; overnight-gap RV H143; Amihud H121; RV term structure H136; EEM-SPY relmom H144; GLD-SPY relmom H145; IVOL dispersion H146; breadth H115/H147; FX-strength H95/H103/H106). No gate weakening; no published/certified artifact modification; no commit/push; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).

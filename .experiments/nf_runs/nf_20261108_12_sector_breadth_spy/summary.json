@@ -1,0 +1,69 @@
+{
+  "nf_id": "NF-20261108-12",
+  "hypothesis": "H147",
+  "verdict": "REJECT",
+  "gates_passed": "4/8",
+  "gates": {
+    "sharpe_ge_1": false,
+    "trades_ge_200": true,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": true,
+    "wf_stability_ge_0_7": true,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_ir_ge_0": false,
+    "perturbation_ge_0_5": true
+  },
+  "selected_params": {
+    "ma_window": 200,
+    "z_window": 252,
+    "entry_scale": 2.0,
+    "vol_target": 0.15
+  },
+  "selection_wf_train_mean_sharpe": 0.7554003613538085,
+  "oos_val_test": {
+    "n": 1259,
+    "sharpe": 0.9718307413274361,
+    "profit_factor": 1.1987704240835222,
+    "max_drawdown": -0.027464228867249522,
+    "trades": 3320
+  },
+  "wf_stability_ratio": 1.2865108239897407,
+  "worst_regime_rolling252_sharpe": -1.8516219584530986,
+  "benchmark_buy_hold_spy_oos": {
+    "sharpe": 0.7502689970359683,
+    "profit_factor": 1.15312883603809,
+    "max_drawdown": -0.33717257210811397,
+    "trades": 1
+  },
+  "benchmark_p": 0.939,
+  "information_ratio_vs_bh": -0.6919921464584001,
+  "perturbation_min_ratio": 0.9876046128610844,
+  "ablations": {
+    "buy_hold_spy": {
+      "sharpe": 0.7502689970359683,
+      "profit_factor": 1.15312883603809,
+      "max_drawdown": -0.33717257210811397,
+      "trades": 1
+    },
+    "random_exposure_matched": {
+      "sharpe": 0.5175634798823223,
+      "profit_factor": 1.1201022625223964,
+      "max_drawdown": -0.06399308184807384,
+      "trades": 1258
+    },
+    "inverse_regime": {
+      "n": 1259,
+      "sharpe": 0.8617257569226163,
+      "profit_factor": 1.1676331742730461,
+      "max_drawdown": -0.029575486735023988,
+      "trades": 3587
+    }
+  },
+  "timing_seconds": 9.87,
+  "data": {
+    "start": "2010-01-04",
+    "end": "2025-01-03",
+    "rows": 3776
+  },
+  "description": "NF-20261108-12/H147: SPY timing from sector participation breadth. z-score of fraction of 9 SPDR sector ETFs above trailing MA; de-risk vol-targeted long SPY when breadth abnormally weak (negative z). 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates."
+}
