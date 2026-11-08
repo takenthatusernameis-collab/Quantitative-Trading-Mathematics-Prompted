@@ -2618,3 +2618,22 @@ Searched mechanisms not heavily executed as root families (free/PIT feasible): c
 **Selection:** NF-20261108-03 → **H142** (highest expected information). Pre-registered in `HYPOTHESIS_SPEC.md` §H142 before validation outcomes. Lineage reconciled to H141 (H85–H141 all rejected/recorded). Next unused H-ID after H141 assigned to H142 (H24/H68–H73/H76–H79 remain unassigned). No gate weakening; no `src/qtr` change; free/public data only.
 
 **Deferred/held reassessed (no silent drops):** NF-49 TLT-SPY corr (same correlation class as H96/H127/H134/H137), NF-52 EEM-SPY RV div (RV-div class), NF-11 IVOL spread, NF-14/48 OVX−VIX need materially different design, NF-31 sector breadth. NF-04 commodity carry blocked (no free PIT term-structure/roll proxy), NF-05 short-term CS reversal deferred (turnover/net-of-cost), others per prior registers remain deferred.
+
+### NF-20261108-03 / H142 execution outcome (2026-11-08, REAL) — REJECTED (4/8)
+
+**Runner:** `run_nf_20261108_03_spy_toq_window.py`. **Tests:** `tests/test_nf_20261108_03_spy_toq_window.py` (5 passed). `ruff check/format` clean. `src/qtr` unchanged.
+
+**Integrity note.** The untracked runner had numpy/pandas mask handling bugs, duplicate definitions, wrong NF/H IDs/output path, and an incorrect inverse ablation; it was repaired (pandas 3.x-safe metrics, Series masks) and re-executed. The committed artifact numbers are from the corrected **REAL** run.
+
+**Execution.** Artifact `.experiments/nf_runs/nf_20261108_03_spy_toq_window/summary.json` (31.45s). Data SPY yfinance auto-adjust, 3776 aligned rows 2010-01-04→2025-01-03 (train 2516 / val 505 / test 755). Selected (train-only 4-fold WF mean Sharpe 0.8543): `end_days=1, start_days=1, entry_scale=2.0, vol_target=0.15`.
+
+**Result — REJECT (4/8 gates).** OOS Val+Test (3353 engine trades, n=1260): Sharpe **0.894** (fail ≥1.0), PF **1.163** (fail ≥1.3), max DD **-3.41%** (pass ≤15%), trades **3353** (pass ≥200), WF stability **1.047** (pass ≥0.7), worst-regime rolling-252 Sharpe **-1.220** (fail ≥0.3), benchmark p **0.953** / IR **-0.722** (fail), perturbation min ratio **0.996** (pass ≥0.5).
+
+**Ablations (OOS).** Buy-hold SPY 0.750/1.153/-33.72%/1. Random-exposure-matched **0.111**/1.053/-10.17%/972 (much weaker — not pure noise). **Inverse regime** (more exposure in TOQ window) **0.914**/1.166/-2.93%/3353 — comparable/slightly higher but benchmark-insignificant in same class; not a validated edge under the pre-registered de-risking mapping.
+
+**Verdict rationale.** Fails 4/8 (Sharpe, PF, worst-regime, benchmark). Near-full-exposure low-vol overlay with small drawdown but worst-regime collapses and no benchmark edge. Inverse not clearly worse (no strong directional falsifier). Repo-new turn-of-quarter calendar observable (distinct from H91 turn-of-month REJECT 3/9) — **no validated edge** under pre-registered H142 design. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Lineage map (H142 REJECT):**
+| SPY timing from turn-of-quarter window-dressing/rebalancing flows (calendar/auction) | H142 (NF-20261108-03) | Continuous vol-targeted long SPY reduced during ex-ante turn-of-quarter window (last end_days of quarter + first start_days of next quarter); 1-bar delay, long-only | SPY daily (yfinance), 2010–2025 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261108_03_spy_toq_window/summary.json`) | Fails Sharpe 0.894/PF 1.163/worst-regime -1.220/benchmark-p 0.953/IR -0.722; random-exposure 0.111 much weaker (not noise) but no benchmark edge; inverse 0.914 comparable (no clear directional falsifier); repo-new quarter-end cycle vs H91 turn-of-month (REJECT 3/9) |
+
+**Cycle 56 complete (discovery + H142 execution).** H85–H142 all rejected/recorded. Cycle 57 required next: fresh directive §4 discovery, >=3 repo-new candidates across >=3 broad categories, pre-register and execute the **next unused H-ID after H142** (H24/H68–H73/H76–H79 unassigned, not recycled). No gate weakening; no published/certified artifact modification; no commit/push in this session; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).

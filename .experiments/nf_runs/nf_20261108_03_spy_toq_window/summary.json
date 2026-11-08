@@ -1,0 +1,151 @@
+{
+  "nf_id": "NF-20261108-03",
+  "h_id": "H142",
+  "experiment": "NF-20261108-03/H142: SPY timing from turn-of-quarter window-dressing/rebalancing flows. Continuous de-risking during ex-ante turn-of-quarter window (last end_days of quarter + first start_days of next quarter). 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "timestamp_utc": "2026-11-08T03:13:31Z",
+  "runtime_sec": 31.75,
+  "data": {
+    "rows": 3776,
+    "start": "2010-01-04",
+    "end": "2025-01-03",
+    "train_n": 2516,
+    "val_n": 505,
+    "test_n": 755
+  },
+  "selection": {
+    "best_params": {
+      "end_days": 1,
+      "start_days": 1,
+      "entry_scale": 2.0,
+      "vol_target": 0.15
+    },
+    "best_train_wf_mean_sharpe": 0.8543142209586141,
+    "grid_size": 36,
+    "top5": [
+      {
+        "wf": 0.8543142209586141,
+        "params": {
+          "end_days": 1,
+          "start_days": 1,
+          "entry_scale": 2.0,
+          "vol_target": 0.15
+        }
+      },
+      {
+        "wf": 0.8499472543048874,
+        "params": {
+          "end_days": 3,
+          "start_days": 1,
+          "entry_scale": 2.0,
+          "vol_target": 0.15
+        }
+      },
+      {
+        "wf": 0.8385515489700289,
+        "params": {
+          "end_days": 1,
+          "start_days": 1,
+          "entry_scale": 1.5,
+          "vol_target": 0.15
+        }
+      },
+      {
+        "wf": 0.8365084258454891,
+        "params": {
+          "end_days": 2,
+          "start_days": 1,
+          "entry_scale": 2.0,
+          "vol_target": 0.15
+        }
+      },
+      {
+        "wf": 0.8362346078873025,
+        "params": {
+          "end_days": 1,
+          "start_days": 2,
+          "entry_scale": 2.0,
+          "vol_target": 0.15
+        }
+      }
+    ]
+  },
+  "metrics": {
+    "train": {
+      "n": 2516,
+      "sharpe": 0.8543804201924815,
+      "profit_factor": 1.1615050844205816,
+      "max_drawdown": 0.03255879244855071,
+      "trades": 3353
+    },
+    "val": {
+      "n": 505,
+      "sharpe": 1.1491677160863754,
+      "profit_factor": 1.2179561457347345,
+      "max_drawdown": 0.026647009977239726,
+      "trades": 3353
+    },
+    "test": {
+      "n": 755,
+      "sharpe": 0.7093803166733177,
+      "profit_factor": 1.125451995174101,
+      "max_drawdown": 0.032194481039292296,
+      "trades": 3353
+    },
+    "oos_val_test": {
+      "n": 1260,
+      "sharpe": 0.8942295619803751,
+      "profit_factor": 1.1628622002265365,
+      "max_drawdown": 0.03405249631772842,
+      "trades": 3353
+    }
+  },
+  "ablations": {
+    "buy_hold_spy_oos": {
+      "n": 1260,
+      "sharpe": 0.7502685887367679,
+      "profit_factor": 1.1531286848768278,
+      "max_drawdown": 0.33717281896338075,
+      "trades": 1
+    },
+    "random_exposure_matched_oos": {
+      "n": 1260,
+      "sharpe": 0.11101860247577286,
+      "profit_factor": 1.0527487359627832,
+      "max_drawdown": 0.10174323842256869,
+      "trades": 972
+    },
+    "inverse_regime_oos": {
+      "n": 1260,
+      "sharpe": 0.9137853725364394,
+      "profit_factor": 1.1660303366659952,
+      "max_drawdown": 0.029337114292978975,
+      "trades": 3353
+    }
+  },
+  "benchmark": {
+    "ir_vs_buy_hold_oos": -0.7218532214420597,
+    "bootstrap_p_one_sided_oos": 0.9533333333333334
+  },
+  "perturbation_min_ratio": 0.996399439175291,
+  "wf_stability_ratio_oos_to_train": 1.046640981986591,
+  "worst_regime_rolling252_sharpe_oos": -1.219803447690359,
+  "gates": {
+    "sharpe_ge_1": false,
+    "trades_ge_200": true,
+    "profit_factor_ge_1_3": false,
+    "max_dd_le_15pct": true,
+    "wf_stability_ge_0_7": true,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_ir_ge_0": false,
+    "perturbation_ge_0_5": true
+  },
+  "verdict": "REJECT",
+  "passed_gates": 4,
+  "failed_gates": [
+    "sharpe_ge_1",
+    "profit_factor_ge_1_3",
+    "worst_regime_ge_0_3",
+    "benchmark_p_le_0_05_ir_ge_0"
+  ],
+  "notes": "Repo-new turn-of-quarter window-dressing/rebalancing calendar observable; honest adjacency to H91 turn-of-month (REJECT 3/9, different institutional cycle). Free PIT yfinance data + deterministic calendar."
+}
