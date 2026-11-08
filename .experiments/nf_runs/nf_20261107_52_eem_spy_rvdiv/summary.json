@@ -1,13 +1,70 @@
 {
   "nf_id": "NF-20261107-52",
   "hypothesis": "H148",
-  "selected": {
+  "verdict": "REJECT",
+  "gates_passed": "4/8",
+  "gates": {
+    "sharpe_ge_1": false,
+    "trades_ge_200": true,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": true,
+    "wf_stability_ge_0_7": true,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_ir_ge_0": false,
+    "perturbation_ge_0_5": true
+  },
+  "selected_params": {
     "rv_window": 63,
-    "z_window": 252,
-    "entry_scale": 2.0,
+    "z_window": 126,
+    "entry_scale": 1.0,
     "vol_target": 0.15
   },
-  "oos_sharpe": 0.6740259718638774,
-  "n_trades": null,
-  "verdict": "REJECT"
+  "selection_wf_train_mean_sharpe": 0.994765160354552,
+  "oos_val_test": {
+    "n": 1259,
+    "sharpe": 0.9464918513148793,
+    "profit_factor": 1.2145214814803922,
+    "max_drawdown": -0.025667594751236048,
+    "trades": 2757
+  },
+  "wf_stability_ratio": 0.9514726581070981,
+  "worst_regime_rolling252_sharpe": -0.8196532246693397,
+  "benchmark_buy_hold_spy_oos": {
+    "sharpe": 0.750268754523873,
+    "profit_factor": 1.15312878041188,
+    "max_drawdown": -0.3371727693638181,
+    "trades": 1
+  },
+  "benchmark_p": 0.939,
+  "information_ratio_vs_bh": -0.7140585837493025,
+  "perturbation_min_ratio": 0.9433133846811288,
+  "ablations": {
+    "buy_hold_spy": {
+      "sharpe": 0.750268754523873,
+      "profit_factor": 1.15312878041188,
+      "max_drawdown": -0.3371727693638181,
+      "trades": 1
+    },
+    "random_exposure_matched": {
+      "sharpe": 0.68840517500468,
+      "profit_factor": 1.1680147251734494,
+      "max_drawdown": -0.03177026914749747,
+      "trades": 1258
+    },
+    "inverse_regime": {
+      "n": 1259,
+      "sharpe": 0.5396853388047885,
+      "profit_factor": 1.1197449293907664,
+      "max_drawdown": -0.02075572510265285,
+      "trades": 2747
+    }
+  },
+  "timing_seconds": 5.61,
+  "data": {
+    "start": "2010-01-04",
+    "end": "2025-01-03",
+    "rows": 3776
+  },
+  "integrity_note": "An incomplete non-standard runner/artifact was committed earlier in Cycle 62 (commit d5b8d74 context); repaired to standard gated/ablation protocol and re-executed. This artifact is the corrected REAL run.",
+  "description": "NF-20261107-52/H148: SPY timing from EEM-vs-SPY realized-vol divergence (RV difference, z-scored). De-risk vol-targeted long SPY when z abnormally positive (EM stress elevated). 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates; inverse falsifier (H138/H139 class)."
 }

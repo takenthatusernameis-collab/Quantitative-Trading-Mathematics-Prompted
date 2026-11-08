@@ -2900,3 +2900,62 @@ Candidates proposed across >=3 broad categories, scored honestly (25 novelty / 2
 | SPY timing from sector participation breadth regime (market structure / participation breadth transmission) | H147 (NF-20261108-12; resolves held NF-20261107-31) | Continuous vol-targeted long SPY reduced when z-score of fraction of 9 SPDR sector ETFs above trailing MA is abnormally negative (narrow participation); 1-bar delay, long-only | SPY + 9 sector ETFs daily (yfinance), 2010–2025 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261108_12_sector_breadth_spy/summary.json`) | Fails Sharpe 0.972/PF 1.199/worst-regime -1.852/benchmark-p 0.939/IR -0.692; maxdd -2.75%/trades 3320/WF 1.287/perturbation 0.988 pass; random-exposure 0.518 weaker (no benchmark edge); inverse 0.862 weaker on Sharpe (direction weakly supported) but no benchmark edge; repo-new cross-sector MA-participation observable with honest separation from H115 RSP/SPY ratio-momentum and adjacency to H97/H129 |
 
 **Cycle 61 complete (discovery + H147 execution).** H85–H147 all rejected/recorded. Cycle 62 required next: fresh directive §4 discovery, >=3 repo-new candidates across >=3 broad categories, pre-register and execute the **next unused H-ID after H147 (H148)** (H24/H68–H73/H76–H79 unassigned, not recycled). Justify independence from rejected construction classes (correlation H96/H127/H134/H137; RV-divergence H138/H139; OPX proximity H140; TOQ/H91; IV spread H125/H126; overnight/gap direction H18/H87; overnight-gap RV H143; Amihud H121; RV term structure H136; EEM-SPY relmom H144; GLD-SPY relmom H145; IVOL dispersion H146; breadth H115/H147; FX-strength H95/H103/H106). No gate weakening; no published/certified artifact modification; no commit/push; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
+
+## Cycle 62 (2026-11-08) — Discovery + H148 execution (NF-20261107-52 EEM-vs-SPY realized-vol divergence; REJECT 4/8)
+
+Lineage reconciled to H147: **H85–H147 all rejected/recorded**. Next unused H-ID: **H148** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified. Selection/validation used no protected-test feedback. Free/public yfinance data only.
+
+Candidates proposed across >=3 broad categories, scored honestly (25/25/20/15/10/5 = novelty / plausibility / data / falsifiability / execution / support). Independence justified from rejected construction classes (correlation H96/H127/H134/H137; RV-divergence H138/H139 — H148 is EEM/SPY RV-*difference* with repo-new asset pair/channel and explicit inverse-falsifier testing given H138/H139 inverse outperformance; OPX proximity H140; TOQ/H91; IV spread H125/H126; overnight/gap direction H18/H87; overnight-gap RV H143; Amihud H121; RV term structure H136; EEM-SPY relmom H144 — different observable: RV divergence vs price-momentum; GLD-SPY relmom H145; IVOL dispersion H146; breadth H115/H147; FX-strength H95/H103/H106).
+
+| Candidate (NF-ID) | Broad category | N | E | D | F | X | S | Total |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261107-52 EEM-vs-SPY realized-vol divergence SPY timing (de-risk vol-targeted long SPY when z of rv_EEM−rv_SPY abnormally positive) — **H148 (selected/executed)** | Cross-asset volatility transmission / global risk transmission | 3 | 3 | 5 | 4 | 4 | 2 | **3.50** |
+| NF-20261106-01 GDX-vs-GLD miner gold-beta RV divergence SPY timing (de-risk when miner/idiosyncratic RV relative to GLD abnormally elevated) | Commodity volatility transmission / sector risk transmission | 3 | 3 | 5 | 4 | 4 | 2 | **3.50** |
+| NF-20261106-20 XLY/XLP consumer-discretionary-vs-staples ratio momentum SPY timing (de-risk when consumer-cyclical relative strength abnormally weak) | Cross-sector macro regime / consumer-demand transmission | 3 | 3 | 5 | 4 | 4 | 3 | **3.55** |
+
+**Scoring notes (honest).**
+- NF-20261107-52 novelty 3 (not 4/5): repo-new as an executed *EEM/SPY RV-difference* SPY-timing observable/pair. **Material adjacency** to RV-divergence construction class H138 (HYG−LQD/SPY RV ratio, REJECT 2/8) and H139 (IWM/SPY RV ratio, REJECT 2/8) — both had inverse mappings outperforming, falsifying pre-registered directions. H148 differs by asset pair/channel (EM vs US equity vol transmission), difference (not ratio) construction, and was pre-registered with explicit inverse-falsifier attention. Also adjacent to H144 (EEM-SPY *relative-momentum*, REJECT 3/8) — different observable (RV divergence vs price momentum).
+- NF-20261106-20 (3.55) **held/deferred** this cycle despite tie-break: XLY/XLP ratio-momentum is adjacent to sector-ratio leadership/reversion families (H110/NF-20261106-20 executed as a prior construction? — lineage shows NF-20261106-20 artifact exists as `nf_20261106_20_xly_xlp_consumer`/H110 REJECT 4/8; **treat NF-20261106-20 root as executed H110, not re-proposed**). Cycle 62 therefore selected NF-20261107-52 (3.50, held Cycle 61) as highest feasible *non-executed-root* candidate with concrete separation design.
+- NF-20261106-01 (3.50) **deferred**: repo-new GDX/GLD miner-RV divergence pair is plausible but adjacency to gold/miner families (H88/H99/H101/H145 relmom/vol constructions) and commodity-vol transmission requires careful separation; lower expected information given RV-divergence class evidence.
+
+**Selection correction (honest).** NF-20261106-20 was initially scored as a candidate but its NF root corresponds to executed H110 (`nf_20261106_20_xly_xlp_consumer`, REJECT 4/8); it is **not** repo-new as that root and was not selected. NF-20261107-52 (held Cycle 61, 3.50) selected as highest feasible non-executed candidate with pre-registered inverse-falsifier design addressing H138/H139 class risk.
+
+**Held/deferred reassessment (no silent drops):**
+- **NF-04 commodity carry — still BLOCKED** (no free PIT term-structure/roll proxy).
+- **NF-05 short-term CS reversal — DEFERRED** (turnover/net-of-cost; H119 REJECT 3/8).
+- **NF-07/08/10/11/13/15/17/20/21 — DEFERRED** (NF-20 root executed H110).
+- **NF-11r/NF-06-18 TNX-FVX slope — SAME root as NF-11** (ETF TLT-SHY proxy executed H141).
+- **NF-06-11 CBOE PC ratio — INFEASIBLE**.
+- **NF-20261106-01 GDX-vs-GLD miner RV divergence — DEFERRED** (Cycle 62 scored 3.50; needs concrete separation from H88/H99/H101/H145 and RV-div class).
+- **NF-20261106-03/23/24/28/30/32/33/35 — DEFERRED**.
+- **NF-20261107-05 CPI drift — DEFERRED** (data blocker).
+- **NF-20261107-14/48 OVX−VIX — HELD** (IV-spread class H125/H126).
+- **NF-20261107-49 TLT-SPY realized corr — HELD** (correlation class H96/H127/H134/H137).
+- **NF-20261107-52 EEM-SPY RV divergence — EXECUTED as H148 (REJECT 4/8).**
+- **NF-20261108-04 triple witching OPX+futures — HELD** (subclass of H140).
+- **NF-20261108-05 overnight/intraday return-flow — DEFERRED** (H143 tested overnight-gap RV component).
+- **NF-20261108-07 TIP-IEF breakeven-proxy — DEFERRED** (ETF breakeven proxy; prior proxy weakness).
+- **NF-20261108-08 DBC-SPY commodity-complex — DEFERRED**.
+- **NF-20261108-10 FXE EUR momentum — DEFERRED** (FX-family adjacency H95/H103/H106).
+- **Cycle 60 deferred:** RV trend/momentum equity timing (3.40, adjacency H122/H29/H30); cross-sectional idiosyncratic-skew spread timing (3.00).
+
+**Selection:** NF-20261107-52 → **H148** (highest feasible non-executed candidate; repo-new EEM/SPY RV-difference pair/observable with explicit inverse-falsifier design given H138/H139 inverse outperformance). Pre-registered in `HYPOTHESIS_SPEC.md` §H148 before validation outcomes of the corrected standard run.
+
+### NF-20261107-52 / H148 execution outcome (2026-11-08, REAL, corrected) — REJECTED (4/8)
+
+**Integrity note.** An incomplete non-standard runner/artifact (commit `d5b8d74` context) was committed earlier in Cycle 62 without the standard gated/ablation protocol; repaired to the pre-registered standard protocol and re-executed. The committed artifact is the corrected **REAL** run.
+
+**Runner:** `run_nf_20261107_52_eem_spy_rvdiv.py`. **Tests:** `tests/test_nf_20261107_52_eem_spy_rvdiv.py` (6 passed). `py_compile` OK. `ruff check/format` clean. `src/qtr` unchanged.
+
+**Execution.** Artifact `.experiments/nf_runs/nf_20261107_52_eem_spy_rvdiv/summary.json` (+ `grid.csv`, `data_meta.json`, 5.61s). Data SPY + EEM yfinance auto-adjust, 3776 rows 2010-01-04→2025-01-03 (train 2516 / val 505 / test 755). Selected (train-only 4-fold WF mean Sharpe 0.995): `rv_window=63, z_window=126, entry_scale=1.0, vol_target=0.15`.
+
+**Result — REJECT (4/8 gates).** OOS Val+Test (2757 engine trades, n=1259): Sharpe **0.946** (fail ≥1.0), PF **1.215** (fail ≥1.3), max DD **-2.57%** (pass ≤15%), trades **2757** (pass ≥200), WF stability **0.951** (pass ≥0.7), worst-regime rolling-252 Sharpe **-0.820** (fail ≥0.3), benchmark p **0.939** / IR **-0.714** (fail), perturbation min ratio **0.943** (pass ≥0.5).
+
+**Ablations (OOS).** Buy-hold SPY 0.750/1.153/-33.72%/1. Random-exposure-matched **0.688**/1.168/-3.18%/1258 (weaker, no benchmark edge). **Inverse regime** (pre-registered falsifier: de-risk when EEM RV abnormally LOW vs SPY / negative z) **0.540**/1.120/-2.08%/2747 — weaker than pre-registered mapping; **direction supported** (unlike H138/H139 inverse outperformance) but no benchmark-significant edge.
+
+**Verdict rationale.** Fails 4/8 gates (Sharpe, PF, worst-regime, benchmark). Direction supported by inverse ablation (contrast H138/H139 where inverse mappings outperformed and falsified pre-registered directions), but no benchmark-significant timing edge (p=0.939, IR=−0.714) and worst-regime collapses (−0.820). Repo-new executed EEM/SPY RV-divergence pair/observable (honest adjacency to H138/H139 RV-divergence class and H144 EEM-SPY relmom) — **no validated edge** under pre-registered H148. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Lineage map (H148 REJECT):**
+| SPY timing from EEM-vs-SPY realized-volatility divergence (cross-asset volatility transmission / global risk) | H148 (NF-20261107-52) | Continuous vol-targeted long SPY reduced when z-score of trailing (rv_EEM − rv_SPY) abnormally positive (EM stress elevated); 1-bar delay, long-only | SPY + EEM daily (yfinance), 2010–2025 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261107_52_eem_spy_rvdiv/summary.json`) | Fails Sharpe 0.946/PF 1.215/worst-regime -0.820/benchmark-p 0.939/IR -0.714; maxdd -2.57%/trades 2757/WF 0.951/perturbation 0.943 pass; random-exposure 0.688 weaker (no benchmark edge); inverse 0.540 weaker (direction supported, unlike H138/H139 inverse outperformance) but no benchmark edge; repo-new EEM/SPY RV-divergence observable with honest adjacency to H138/H139/H144 |
+
+**Cycle 62 complete (discovery + H148 execution).** H85–H148 all rejected/recorded. Cycle 63 required next: fresh directive §4 discovery, >=3 repo-new candidates across >=3 broad mechanism categories, pre-register and execute the **next unused H-ID after H148 (H149)** (H24/H68–H73/H76–H79 unassigned, not recycled). Justify independence from rejected construction classes (correlation H96/H127/H134/H137; RV-divergence H138/H139/H148; OPX proximity H140; TOQ/H91; IV spread H125/H126; overnight/gap direction H18/H87; overnight-gap RV H143; Amihud H121; RV term structure H136; EEM-SPY relmom H144; GLD-SPY relmom H145; IVOL dispersion H146; breadth H115/H147; FX-strength H95/H103/H106). No gate weakening; no published/certified artifact modification; no commit/push; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
