@@ -1,0 +1,13 @@
+{
+  "nf_id": "NF-20261107-52",
+  "hypothesis": "H148",
+  "selected": {
+    "rv_window": 63,
+    "z_window": 252,
+    "entry_scale": 2.0,
+    "vol_target": 0.15
+  },
+  "oos_sharpe": 0.6740259718638774,
+  "n_trades": null,
+  "verdict": "REJECT"
+}
