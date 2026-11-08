@@ -1,0 +1,5 @@
+{
+  "description": "NF-20261108-06/H143: SPY timing from overnight gap realized-volatility regime. z-score of trailing RV(log(Open/prev Close)); de-risk vol-targeted long SPY when elevated. 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "data_start": "2010-01-01",
+  "data_end": "2025-01-05"
+}

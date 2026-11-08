@@ -1,21 +1,16 @@
-# HANDOFF_NEXT — After Cycle 56 / H142 (2026-11-08)
+# HANDOFF_NEXT_SESSION (Cycle 58)
 
-## Completed this cycle
-- **H142 / NF-20261108-03 — SPY timing from turn-of-quarter window-dressing/rebalancing flows (calendar/auction): REJECT (4/8).**
-  - Artifact: `.experiments/nf_runs/nf_20261108_03_spy_toq_window/summary.json` (+ `grid.csv`, `data_meta.json`, 31.45s)
-  - Runner: `run_nf_20261108_03_spy_toq_window.py`
-  - Tests: `tests/test_nf_20261108_03_spy_toq_window.py` (5 passed)
-  - Data (free/public yfinance, PIT): SPY daily auto-adjust Close, 3776 aligned rows 2010-01-04→2025-01-03 (train 2516 / val 505 / test 755).
-  - Selected (train-only 4-fold WF mean Sharpe 0.8543): `end_days=1, start_days=1, entry_scale=2.0, vol_target=0.15`.
-  - OOS Val+Test (3353 engine trades, n=1260): Sharpe **0.894** fail, PF **1.163** fail, max DD **-3.41%** pass, trades **3353** pass, WF stability **1.047** pass, worst-regime rolling-252 **-1.220** fail, benchmark p **0.953** / IR **-0.722** fail, perturbation **0.996** pass → **4/8 REJECT**.
-  - Ablations OOS: buy-hold SPY 0.750/1.153/-33.72%/1; random-exposure-matched **0.111**/1.053/-10.17%/972 (much weaker — not pure noise); **inverse TOQ regime** 0.914/1.166/-2.93%/3353 (comparable, no clear directional falsifier; not a validated edge under pre-registered de-risking mapping).
-  - **Integrity note:** the untracked runner had numpy/pandas mask handling bugs, duplicate definitions, wrong NF/H IDs/output path, and an incorrect inverse ablation; it was repaired (pandas 3.x-safe metrics, Series masks) and re-executed. Artifact numbers are from the corrected **REAL** run (train/val/test metrics differ).
-  - Repo-new turn-of-quarter calendar observable; distinct institutional cycle from H91 turn-of-month (REJECT 3/9). No validated edge under pre-registered design.
-  - `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified; `ruff check/format` clean. No commit/push.
-
-## Discovery (Cycle 56)
-- Lineage reconciled to H141: H85–H141 all rejected/recorded. Directive §4 discovery performed: >=3 repo-new candidates across >=3 broad mechanism categories scored (NF-20261108-03 TOQ calendar 4.38, NF-20261108-04 triple witching 4.00 subclass of H140, NF-20261108-05 overnight/intraday flow 3.68). NF-20261108-03 selected/pre-registered as **H142** and executed this session.
-- Next unused H-ID after H142 (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged.
+## Completed this session (Cycle 57)
+- **H143 / NF-20261108-06 — SPY timing from overnight gap realized-volatility regime (liquidity/microstructure): REJECT (4/8).**
+  - Artifact: `.experiments/nf_runs/nf_20261108_06_spy_overnight_gap_rv/summary.json` (+ `grid.csv`, `data_meta.json`, 18.21s)
+  - Runner: `run_nf_20261108_06_spy_overnight_gap_rv.py`; Tests: `tests/test_nf_20261108_06_spy_overnight_gap_rv.py` (**5 passed**)
+  - Data (free/public yfinance, PIT): SPY daily OHLC (`auto_adjust=False`), 3776 rows 2010-01-04→2025-01-03 (train 2516 / val 505 / test 755).
+  - Observable: `z` of trailing `RV(log(Open/prev Close), rv_window)` over `z_window`; continuous de-risking, 1-bar delay, long-only.
+  - Selected (train-only 4-fold WF mean Sharpe 0.7645): `rv_window=63, z_window=126, entry_scale=2.0, vol_target=0.10`.
+  - OOS Val+Test (3403 trades, n=1260): Sharpe **0.739** fail, PF **1.154** fail, max DD **-1.54%** pass, trades **3403** pass, WF stability **1.007** pass, worst-regime rolling-252 **-1.907** fail, benchmark p **0.930** / IR **-0.661** fail, perturbation **0.932** pass → **4/8 REJECT**. Mean OOS exposure **0.0565** (near-cash).
+  - Ablations OOS: buy-hold SPY 0.676/1.137/-34.10%/1 (close-based in run); random-exposure-matched **0.137**/1.030/-2.31%/3776 (much weaker — not noise); inverse regime **0.680**/1.133/-1.25%/3602 (comparable, no opposite edge).
+  - Honest adjacency: repo-new *overnight gap/jump realized-vol* component. Distinct from H18/H87 (overnight/gap direction), H121 (Amihud), H136 (close-to-close RV term structure), H122/H128/H132/H135 (total-return higher moments/VoV). No validated edge.
+- **Cycle 57 discovery (directive §4):** Reconciled lineage to H142 (H85–H142 rejected/recorded). Proposed/scored >=3 candidates across >=3 broad categories: NF-20261108-06 overnight gap RV (liquidity/microstructure, 3.80, **selected/executed H143**), NF-20261108-07 TIP-IEF breakeven-proxy momentum (macro term-premium/inflation-compensation, 3.35, reassessed NF-08/NF-13 root, lower expected info), NF-20261108-08 DBC-SPY commodity-complex momentum (commodity-complex, 3.10, reassessed NF-32, ETF roll/flow confounds). Reassessed held/deferred pool with concrete evidence (no silent drops): NF-04 **blocked** (no free PIT term-structure/roll proxy; DBC/ETF confounds), NF-05 deferred, NF-07/08/10/11/13/15/17/20/21 deferred, NF-11r/NF-06-18 same root as NF-11 (H141 proxy executed), NF-06-11 infeasible, NF-20261106-03/23/24/28/30/32/33/35 deferred, NF-20261107-05 deferred (data), NF-20261107-11/14(48)/31/49/52 held (materially different designs required for 14/48/49/52/04 subclass noted), NF-20261108-04 held (subclass of H140), NF-20261108-05 deferred.
 
 ## Invariants preserved
 - `src/qtr` unchanged — pinned 100% coverage suite **not rerun**.
@@ -23,21 +18,19 @@
 - Free/public yfinance data only. No gate weakening. No commit/push.
 
 ## Verified this session
-- `python3 -m ruff check run_nf_20261108_03_spy_toq_window.py tests/test_nf_20261108_03_spy_toq_window.py` — clean.
-- `python3 -m ruff format --check ...` — clean.
-- `PYTHONPATH=src python3 -m pytest -q tests/test_nf_20261108_03_spy_toq_window.py` — **5 passed**.
-- H142 artifact verified REAL (re-executed): `.experiments/nf_runs/nf_20261108_03_spy_toq_window/summary.json` = **REJECT 4/8** (Sharpe 0.894 / PF 1.163 / maxDD -3.41% / trades 3353 / WF 1.047 / worst-regime -1.220 / benchmark p 0.953 / IR -0.722 / perturbation 0.996).
+- `python3 -m ruff check run_nf_20261108_06_spy_overnight_gap_rv.py tests/test_nf_20261108_06_spy_overnight_gap_rv.py` — clean.
+- `python3 -m ruff format --check run_nf_20261108_06_spy_overnight_gap_rv.py tests/test_nf_20261108_06_spy_overnight_gap_rv.py` — clean.
+- `PYTHONPATH=src python3 -m pytest -q tests/test_nf_20261108_06_spy_overnight_gap_rv.py` — **5 passed**.
+- `PYTHONPATH=src python3 run_nf_20261108_06_spy_overnight_gap_rv.py` — verdict **REJECT 4/8**.
 
 ## Unresolved / risks
-- H142 is a low-vol near-full-exposure overlay (maxDD -3.41%) but has no benchmark edge and worst-regime collapses; inverse (0.914) is comparable, giving no clean directional falsifier for the de-risking mapping.
-- Calendar/flow classes adjacent to H91 (turn-of-month REJECT 3/9), H140 (monthly OPX REJECT 4/8), H142 (TOQ REJECT 4/8) are now tested; NF-20261108-04 triple witching is a subclass of H140 and needs a **materially different** construction to avoid redundancy.
-- Correlation class (H96/H127/H134/H137) and RV-divergence class (H138/H139) heavily rejected; held NF-49/NF-52 need clearly distinct designs.
-- All H85–H142 rejected: no validated edge found across ~58 hypotheses; continuation requires genuinely new mechanism categories with explicit independence from rejected construction classes.
-- **Pandas 3.x engine incompatibility:** `BacktestResult.trades` is a DataFrame; any runner using `if bt.trades:` / `if trade_dates:` truthiness on it will crash. New runners must use `.empty`/`len()` guards.
+- H143 selected config is a near-cash overlay (mean exposure 5.65%); it reduces DD but is not a benchmark-significant timing edge (p 0.930). Do not promote to PASS.
+- Benchmark buy-hold in H143 uses raw Close (`auto_adjust=False`) — 0.676/-34.10% differs from adjusted-close BH in other NF runs; gates are internal/benchmark-relative within run (no cross-run gate comparison issue).
+- Rejected construction classes remain: correlation (H96/H127/H134/H137), RV-divergence (H138/H139), OPX proximity (H140), TOQ/H91 calendar, IV spread (H125/H126), overnight/gap direction (H18/H87), overnight-gap RV (H143), Amihud (H121), RV term structure (H136). Held candidates require **materially different pre-registered designs**.
 
-## Precise next task (Cycle 57, directive §4)
-1. Reconcile lineage to H142 (H85–H142 rejected/recorded).
-2. Propose **>=3 repo-new candidates across >=3 broad mechanism categories** with honest 25/25/20/15/10/5 scoring; reassess held NF-20261107-49/52/11/14(48)/31, NF-20261108-04/05 and deferred pool with concrete evidence (no silent drops). Explicitly justify independence from rejected construction classes (correlation H96/H127/H134/H137, RV-divergence H138/H139, OPX proximity H140, TOQ/calendar H142/H91, IV spread H125/H126).
-3. Pre-register highest expected-information feasible candidate as **next H-ID after H142** in `HYPOTHESIS_SPEC.md` before validation outcomes; record Cycle 57 discovery in `NEW_FAMILY_RESEARCH_REGISTER.md`.
-4. Implement runner + focused tests (pandas-3 safe), run ruff, run focused pytest, execute, record verdict/artifacts; update `NEXT_TASK.md`/handoffs.
+## Precise next task (Cycle 58, directive §4)
+1. Reconcile lineage to H143 (H85–H143 rejected/recorded).
+2. Propose **>=3 repo-new candidates across >=3 broad mechanism categories** with honest 25/25/20/15/10/5 scoring; reassess deferred/held NF-04/05/07/08/10/11/13/15/17/20/21, NF-11r/NF-06-18 (same root), NF-06-11, NF-20261106-03/23/24/28/30/32/33/35, NF-20261107-05/11/14(48)/31/49/52, NF-20261108-04/05/07/08 with concrete evidence (no silent drops). Justify independence from rejected construction classes above.
+3. Pre-register highest-expected-information feasible candidate as **H144** with smallest decisive test, PIT timing, costs, splits, gates, ablations, and falsifiers.
+4. Implement runner + focused tests, run ruff, run focused pytest, execute, record verdict/artifacts in `HYPOTHESIS_SPEC.md` and `NEW_FAMILY_RESEARCH_REGISTER.md`, update `NEXT_TASK.md`/handoffs.
 5. Free/public data only; no gate weakening; no published/certified artifact modification; no commit/push. If `src/qtr` touched, rerun pinned 100% coverage suite.

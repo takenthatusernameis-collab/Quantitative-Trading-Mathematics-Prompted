@@ -2637,3 +2637,59 @@ Searched mechanisms not heavily executed as root families (free/PIT feasible): c
 | SPY timing from turn-of-quarter window-dressing/rebalancing flows (calendar/auction) | H142 (NF-20261108-03) | Continuous vol-targeted long SPY reduced during ex-ante turn-of-quarter window (last end_days of quarter + first start_days of next quarter); 1-bar delay, long-only | SPY daily (yfinance), 2010–2025 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261108_03_spy_toq_window/summary.json`) | Fails Sharpe 0.894/PF 1.163/worst-regime -1.220/benchmark-p 0.953/IR -0.722; random-exposure 0.111 much weaker (not noise) but no benchmark edge; inverse 0.914 comparable (no clear directional falsifier); repo-new quarter-end cycle vs H91 turn-of-month (REJECT 3/9) |
 
 **Cycle 56 complete (discovery + H142 execution).** H85–H142 all rejected/recorded. Cycle 57 required next: fresh directive §4 discovery, >=3 repo-new candidates across >=3 broad categories, pre-register and execute the **next unused H-ID after H142** (H24/H68–H73/H76–H79 unassigned, not recycled). No gate weakening; no published/certified artifact modification; no commit/push in this session; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
+
+
+## Cycle 57 (2026-11-08) — Discovery + H143 execution (NF-20261108-06 SPY overnight gap realized-vol regime; REJECT 4/8)
+
+### Cycle 57 discovery (directive §4, >=3 repo-new mechanism candidates across >=3 broad categories)
+
+Lineage reconciled to H142: **H85–H142 all rejected/recorded**. Next unused H-ID: **H143** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified. Selection/validation used no protected-test feedback.
+
+Rough sanity checks (2020+ slice, **not** holdout-selected, single arbitrary parameter sets, **not used for selection**) to gauge feasibility only: overnight-gap RV overlay OOS-like Sharpe ≈0.54–0.89 depending on params vs BH 0.685 (n=1260) — weak mixed signal; TIP-IEF/DBC-SPY rough de-risking overlays showed ~0 under that crude construction (treated as uninformative, not decisive).
+
+| Cycle-57 candidate | Broad mechanism category | Nov 25% | Econ 25% | Data PIT 20% | Fals 15% | Exec 10% | Ind 5% | Weighted |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261108-06 SPY timing from overnight gap *realized-vol* regime — **H143 (selected/executed)** | Liquidity/microstructure — overnight information-arrival / auction-open jump risk | 4 | 3 | 5 | 4 | 5 | 2 | **3.80** |
+| NF-20261108-07 SPY timing from TIP-vs-IEF inflation-compensation (breakeven-proxy) momentum (reassessed NF-08/NF-13 root) | Macro term-premium / inflation-compensation transmission | 3 | 3 | 4 | 4 | 4 | 2 | **3.35** |
+| NF-20261108-08 SPY timing from DBC-vs-SPY broad commodity-complex momentum (reassessed NF-20261106-32) | Commodity-complex / inflation-scarcity transmission | 3 | 2 | 4 | 4 | 4 | 2 | **3.10** |
+
+**Scoring notes (honest).**
+- NF-20261108-06 novelty 4: repo-new as an executed *second moment of overnight gap/jump returns* (`RV(log(Open/prev Close))`) timing observable. H18/H87 tested overnight/gap *direction* (persistence/fill), H121 Amihud illiquidity, H136 close-to-close realized-vol *term structure* of total returns, H122/H128/H132/H135 total-return higher moments/VoV — different observable/component. **Honest adjacency** to the realized-vol z-score de-risking construction class and to the overnight/gap domain acknowledged; novelty scored on the repo-new overnight-gap RV component, not a wholly new statistical method. Data 5 (SPY OHLC free/PIT yfinance). Small decisive bounded 24-combo grid.
+- NF-20261108-07 novelty 3: reassesses deferred NF-08/NF-13 ETF breakeven-proxy root (TIP/IEF/GLD context; prior weak decisive check recorded). TIP/IEF/SPY aligned 3776 rows 2010–2025 (feasible). Adjacency to NF-08 proxy weakness and real-rate/inflation themes acknowledged; lower expected information than NF-06.
+- NF-20261108-08 novelty 3: reassesses deferred NF-20261106-32 (DBC/SPY). DBC is an ETF basket with roll/flow/equity-beta/confounding exposures (material, per NF-04/NF-32 notes) and partial adjacency to H101/H98/H88 — not a clean point-in-time commodity-complex observable; lower plausibility/confound control.
+
+**Held/deferred reassessment (no silent drops):**
+- **NF-04 commodity carry — still BLOCKED** (no free PIT term-structure/roll proxy; DBC/ETF proxies confound roll/flows/equity beta — decisive blocker unchanged).
+- **NF-05 short-term CS reversal — DEFERRED** (turnover/net-of-cost; H119 weekly REJECT 3/8).
+- **NF-07/08/10/11/13/15/17/20/21 — DEFERRED** (as previously recorded; NF-08/NF-13 reassessed above as NF-20261108-07 but not selected due to lower expected information/proxy history).
+- **NF-11r/NF-06-18 TNX-FVX slope — SAME root as NF-11** (data-resolved, not a new root family; ETF TLT-SHY proxy already executed as H141 REJECT 5/8).
+- **NF-06-11 CBOE PC ratio — INFEASIBLE** (no free yfinance data).
+- **NF-20261106-03/23/24/28/30/32/33/35 — DEFERRED** (NF-32 reassessed above as NF-20261108-08, confounds).
+- **NF-20261107-05 CPI drift — DEFERRED** (data blocker, adj H90).
+- **NF-20261107-11 IVOL spread — HELD** (needs clear separation from H118/H130 REJECTs).
+- **NF-20261107-14/48 OVX−VIX — HELD, materially different pre-registered design required** (same IV-spread construction class as H125/H126).
+- **NF-20261107-31 sector breadth — HELD** (adj H115 REJECT 1/8).
+- **NF-20261107-49 TLT-SPY realized corr — HELD** (correlation-regime construction class H96/H127/H134/H137 all REJECT; needs clearly distinct mechanism/design, not a new pair alone).
+- **NF-20261107-52 EEM-SPY RV divergence — HELD** (adj rejected RV-divergence class H138/H139).
+- **NF-20261108-04 triple witching OPX+futures — HELD** (subclass of H140 monthly OPX REJECT 4/8; needs materially different construction).
+- **NF-20261108-05 overnight/intraday return-flow — DEFERRED/HELD** (OHLC split feasible but microstructure-noisy; NF-20261108-06 selected as cleaner overnight jump-RV decisive test).
+- Executed/not rerun: NF-20261107-51/53/20261108-01/02/03 (=H138–H142), NF-20261107-32/36/39/43/46/47/50, NF-20261106-01/06/09/14/29, H89/H105 (SKEW families).
+
+**Selection:** NF-20261108-06 → **H143** (highest expected-information feasible candidate: repo-new overnight-gap RV microstructure component, free PIT OHLC, bounded 24-combo grid, explicit separation from H18/H87/H121/H136/H122/H128/H132/H135). Pre-registered in `HYPOTHESIS_SPEC.md` §H143 before validation outcomes.
+
+### NF-20261108-06 / H143 execution outcome (2026-11-08, REAL) — REJECTED (4/8)
+
+**Runner:** `run_nf_20261108_06_spy_overnight_gap_rv.py`. **Tests:** `tests/test_nf_20261108_06_spy_overnight_gap_rv.py` (5 passed). `ruff check/format` clean. `src/qtr` unchanged.
+
+**Execution.** Artifact `.experiments/nf_runs/nf_20261108_06_spy_overnight_gap_rv/summary.json` (18.21s). Data SPY OHLC yfinance `auto_adjust=False`, 3776 rows 2010-01-04→2025-01-03 (train 2516 / val 505 / test 755). Selected (train-only 4-fold WF mean Sharpe 0.7645): `rv_window=63, z_window=126, entry_scale=2.0, vol_target=0.10`.
+
+**Result — REJECT (4/8 gates).** OOS Val+Test (3403 engine trades, n=1260): Sharpe **0.739** (fail ≥1.0), PF **1.154** (fail ≥1.3), max DD **-1.54%** (pass ≤15%), trades **3403** (pass ≥200), WF stability **1.007** (pass ≥0.7), worst-regime rolling-252 Sharpe **-1.907** (fail ≥0.3), benchmark p **0.930** / IR **-0.661** (fail), perturbation min ratio **0.932** (pass ≥0.5). Mean OOS exposure 0.0565 (near-cash).
+
+**Ablations (OOS).** Buy-hold SPY 0.676/1.137/-34.10%/1 (close-based BH within run). Random-exposure-matched 0.137/1.030/-2.31%/3776 (much weaker — not noise). Inverse regime 0.680/1.133/-1.25%/3602 (comparable/no opposite edge).
+
+**Verdict rationale.** Near-cash overlay (5.65% exposure) reduces DD but fails Sharpe/PF/worst-regime/benchmark. Signal not pure noise vs random exposure, but no benchmark-significant timing edge. Repo-new overnight-gap RV component observable (distinct from H18/H87/H121/H136/H122/H128/H132/H135) — no validated edge under pre-registered H143. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Lineage map (H143 REJECT):**
+| SPY timing from overnight gap realized-volatility regime (liquidity/microstructure) | H143 (NF-20261108-06) | Continuous vol-targeted long SPY reduced when z-score of trailing RV(log(Open/prev Close)) elevated; 1-bar delay, long-only | SPY daily OHLC (yfinance), 2010–2025 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261108_06_spy_overnight_gap_rv/summary.json`) | Fails Sharpe 0.739/PF 1.154/worst-regime -1.907/benchmark-p 0.930/IR -0.661; near-cash (mean exposure 0.0565); random-exposure 0.137 weaker; inverse 0.680 comparable; repo-new overnight-gap RV component vs H18/H87/H121/H136/H122/H128/H132/H135 |
+
+**Cycle 57 complete (discovery + H143 execution).** H85–H143 all rejected/recorded. Cycle 58 required next: fresh directive §4 discovery, >=3 repo-new candidates across >=3 broad categories, pre-register and execute the **next unused H-ID after H143** (H24/H68–H73/H76–H79 unassigned, not recycled). No gate weakening; no published/certified artifact modification; no commit/push; `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).

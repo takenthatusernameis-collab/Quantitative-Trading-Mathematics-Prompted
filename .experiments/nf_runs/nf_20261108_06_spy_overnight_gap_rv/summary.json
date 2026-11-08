@@ -1,0 +1,169 @@
+{
+  "nf_id": "NF-20261108-06",
+  "hypothesis_id": "H143",
+  "description": "NF-20261108-06/H143: SPY timing from overnight gap realized-volatility regime. z-score of trailing RV(log(Open/prev Close)); de-risk vol-targeted long SPY when elevated. 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "verdict": "REJECT",
+  "gates_passed": "4/8",
+  "gates": {
+    "sharpe_ge_1": {
+      "pass": false,
+      "value": 0.738711748145858
+    },
+    "trades_ge_200": {
+      "pass": true,
+      "value": 3403
+    },
+    "pf_ge_1_3": {
+      "pass": false,
+      "value": 1.1541733739367324
+    },
+    "maxdd_le_15": {
+      "pass": true,
+      "value": 0.015433714659893788
+    },
+    "wf_stability_ge_0_7": {
+      "pass": true,
+      "value": 1.007274330321295
+    },
+    "worst_regime_ge_0_3": {
+      "pass": false,
+      "value": -1.90686120656543
+    },
+    "benchmark_p_le_0_05_ir_ge_0": {
+      "pass": false,
+      "value": {
+        "p": 0.9301040711343861,
+        "ir": -0.6612832889393329
+      }
+    },
+    "perturbation_ge_0_5": {
+      "pass": true,
+      "value": 0.931711855685523
+    }
+  },
+  "selected_params": {
+    "rv_window": 63,
+    "z_window": 126,
+    "entry_scale": 2.0,
+    "vol_target": 0.1
+  },
+  "selection": {
+    "method": "best train-only 4-fold WF mean Sharpe",
+    "best_wf_train_sharpe": 0.7645087871035452,
+    "top5": [
+      {
+        "rv_window": 63,
+        "z_window": 126,
+        "entry_scale": 2.0,
+        "vol_target": 0.1,
+        "wf_train_sharpe": 0.7645087871035452
+      },
+      {
+        "rv_window": 63,
+        "z_window": 126,
+        "entry_scale": 2.0,
+        "vol_target": 0.15,
+        "wf_train_sharpe": 0.7603307577599292
+      },
+      {
+        "rv_window": 21,
+        "z_window": 63,
+        "entry_scale": 1.0,
+        "vol_target": 0.15,
+        "wf_train_sharpe": 0.7581374202739903
+      },
+      {
+        "rv_window": 21,
+        "z_window": 63,
+        "entry_scale": 1.0,
+        "vol_target": 0.1,
+        "wf_train_sharpe": 0.7564761225350107
+      },
+      {
+        "rv_window": 21,
+        "z_window": 63,
+        "entry_scale": 1.5,
+        "vol_target": 0.15,
+        "wf_train_sharpe": 0.7548621259616207
+      }
+    ]
+  },
+  "metrics": {
+    "train": {
+      "n": 2516,
+      "sharpe": 0.7589876601537997,
+      "profit_factor": 1.1563727028849438,
+      "max_drawdown": 0.017695017298314207,
+      "trades": 3403
+    },
+    "val": {
+      "n": 505,
+      "sharpe": 1.2277309880247649,
+      "profit_factor": 1.2587961168935937,
+      "max_drawdown": 0.007517970806825037,
+      "trades": 3403
+    },
+    "test": {
+      "n": 755,
+      "sharpe": 0.36415976841346404,
+      "profit_factor": 1.074979392980171,
+      "max_drawdown": 0.01243097731244497,
+      "trades": 3403
+    },
+    "oos_val_test": {
+      "n": 1260,
+      "sharpe": 0.738711748145858,
+      "profit_factor": 1.1541733739367324,
+      "max_drawdown": 0.015433714659893788,
+      "trades": 3403
+    },
+    "benchmark_buy_hold_oos": {
+      "n": 1260,
+      "sharpe": 0.6764230792184232,
+      "profit_factor": 1.1367751889196684,
+      "max_drawdown": 0.3410474689324394,
+      "trades": 1
+    }
+  },
+  "ablations": {
+    "random_exposure_matched_oos": {
+      "n": 1260,
+      "sharpe": 0.1368864526034483,
+      "profit_factor": 1.0303599496523523,
+      "max_drawdown": 0.023062823311657665,
+      "trades": 3776
+    },
+    "inverse_regime_oos": {
+      "n": 1260,
+      "sharpe": 0.6796023371926928,
+      "profit_factor": 1.1329566909543078,
+      "max_drawdown": 0.012492958852744441,
+      "trades": 3602
+    },
+    "mean_oos_exposure_fraction": 0.05645831931543345
+  },
+  "data": {
+    "symbol": "SPY",
+    "source": "yfinance",
+    "rows": 3776,
+    "start": "2010-01-04",
+    "end": "2025-01-03",
+    "splits": {
+      "train": [
+        "2010-01-04",
+        "2019-12-31"
+      ],
+      "val": [
+        "2020-01-02",
+        "2021-12-31"
+      ],
+      "test": [
+        "2022-01-03",
+        "2025-01-03"
+      ]
+    }
+  },
+  "timing_seconds": 18.21,
+  "seed": 42,
+  "src_qtr_changed": false
+}
