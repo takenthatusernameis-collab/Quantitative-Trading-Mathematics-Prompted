@@ -1,9 +1,12 @@
-# NEXT_TASK — Cycle 63: H149 pre-registered; implement + execute
+# NEXT_TASK — Cycle 64: fresh discovery (post H149)
 
-## State (post Cycle 62 / H148)
-- H148 REJECT 4/8 (see HYPOTHESIS_SPEC.md §H148). Lineage reconciled H85–H148.
-- H149 PRE-REGISTERED (NF-20261106-01, GDX-vs-GLD miner gold-beta RV divergence SPY timing). See HYPOTHESIS_SPEC.md §H149.
-- No commit/push; src/qtr unchanged.
+## State (post Cycle 63 / H149)
+- H149 / NF-20261106-01 lineage (executed as NF-20261108-14) — GDX-vs-GLD realized-vol divergence SPY timing: **REJECT 4/8** (REAL). Artifact `.experiments/nf_runs/nf_20261108_14_gdx_gld_rv_spy/summary.json` (5.71s). Runner `run_nf_20261108_14_gdx_gld_rv_spy.py`, tests `tests/test_nf_20261108_14_gdx_gld_rv_spy.py` (**6 passed**). OOS Sharpe 0.939/PF 1.189/maxDD -2.18%/trades 3435/WF 0.879/worst-regime -1.106/benchmark-p 0.939/IR -0.698/perturb 0.885. Ablations: buy-hold 0.750, random-exposure 0.524 (weaker), inverse 0.931 (near base; no benchmark edge). **Lineage integrity:** NF-20261106-01 root collided with H99 (`nf_20261106_01_miner_gold_rv` committed, REJECT) — H149 executed under NF-20261108-14; H99 artifacts preserved.
+- Lineage reconciled H85–H149. No commit/push; `src/qtr` unchanged.
 
-## Precise next task (Cycle 63)
-Implement `run_nf_20261106_01_miner_gold_rv.py` + `tests/test_nf_20261106_01_miner_gold_rv.py` following the H148 standard gated/ablation protocol (walk-forward train-only selection, protected Test, buy-hold/random-exposure/inverse ablations, gates, perturbation). Free/public yfinance data only. Run ruff check/format, focused pytest, execute runner, record verdict + artifact path in HYPOTHESIS_SPEC.md, NEW_FAMILY_RESEARCH_REGISTER.md, NEXT_TASK.md, HANDOFF_NEXT.md. Do not fabricate results; do not weaken gates; do not modify published/certified artifacts/thresholds/frozen numbers. If src/qtr touched, rerun pinned 100% coverage suite.
+## Precise next task (Cycle 64, directive §4)
+1. Reconcile lineage to H149 (H85–H149 rejected/recorded).
+2. Propose **>=3 repo-new candidates across >=3 broad mechanism categories** with honest 25/25/20/15/10/5 scoring. **Verify NF roots against executed H-IDs/artifacts before selection** (Cycle 62 NF-20/H110 collision; Cycle 63 NF-06-01/H99 collision). Reassess deferred/held pool with concrete evidence (no silent drops): NF-04 blocked; NF-05/07/08/10/11/13/15/17/21 deferred; NF-20 root executed H110; NF-11r/NF-06-18 same root as NF-11 (H141); NF-06-11 infeasible; NF-20261106-01 lineage executed H149 (NF-20261108-14); NF-20261106-03/23/24/28/30/32/33/35 deferred (verify roots); NF-20261107-05 deferred (data blocker); NF-20261107-14/48 OVX−VIX held (IV-spread H125/H126); NF-20261107-49 held (correlation H96/H127/H134/H137); NF-20261107-52 executed H148; NF-20261108-04/05/07/08/10 deferred/held. Justify independence from rejected construction classes (correlation H96/H127/H134/H137; RV-divergence H138/H139/H148/H149; OPX proximity H140; TOQ/H91; IV spread H125/H126; overnight/gap direction H18/H87; overnight-gap RV H143; Amihud H121; RV term structure H136; EEM-SPY relmom H144; GLD-SPY relmom H145; IVOL dispersion H146; breadth H115/H147; FX-strength H95/H103/H106).
+3. Pre-register highest-expected-information feasible candidate as **H150** with smallest decisive test, PIT timing, costs, splits, gates, ablations, and falsifiers.
+4. Implement runner + focused tests, run ruff, run focused pytest, execute, record verdict/artifacts in `HYPOTHESIS_SPEC.md` and `NEW_FAMILY_RESEARCH_REGISTER.md`, update `NEXT_TASK.md`/`HANDOFF_NEXT.md`.
+5. Free/public data only; no gate weakening; no published/certified artifact modification; no commit/push. If `src/qtr` touched, rerun pinned 100% coverage suite.

@@ -1,0 +1,71 @@
+{
+  "nf_id_exec": "NF-20261108-14",
+  "nf_id_prereg_lineage": "NF-20261106-01",
+  "hypothesis": "H149",
+  "verdict": "REJECT",
+  "gates_passed": "4/8",
+  "gates": {
+    "sharpe_ge_1": false,
+    "trades_ge_200": true,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": true,
+    "wf_stability_ge_0_7": true,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_ir_ge_0": false,
+    "perturbation_ge_0_5": true
+  },
+  "selected_params": {
+    "rv_window": 21,
+    "z_window": 126,
+    "entry_scale": 2.0,
+    "vol_target": 0.15
+  },
+  "selection_wf_train_mean_sharpe": 1.0684107956991602,
+  "oos_val_test": {
+    "n": 1259,
+    "sharpe": 0.9389994441149275,
+    "profit_factor": 1.1889171185808591,
+    "max_drawdown": -0.02184054023133044,
+    "trades": 3435
+  },
+  "wf_stability_ratio": 0.8788749120608176,
+  "worst_regime_rolling252_sharpe": -1.1061086015074864,
+  "benchmark_buy_hold_spy_oos": {
+    "sharpe": 0.7502689054941079,
+    "profit_factor": 1.153128773236555,
+    "max_drawdown": -0.3371726713072693,
+    "trades": 1
+  },
+  "benchmark_p": 0.9385,
+  "information_ratio_vs_bh": -0.697714752554005,
+  "perturbation_min_ratio": 0.8849901075244352,
+  "ablations": {
+    "buy_hold_spy": {
+      "sharpe": 0.7502689054941079,
+      "profit_factor": 1.153128773236555,
+      "max_drawdown": -0.3371726713072693,
+      "trades": 1
+    },
+    "random_exposure_matched": {
+      "sharpe": 0.5243562803854046,
+      "profit_factor": 1.1158771231957991,
+      "max_drawdown": -0.047458479221004345,
+      "trades": 1258
+    },
+    "inverse_regime": {
+      "n": 1259,
+      "sharpe": 0.9313988396178613,
+      "profit_factor": 1.1832722601695762,
+      "max_drawdown": -0.032386437914078574,
+      "trades": 3610
+    }
+  },
+  "timing_seconds": 5.71,
+  "data": {
+    "start": "2010-01-04",
+    "end": "2025-01-03",
+    "rows": 3776
+  },
+  "lineage_note": "H149 pre-registered as NF-20261106-01 (HYPOTHESIS_SPEC) but NF-20261106-01 was already executed as H99 (GDX/GLD spread mean-reversion, REJECT). H149 executed under NF-20261108-14 to preserve H99 artifacts; mechanism follows pre-registration (GDX-vs-GLD RV divergence SPY timing).",
+  "description": "NF-20261108-14/H149 (pre-reg NF-20261106-01 lineage): SPY timing from GDX-vs-GLD realized-vol divergence (RV difference, z-scored). De-risk vol-targeted long SPY when z abnormally positive (miner stress elevated vs bullion). 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates; inverse falsifier (H138/H139 class)."
+}
