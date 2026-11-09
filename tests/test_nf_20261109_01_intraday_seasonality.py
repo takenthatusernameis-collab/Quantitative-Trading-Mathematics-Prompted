@@ -129,16 +129,16 @@ def test_constants_pre_registered():
     assert mod.MAX_POS == 0.5
 
 
-def test_hour_windows_are_valid_utc():
-    # All hour windows should be within trading hours 13-19 UTC
+def test_hour_windows_are_valid_et():
+    # All hour windows should be within ET trading hours 9-15
     for hw in mod.HOUR_WINDOWS:
         for h in hw:
-            assert 13 <= h <= 19, f"Hour {h} outside trading hours 13-19 UTC"
+            assert 9 <= h <= 15, f"Hour {h} outside ET trading hours 9-15"
 
 
 def test_inverse_hour_window_complement():
-    # Inverse hour window should be complement of selected within 13-19
-    all_hours = set(range(13, 20))
+    # Inverse hour window should be complement of selected within ET 9-15
+    all_hours = set(range(9, 16))
     for hw in mod.HOUR_WINDOWS:
         selected = set(hw)
         inverse = all_hours - selected

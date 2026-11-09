@@ -445,9 +445,9 @@ def main(argv=None) -> int:
 
     # Ablations
     rng = np.random.default_rng(SEED)
-    # Random-hour control: same number of active hours, randomly chosen
+    # Random-hour control: same number of active hours, randomly chosen (ET hours)
     n_active = len(selected["hour_window"])
-    all_hours = list(range(13, 20))  # 13-19
+    all_hours = list(range(9, 16))  # 9-15 ET trading hours
     rand_hours = tuple(sorted(rng.choice(all_hours, size=n_active, replace=False)))
     rand_sig = _build_signal(hourly_ret, rand_hours, selected["vol_target"], selected["vol_window"])
     rand_oos = _slice_metrics(prices, rand_sig, hourly_ret, oos_start, END)

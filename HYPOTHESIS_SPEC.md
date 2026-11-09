@@ -8131,7 +8131,7 @@ Lineage reconciled to H167: **H85–H167 all rejected/recorded**. Next unused H-
 
 ## H172 — NF-20261109-01: Intraday Equity Time-of-Day Seasonality (SPY 1h) (Cycle 86)
 
-**NF-ID:** NF-20261109-01 (H172). **Status:** Pre-registered for execution. `src/qtr` unchanged. Free/public yfinance hourly data only. No commit/push.
+**NF-ID:** NF-20261109-01 (H172). **Status:** Pre-registered and executed REAL 2026-11-09 — **REJECT (3/8 gates)**. `src/qtr` unchanged. Free/public yfinance hourly data only. No commit/push.
 
 **Broad mechanism category:** Microstructure / intraday seasonality (repo-new root family; distinct from H87 opening-gap fill, H10 intraday futures TSMOM, and calendar/seasonal families H91/H140/H142/H168).
 
@@ -8141,26 +8141,34 @@ Lineage reconciled to H167: **H85–H167 all rejected/recorded**. Next unused H-
 
 **Null (H0).** Hour-of-day membership has no predictive power for SPY intraday returns beyond random chance after costs.
 
-**Pre-registration (decision-ready before validation outcomes).** NF-20261109-01 verified unused (no executed NF/H/runner/artifact). H172 next unused after H171 (H24/H68–H73/H76–H79 unassigned, not recycled). PIT causal: SPY hourly bars known at hour close; hour-window membership is calendar-known at session start; signal for hour h uses only information available at hour h-1 close; position for hour h earns return from hour h open to hour h close. Free/public yfinance hourly SPY: ~730 daily bars available (yfinance 1h limit), covering ~2024-11 → 2026-10. Sample splits: Train first 50%, Val next 25%, Test protected final 25% (by time). Selection = train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+**Pre-registration (decision-ready before validation outcomes).** NF-20261109-01 verified unused (no executed NF/H/runner/artifact). H172 next unused after H171 (H24/H68–H73/H76–H79 unassigned, not recycled). PIT causal: SPY hourly bars known at hour close; hour-window membership calendar-known; 1-bar delay via engine `signals.shift(1)`. Free/public yfinance hourly SPY (auto_adjust, 1h), 3313 ET trading-hour bars 2024-12-02→2026-10-30 (yfinance ~730-day 1h limit). Train first 50% (2024-12-01→2025-11-12), Val next 25% (→2026-05-08), Test protected final 25% (→2026-10-31). Selection = train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
 
 **Construction (hourly, causal).**
-1. Fetch SPY 1h bars via `DataFetcher.fetch_yahoo` (interval="1h"). Use `Open`, `High`, `Low`, `Close`, `Volume`.
+1. Fetch SPY 1h bars via yfinance (interval="1h", auto_adjust). yfinance returns ET timestamps; convert to tz-naive ET for engine (hour membership uses ET clock). Keep regular trading hours ET 9–15 (9:30–16:00 session).
 2. Compute hourly returns: `ret_h = Close_h / Open_h - 1` (intraday return for hour h).
-3. Hour-of-day index: `hour_idx = timestamp.hour` (9-15 for 9:30-16:00 ET; 13:30-19:30 UTC).
-4. Pre-registered favorable hour windows (tested via grid): `hour_window ∈ { {13,14}, {14,15}, {13,14,15}, {10,11}, {9,10}, {15} }` — representing morning momentum, lunch doldrums, afternoon trend, close auction, etc. Grid encodes specific hour sets; not a continuous parameter.
-5. Signal: `sig_h = 1.0` if `hour_idx in hour_window` else `0.0`. Applied at hour h-1 close for hour h return (1-bar delay via engine).
-6. Vol targeting: trailing 21-hour realized vol of SPY hourly returns, target annual vol 15% (scaled to hourly: 0.15 / sqrt(252*6.5)). Position clipped to `[0, 0.5]`.
-7. Costs: Equity `CostModel` defaults (1 bp commission + 1 bp spread + 0.1 bp impact per 1% ADV). Hourly turnover ≈ 2× per active hour (entry + exit).
+3. Hour-of-day index (ET): `hour_idx = timestamp.hour` (9–15 ET; 9 includes 9:30 bar).
+4. Pre-registered favorable hour windows (grid, ET): `hour_window ∈ { {9,10}, {10,11}, {9,10,11}, {11,12}, {12,13}, {14} }` (morning momentum, mid-morning, full morning, lunch transition, early afternoon, close-auction hour). Grid encodes specific hour sets.
+5. Signal: `sig_h = 1.0` if `hour_idx in hour_window` else `0.0`. 1-bar delay via engine `signals.shift(1)` (no look-ahead).
+6. Vol targeting: trailing `vol_window`-hour realized vol of hourly returns, target annual vol `vol_target` scaled to hourly: `vol_target / sqrt(252*6.5)`. Position clipped to `[0, 0.5]`.
+7. Costs: Equity `CostModel` defaults (1 bp commission + 1 bp spread). Long-only.
 
-**Bounded grid (pre-registered).** `hour_window ∈ { {13,14}, {14,15}, {13,14,15}, {15,16}, {16,17}, {19} }` × `vol_target ∈ {0.10, 0.15, 0.20}` × `vol_window ∈ {21, 63}` = 6 × 3 × 2 = **36 combos**. Selection by train-only 4-fold walk-forward Sharpe; Test protected.
+**Bounded grid (pre-registered).** `hour_window ∈ { {9,10}, {10,11}, {9,10,11}, {11,12}, {12,13}, {14} }` × `vol_target ∈ {0.10, 0.15, 0.20}` × `vol_window ∈ {21, 63}` = 6 × 3 × 2 = **36 combos**. Selection by train-only 4-fold walk-forward Sharpe; Test protected.
 
-**Falsifiers / ablations.** Buy-hold SPY benchmark; random-hour control (same number of active hours, randomly shuffled); inverse-hour (long unfavorable hours); always-flat; OAT perturbation (±20% on vol_target, vol_window, hour_window membership); Val/Test subperiods; worst-regime rolling-252 Sharpe. No gate weakening.
+**Falsifiers / ablations.** Buy-hold SPY benchmark; random-hour control (same number of active ET hours, randomly shuffled over ET 9–15); inverse-hour (long unfavorable ET hours); OAT perturbation (±20% on vol_target, vol_window); Val/Test subperiods implied in OOS; worst-regime rolling-252 Sharpe. No gate weakening.
 
 **Gates (OOS Val+Test, fail-closed).** Sharpe ≥ 1.0; trades ≥ 200; PF ≥ 1.3; max DD ≤ 15%; WF stability ≥ 0.7; worst-regime rolling-252 Sharpe ≥ 0.3; benchmark p ≤ 0.05 with IR ≥ 0 (direction-aware); perturbation min ratio ≥ 0.5.
 
-**Runner:** `run_nf_20261109_01_intraday_seasonality.py`. **Tests:** `tests/test_nf_20261109_01_intraday_seasonality.py` (to be implemented).
+**Runner:** `run_nf_20261109_01_intraday_seasonality.py`. **Tests:** `tests/test_nf_20261109_01_intraday_seasonality.py` (**10 passed**). `ruff check/format` clean.
 
-**Lineage map (H172 pre-registered):**
-| Root family | H-IDs | Mechanism | Markets / data | Status | Known risks |
-|---|---|---|---|---|---|
-| Intraday equity time-of-day seasonality | H172 (NF-20261109-01) | Vol-targeted long SPY during pre-registered favorable hour windows (e.g., 13-15h UTC = 9-11 AM ET, 14-15h = 10-11 AM ET, etc.); microstructure seasonality | SPY hourly (yfinance 1h, ~730 bars, 2024-11→2026-10) | **PRE-REGISTERED** | Hourly data limited to ~730 bars (yfinance limit); microstructure seasonality may be crowded/arbitraged; adjacency to H87/H10/calendar families honestly disclosed |
+**Execution (REAL).** Artifact `.experiments/nf_runs/nf_20261109_01_intraday_seasonality_20261109_213639/summary.json` (+ `grid.csv`, 4.31s). Data: SPY 1h yfinance (ET), 3313 rows 2024-12-02→2026-10-30; OOS Val+Test. Selected (train-only 4-fold WF mean Sharpe **-0.299**; train ref **-0.155**): `hour_window=[10,11] ET, vol_target=0.15, vol_window=63`.
+
+**Result — REJECT (3/8 gates).** OOS Val+Test (476 trades): Sharpe **-0.936** (fail ≥1.0), PF **0.737** (fail ≥1.3), max DD **-6.01%** (pass ≤15%), trades **476** (pass ≥200), WF stability **NaN** (fail ≥0.7; train ref non-positive), worst-regime rolling-252 Sharpe **-2.650** (fail ≥0.3), benchmark p **0.975** / IR **-1.938** vs buy-hold SPY (fail p≤0.05 & IR≥0), perturbation min ratio **0.886** (pass ≥0.5).
+
+**Ablations (OOS).** Buy-hold SPY **0.330**/1.068/-4.89%/1. Random-hour control **-1.122**/0.712/-8.04%/952 (worse). **Inverse-hour** (unfavorable ET hours) **0.133**/1.032/-4.39%/477 — weakly positive but still far below gates/benchmark (directional falsifier: selected window not superior; no edge).
+
+**Integrity note.** Focused tests/runner ablation hour universe were aligned to the runner's ET-native hour encoding (9–15 ET) during verification (test expected UTC-style 13–19 while runner used ET windows 9–14; random/inverse control universe corrected to ET 9–15). No gate weakened; construction/grid/gates unchanged. Spec grid text clarified to ET (matching executed grid).
+
+**Verdict rationale.** Fails 5/8 gates (Sharpe, PF, WF stability, worst-regime, benchmark/IR). Passes only DD/trades/perturbation. Train-only WF Sharpe negative; OOS sharply negative vs buy-hold. No intraday seasonality edge detected in this pre-registered construction on ~2y hourly data (yfinance limit). Repo-new microstructure/seasonality root family honestly tested — **no validated edge**. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Lineage map (H172 REJECT):**
+| Intraday equity time-of-day seasonality | H172 (NF-20261109-01) | Vol-targeted long SPY during pre-registered favorable ET hour windows (1h bars); microstructure seasonality, 1-bar delay, long-only | SPY hourly (yfinance 1h ET, 3313 bars, 2024-12→2026-10) | **REJECT** (3/8; `.experiments/nf_runs/nf_20261109_01_intraday_seasonality_20261109_213639/summary.json`) | Fails Sharpe -0.936/PF 0.737/WF NaN/worst-regime -2.650/benchmark-p 0.975/IR -1.938; DD -6.01%/trades 476/perturbation 0.886 pass; train WF negative; inverse-hour weak (0.133); limited ~2y 1h history (yfinance constraint) |
