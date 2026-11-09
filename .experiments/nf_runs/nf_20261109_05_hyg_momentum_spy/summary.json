@@ -1,0 +1,86 @@
+{
+  "nf_id_exec": "NF-20261109-05",
+  "hypothesis": "H163",
+  "verdict": "REJECT",
+  "gates_passed": "3/8",
+  "gates": {
+    "sharpe_ge_1": false,
+    "trades_ge_200": true,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": true,
+    "wf_stability_ge_0_7": true,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_ir_ge_0": false,
+    "perturbation_ge_0_5": false
+  },
+  "selected_params": {
+    "lookback": 252,
+    "z_window": 252,
+    "entry_scale": 1.5,
+    "exit_scale": 0.0,
+    "vol_target": 0.15
+  },
+  "selection_wf_train_mean_sharpe": 1.05942057503415,
+  "oos_val_test": {
+    "n": 1716,
+    "sharpe": 0.9345330023311613,
+    "profit_factor": 1.2240772763747232,
+    "max_drawdown": -0.021380009069715416,
+    "trades": 2568
+  },
+  "train": {
+    "n": 2515,
+    "sharpe": 0.9029075233121191,
+    "profit_factor": 1.2305980160432437,
+    "max_drawdown": -0.03088302848385135,
+    "trades": 2568
+  },
+  "wf_stability_ratio": 1.0350262659270255,
+  "worst_regime_rolling252_sharpe": -2.442478786851578,
+  "benchmark_buy_hold_spy_oos": {
+    "n": 1716,
+    "sharpe": 0.7915313504831595,
+    "profit_factor": 1.1636422480293827,
+    "max_drawdown": -0.3371725063561865,
+    "trades": 1
+  },
+  "benchmark_p": 0.97,
+  "information_ratio_vs_bh": -0.732514731754612,
+  "perturbation_min_ratio": 0.46216623030059245,
+  "ablations": {
+    "buy_hold_spy": {
+      "n": 1716,
+      "sharpe": 0.7915313504831595,
+      "profit_factor": 1.1636422480293827,
+      "max_drawdown": -0.3371725063561865,
+      "trades": 1
+    },
+    "random_exposure_matched": {
+      "n": 1716,
+      "sharpe": 0.2971797609169923,
+      "profit_factor": 1.1277097408855572,
+      "max_drawdown": -0.019582458122331198,
+      "trades": 1528
+    },
+    "inverse_regime": {
+      "n": 1716,
+      "sharpe": 0.2891563829501627,
+      "profit_factor": 1.0627521143985978,
+      "max_drawdown": -0.04559713291304788,
+      "trades": 2952
+    }
+  },
+  "timing_seconds": 61.92,
+  "data": {
+    "start": "2010-01-04",
+    "end": "2026-10-30",
+    "rows": 4233
+  },
+  "description": "NF-20261109-05/H163: SPY timing from HYG high-yield credit momentum regime. Trailing HYG return-momentum z-scored with hysteresis; de-risk vol-targeted long SPY when HYG momentum is abnormally weak (credit stress), full exposure when benign. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "notes": [
+    "Repo-new executed HYG trailing return-momentum z-score SPY-timing observable (not HYG-IEF/HYG-LQD/JNK-LQD credit spread level/ratio observables of H94/H108/H146).",
+    "Honest adjacency: H94/H108/H146 credit spread-level families (REJECT); HYG-momentum observable is different but same asset class; z-score/de-risking/vol-target construction class H138/H139/H151/H156/H158/H159/H162. Novelty scored on the HYG-momentum observable.",
+    "Hysteresis: z<=-entry_scale de-risk (credit stress), z>=exit_scale full exposure (benign); inverse falsifier de-risks on STRONG HYG momentum.",
+    "src/qtr unchanged; no gate weakening; no published/certified artifact modified."
+  ]
+}

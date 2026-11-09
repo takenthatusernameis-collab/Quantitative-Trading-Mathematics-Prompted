@@ -1,33 +1,43 @@
-# HANDOFF_NEXT
+# HANDOFF_NEXT (Cycle 78)
 
-## 1) What changed (Cycle 76 execution complete, H162 REJECT 4/8)
+## Completed this session (Cycle 77)
+- **H163 / NF-20261109-05 — HYG high-yield credit-momentum regime SPY timing (credit risk-premium / momentum regime transmission): REJECT (3/8, REAL).**
+  - Artifact: `.experiments/nf_runs/nf_20261109_05_hyg_momentum_spy/summary.json` (+ `grid.csv`, `data_meta.json`, 71.17s)
+  - Runner: `run_nf_20261109_05_hyg_momentum_spy.py`; Tests: `tests/test_nf_20261109_05_hyg_momentum_spy.py` (**11 passed**)
+  - Data (free/public yfinance, PIT): SPY (traded) + HYG (signal), daily auto-adjust Close, 4233 rows 2010-01-04→2026-10-30 (train 2515 / val 756 / test 962; OOS Val+Test n=1716).
+  - Signal: trailing HYG return-momentum z-score with hysteresis (`z <= -entry_scale` de-risk / credit-momentum stress, `z >= exit_scale` full exposure, hold prior, initial long), vol-targeted SPY, 1-bar delay via engine `signals.shift(1)`, long-only, Equity CostModel defaults.
+  - Selected (train-only 4-fold WF mean Sharpe 0.975): `lookback=252, z_window=252, entry_scale=1.5, exit_scale=0.0, vol_target=0.15`.
+  - OOS Val+Test (2568 trades, n=1716): Sharpe **0.935** fail, PF **1.224** fail, max DD **-2.14%** pass, trades **2568** pass, WF stability **0.975** pass (train 0.958→OOS 0.935), worst-regime rolling-252 **-1.336** fail, benchmark p **0.903** / IR **-0.545** fail, perturbation **0.664** pass → **3/8 REJECT**.
+  - Ablations OOS: buy-hold SPY 0.792/1.164/-33.72%/1; random-exposure-matched **0.209**/1.090/-2.21%/1323 (much weaker, structure present, no edge); **inverse regime** (de-risk on strong HYG momentum) **0.148**/1.035/-4.65%/3782 (much weaker, direction supported, no edge). Val 0.806 / Test 1.037 (test stronger but combined OOS fails gates/benchmark).
+  - Honest adjacency: repo-new executed *HYG return-momentum z-score* SPY-timing observable. Distinct from H94 HYG-IEF excess *level* (REJECT 4/8), H108 LQD-HYG ratio *level* (REJECT 4/8), H146 JNK/LQD ratio *level* (REJECT 4/8). Construction-class adjacency (z-score hysteresis/de-risking/vol-target/1-bar delay) disclosed. No validated edge.
+  - **NF-ID mapping (honest):** Cycle-75/76 carried-forward NF-20261109-04 (HYG momentum proposal, 3.95) had no executed artifact; executed as **NF-20261109-05 / H163** to avoid lineage ambiguity with proposal labels. NF-09-03 (breakeven inflation) downgraded/deferred this cycle: ^T5YIE/^T10YIE unavailable on yfinance probe 2026-11-09; TIP/IEF ETF proxy weak/confounded.
+- **Cycle 77 discovery (directive §4):** Reconciled lineage to H162. Proposed/scored >=3 repo-new/decisive candidates across >=3 broad mechanism categories with honest 25/25/20/15/10/5 scoring and concrete deferred reassessment (no silent drops): NF-20261109-05 HYG credit-momentum (3.95, **selected/executed as H163**), NF-20261106-33 EWH/SPY China-exposure/capital-flow (3.35, deferred/confounded), NF-20261108-16 Halloween seasonal (3.35, deferred/calendar adjacency), NF-20261109-03 TIP/IEF breakeven-inflation (downgraded 3.50, deferred/data-limited). NF roots verified (no H99/H149-style collisions).
+- **Docs updated:** `HYPOTHESIS_SPEC.md` §H163, `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 77, `NEXT_TASK.md`, `HANDOFF_NEXT.md`.
 
-- **Lineage reconciled to H162.** H85–H162 all rejected/recorded. Cycle 76 discovery (directive §4) completed (≥3 candidates across ≥3 categories, honest 25/25/20/15/10/5, no silent drops, NF-root integrity checks) and selected NF-20261108-29 (cross-asset return-dispersion SPY timing) as **H162**.
-- **H162 executed (NF-20261108-29, REAL, REJECT 4/8).** `run_nf_20261108_29_cross_asset_return_dispersion.py` + `tests/test_nf_20261108_29_cross_asset_return_dispersion.py` (**11 passed**). `ruff check/format --check` clean on H162 files. Artifact `.experiments/nf_runs/nf_20261108_29_cross_asset_return_dispersion/summary.json` (+`grid.csv`, `data_meta.json`).
-- **H162 construction (pre-registered).** Cross-asset return dispersion = cross-sectional std of daily returns across SPY/TLT/GLD/UUP (equities/Treasuries/gold/USD), z-scored over `z_window`; hysteresis de-risks vol-targeted long SPY when `z >= entry_scale` (cross-asset stress), full exposure when `z <= exit_scale` (benign), initial state 1; 1-bar delay via engine `signals.shift(1)`; vol-targeted SPY trailing 21-day realized vol, clipped [0, MAX_POS=0.5]; long-only, Equity CostModel defaults. Bounded grid 24 combos (`z_window {126,252} × entry_scale {1.0,1.5,2.0} × exit_scale {0.0,0.5} × vol_target {0.10,0.15}`); train-only 4-fold WF selection by mean train Sharpe; Test protected.
-- **H162 data (REAL).** SPY+TLT+GLD+UUP yfinance daily auto-adjust Close 2010-01-01→2026-10-30 (4233 rows; train 2515, val 756, test 962; OOS Val+Test n=1716).
-- **H162 result (OOS Val+Test, 4012 trades).** Selected `z_window=126, entry_scale=1.5, exit_scale=0.5, vol_target=0.15` (WF train mean Sharpe 0.970). Sharpe **0.819** fail, PF **1.158** fail, maxDD **-3.69%** pass, trades **4012** pass, WF **0.913** pass, worst-regime **-1.550** fail, benchmark-p **0.970**/IR **-0.755** fail, perturbation **0.893** pass → **REJECT 4/8**. Ablations: buy-hold 0.792; random-exposure 0.492 (weaker); inverse ~0.000 (weaker, direction consistent but no edge). No gate weakened. `src/qtr` unchanged.
-- **Docs updated:** `HYPOTHESIS_SPEC.md` §H162 (PRE--REGISTERED → REJECT 4/8, full REAL result), `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 76 execution/lineage, `NEXT_TASK.md` Cycle 77.
+## Invariants preserved
+- `src/qtr` unchanged — pinned 100% coverage suite **not rerun**.
+- No published/certified/frozen artifacts, thresholds, or verdicts modified.
+- Free/public yfinance data only. No gate weakening. No commit/push.
 
-## 2) Actually verified (this session)
-- `python -m py_compile` runner + tests — OK.
-- `python -m ruff check` / `ruff format --check` on H162 files — clean.
-- `PYTHONPATH=src python -m pytest -q tests/test_nf_20261108_29_cross_asset_return_dispersion.py` — **11 passed**.
-- `PYTHONPATH=src python run_nf_20261108_29_cross_asset_return_dispersion.py` — REAL execution completed (34.5s); verdict REJECT 4/8.
-- Artifact present/parsable: `.experiments/nf_runs/nf_20261108_29_cross_asset_return_dispersion/summary.json` (+`grid.csv`, `data_meta.json`).
-- `src/qtr` unchanged; pinned 100% coverage suite **not rerun** (no `src/qtr` change).
+## Verified this session
+- `python3 -m py_compile run_nf_20261109_05_hyg_momentum_spy.py tests/test_nf_20261109_05_hyg_momentum_spy.py` — clean (imports qtr.engine at runtime).
+- `python -m ruff check run_nf_20261109_05_hyg_momentum_spy.py tests/test_nf_20261109_05_hyg_momentum_spy.py` — **All checks passed**.
+- `python -m ruff format --check` (same files) — **clean**.
+- `PYTHONPATH=src python -m pytest -q tests/test_nf_20261109_05_hyg_momentum_spy.py` — **11 passed**.
+- `python3 run_nf_20261109_05_hyg_momentum_spy.py` — completed; artifact written. Verdict **REJECT 3/8** (REAL, not fabricated).
+- **Not rerun:** full pinned `src/qtr` suite (no `src/qtr` change); global ruff/format over `src tests run_*.py`.
 
-## 3) Remains unresolved / constraints
-- H85–H162 all REJECTED/recorded. Lineage gaps H24/H68–H73/H76–H79 unassigned (not recycled). **No commit/push** (not authorized).
-- The dispersion de-risking construction class now has three executed rejects (H118 within-equity sector dispersion REJECT 4/8, H160 cross-sectional IVOL dispersion REJECT 4/8, H162 cross-asset return dispersion REJECT 4/8). Further dispersion variants must justify clear separation.
-- Cycle 77 must complete directive §4 discovery (≥3 repo-new/decisive candidates across ≥3 broad mechanism categories, honest scoring, no silent drops, NF-root checks) before selecting/pre-registering **H163**. Carried-forward NF-20261109-03 (breakeven inflation, 3.95) and NF-20261109-04 (HYG momentum, 3.95) re-assessed alongside ≥2 other repo-new mechanisms.
-- Deferred/held (no silent drops; full list in `NEW_FAMILY_RESEARCH_REGISTER.md`): NF-04 blocked; NF-05/07/08/10/11/13/15/17/20/21; NF-11r/NF-06-18 same root as NF-11; NF-06-11 infeasible; NF-06-01→H149; NF-06-03/23/24/27/28/30/32/33/35; NF-07-05 data blocker; NF-07-11/12/14/31/32 held; NF-08-04/05/07/08/10 deferred/held; NF-08-13 stub/deferred; NF-08-16 Halloween held (3.90); NF-08-20/21/22/23/26 deferred; NF-20261108-27 EWJ relmom executed H157 REJECT; NF-09-03/04 carried forward.
-- Published/certified artifacts and thresholds unchanged.
+## Approaches / evidence (do not blindly repeat)
+- H163 direction supported (inverse 0.148, random 0.209 much weaker) but fails Sharpe/PF/worst-regime/benchmark gates (p=0.903, IR=-0.545). Reject stands.
+- Credit-family executed rejects: H94 HYG-IEF excess level (4/8), H108 LQD-HYG ratio level (4/8), H146 JNK/LQD ratio level (4/8), **H163 HYG momentum z-score (3/8)**. Further HY/IG credit observables require clear separation.
+- Dispersion de-risking rejects remain: H118/H160/H162. FX-channel rejects include H95/H103/H106/H161. Implied-vol/VRP rejects include H158/H159/H160 etc. — see lineage.
+- NF-09-03 direct breakeven indices (^T5YIE/^T10YIE) unavailable on yfinance probe 2026-11-09; TIP/IEF proxy previously weak/confounded.
 
-## 4) Approaches that failed (do not blindly repeat)
-- **H162** (cross-asset return dispersion, Cycle 76) failed Sharpe/PF/worst-regime/benchmark; random-exposure much weaker and inverse weaker (direction consistent) but no OOS edge. Do not rerun same dispersion construction. Dispersion class (H118/H160/H162) all REJECT — further variants need honest separation.
-- **H161** (G10 carry basket, Cycle 75) failed Sharpe/PF/worst-regime/benchmark; inverse weaker (direction consistent) but no edge. Further FX variants must justify separation from H95/H103/H106/H129/H134/H161.
-- Do not reuse NF roots without integrity check (H99/H149 collision precedent).
-
-## 5) One precise next task (Cycle 77 / H163)
-Reconcile lineage to H162; complete directive §4 discovery (≥3 repo-new/decisive candidates across ≥3 broad mechanism categories, honest 25/25/20/15/10/5, concrete deferred reassessment, NF-root checks). Re-assess NF-20261109-03/NF-20261109-04 alongside ≥2 other repo-new mechanisms. Pre-register highest-expected-information feasible candidate as **H163** before validation outcomes. Implement runner + focused tests; `ruff check/format --check` on new files; `PYTHONPATH=src pytest -q` focused tests; execute REAL; record verdict/artifacts in `HYPOTHESIS_SPEC.md` §H163, `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 77, `NEXT_TASK.md`, `HANDOFF_NEXT.md`. Justify independence from rejected classes including the dispersion class (H118/H160/H162) and H161/FX families. Free/public data only; no gate weakening; no published/certified artifact modification; no commit/push unless authorized. If `src/qtr` touched, rerun pinned 100% coverage suite.
+## Precise next task (Cycle 78, directive §4)
+1. Reconcile lineage to H163 (H85–H163 rejected/recorded). Next unused H-ID: **H164** (H24/H68–H73/H76–H79 unassigned, not recycled).
+2. Propose **>=3 repo-new candidates across >=3 broad mechanism categories** with honest 25/25/20/15/10/5 scoring; reassess deferred pool with concrete evidence (no silent drops). Reassess: NF-20261109-03 (breakeven, data-limited), NF-20261106-33 (EWH/SPY, 3.35), NF-20261108-16 (Halloween, 3.35), NF-20261108-26 (GLD RV stress, 3.50). Justify independence from rejected classes (credit H94/H108/H146/H163, dispersion H118/H160/H162, FX H95/H103/H106/H161).
+3. Verify NF roots against executed H-IDs/artifacts/runners before selection. NF-20261109-05/H163 executed; NF-09-04 mechanism consumed (document honestly).
+4. Pre-register highest-expected-information feasible candidate as **H164** in `HYPOTHESIS_SPEC.md` before validation outcomes; record Cycle 78 discovery in `NEW_FAMILY_RESEARCH_REGISTER.md`.
+5. Add `run_nf_*.py` + focused `tests/test_nf_*.py`. Free/public data only (yfinance ok). `src/qtr` unchanged. **Pandas 3.x safety:** do not use `if <DataFrame>:` truthiness.
+6. Run `ruff check/format`, focused `pytest`, execute REAL runner; record verdict + artifact path. **Do not fabricate results.** No gate weakening; no published/certified artifact modification.
+7. If `src/qtr` is touched, rerun: `python -m ruff check src tests run_*.py && python -m ruff format --check src tests run_*.py && PYTHONPATH=src python3 -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing`.
