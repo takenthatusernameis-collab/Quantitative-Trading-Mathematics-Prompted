@@ -7673,3 +7673,31 @@ Train (n=2515): Sharpe 0.810, PF 1.178, maxDD -3.53%, trades 3675.
 **Artifacts:** `.experiments/nf_runs/nf_20261109_02_g10_carry/summary.json` (+`grid.csv`, `data_meta.json`). Runner `run_nf_20261109_02_g10_carry.py`; tests `tests/test_nf_20261109_02_g10_carry.py` (10 passed). `ruff check/format` clean on H161 files.
 
 **Verdict:** **REJECT (4/8)**. No gate weakened. `src/qtr` unchanged.
+
+## H162 — Cycle 76 (NF-20261108-29: cross-asset return-dispersion regime SPY timing) — **REJECT 4/8 (REAL)**
+
+**Status:** REJECT 4/8 (Cycle 76, REAL). `src/qtr` unchanged; no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified; no commit/push. Free/public yfinance data only.
+
+**Economic mechanism (pre-registered):** Cross-asset return dispersion (the cross-sectional std of daily returns across SPY equities, TLT Treasuries, GLD gold/commodity, UUP USD) proxies cross-asset regime stress / risk-appetite breakdown. When assets across distinct classes move in highly dispersed directions, equity risk premia are impaired; de-risking vol-targeted long SPY preserves capital. Low dispersion = benign co-moving regime -> full equity exposure. Trailing dispersion z-score used as a PIT cross-asset stress signal for SPY exposure.
+
+**Observable / PIT:** SPY (traded) + TLT, GLD, UUP (signal), daily auto-adjust Close (yfinance, free). `disp_t` = cross-sectional std of the 4 asset daily returns at close t (past-only). `z_t` = trailing z-score of `disp_t` over `z_window`. 1-bar delay via engine `signals.shift(1)`.
+
+**Causal path / construction:** `z_t >= entry_scale` (cross-asset stress) -> de-risk (state 0); `z_t <= exit_scale` (benign) -> full exposure (state 1); hysteresis hold, initial state 1. Vol targeting: `vscale*state*vol_target`, clipped `[0,0.5]`. Long-only, Equity CostModel defaults (1 bp commission + 1 bp spread), MAX_POS=0.5.
+
+**Grid (bounded, pre-registered):** `z_window {126,252} x entry_scale {1.0,1.5,2.0} x exit_scale {0.0,0.5} x vol_target {0.10,0.15}` (24 combos; `exit_scale<=entry_scale` always); selection = best train-only 4-fold walk-forward mean Sharpe. Train 2010-01-01->2019-12-31; Val 2020-01-01->2022-12-31; Test (protected) 2023-01-01->2026-10-31. No src/qtr change.
+
+**Selected (WF train-only):** `z_window=126, entry_scale=1.5, exit_scale=0.5, vol_target=0.15` (WF train mean Sharpe **0.970**).
+
+**Data (REAL):** yfinance 2010-01-04->2026-10-30, 4233 rows (train 2515 / val 756 / test 962; OOS Val+Test n=1716).
+
+**OOS Val+Test (1716 bars, 4012 trades):** Sharpe **0.819** (fail), PF **1.158** (fail), maxDD **-3.69%** (pass), trades **4012** (pass), WF stability **0.913** (pass), worst-regime rolling-252 Sharpe **-1.550** (fail), benchmark-p **0.970** / IR **-0.755** vs buy-hold SPY (fail), perturbation **0.893** (pass) -> **REJECT 4/8**.
+
+**Ablations:** buy-hold SPY Sharpe **0.792**/PF 1.164/DD -33.72%/1 trade; random-exposure-matched Sharpe **0.492**/PF 1.170/DD -4.66%/1801 (much weaker — structure present but non-directional/edge-limited); inverse-regime (de-risk when dispersion LOW / benign) Sharpe **~0.000**/PF 1.000/DD -1.93%/744 (weaker — directionality consistent with de-risk-on-stress, but base still fails OOS gates). Direction not falsified by inverse, but mechanism fails Sharpe/PF/worst-regime/benchmark gates.
+
+**Falsifiers observed:** benchmark fails (p 0.970, IR negative); worst-regime collapse (-1.550); Sharpe/PF below gates. Random-exposure much weaker (not the failure mode) and inverse weaker (not the failure mode); perturbation stable (0.893). Net: no OOS edge over buy-hold; regime robustness fails.
+
+**Closest prior family / separation (honest):** H118 cross-sectional *within-equity sector* return dispersion (REJECT 4/8) — H162 uses cross-*asset-class* dispersion across SPY/TLT/GLD/UUP (equities/Treasuries/gold/USD), a different universe and mechanism (cross-asset regime / risk-appetite transmission vs within-equity sector disagreement); honest construction-class adjacency disclosed (same z-score/de-risking/vol-target form as H118/H160). Distinct from credit (H94/H108/H146) and vol/implied-vol (H100/H104/H105/H158/H159/H160) families.
+
+**Artifacts:** `.experiments/nf_runs/nf_20261108_29_cross_asset_return_dispersion/summary.json` (+`grid.csv`, `data_meta.json`). Runner `run_nf_20261108_29_cross_asset_return_dispersion.py`; tests `tests/test_nf_20261108_29_cross_asset_return_dispersion.py` (**11 passed**). `ruff check/format` clean on H162 files.
+
+**Verdict:** **REJECT (4/8)**. No gate weakened. `src/qtr` unchanged.

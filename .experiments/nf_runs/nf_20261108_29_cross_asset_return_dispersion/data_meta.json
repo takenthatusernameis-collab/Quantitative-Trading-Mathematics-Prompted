@@ -1,0 +1,16 @@
+{
+  "universe": [
+    "SPY",
+    "TLT",
+    "GLD",
+    "UUP"
+  ],
+  "train_end": "2019-12-31",
+  "val_end": "2022-12-31",
+  "rows": 4233,
+  "train": 2516,
+  "val": 756,
+  "test": 961,
+  "signal_mapping": "hysteresis: z>=entry_scale de-risk, z<=exit_scale full exposure; cross-asset dispersion std(SPY,TLT,GLD,UUP daily ret)",
+  "grid_combos": 24
+}

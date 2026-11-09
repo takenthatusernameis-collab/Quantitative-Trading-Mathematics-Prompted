@@ -1,0 +1,85 @@
+{
+  "nf_id_exec": "NF-20261108-29",
+  "hypothesis": "H162",
+  "verdict": "REJECT",
+  "gates_passed": "4/8",
+  "gates": {
+    "sharpe_ge_1": false,
+    "trades_ge_200": true,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": true,
+    "wf_stability_ge_0_7": true,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_ir_ge_0": false,
+    "perturbation_ge_0_5": true
+  },
+  "selected_params": {
+    "z_window": 126,
+    "entry_scale": 1.5,
+    "exit_scale": 0.5,
+    "vol_target": 0.15
+  },
+  "selection_wf_train_mean_sharpe": 0.9701327216260438,
+  "oos_val_test": {
+    "n": 1716,
+    "sharpe": 0.8190075656597794,
+    "profit_factor": 1.157567355751209,
+    "max_drawdown": -0.036913103144531466,
+    "trades": 4012
+  },
+  "train": {
+    "n": 2515,
+    "sharpe": 0.8969536386991481,
+    "profit_factor": 1.1809483102640266,
+    "max_drawdown": -0.03781636195557482,
+    "trades": 4012
+  },
+  "wf_stability_ratio": 0.9130991060447518,
+  "worst_regime_rolling252_sharpe": -1.5497365123188813,
+  "benchmark_buy_hold_spy_oos": {
+    "n": 1716,
+    "sharpe": 0.7915317216894278,
+    "profit_factor": 1.1636422827782233,
+    "max_drawdown": -0.3371726713072692,
+    "trades": 1
+  },
+  "benchmark_p": 0.97,
+  "information_ratio_vs_bh": -0.7548884729860215,
+  "perturbation_min_ratio": 0.8930843211548403,
+  "ablations": {
+    "buy_hold_spy": {
+      "n": 1716,
+      "sharpe": 0.7915317216894278,
+      "profit_factor": 1.1636422827782233,
+      "max_drawdown": -0.3371726713072692,
+      "trades": 1
+    },
+    "random_exposure_matched": {
+      "n": 1716,
+      "sharpe": 0.4924880145190263,
+      "profit_factor": 1.1699655841538552,
+      "max_drawdown": -0.046610724748507484,
+      "trades": 1801
+    },
+    "inverse_regime": {
+      "n": 1716,
+      "sharpe": 0.0007394050779868034,
+      "profit_factor": 1.0003954382120417,
+      "max_drawdown": -0.01932972370702104,
+      "trades": 744
+    }
+  },
+  "timing_seconds": 34.52,
+  "data": {
+    "start": "2010-01-04",
+    "end": "2026-10-30",
+    "rows": 4233
+  },
+  "description": "NF-20261108-29/H162: SPY timing from cross-asset return-dispersion regime. Cross-sectional std of daily returns across SPY/TLT/GLD/UUP z-scored with hysteresis; de-risk vol-targeted long SPY when cross-asset dispersion is abnormally high (stress), full exposure when benign. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "notes": [
+    "Repo-new executed cross-asset return-dispersion SPY-timing observable (SPY/TLT/GLD/UUP cross-class dispersion, not H118 within-equity sector dispersion).",
+    "Honest adjacency: H118 within-equity sector return dispersion (REJECT 4/8), H160 cross-sectional IVOL dispersion (REJECT 4/8), z-score/de-risking/vol-target form H138/H139/H151/H156/H158/H159. Novelty scored on the cross-asset observable.",
+    "Hysteresis: z>=entry_scale de-risk (stress), z<=exit_scale full exposure (benign); inverse falsifier de-risks on LOW dispersion.",
+    "src/qtr unchanged; no gate weakening; no published/certified artifact modified."
+  ]
+}
