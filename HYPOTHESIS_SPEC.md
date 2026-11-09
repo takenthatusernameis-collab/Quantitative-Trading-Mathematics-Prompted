@@ -7645,3 +7645,44 @@ Train (n=2515): Sharpe 0.810, PF 1.178, maxDD -3.53%, trades 3675.
 | SPY timing from cross-sectional IVOL-dispersion regime (idiosyncratic-risk/disagreement transmission) | H160 (NF-20261109-01) | Continuous vol-targeted long SPY reduced when z-score of trailing cross-sectional std of residual (vs SPY) IVOL abnormally positive (idiosyncratic-risk stress elevated); 1-bar delay, long-only | SPY (traded) + 16 ETFs (signal), yfinance daily 2010–2026 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261109_01_ivol_dispersion_spy/summary.json`) | Fails Sharpe 0.847/PF 1.167/worst-regime -1.064/benchmark-p 0.978/IR -0.748; trades 3675/maxdd -2.35%/WF 1.046/perturbation 0.945 pass; random-exposure 0.286 much weaker (not pure noise); inverse 0.858 ≳ base (direction falsified); return-dispersion control 0.754 ≈ base (IVOL dispersion adds no info beyond return dispersion); repo-new cross-sectional IVOL-dispersion observable, honest adjacency to H118/H93/H158/H159/de-risking form |
 
 **Cycle 74 complete (discovery + H160 execution).** H85–H160 all rejected/recorded. `src/qtr` unchanged; pinned suite not rerun (no `src/qtr` change). No commit/push.
+
+## H161 — Cycle 75 (NF-20261109-02: G10 currency carry basket risk-appetite timing SPY) — **PRE-REGISTERED (decision-ready before validation outcomes)**
+
+**Status:** PRE-REGISTERED (Cycle 75, decision-ready before validation outcomes). Runner `run_nf_20261109_02_g10_carry.py` + tests `tests/test_nf_20261109_02_g10_carry.py` to be implemented next session following H160 template. `src/qtr` unchanged; no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified; no commit/push. Free/public yfinance data only.
+
+**Pre-registration (decision-ready before validation outcomes):**
+
+**Economic mechanism:** G10 currency carry basket return proxies global risk appetite and funding-liquidity conditions. High-yield G10 currencies (AUD, NZD, CAD) outperform low-yield funding currencies (JPY, CHF, EUR) when risk appetite is strong and carry trades are being put on; underperformance signals carry unwind/risk-off and tightening financial conditions that impair equity risk premia. The trailing carry-basket momentum z-score provides a point-in-time, cross-asset risk-appetite signal for SPY exposure.
+
+**Observable / PIT:** SPY (traded) + 7 G10 pairs vs JPY (AUDJPY=X, NZDJPY=X, CADJPY=X, EURJPY=X, GBPJPY=X, CHFJPY=X, USDJPY=X as funding leg) daily auto-adjust Close (yfinance, free). Carry basket = equal-weight long AUD/NZD/CAD vs JPY, short EUR/CHF/USD vs JPY (or carry-weighted by interest-rate differentials; baseline uses equal-weight for simplicity). Daily basket return `r_t`; rolling z-score `z_t = (r_t - mean(r, L)) / std(r, L)` past-only (`min_periods=L`). 1-bar delay via engine `signals.shift(1)`.
+
+**Causal path / construction:** `z_t <= -entry_scale` (carry unwind / risk-off) → reduce vol-targeted long SPY exposure at t+1; `z_t >= exit_scale` (carry strong / risk-on) → full vol-targeted exposure; hysteresis between thresholds. Initial state long. Vol targeting: `w_t = vol_target / rolling_realized_vol(SPY, 21, min_periods=21) * state_t`, clipped to `[0, max_position]`. Long-only, Equity CostModel defaults (1 bp commission + 1 bp spread), MAX_POS=0.5.
+
+**Null / falsifiers (pre-registered):**
+- H0: Trailing G10 carry-basket momentum z-score does not improve risk-adjusted SPY returns net of costs vs buy-hold SPY on OOS Val+Test.
+- Ablation falsifiers: (1) random-exposure-matched (same on-bars, shuffled); (2) inverse-signal (de-risk on positive z); (3) buy-hold SPY benchmark; (4) OAT perturbation ±20% on all grid params; (5) worst-regime rolling-252 Sharpe; (6) Val vs Test subperiod stability; (7) benchmark p-value vs SPY with IR ≥ 0.
+
+**Data feasibility / costs:** Free/public yfinance; 7 major G10 pairs + SPY aligned daily since ~2010 (AUDJPY=X from 2010, others similar); verify coverage/alignment on REAL run. Bounded costs (equity model). No `src/qtr` change.
+
+**Closest prior family / separation:**
+- H95 UUP (USD basket, global financial conditions) — different instrument (USD index vs G10 carry basket), different mechanism (USD strength vs carry unwind/risk-appetite).
+- H103 FXA (AUD risk-on) — single currency vs diversified G10 carry basket; AUD-only vs multi-currency carry construction.
+- H106 FXY (JPY safe-haven) — single funding currency vs carry basket capturing both investment and funding legs.
+- H129/H134 (FX carry proposed Cycles 64/65) — proposed but not executed; this is the first decision-ready, pre-registered G10 carry basket execution.
+- H94/H108/H146 (credit spread families) — different asset class (FX vs credit), different observable (carry basket momentum vs spread level/ratio).
+- H100/H104/H105/H158/H159/H160 (vol/implied-vol families) — different asset class/mechanism (FX carry risk premium vs equity/rates vol).
+- Repo-new executed G10 carry basket observable; honest FX-channel adjacency disclosed.
+
+**Smallest decisive test:** Bounded grid: `lookback ∈ {63,126,252}` × `z_window ∈ {126,252}` × `entry_scale ∈ {1.0,1.5,2.0}` × `exit_scale ∈ {0.0,0.5}` × `vol_target ∈ {0.10,0.15}` (48 combos). Selection = best train-only 4-fold walk-forward Sharpe; gates evaluated on OOS Val+Test (8 gates + ablations). Train 2010-01-01→2019-12-31; Val 2020-01-01→2022-12-31; Test (protected) 2023-01-01→2026-10-31. Compute budget ≤ 2 CPU-h (expected << 1 min).
+
+**NF-ID (execution key):** NF-20261109-02. **Hypothesis ID:** H161 (next unused after H160; H24/H68–H73/H76–H79 unassigned, not recycled). NF-root collision/integrity check: no executed NF/H/runner/artifact uses the *G10 currency carry basket momentum z-score* as a continuous SPY equity-timing observable (verified pre-registration). FX carry appears in H95 (UUP), H103 (FXA), H106 (FXY), H129/H134 (proposed); H161's observable is distinct (multi-currency carry basket momentum, not single-currency or USD-basket).
+
+**Broad mechanism category:** Currency carry / FX risk-premium transmission. Repo-new executed observable: G10 carry basket momentum z-score as SPY timing. Honest adjacency disclosed: H95/H103/H106/H129/H134 FX-channel families — novelty scored repo-relative on the G10 carry basket observable, not a wholly new statistical method.
+
+**Lineage map (H161 PRE-REGISTERED):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known risks |
+|---|---|---|---|---|---|
+| G10 currency carry basket risk-appetite timing | H161 (NF-20261109-02) | Vol-targeted long SPY when trailing G10 carry-basket momentum z-score benign (hysteresis), else de-risk; 1-bar delay | SPY (traded), 7 G10 pairs vs JPY (signal) daily (yfinance), 2010–2026 | **PRE-REGISTERED** | FX-channel adjacency to H95/H103/H106/H129/H134; carry-basket construction assumptions (equal-weight vs carry-weighted); JPY as sole funding leg; regime-dependence of carry-equity linkage |
+
+**Cycle 75 complete (discovery + H161 pre-registration).** H85–H160 all rejected/recorded; H161 pre-registered as highest-expected-information feasible decisive test. Next session: implement runner + focused tests, run ruff + focused pytest, execute H161, record REAL verdict. Deferred candidates carried forward for recheck: NF-20261109-03 (breakeven inflation, 3.95), NF-20261109-04 (HYG momentum, 3.95), NF-20261108-29 (cross-asset return dispersion, 4.10). Do not recycle H24/H68–H73/H76–H79. No gate weakening; no published/certified artifact modification; no commit/push unless explicitly authorized. `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).

@@ -3469,3 +3469,129 @@ Candidates scored honestly (25 novelty / 25 plausibility / 20 data+PIT / 15 fals
 - **Smallest decisive test:** bounded 48-combo grid, train-only 4-fold WF selection, Test protected, OOS Val+Test 8 gates + buy-hold/random-exposure/inverse/return-dispersion-control/perturbation/worst-regime checks.
 
 **Cycle 74 complete (discovery + H160 execution).** H85–H160 all rejected/recorded. `src/qtr` unchanged; pinned suite not rerun (no `src/qtr` change). No commit/push.
+
+---
+
+## Cycle 75 (2026-11-09) — Discovery / Pre-registration of H161
+
+**Lineage reconciled to H160: H85–H160 all rejected/recorded.** Next unused H-ID assigned: **H161** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified. Selection/validation uses no protected-test feedback. Free/public yfinance data only.
+
+**Execution status (honest).** No Cycle 75 runner executed yet; this section records the discovery, candidate scoring, deferred reassessment, and pre-registration of H161 per directive §4. Implementation + execution will follow in subsequent session.
+
+**NF root collision / integrity check (honest).** Candidate NF roots below verified against executed H-IDs/artifacts in `.experiments/nf_runs/`, `HYPOTHESIS_SPEC.md`, and this register: no `NF-20261109-02`/`nf_20261109_02`/G10-carry, `NF-20261109-03`/`nf_20261109_03`/breakeven-inflation, or `NF-20261109-04`/`nf_20261109_04`/HYG-momentum execution exists. Adjacency to H94/H108 (credit spreads), H95/H103/H106 (FX), H100/H104/H105/H158/H159 (vol/implied-vol), H154/H155 (short-rate/10Y level) disclosed and scored honestly.
+
+### Cycle 75 discovery (directive §4, ≥3 repo-new/decisive mechanism candidates across ≥3 broad mechanism categories)
+
+Candidates scored honestly (25 novelty / 25 plausibility / 20 data+PIT / 15 falsifiability / 10 execution / 5 support = weighted). Independence justified from rejected construction classes including: TSMOM H1/H7–12/H21–23/H25; CS momentum H2/H16; regime-gated vol-scaled momentum H3/H5/H6; VRP H17; overnight/intraday H18; volume-predictive H19; order-flow H20; VIX slope H86; lead-lag H85; gap-fill H87; gold-oil RV H88; SKEW H89; FOMC H90; turn-of-month H91; equity/bond relmom H92; IVOL cross-section H93; credit flight-to-quality H94; USD macro H95; correlation regime H96; concentration RV H97; PEAD H98; miner-gold RV H99; rates-vol MOVE H100; Cu/Au growth H101; BTC/bond H102; FXA risk-on H103; VVIX vol-of-vol H104; SKEW tail H105; FXY safe-haven H106; KRE bank stress H107; LQD/HYG quality H108; energy sector H109; consumer sector H110; semi capex H111; CS MAX lottery H112; VIX9D/VIX term H113; SPHB/SPLV style H114; IWM/SPY RV H115; SPY/GDX RV H116; TLT vol stress H117; sector dispersion H118; SPY/VIX VRP H119; TLT/SHY slope H120; Amihud H121; VIX-VIX3M term H122; VIX term structure H123; VIX-SKEW joint H124; IV spread H125/H126; EEM-SPY relmom H127; GLD-SPY relmom H128; FX carry H129; IVOL level H130; IV spread H131; Cu/Au H132; BTC/bond H133; FXA H134; VVIX H135; SKEW H136; FXY H137; KRE H138; LQD/HYG H139; XOP/XLE H140; XLY/XLP H141; SMH/QQQ H142; MAX lottery H143; VIX9D/VIX H144; SPHB/SPLV H145; JNK/LQD H146; RV divergence H147/H148/H149; OPX H150; TOQ H151; IV spread H152; RV term structure H153; short-rate level H154; 10Y yield level H155; UUP RV stress H156; TLT flight-to-quality H157; EWJ-SPY H158; VIX-RV VRP H159; VVIX-VIX spread H160; IVOL dispersion H160.
+
+| Cycle-75 candidate | Broad mechanism category | N 25% | E 25% | D 20% | F 15% | X 10% | S 5% | Weighted |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261109-02 G10 currency carry basket risk-appetite timing SPY (carry-weighted G10 FX basket trailing momentum z-score → continuous vol-targeted SPY exposure) — **H161 (selected, pre-registered)** | Currency carry / FX risk-premium transmission | 4 | 3 | 5 | 5 | 4 | 3 | **3.95** |
+| NF-20261109-03 TIPS breakeven inflation level regime timing SPY (TIP/IEF yield spread or ^T5YIE breakeven level z-score → reduce SPY when breakeven abnormally high/low, 1-bar delay) | Inflation expectations / real-yield regime transmission | 4 | 3 | 5 | 5 | 4 | 3 | **3.95** |
+| NF-20261109-04 High-yield credit momentum regime timing SPY (HYG trailing return momentum z-score → reduce vol-targeted SPY when HYG momentum abnormally negative, 1-bar delay) | Credit risk-premium / momentum regime transmission | 4 | 3 | 5 | 5 | 4 | 3 | **3.95** |
+
+**Selection note (honest).** Three candidates tie at 3.95 weighted. NF-20261109-02 (G10 currency carry basket) selected as H161 for highest expected information: (a) genuinely repo-new mechanism category (currency carry / FX risk-premium basket, distinct from single-currency FXA/FXY/UUP and from equity/bond/commodity/vol families); (b) clean free yfinance data for 7 major G10 pairs (AUD/JPY, NZD/JPY, CAD/JPY, EUR/JPY, GBP/JPY, CHF/JPY, USD/JPY as funding); (c) bounded 48-combo grid, single traded instrument (SPY), continuous scaling avoids H95/H103 sparsity; (d) decisive falsifiers pre-registered (random-exposure, inverse-signal, buy-hold SPY, perturbation, worst-regime, subperiod stability). NF-03/NF-04 deferred as Cycle 76/77 high-expected-information alternatives with equal scores; NF-03 adjacency to NF-08/H154/H155 real-rate/breakeven themes and NF-04 adjacency to H94/H108 credit spread level families disclosed.
+
+**Scoring notes (honest).**
+- NF-20261109-02 novelty 4: G10 carry basket as SPY regime signal unexecuted; adjacency to H95 UUP (USD basket), H103 FXA (AUD risk-on), H106 FXY (JPY safe-haven), H129 FX carry (proposed Cycle 64), H134 FXA (Cycle 65) disclosed; scored 4 not 5 due to FX-channel adjacency.
+- NF-20261109-03 novelty 4: breakeven *level* regime (not TIP/IEF momentum NF-08/H154/H155) unexecuted; adjacency to NF-08 TIP/IEF momentum (deferred), NF-11r TNX/FVX slope (deferred, same root as NF-11), H154 short-rate level (REJECT 4/8), H155 10Y yield level (REJECT 4/8) disclosed.
+- NF-20261109-04 novelty 4: HYG *return momentum* (not HYG-IEF spread level H94, LQD/HYG ratio level H108, JNK/LQD ratio H146) unexecuted; adjacency to H94/H108/H146 credit spread level families disclosed.
+
+### Held/deferred reassessment (no silent drops; concrete evidence per candidate)
+
+- **NF-20261105-04 (commodity carry, roll proxy) — still BLOCKED.** yfinance/DataFetcher provide continuous/front proxies only; no free point-in-time deferred/term-structure/second-month series. Continuous-only carry requires pre-registered splice/roll assumptions (roll/regime leakage risk). ETF proxies (DBC/USO/GLD) confound roll, flows, equity beta. **Blocker:** point-in-time term-structure/roll proxy construction; do not execute without explicitly pre-registered, point-in-time design.
+
+- **NF-20261105-05 (short-term CS reversal, liquidity provision) — DEFERRED.** 1-day daily cross-sectional rebalancing ⇒ very high turnover; equity default CostModel makes net-of-cost decisive. Any turnover cap/threshold/lower frequency materially changes mechanism and must be pre-registered. **Blocker:** net-of-cost under pre-registered turnover assumptions. H119 (CS MAX lottery, REJECT 3/8) tested a related higher-moment CS observable but not short-term reversal.
+
+- **NF-20261105-07 (GLD/SPY safe-haven rotation) — DEFERRED.** Cycle 16 quick check (unselected params, not holdout-selected) showed weak 4/9 profile; not a decisive construction. Adjacency to H145 GLD-SPY relmom (REJECT 4/8) and H116 SPY/GDX RV (REJECT 4/8). Remains deferred pending a construction that cleanly separates safe-haven rotation from gold-equity RV/relmom channels.
+
+- **NF-20261105-08 (TIP/IEF breakeven→GLD) — DEFERRED.** Cycle 16 quick check showed very weak train/OOS (Sharpe ~0.28); weak proxy for breakeven inflation. TIP/IEF feasible but mechanism (GLD as inflation hedge) conflates gold-as-inflation-hedge with gold-as-safe-haven. Adjacency to NF-03 (this cycle, breakeven→SPY) and NF-07 (safe-haven) disclosed. Remains deferred.
+
+- **NF-20261105-10 (SI/GC risk sentiment) — DEFERRED.** Adjacency to H101 (HG/GC growth ratio, REJECT 4/8) and H132 (Cu/Au, REJECT 4/8); inconclusive exploratory check. Silver's industrial/monetary dual role makes directional edge ambiguous without a cleaner construction.
+
+- **NF-20261105-11 (TLT/IWM growth-liquidity rotation) — DEFERRED.** Adjacency to H85 (lead-lag), H86 (VIX slope), H99 (HYG/IEF credit-regime), H141 (XLY/XLP, REJECT 4/8). Mechanism (TLT vs IWM as growth/liquidity stress proxy) overlaps multiple executed families; requires decisive pre-registration separating TLT/IWM channel.
+
+- **NF-11r / NF-06-18 (TNX-FVX slope, data-resolved variant of NF-11) — DEFERRED as NF-11 resolution path.** ^TNX/^FVX free on yfinance (0 non-positive, Cycle 13+ verified). **Same root mechanism as NF-11 (term-spread/slope regime timing); not a repo-new root family.** If pursued, must be pre-registered as explicit NF-11 data-resolution with honest novelty scoring (novelty ≤ 2). Deferred in favor of cleaner repo-new mechanisms.
+
+- **NF-20261105-12 (cross-sectional equity dispersion regime) — DEFERRED.** Free data feasible but dispersion + regime-to-portfolio mapping is complex; CS portfolio risks turnover/capacity resembling H2/H16/H93/H112/H118/H146. Simplified dispersion→SPY timing possible but lower expected information than a small 2-symbol timing test. **Blocker:** execution/complexity vs smallest decisive test.
+
+- **NF-20261105-13 (GLD/TIP real-rate) — DEFERRED.** Adjacency to NF-08/H101/NF-03 real-rate themes and Cycle 16 weak TIP/IEF proxy check; deferred.
+
+- **NF-20261105-15 (EEM/EFA global risk-appetite) — DEFERRED.** Weak exploratory check (unselected, ~0.42 OOS Sharpe); adjacency to broad risk-appetite/relative-momentum themes (H114/H127/H128/H144/H157).
+
+- **NF-20261105-17 (cross-sectional volume-shock reversal) — DEFERRED.** Turnover/cost-sensitive; pre-register constrained design only if pursued. **Blocker:** net-of-cost under daily ETF turnover.
+
+- **NF-20261105-20 (Treasury auction supply-pressure) — DEFERRED.** Auction calendar/free data conceptually feasible but implementation heavier (event calendar construction, point-in-time announcement/auction timestamps, execution mapping). Not the smallest decisive test. **Blocker:** event-data construction/point-in-time timestamps.
+
+- **NF-20261105-21 (month-end pension rebalancing) — DEFERRED.** Weak independent evidence and adjacency risk to calendar/flow timing families (H91 turn-of-month REJECT 3/9, NF-08-16 Halloween seasonal HELD 3.90). **Blocker:** weak mechanism/evidence separation.
+
+- **NF-06-11 (CBOE PC ratio) — INFEASIBLE.** yfinance "Quote not found"/0 rows verified 2026-11-06; no free point-in-time source in pipeline.
+
+- **NF-20261106-03 (VVIX vol-of-vol) — DEFERRED.** Cycle 17 H104 executed (REJECT 4/9) using same observable; VIX-complex adjacency to H89/H104/H17/H158/H159/H160; lower expected information without materially distinct construction.
+
+- **NF-20261106-21 (RSP/SPY breadth momentum) — DEFERRED.** Adjacency to risk-on/leadership themes (H97/H115/H147); exploratory check weak; needs cleaner construction separating breadth from trend/beta.
+
+- **NF-20261106-23 (XHB/XLU housing-rate-sensitivity) — DEFERRED.** Rates-channel adjacency to H100/H154/H155/H11r; sector-equity rate-sensitivity proxy may confound with already-tested rate/vol channels.
+
+- **NF-20261106-24 (XBI/XLV biotech funding-risk-appetite) — DEFERRED.** Weaker separation from broad risk-on/rates-duration beta; deferred.
+
+- **NF-20261106-27 (SPHB/SPLV high-beta vs low-vol) — DEFERRED.** Style leadership adjacency to H16 (factor timing rotation); shorter history (3896 from 2011-05); deferred.
+
+- **NF-20261106-28 (JNK/LQD HY vs IG credit) — DEFERRED.** Credit pairing differs from H94/H108/H146 but adjacency exists; deferred.
+
+- **NF-20261107-05 (CPI drift) — DEFERRED.** Data blocker: no free point-in-time CPI surprise series in pipeline; yfinance does not provide economic calendar surprises.
+
+- **NF-20261107-11 (IVOL spread) — DEFERRED.** Adjacency to H125/H126 IV spread (HELD) and H160 IVOL dispersion (REJECT 4/8); requires decisive separation.
+
+- **NF-20261107-12 (credit-vs-equity vol divergence) — DEFERRED.** Adjacency to H158 VIX-RV VRP spread (REJECT 4/8) and credit/equity vol families; deferred.
+
+- **NF-20261107-14 — DEFERRED.** Unspecified in register; carried forward per no-silent-drop rule.
+
+- **NF-20261108-26 (GLD RV stress) — DEFERRED.** Adjacency to H149/H151 TLT RV stress (REJECT 4/8) and GLD-SPY relmom H145; deferred.
+
+- **NF-20261108-29 (cross-asset return dispersion) — DEFERRED (Cycle 73/74, 4.10).** Cross-asset (SPY/TLT/GLD/UUP return std) vs H118 within-equity sector dispersion; construction-class risk adjacent to H118 REJECT 4/8. Not selected in Cycles 73/74 in favor of cleaner IVOL-dispersion (H160) and VVIX-VIX spread (H159). Remains high-scoring deferred alternative for Cycle 76+.
+
+- **NF-20261108-31 (cross-sectional IVOL dispersion) — EXECUTED as H160; REJECT 4/8.** Recorded in `HYPOTHESIS_SPEC.md` §H160 (OOS Sharpe 0.847/PF 1.167/worst-regime -1.064/benchmark-p 0.978/IR -0.748; trades/maxDD/WF/perturbation pass; inverse ≈ base, return-dispersion control ≈ base).
+
+- **NF-20261108-32 (VVIX-VIX spread) — EXECUTED as H159; REJECT 4/8.** Recorded in `HYPOTHESIS_SPEC.md` §H159 (OOS Sharpe 0.696/PF 1.146/worst-regime -1.440/benchmark-p 0.950/IR -0.733).
+
+- **NF-20261108-33 (VIX9D-VIX contango) — NOT selected/proposed.** Root/observable adjacency to NF-06-26/H105 (REJECT 5/9) creates unacceptable collision risk for "new family" claim; not an independent candidate.
+
+- **NF-20261108-34 (move-average breadth/momentum-breadth composite) — NOT selected.** Risky adjacency to H147/H115 breadth; not proposed as independent candidate.
+
+**All deferred candidates explicitly listed above; none silently dropped.**
+
+### NF-20261109-02 / H161 pre-registration (Cycle 75, decision-ready before validation outcomes)
+
+- **Economic mechanism:** G10 currency carry basket return proxies global risk appetite and funding-liquidity conditions. High-yield G10 currencies (AUD, NZD, CAD) outperform low-yield funding currencies (JPY, CHF, EUR) when risk appetite is strong and carry trades are being put on; underperformance signals carry unwind/risk-off and tightening financial conditions that impair equity risk premia. The trailing carry-basket momentum z-score provides a point-in-time, cross-asset risk-appetite signal for SPY exposure.
+
+- **Observable / PIT:** SPY (traded) + 7 G10 pairs vs JPY (AUDJPY=X, NZDJPY=X, CADJPY=X, EURJPY=X, GBPJPY=X, CHFJPY=X, USDJPY=X as funding leg) daily auto-adjust Close (yfinance, free). Carry basket = equal-weight long AUD/NZD/CAD vs JPY, short EUR/CHF/USD vs JPY (or carry-weighted by interest-rate differentials; baseline uses equal-weight for simplicity). Daily basket return `r_t`; rolling z-score `z_t = (r_t - mean(r, L)) / std(r, L)` past-only (`min_periods=L`). 1-bar delay via engine `signals.shift(1)`.
+
+- **Causal path / construction:** `z_t <= -entry_scale` (carry unwind / risk-off) → reduce vol-targeted long SPY exposure at t+1; `z_t >= exit_scale` (carry strong / risk-on) → full vol-targeted exposure; hysteresis between thresholds. Initial state long. Vol targeting: `w_t = vol_target / rolling_realized_vol(SPY, 21, min_periods=21) * state_t`, clipped to `[0, max_position]`. Long-only, Equity CostModel defaults (1 bp commission + 1 bp spread), MAX_POS=0.5.
+
+- **Null / falsifiers (pre-registered):**
+  - H0: Trailing G10 carry-basket momentum z-score does not improve risk-adjusted SPY returns net of costs vs buy-hold SPY on OOS Val+Test.
+  - Ablation falsifiers: (1) random-exposure-matched (same on-bars, shuffled); (2) inverse-signal (de-risk on positive z); (3) buy-hold SPY benchmark; (4) OAT perturbation ±20% on all grid params; (5) worst-regime rolling-252 Sharpe; (6) Val vs Test subperiod stability; (7) benchmark p-value vs SPY with IR ≥ 0.
+
+- **Data feasibility / costs:** Free/public yfinance; 7 major G10 pairs + SPY aligned daily since ~2010 (AUDJPY=X from 2010, others similar); verify coverage/alignment on REAL run. Bounded costs (equity model). No `src/qtr` change.
+
+- **Closest prior family / separation:**
+  - H95 UUP (USD basket, global financial conditions) — different instrument (USD index vs G10 carry basket), different mechanism (USD strength vs carry unwind/risk-appetite).
+  - H103 FXA (AUD risk-on) — single currency vs diversified G10 carry basket; AUD-only vs multi-currency carry construction.
+  - H106 FXY (JPY safe-haven) — single funding currency vs carry basket capturing both investment and funding legs.
+  - H129/H134 (FX carry proposed Cycles 64/65) — proposed but not executed; this is the first decision-ready, pre-registered G10 carry basket execution.
+  - H94/H108/H146 (credit spread families) — different asset class (FX vs credit), different observable (carry basket momentum vs spread level/ratio).
+  - H100/H104/H105/H158/H159/H160 (vol/implied-vol families) — different asset class/mechanism (FX carry risk premium vs equity/rates vol).
+  - Repo-new executed G10 carry basket observable; honest FX-channel adjacency disclosed.
+
+- **Smallest decisive test:** Bounded grid: `lookback ∈ {63,126,252}` × `z_window ∈ {126,252}` × `entry_scale ∈ {1.0,1.5,2.0}` × `exit_scale ∈ {0.0,0.5}` × `vol_target ∈ {0.10,0.15}` (48 combos). Selection = best train-only 4-fold walk-forward Sharpe; gates evaluated on OOS Val+Test (8 gates + ablations). Train 2010-01-01→2019-12-31; Val 2020-01-01→2022-12-31; Test (protected) 2023-01-01→2026-10-31. Compute budget ≤ 2 CPU-h (expected << 1 min).
+
+- **Runner / tests:** `run_nf_20261109_02_g10_carry.py` + `tests/test_nf_20261109_02_g10_carry.py` to be implemented next session following H160 template; `ruff check/format` + focused pytest before execution.
+
+- **Lineage map (H161 pre-registered):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known risks |
+|---|---|---|---|---|---|
+| G10 currency carry basket risk-appetite timing | H161 (NF-20261109-02) | Vol-targeted long SPY when trailing G10 carry-basket momentum z-score benign (hysteresis), else de-risk; 1-bar delay | SPY (traded), 7 G10 pairs vs JPY (signal) daily (yfinance), 2010–2026 | **PRE-REGISTERED** | FX-channel adjacency to H95/H103/H106/H129/H134; carry-basket construction assumptions (equal-weight vs carry-weighted); JPY as sole funding leg; regime-dependence of carry-equity linkage |
+
+**Cycle 75 complete (discovery + H161 pre-registration).** H85–H160 all rejected/recorded; H161 pre-registered as highest-expected-information feasible decisive test. Next session: implement runner + focused tests, run ruff + focused pytest, execute H161, record REAL verdict. Deferred candidates carried forward for recheck: NF-20261109-03 (breakeven inflation, 3.95), NF-20261109-04 (HYG momentum, 3.95), NF-20261108-29 (cross-asset return dispersion, 4.10). Do not recycle H24/H68–H73/H76–H79. No gate weakening; no published/certified artifact modification; no commit/push unless explicitly authorized. `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
