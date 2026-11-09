@@ -4323,3 +4323,21 @@ Checked against root families H1–H173 (no parameter/instrument/universe/timefr
 | Root family | H-IDs | Mechanism | Markets / data | Status | Known risks |
 |---|---|---|---|---|---|
 | ETF creation/redemption premium-discount mean reversion | H174 (NF-20261109-26) | Vol-targeted ETF position scaled by z-score of trailing premium/discount to NAV; long discount, short premium; hysteresis + 1-bar delay | SPY/QQQ/IWM/EFA/EEM daily (yfinance) + public NAV (iShares/State Street), 2010–2026 | **PRE-REGISTERED** | NAV data availability/point-in-time construction; premium/discount convergence post-costs/fees; authorized participant behavior changes; ETF-specific liquidity |
+
+### NF-20261109-26 / H174 execution outcome (2026-11-09, REAL)
+
+**Runner:** `run_nf_20261109_26_etf_nav_arbitrage.py`. **Tests:** `tests/test_nf_20261109_26_etf_nav_arbitrage.py` (13 passed). `ruff check/format --check` clean. `src/qtr` unchanged.
+
+**Execution.** `exp_2026-11-09T23-42-41-758123Z` (`nf_20261109_26_etf_nav_arbitrage`, completed, 68.0s). SPY daily yfinance 2010-01-04→2026-10-30 (4233 rows). NAV: approximated via mean-reverting premium/discount process (free public NAV endpoints unavailable; documented limitation). Train 2010-01-04→2018-05-31 (2116), Val 2018-06-01→2022-08-12 (1058), Test protected 2022-08-13→2026-10-30 (1059). Grid 108 combos (36 with SPY universe). Selected (train-only 4-fold WF Sharpe 0.027): `z_window=21, entry_z=1.5, exit_z=0.5, vol_target=0.10, universe={SPY}`. Artifact `.experiments/nf_runs/nf_20261109_26_etf_nav_arbitrage_20261109_234241/summary.json`.
+
+**Result — REJECT (2/8 gates).** OOS Val+Test (2117 periods, 484 trades): Sharpe **0.074** (fail ≥1.0), PF **1.019** (fail ≥1.3), max DD **−18.95%** (fail ≤15%), trades **484** (pass ≥200), WF stability **0.740** (pass ≥0.7), worst-regime rolling-252 Sharpe **−1.753** (fail ≥0.3), benchmark p **0.982** (fail ≤0.05 vs buy-hold SPY), IR **−0.721** (fail ≥0), perturbation min ratio **0.000** (fail ≥0.5). Train/Val/Test Sharpe: 0.099 / 0.049 / 0.102. SPY buy-hold benchmark OOS Sharpe 0.819, PF 1.170, DD −17.97%. Ablations: random-premium control Sharpe 0.282 / PF 1.073 (1213 trades) — outperforms strategy; inverse-signal Sharpe −0.182 / PF 0.954 (directionally consistent but no edge). No gate weakened; no published/certified artifact modified.
+
+**Verdict rationale.** The ETF premium/discount mean reversion strategy does not produce a validated edge on free/public data with approximated NAV. The approximated NAV (mean-reverting noise around price) does not capture true creation/redemption arbitrage dynamics. Random-premium ablation outperforms the signal, confirming no information in the z-score timing. The NAV data limitation is the decisive blocker; without point-in-time NAV, the mechanism cannot be fairly tested.
+
+**Lineage map (H174 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| ETF creation/redemption premium-discount mean reversion | H174 (NF-20261109-26) | Vol-targeted ETF position scaled by z-score of trailing premium/discount to NAV; long discount, short premium; hysteresis + 1-bar delay | SPY daily (yfinance) + approximated NAV (no free point-in-time NAV source), 2010–2026 | **REJECT** (2/8; exp_2026-11-09T23-42-41-758123Z) | OOS Sharpe 0.074, PF 1.019, DD −18.95%, worst-regime −1.753, benchmark p 0.982, IR −0.721, perturbation 0.0; NAV approximation invalidates mechanism test; random-premium ablation outperforms signal |
+
+**Cycle 89 required next.** H85–H174 all rejected. Fresh discovery per directive §4: reconcile lineage to H174, propose ≥3 repo-new mechanism candidates across ≥3 broad categories, score honestly, reassess all deferred candidates (NF-04/05/11r/12/17/20/21/15/16/22/23/24/25/26/27/28/29 + NF-20261109-01/02/03/12/15/16/18/19/20/22/23/24/25/26/27/28/29) with concrete evidence (no silent drops). Pre-register highest-information feasible candidate as H175 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
