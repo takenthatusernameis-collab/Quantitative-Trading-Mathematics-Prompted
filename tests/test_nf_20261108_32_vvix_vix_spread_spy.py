@@ -17,9 +17,7 @@ def _prices(n: int = 500) -> pd.DataFrame:
 
 def test_make_signals_columns_and_bounds() -> None:
     p = _prices()
-    sig = h159.make_signals(
-        p, {"z_window": 126, "entry_scale": 1.5, "vol_target": 0.1}
-    )
+    sig = h159.make_signals(p, {"z_window": 126, "entry_scale": 1.5, "vol_target": 0.1})
     assert list(sig.columns) == ["SPY", "^VIX", "^VVIX"]
     assert (sig["^VIX"] == 0).all()
     assert (sig["^VVIX"] == 0).all()
@@ -83,9 +81,12 @@ def test_vvix_jump_gives_positive_z() -> None:
     n = len(idx)
     spy = 100 * np.exp(np.cumsum(rng.normal(0.0003, 0.008, n)))
     vix = np.full(n, 18.0)
-    vvix = np.where(np.arange(n) < n // 2, 85.0, 120.0)  # regime jump at midpoint
+    vvix = np.where(np.arange(n) < n // 2, 85.0, 120.0) + 0.5 * (
+        np.arange(n) % 5
+    )  # regime jump at midpoint; noise keeps pre-jump std > 0
     p = pd.DataFrame({"SPY": spy, "^VIX": vix, "^VVIX": vvix}, index=idx)
     z = h159.vvix_vix_spread_z(p, 126)
     early = z.iloc[150 : n // 2 - 10].dropna()
     late = z.iloc[n // 2 + 30 : n // 2 + 90].dropna()
+    assert not early.empty and not late.empty
     assert late.mean() > early.mean()

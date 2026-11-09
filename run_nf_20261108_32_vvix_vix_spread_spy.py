@@ -109,9 +109,7 @@ VOL_TARGETS = [0.10, 0.15]
 def _fetch() -> pd.DataFrame:
     import yfinance as yf
 
-    raw = yf.download(
-        UNIVERSE, start=DATA_START, end=DATA_END, progress=False, auto_adjust=True
-    )
+    raw = yf.download(UNIVERSE, start=DATA_START, end=DATA_END, progress=False, auto_adjust=True)
     if isinstance(raw.columns, pd.MultiIndex):
         close = raw["Close"][UNIVERSE]
     else:

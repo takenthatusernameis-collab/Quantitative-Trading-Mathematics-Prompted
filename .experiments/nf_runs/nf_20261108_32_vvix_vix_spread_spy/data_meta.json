@@ -1,0 +1,14 @@
+{
+  "universe": [
+    "SPY",
+    "^VIX",
+    "^VVIX"
+  ],
+  "train_end": "2019-12-31",
+  "val_end": "2021-12-31",
+  "rows": 3767,
+  "train": 2514,
+  "val": 498,
+  "test": 755,
+  "signal_mapping": "stress on positive z of (VVIX - VIX) (tail-protection premium elevated)"
+}
