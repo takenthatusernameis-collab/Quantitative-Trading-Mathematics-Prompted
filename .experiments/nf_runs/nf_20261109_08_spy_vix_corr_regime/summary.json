@@ -1,0 +1,69 @@
+{
+  "nf_id_exec": "NF-20261109-08",
+  "hypothesis": "H165",
+  "verdict": "REJECT",
+  "gates_passed": "4/8",
+  "gates": {
+    "sharpe_ge_1": false,
+    "trades_ge_200": true,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": true,
+    "wf_stability_ge_0_7": true,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_ir_ge_0": false,
+    "perturbation_ge_0_5": true
+  },
+  "selected_params": {
+    "corr_window": 63,
+    "z_window": 252,
+    "entry_scale": 2.0,
+    "vol_target": 0.15
+  },
+  "selection_wf_train_mean_sharpe": 0.7544498930199692,
+  "oos_val_test": {
+    "n": 1716,
+    "sharpe": 0.6523054142432753,
+    "profit_factor": 1.1239302488934872,
+    "max_drawdown": -0.02997871491373694,
+    "trades": 3968
+  },
+  "wf_stability_ratio": 0.8646106524479416,
+  "worst_regime_rolling252_sharpe": -0.9943578494165937,
+  "benchmark_buy_hold_spy_oos": {
+    "sharpe": 0.7915318827939519,
+    "profit_factor": 1.163642346815046,
+    "max_drawdown": -0.33717280281106543,
+    "trades": 1
+  },
+  "benchmark_p": 0.974,
+  "information_ratio_vs_bh": -0.7873318890908486,
+  "perturbation_min_ratio": 0.9297837991354698,
+  "ablations": {
+    "buy_hold_spy": {
+      "sharpe": 0.7915318827939519,
+      "profit_factor": 1.163642346815046,
+      "max_drawdown": -0.33717280281106543,
+      "trades": 1
+    },
+    "random_exposure_matched": {
+      "sharpe": 0.6150651412191825,
+      "profit_factor": 1.1428830954156022,
+      "max_drawdown": -0.07704205822276058,
+      "trades": 1715
+    },
+    "inverse_regime": {
+      "n": 1716,
+      "sharpe": 0.9501841421346329,
+      "profit_factor": 1.2005102489881592,
+      "max_drawdown": -0.030810236331477815,
+      "trades": 3743
+    }
+  },
+  "timing_seconds": 26.35,
+  "data": {
+    "start": "2010-01-04",
+    "end": "2026-10-30",
+    "rows": 4233
+  },
+  "description": "NF-20261109-08/H165 (Cycle 79): SPY timing from realized SPY--VIX correlation regime (cross-asset volatility-equity stress transmission). z-score of trailing realized SPY--VIX correlation; de-risk vol-targeted long SPY when correlation strongly negative (stress). 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates."
+}

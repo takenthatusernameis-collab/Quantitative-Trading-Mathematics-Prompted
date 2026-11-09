@@ -1,0 +1,14 @@
+{
+  "universe": [
+    "SPY",
+    "^VIX"
+  ],
+  "train_end": "2019-12-31",
+  "val_end": "2022-12-31",
+  "rows": 4233,
+  "train": 2516,
+  "val": 756,
+  "test": 961,
+  "experiment_description": "NF-20261109-08/H165 (Cycle 79): SPY timing from realized SPY--VIX correlation regime (cross-asset volatility-equity stress transmission). z-score of trailing realized SPY--VIX correlation; de-risk vol-targeted long SPY when correlation strongly negative (stress). 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "integrity_note": "Tracked drafts run_nf_20261109_06_idio_skew_regime (failing tests, no artifact) and run_nf_20261109_07_dealer_crowding_spy (stub) removed before this run; H165 artifacts written here (nf_20261109_08_spy_vix_corr_regime)."
+}
