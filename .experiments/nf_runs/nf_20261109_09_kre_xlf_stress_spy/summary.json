@@ -1,0 +1,61 @@
+{
+  "nf_id": "NF-20261109-09",
+  "h_id": "H166",
+  "verdict": "REJECT",
+  "gates": "5/8",
+  "gate_detail": {
+    "sharpe_ge_1": true,
+    "trades_ge_200": true,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": true,
+    "wf_stability_ge_0_7": true,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_ir_ge_0": false,
+    "perturbation_ge_0_5": true
+  },
+  "best": {
+    "lookback": 63,
+    "z_window": 126,
+    "entry_scale": 2.0,
+    "vol_target": 0.15
+  },
+  "train": {
+    "sharpe": 1.1335308509269335,
+    "profit_factor": 1.2507156259184125,
+    "max_drawdown": -0.026079147097017634,
+    "trades": 1383
+  },
+  "oos": {
+    "sharpe": 1.105027765908095,
+    "profit_factor": 1.2292916715898567,
+    "max_drawdown": -0.022236234422196022,
+    "trades": 1127,
+    "wf_stability": 0.9748546014468592,
+    "worst_regime_sharpe": -0.9631725746273226,
+    "benchmark_p": 0.9610194902548725,
+    "information_ratio": -0.6877078714794488,
+    "perturbation_ratio": 0.9116296917393755,
+    "n": 1717
+  },
+  "ablations": {
+    "buy_hold_spy": {
+      "sharpe": 0.7915314006079827,
+      "profit_factor": 1.1636421541401434,
+      "max_drawdown": -0.17971874482141947,
+      "trades": 1
+    },
+    "random_exposure_matched": {
+      "sharpe": 0.43132957297466396,
+      "profit_factor": 1.0980445372310317,
+      "max_drawdown": -0.04319844680913932,
+      "trades": 1554
+    },
+    "inverse_regime": {
+      "sharpe": 0.7570989085977475,
+      "profit_factor": 1.1510728914207613,
+      "max_drawdown": -0.03048015245448585,
+      "trades": 1119
+    }
+  },
+  "elapsed_s": 6.9
+}
