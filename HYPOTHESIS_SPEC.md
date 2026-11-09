@@ -7959,3 +7959,69 @@ Lineage reconciled to H167: **H85–H167 all rejected/recorded**. Next unused H-
 | S&P 500 index rebalance flow timing | H168 (NF-20261109-11) | Vol-targeted long SPY reduced during ex-ante quarterly rebalance window (structural index-fund flow pressure); 1-bar delay | SPY daily (yfinance), 2010–2026; deterministic quarterly calendar | **REJECT** (4/8; `.experiments/nf_runs/nf_20261109_11_spy_index_rebalance/summary.json`) | Fails Sharpe 0.803/PF 1.151/worst-regime -1.210/benchmark-p 0.982/IR -0.759; passes trades/maxDD/WF/perturbation; **random-window control 0.839 matches/exceeds base 0.803** → structural flow not validated; honest adjacency to H91/H140/H142/H90 calendar families |
 
 **Cycle 82 complete (discovery + H168 execution).** H85–H168 all rejected/recorded. `src/qtr` unchanged; pinned suite not rerun (no `src/qtr` change). No commit/push. Cycle 83 required next: directive §4 discovery (>=3 repo-new candidates across >=3 broad mechanism categories, honest scoring) before selecting H169; carried-forward deferred pool: NF-20261109-12 holiday drift (runner-up, 4.15), NF-20261109-13 low-vol factor timing (3.45), NF-04 blocked, NF-05 deferred, NF-08-16 held, NF-09-03 data-limited — reassess with concrete evidence before recycling.
+
+---
+## Cycle 83 — Directive §4 discovery scan and H169 pre-registration (2026-11-09)
+
+**Lineage reconciled to H168: H85–H168 all rejected/recorded.** Next unused H-ID **H169** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified. Selection/validation uses no protected-test feedback. Free/public yfinance data only.
+
+### Cycle 83 discovery (directive §4, >=3 repo-new mechanism candidates across >=3 broad mechanism categories)
+
+| Candidate (NF) | Category | Nov(25%) | Econ(25%) | Data/PIT(20%) | Fals(15%) | Cost/cap(10%) | Indep(5%) | Weighted |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261109-14 Overnight futures (ES/NQ) lead-lag to cash session | Cross-market information transmission | 4.0 | 4.0 | 5.0 | 5.0 | 5.0 | 4.0 | **4.45** |
+| NF-20261109-15 Tax-loss harvesting / year-end tax-loss selling pressure | Institutional/behavioral constraint | 4.0 | 4.0 | 5.0 | 5.0 | 4.0 | 4.0 | **4.35** |
+| NF-20261109-16 Dividend capture / ex-dividend date microstructure | Corporate action / microstructure | 5.0 | 3.0 | 5.0 | 5.0 | 3.0 | 3.0 | **4.20** |
+
+**Rationale (honest scoring):**
+- NF-20261109-14: repo-new mechanism (overnight *futures* price discovery leads daytime *cash* session); distinct from H85 sector ETF→constituent lead-lag (within equities), H18 overnight/intraday decomposition (same asset, close-to-close sign), H168 index rebalance flows (structural flow not information transmission). ES=F/NQ=F trade 23h on Globex; price discovery leads SPY/QQQ cash open. Free yfinance daily: ES=F, NQ=F, SPY, QQQ. Clean falsifiers: random-futures control, inverse signal, OAT perturbation.
+- NF-20261109-15: repo-new mechanism (tax-code-mandated December selling of YTD losers creates temporary price pressure reversing in January); distinct from all calendar families (H91 turn-of-month, H140 monthly OPX, H142 turn-of-quarter, H90 FOMC, H168 index rebalance, NF-20261109-12 holiday drift) which test generic seasonal patterns without the tax-loss structural mechanism. Free yfinance daily universe; YTD rank entering Dec computable. Clean falsifiers: random-year control, non-taxable-account proxy.
+- NF-20261109-16: repo-new mechanism (ex-dividend price drop deviates from dividend amount due to tax clientele/microstructure; capture strategy tests net-of-cost profit); distinct from all prior families (no corporate action family tested). Free yfinance dividends + prices. Falsifiable: price drop = dividend amount (no anomaly); capture strategy loses after costs. Lower execution score due to overnight hold tax implications and bid-ask at open.
+
+**Selection:** **NF-20261109-14 → H169** (highest expected-information *feasible* decisive test; genuinely new cross-market information transmission mechanism, single-instrument SPY/ES or QQQ/NQ pair, daily free data, lowest turnover/cost risk, clean falsifiers). Pre-registered below before validation outcomes.
+
+### H169 — Cycle 83 (NF-20261109-14: Overnight futures lead-lag to cash session) — PRE-REGISTERED
+
+**NF-ID (execution key):** NF-20261109-14 (verified unused as an executed NF/H root; no `nf_20261109_14`/overnight-futures-leadlag execution pre-existed). **Hypothesis ID:** H169 (next unused after H168; H24/H68–H73/H76–H79 unassigned, not recycled). NF-root collision/integrity check: no executed NF/H/runner/artifact uses *overnight futures (ES/NQ) return* as a cross-market lead-lag signal for *daytime cash (SPY/QQQ) return* (verified pre-execution). H18 (overnight/intraday REJECT 4/9) tests same-asset overnight sign → next-day intraday direction; H85 (cross-asset lead-lag REJECT 2/8) tests sector ETF → constituent; H169 tests *derivative futures overnight return → underlying cash daytime return* — distinct mechanism and instrument class.
+
+**Statement.** Overnight futures (ES, NQ) price discovery on Globex leads the daytime cash session (SPY, QQQ). The overnight futures return (prior futures close → current futures open) predicts the daytime cash return (cash open → cash close) because information is incorporated in futures first. A vol-targeted long/short cash position is taken at cash open based on the overnight futures signal, held intraday to cash close.
+
+**Mechanism.** Cross-market information transmission (broad category per directive §4.1). Futures trade 23h on CME Globex; cash ETFs trade 6.5h. Overnight news is reflected in futures prices before cash open.
+
+**Null (H0).** Overnight futures return has no predictive power for daytime cash returns beyond random chance after costs.
+
+**Observable (point-in-time).** ES=F / NQ=F daily open/close via `DataFetcher.fetch_yahoo` (yfinance), SPY / QQQ daily open/close via same. Overnight futures return = open[t] / close[t-1] - 1 (computed from values known at cash open[t]). Cash daytime return = close[t] / open[t] - 1 (earned after entry at open[t]). All values point-in-time consistent.
+
+**Data / splits (protected holdout).** ES=F, SPY daily yfinance 2010-01-01→2026-10-31 (train 2010-01-01→2019-12-31; val 2020-01-01→2022-12-31; test protected 2023-01-01→2026-10-31). Also NQ=F, QQQ as secondary pair. Selection = train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+
+**Construction.** Daily. Signal = z-scored overnight futures return over `lookback` (or raw sign if z_entry=0). Long cash if signal > `z_entry`, short if signal < `-z_entry`, flat otherwise. Position at cash open, held to cash close (intraday). Vol-targeted to `vol_target` ann. 1-bar delay via engine `signals.shift(1)` ensures no look-ahead. Max position 0.5. Costs: equity CostModel defaults.
+
+**Grid (bounded, pre-registered).** `pair ∈ {ES_SPY, NQ_QQQ}` × `lookback ∈ {21, 63, 126}` × `z_entry ∈ {0.0, 0.5, 1.0}` × `vol_target ∈ {0.10, 0.15, 0.20}` = 54 combos. Selection by train-only WF Sharpe; Test protected.
+
+**Cost model.** Equity: 1 bp commission + 1 bp spread. Intraday round-trip ≈ 2× position per day.
+
+**Gates (OOS Val+Test, PROMPT_V2 Phase 4).** Sharpe ≥ 1.0, ≥ 200 trades, PF ≥ 1.3, max DD ≤ 15%, WF stability ≥ 0.7×train (when train>0), worst-regime rolling-252 Sharpe ≥ 0.3, benchmark p ≤ 0.05 vs buy-hold SPY with IR ≥ 0 (direction-aware), perturbation min ratio ≥ 0.5 (OAT ±20% on all grid params). All gates fail-closed on pre-registered OOS Val+Test.
+
+**Rejection/falsifiers.** OOS Sharpe < 0.5, PF < 1.1, max DD > 15%, < 200 OOS trades, or benchmark/perturbation failure → reject mechanism. Ablations: random-futures control (random overnight return sign), always-flat, buy-hold SPY benchmark, inverse signal (short on positive overnight futures return), OAT perturbation, Val/Test subperiods, NQ/QQQ pair as independent replication. No gate weakening.
+
+**Lineage map (H169 pre-registered):**
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known risks |
+|---|---|---|---|---|---|
+| Overnight futures lead-lag (cross-market information transmission) | H169 (NF-20261109-14) | Overnight futures return predicts daytime cash return; vol-targeted intraday cash position at open based on overnight futures signal; 1-bar delay | ES=F/SPY or NQ=F/QQQ daily (yfinance), 2010–2026; futures 23h Globex leads 6.5h cash | **PRE-REGISTERED** | Intraday hold requires open prices (yfinance adjusted); adjacency to H18 overnight/intraday (honest: different mechanism — cross-market futures lead-lag vs same-asset overnight sign) |
+
+### H169 — Cycle 83 (NF-20261109-14: Overnight futures lead-lag to cash session) — REAL EXECUTION: REJECT 4/8
+
+**NF-ID (execution key):** NF-20261109-14 (verified unused as an executed NF/H root before H169 execution; no `nf_20261109_14`/overnight-futures-leadlag execution pre-existed). **Hypothesis ID:** H169 (next unused after H168; H24/H68–H73/H76–H79 unassigned, not recycled). Next unused after H169 is H170. NF-root collision/integrity check: no executed NF/H/runner/artifact uses the *overnight futures (ES/NQ) return* as a cross-market lead-lag signal for *daytime cash (SPY/QQQ) return* (verified pre-execution). H18 (overnight/intraday REJECT 4/9) tests same-asset overnight sign → next-day intraday direction; H85 (cross-asset lead-lag REJECT 2/8) tests sector ETF → constituent; H169 tests *derivative futures overnight return → underlying cash daytime return* — distinct mechanism and instrument class.
+
+**Result (OOS Val+Test, n=1712):** Sharpe **0.490** fail (≥1.0), PF **1.211** fail (≥1.3), max DD **−1.10%** pass (≤15%), trades **333** pass (≥200), WF stability **0.960** pass (≥0.7; train 0.511→OOS 0.490), worst-regime rolling-252 **−1.532** fail (≥0.3), benchmark p **0.859** / IR **−0.398** fail (p≤0.05 & IR≥0), perturbation min ratio **0.903** pass (≥0.5). → **REJECT 4/8**.
+
+**Selected (train-only 4-fold WF mean Sharpe 0.511):** `pair=ES_SPY, lookback=21, z_entry=1.0, vol_target=0.20`.
+
+**Ablations OOS:** buy-hold SPY 0.449/1.086/−7.20%/1712; random-futures-sign (random overnight sign) **−0.343**/0.874/−3.52%/333 (weaker, no edge); **inverse signal** (short on positive overnight futures return) **−0.490**/0.825/−2.17%/333 — inverse weaker, direction consistent but no edge; NQ/QQQ pair as independent replication available in grid but ES_SPY selected.
+
+**Lineage map (H169 REJECT):**
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known risks |
+|---|---|---|---|---|---|
+| Overnight futures lead-lag (cross-market information transmission) | H169 (NF-20261109-14) | Overnight futures return predicts daytime cash return; vol-targeted intraday cash position at open based on overnight futures signal; 1-bar delay | ES=F/SPY or NQ=F/QQQ daily (yfinance), 2010–2026; futures 23h Globex leads 6.5h cash | **REJECT** (4/8; `.experiments/nf_runs/nf_20261109_14_overnight_futures_leadlag/summary.json`) | Fails Sharpe/PF/worst-regime/benchmark; inverse weaker (direction consistent) but no edge; NQ/QQQ not independently validated |
+
+**Cycle 83 complete (discovery + H169 execution).** H85–H169 all rejected/recorded. `src/qtr` unchanged; pinned suite not rerun (no `src/qtr` change). No commit/push. Cycle 84 required next: directive §4 discovery (>=3 repo-new candidates across >=3 broad mechanism categories, honest scoring) before selecting H170; carried-forward deferred pool: NF-20261109-15 tax-loss harvesting (4.35), NF-20261109-16 dividend capture (4.20), NF-20261109-12 holiday drift (4.15), NF-20261109-13 low-vol factor timing (3.45), NF-04 blocked, NF-05 deferred, NF-08-16 held, NF-09-03 data-limited — reassess with concrete evidence before recycling.

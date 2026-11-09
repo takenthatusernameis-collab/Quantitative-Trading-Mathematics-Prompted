@@ -1,0 +1,16 @@
+{
+  "nf_id": "NF-20261109-14",
+  "h_id": "H169",
+  "universe": [
+    "SPY",
+    "ES=F"
+  ],
+  "data_start": "2010-01-01",
+  "data_end": "2026-10-31",
+  "rows": 4222,
+  "train_end": "2019-12-31",
+  "val_end": "2022-12-31",
+  "seed": 169,
+  "grid_n": 54,
+  "selection": "best train-only 4-fold WF mean Sharpe; gates on OOS Val+Test"
+}
