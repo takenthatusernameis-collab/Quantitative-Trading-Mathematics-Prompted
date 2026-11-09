@@ -7865,3 +7865,97 @@ Lineage reconciled to H166: **H85–H166 all rejected/recorded**. Next unused H-
 | SPY timing from equity volatility risk premium regime (SPY realized vol vs VIX implied vol spread) | H167 (NF-20261109-10) | Continuous vol-targeted long SPY reduced when z-score of trailing VRP spread abnormally positive (fear/stress); 1-bar delay, long-only | SPY (traded) + ^VIX (signal) daily (yfinance), 2010–2026 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261109_10_equity_vrp_timing/summary.json`) | Fails Sharpe 0.916/PF 1.176/worst-regime -1.758/benchmark-p 0.974/IR -0.718; passes trades/maxDD/WF/perturbation; random-exposure 0.641 weaker (structure no edge); inverse 0.818 weaker (direction consistent); honesty: adjacency to H17/H100 VRP family (different instrument/market) and H165 correlation (second moment) |
 
 **Cycle 81 complete (discovery + H167 execution).** H85–H167 all rejected/recorded. `src/qtr` unchanged; pinned suite not rerun (no `src/qtr` change). No commit/push. Cycle 82 required next: directive §4 discovery (>=3 repo-new candidates across >=3 broad mechanism categories, honest scoring) before selecting H168; carried-forward deferred pool remains low-expected-information (NF-04 blocked, NF-05 deferred, NF-08-16 held, NF-09-03 data-limited).
+
+---
+
+## Cycle 82 — Directive §4 discovery scan and H168 pre-registration (2026-11-09)
+
+Lineage reconciled to H167: **H85–H167 all rejected/recorded**. Next unused H-ID **H168** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified. Selection/validation uses no protected-test feedback. Free/public yfinance data only.
+
+**NF root collision / integrity check (honest).** Candidate roots verified against executed H-IDs/artifacts in `.experiments/nf_runs/`, `HYPOTHESIS_SPEC.md`, and `NEW_FAMILY_RESEARCH_REGISTER.md`. No executed root uses: (a) S&P 500 index rebalance structural flow timing (mandatory index-fund rebalancing at quarterly effective dates); (b) holiday/pre-holiday drift microstructure timing; (c) low-volatility factor timing via USMV/SPLV factor ETFs. Honest adjacency disclosed per candidate below. Carried-forward deferred pool (NF-04 blocked, NF-05 deferred turnover/net-of-cost, NF-08-16 held calendar, NF-09-03 data-limited) remains low-expected-information and is not recycled silently.
+
+### Cycle 82 candidates (directive §4: ≥3 repo-new/decisive candidates across ≥3 broad mechanism categories, honest 25/25/20/15/10/5 scoring)
+
+| Cycle-82 candidate | Broad mechanism category | N 25% | E 25% | D 20% | F 15% | X 10% | S 5% | Weighted | Disposition |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---|
+| NF-20261109-11 S&P 500 index rebalance flow timing (SPY) | Structural flows / index rebalance | 4.0 | 3.0 | 5.0 | 5.0 | 5.0 | 3.0 | **4.15** | **SELECTED → H168** |
+| NF-20261109-12 Holiday / pre-holiday drift SPY timing | Calendar anomaly / microstructure | 4.0 | 3.0 | 5.0 | 5.0 | 5.0 | 3.0 | **4.15** | Deferred (runner-up) |
+| NF-20261109-13 Low-volatility factor timing (USMV/SPLV vs SPY) | Factor anomaly / risk premium | 3.0 | 3.0 | 4.0 | 4.0 | 4.0 | 3.0 | **3.45** | Deferred |
+
+**Scoring notes (honest).** NF-20261109-11 novelty 4.0 (repo-new mechanism: mandatory index-fund rebalancing flows at quarterly S&P 500 effective dates; distinct from H91 turn-of-month REJECT 3/9, H140 monthly OPX REJECT 4/8, H142 turn-of-quarter REJECT 4/8, H90 FOMC REJECT 1/9; mechanism is structural flow not seasonal pattern; deterministic public calendar). NF-20261109-12 novelty 4.0 (repo-new mechanism: pre-holiday drift from reduced liquidity/institutional window-dressing; distinct from all executed calendar families H91/H140/H142/H90/H141/H142; deterministic holiday calendar). NF-20261109-13 novelty 3.0 (low-vol anomaly timing via USMV/SPLV factor ETFs; adjacent to H114 SPHB/SPLV style leadership REJECT 4/8 and H136 AR(1) REJECT 2/8; lower expected information due to shorter USMV/SPLV history from 2011 and factor-timing construction class adjacency to H114/H129/H130). All candidates feasible on free yfinance daily data with 1–3 symbols, bounded grids, no `src/qtr` change.
+
+**Selection:** **NF-20261109-11 → H168** (highest expected-information *feasible* decisive test; genuinely new structural-flow mechanism, deterministic free calendar, quarterly rebalance = lowest turnover/cost risk, clean falsifiers). Pre-registered below before validation outcomes.
+
+## H168 — Cycle 82 (NF-20261109-11: S&P 500 index rebalance flow timing) — PRE-REGISTERED
+
+**Status:** PRE-REGISTERED (Cycle 82, to be executed REAL). `src/qtr` unchanged; no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified; no commit/push. Free/public yfinance data only.
+
+**NF-ID (execution key):** NF-20261109-11 (verified unused as an executed NF/H root; no `nf_20261109_11`/spy-index-rebalance execution pre-existed). **Hypothesis ID:** H168 (next unused after H167; H24/H68–H73/H76–H79 unassigned, not recycled). NF-root collision/integrity check: no executed NF/H/runner/artifact uses *S&P 500 quarterly index rebalance effective dates* as a structural flow timing observable for SPY (verified pre-execution). H91 (turn-of-month REJECT 3/9), H140 (monthly OPX REJECT 4/8), H142 (turn-of-quarter REJECT 4/8), H90 (FOMC REJECT 1/9) use calendar-seasonal windows; H168 uses *structural index-fund rebalancing flow pressure* at the known effective dates — distinct mechanism.
+
+**Broad mechanism category:** Structural flows / index rebalance. Repo-new executed observable: *S&P 500 quarterly rebalance effective dates (third Friday of Mar/Jun/Sep/Dec)* as ex-ante SPY de-risking window. Honest adjacency disclosed: H91/H140/H142/H90 calendar families (seasonal patterns, different mechanism).
+
+**Statement.** Mandatory S&P 500 index fund/ETF rebalancing at quarterly effective dates creates predictable structural flow pressure. A vol-targeted long SPY position is reduced during the ex-ante rebalance window (last `end_days` trading days of quarter + first `start_days` of next quarter) to avoid adverse flow-driven price impact, and held at full exposure otherwise. The mechanism is index-rebalance-driven supply/demand imbalance, distinct from seasonal calendar anomalies.
+
+**Mechanism / causal chain.** S&P 500 index changes (additions/deletions) are announced ~5 weeks before quarterly effective date (third Friday of Mar/Jun/Sep/Dec). Index-tracking funds must trade to match new weights, creating concentrated buying in additions and selling in deletions around the effective date. This predictable flow pressure can distort prices. The pre-registered rule de-risks SPY during the ex-ante rebalance window (calendar-known at close t); 1-bar delay via engine `signals.shift(1)` ensures no look-ahead.
+
+**Null (H0).** Index rebalance window membership has no predictive power for next-day SPY returns beyond random chance after costs.
+
+**Observable (point-in-time).** SPY daily adjusted close via `DataFetcher.fetch_yahoo` (yfinance), plus deterministic S&P 500 quarterly effective dates (third Friday of Mar/Jun/Sep/Dec). Calendar computed from date alone; no external data dependency. Membership known at close t for position at t+1.
+
+**Data / splits (protected holdout).** SPY daily yfinance 2010-01-01→2026-10-31 (train 2010-01-01→2019-12-31; val 2020-01-01→2022-12-31; test protected 2023-01-01→2026-10-31). Selection = train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+
+**Costs / constraints.** Equity `CostModel` defaults (1 bp commission + 1 bp spread); vol-targeted long-only, max position 0.5. Quarterly rebalance window ⇒ very low turnover (~4-8 trades/year per side).
+
+**Grid (bounded, pre-registered).** `end_days ∈ {1,2,3,4,5}` × `start_days ∈ {1,2,3,4,5}` × `vol_target ∈ {0.10,0.15}` = 75 combos. Selection by train-only WF Sharpe; Test protected.
+
+**Gates (OOS Val+Test, PROMPT_V2 Phase 4).** Sharpe ≥ 1.0, ≥ 200 trades, PF ≥ 1.3, max DD ≤ 15%, WF stability ≥ 0.7×train (when train>0), worst-regime rolling-252 Sharpe ≥ 0.3, benchmark p ≤ 0.05 vs buy-hold SPY with IR ≥ 0 (direction-aware), perturbation min ratio ≥ 0.5 (OAT ±20% on all grid params). All gates evaluated fail-closed on pre-registered OOS Val+Test.
+
+**Rejection/falsifiers.** OOS Sharpe < 0.5, PF < 1.1, max DD > 15%, < 200 OOS trades, or benchmark/perturbation failure → reject mechanism. Ablations: random-window control (same-frequency random windows), always-flat, buy-hold SPY benchmark, inverse window (more exposure in rebalance window), OAT perturbation, Val/Test subperiods. No gate weakening.
+
+**Runner / tests.** `run_nf_20261109_11_spy_index_rebalance.py`, `tests/test_nf_20261109_11_spy_index_rebalance.py` (to be implemented this session).
+
+**Lineage map (H168 pre-registered):**
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known risks |
+|---|---|---|---|---|---|
+| S&P 500 index rebalance flow timing | H168 (NF-20261109-11) | Vol-targeted long SPY reduced during ex-ante quarterly rebalance window (structural index-fund flow pressure); 1-bar delay | SPY daily (yfinance), 2010–2026; deterministic quarterly calendar | **PRE-REGISTERED** | Low trade count risk (quarterly); adjacency to H91/H140/H142 calendar families (honest: mechanism is structural flow not seasonal) |
+
+---
+
+## H168 — Cycle 82 (NF-20261109-11: S&P 500 index rebalance flow timing) — REAL EXECUTION: REJECT 4/8
+
+**Status:** REJECT 4/8 (Cycle 82, REAL). `src/qtr` unchanged; no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified; no commit/push. Free/public yfinance data only.
+
+**NF-ID (execution key):** NF-20261109-11 (verified unused as an executed NF/H root before H168 execution; no `nf_20261109_11`/spy-index-rebalance execution pre-existed). **Hypothesis ID:** H168 (next unused after H167; H24/H68–H73/H76–H79 unassigned, not recycled). Next unused after H168 is H169. NF-root collision/integrity check: no executed NF/H/runner/artifact uses the *S&P 500 quarterly index rebalance effective dates* as a structural flow timing observable for SPY (verified pre-execution). H91 (turn-of-month REJECT 3/9), H140 (monthly OPX REJECT 4/8), H142 (turn-of-quarter REJECT 4/8), H90 (FOMC REJECT 1/9) use calendar-seasonal windows; H168 uses *structural index-fund rebalancing flow pressure* at the known effective dates — distinct mechanism.
+
+**Broad mechanism category:** Structural flows / index rebalance. Repo-new executed observable: *S&P 500 quarterly rebalance effective dates (third Friday of Mar/Jun/Sep/Dec)* as ex-ante SPY de-risking window. Honest adjacency disclosed: H91/H140/H142/H90 calendar families (seasonal patterns, different mechanism).
+
+**Statement.** Mandatory S&P 500 index fund/ETF rebalancing at quarterly effective dates creates predictable structural flow pressure. A vol-targeted long SPY position is reduced during the ex-ante rebalance window (last `end_days` trading days of quarter + first `start_days` of next quarter) to avoid adverse flow-driven price impact, and held at full exposure otherwise. The mechanism is index-rebalance-driven supply/demand imbalance, distinct from seasonal calendar anomalies.
+
+**Mechanism / causal chain.** S&P 500 index changes (additions/deletions) are announced ~5 weeks before quarterly effective date (third Friday of Mar/Jun/Sep/Dec). Index-tracking funds must trade to match new weights, creating concentrated buying in additions and selling in deletions around the effective date. This predictable flow pressure can distort prices. The pre-registered rule de-risks SPY during the ex-ante rebalance window (calendar-known at close t); 1-bar delay via engine `signals.shift(1)` ensures no look-ahead.
+
+**Null (H0).** Index rebalance window membership has no predictive power for next-day SPY returns beyond random chance after costs.
+
+**Observable (point-in-time).** SPY daily adjusted close via `DataFetcher.fetch_yahoo` (yfinance), plus deterministic S&P 500 quarterly effective dates (third Friday of Mar/Jun/Sep/Dec). Calendar computed from date alone; no external data dependency. Membership known at close t for position at t+1.
+
+**Data / splits (protected holdout).** SPY daily yfinance 2010-01-01→2026-10-31 (train 2010-01-01→2019-12-31, val 2020-01-01→2022-12-31, test 2023-01-01→2026-10-31 protected). Selection = train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+
+**Costs / constraints.** Equity `CostModel` defaults (1 bp commission + 1 bp spread); vol-targeted long-only, max position 0.5. Quarterly rebalance window ⇒ very low turnover (~4-8 trades/year per side).
+
+**Grid (bounded, pre-registered).** `end_days ∈ {1,2,3,4,5}` × `start_days ∈ {1,2,3,4,5}` × `vol_target ∈ {0.10,0.15}` = 75 combos. Selection by train-only WF Sharpe; Test protected.
+
+**Gates (OOS Val+Test, PROMPT_V2 Phase 4).** Sharpe ≥ 1.0, ≥ 200 trades, PF ≥ 1.3, max DD ≤ 15%, WF stability ≥ 0.7×train (when train>0), worst-regime rolling-252 Sharpe ≥ 0.3, benchmark p ≤ 0.05 vs buy-hold SPY with IR ≥ 0 (direction-aware), perturbation min ratio ≥ 0.5 (OAT ±20% on all grid params). All gates evaluated fail-closed on pre-registered OOS Val+Test.
+
+**Selected (train-only 4-fold WF mean Sharpe 1.0674):** `end_days=1, start_days=3, vol_target=0.15`.
+
+**Result — REJECT (4/8 gates).** Artifact `.experiments/nf_runs/nf_20261109_11_spy_index_rebalance/summary.json` (+`grid.csv`, `data_meta.json`, 6.44s, REAL). OOS Val+Test (n=1717): Sharpe **0.803** (fail ≥1.0), trades **700** (pass ≥200), PF **1.151** (fail ≥1.3), max DD **-3.44%** (pass ≤15%), WF stability **0.752** (pass ≥0.7; train 1.0674 → OOS 0.803), worst-regime rolling-252 Sharpe **-1.210** (fail ≥0.3), benchmark p **0.982** / IR **-0.759** vs buy-hold SPY (fail p≤0.05 & IR≥0), perturbation min ratio **0.982** (pass ≥0.5). Buy-hold SPY OOS 0.792/1.164/-17.97%/1.
+
+**Ablations (OOS).** Buy-hold SPY 0.792/1.164/-17.97%/1. Always-flat NaN/0/0/0. Random-exposure-matched **0.547**/1.117/-7.15%/1171 (weaker, structure present but no edge). Random-window-matched (same-frequency random windows) **0.839**/1.157/-2.92%/811 — **comparable to base (0.803/1.151)**; the rebalance window structure is indistinguishable from random windows. Inverse regime (pre-registered falsifier: *more* exposure in rebalance window) **0.566**/1.425/-0.98%/85 — weaker Sharpe but higher PF; direction consistent but no benchmark edge; base still fails Sharpe/PF/worst-regime/benchmark. **Critical falsifier: random-window control matches or exceeds base performance** — the structural-flow mechanism is not validated.
+
+**Verdict rationale.** Passes trades/maxDD/WF/perturbation (4/8) but fails Sharpe/PF/worst-regime/benchmark. Sharpe 0.803 below 1.0 gate, PF 1.151 below 1.3, worst-regime collapses (-1.210), no benchmark-significant edge (p=0.982, IR=-0.759); random-window falsifier matches base → mechanism not distinguishable from noise. Not a validated edge. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Lineage map (H168 REJECT):**
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known risks |
+|---|---|---|---|---|---|
+| S&P 500 index rebalance flow timing | H168 (NF-20261109-11) | Vol-targeted long SPY reduced during ex-ante quarterly rebalance window (structural index-fund flow pressure); 1-bar delay | SPY daily (yfinance), 2010–2026; deterministic quarterly calendar | **REJECT** (4/8; `.experiments/nf_runs/nf_20261109_11_spy_index_rebalance/summary.json`) | Fails Sharpe 0.803/PF 1.151/worst-regime -1.210/benchmark-p 0.982/IR -0.759; passes trades/maxDD/WF/perturbation; **random-window control 0.839 matches/exceeds base 0.803** → structural flow not validated; honest adjacency to H91/H140/H142/H90 calendar families |
+
+**Cycle 82 complete (discovery + H168 execution).** H85–H168 all rejected/recorded. `src/qtr` unchanged; pinned suite not rerun (no `src/qtr` change). No commit/push. Cycle 83 required next: directive §4 discovery (>=3 repo-new candidates across >=3 broad mechanism categories, honest scoring) before selecting H169; carried-forward deferred pool: NF-20261109-12 holiday drift (runner-up, 4.15), NF-20261109-13 low-vol factor timing (3.45), NF-04 blocked, NF-05 deferred, NF-08-16 held, NF-09-03 data-limited — reassess with concrete evidence before recycling.
