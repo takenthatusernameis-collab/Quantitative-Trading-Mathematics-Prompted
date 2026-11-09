@@ -8172,3 +8172,41 @@ Lineage reconciled to H167: **H85–H167 all rejected/recorded**. Next unused H-
 
 **Lineage map (H172 REJECT):**
 | Intraday equity time-of-day seasonality | H172 (NF-20261109-01) | Vol-targeted long SPY during pre-registered favorable ET hour windows (1h bars); microstructure seasonality, 1-bar delay, long-only | SPY hourly (yfinance 1h ET, 3313 bars, 2024-12→2026-10) | **REJECT** (3/8; `.experiments/nf_runs/nf_20261109_01_intraday_seasonality_20261109_213639/summary.json`) | Fails Sharpe -0.936/PF 0.737/WF NaN/worst-regime -2.650/benchmark-p 0.975/IR -1.938; DD -6.01%/trades 476/perturbation 0.886 pass; train WF negative; inverse-hour weak (0.133); limited ~2y 1h history (yfinance constraint) |
+
+---
+
+## H173 — NF-20261109-24: Equity Risk Premium / Fed Model SPY Timing (Cycle 87)
+
+**NF-ID:** NF-20261109-24 (H173). **Status:** Pre-registered and executed REAL 2026-11-09 — verdict recorded below. `src/qtr` unchanged. Free/public yfinance daily data only. No commit/push unless explicitly authorized.
+
+**Broad mechanism category:** Valuation / equity risk premium transmission (repo-new root family; distinct from H154 short-rate level, H155 10Y yield level, H171 yield-curve slope — all bond-yield-only families; H173 uses the *equity-minus-bond yield spread*).
+
+**Repo-relative novelty (honest).** H154/H155 test short-rate and 10Y yield *levels* as SPY timing signals; H171 tests the yield-curve *slope* (^TYX-^FVX). None tests the valuation spread between an equity yield and a bond yield. H173 tests SPY trailing dividend yield minus 10Y Treasury yield (the classic "Fed model" equity risk premium) as a continuous SPY timing input — a distinct observable (equity-minus-bond spread) and distinct causal channel (valuation/risk-premium, not monetary level or curve shape). Honest adjacency to the executed rates/valuation domain disclosed; scored novelty 4 not 5 due to that adjacency.
+
+**Statement.** When the SPY trailing dividend yield is high relative to the 10Y Treasury yield (wide equity risk premium / equities cheap vs bonds), expected SPY returns are elevated; when the spread narrows or inverts (equities expensive), expected returns are depressed. A vol-targeted long SPY position scaled by the z-score of the trailing equity-minus-bond yield spread targets net OOS (Val+Test) Sharpe ≥ 1.0 with ≥ 200 trades, PF ≥ 1.3, max DD ≤ 15%, WF stability ≥ 0.7, worst-regime rolling-252 Sharpe ≥ 0.3, benchmark p ≤ 0.05 vs buy-hold SPY with IR ≥ 0, and perturbation min ratio ≥ 0.5.
+
+**Null (H0).** The equity-minus-bond yield spread has no predictive power for next-day SPY returns beyond random chance after costs.
+
+**Pre-registration (decision-ready before validation outcomes).** NF-20261109-24 verified unused (no executed NF/H/runner/artifact). H173 next unused after H172 (H24/H68–H73/H76–H79 unassigned, not recycled). PIT causal: SPY dividends are historical actuals (ex-dates known at close t); ^TNX close known at close t; trailing dividend yield and spread computed from past-only data; 1-bar delay via engine `signals.shift(1)` (position at close t earns return t→t+1). Free/public yfinance daily: SPY Close + dividends, ^TNX Close. Data 2010-01-01→2026-10-31. Train first 50% (~2010→2018), Val next 25%, Test protected final 25% (~2022→2026). Selection = train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+
+**Construction (daily, causal).**
+1. Fetch SPY daily Close (auto_adjust) and SPY dividends (historical actuals) via yfinance; fetch ^TNX daily Close.
+2. Trailing dividend yield: sum of dividends over trailing `div_lookback` trading days divided by current Close (PIT-safe; dividends are known actuals).
+3. Equity risk premium: ERP_t = dividend_yield_t − ^TNX_t/100 (TNX quoted in percent; convert to decimal to match dividend yield).
+4. ERP z-score: rolling z-score of ERP over `z_window` (past-only).
+5. Signal: vol-targeted long SPY when ERP z ≥ entry_z (equities cheap vs bonds), flat otherwise. 1-bar delay via engine `signals.shift(1)`.
+6. Vol targeting: trailing `vol_window`-day realized vol of SPY daily returns; target annual vol `vol_target` scaled to daily: `vol_target / sqrt(252)`. Position clipped to [0, 0.5].
+7. Costs: Equity `CostModel` defaults (1 bp commission + 1 bp spread). Long-only, MAX_POS=0.5.
+
+**Bounded grid (pre-registered).** `div_lookback ∈ {126, 252}` × `z_window ∈ {126, 252}` × `entry_z ∈ {0.0, 0.5, 1.0}` × `vol_target ∈ {0.10, 0.15, 0.20}` = 2 × 2 × 3 × 3 = **36 combos**. Selection by train-only 4-fold walk-forward Sharpe; Test protected.
+
+**Falsifiers / ablations.** Buy-hold SPY benchmark; random-regime control (same number of active days, randomly chosen); inverse-signal (flat when ERP z high, long when ERP z low — direction falsifier); OAT perturbation (±20% on div_lookback, z_window, entry_z, vol_target); Val/Test subperiods; worst-regime rolling-252 Sharpe. No gate weakening.
+
+**Gates (OOS Val+Test, fail-closed).** Sharpe ≥ 1.0; trades ≥ 200; PF ≥ 1.3; max DD ≤ 15%; WF stability ≥ 0.7; worst-regime rolling-252 Sharpe ≥ 0.3; benchmark p ≤ 0.05 with IR ≥ 0 (direction-aware); perturbation min ratio ≥ 0.5.
+
+**Runner:** `run_nf_20261109_24_equity_risk_premium.py`. **Tests:** `tests/test_nf_20261109_24_equity_risk_premium.py`. `ruff check/format` clean.
+
+**Execution (REAL).** Artifact `.experiments/nf_runs/nf_20261109_24_equity_risk_premium_<ts>/summary.json` (+ `grid.csv`, `data_meta.json`). Data: SPY + ^TNX + SPY dividends yfinance daily, aligned rows 2010-01-04→2026-10-30. Verdict and metrics recorded below after the REAL run.
+
+**Lineage map (H173 verdict pending REAL execution):**
+| Equity risk premium / Fed model SPY timing (dividend yield − 10Y yield spread) | H173 (NF-20261109-24) | Continuous vol-targeted long SPY scaled by z-score of trailing (SPY div yield − ^TNX/100) spread; long when ERP z elevated (equities cheap), flat otherwise; 1-bar delay, long-only | SPY + ^TNX + SPY dividends daily (yfinance), 2010–2026 | **VERDICT PENDING REAL RUN** | Honest adjacency to H154/H155/H171 rates/valuation domain; no validated edge claimed pre-execution |
