@@ -1,0 +1,87 @@
+{
+  "nf_id_exec": "NF-20261109-02",
+  "hypothesis": "H161",
+  "verdict": "REJECT",
+  "gates_passed": "4/8",
+  "gates": {
+    "sharpe_ge_1": false,
+    "trades_ge_200": true,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": true,
+    "wf_stability_ge_0_7": true,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_ir_ge_0": false,
+    "perturbation_ge_0_5": true
+  },
+  "selected_params": {
+    "lookback": 252,
+    "z_window": 252,
+    "entry_scale": 2.0,
+    "exit_scale": 0.5,
+    "vol_target": 0.15
+  },
+  "selection_wf_train_mean_sharpe": 1.1167598375007142,
+  "oos_val_test": {
+    "n": 1715,
+    "sharpe": 0.8918420197524628,
+    "profit_factor": 1.2207549369768085,
+    "max_drawdown": -0.024609401257015617,
+    "trades": 2669
+  },
+  "train": {
+    "n": 2509,
+    "sharpe": 0.9603643388870452,
+    "profit_factor": 1.2328817882789607,
+    "max_drawdown": -0.026613464363500407,
+    "trades": 2669
+  },
+  "wf_stability_ratio": 0.9286496630914137,
+  "worst_regime_rolling252_sharpe": -1.4321791433884594,
+  "benchmark_buy_hold_spy_oos": {
+    "n": 1715,
+    "sharpe": 0.7931227580212583,
+    "profit_factor": 1.1641424251445303,
+    "max_drawdown": -0.3371727532114977,
+    "trades": 1
+  },
+  "benchmark_p": 0.976,
+  "information_ratio_vs_bh": -0.7397700937140619,
+  "perturbation_min_ratio": 0.6184866772728513,
+  "ablations": {
+    "buy_hold_spy": {
+      "n": 1715,
+      "sharpe": 0.7931227580212583,
+      "profit_factor": 1.1641424251445303,
+      "max_drawdown": -0.3371727532114977,
+      "trades": 1
+    },
+    "random_exposure_matched": {
+      "n": 1715,
+      "sharpe": 0.5175097065470396,
+      "profit_factor": 1.2008488874878356,
+      "max_drawdown": -0.009070488722149297,
+      "trades": 1476
+    },
+    "inverse_regime": {
+      "n": 1715,
+      "sharpe": 0.5026276966250229,
+      "profit_factor": 1.1124076939283856,
+      "max_drawdown": -0.03170806737867073,
+      "trades": 3009
+    }
+  },
+  "timing_seconds": 70.34,
+  "data": {
+    "start": "2010-01-04",
+    "end": "2026-10-30",
+    "rows": 4226
+  },
+  "description": "NF-20261109-02/H161: SPY timing from G10 currency carry basket risk-appetite. Equal-weight carry basket (long AUD/NZD/CAD vs JPY, short EUR/CHF/USD vs JPY) trailing momentum z-score with hysteresis; vol-targeted long SPY, 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "notes": [
+    "Repo-new executed G10 currency carry basket momentum z-score SPY-timing observable.",
+    "Honest adjacency: H95 UUP (USD basket), H103 FXA (AUD risk-on), H106 FXY (JPY safe-haven), H129/H134 proposed FX carry (unexecuted as this basket).",
+    "Basket: equal-weight long AUD/NZD/CAD vs JPY, short EUR/CHF/USD vs JPY; USDJPY=X fetched for coverage but excluded from basket legs (documented).",
+    "Pre-registered: hysteresis de-risks on negative z (carry unwind/risk-off); inverse falsifier de-risks on positive z.",
+    "src/qtr unchanged; no gate weakening; no published/certified artifact modified."
+  ]
+}

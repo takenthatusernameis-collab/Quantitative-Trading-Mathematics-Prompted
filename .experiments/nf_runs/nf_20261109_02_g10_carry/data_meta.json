@@ -1,0 +1,20 @@
+{
+  "universe": [
+    "SPY",
+    "AUDJPY=X",
+    "NZDJPY=X",
+    "CADJPY=X",
+    "EURJPY=X",
+    "GBPJPY=X",
+    "CHFJPY=X",
+    "USDJPY=X"
+  ],
+  "train_end": "2019-12-31",
+  "val_end": "2022-12-31",
+  "rows": 4226,
+  "train": 2510,
+  "val": 756,
+  "test": 960,
+  "signal_mapping": "hysteresis: z<=-entry_scale de-risk, z>=exit_scale full exposure; carry basket long AUD/NZD/CAD vs short EUR/CHF/USD",
+  "grid_combos": 72
+}
