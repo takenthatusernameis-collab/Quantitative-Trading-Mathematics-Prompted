@@ -3764,4 +3764,60 @@ Lineage reconciled to H163: **H85–H163 all rejected/recorded**. Next unused H-
 
 **Cycle 79 complete (discovery + H165 execution).** H85–H165 all rejected/recorded. `src/qtr` unchanged; pinned suite not rerun (no `src/qtr` change). No commit/push.
 
-**Cycle 80 required next.** Fresh directive §4 discovery: reconcile lineage to H165 (**H85–H165 rejected/recorded**), next unused H-ID **H166** (do not recycle H24/H68–H73/H76–H79). Propose >=3 repo-new candidates across >=3 broad mechanism categories with honest scoring; the carried-forward deferred pool is low-expected-information (breakeven data-limited, EWH confounded, Halloween held for calendar-class rejects) — search materially different mechanism categories before selecting. Verify NF roots before selection, pre-register H166 before validation outcomes, implement runner + focused tests, run ruff + focused pytest, execute REAL, record verdict. No gate weakening; no published/certified artifact modification; no commit/push unless explicitly authorized. `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
+## Cycle 80 (2026-11-09) — H166 execution (NF-20261109-09 KRE/XLF intermediation-stress spread SPY timing; REAL EXECUTION: REJECT 5/8)
+
+Lineage reconciled to H165: **H85–H165 all rejected/recorded**. Next unused H-ID **H166** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified. Selection/validation used no protected-test feedback. Free/public data only.
+
+**NF root collision / integrity check (honest).** NF-20261109-09 (KRE/XLF intermediation-stress spread) verified unused as an executed NF/H root before Cycle 80 execution; no `nf_20261109_09`/kre-xlf-stress-spy runner/test/artifact pre-existed. Tracked drafts NF-20261109-06 (idio_skew, failing tests, no artifact) and NF-20261109-07 (dealer_crowding stub) removed in Cycle 79; do not reuse for H166/H167. H166's observable — rolling KRE/XLF ratio relative-momentum z-score — distinct from H107 (KRE own momentum, REJECT 4/8), H94/H108/H146 credit spreads, H165 SPY--VIX correlation.
+
+**Cycle 80 discovery (directive §4, ≥3 repo-new/decisive mechanism candidates across ≥3 broad mechanism categories).** Carried-forward deferred pool reassessed with concrete evidence (no silent drops): NF-09-03 breakeven inflation **deferred/data-limited** (direct ^T5YIE/^T10YIE unavailable on yfinance; TIP/IEF proxy conflated), NF-06-33 EWH/SPY **deferred** (confounded 3.35), NF-08-16 Halloween **held** (3.90, calendar adjacency H91/H140/H142). Materially different categories searched; NF-20261109-09 KRE/XLF intermediation-stress spread (financial intermediation / regional-bank liquidity-stress transmission) selected as highest expected-information *feasible* decisive test. Pre-registered in `HYPOTHESIS_SPEC.md` §H166 before validation outcomes.
+
+### NF-20261109-09 / H166 execution outcome (2026-11-09, REAL) — REJECTED (5/8)
+
+**Runner:** `run_nf_20261109_09_kre_xlf_stress_spy.py` (Cycle 80 H166 protocol). **Tests:** `tests/test_nf_20261109_09_kre_xlf_stress_spy.py` (**7 passed**). Lint/format clean (ruff check + format --check). `py_compile` clean. `src/qtr` unchanged.
+
+**Mechanism.** Rolling KRE/XLF ratio relative-momentum z-score; continuous de-risk of vol-targeted long SPY when KRE underperforms XLF (negative z = regional-bank intermediation stress), full exposure when benign; 1-bar delay via engine `signals.shift(1)`.
+
+**Data/splits.** SPY, KRE, XLF daily yfinance auto-adjust 2010-01-01→2026-10-31 (train 2010–2019, val 2020–2022, test protected 2023–2026). Grid 24 (lookback × z_window × entry_scale × vol_target). Selection = best train-only 4-fold WF Sharpe; gates on OOS Val+Test. No holdout feedback.
+
+**Execution.** `nf_20261109_09_kre_xlf_stress_spy` completed, **6.9s**. Selected (train-only WF mean Sharpe **1.1335**): `lookback=63, z_window=126, entry_scale=2.0, vol_target=0.15`. Artifact: `.experiments/nf_runs/nf_20261109_09_kre_xlf_stress_spy/summary.json` (+`grid.csv`, `data_meta.json`).
+
+**Result — REJECT (5/8 gates).** OOS Val+Test (n=1717): Sharpe **1.105** (pass ≥1.0; first H-ID to clear Sharpe gate), trades **1127** (pass ≥200), PF **1.229** (fail ≥1.3), max DD **-2.22%** (pass ≤15%), WF stability **0.975** (pass ≥0.7; train 1.1335 → OOS 1.105), worst-regime rolling-252 Sharpe **-0.963** (fail ≥0.3), benchmark p **0.961** / IR **-0.688** vs buy-hold SPY (fail), perturbation min ratio **0.912** (pass ≥0.5). Buy-hold SPY OOS 0.792/1.164/-33.72%/1. Ablations: random-exposure-matched **0.431**/1.098/-4.32%/1554 (weaker, structure no edge); inverse-regime (de-risk when KRE outperforms XLF) **0.757**/1.151/-3.05%/1119 (weaker than base, direction consistent but no edge).
+
+**Verdict rationale.** Passes Sharpe/trades/maxDD/WF/perturbation but fails PF/worst-regime/benchmark. Sharpe ≥1.0 achieved (1.105) but no validated edge (PF <1.3, worst-regime collapse, benchmark insignificant). Not a validated edge. No gate weakened; no published/certified artifact modified.
+
+**Lineage map (H166 REJECT):**
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| KRE/XLF intermediation-stress spread SPY timing | H166 (NF-20261109-09) | Vol-targeted long SPY de-risked when trailing KRE/XLF ratio relative-momentum z-score abnormally negative; 1-bar delay | SPY (traded), KRE/XLF (signal) daily (yfinance), 2010–2026 | **REJECT 5/8** | Passes Sharpe 1.105/trades/maxDD/WF/perturbation; fails PF 1.229/worst-regime -0.963/benchmark-p 0.961/IR -0.688; adjacency H107 KRE own-momentum (REJECT 4/8) and H94/H108/H146 credit families |
+
+**Deferred risks reassessed (cycle 80, no silent drops):** NF-04 commodity carry **still BLOCKED** (no free PIT term-structure/roll proxy). NF-05 short-term CS reversal **DEFERRED** (turnover/net-of-cost; H119 weekly REJECT 3/8). NF-07/08/10/11/13/15/17/20/21 **DEFERRED**. NF-11r/NF-06-18 **SAME root as NF-11** (H141). NF-06-11 CBOE PC ratio **INFEASIBLE**. NF-06-01→H149. NF-06-03/23/24/27/28/30/32/33/35 **DEFERRED**. NF-07-05 CPI drift **DEFERRED** (data blocker). NF-07-14/48 **HELD** (IV-spread H125/H126). NF-07-49 TLT-SPY corr **HELD** (correlation H96/H127/H134/H137). NF-07-52→H148. NF-08-04/05/07/08/10 **DEFERRED/HELD**. NF-08-13 ES-SPY basis **deferred**. NF-08-16 Halloween **held** (3.90). NF-08-20 IEF RV stress **DEFERRED** (adj H151). NF-08-21/22/23 **DEFERRED**. NF-08-24→H155. NF-08-26→H164 (REJECT 3/8). NF-08-27→H157. NF-08-29→H162. NF-09-03 breakeven-inflation **deferred/data-limited**. NF-09-04→H163. NF-09-05→H163.
+
+## Cycle 81 (2026-11-09) — H167 execution (NF-20261109-10 equity volatility risk premium SPY timing; REAL EXECUTION: REJECT 4/8)
+
+Lineage reconciled to H166: **H85–H166 all rejected/recorded**. Next unused H-ID **H167** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified. Selection/validation used no protected-test feedback. Free/public data only.
+
+**NF root collision / integrity check (honest).** NF-20261109-10 (equity VRP timing) verified unused as an executed NF/H root before Cycle 81 execution; no `nf_20261109_10`/equity-vrp-timing execution pre-existed. Cycle-81 discovery (≥3 candidates across ≥3 categories, honest scoring) completed pre-execution: NF-20261109-10 equity VRP timing (vol/convexity premia, weighted 4.15) selected over NF-20261109-12 USO→SPY lead-lag (3.70) and NF-20261109-11 multi-asset carry basket (3.20, adjacency-discounted to H161). Pre-registered in `HYPOTHESIS_SPEC.md` §H167 before validation outcomes.
+
+### NF-20261109-10 / H167 execution outcome (2026-11-09, REAL) — REJECTED (4/8)
+
+**Runner:** `run_nf_20261109_10_equity_vrp_timing.py` (Cycle 81 H167 protocol). **Tests:** `tests/test_nf_20261109_10_equity_vrp_timing.py` (**7 passed**). Lint/format clean (ruff check + format --check). `py_compile` clean. `src/qtr` unchanged.
+
+**Mechanism.** SPY realized volatility vs VIX implied volatility spread (VRP = VIX − RV), z-scored; continuous de-risk of vol-targeted long SPY when VRP abnormally positive (VIX far above realized = fear/stress), full exposure when benign; 1-bar delay via engine `signals.shift(1)`.
+
+**Data/splits.** SPY, ^VIX daily yfinance auto-adjust 2010-01-01→2026-10-31 (train 2010–2019, val 2020–2022, test protected 2023–2026). Grid 24 (rv_window × z_window × entry_scale × vol_target). Selection = best train-only 4-fold WF Sharpe; gates on OOS Val+Test. No holdout feedback.
+
+**Execution.** `nf_20261109_10_equity_vrp_timing` completed, **3.81s**. Selected (train-only WF mean Sharpe **0.9457**): `rv_window=21, z_window=126, entry_scale=2.0, vol_target=0.15`. Artifact: `.experiments/nf_runs/nf_20261109_10_equity_vrp_timing/summary.json` (+`grid.csv`, `data_meta.json`).
+
+**Result — REJECT (4/8 gates).** OOS Val+Test (n=1717): Sharpe **0.916** (fail ≥1.0), trades **946** (pass ≥200), PF **1.176** (fail ≥1.3), max DD **-3.20%** (pass ≤15%), WF stability **0.968** (pass ≥0.7; train 0.9457 → OOS 0.916), worst-regime rolling-252 Sharpe **-1.758** (fail ≥0.3), benchmark p **0.974** / IR **-0.718** vs buy-hold SPY (fail), perturbation min ratio **0.986** (pass ≥0.5). Buy-hold SPY OOS 0.792/1.164/-33.72%/1. Ablations: random-exposure-matched **0.641**/1.141/-3.55%/1370 (weaker, structure no edge); inverse-regime (de-risk when VRP negative/complacent) **0.818**/1.162/-2.72%/1475 (weaker than base, direction consistent but no edge).
+
+**Verdict rationale.** Passes trades/maxDD/WF/perturbation but fails Sharpe/worst-regime/benchmark/PF. Not a validated edge. No gate weakened; no published/certified artifact modified.
+
+**Lineage map (H167 REJECT):**
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Equity volatility risk premium SPY timing | H167 (NF-20261109-10) | Vol-targeted long SPY de-risked when trailing VRP spread z-score abnormally positive; 1-bar delay | SPY (traded), ^VIX (signal) daily (yfinance), 2010–2026 | **REJECT 4/8** | Fails Sharpe 0.916/PF 1.176/worst-regime -1.758/benchmark-p 0.974/IR -0.718; passes trades/maxDD/WF/perturbation; adjacency H17/H100 VRP family (different instrument/market) and H165 correlation (second moment) |
+
+**Deferred risks reassessed (cycle 81, no silent drops):** NF-04 commodity carry **still BLOCKED** (no free PIT term-structure/roll proxy). NF-05 short-term CS reversal **DEFERRED** (turnover/net-of-cost; H119 weekly REJECT 3/8). NF-07/08/10/11/13/15/17/20/21 **DEFERRED**. NF-11r/NF-06-18 **SAME root as NF-11** (H141). NF-06-11 CBOE PC ratio **INFEASIBLE**. NF-06-01→H149. NF-06-03/23/24/27/28/30/32/33/35 **DEFERRED**. NF-07-05 CPI drift **DEFERRED** (data blocker). NF-07-14/48 **HELD** (IV-spread H125/H126). NF-07-49 TLT-SPY corr **HELD** (correlation H96/H127/H134/H137). NF-07-52→H148. NF-08-04/05/07/08/10 **DEFERRED/HELD**. NF-08-13 ES-SPY basis **deferred**. NF-08-16 Halloween **held** (3.90). NF-08-20 IEF RV stress **DEFERRED** (adj H151). NF-08-21/22/23 **DEFERRED**. NF-08-24→H155. NF-08-26→H164 (REJECT 3/8). NF-08-27→H157. NF-08-29→H162. NF-09-03 breakeven-inflation **deferred/data-limited**. NF-09-04→H163. NF-09-05→H163.
+
+**Cycle 82 required next.** Fresh directive §4 discovery: reconcile lineage to H167 (**H85–H167 rejected/recorded**), next unused H-ID **H168**. Propose >=3 repo-new candidates across >=3 broad mechanism categories with honest scoring; carried-forward deferred pool is low-expected-information — search materially different mechanism categories before selecting. Verify NF roots before selection, pre-register H168 before validation outcomes, implement runner + focused tests, run ruff + focused pytest, execute REAL, record verdict. No gate weakening; no published/certified artifact modification; no commit/push unless explicitly authorized. `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
