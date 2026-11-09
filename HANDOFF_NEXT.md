@@ -1,4 +1,4 @@
-# HANDOFF_NEXT (Cycle 80)
+# HANDOFF_NEXT (Cycle 82)
 
 ## Completed this session (Cycle 79)
 - **H165 / NF-20261109-08 — realized SPY--VIX correlation regime SPY timing (cross-asset volatility-equity stress transmission): REJECT (4/8, REAL).**
@@ -12,7 +12,7 @@
   - Honest adjacency: H127 GLD--TLT correlation (REJECT 4/8, different pair), H96/H134/H137 correlation class (REJECT), H158/H159 VIX-complex (different observable). Novelty scored repo-relative on the SPY--VIX correlation-regime observable.
 - **Cycle 79 discovery (directive §4):** Reconciled lineage to H164. Proposed/scored repo-new/decisive candidates across broad mechanism categories with honest scoring and concrete deferred reassessment (no silent drops): **NF-20261109-08 SPY--VIX correlation (3.55, selected/executed as H165)**; NF-09-03 breakeven-inflation downgraded 3.50 **deferred/data-limited** (direct ^T5YIE/^T10YIE unavailable; TIP/IEF proxy conflated); NF-06-33 EWH/SPY (3.35, deferred/confounded); NF-08-16 Halloween seasonal (3.90 held, calendar adjacency H91/H140/H142 — prior cycles declined selection 6x).
 - **Draft collisions reconciled:** removed `run_nf_20261109_06_idio_skew_regime.py` + test (3F/7P, no artifact, claimed NF-09-06/H164) and `run_nf_20261109_07_dealer_crowding_spy.py` (32-byte stub, no root/mechanism/tests/artifact). NF-20261109-08 verified unused before execution.
-- **Docs updated:** `HYPOTHESIS_SPEC.md` §H165, `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 79, `NEXT_TASK.md` (Cycle 80 / H166), `HANDOFF_NEXT.md`.
+- **Cycle 82 / H168 — S&P 500 index rebalance flow timing SPY — REAL EXECUTION: REJECT 4/8.** Runner `run_nf_20261109_11_spy_index_rebalance.py` + tests `tests/test_nf_20261109_11_spy_index_rebalance.py` (9 passed). `ruff check/format` clean. Artifact `.experiments/nf_runs/nf_20261109_11_spy_index_rebalance/summary.json` (+`grid.csv`, `data_meta.json`, 6.44s). OOS Val+Test (n=1717): Sharpe **0.803** fail, trades **700** pass, PF **1.151** fail, max DD **-3.44%** pass, WF stability **0.752** pass, worst-regime **-1.210** fail, benchmark p **0.982** / IR **-0.759** fail, perturbation **0.982** pass. Random-window control **0.839** matches base 0.803 → structural-flow mechanism not validated. Documented `HYPOTHESIS_SPEC.md` §H168, `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 82, `NEXT_TASK.md` (Cycle 83 / H169).
 
 ## Invariants preserved
 - `src/qtr` unchanged — pinned 100% coverage suite **not rerun**.
