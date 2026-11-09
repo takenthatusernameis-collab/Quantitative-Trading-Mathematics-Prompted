@@ -4023,3 +4023,26 @@ Searched mechanisms not heavily executed as root families (free/PIT feasible on 
 | Leveraged ETF daily rebalancing flows | H170 (NF-20261109-17) | Vol-targeted long/short SPY based on net estimated daily rebalancing flow from major leveraged ETFs (SSO/UPRO/SDS/SPXL/SPXS); pro-cyclical flow amplifies trend; 1-bar delay | SPY + leveraged ETFs daily (yfinance), 2010–2026; AUM static from fund fact sheets | **PRE-REGISTERED** | AUM static approximation; adjacency to H168 index rebalance flows (honest: different mechanism — daily derivative hedging vs quarterly index-fund calendar) |
 
 **Next task:** Implement `run_nf_20261109_17_leveraged_etf_rebalancing.py` + focused tests; run `ruff check/format` on new files; run focused `pytest`; execute REAL; record verdict in `HYPOTHESIS_SPEC.md` §H170, register Cycle 84, `NEXT_TASK.md`, `HANDOFF_NEXT.md`.
+
+### NF-20261109-17 / H170 — Leveraged ETF Daily Rebalancing Flows (REAL EXECUTION: REJECT 3/8)
+
+**Runner:** `run_nf_20261109_17_leveraged_etf_rebalancing.py` (Cycle 84 H170 protocol). **Tests:** `tests/test_nf_20261109_17_leveraged_etf_rebalancing.py` (19 passed). Lint/format clean (ruff check + format --check). `src/qtr` unchanged.
+
+**Artifact:** `.experiments/nf_runs/nf_20261109_17_leveraged_etf_rebalancing/summary.json` (+`grid.csv`, `data_meta.json`, ~2s).
+
+**OOS Val+Test (n=1717):** Sharpe **0.201** fail (≥1.0), PF **1.034** fail (≥1.3), max DD **−1.07%** pass (≤15%), trades **1717** pass (≥200), WF stability **2.167** pass (≥0.7; train 0.093→OOS 0.201), worst-regime rolling-252 **−1.354** fail (≥0.3), benchmark p **0.972** / IR **−0.713** fail (p≤0.05 & IR≥0), perturbation min ratio **−0.102** fail (≥0.5). → **REJECT 3/8**.
+
+**Selected (train-only 4-fold WF mean Sharpe 0.093):** `leverage_set=full_5, lookback=5, vol_target=0.10`.
+
+**Ablations OOS:** buy-hold SPY 0.798/1.165/−17.97%/1717; always-flat 0.000/0.000/0.00%/0; inverse signal (short on positive net flow) **−0.201**/0.967/−1.07%/1717 — inverse weaker, direction consistent but no edge; random flow control (shuffled leveraged ETF return signs) **−0.101**/0.990/−1.07%/1717 (weaker, no edge); equal-weight leveraged ETF basket **0.151**/1.025/−1.07%/1717 — similar to AUM-weighted, no added value.
+
+**New root family added to the lineage map:**
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Leveraged ETF daily rebalancing flows | H170 (NF-20261109-17) | Vol-targeted long/short SPY based on net estimated daily rebalancing flow from major leveraged ETFs (SSO/UPRO/SDS/SPXL/SPXS); pro-cyclical flow amplifies trend; 1-bar delay | SPY + leveraged ETFs daily (yfinance), 2010–2026; AUM static from fund fact sheets | **REJECT** (3/8; `.experiments/nf_runs/nf_20261109_17_leveraged_etf_rebalancing/summary.json`) | Fails Sharpe/PF/worst-regime/benchmark/perturbation; inverse weaker (direction consistent) but no edge; net flow signal adds no information beyond random exposure; AUM static approximation may be insufficient |
+
+**Cycle 84 complete (discovery + H170 execution).** H85–H170 all rejected/recorded. `src/qtr` unchanged; pinned suite not rerun (no `src/qtr` change). No commit/push. Cycle 85 required next: directive §4 discovery (>=3 repo-new candidates across >=3 broad mechanism categories, honest scoring) before selecting H171; carried-forward deferred pool: NF-20261109-15 tax-loss harvesting (4.35), NF-20261109-16 dividend capture (4.20), NF-20261109-12 holiday drift (4.15), NF-20261109-13 low-vol factor timing (3.45), NF-04 blocked, NF-05 deferred, NF-08-16 held, NF-09-03 data-limited, NF-20261109-18/19/20 deferred — reassess with concrete evidence before recycling.
+
+**Next task:** Cycle 85 directive §4 discovery → select/pre-register H171; implement runner + tests, ruff clean, execute REAL, record verdict in `HYPOTHESIS_SPEC.md` §H171, register Cycle 85, `NEXT_TASK.md`, `HANDOFF_NEXT.md`.
+
+---

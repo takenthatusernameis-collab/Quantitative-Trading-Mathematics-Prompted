@@ -59,10 +59,10 @@ def test_zscore_behavior() -> None:
     flow = h170._net_leveraged_etf_flow(p, ["SSO", "UPRO", "SDS"])
     z = h170._zscore(flow, 21)
     assert len(z) == len(p)
-    # First 21 values should be NaN (min_periods=lookback)
-    assert z.iloc[:21].isna().all()
+    # First lookback-1 values should be NaN (min_periods=lookback on series with 1 leading NaN from pct_change)
+    assert z.iloc[:20].isna().all()
     # After lookback, should have values
-    assert z.iloc[21:].notna().any()
+    assert z.iloc[20:].notna().any()
 
 
 def test_vol_scale_bounds() -> None:

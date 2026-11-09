@@ -89,11 +89,11 @@ EXPERIMENT_DESC = (
 
 # Leveraged ETFs on SPY with leverage factors
 LEVERAGED_ETFS = {
-    "SSO": 2.0,   # 2x long
+    "SSO": 2.0,  # 2x long
     "UPRO": 3.0,  # 3x long
     "SDS": -2.0,  # 2x short (inverse)
     "SPXL": 3.0,  # 3x long
-    "SPXS": -3.0, # 3x short (inverse)
+    "SPXS": -3.0,  # 3x short (inverse)
 }
 
 # Two leverage sets to test
@@ -238,7 +238,7 @@ def _build_strategy_returns(prices: pd.DataFrame, params: dict) -> tuple[pd.Seri
     z = _zscore(net_flow, lookback)
     # Signal: long if z > 0, short if z < 0, flat if z == 0 (or NaN)
     signal = pd.Series(0.0, index=prices.index)
-    signal = signal.where(z <= 0, 1.0)   # long on positive flow
+    signal = signal.where(z <= 0, 1.0)  # long on positive flow
     signal = signal.where(z >= 0, -1.0)  # short on negative flow
 
     # SPY overnight return (close[t] -> close[t+1])
@@ -424,7 +424,7 @@ def _make_inverse_returns(prices: pd.DataFrame, params: dict) -> pd.Series:
     z = _zscore(net_flow, lookback)
     signal = pd.Series(0.0, index=prices.index)
     signal = signal.where(z <= 0, -1.0)  # short on positive flow
-    signal = signal.where(z >= 0, 1.0)   # long on negative flow
+    signal = signal.where(z >= 0, 1.0)  # long on negative flow
 
     spy_ret = _compute_returns(prices, "SPY")
     vscale = _vol_scale(spy_ret, vol_target)

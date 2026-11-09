@@ -8074,3 +8074,22 @@ Lineage reconciled to H167: **H85–H167 all rejected/recorded**. Next unused H-
 | Root family | H-IDs | Mechanism | Markets / data | Status | Known risks |
 |---|---|---|---|---|---|
 | Leveraged ETF daily rebalancing flows | H170 (NF-20261109-17) | Vol-targeted long/short SPY based on net estimated daily rebalancing flow from major leveraged ETFs (SSO/UPRO/SDS/SPXL/SPXS); pro-cyclical flow amplifies trend; 1-bar delay | SPY + leveraged ETFs daily (yfinance), 2010–2026; AUM static from fund fact sheets | **PRE-REGISTERED** | AUM static approximation; adjacency to H168 index rebalance flows (honest: different mechanism — daily derivative hedging vs quarterly index-fund calendar) |
+
+### H170 — Cycle 84 (NF-20261109-17: Leveraged ETF Daily Rebalancing Flows) — REAL EXECUTION: REJECT 3/8
+
+**NF-ID (execution key):** NF-20261109-17 (verified unused as an executed NF/H root before H170 execution; no `nf_20261109_17`/leveraged-etf-rebalancing execution pre-existed). **Hypothesis ID:** H170 (next unused after H169; H24/H68–H73/H76–H79 unassigned, not recycled). Next unused after H170 is H171. NF-root collision/integrity check: no executed NF/H/runner/artifact uses the *net daily rebalancing flow from major leveraged ETFs (SSO/UPRO/SDS/SPXL/SPXS)* as a pro-cyclical flow signal for *next-day SPY returns* (verified pre-execution). H168 (S&P 500 index rebalance flow timing REJECT 4/8) tests quarterly index-fund rebalancing calendar windows; H170 tests *daily derivative hedging flow from leveraged ETF issuers* — distinct mechanism (daily pro-cyclical hedging vs quarterly index-fund calendar), distinct frequency, distinct causal channel.
+
+**Result (OOS Val+Test, n=1717):** Sharpe **0.201** fail (≥1.0), PF **1.034** fail (≥1.3), max DD **−1.07%** pass (≤15%), trades **1717** pass (≥200), WF stability **2.167** pass (≥0.7; train 0.093→OOS 0.201), worst-regime rolling-252 **−1.354** fail (≥0.3), benchmark p **0.972** / IR **−0.713** fail (p≤0.05 & IR≥0), perturbation min ratio **−0.102** fail (≥0.5). → **REJECT 3/8**.
+
+**Selected (train-only 4-fold WF mean Sharpe 0.093):** `leverage_set=full_5, lookback=5, vol_target=0.10`.
+
+**Ablations OOS:** buy-hold SPY 0.798/1.165/−17.97%/1717; always-flat 0.000/0.000/0.00%/0; inverse signal (short on positive net flow) **−0.201**/0.967/−1.07%/1717 — inverse weaker, direction consistent but no edge; random flow control (shuffled leveraged ETF return signs) **−0.101**/0.990/−1.07%/1717 (weaker, no edge); equal-weight leveraged ETF basket **0.151**/1.025/−1.07%/1717 — similar to AUM-weighted, no added value.
+
+**Lineage map (H170 REJECT):**
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known failure mode |
+|---|---|---|---|---|---|
+| Leveraged ETF daily rebalancing flows | H170 (NF-20261109-17) | Vol-targeted long/short SPY based on net estimated daily rebalancing flow from major leveraged ETFs (SSO/UPRO/SDS/SPXL/SPXS); pro-cyclical flow amplifies trend; 1-bar delay | SPY + leveraged ETFs daily (yfinance), 2010–2026; AUM static from fund fact sheets | **REJECT** (3/8; `.experiments/nf_runs/nf_20261109_17_leveraged_etf_rebalancing/summary.json`) | Fails Sharpe/PF/worst-regime/benchmark/perturbation; inverse weaker (direction consistent) but no edge; net flow signal adds no information beyond random exposure; AUM static approximation may be insufficient |
+
+**Cycle 84 complete (discovery + H170 execution).** H85–H170 all rejected/recorded. `src/qtr` unchanged; pinned suite not rerun (no `src/qtr` change). No commit/push. Cycle 85 required next: directive §4 discovery (>=3 repo-new candidates across >=3 broad mechanism categories, honest scoring) before selecting H171; carried-forward deferred pool: NF-20261109-15 tax-loss harvesting (4.35), NF-20261109-16 dividend capture (4.20), NF-20261109-12 holiday drift (4.15), NF-20261109-13 low-vol factor timing (3.45), NF-04 blocked, NF-05 deferred, NF-08-16 held, NF-09-03 data-limited, NF-20261109-18/19/20 deferred — reassess with concrete evidence before recycling.
+
+---
