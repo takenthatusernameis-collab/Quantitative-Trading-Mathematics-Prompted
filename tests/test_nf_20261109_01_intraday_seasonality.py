@@ -22,10 +22,10 @@ import run_nf_20261109_01_intraday_seasonality as mod  # noqa: E402
 
 def _make_hourly(n=500, seed=0):
     rng = np.random.default_rng(seed)
-    # Create hourly timestamps during trading hours (13-19 UTC = 9:30-16:00 ET)
+    # Create hourly timestamps during ET trading hours (9:30-16:00 ET = hours 9-15)
     idx = pd.bdate_range("2022-10-01", periods=n * 7, freq="1h")
-    # Filter to trading hours 13-19
-    hour_mask = (idx.hour >= 13) & (idx.hour <= 19)
+    # Filter to trading hours 9-15 (ET clock)
+    hour_mask = (idx.hour >= 9) & (idx.hour <= 15)
     idx = idx[hour_mask]
     idx = idx[:n]
     # Generate prices with mild drift
@@ -123,7 +123,7 @@ def test_constants_pre_registered():
     assert mod.NF_ID == "NF-20261109-01"
     assert mod.HYPOTHESIS == "H172"
     assert mod.SYMBOL == "SPY"
-    assert mod.START == "2022-10-01"
+    assert mod.START == "2024-12-01"  # yfinance 1h limit ~730 bars; pre-reg ~2024-11
     assert mod.END == "2026-10-31"
     assert mod.SEED == 42
     assert mod.MAX_POS == 0.5

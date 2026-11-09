@@ -67,17 +67,18 @@ END = "2026-10-31"
 MAX_POS = 0.5
 SEED = 42
 
-# Hour windows in UTC (yfinance returns UTC timestamps for 1h bars).
-# US market hours: 9:30-16:00 ET = 13:30-20:00 UTC.
-# Hour indices: 13=9-10 AM ET, 14=10-11 AM ET, 15=11 AM-12 PM ET, 16=12-1 PM ET,
-# 17=1-2 PM ET, 18=2-3 PM ET, 19=3-4 PM ET.
+# Hour windows in ET (yfinance returns ET timestamps for 1h bars).
+# US market hours: 9:30-16:00 ET. Hour 9 covers 9:00-9:59 (first real trade
+# bar is 9:30-10:29 = hour 9); hours 9-15 cover the full session.
+# Mirrors the pre-registered UTC windows (13-15 UTC = 9-11 AM ET, etc.) but uses
+# the native ET clock so hour-window membership is unambiguous.
 HOUR_WINDOWS = [
-    (13, 14),  # 9-11 AM ET (morning momentum)
-    (14, 15),  # 10 AM-12 PM ET (mid-morning)
-    (13, 14, 15),  # 9 AM-12 PM ET (full morning)
-    (15, 16),  # 11 AM-1 PM ET (lunch transition)
-    (16, 17),  # 12-2 PM ET (early afternoon)
-    (19,),  # 3-4 PM ET (close auction)
+    (9, 10),  # 9:30-11:30 AM ET (morning momentum)
+    (10, 11),  # 10:30 AM-12:30 PM ET (mid-morning)
+    (9, 10, 11),  # 9:30 AM-12:30 PM ET (full morning)
+    (11, 12),  # 11:30 AM-1:30 PM ET (lunch transition)
+    (12, 13),  # 12:30-2:30 PM ET (early afternoon)
+    (14,),  # 2:30-3:30 PM ET (close auction)
 ]
 
 GRID = {
@@ -114,13 +115,23 @@ def _download_hourly(symbol: str, start: str, end: str) -> pd.DataFrame:
         raise RuntimeError("yfinance returned empty data")
     if isinstance(raw.columns, pd.MultiIndex):
         df = raw[["Open", "High", "Low", "Close", "Volume"]].copy()
+        df.columns = [c[0] for c in df.columns]
     else:
         df = raw[["Open", "High", "Low", "Close", "Volume"]].copy()
-    df.index = pd.to_datetime(df.index).tz_localize(None)
+    # yfinance returns ET timestamps for 1h bars; convert to ET tz-aware, then
+    # drop tz for engine (which uses tz-naive DatetimeIndex) but keep ET hour.
+    et = "America/New_York"
+    idx = pd.to_datetime(df.index)
+    if getattr(idx, "tz", None) is None:
+        idx = idx.tz_localize(et)
+    else:
+        idx = idx.tz_convert(et)
+    df.index = idx.tz_localize(None)
     df = df.sort_index()
-    # Keep only regular trading hours (9:30-16:00 ET = 13:30-20:00 UTC)
-    # Filter to hours 13-19 inclusive (9:30-16:00 ET covers hours 13,14,15,16,17,18,19 in UTC)
-    hour_mask = (df.index.hour >= 13) & (df.index.hour <= 19)
+    # Keep only regular trading hours (9:30-16:00 ET = hours 9-15 in ET clock).
+    # Hour 9 covers 9:00-9:59 (includes pre-market 9:00-9:29 bar); the first
+    # real trade bar is 9:30-10:29 = hour 9. Filter to hours 9-15 inclusive.
+    hour_mask = (df.index.hour >= 9) & (df.index.hour <= 15)
     df = df[hour_mask]
     # Drop rows with any NaN in OHLCV
     df = df.dropna()
@@ -185,7 +196,7 @@ def _cfg() -> BacktestConfig:
 
 def _run_backtest_hourly(prices: pd.DataFrame, signal: pd.Series | pd.DataFrame) -> dict:
     """Run backtest on hourly data. Matches H171 pattern exactly."""
-    # Ensure prices has 'SPY' column
+    # Ensure prices has a single 'SPY' column matching the signal column
     if "SPY" not in prices.columns:
         prices = prices.rename(columns={"Close": "SPY"})[["SPY"]]
     else:
@@ -195,7 +206,7 @@ def _run_backtest_hourly(prices: pd.DataFrame, signal: pd.Series | pd.DataFrame)
         sig_series = signal.iloc[:, 0]
     else:
         sig_series = signal
-    sig_df = sig_series.to_frame(name="SPY").reindex(prices.index).fillna(0.0)
+    sig_df = sig_series.to_frame(name="SPY").reindex(index=prices.index).fillna(0.0)
     res = run_backtest(prices=prices, signals=sig_df, config=_cfg())
     m = res.metrics
     if isinstance(m, dict):
