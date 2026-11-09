@@ -3951,3 +3951,75 @@ Searched mechanisms not heavily executed as root families (free/PIT feasible on 
 **Cycle 83 complete (discovery + H169 execution).** H85–H169 all rejected/recorded; H169 REJECT 4/8 documented in `HYPOTHESIS_SPEC.md` §H169 (OOS Sharpe 0.490/PF 1.211/worst-regime -1.532/benchmark-p 0.859/IR -0.398 fail; trades/maxDD/WF/perturbation pass). `src/qtr` unchanged; pinned suite not rerun (no `src/qtr` change). No commit/push. Next unused H-ID **H170** (H24/H68–H73/H76–H79 unassigned, not recycled). Cycle 84 required next: fresh directive §4 discovery (>=3 repo-new candidates across >=3 broad mechanism categories, honest scoring) before selecting H170; carried-forward deferred pool: NF-20261109-15 tax-loss harvesting (4.35), NF-20261109-16 dividend capture (4.20), NF-20261109-12 holiday drift (4.15), NF-20261109-13 low-vol factor timing (3.45), NF-04 blocked, NF-05 deferred, NF-08-16 held, NF-09-03 data-limited — reassess with concrete evidence before recycling. Verify NF roots before selection, pre-register H170 before validation outcomes, implement runner + focused tests, run ruff + focused pytest, execute REAL, record verdict. No gate weakening; no published/certified artifact modification; no commit/push unless explicitly authorized. `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
 
 **Next task:** Cycle 84 directive §4 discovery → select/pre-register H170; implement runner + tests, ruff clean, execute REAL, record verdict in `HYPOTHESIS_SPEC.md` §H170, register Cycle 84, `NEXT_TASK.md`, `HANDOFF_NEXT.md`.
+
+---
+## Cycle 84 (2026-11-09) — Discovery / Pre-registration & Execution of H170
+
+**Lineage reconciled to H169: H85–H169 all rejected/recorded.** Next unused H-ID **H170** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified. Selection/validation uses no protected-test feedback. Free/public yfinance data only.
+
+**NF root collision / integrity check (honest).** Candidate roots verified against executed H-IDs/artifacts in `.experiments/nf_runs/`, `HYPOTHESIS_SPEC.md`, and this register: no `NF-20261109-17`/`nf_20261109_17`/leveraged-etf-rebalancing execution exists. H168 (quarterly index rebalance flows) is the closest construction class — honest adjacency disclosed; NF-20261109-17 uses *daily leveraged ETF rebalancing flows* (pro-cyclical end-of-day hedging by leveraged ETF issuers), a distinct mechanism from H168's quarterly index-fund rebalancing calendar. No H99/H149-style collisions.
+
+### Cycle 84 discovery (directive §4, >=3 repo-new/decisive mechanism candidates across >=3 broad mechanism categories)
+
+Searched mechanisms not heavily executed as root families (free/PIT feasible on yfinance): leveraged ETF rebalancing flows (structural derivative hedging), S&P 500 index inclusion/deletion discrete events (structural flow), options dealer gamma exposure (market structure / dealer positioning), stock split announcement effects (corporate action / behavioral), insider trading signals (information transmission).
+
+| Candidate (NF) | Category | Nov(25%) | Econ(25%) | Data/PIT(20%) | Fals(15%) | Cost/cap(10%) | Indep(5%) | Weighted |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261109-17 Leveraged ETF daily rebalancing flows SPY timing — **H170 (selected/executed)** | Structural derivative hedging / pro-cyclical flow | 4.0 | 4.0 | 5.0 | 5.0 | 4.0 | 3.0 | **4.15** |
+| NF-20261109-18 S&P 500 index inclusion/deletion discrete event SPY timing | Structural flow / discrete event | 4.0 | 4.0 | 4.0 | 5.0 | 3.0 | 4.0 | **3.95** |
+| NF-20261109-19 Options dealer gamma exposure SPY timing | Market structure / dealer positioning | 4.0 | 3.0 | 4.0 | 4.0 | 3.0 | 3.0 | **3.60** |
+| NF-20261109-20 Stock split announcement effects SPY timing | Corporate action / behavioral | 3.0 | 2.0 | 4.0 | 4.0 | 4.0 | 2.0 | **3.15** |
+
+**Carried-forward pool reassessed with concrete evidence (no silent drops):**
+
+| Candidate | Original Score | Reassessed Score | Disposition |
+|---|---:|---:|---|
+| NF-20261109-15 Tax-loss harvesting / year-end tax-loss selling | 4.35 | 4.35 | **Deferred** — highest carried-forward score but institutional/behavioral constraint category; fresh candidate NF-17 (structural derivative hedging) scores 4.15 in a *materially different* mechanism category. Directive §6: search materially different categories before recycling. |
+| NF-20261109-16 Dividend capture / ex-dividend microstructure | 4.20 | 4.20 | **Deferred** — corporate action category; lower expected information than NF-17; execution score 3 (overnight hold tax implications, bid-ask at open). |
+| NF-20261109-12 Holiday / pre-holiday drift SPY timing | 4.15 | 4.15 | **Deferred** — calendar microstructure; adjacency to H91/H140/H142/H168 calendar families (honest: mechanism is holiday-specific but construction class overlaps). |
+| NF-20261109-13 Low-volatility factor timing USMV/SPLV vs SPY | 3.45 | 3.45 | **Deferred** — factor anomaly; USMV/SPLV start 2011 (shorter history), adjacent to H114/H129/H130 style/lead-lag families. |
+| NF-04 Commodity carry | — | — | **Still BLOCKED** — no free PIT term-structure/roll proxy. |
+| NF-05 Short-term CS reversal | — | — | **DEFERRED** — turnover/net-of-cost; H119 weekly REJECT 3/8. |
+| NF-08-16 Halloween seasonal | 3.90 | 3.90 | **HELD** — calendar adjacency H91/H140/H142; prior cycles declined selection 7x. |
+| NF-09-03 Breakeven-inflation | 3.50 | 3.50 | **DEFERRED/DATA-LIMITED** — direct ^T5YIE/^T10YIE unavailable on yfinance probe 2026-11-09; TIP/IEF proxy conflated/weak. |
+
+**Scoring notes (honest).**
+- NF-17 novelty 4: Leveraged ETF daily rebalancing flows unexecuted as a root family; honest adjacency to H168 (quarterly index rebalance) disclosed — mechanism is *daily pro-cyclical hedging by leveraged ETF issuers* vs *quarterly index-fund rebalancing*, distinct frequency and causal channel. Data 5: SSO, UPRO, SDS, SPXL, SPXS, SPY all free yfinance daily. Execution 4: daily signal, single traded instrument SPY, bounded grid (leverage factor × lookback × vol_target = 60 combos).
+- NF-18 novelty 4: S&P 500 discrete inclusion/deletion events unexecuted as root; adjacency to H168 (quarterly calendar) disclosed — mechanism is *discrete event-driven flow* vs *quarterly calendar window*. Data 4: index changes from public S&P/Wikipedia (free but external), SPY yfinance; execution 3 (low frequency ~20-40 events/year).
+- NF-19 novelty 4: Options dealer gamma exposure unexecuted as root; adjacency to H158/H159 VIX-complex disclosed — mechanism is *dealer delta-hedging flow from gamma* vs *VIX index level/term structure*. Data 4: SPY options chain via yfinance (available but limited history/liquidity for deep OTM); execution 3 (options data complexity).
+- NF-20 novelty 3: Stock splits tested in literature but not as repo root; adjacency to NF-16 dividend capture (corporate action). Data 4: yfinance corporate actions; execution 4 (low frequency, clean event study).
+
+**Selection:** **NF-20261109-17 → H170** (highest expected-information *feasible* decisive test among repo-new candidates in a *materially different* mechanism category — structural derivative hedging — not previously tested; daily frequency enables adequate trade count; clean falsifiers: inverse leveraged ETF flow, random flow control, buy-hold benchmark). Pre-registered in `HYPOTHESIS_SPEC.md` §H170 before validation outcomes.
+
+**Deferred risks reassessed (no silent drops):** NF-04 commodity carry **still BLOCKED** (no free PIT term-structure/roll proxy). NF-05 short-term CS reversal **DEFERRED** (turnover/net-of-cost; H119 weekly REJECT 3/8). NF-07/08/10/11/13/15/17/20/21 **DEFERRED**. NF-11r/NF-06-18 **SAME root as NF-11** (H141). NF-06-11 CBOE PC ratio **INFEASIBLE**. NF-06-01→H149. NF-06-03/23/24/27/28/30/32/33/35 **DEFERRED**. NF-07-05 CPI drift **DEFERRED** (data blocker). NF-07-14/48 **HELD** (IV-spread H125/H126). NF-07-49 TLT-SPY corr **HELD** (correlation H96/H127/H134/H137). NF-07-52→H148. NF-08-04/05/07/08/10 **DEFERRED/HELD**. NF-08-13 ES-SPY basis **deferred**. NF-08-16 Halloween **held** (3.90). NF-08-20 IEF RV stress **DEFERRED** (adj H151). NF-08-21/22/23 **DEFERRED**. NF-08-24→H155. NF-08-26→H164 (REJECT 3/8). NF-08-27→H157. NF-08-29→H162. NF-09-03 breakeven-inflation **deferred/data-limited**. NF-09-04→H163. NF-09-05→H163. NF-20261109-12/13/15/16 remain unexecuted alternatives; deferred pool reassessed with concrete evidence. NF-20261109-18/19/20 deferred as Cycle 84 alternatives.
+
+### NF-20261109-17 / H170 — Leveraged ETF Daily Rebalancing Flows (PRE-REGISTERED)
+
+**Temporary lineage ID:** NF-20261109-17. **H-ID:** H170 (next unused; H24/H68–H73/H76–H79 unassigned, not recycled).
+
+**Statement.** Leveraged ETFs (e.g., SSO 2×, UPRO 3×, SDS -2×, SPXL 3×, SPXS -3×) must rebalance daily to maintain their target leverage ratio. This rebalancing creates pro-cyclical end-of-day order flow: on up days, leveraged ETF issuers buy more SPY exposure; on down days, they sell. This predictable flow amplifies the daily trend and creates a momentum effect in the underlying (SPY). A vol-targeted long/short SPY position is taken at the close based on the net estimated leveraged ETF rebalancing flow direction, held overnight to next close.
+
+**Mechanism / causal chain.** Leveraged ETF AUM × leverage factor × daily return = required rebalancing trade (notional). Net flow across all major leveraged ETFs on SPY is pro-cyclical (same sign as SPY return). This flow executes near the close, pushing prices further in the direction of the day's move. The next day's open-to-close return continues in the same direction (momentum persistence from flow pressure). Signal = sign(net_leveraged_etf_flow), where flow ≈ Σ(AUM_i × leverage_i × return_i) for i ∈ {SSO, UPRO, SDS, SPXL, SPXS}. Position established at close, held to next close (overnight). 1-bar delay via engine `signals.shift(1)` ensures no look-ahead: leveraged ETF returns and AUM known at close t; SPY return earned close[t]→close[t+1].
+
+**Null (H0).** Net leveraged ETF rebalancing flow has no predictive power for next-day SPY returns beyond random chance after costs.
+
+**Observable (point-in-time).** SPY, SSO, UPRO, SDS, SPXL, SPXS daily adjusted close via `DataFetcher.fetch_yahoo` (yfinance), plus AUM estimates (static, from fund fact sheets at experiment start; free public data). Leveraged ETF returns and SPY return at t known at close t; flow computed from values known at close t; SPY return earned close[t]→close[t+1]. AUM treated as constant (slow-moving; monthly updates would be ideal but daily constant is conservative).
+
+**Data / splits (protected holdout).** SPY + leveraged ETFs daily yfinance 2010-01-01→2026-10-31 (train 2010-01-01→2019-12-31; val 2020-01-01→2022-12-31; test protected 2023-01-01→2026-10-31). Leveraged ETFs inception: SSO/UPRO/SDS 2009, SPXL/SPXS 2012; full history from 2010 available. Selection = train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+
+**Costs / constraints.** Equity `CostModel` defaults (1 bp commission + 1 bp spread); vol-targeted long/short, max position 0.5. Daily turnover ~1× position (overnight round-trip).
+
+**Grid (bounded, pre-registered).** `leverage_set ∈ { {SSO,UPRO,SDS}, {SSO,UPRO,SDS,SPXL,SPXS} }` × `lookback ∈ {5, 21, 63}` for flow smoothing × `vol_target ∈ {0.10, 0.15, 0.20}` = 2×3×3 = 18 combos. Selection by train-only WF Sharpe; Test protected.
+
+**Gates (OOS Val+Test, PROMPT_V2 Phase 4).** Sharpe ≥ 1.0, ≥ 200 trades, PF ≥ 1.3, max DD ≤ 15%, WF stability ≥ 0.7×train (when train>0), worst-regime rolling-252 Sharpe ≥ 0.3, benchmark p ≤ 0.05 vs buy-hold SPY with IR ≥ 0 (direction-aware), perturbation min ratio ≥ 0.5 (OAT ±20% on all grid params). All gates evaluated fail-closed on pre-registered OOS Val+Test.
+
+**Rejection/falsifiers.** OOS Sharpe < 0.5, PF < 1.1, max DD > 15%, < 200 OOS trades, or benchmark/perturbation failure → reject mechanism. Ablations: buy-hold SPY, always-flat, inverse signal (short on positive net flow), random flow control (shuffle leveraged ETF return signs), OAT perturbation, Val/Test subperiods, equal-weight leveraged ETF basket vs AUM-weighted. No gate weakening.
+
+**Runner / tests.** `run_nf_20261109_17_leveraged_etf_rebalancing.py`, `tests/test_nf_20261109_17_leveraged_etf_rebalancing.py` (to be implemented this session).
+
+**Lineage map (H170 pre-registered):**
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known risks |
+|---|---|---|---|---|---|
+| Leveraged ETF daily rebalancing flows | H170 (NF-20261109-17) | Vol-targeted long/short SPY based on net estimated daily rebalancing flow from major leveraged ETFs (SSO/UPRO/SDS/SPXL/SPXS); pro-cyclical flow amplifies trend; 1-bar delay | SPY + leveraged ETFs daily (yfinance), 2010–2026; AUM static from fund fact sheets | **PRE-REGISTERED** | AUM static approximation; adjacency to H168 index rebalance flows (honest: different mechanism — daily derivative hedging vs quarterly index-fund calendar) |
+
+**Next task:** Implement `run_nf_20261109_17_leveraged_etf_rebalancing.py` + focused tests; run `ruff check/format` on new files; run focused `pytest`; execute REAL; record verdict in `HYPOTHESIS_SPEC.md` §H170, register Cycle 84, `NEXT_TASK.md`, `HANDOFF_NEXT.md`.
