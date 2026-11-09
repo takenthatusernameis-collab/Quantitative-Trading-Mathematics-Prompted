@@ -1,0 +1,92 @@
+{
+  "nf_id_exec": "NF-20261109-01",
+  "hypothesis": "H160",
+  "verdict": "REJECT",
+  "gates_passed": "4/8",
+  "gates": {
+    "sharpe_ge_1": false,
+    "trades_ge_200": true,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": true,
+    "wf_stability_ge_0_7": true,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_ir_ge_0": false,
+    "perturbation_ge_0_5": true
+  },
+  "selected_params": {
+    "ivol_lookback": 63,
+    "z_window": 252,
+    "entry_scale": 2.0,
+    "vol_target": 0.15
+  },
+  "selection_wf_train_mean_sharpe": 0.8274114324302614,
+  "oos_val_test": {
+    "n": 1716,
+    "sharpe": 0.8470624663379062,
+    "profit_factor": 1.1672639021694662,
+    "max_drawdown": -0.02354729255427176,
+    "trades": 3675
+  },
+  "train": {
+    "n": 2515,
+    "sharpe": 0.8098642003752544,
+    "profit_factor": 1.1775924851604247,
+    "max_drawdown": -0.03529135292619484,
+    "trades": 3675
+  },
+  "wf_stability_ratio": 1.0459314857298492,
+  "worst_regime_rolling252_sharpe": -1.0638074587243804,
+  "benchmark_buy_hold_spy_oos": {
+    "n": 1716,
+    "sharpe": 0.7915315137543484,
+    "profit_factor": 1.163642218902828,
+    "max_drawdown": -0.3371726701646925,
+    "trades": 1
+  },
+  "benchmark_p": 0.978,
+  "information_ratio_vs_bh": -0.7483558806528116,
+  "perturbation_min_ratio": 0.9451650108288431,
+  "ablations": {
+    "buy_hold_spy": {
+      "n": 1716,
+      "sharpe": 0.7915315137543484,
+      "profit_factor": 1.163642218902828,
+      "max_drawdown": -0.3371726701646925,
+      "trades": 1
+    },
+    "random_exposure_matched": {
+      "n": 1716,
+      "sharpe": 0.2856935762821262,
+      "profit_factor": 1.1038350865378714,
+      "max_drawdown": -0.027467986676596067,
+      "trades": 1736
+    },
+    "inverse_regime": {
+      "n": 1716,
+      "sharpe": 0.858034948303258,
+      "profit_factor": 1.1689349205154298,
+      "max_drawdown": -0.026600566340228924,
+      "trades": 4037
+    },
+    "return_dispersion_control": {
+      "n": 1716,
+      "sharpe": 0.7537662332340341,
+      "profit_factor": 1.1519838115125627,
+      "max_drawdown": -0.029070158399568204,
+      "trades": 3662
+    }
+  },
+  "timing_seconds": 33.49,
+  "data": {
+    "start": "2010-01-04",
+    "end": "2026-10-30",
+    "rows": 4233
+  },
+  "description": "NF-20261109-01/H160: SPY timing from cross-sectional IVOL dispersion regime. z-score of trailing cross-sectional std of residual (vs SPY) IVOL; de-risk vol-targeted long SPY when dispersion abnormally high (idiosyncratic-risk stress / disagreement). 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "notes": [
+    "Repo-new executed cross-sectional IVOL-dispersion SPY-timing observable.",
+    "Honest adjacency: H118 cross-sectional return dispersion (REJECT 4/8); H93 IVOL-level ranking (REJECT 2/9); H158/H159 VIX-family implied-vol spreads; z-score/de-risking form H138/H139/H151/H156/H158/H159.",
+    "Pre-registered: stress on positive z (high IVOL dispersion = idiosyncratic-risk stress); inverse falsifier stresses negative z; return-dispersion control isolates IVOL from return dispersion.",
+    "src/qtr unchanged; no gate weakening; no published/certified artifact modified."
+  ]
+}

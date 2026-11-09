@@ -1,0 +1,28 @@
+{
+  "universe": [
+    "SPY",
+    "QQQ",
+    "IWM",
+    "EFA",
+    "EEM",
+    "TLT",
+    "GLD",
+    "XLE",
+    "XLF",
+    "XLV",
+    "XLI",
+    "XLP",
+    "XLU",
+    "XLB",
+    "XLY",
+    "VNQ",
+    "XLK"
+  ],
+  "train_end": "2019-12-31",
+  "val_end": "2022-12-31",
+  "rows": 4233,
+  "train": 2516,
+  "val": 756,
+  "test": 961,
+  "signal_mapping": "stress on positive z of cross-sectional IVOL dispersion (idiosyncratic-risk stress elevated)"
+}
