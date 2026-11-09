@@ -1,24 +1,26 @@
-"""NF-20261108-26 / H158 (Cycle 65): SPY timing from GLD realized-volatility
-stress regime (bond-market volatility transmission).
+"""NF-20261108-26 / H164 (Cycle 78): SPY timing from GLD realized-volatility
+stress regime (commodity safe-haven / monetary-stress transmission).
 
-Repo-relative novelty (honest). No executed NF/H in this repo uses *GLD
-realized volatility* (trailing std of GLD log/daily returns) as the SPY timing
-observable. H141 (NF-20261108-02, REJECT 5/8) used GLD-vs-SHY Treasury
-term-spread *momentum* (a first-moment relative-return spread). H96 (REJECT
-4/9) and H127 (REJECT 2/8) used realized *correlations* involving GLD (SPY-GLD,
-GLD-GLD). H100 (NF-20261106-02, REJECT 5/9) used ^MOVE *implied* rates
-volatility level — a different instrument/observable (options-implied rates vol
-index, not GLD realized equity/ETF volatility). H92/H145 used GLD/GLD in
-relative-momentum constructions. H158 is the first repo execution of a *GLD
-realized-volatility* (second-moment, bond-market ETF) stress signal for SPY
-timing. Honest adjacency to rates/bond and volatility families is disclosed;
-novelty scored on the repo-new realized-vol observable, not a wholly new
-statistical method.
+Repo-relative novelty (honest). No executed NF/H in this repo uses *GLD's own
+trailing realized-volatility z-score* (hysteresis) as a continuous SPY
+equity-timing observable. Honest RV-stress / safe-haven adjacency disclosed:
+H151 TLT realized-volatility stress (REJECT 5/8, rates/Treasury asset);
+H156 UUP realized-volatility stress (REJECT 5/8, USD asset);
+H149 GDX-vs-GLD miner/gold-beta *RV divergence* (REJECT 4/8, relative RV
+divergence between two assets, not GLD's own RV stress level);
+H88 GLD-USO relative-value spread mean reversion (REJECT 3/8, convergence,
+different observable). H164 tests GLD's own trailing realized-volatility level
+(z-scored) as a commodity safe-haven / monetary-stress proxy — elevated GLD RV
+can reflect flight-to-quality, inflation uncertainty, or macro stress
+transmitting to equity risk premia. Construction-class adjacency (RV z-score
+hysteresis, vol-targeted SPY de-risking, 1-bar delay) to H151/H156 and
+de-risking form to H138/H139/H151/H156/H158/H159/H162/H163 disclosed; novelty
+scored on the GLD RV-stress observable, not a new statistical method.
 
-Mechanism (bond-market volatility transmission). When long-duration Treasury
-(GLD) realized volatility is abnormally elevated relative to its trailing
-history, bond-market stress/uncertainty and rates/liquidity dislocations may
-transmit to equity risk premia; the pre-registered rule continuously reduces
+Mechanism (commodity safe-haven / monetary-stress transmission). When GLD
+realized volatility is abnormally elevated relative to its trailing history,
+gold safe-haven volatility / inflation-uncertainty / macro-stress may transmit
+to equity risk premia; the pre-registered rule continuously reduces
 vol-targeted long SPY exposure as the GLD-RV z-score rises. When GLD RV is
 normal/low, exposure is full. Causal chain: GLD returns through close t ->
 trailing GLD RV and z-score at close t -> exposure weight applied to return
@@ -31,17 +33,25 @@ Observable (past-only, PIT, free yfinance): GLD, SPY daily auto-adjust Close.
 Null (H0). Trailing GLD realized volatility (z-score) contains no incremental
 SPY timing information; OOS gates fail vs buy-hold / random-exposure.
 
-Pre-registration (Cycle 65, decision-ready before validation outcomes).
-NF-ID NF-20261108-26. Hypothesis H158. Universe SPY (traded) + GLD (signal),
-yfinance daily auto-adjust Close (free, PIT). Sample 2010-01-04->2025-01-03
-(train 2516 / val 505 / test 755, aligned). Signal: z-score of trailing GLD
-realized vol over rv_window, standardized over z_window (past-only);
-continuous stress on positive z = (z.clip(0)/entry_scale).clip(0,1); exposure
+Pre-registration (Cycle 78, decision-ready before validation outcomes).
+NF-ID (execution key) NF-20261108-26. Hypothesis H164 (next unused after H163;
+H24/H68-H73/H76-H79 unassigned, not recycled). Universe SPY (traded) + GLD
+(signal), yfinance daily auto-adjust Close (free, PIT). Sample 2010-01-01->
+2026-10-31 (train 2010-01-01->2019-12-31, val 2020-01-01->2022-12-31, test
+2023-01-01->2026-10-31 protected). Signal: z-score of trailing GLD realized
+vol over rv_window, standardized over z_window (past-only); continuous stress
+on positive z = (z.clip(0)/entry_scale).clip(0,1); exposure
 (1-stress)*vol_target*vscale; 1-bar delay; Equity CostModel defaults
 (1bp commission + 1bp spread); long-only, max exposure scaled to MAX_POS=0.5.
 Bounded grid: rv_window {21,63} x z_window {126,252} x entry_scale {1.0,2.0}
 x vol_target {0.10,0.15} (16 combos); train-only 4-fold WF selection by mean
-train Sharpe; Test protected. No src/qtr change.
+train Sharpe; Test protected. No src/qtr change. All gates fail-closed on
+pre-registered OOS Val+Test.
+
+Integrity note (honest): NF-20261108-26 deferred candidate executed under H164
+in Cycle 78. The directory `.experiments/nf_runs/nf_20261108_18_gld_rv_stress_spy`
+is occupied by the H151 (NF-20261108-18) TLT realized-vol stress artifact and
+is NOT overwritten; H164 artifacts write to `nf_20261108_26_gld_rv_stress_spy`.
 
 Gates (OOS Val+Test): Sharpe>=1.0, trades>=200, PF>=1.3, maxDD<=15%,
 WF stability>=0.7, worst-regime rolling-252 Sharpe>=0.3, benchmark p<=0.05
@@ -76,20 +86,21 @@ from qtr.backtest.engine import (  # noqa: E402
 from qtr.validation.statistics import sharpe_ratio  # noqa: E402
 
 EXPERIMENT_DESC = (
-    "NF-20261108-26/H158: SPY timing from GLD realized-volatility stress "
-    "regime (bond-market vol transmission). z-score of trailing GLD RV; "
-    "de-risk vol-targeted long SPY when GLD RV abnormally high (positive z). "
-    "1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates."
+    "NF-20261108-26/H164 (Cycle 78): SPY timing from GLD realized-volatility "
+    "stress regime (commodity safe-haven/monetary-stress). z-score of trailing "
+    "GLD RV; de-risk vol-targeted long SPY when GLD RV abnormally high "
+    "(positive z). 1-bar delay. Train-only WF selection; Test protected; "
+    "OOS Val+Test gates."
 )
 
 SPY = "SPY"
 GLD = "GLD"
 UNIVERSE = [SPY, GLD]
 DATA_START = "2010-01-01"
-DATA_END = "2025-01-05"
+DATA_END = "2026-10-31"
 TRAIN_END = "2019-12-31"
-VAL_END = "2021-12-31"
-SEED = 151
+VAL_END = "2022-12-31"
+SEED = 164
 INITIAL_CAPITAL = 1_000_000.0
 MAX_POS = 0.5
 WF_FOLDS_SELECTION = 4
@@ -372,7 +383,7 @@ def main():
     mean_expo = float(make_signals(prices, best)[SPY].loc[oos_m].mean())
     summary = {
         "nf_id_exec": "NF-20261108-26",
-        "hypothesis": "H158",
+        "hypothesis": "H164",
         "verdict": verdict,
         "gates_passed": f"{passed}/{len(gates)}",
         "gates": gates,
@@ -399,7 +410,7 @@ def main():
         "description": EXPERIMENT_DESC,
     }
 
-    outdir = ROOT / ".experiments" / "nf_runs" / "nf_20261108_18_gld_rv_stress_spy"
+    outdir = ROOT / ".experiments" / "nf_runs" / "nf_20261108_26_gld_rv_stress_spy"
     outdir.mkdir(parents=True, exist_ok=True)
     (outdir / "summary.json").write_text(json.dumps(summary, indent=2, default=str) + "\n")
     grid_df.to_csv(outdir / "grid.csv", index=False)
@@ -411,6 +422,11 @@ def main():
         "train": int(train_m.sum()),
         "val": int(val_m.sum()),
         "test": int(test_m.sum()),
+        "experiment_description": EXPERIMENT_DESC,
+        "integrity_note": (
+            "nf_20261108_18_gld_rv_stress_spy dir occupied by H151 NF-08-18 TLT artifact; "
+            "H164 GLD RV stress artifacts written here (nf_20261108_26_gld_rv_stress_spy)."
+        ),
     }
     (outdir / "data_meta.json").write_text(json.dumps(meta, indent=2) + "\n")
     print(

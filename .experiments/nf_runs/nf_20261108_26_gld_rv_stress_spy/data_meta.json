@@ -1,0 +1,14 @@
+{
+  "universe": [
+    "SPY",
+    "GLD"
+  ],
+  "train_end": "2019-12-31",
+  "val_end": "2022-12-31",
+  "rows": 4233,
+  "train": 2516,
+  "val": 756,
+  "test": 961,
+  "experiment_description": "NF-20261108-26/H164 (Cycle 78): SPY timing from GLD realized-volatility stress regime (commodity safe-haven/monetary-stress). z-score of trailing GLD RV; de-risk vol-targeted long SPY when GLD RV abnormally high (positive z). 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "integrity_note": "nf_20261108_18_gld_rv_stress_spy dir occupied by H151 NF-08-18 TLT artifact; H164 GLD RV stress artifacts written here (nf_20261108_26_gld_rv_stress_spy)."
+}
