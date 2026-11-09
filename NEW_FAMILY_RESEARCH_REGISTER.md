@@ -4046,3 +4046,58 @@ Searched mechanisms not heavily executed as root families (free/PIT feasible on 
 **Next task:** Cycle 85 directive §4 discovery → select/pre-register H171; implement runner + tests, ruff clean, execute REAL, record verdict in `HYPOTHESIS_SPEC.md` §H171, register Cycle 85, `NEXT_TASK.md`, `HANDOFF_NEXT.md`.
 
 ---
+
+## Cycle 85 (2026-11-09) — Discovery / Pre-registration & Execution of H171
+
+**Lineage reconciled to H170: H85–H170 all rejected/recorded.** Next unused H-ID **H171** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified. Selection/validation uses no protected-test feedback. Free/public yfinance data only. No commit/push.
+
+**NF root collision / integrity check (honest).** Candidate roots verified against executed H-IDs/artifacts in `.experiments/nf_runs/`, `HYPOTHESIS_SPEC.md`, and this register: no `NF-20261109-21`/`nf_20261109_21`/yield-curve-slope execution exists. H155 (10Y yield *level*, REJECT 5/8) and H141 (TLT-SHY term-spread *momentum* ETF spread, REJECT 5/8) are closest construction-class neighbors — honest adjacency disclosed; NF-20261109-21 uses *yield curve slope/shape* (^TYX 30Y minus ^FVX 5Y, yield-index difference) as a regime de-risking observable, distinct instrument type/observable from H141/H155/H154/H100. No H99/H149-style collisions.
+
+### Cycle 85 discovery (directive §4, >=3 repo-new/decisive mechanism candidates across >=3 broad mechanism categories)
+
+Searched mechanisms not heavily executed as root families (free/PIT feasible on yfinance): yield-curve *shape/slope* regime (carry/term structure — distinct from executed rate-level/spread-momentum), RSP/SPY *breadth-participation relative momentum* (cross-asset participation/momentum — distinct from H97 concentration mean reversion and from H129 sector-breadth above-MA), USMV/SPY low-vol factor relative momentum (factor anomaly/momentum — distinct execution form). Tax-loss harvesting/dividend capture deferred pool reassessed as data-heavy/corporate-action categories with execution constraints.
+
+| Candidate (NF) | Category | Nov(25%) | Econ(25%) | Data/PIT(20%) | Fals(15%) | Cost/cap(10%) | Indep(5%) | Weighted |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261109-21 Yield curve slope (^TYX-^FVX 30Y-5Y) regime SPY timing — **H171 (selected/executed)** | Carry & term structure / macro rate-shape regime | 3.5 | 4.0 | 5.0 | 5.0 | 5.0 | 3.0 | **4.18** |
+| NF-20261109-22 RSP-vs-SPY breadth-participation relative momentum SPY timing | Cross-asset participation / factor momentum | 3.0 | 3.0 | 5.0 | 5.0 | 4.0 | 3.0 | **3.75** |
+| NF-20261109-23 USMV-vs-SPY low-vol factor relative momentum SPY timing | Factor anomaly / style momentum | 3.0 | 3.0 | 4.0 | 5.0 | 4.0 | 3.0 | **3.55** |
+
+**Carried-forward pool reassessed with concrete evidence (no silent drops):**
+
+| Candidate | Original Score | Reassessed Score | Disposition |
+|---|---:|---:|---|
+| NF-20261109-15 Tax-loss harvesting / year-end tax-loss selling | 4.35 | 4.20 | **Deferred** — still high economic plausibility but decisive test requires survivorship-managed loser universe / constituent-level YTD ranks (not clean from free yfinance for a broad universe); sector-ETF proxy weakens mechanism. Execution/feasibility discount applied; no silent drop. |
+| NF-20261109-16 Dividend capture / ex-dividend microstructure | 4.20 | 3.95 | **Deferred** — yfinance provides dividend events/prices, but execution score reduced (overnight hold, open bid-ask/tax clientele effects, event alignment) and mechanism is microstructure-fragile net of equity costs; needs careful pre-registered event construction. |
+| NF-20261109-12 Holiday / pre-holiday drift SPY timing | 4.15 | 4.00 | **Deferred** — calendar microstructure adjacency to H91/H140/H142/H168 (honest construction-class overlap) persists; not selected to keep Cycle 85 in a materially different rates-shape category. |
+| NF-20261109-13 Low-volatility factor timing USMV/SPLV vs SPY | 3.45 | 3.45 | **Deferred** — USMV/SPLV shorter history (2011) and style adjacency; NF-20261109-23 considered as alternative execution form but not top-ranked. |
+| NF-20261109-18 S&P 500 index inclusion/deletion discrete event SPY timing | 3.95 | 3.90 | **Deferred** — low event frequency / external index-change data dependency; not PIT-clean from yfinance alone. |
+| NF-20261109-19 Options dealer gamma exposure SPY timing | 3.60 | 3.50 | **Deferred** — options chain/GEX construction complex and limited deep history on free sources. |
+| NF-20261109-20 Stock split announcement effects SPY timing | 3.15 | 3.10 | **Deferred** — low frequency / corporate-action adjacency. |
+| NF-04 Commodity carry | — | — | **Still BLOCKED** — no free PIT term-structure/roll proxy. |
+| NF-05 Short-term CS reversal | — | — | **DEFERRED** — turnover/net-of-cost; H119 weekly REJECT 3/8. |
+| NF-08-16 Halloween seasonal | 3.90 | 3.90 | **HELD** — calendar adjacency H91/H140/H142; declined repeatedly. |
+| NF-09-03 Breakeven-inflation | 3.50 | 3.40 | **DEFERRED/DATA-LIMITED** — direct ^T5YIE/^T10YIE unavailable on yfinance probe; TIP/IEF proxy conflated. |
+
+**Scoring notes (honest).** NF-21 novelty 3.5 (not 5): adjacent to H141/H154/H155/H100 rates domain; novelty credited only to executed *slope/shape* observable (^TYX-^FVX yield indices) and de-risking mapping, not a new statistical method or unrelated domain. Data 5 (free yfinance, 4231 aligned rows, 0 non-positive probed). Execution 5 (single traded asset SPY, 8-combo bounded grid). NF-22 has honest adjacency to H97 (SPY/RSP spread mean reversion, REJECT 4/9) — different direction/mechanism (breadth-participation relmom de-risking vs concentration spread mean reversion) but same pair/asset-class proximity; novelty scored 3. NF-23 constrained by 2011 inception (shorter OOS power) and style adjacency.
+
+**Selection:** **NF-20261109-21 → H171** (highest expected-information *feasible* decisive test among repo-new/decisive candidates in a materially different executed *slope* observable within the rates/term-structure category; small bounded grid, clean PIT/yfinance data, strong falsifiers). Pre-registered in `HYPOTHESIS_SPEC.md` §H171 before validation outcomes.
+
+### NF-20261109-21 / H171 — Yield Curve Slope Regime SPY Timing (^TYX-^FVX) (REAL EXECUTION: REJECT 4/8)
+
+**Runner:** `run_nf_20261109_21_yield_curve_slope_spy.py` (Cycle 85 H171 protocol). **Tests:** `tests/test_nf_20261109_21_yield_curve_slope_spy.py` (**9 passed**). `ruff check/format` clean. `src/qtr` unchanged.
+
+**Artifact:** `.experiments/nf_runs/nf_20261109_21_yield_curve_slope_spy_20261109_155438/summary.json` (+`grid.csv`, `data_meta.json`, 5.23s).
+
+**Data (PIT).** ^TYX/^FVX/SPY yfinance daily auto-adjust Close, 4231 aligned rows 2010-01-04→2026-10-30 (train through 2019-12-31; val 2020-01-01→2022-12-31; test protected 2023-01-01→2026-10-31). Selected (train-only 4-fold WF mean Sharpe 0.874): `z_window=126, entry_scale=2.0, vol_target=0.15`.
+
+**OOS Val+Test:** Sharpe **0.903** fail (≥1.0), PF **1.224** fail (≥1.3), max DD **-5.75%** pass (≤15%), trades **740** pass (≥200), WF stability **1.153** pass (≥0.7), worst-regime rolling-252 **-1.006** fail (≥0.3), benchmark p **0.971** / IR **-0.725** fail (p≤0.05 & IR≥0), perturbation min ratio **1.286** pass (≥0.5). → **REJECT 4/8**.
+
+**Ablations OOS:** buy-hold SPY 0.791/1.164/-17.97%/1; random-exposure-matched **0.620**/1.183/-2.73%/861 (weaker, some structure); inverse regime (de-risk when slope steep/positive z) **0.336**/1.071/-3.93%/844 — much weaker (direction supported, no benchmark edge).
+
+**New root-family row (repo-relative; honest adjacency):**
+| Root family / executed observable | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Yield curve slope regime timing (30Y-5Y yield-index shape) | H171 (NF-20261109-21) | Vol-targeted long SPY de-risked when z-score of (TYX-FVX) slope abnormally negative (flattening/inversion stress); 1-bar delay | ^TYX,^FVX (signal) + SPY (traded) daily yfinance 2010–2026 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261109_21_yield_curve_slope_spy_20261109_155438/summary.json`) | Fails Sharpe/PF/worst-regime/benchmark/IR; inverse weaker (direction supported) but no benchmark edge; honest adjacency to H141/H154/H155/H100 rates domain — no validated edge |
+
+**Cycle 85 complete (discovery + H171 execution).** H85–H171 all rejected/recorded. `src/qtr` unchanged; pinned suite not rerun (no `src/qtr` change). No commit/push. **Cycle 86 required next:** directive §4 discovery (>=3 repo-new candidates across >=3 broad mechanism categories, honest scoring) before selecting H172; carried-forward/deferred pool reassessed with evidence (no silent drops): NF-20261109-15 tax-loss harvesting (4.20 reassessed, constituent/universe construction decisive risk), NF-20261109-16 dividend capture (3.95, microstructure/event-alignment), NF-20261109-22 RSP-SPY breadth relmom (3.75), NF-20261109-23 USMV-SPY low-vol relmom (3.55), NF-20261109-12 holiday drift (4.00, calendar adjacency), NF-20261109-18/19/20 deferred, NF-04 blocked, NF-05 deferred, NF-08-16 held, NF-09-03 data-limited. **Search materially different mechanism categories before recycling.** Verify NF roots, pre-register H172 before validation outcomes, implement runner + focused tests, ruff clean, execute REAL, record verdict. No gate weakening; no published/certified artifact modification; no commit/push unless explicitly authorized.
