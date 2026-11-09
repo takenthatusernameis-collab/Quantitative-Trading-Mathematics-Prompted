@@ -27,7 +27,7 @@ def _make_daily_dividends(n=600, seed=0):
     # Quarterly-ish dividends: every ~63 days a small dividend.
     dividend = pd.Series(0.0, index=idx)
     dividend.iloc[::63] = 1.0
-    return pd.DataFrame({"Close": close}, index=idx), dividend
+    return pd.DataFrame({"SPY": close}, index=idx), dividend
 
 
 def _make_tnx(n=600, seed=1):
@@ -65,7 +65,7 @@ def test_build_signal_bounded_and_entry_logic():
     tnx = _make_tnx(400)
     dy = mod._compute_trailing_div_yield(prices, dividends, lookback=63)
     erp = mod._compute_erp(dy, tnx["Close"])
-    spy_ret = (prices["Close"] / prices["Close"].shift(1) - 1.0).fillna(0.0)
+    spy_ret = (prices["SPY"] / prices["SPY"].shift(1) - 1.0).fillna(0.0)
     sig = mod._build_signal(erp, spy_ret, 63, 126, 0.5, 0.15, 63)
     assert (sig >= 0.0).all()
     assert (sig <= mod.MAX_POS).all()
@@ -84,7 +84,7 @@ def test_signal_zero_before_warmup():
     tnx = _make_tnx(200)
     dy = mod._compute_trailing_div_yield(prices, dividends, lookback=63)
     erp = mod._compute_erp(dy, tnx["Close"])
-    spy_ret = (prices["Close"] / prices["Close"].shift(1) - 1.0).fillna(0.0)
+    spy_ret = (prices["SPY"] / prices["SPY"].shift(1) - 1.0).fillna(0.0)
     sig = mod._build_signal(erp, spy_ret, 63, 126, 0.5, 0.15, 63)
     # Before z_window warmup, erp_z is NaN -> signal 0.
     assert (sig.iloc[:126] == 0.0).all()
@@ -121,13 +121,13 @@ def test_perturbation_min_ratio_nan_when_base_zeroish():
     tnx = _make_tnx(400)
     dy = mod._compute_trailing_div_yield(prices, dividends, lookback=63)
     erp = mod._compute_erp(dy, tnx["Close"])
-    spy_ret = (prices["Close"] / prices["Close"].shift(1) - 1.0).fillna(0.0)
+    spy_ret = (prices["SPY"] / prices["SPY"].shift(1) - 1.0).fillna(0.0)
     sig = mod._build_signal(erp, spy_ret, 63, 126, 0.5, 0.15, 63)
     sig_df = sig.to_frame(name="SPY")
     sig_df["erp"] = erp
     sig_df["spy_ret"] = spy_ret
     p = mod._perturbation_check(
-        prices[["Close"]],
+        prices[["SPY"]],
         sig_df,
         {"div_lookback": 63, "z_window": 126, "entry_z": 0.5, "vol_target": 0.15, "vol_window": 63},
         0.0,
@@ -160,7 +160,7 @@ def test_entry_threshold_complement():
     tnx = _make_tnx(400)
     dy = mod._compute_trailing_div_yield(prices, dividends, lookback=63)
     erp = mod._compute_erp(dy, tnx["Close"])
-    spy_ret = (prices["Close"] / prices["Close"].shift(1) - 1.0).fillna(0.0)
+    spy_ret = (prices["SPY"] / prices["SPY"].shift(1) - 1.0).fillna(0.0)
     sig_low = mod._build_signal(erp, spy_ret, 63, 126, -3.0, 0.15, 63)
     sig_high = mod._build_signal(erp, spy_ret, 63, 126, 3.0, 0.15, 63)
     assert (sig_low > 0).sum() >= (sig_high > 0).sum()

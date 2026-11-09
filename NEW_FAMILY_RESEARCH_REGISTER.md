@@ -4168,3 +4168,158 @@ Searched mechanisms not heavily executed as root families (free/PIT feasible on 
 | Intraday equity time-of-day seasonality (microstructure) | H172 (NF-20261109-01 intraday label; distinct from H160 NF-20261109-01 IVOL-disp artifact) | Vol-targeted long SPY during pre-registered favorable ET hour windows (1h bars); 1-bar delay, long-only | SPY 1h yfinance ET 2024-12→2026-10 (3313 bars) | **REJECT** (3/8; `.experiments/nf_runs/nf_20261109_01_intraday_seasonality_20261109_213639/summary.json`) | Fails Sharpe -0.936/PF 0.737/WF NaN/worst-regime -2.650/benchmark-p 0.975/IR -1.938; DD/trades/perturbation pass; train WF negative; inverse-hour weak; limited ~2y 1h history |
 
 **Cycle 86 complete (discovery + H172 execution).** H85–H172 all rejected/recorded. `src/qtr` unchanged; pinned suite not rerun (no `src/qtr` change). No commit/push. **Cycle 87 required next:** directive §4 discovery (>=3 repo-new candidates across >=3 broad mechanism categories, honest scoring) before selecting H173; carried-forward/deferred pool reassessed with evidence (no silent drops): NF-20261109-15 tax-loss harvesting (4.20, constituent/universe construction decisive risk), NF-20261109-16 dividend capture (3.95), NF-20261109-12 holiday drift (4.00, calendar adjacency), NF-20261109-22 RSP-SPY breadth relmom (3.75, adjacency H97 same pair), NF-20261109-23 USMV-SPY low-vol relmom (3.55), NF-20261109-18/19/20 deferred, NF-04 blocked, NF-05 deferred, NF-08-16 held, NF-09-03 data-limited. **Search materially different mechanism categories before recycling.** Verify NF roots, pre-register H173 before validation outcomes, implement runner + focused tests, ruff clean, execute REAL, record verdict. No gate weakening; no published/certified artifact modification; no commit/push unless explicitly authorized.
+
+
+## Cycle 87 (2026-11-09) — Discovery / Pre-registration & Execution of H173 (NF-20261109-24)
+
+**Lineage reconciled to H172 (H85–H172 all rejected/recorded).** Next unused H-ID **H173** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified. Selection/validation uses no protected-test feedback. Free/public yfinance data only.
+
+### Deferred candidates reassessed (concrete evidence, Cycle 87; none silently dropped)
+
+- **NF-20261109-15 (tax-loss harvesting) — remains DEFERRED.** Constituent/YTD-loser universe construction decisive risk on free yfinance; point-in-time YTD loser identification requires survivorship-managed universe not available in current pipeline.
+- **NF-20261109-16 (dividend capture) — remains DEFERRED.** Microstructure/event alignment and overnight-open costs decisive risk; free ex-dividend calendar availability uncertain.
+- **NF-20261109-12 (holiday drift) — remains DEFERRED.** Calendar adjacency to H91/H140/H142/H168; decisive risk: weak edge after costs, parameter sensitivity.
+- **NF-20261109-22 (RSP-SPY breadth relmom) — remains DEFERRED.** Adjacency to H97 (same pair, different mechanism must be explicit); breadth relmom mechanism adjacent to H92/H96/H152/H157 relmom families.
+- **NF-20261109-23 (USMV-SPY low-vol relmom) — remains DEFERRED.** 2011 inception/style adjacency; low-vol anomaly crowded/decayed.
+- **NF-20261109-18 (S&P inclusion/deletion) — remains DEFERRED.** Low frequency/external data dependency; not smallest decisive test.
+- **NF-20261109-19 (options dealer GEX) — remains DEFERRED.** Options construction complexity; free data feasibility uncertain.
+- **NF-20261109-20 (stock split) — remains DEFERRED.** Low frequency; weak edge.
+- **NF-20261109-02 (earnings estimate revision) — remains DEFERRED.** Revision-history PIT construction risk; yfinance snapshot/history limits.
+- **NF-20261109-03 (cross-asset macro growth/inflation proxies) — remains DEFERRED.** Market-proxy noise vs official data; adjacency to macro/rates families requires explicit separation.
+- **NF-04 (commodity carry) — remains BLOCKED.** No free PIT term-structure/roll proxy.
+- **NF-05 (short-term CS reversal) — remains DEFERRED.** Turnover/net-of-cost; H119 weekly REJECT 3/8.
+- **NF-08-16 (Halloween seasonal) — remains HELD.** Calendar adjacency H91/H140/H142; declined repeatedly.
+- **NF-09-03 (breakeven-inflation) — remains DEFERRED/DATA-LIMITED.** Direct ^T5YIE/^T10YIE unavailable on yfinance; TIP/IEF proxy conflated.
+
+No deferred candidates silently dropped.
+
+### Cycle 87 candidates (scored honestly; >=3 candidates, >=3 broad mechanism categories)
+
+Checked against root families H1–H172 (no parameter/instrument/universe/timeframe variants or audits). Adjacency scored honestly where instruments or data complexes overlap. Heavily executed categories treated with high adjacency scrutiny per NEXT_TASK.md: calendar/seasonal, credit/macro rates regime/shape, correlation/regime, RV-stress/realized-moment, dispersion, FX, VIX-complex/VRP/vol-shape, carry, overnight futures lead-lag, leveraged ETF flows, relmom, breadth/beta/IVOL cross-sectional, microstructure/intraday seasonality (H172).
+
+| Candidate | Mechanism category | Novelty (25%) | Plaus (25%) | Data (20%) | Falsif (15%) | Exec (10%) | Support (5%) | Weighted |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| **NF-20261109-24 Equity risk premium / Fed model SPY timing (div yield − 10Y yield spread)** | Valuation / equity risk premium transmission | 4 | 3 | 5 | 5 | 5 | 3 | **3.85** |
+| NF-20261109-02 Earnings estimate revision momentum (large-cap cross-section) | Fundamental / analyst revision | 4 | 3 | 4 | 5 | 3 | 3 | 3.65 |
+| NF-20261109-03 Cross-asset macro regime timing (growth/inflation market proxies) | Macro factor regime / growth-inflation | 4 | 3 | 5 | 4 | 4 | 3 | 3.85 |
+
+**Scoring notes (honest).**
+
+- **NF-20261109-24 (Equity risk premium / Fed model).** Novelty 4: repo-new root family; equity-minus-bond yield spread (Fed model ERP) as SPY timing signal not tested. Distinct from H154/H155 (short-rate/10Y yield *levels*), H171 (yield-curve *slope* ^TYX-^FVX) — all bond-yield-only families. H173 uses a distinct observable (equity dividend yield minus bond yield) and distinct causal channel (valuation/risk-premium transmission, not monetary level or curve shape). Data 5: free yfinance daily SPY Close + dividends, ^TNX Close; 4231 aligned rows 2010–2026, 0 non-positive. Exec 5: single traded instrument (SPY), 36-combo bounded grid, no `src/qtr` change. Falsifiability 5: random-regime, inverse-signal, buy-hold SPY, perturbation, subperiods. Plausibility/Support 3: Fed model widely referenced but ERP timing edge post-2000 debated; honest scoring.
+
+- **NF-20261109-02 (Earnings estimate revision).** Novelty 4: repo-new root family; analyst EPS estimate revisions (pre-announcement) as cross-sectional signal not tested (H98 PEAD is post-announcement drift — different timing/mechanism). Distinct from all price/vol/flow/macro families. Data 4: yfinance `Ticker.earnings_estimate` provides consensus EPS; revision history requires snapshotting consensus changes (feasible but requires careful PIT construction; some history may be limited). Exec 3: cross-sectional monthly/quarterly rebalance on 20-30 names; turnover moderate; implementation complexity higher than single-asset timing. Falsifiability 5: random-revision ablation, equal-weight benchmark, inverse-revision, perturbation, subperiods. Plausibility/Support 3: PEAD well-documented; pre-announcement revision momentum less studied but plausible via analyst underreaction.
+
+- **NF-20261109-03 (Cross-asset macro regime: growth/inflation proxies).** Novelty 4: repo-new root family; market-based growth (copper/gold HG=F/GC=F, cyclical/defensive XLI/XLP) and inflation (TIPS breakeven TIP vs IEF, or commodity/equity) proxies for macro regimes timing SPY. Distinct from H92/H96 (equity-bond relmom/correlation), H94/H95 (credit/USD stress), H100/H101 (rates-vol/copper-gold growth), H154/H155/H171 (credit/macro rates regime/shape — those use bond spreads/yield curves directly; this uses market-based macro factor proxies). Data 5: all free yfinance (SPY, HG=F, GC=F, XLI, XLP, TIP, IEF, GLD, TLT). Exec 4: monthly regime evaluation, single traded instrument (SPY), low turnover. Falsifiability 5: random-regime, buy-hold SPY, inverse-regime, perturbation, subperiods (esp. 2022 inflation shock). Plausibility 3: growth/inflation regime framework standard macro; market-proxy implementation adds noise vs official data. Support 3: regime-based allocation literature exists but market-proxy timing edge less documented.
+
+**Selection (tie-break):** NF-20261109-24 and NF-20261109-03 tie at 3.85. **NF-20261109-24 (Equity risk premium / Fed model) selected** as highest expected-information feasible test: smallest decisive test (single symbol SPY, daily bars from yfinance, no cross-sectional complexity, no external data, bounded 36-combo grid), clearest falsification (random-regime, inverse-signal, buy-hold SPY), and cleanest separation from exhausted families (valuation/risk-premium is a distinct mechanism category from all executed families). NF-20261109-03 deferred as strong runner-up (macro factor regime); NF-20261109-02 deferred (higher implementation complexity, revision history PIT construction risk).
+
+**Next task:** Pre-register NF-20261109-24 as **H173** in `HYPOTHESIS_SPEC.md`; implement `run_nf_20261109_24_equity_risk_premium.py` + focused tests `tests/test_nf_20261109_24_equity_risk_premium.py`; run lint/format + focused pytest; execute REAL; record verdict/artifacts in `HYPOTHESIS_SPEC.md` §H173, `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 87, `NEXT_TASK.md`, `HANDOFF_NEXT.md`. Do not fabricate results. No gate weakening; no published/certified artifact modification.
+
+### NF-20261109-24 / H173 — Equity Risk Premium / Fed Model SPY Timing (REAL EXECUTION: REJECT 1/8)
+
+**Runner:** `run_nf_20261109_24_equity_risk_premium.py`. **Tests:** `tests/test_nf_20261109_24_equity_risk_premium.py` (**10 passed**, synthetic). `ruff check/format` clean. `src/qtr` unchanged.
+
+**Artifact:** `.experiments/nf_runs/nf_20261109_24_equity_risk_premium_20261109_223808/summary.json` (+`grid.csv`, 3.93s).
+
+**Data (PIT).** SPY + ^TNX + SPY dividends yfinance daily auto-adjust Close, 4231 aligned rows 2010-01-04→2026-10-30 (train through 2018-06-01; val 2018-06-02→2022-08-12; test protected 2022-08-13→2026-10-30). Selected (train-only 4-fold WF mean Sharpe 1.363): `div_lookback=252, z_window=252, entry_z=1.0, vol_target=0.20`.
+
+**OOS Val+Test (2116 periods, 114 trades):** Sharpe **0.310** fail (≥1.0), PF **1.170** fail (≥1.3), max DD **−16.89%** fail (≤15%), trades **114** fail (≥200), WF stability **0.264** fail (≥0.7), worst-regime rolling-252 Sharpe **−1.326** fail (≥0.3), benchmark p **0.991** / IR **−0.813** vs buy-hold SPY (fail), perturbation min ratio **0.545** pass (≥0.5). → **REJECT 1/8**.
+
+**Ablations OOS:** buy-hold SPY 0.813/1.169/-17.97%/1; random-regime 0.112/1.050/-10.74%/617; inverse-signal **0.739**/1.155/-12.61%/55 — inverse outperforms primary direction, indicating possible sign reversal or noise.
+
+**New root family added to lineage map:**
+
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Equity risk premium / Fed model SPY timing (dividend yield − 10Y yield spread) | H173 (NF-20261109-24) | Continuous vol-targeted long SPY scaled by z-score of trailing (SPY div yield − ^TNX/100) spread; long when ERP z elevated (equities cheap), flat otherwise; 1-bar delay, long-only | SPY + ^TNX + SPY dividends daily (yfinance), 2010–2026 | **REJECT** (1/8; `.experiments/nf_runs/nf_20261109_24_equity_risk_premium_20261109_223808/summary.json`) | Fails Sharpe 0.310/PF 1.170/DD −16.89%/trades 114/WF 0.264/worst-regime −1.326/bench p 0.991/IR −0.813; inverse-signal outperforms (0.739); train→OOS decay; valuation spread timing not robust on free data |
+
+**Cycle 87 complete (discovery + H173 execution).** H85–H173 all rejected/recorded. `src/qtr` unchanged; pinned suite not rerun (no `src/qtr` change). No commit/push. **Cycle 88 required next:** directive §4 discovery (>=3 repo-new candidates across >=3 broad mechanism categories, honest scoring) before selecting H174; carried-forward/deferred pool reassessed with evidence (no silent drops): NF-20261109-15 tax-loss harvesting (4.20), NF-20261109-16 dividend capture (3.95), NF-20261109-12 holiday drift (4.00), NF-20261109-22 RSP-SPY breadth relmom (3.75), NF-20261109-23 USMV-SPY low-vol relmom (3.55), NF-20261109-03 cross-asset macro regime (3.85 runner-up), NF-20261109-02 earnings revision (3.65), NF-20261109-18/19/20 deferred, NF-04 blocked, NF-05 deferred, NF-08-16 held, NF-09-03 data-limited. **Search materially different mechanism categories before recycling.** Verify NF roots, pre-register H174 before validation outcomes, implement runner + focused tests, ruff clean, execute REAL, record verdict. No gate weakening; no published/certified artifact modification; no commit/push unless explicitly authorized.
+
+---
+## Cycle 88 (2026-11-09) — Discovery / Pre-registration & Execution of H174
+
+**Lineage reconciled to H173 (H85–H173 all rejected/recorded).** Next unused H-ID **H174** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified. Selection/validation uses no protected-test feedback. Free/public yfinance data only.
+
+### Deferred candidates reassessed (concrete evidence, Cycle 88; none silently dropped)
+
+- **NF-20261109-15 (tax-loss harvesting) — remains DEFERRED.** Constituent/YTD-loser universe construction decisive risk on free yfinance; point-in-time YTD loser identification requires survivorship-managed universe not available in current pipeline.
+- **NF-20261109-16 (dividend capture) — remains DEFERRED.** Microstructure/event alignment and overnight-open costs decisive risk; free ex-dividend calendar availability uncertain.
+- **NF-20261109-12 (holiday drift) — remains DEFERRED.** Calendar adjacency to H91/H140/H142/H168; decisive risk: weak edge after costs, parameter sensitivity.
+- **NF-20261109-22 (RSP-SPY breadth relmom) — remains DEFERRED.** Adjacency to H97 (same pair, different mechanism must be explicit); breadth relmom mechanism adjacent to H92/H96/H152/H157 relmom families.
+- **NF-20261109-23 (USMV-SPY low-vol relmom) — remains DEFERRED.** 2011 inception/style adjacency; low-vol anomaly crowded/decayed.
+- **NF-20261109-18 (S&P inclusion/deletion) — remains DEFERRED.** Low frequency/external data dependency; not smallest decisive test.
+- **NF-20261109-19 (options dealer GEX) — remains DEFERRED.** Options construction complexity; free data feasibility uncertain.
+- **NF-20261109-20 (stock split) — remains DEFERRED.** Low frequency; weak edge.
+- **NF-20261109-02 (earnings estimate revision) — remains DEFERRED.** Revision-history PIT construction risk; yfinance snapshot/history limits.
+- **NF-20261109-03 (cross-asset macro growth/inflation proxies) — remains DEFERRED.** Market-proxy noise vs official data; adjacency to macro/rates families requires explicit separation.
+- **NF-04 (commodity carry) — remains BLOCKED.** No free PIT term-structure/roll proxy.
+- **NF-05 (short-term CS reversal) — remains DEFERRED.** Turnover/net-of-cost; H119 weekly REJECT 3/8.
+- **NF-08-16 (Halloween seasonal) — remains HELD.** Calendar adjacency H91/H140/H142; declined repeatedly.
+- **NF-09-03 (breakeven-inflation) — remains DEFERRED/DATA-LIMITED.** Direct ^T5YIE/^T10YIE unavailable on yfinance; TIP/IEF proxy conflated.
+
+No deferred candidates silently dropped.
+
+### Cycle 88 candidates (scored honestly; >=3 candidates, >=3 broad mechanism categories)
+
+Checked against root families H1–H173 (no parameter/instrument/universe/timeframe variants or audits). Adjacency scored honestly where instruments or data complexes overlap. Heavily executed categories treated with high adjacency scrutiny per NEXT_TASK.md: calendar/seasonal, credit/macro rates regime/shape, correlation/regime, RV-stress/realized-moment, dispersion, FX, VIX-complex/VRP/vol-shape, carry, overnight futures lead-lag, leveraged ETF flows, relmom, breadth/beta/IVOL cross-sectional, microstructure/intraday seasonality (H172), valuation/risk-premium (H173).
+
+| Candidate | Mechanism category | Novelty (25%) | Plaus (25%) | Data (20%) | Falsif (15%) | Exec (10%) | Support (5%) | Weighted |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| **NF-20261109-25 Short interest / borrow cost regime timing** | Market structure / short squeeze dynamics | 4 | 3 | 3 | 5 | 3 | 3 | **3.50** |
+| **NF-20261109-26 ETF creation/redemption premium-discount mean reversion** | Market structure / ETF arbitrage | 4 | 3 | 4 | 5 | 4 | 3 | **3.75** |
+| **NF-20261109-27 Options dealer gamma exposure (GEX) regime timing** | Market structure / dealer positioning | 4 | 3 | 2 | 4 | 3 | 2 | **3.15** |
+| **NF-20261109-28 Analyst recommendation change momentum** | Fundamental / analyst revisions | 4 | 3 | 3 | 5 | 3 | 3 | **3.50** |
+| **NF-20261109-29 S&P 500 inclusion/deletion discrete event** | Structural flow / discrete event | 4 | 3 | 3 | 5 | 4 | 3 | **3.65** |
+
+**Scoring notes (honest).**
+
+- **NF-20261109-25 (Short interest / borrow cost regime).** Novelty 4: repo-new root family; short interest ratio and borrow fee regimes as market-structure timing signals not tested. Distinct from all price/vol/flow/macro/dispersion families. Data 3: yfinance does not reliably provide short interest or borrow fee data; would need FINRA short interest (biweekly, lagged) or IBKR/prime broker data (not free/public in pipeline). Feasibility risk: free point-in-time short interest data may not be obtainable. Plausibility 3: short squeeze dynamics documented but timing edge post-costs uncertain. Exec 3: implementation complexity moderate (biweekly data, universe construction). Falsifiability 5: random-short-interest, inverse, buy-hold, perturbation, subperiods. Support 3: short-interest anomaly literature exists but regime-timing edge less established.
+
+- **NF-20261109-26 (ETF creation/redemption premium-discount MR).** Novelty 4: repo-new root family; ETF premium/discount to NAV mean reversion via creation/redemption arbitrage not tested. Distinct from all directional/timing families; mechanism is structural arbitrage convergence. Data 4: yfinance provides ETF prices; NAV data may be available via iShares/State Street public disclosures (daily, free) or approximated from holdings. SPY, QQQ, IWM, EFA, EEM, etc. have reliable NAV. Exec 4: daily/weekly evaluation, single or few ETFs, low turnover. Falsifiability 5: random-NAV, inverse, buy-hold, perturbation, subperiods. Plausibility 3: creation/redemption mechanism well-understood but premium/discount convergence post-costs/fees is the decisive risk. Support 3: ETF arbitrage literature exists but net-of-cost timing edge for directional exposure unclear.
+
+- **NF-20261109-27 (Options dealer GEX regime).** Novelty 4: repo-new root family; dealer gamma exposure (GEX) as market-structure timing signal not tested (NF-20261109-19 deferred on construction complexity). Distinct from all vol/VIX/skew families (H17/H86/H89/H100/H104/H105/H165/H167) — GEX measures dealer hedging flows, not implied vol levels. Data 2: CBOE/S&P GEX data not on yfinance; free sources may exist (SpotGamma, CBOE data shop) but point-in-time availability and history length uncertain. This is the decisive risk. Exec 3: if data available, daily evaluation, single instrument (SPY), low turnover. Falsifiability 4: random-GEX, inverse, buy-hold, perturbation. Plausibility 3: dealer hedging flows can create pin risk/gamma traps but timing edge post-costs debated. Support 2: limited peer-reviewed evidence; mostly practitioner literature.
+
+- **NF-20261109-28 (Analyst recommendation change momentum).** Novelty 4: repo-new root family; analyst upgrade/downgrade momentum as fundamental cross-sectional signal not tested (H98 PEAD is post-earnings; different timing/mechanism). Distinct from all price/vol/flow/macro families. Data 3: yfinance `Ticker.recommendations` provides some history but point-in-time consensus revision snapshots require careful construction; coverage may be limited to large caps. Exec 3: cross-sectional monthly/quarterly rebalance on 20-30 names; turnover moderate. Falsifiability 5: random-recommendation, equal-weight benchmark, inverse, perturbation, subperiods. Plausibility 3: analyst underreaction/overreaction documented but momentum edge post-costs uncertain. Support 3: analyst revision literature exists but cross-sectional momentum less studied than PEAD.
+
+- **NF-20261109-29 (S&P 500 inclusion/deletion).** Novelty 4: repo-new root family; index addition/deletion price pressure from passive fund rebalancing not tested (NF-20261109-18 deferred; H168 was S&P *quarterly rebalance* flow, not discrete inclusion/deletion events). Distinct from calendar/seasonal (H91/H140/H142/H168) and structural flow families. Data 3: S&P index change announcements public but require constructing point-in-time event calendar; effective dates known in advance (announcement ~1 month before). Free sources: S&P website, Wikipedia, financial news archives. Exec 4: event-driven (quarterly frequency), single instrument (SPY or added/deleted stock), low turnover. Falsifiability 5: random-event-dates, inverse, buy-hold, perturbation, subperiods. Plausibility 3: index effect well-documented (price pop on inclusion, drop on deletion) but magnitude post-costs/anticipation debated. Support 3: index effect literature extensive but net-of-cost trading edge for timing SPY exposure unclear.
+
+**Selection:** **NF-20261109-26 (ETF creation/redemption premium-discount mean reversion) selected as H174** — highest weighted score (3.75), repo-new market-structure/arbitrage mechanism category distinct from all exhausted families, free/public NAV data feasible for major ETFs (SPY, QQQ, IWM, EFA, etc.), smallest decisive test (daily/weekly, 1-3 ETFs, low turnover), clear falsifiers. NF-20261109-29 (S&P inclusion/deletion, 3.65) deferred as strong runner-up; NF-20261109-25/28 (3.50) deferred due to data feasibility risk (short interest, analyst revisions); NF-20261109-27 (3.15) deferred due to GEX data uncertainty.
+
+**Next task:** Pre-register NF-20261109-26 as **H174** in `HYPOTHESIS_SPEC.md`; implement `run_nf_20261109_26_etf_nav_arbitrage.py` + focused tests `tests/test_nf_20261109_26_etf_nav_arbitrage.py`; run lint/format + focused pytest; execute REAL; record verdict/artifacts in `HYPOTHESIS_SPEC.md` §H174, `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 88, `NEXT_TASK.md`, `HANDOFF_NEXT.md`. Do not fabricate results. No gate weakening; no published/certified artifact modification.
+
+---
+### NF-20261109-26 / H174 — ETF Creation/Redemption Premium-Discount Mean Reversion (PRE-REGISTERED)
+
+**NF-ID:** NF-20261109-26 (H174). **Status:** Pre-registered; decision-ready before validation outcomes. `src/qtr` unchanged. Free/public yfinance + public NAV data only.
+
+**Broad mechanism category:** Market structure / ETF arbitrage (repo-new root family; distinct from all directional, vol, macro, calendar, dispersion, and relmom families tested in H1–H173).
+
+**Repo-relative novelty (honest).** No executed H-ID tests ETF premium/discount to NAV mean reversion as a timing signal. H168 tests S&P 500 quarterly *rebalance flow* pressure (structural index-fund flow at known dates); this tests *creation/redemption arbitrage convergence* of ETF price to NAV (continuous, market-maker driven). Different mechanism, different observable, different causal chain.
+
+**Statement.** ETF prices deviate from net asset value (NAV) due to supply/demand imbalances; authorized participants create/redeem shares to arbitrage the premium/discount, driving convergence. When an ETF trades at a statistically significant premium (discount) to NAV, expected subsequent returns are negative (positive) as creation (redemption) activity pushes price back toward NAV. A vol-targeted position scaled by the z-score of the trailing premium/discount targets net OOS (Val+Test) Sharpe ≥ 1.0 with ≥ 200 trades, PF ≥ 1.3, max DD ≤ 15%, WF stability ≥ 0.7, worst-regime rolling-252 Sharpe ≥ 0.3, benchmark p ≤ 0.05 vs buy-hold ETF with IR ≥ 0, and perturbation min ratio ≥ 0.5.
+
+**Null (H0).** ETF premium/discount to NAV has no predictive power for next-period ETF returns beyond random chance after costs.
+
+**Pre-registration (decision-ready before validation outcomes).** NF-20261109-26 verified unused (no executed NF/H/runner/artifact). H174 next unused after H173 (H24/H68–H73/H76–H79 unassigned, not recycled). PIT causal: NAV published at daily close (known at close t); ETF price at close t; premium/discount computed from past-only data; 1-bar delay via engine `signals.shift(1)` (position at close t earns return t→t+1). Free/public data: yfinance daily ETF Close (SPY, QQQ, IWM, EFA, EEM, etc.); NAV from iShares/State Street public daily disclosures (or yfinance `fund_nav` if available). Data 2010-01-01→2026-10-31. Train first 50% (~2010→2018), Val next 25%, Test protected final 25% (~2022→2026). Selection = train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+
+**Construction (daily, causal).**
+1. Fetch ETF daily Close (auto_adjust) via yfinance; fetch daily NAV from public source (iShares/State Street CSV/API or yfinance `fund_nav`).
+2. Premium/discount: `prem_t = (Close_t - NAV_t) / NAV_t` (decimal, PIT-safe; both known at close t).
+3. Premium/discount z-score: rolling z-score of `prem` over `z_window` (past-only, `min_periods=z_window`).
+4. Signal: vol-targeted long ETF when prem z ≤ -entry_z (discount, expect convergence up), short/flat when prem z ≥ +entry_z (premium, expect convergence down), hysteresis with `exit_z` between thresholds. 1-bar delay via engine `signals.shift(1)`.
+5. Vol targeting: trailing `vol_window`-day realized vol of ETF daily returns; target annual vol `vol_target` scaled to daily: `vol_target / sqrt(252)`. Position clipped to `[max_short, max_long]`.
+6. Costs: Equity `CostModel` defaults (1 bp commission + 1 bp spread). Long/short allowed, MAX_POS=0.5.
+
+**Bounded grid (pre-registered).** `z_window ∈ {21, 63, 126}` × `entry_z ∈ {1.0, 1.5, 2.0}` × `exit_z ∈ {0.0, 0.5}` × `vol_target ∈ {0.10, 0.15}` × `universe ∈ {{SPY}, {SPY,QQQ,IWM}, {SPY,QQQ,IWM,EFA,EEM}}` = 3 × 3 × 2 × 2 × 3 = **108 combos** (reduced if NAV data unavailable for some ETFs). Selection by train-only 4-fold walk-forward Sharpe; Test protected.
+
+**Falsifiers / ablations.** Buy-hold ETF benchmark(s); random-premium control (same number of active days, randomly chosen); inverse-signal (long premium/short discount — direction falsifier); OAT perturbation (±20% on z_window, entry_z, exit_z, vol_target); Val/Test subperiods; worst-regime rolling-252 Sharpe. No gate weakening.
+
+**Gates (OOS Val+Test, fail-closed).** Sharpe ≥ 1.0; trades ≥ 200; PF ≥ 1.3; max DD ≤ 15%; WF stability ≥ 0.7; worst-regime rolling-252 Sharpe ≥ 0.3; benchmark p ≤ 0.05 with IR ≥ 0 (direction-aware); perturbation min ratio ≥ 0.5.
+
+**Runner:** `run_nf_20261109_26_etf_nav_arbitrage.py` (to be implemented). **Tests:** `tests/test_nf_20261109_26_etf_nav_arbitrage.py`.
+
+**Lineage map (H174 pre-registered):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known risks |
+|---|---|---|---|---|---|
+| ETF creation/redemption premium-discount mean reversion | H174 (NF-20261109-26) | Vol-targeted ETF position scaled by z-score of trailing premium/discount to NAV; long discount, short premium; hysteresis + 1-bar delay | SPY/QQQ/IWM/EFA/EEM daily (yfinance) + public NAV (iShares/State Street), 2010–2026 | **PRE-REGISTERED** | NAV data availability/point-in-time construction; premium/discount convergence post-costs/fees; authorized participant behavior changes; ETF-specific liquidity |

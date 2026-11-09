@@ -1,0 +1,94 @@
+{
+  "experiment": "nf_20261109_24_equity_risk_premium",
+  "nf_id": "NF-20261109-24",
+  "hypothesis": "H173",
+  "timestamp_utc": "2026-11-09T22:35:15Z",
+  "runtime_sec": 2.714,
+  "data": {
+    "spy_symbol": "SPY",
+    "tnx_symbol": "^TNX",
+    "start": "2010-01-01",
+    "end": "2026-10-31",
+    "rows": 4231,
+    "train_end": "2018-06-01",
+    "val_end": "2022-08-12"
+  },
+  "grid_n": 36,
+  "selected": {
+    "div_lookback": 126,
+    "z_window": 126,
+    "entry_z": 0.0,
+    "vol_target": 0.1
+  },
+  "wf_train_sharpe": 0.0,
+  "train_ref_sharpe": 0.0,
+  "oos_val_test": {
+    "total_return": 0.0,
+    "sharpe": 0.0,
+    "sortino": 0.0,
+    "max_drawdown": 0.0,
+    "calmar": Infinity,
+    "profit_factor": Infinity,
+    "trades": 0,
+    "volatility": 0.0,
+    "cagr": 0.0,
+    "equity_end": 1000000.0
+  },
+  "benchmark_buy_hold_spy_oos": {
+    "total_return": 0.0,
+    "sharpe": 0.0,
+    "sortino": 0.0,
+    "max_drawdown": 0.0,
+    "calmar": Infinity,
+    "profit_factor": Infinity,
+    "trades": 0,
+    "volatility": 0.0,
+    "cagr": 0.0,
+    "equity_end": 1000000.0
+  },
+  "ablations": {
+    "random_regime_oos": {
+      "total_return": 0.0,
+      "sharpe": 0.0,
+      "sortino": 0.0,
+      "max_drawdown": 0.0,
+      "calmar": Infinity,
+      "profit_factor": Infinity,
+      "trades": 0,
+      "volatility": 0.0,
+      "cagr": 0.0,
+      "equity_end": 1000000.0
+    },
+    "inverse_signal_oos": {
+      "total_return": 0.0,
+      "sharpe": 0.0,
+      "sortino": 0.0,
+      "max_drawdown": 0.0,
+      "calmar": Infinity,
+      "profit_factor": Infinity,
+      "trades": 0,
+      "volatility": 0.0,
+      "cagr": 0.0,
+      "equity_end": 1000000.0
+    }
+  },
+  "information_ratio_vs_buy_hold": NaN,
+  "benchmark_pvalue_one_sided": NaN,
+  "worst_regime_rolling252_sharpe": NaN,
+  "wf_stability_oos_over_train": NaN,
+  "perturbation": {
+    "min_ratio": NaN
+  },
+  "gates": {
+    "sharpe_ge_1": false,
+    "trades_ge_200": false,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": true,
+    "wf_stability_ge_0_7": false,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_and_ir_ge_0": false,
+    "perturbation_min_ratio_ge_0_5": false
+  },
+  "gates_passed": 1,
+  "verdict": "REJECT"
+}

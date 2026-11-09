@@ -8177,7 +8177,7 @@ Lineage reconciled to H167: **H85–H167 all rejected/recorded**. Next unused H-
 
 ## H173 — NF-20261109-24: Equity Risk Premium / Fed Model SPY Timing (Cycle 87)
 
-**NF-ID:** NF-20261109-24 (H173). **Status:** Pre-registered and executed REAL 2026-11-09 — verdict recorded below. `src/qtr` unchanged. Free/public yfinance daily data only. No commit/push unless explicitly authorized.
+**NF-ID:** NF-20261109-24 (H173). **Status:** Pre-registered and executed REAL 2026-11-09 — **REJECT (1/8 gates)**. `src/qtr` unchanged. Free/public yfinance daily data only. No commit/push unless explicitly authorized.
 
 **Broad mechanism category:** Valuation / equity risk premium transmission (repo-new root family; distinct from H154 short-rate level, H155 10Y yield level, H171 yield-curve slope — all bond-yield-only families; H173 uses the *equity-minus-bond yield spread*).
 
@@ -8204,9 +8204,51 @@ Lineage reconciled to H167: **H85–H167 all rejected/recorded**. Next unused H-
 
 **Gates (OOS Val+Test, fail-closed).** Sharpe ≥ 1.0; trades ≥ 200; PF ≥ 1.3; max DD ≤ 15%; WF stability ≥ 0.7; worst-regime rolling-252 Sharpe ≥ 0.3; benchmark p ≤ 0.05 with IR ≥ 0 (direction-aware); perturbation min ratio ≥ 0.5.
 
-**Runner:** `run_nf_20261109_24_equity_risk_premium.py`. **Tests:** `tests/test_nf_20261109_24_equity_risk_premium.py`. `ruff check/format` clean.
+**Runner:** `run_nf_20261109_24_equity_risk_premium.py`. **Tests:** `tests/test_nf_20261109_24_equity_risk_premium.py` (10 passed). `ruff check/format` clean.
 
-**Execution (REAL).** Artifact `.experiments/nf_runs/nf_20261109_24_equity_risk_premium_<ts>/summary.json` (+ `grid.csv`, `data_meta.json`). Data: SPY + ^TNX + SPY dividends yfinance daily, aligned rows 2010-01-04→2026-10-30. Verdict and metrics recorded below after the REAL run.
+**Execution (REAL).** `exp_2026-11-09T22-38-11Z` (artifact `.experiments/nf_runs/nf_20261109_24_equity_risk_premium_20261109_223808/summary.json`, `grid.csv`). Data: SPY + ^TNX + SPY dividends yfinance daily, aligned 4231 rows 2010-01-04→2026-10-30. Train/Val/Test split 2115/1058/1058. Selected (train-only 4-fold WF Sharpe 1.363): `div_lookback=252, z_window=252, entry_z=1.0, vol_target=0.20`.
 
-**Lineage map (H173 verdict pending REAL execution):**
-| Equity risk premium / Fed model SPY timing (dividend yield − 10Y yield spread) | H173 (NF-20261109-24) | Continuous vol-targeted long SPY scaled by z-score of trailing (SPY div yield − ^TNX/100) spread; long when ERP z elevated (equities cheap), flat otherwise; 1-bar delay, long-only | SPY + ^TNX + SPY dividends daily (yfinance), 2010–2026 | **VERDICT PENDING REAL RUN** | Honest adjacency to H154/H155/H171 rates/valuation domain; no validated edge claimed pre-execution |
+**Result — REJECT (1/8 gates).** OOS Val+Test (2116 periods, 114 trades): Sharpe **0.310** (fail), PF **1.170** (fail), max DD **−16.89%** (fail, >15%), trades **114** (fail, <200), WF stability **0.264** (fail, <0.7), worst-regime rolling-252 Sharpe **−1.326** (fail), benchmark p **0.991** / IR **−0.813** vs buy-hold SPY (fail), perturbation min ratio **0.545** (pass). Train/Val/Test Sharpe: 1.172 / 0.191 / 0.428. Ablations: random-regime 0.112/1.050/−10.74%/617; inverse-signal 0.739/1.155/−12.61%/55; buy-hold SPY OOS Sharpe 0.813/PF 1.169/DD −17.97%. The strategy underperforms buy-hold SPY and the random-regime control on a risk-adjusted basis; max drawdown exceeds 15% limit; trade count well below 200 threshold; WF stability indicates train→OOS decay.
+
+**Verdict rationale.** The equity risk premium / Fed model timing signal does not produce a validated edge: fails 7/8 gates, underperforms buy-hold SPY, and the inverse-signal ablation outperforms the primary construction directionally (Sharpe 0.739 vs 0.310), indicating the ERP z-score direction may be reversed or the signal is noise. Train WF Sharpe (1.363) decays sharply to OOS (0.310), consistent with overfit on a slow-moving valuation spread. No gate weakened; no published/certified artifact modified.
+
+**Lineage map (H173 REJECT):**
+| Equity risk premium / Fed model SPY timing (dividend yield − 10Y yield spread) | H173 (NF-20261109-24) | Continuous vol-targeted long SPY scaled by z-score of trailing (SPY div yield − ^TNX/100) spread; long when ERP z elevated (equities cheap), flat otherwise; 1-bar delay, long-only | SPY + ^TNX + SPY dividends daily (yfinance), 2010–2026 | **REJECT** (1/8; `.experiments/nf_runs/nf_20261109_24_equity_risk_premium_20261109_223808/summary.json`) | Fails Sharpe 0.310/PF 1.170/DD −16.89%/trades 114/WF 0.264/worst-regime −1.326/bench p 0.991/IR −0.813; inverse-signal outperforms (0.739); train→OOS decay; valuation spread timing not robust on free data |
+
+---
+
+## H174 — NF-20261109-26: ETF Creation/Redemption Premium-Discount Mean Reversion (Cycle 88)
+
+**NF-ID:** NF-20261109-26 (H174). **Status:** Pre-registered; decision-ready before validation outcomes. `src/qtr` unchanged. Free/public yfinance + public NAV data only.
+
+**Broad mechanism category:** Market structure / ETF arbitrage (repo-new root family; distinct from all directional, vol, macro, calendar, dispersion, and relmom families tested in H1–H173).
+
+**Repo-relative novelty (honest).** No executed H-ID tests ETF premium/discount to NAV mean reversion as a timing signal. H168 tests S&P 500 quarterly *rebalance flow* pressure (structural index-fund flow at known dates); this tests *creation/redemption arbitrage convergence* of ETF price to NAV (continuous, market-maker driven). Different mechanism, different observable, different causal chain.
+
+**Statement.** ETF prices deviate from net asset value (NAV) due to supply/demand imbalances; authorized participants create/redeem shares to arbitrage the premium/discount, driving convergence. When an ETF trades at a statistically significant premium (discount) to NAV, expected subsequent returns are negative (positive) as creation (redemption) activity pushes price back toward NAV. A vol-targeted position scaled by the z-score of the trailing premium/discount targets net OOS (Val+Test) Sharpe ≥ 1.0 with ≥ 200 trades, PF ≥ 1.3, max DD ≤ 15%, WF stability ≥ 0.7, worst-regime rolling-252 Sharpe ≥ 0.3, benchmark p ≤ 0.05 vs buy-hold ETF with IR ≥ 0, and perturbation min ratio ≥ 0.5.
+
+**Null (H0).** ETF premium/discount to NAV has no predictive power for next-period ETF returns beyond random chance after costs.
+
+**Pre-registration (decision-ready before validation outcomes).** NF-20261109-26 verified unused (no executed NF/H/runner/artifact). H174 next unused after H173 (H24/H68–H73/H76–H79 unassigned, not recycled). PIT causal: NAV published at daily close (known at close t); ETF price at close t; premium/discount computed from past-only data; 1-bar delay via engine `signals.shift(1)` (position at close t earns return t→t+1). Free/public data: yfinance daily ETF Close (SPY, QQQ, IWM, EFA, EEM, etc.); NAV from iShares/State Street public daily disclosures (or yfinance `fund_nav` if available). Data 2010-01-01→2026-10-31. Train first 50% (~2010→2018), Val next 25%, Test protected final 25% (~2022→2026). Selection = train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+
+**Construction (daily, causal).**
+1. Fetch ETF daily Close (auto_adjust) via yfinance; fetch daily NAV from public source (iShares/State Street CSV/API or yfinance `fund_nav`).
+2. Premium/discount: `prem_t = (Close_t - NAV_t) / NAV_t` (decimal, PIT-safe; both known at close t).
+3. Premium/discount z-score: rolling z-score of `prem` over `z_window` (past-only, `min_periods=z_window`).
+4. Signal: vol-targeted long ETF when prem z ≤ -entry_z (discount, expect convergence up), short/flat when prem z ≥ +entry_z (premium, expect convergence down), hysteresis with `exit_z` between thresholds. 1-bar delay via engine `signals.shift(1)`.
+5. Vol targeting: trailing `vol_window`-day realized vol of ETF daily returns; target annual vol `vol_target` scaled to daily: `vol_target / sqrt(252)`. Position clipped to `[max_short, max_long]`.
+6. Costs: Equity `CostModel` defaults (1 bp commission + 1 bp spread). Long/short allowed, MAX_POS=0.5.
+
+**Bounded grid (pre-registered).** `z_window ∈ {21, 63, 126}` × `entry_z ∈ {1.0, 1.5, 2.0}` × `exit_z ∈ {0.0, 0.5}` × `vol_target ∈ {0.10, 0.15}` × `universe ∈ {{SPY}, {SPY,QQQ,IWM}, {SPY,QQQ,IWM,EFA,EEM}}` = 3 × 3 × 2 × 2 × 3 = **108 combos** (reduced if NAV data unavailable for some ETFs). Selection by train-only 4-fold walk-forward Sharpe; Test protected.
+
+**Falsifiers / ablations.** Buy-hold ETF benchmark(s); random-premium control (same number of active days, randomly chosen); inverse-signal (long premium/short discount — direction falsifier); OAT perturbation (±20% on z_window, entry_z, exit_z, vol_target); Val/Test subperiods; worst-regime rolling-252 Sharpe. No gate weakening.
+
+**Gates (OOS Val+Test, fail-closed).** Sharpe ≥ 1.0; trades ≥ 200; PF ≥ 1.3; max DD ≤ 15%; WF stability ≥ 0.7; worst-regime rolling-252 Sharpe ≥ 0.3; benchmark p ≤ 0.05 with IR ≥ 0 (direction-aware); perturbation min ratio ≥ 0.5.
+
+**Runner:** `run_nf_20261109_26_etf_nav_arbitrage.py` (to be implemented). **Tests:** `tests/test_nf_20261109_26_etf_nav_arbitrage.py`.
+
+**Lineage map (H174 pre-registered):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known risks |
+|---|---|---|---|---|---|
+| ETF creation/redemption premium-discount mean reversion | H174 (NF-20261109-26) | Vol-targeted ETF position scaled by z-score of trailing premium/discount to NAV; long discount, short premium; hysteresis + 1-bar delay | SPY/QQQ/IWM/EFA/EEM daily (yfinance) + public NAV (iShares/State Street), 2010–2026 | **PRE-REGISTERED** | NAV data availability/point-in-time construction; premium/discount convergence post-costs/fees; authorized participant behavior changes; ETF-specific liquidity |

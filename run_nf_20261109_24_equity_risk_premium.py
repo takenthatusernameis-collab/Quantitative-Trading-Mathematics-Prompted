@@ -103,8 +103,13 @@ def _download_daily(symbol: str, start: str, end: str) -> pd.DataFrame:
     if raw is None or len(raw) == 0:
         raise RuntimeError(f"yfinance returned empty data for {symbol}")
     if isinstance(raw.columns, pd.MultiIndex):
-        df = raw[["Close"]].copy()
-        df.columns = ["Close"]
+        # raw has columns like ('Close', 'SPY'), ('Close', '^TNX'), etc.
+        df = raw.xs("Close", level=0, axis=1)
+        # df is now a DataFrame with symbol as column
+        if symbol in df.columns:
+            df = df[[symbol]].rename(columns={symbol: "Close"})
+        else:
+            df = df.iloc[:, [0]].rename(columns={df.columns[0]: "Close"})
     else:
         df = raw[["Close"]].copy()
     df.index = pd.to_datetime(df.index)
@@ -141,7 +146,7 @@ def _compute_trailing_div_yield(
     # Align dividends to the daily price index (0 where no dividend ex-date).
     daily_div = dividends.reindex(prices.index).fillna(0.0)
     trailing_div = daily_div.rolling(lookback, min_periods=lookback).sum()
-    div_yield = trailing_div / prices["Close"]
+    div_yield = trailing_div / prices["SPY"]
     div_yield.name = "div_yield"
     return div_yield
 
@@ -293,7 +298,11 @@ def _perturbation_check(
     numeric_params = {k: v for k, v in params.items() if k != "hour_window"}
     for k, v in numeric_params.items():
         for delta in [-0.2, 0.2]:
-            if isinstance(v, int):
+            if isinstance(v, int) or (
+                isinstance(v, float)
+                and v.is_integer()
+                and k in ("div_lookback", "z_window", "vol_window")
+            ):
                 nv = int(round(v * (1 + delta)))
                 nv = max(2, nv)
             else:
@@ -304,11 +313,11 @@ def _perturbation_check(
             sig = _build_signal(
                 signal_df["erp"],
                 signal_df["spy_ret"],
-                np_["div_lookback"],
-                np_["z_window"],
-                np_["entry_z"],
-                np_["vol_target"],
-                np_["vol_window"],
+                int(np_["div_lookback"]),
+                int(np_["z_window"]),
+                float(np_["entry_z"]),
+                float(np_["vol_target"]),
+                VOL_WINDOW,
             )
             sig_df = sig.to_frame(name="SPY").reindex(index=prices.loc[oos_idx].index).fillna(0.0)
             m = _run_backtest_daily(prices.loc[oos_idx], sig_df)["metrics"]["sharpe"]
@@ -352,9 +361,11 @@ def main(argv=None) -> int:
     spy = spy.loc[common_idx]
     tnx = tnx.loc[common_idx]
     prices = spy[["Close"]].copy()
+    # Ensure prices column matches signal column name 'SPY' for backtest engine alignment
+    prices = prices.rename(columns={"Close": "SPY"})
 
     # SPY daily returns.
-    spy_ret = (prices["Close"] / prices["Close"].shift(1) - 1.0).fillna(0.0)
+    spy_ret = (prices["SPY"] / prices["SPY"].shift(1) - 1.0).fillna(0.0)
     spy_ret.name = "spy_ret"
 
     # Precompute erp for each grid combo depends on div_lookback/z_window, so build per combo.
@@ -388,7 +399,7 @@ def main(argv=None) -> int:
             p["z_window"],
             p["entry_z"],
             p["vol_target"],
-            p["vol_window"],
+            VOL_WINDOW,
         )
         # WF train Sharpe over expanding folds.
         train_idx = prices.index[prices.index <= pd.Timestamp(train_end)]
@@ -420,7 +431,7 @@ def main(argv=None) -> int:
         int(selected["z_window"]),
         float(selected["entry_z"]),
         float(selected["vol_target"]),
-        int(selected["vol_window"]),
+        VOL_WINDOW,
     )
     sig_df = sig_full.to_frame(name="SPY").reindex(index=prices.index).fillna(0.0)
     # Attach erp/spy_ret for perturbation reuse.
@@ -442,9 +453,7 @@ def main(argv=None) -> int:
     rand_sig = pd.Series(0.0, index=prices.index, name="SPY")
     rand_sig.loc[rand_days] = 1.0
     # Apply vol targeting to random regime using selected vol params.
-    rand_sig = _apply_vol_target(
-        rand_sig, spy_ret, float(selected["vol_target"]), int(selected["vol_window"])
-    )
+    rand_sig = _apply_vol_target(rand_sig, spy_ret, float(selected["vol_target"]), VOL_WINDOW)
     rand_oos = _slice_metrics(prices, rand_sig.to_frame(name="SPY"), oos_start, END)
 
     # Inverse-signal: flat when ERP z high, long when ERP z low (direction falsifier).
@@ -457,9 +466,7 @@ def main(argv=None) -> int:
     erp_z = (erp - erp_mean) / erp_std.replace(0, np.nan)
     inv_base = (erp_z < float(selected["entry_z"])).astype(float)
     inv_sig = inv_base * 1.0
-    inv_sig = _apply_vol_target(
-        inv_sig, spy_ret, float(selected["vol_target"]), int(selected["vol_window"])
-    )
+    inv_sig = _apply_vol_target(inv_sig, spy_ret, float(selected["vol_target"]), VOL_WINDOW)
     inv_sig = inv_sig.clip(0.0, MAX_POS).fillna(0.0)
     inv_oos = _slice_metrics(prices, inv_sig.to_frame(name="SPY"), oos_start, END)
 
