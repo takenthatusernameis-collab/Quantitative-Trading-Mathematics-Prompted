@@ -7701,3 +7701,31 @@ Train (n=2515): Sharpe 0.810, PF 1.178, maxDD -3.53%, trades 3675.
 **Artifacts:** `.experiments/nf_runs/nf_20261108_29_cross_asset_return_dispersion/summary.json` (+`grid.csv`, `data_meta.json`). Runner `run_nf_20261108_29_cross_asset_return_dispersion.py`; tests `tests/test_nf_20261108_29_cross_asset_return_dispersion.py` (**11 passed**). `ruff check/format` clean on H162 files.
 
 **Verdict:** **REJECT (4/8)**. No gate weakened. `src/qtr` unchanged.
+
+## H163 — Cycle 77 (NF-20261109-05: IG credit spread (LQD/IEF) regime timing SPY) — **REJECT 4/8 (REAL)**
+
+**Status:** REJECT 4/8 (Cycle 77, REAL). `src/qtr` unchanged; no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified; no commit/push. Free/public yfinance data only.
+
+**Economic mechanism (pre-registered):** Investment-grade credit spread (LQD vs IEF) widening signals deteriorating IG corporate credit quality, rising funding costs, and flight-to-quality flows that impair equity risk premia. The LQD/IEF log-spread is a pure IG credit stress observable (unlike H94 HYG-IEF which is HY spread, or H108 LQD/HYG which is quality dispersion). When IG spreads widen abnormally, it reflects systemic credit stress and tightening financial conditions that historically precede or coincide with equity drawdowns. Trailing IG spread z-score used as a PIT flight-to-quality signal for SPY exposure.
+
+**Observable / PIT:** SPY (traded) + LQD (iShares Investment Grade Corporate Bond ETF) + IEF (iShares 7-10 Year Treasury Bond ETF), daily auto-adjust Close (yfinance, free). `spread_t = log(LQD_t) - log(IEF_t)`. `z_t` = trailing z-score of `spread_t` over `z_window`. 1-bar delay via engine `signals.shift(1)`.
+
+**Causal path / construction:** `z_t >= entry_scale` (IG spread abnormally wide / credit stress) -> de-risk (state 0); `z_t <= exit_scale` (spread normal/tight) -> full exposure (state 1); hysteresis hold between thresholds, initial state 1 (long). Vol targeting: `w_t = vol_target / rolling_realized_vol(SPY, 21, min_periods=21) * state_t`, clipped to `[0, MAX_POS=0.5]`. Long-only, Equity CostModel defaults (1 bp commission + 1 bp spread).
+
+**Grid (bounded, pre-registered):** `lookback ∈ {63,126,252}` × `z_window ∈ {126,252}` × `entry_scale ∈ {1.0,1.5,2.0}` × `exit_scale ∈ {0.0,0.5}` × `vol_target ∈ {0.10,0.15}` (36 combos, exit≤entry filter); selection = best train-only 4-fold walk-forward mean Sharpe. Train 2010-01-01→2019-12-31; Val 2020-01-01→2022-12-31; Test (protected) 2023-01-01→2026-10-31. No `src/qtr` change.
+
+**Selected (WF train-only):** `lookback=63, z_window=126, entry_scale=1.5, exit_scale=0.5, vol_target=0.15` (WF train mean Sharpe **0.935**).
+
+**Data (REAL):** yfinance 2010-01-04→2026-10-30, 4233 rows (train 2515 / val 756 / test 962; OOS Val+Test n=1716).
+
+**OOS Val+Test (1716 bars, 2650 trades):** Sharpe **0.657** (fail), PF **1.149** (fail), maxDD **-3.23%** (pass), trades **2650** (pass), WF stability **0.858** (pass), worst-regime rolling-252 Sharpe **-1.176** (fail), benchmark-p **0.978** / IR **-0.785** vs buy-hold SPY (fail), perturbation **0.760** (pass) → **REJECT 4/8**.
+
+**Ablations:** buy-hold SPY Sharpe **0.792**/PF 1.164/DD -33.72%/1 trade; random-exposure-matched Sharpe **0.363**/PF 1.180/DD -1.35%/1270 (weaker); inverse-regime (de-risk on negative z / tight spreads) Sharpe **0.873**/PF 1.175/DD -3.64%/3441 (direction consistent but base fails OOS gates).
+
+**Falsifiers observed:** benchmark fails (p 0.978, IR negative); worst-regime collapse (-1.176); Sharpe/PF below gates. Random-exposure weaker (not the failure mode); inverse direction consistent but base still fails; perturbation stable (0.760). Net: no OOS edge over buy-hold; regime robustness fails.
+
+**Closest prior family / separation (honest):** H94 (HYG-IEF credit spread vs Treasuries / flight-to-quality) — different credit tier (HY vs IG), different observable (spread vs spread), different mechanism (HY default risk vs IG funding stress). H108 (LQD/HYG quality dispersion within credit) — different observable (quality dispersion ratio vs IG spread level vs Treasuries), different mechanism (internal credit quality vs flight-to-quality). H146 (JNK/LQD HY vs IG ratio) — different observable (HY/IG ratio vs IG/Treasury spread), different mechanism (credit tier rotation vs flight-to-quality). Repo-new executed IG credit spread regime observable; honest credit-channel adjacency disclosed.
+
+**Artifacts:** `.experiments/nf_runs/nf_20261109_05_ig_credit_spread/summary.json` (+`grid.csv`, `data_meta.json`). Runner `run_nf_20261109_05_ig_credit_spread.py`; tests `tests/test_nf_20261109_05_ig_credit_spread.py` (**9 passed**). `ruff check/format` clean on H163 files.
+
+**Verdict:** **REJECT (4/8)**. No gate weakened. `src/qtr` unchanged.

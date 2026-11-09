@@ -1,0 +1,86 @@
+{
+  "nf_id_exec": "NF-20261109-05",
+  "hypothesis": "H163",
+  "verdict": "REJECT",
+  "gates_passed": "4/8",
+  "gates": {
+    "sharpe_ge_1": false,
+    "trades_ge_200": true,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": true,
+    "wf_stability_ge_0_7": true,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_ir_ge_0": false,
+    "perturbation_ge_0_5": true
+  },
+  "selected_params": {
+    "lookback": 63,
+    "z_window": 126,
+    "entry_scale": 1.5,
+    "exit_scale": 0.5,
+    "vol_target": 0.15
+  },
+  "selection_wf_train_mean_sharpe": 0.9348230394685517,
+  "oos_val_test": {
+    "n": 1716,
+    "sharpe": 0.6569444385003183,
+    "profit_factor": 1.1489419198330533,
+    "max_drawdown": -0.03230706179197965,
+    "trades": 2650
+  },
+  "train": {
+    "n": 2515,
+    "sharpe": 0.7655358285887653,
+    "profit_factor": 1.1841109889044188,
+    "max_drawdown": -0.026283233674971023,
+    "trades": 2650
+  },
+  "wf_stability_ratio": 0.8581498265226449,
+  "worst_regime_rolling252_sharpe": -1.1761584456902001,
+  "benchmark_buy_hold_spy_oos": {
+    "n": 1716,
+    "sharpe": 0.79153111049797,
+    "profit_factor": 1.1636421190820943,
+    "max_drawdown": -0.33717270361192986,
+    "trades": 1
+  },
+  "benchmark_p": 0.978,
+  "information_ratio_vs_bh": -0.7850445170613529,
+  "perturbation_min_ratio": 0.7604520417751417,
+  "ablations": {
+    "buy_hold_spy": {
+      "n": 1716,
+      "sharpe": 0.79153111049797,
+      "profit_factor": 1.1636421190820943,
+      "max_drawdown": -0.33717270361192986,
+      "trades": 1
+    },
+    "random_exposure_matched": {
+      "n": 1716,
+      "sharpe": 0.3631752192500725,
+      "profit_factor": 1.1804962052322654,
+      "max_drawdown": -0.013521715900234106,
+      "trades": 1270
+    },
+    "inverse_regime": {
+      "n": 1716,
+      "sharpe": 0.8731224323636871,
+      "profit_factor": 1.1747018944764933,
+      "max_drawdown": -0.03644342199140983,
+      "trades": 3441
+    }
+  },
+  "timing_seconds": 55.43,
+  "data": {
+    "start": "2010-01-04",
+    "end": "2026-10-30",
+    "rows": 4233
+  },
+  "description": "NF-20261109-05/H163: SPY timing from IG credit spread (LQD/IEF) flight-to-quality. Log-ratio spread z-score with hysteresis; vol-targeted long SPY, 1-bar delay. Train-only WF selection; Test protected; OOS Val+Test gates.",
+  "notes": [
+    "Repo-new executed IG credit spread (LQD/IEF) spread-level z-score SPY-timing observable.",
+    "Honest adjacency: H94 HYG-IEF (HY spread), H108 LQD/HYG (quality dispersion), H146 JNK/LQD (HY/IG ratio).",
+    "Pre-registered: hysteresis de-risks on positive z (IG spread widening / credit stress); inverse falsifier de-risks on negative z.",
+    "src/qtr unchanged; no gate weakening; no published/certified artifact modified."
+  ]
+}

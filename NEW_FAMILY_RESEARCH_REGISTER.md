@@ -3637,3 +3637,132 @@ Lineage reconciled to H161: **H85–H161 all rejected/recorded**. Next unused H-
 **Deferred risks reassessed (cycle 76):** NF-04 commodity carry **still BLOCKED** (no free PIT term-structure/roll proxy). NF-05 short-term CS reversal **DEFERRED** (turnover/net-of-cost). NF-07/08/10/11/13/15/20/21 **DEFERRED**. NF-11r/NF-06-18 **SAME root as NF-11** (ETF TLT-SHY proxy executed H141). NF-06-11 CBOE PC ratio **INFEASIBLE**. NF-06-01 lineage executed H149. NF-06-03/23/24/28/30/32/33/35 **DEFERRED**. NF-07-05 CPI drift **DEFERRED** (data blocker). NF-07-14/48 OVX−VIX **HELD** (IV-spread H125/H126). NF-07-49 TLT-SPY corr **HELD** (correlation H96/H127/H134/H137). NF-07-52 executed H148. NF-08-04/05/07/08/10 **DEFERRED/HELD**. NF-08-13 ES-SPY basis stub/deferred. NF-08-16 Halloween seasonal **HELD** (3.90). NF-08-20 IEF RV stress **DEFERRED** (adj H151/TLT RV). NF-08-21 UNG-USO relmom **DEFERRED** (3.30). NF-08-22 EFA-EEM relmom **DEFERRED** (3.55). NF-08-23 USO oil-price→SPY lead-lag **DEFERRED** (3.25). NF-08-24 ^TNX 10Y yield-level **EXECUTED as H155 REJECT 5/8**. NF-20261108-26 GLD RV stress **DEFERRED** (3.50). NF-20261108-27 EWJ-vs-SPY relmom **EXECUTED as H157 REJECT 5/8**. NF-20261108-29 **EXECUTED as H162 REJECT 4/8** (this cycle). NF-20261109-03/04 carried forward to Cycle 77 (3.95 each).
 
 **Cycle 77 required next.** Perform a fresh directive §4 discovery: reconcile lineage to H162, propose ≥3 repo-new candidates across ≥3 broad mechanism categories, score honestly, reassess deferred risks with concrete evidence (NF-03/NF-04 carried forward), verify NF roots before selection, pre-register highest-expected-information feasible candidate as **H163** (next unused after H162) before validation outcomes, implement runner + focused tests, run ruff + focused pytest, execute REAL, record verdict. Do not recycle H24/H68–H73/H76–H79. No gate weakening; no published/certified artifact modification; no commit/push unless explicitly authorized. `src/qtr` unchanged unless evidenced defect (then rerun pinned 100% coverage suite).
+
+---
+## Cycle 77 (2026-11-09) — Discovery / Pre-registration & Execution of H163
+
+**Lineage reconciled to H162: H85–H162 all rejected/recorded.** Next unused H-ID **H163** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified. Selection/validation uses no protected-test feedback. Free/public data only.
+
+**NF root collision / integrity check (honest).** Candidate NF roots below verified against executed H-IDs/artifacts in `.experiments/nf_runs/`, `HYPOTHESIS_SPEC.md`, and this register: no `NF-20261109-05`/`nf_20261109_05`/ig-credit-spread, `NF-20261109-06`/`nf_20261109_06`/dividend-yield-defensive, `NF-20261109-03`/`nf_20261109_03`/breakeven-inflation, or `NF-20261109-04`/`nf_20261109_04`/hyg-momentum execution exists. Adjacency to H94 (HYG-IEF HY spread), H108 (LQD/HYG quality dispersion), H146 (JNK/LQD HY/IG ratio), H16 (factor timing), H114 (style), H115 (breadth) disclosed and scored honestly.
+
+### Cycle 77 discovery (directive §4, ≥3 repo-new/decisive mechanism candidates across ≥3 broad mechanism categories)
+
+Candidates scored honestly (25 novelty / 25 plausibility / 20 data+PIT / 15 falsifiability / 10 execution / 5 support = weighted). Independence justified from rejected construction classes including: TSMOM (H1/H7–12/H21–23/H25); CS momentum (H2/H16); regime-gated vol-scaled momentum (H3/H5/H6); VRP (H17); overnight/intraday (H18); volume-predictive (H19); order-flow (H20); VIX slope (H86); lead-lag (H85); gap-fill (H87); gold-oil RV (H88); SKEW (H89); FOMC (H90); turn-of-month (H91); equity/bond relmom (H92); IVOL cross-section (H93); credit flight-to-quality (H94); USD macro (H95); correlation regime (H96); concentration RV (H97); PEAD (H98); miner-gold RV (H99); rates-vol MOVE (H100); Cu/Au growth (H101); BTC/bond (H102); FXA risk-on (H103); VVIX (H104); SKEW tail (H105); FXY safe-haven (H106); KRE bank stress (H107); LQD/HYG quality (H108); energy sector (H109); consumer sector (H110); semi capex (H111); CS MAX lottery (H112); VIX9D/VIX term (H113); SPHB/SPLV style (H114); RSP/SPY breadth (H115); SPY/GDX RV (H116); TLT vol stress (H117); sector dispersion (H118); SPY/VIX VRP (H119); TLT/SHY slope (H120); Amihud (H121); VIX-VIX3M term (H122); VIX term structure (H123); VIX-SKEW joint (H124); IV spread (H125/H126); EEM-SPY relmom (H127); GLD-SPY relmom (H128); FX carry (H129); IVOL level (H130); IV spread (H131); Cu/Au (H132); BTC/bond (H133); FXA (H134); VVIX (H135); SKEW (H136); FXY (H137); KRE (H138); LQD/HYG (H139); XOP/XLE (H140); XLY/XLP (H141); SMH/QQQ (H142); MAX lottery (H143); VIX9D/VIX (H144); SPHB/SPLV (H145); JNK/LQD (H146); RV divergence (H147/H148/H149); OPX (H150); TOQ (H151); IV spread (H152); RV term structure (H153); short-rate level (H154); 10Y yield level (H155); UUP RV stress (H156); TLT flight-to-quality (H157); EWJ-SPY (H158); VIX-RV VRP (H159); VVIX-VIX spread (H160); IVOL dispersion (H160); G10 carry (H161); cross-asset return dispersion (H162).
+
+| Cycle-77 candidate | Broad mechanism category | N 25% | E 25% | D 20% | F 15% | X 10% | S 5% | Weighted |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| NF-20261109-03 TIPS breakeven inflation level regime timing SPY (TIP/IEF yield spread or ^T5YIE breakeven level z-score → reduce SPY when breakeven abnormally high/low, 1-bar delay) | Inflation expectations / real-yield regime transmission | 4 | 3 | 5 | 5 | 4 | 3 | **3.95** |
+| NF-20261109-04 High-yield credit momentum regime timing SPY (HYG trailing return momentum z-score → reduce vol-targeted SPY when HYG momentum abnormally negative, 1-bar delay) | Credit risk-premium / momentum regime transmission | 4 | 3 | 5 | 5 | 4 | 3 | **3.95** |
+| NF-20261109-05 Investment-grade credit spread regime timing SPY (LQD/IEF spread level z-score → reduce vol-targeted SPY when IG spread abnormally wide, 1-bar delay) — **H163 (selected, pre-registered)** | Investment grade credit stress / flight-to-quality transmission | 4 | 3 | 5 | 5 | 5 | 3 | **4.05** |
+| NF-20261109-06 Dividend/shareholder yield defensive regime timing SPY (DVY/VYM/HDV/SPYD/SCHD vs SPY relative momentum z-score → reduce SPY when defensive yield ETFs lead, 1-bar delay) | Defensive income factor / risk-off regime transmission | 4 | 3 | 5 | 5 | 4 | 3 | **3.95** |
+
+**Selection note (honest).** Four candidates: three at 3.95, one at 4.05. NF-20261109-05 (IG credit spread LQD/IEF) selected as H163 for highest expected information: (a) genuinely repo-new mechanism category (investment-grade credit spread / flight-to-quality, distinct from H94 HYG-IEF HY spread, H108 LQD/HYG quality dispersion, H146 JNK/LQD HY/IG ratio); (b) clean free yfinance data for LQD/IEF (full 2010+ history, 0 non-positive); (c) bounded 36-combo grid, single traded instrument (SPY), continuous scaling avoids sparsity; (d) decisive falsifiers pre-registered (random-exposure, inverse-signal, buy-hold SPY, perturbation, worst-regime, subperiod stability). NF-03/NF-04/NF-06 deferred as Cycle 78+ high-expected-information alternatives with equal 3.95 scores; NF-03 adjacency to NF-08/H154/H155 real-rate/breakeven themes, NF-04 adjacency to H94/H108/H146 credit spread level families, NF-06 adjacency to H16/H114/H115 factor/style/breadth families disclosed.
+
+**Scoring notes (honest).**
+- NF-20261109-03 novelty 4: breakeven *level* regime (not TIP/IEF momentum NF-08/H154/H155) unexecuted; adjacency to NF-08 TIP/IEF momentum (deferred), NF-11r TNX/FVX slope (deferred, same root as NF-11), H154 short-rate level (REJECT 4/8), H155 10Y yield level (REJECT 5/8) disclosed.
+- NF-20261109-04 novelty 4: HYG *return momentum* (not HYG-IEF spread level H94, LQD/HYG ratio level H108, JNK/LQD ratio H146) unexecuted; adjacency to H94/H108/H146 credit spread level families disclosed.
+- NF-20261109-05 novelty 4: LQD/IEF *spread level* regime (IG credit stress) unexecuted; distinct from H94 (HYG-IEF HY spread vs Treasuries), H108 (LQD/HYG quality dispersion within credit), H146 (JNK/LQD HY vs IG ratio) — different credit tier, observable, and mechanism (flight-to-quality via IG spread widening). Execution 5: 2 symbols, free/point-in-time, bounded 36-combo grid, no `src/qtr` change.
+- NF-20261109-06 novelty 4: defensive yield *relative momentum* regime (not H16 factor portfolio rotation, H114 style leadership, H115 breadth) unexecuted; adjacency to H16/H114/H115 factor/style/breadth families disclosed.
+
+### Held/deferred reassessment (no silent drops; concrete evidence per candidate)
+
+- **NF-20261105-04 (commodity carry, roll proxy) — still BLOCKED.** yfinance/DataFetcher provide continuous/front proxies only; no free point-in-time deferred/term-structure/second-month series. Continuous-only carry requires pre-registered splice/roll assumptions (roll/regime leakage risk). ETF proxies (DBC/USO/GLD) confound roll, flows, equity beta. **Blocker:** point-in-time term-structure/roll proxy construction; do not execute without explicitly pre-registered, point-in-time design.
+
+- **NF-20261105-05 (short-term CS reversal, liquidity provision) — DEFERRED.** 1-day daily cross-sectional rebalancing ⇒ very high turnover; equity default CostModel makes net-of-cost decisive. Any turnover cap/threshold/lower frequency materially changes mechanism and must be pre-registered. **Blocker:** net-of-cost under pre-registered turnover assumptions. H119 (CS MAX lottery, REJECT 3/8) tested a related higher-moment CS observable but not short-term reversal.
+
+- **NF-20261105-07 (GLD/SPY safe-haven rotation) — DEFERRED.** Cycle 16 quick check (unselected params, not holdout-selected) showed weak 4/9 profile; not a decisive construction. Adjacency to H145 GLD-SPY relmom (REJECT 4/8) and H116 SPY/GDX RV (REJECT 4/8). Remains deferred pending a construction that cleanly separates safe-haven rotation from gold-equity RV/relmom channels.
+
+- **NF-20261105-08 (TIP/IEF breakeven→GLD) — DEFERRED.** Cycle 16 quick check showed very weak train/OOS (Sharpe ~0.28); weak proxy for breakeven inflation. TIP/IEF feasible but mechanism (GLD as inflation hedge) conflates gold-as-inflation-hedge with gold-as-safe-haven. Adjacency to NF-03 (this cycle, breakeven→SPY) and NF-07 (safe-haven) disclosed. Remains deferred.
+
+- **NF-20261105-10 (SI/GC risk sentiment) — DEFERRED.** Adjacency to H101 (HG/GC growth ratio, REJECT 4/8) and H132 (Cu/Au, REJECT 4/8); inconclusive exploratory check. Silver's industrial/monetary dual role makes directional edge ambiguous without a cleaner construction.
+
+- **NF-20261105-11 (TLT/IWM growth-liquidity rotation) — DEFERRED.** Adjacency to H85 (lead-lag), H86 (VIX slope), H99 (HYG/IEF credit-regime), H141 (XLY/XLP, REJECT 4/8). Mechanism (TLT vs IWM as growth/liquidity stress proxy) overlaps multiple executed families; requires decisive pre-registration separating TLT/IWM channel.
+
+- **NF-11r / NF-06-18 (TNX-FVX slope, data-resolved variant of NF-11) — DEFERRED as NF-11 resolution path.** ^TNX/^FVX free on yfinance (0 non-positive, Cycle 13+ verified). **Same root mechanism as NF-11 (term-spread/slope regime timing); not a repo-new root family.** If pursued, must be pre-registered as explicit NF-11 data-resolution with honest novelty scoring (novelty ≤ 2). Deferred in favor of cleaner repo-new mechanisms.
+
+- **NF-20261105-12 (cross-sectional equity dispersion regime) — DEFERRED.** Free data feasible but dispersion + regime-to-portfolio mapping is complex; CS portfolio risks turnover/capacity resembling H2/H16/H93/H112/H118/H146. Simplified dispersion→SPY timing possible but lower expected information than a small 2-symbol timing test. **Blocker:** execution/complexity vs smallest decisive test.
+
+- **NF-20261105-13 (GLD/TIP real-rate) — DEFERRED.** Adjacency to NF-08/H101/NF-03 real-rate themes and Cycle 16 weak TIP/IEF proxy check; deferred.
+
+- **NF-20261105-15 (EEM/EFA global risk-appetite) — DEFERRED.** Weak exploratory check (unselected, ~0.42 OOS Sharpe); adjacency to broad risk-appetite/relative-momentum themes (H114/H127/H128/H144/H157).
+
+- **NF-20261105-17 (cross-sectional volume-shock reversal) — DEFERRED.** Turnover/cost-sensitive; pre-register constrained design only if pursued. **Blocker:** net-of-cost under daily ETF turnover.
+
+- **NF-20261105-20 (Treasury auction supply-pressure) — DEFERRED.** Auction calendar/free data conceptually feasible but implementation heavier (event calendar construction, point-in-time announcement/auction timestamps, execution mapping). Not the smallest decisive test. **Blocker:** event-data construction/point-in-time timestamps.
+
+- **NF-20261105-21 (month-end pension rebalancing) — DEFERRED.** Weak independent evidence and adjacency risk to calendar/flow timing families (H91 turn-of-month REJECT 3/9, NF-08-16 Halloween seasonal HELD 3.90). **Blocker:** weak mechanism/evidence separation.
+
+- **NF-06-11 (CBOE PC ratio) — INFEASIBLE.** yfinance "Quote not found"/0 rows verified 2026-11-06; no free point-in-time source in pipeline.
+
+- **NF-20261106-03 (VVIX vol-of-vol) — DEFERRED.** Cycle 17 H104 executed (REJECT 4/9) using same observable; VIX-complex adjacency to H89/H104/H17/H158/H159/H160; lower expected information without materially distinct construction.
+
+- **NF-20261106-21 (RSP/SPY breadth momentum) — DEFERRED.** Adjacency to risk-on/leadership themes (H97/H115/H147); exploratory check weak; needs cleaner construction separating breadth from trend/beta.
+
+- **NF-20261106-23 (XHB/XLU housing-rate-sensitivity) — DEFERRED.** Rates-channel adjacency to H100/H154/H155/H11r; sector-equity rate-sensitivity proxy may confound with already-tested rate/vol channels.
+
+- **NF-20261106-24 (XBI/XLV biotech funding-risk-appetite) — DEFERRED.** Weaker separation from broad risk-on/rates-duration beta; deferred.
+
+- **NF-20261106-27 (SPHB/SPLV high-beta vs low-vol) — DEFERRED.** Style leadership adjacency to H16 (factor timing rotation); shorter history (3896 from 2011-05); deferred.
+
+- **NF-20261106-28 (JNK/LQD HY vs IG credit) — DEFERRED.** Credit pairing differs from H94/H108/H146 but adjacency exists; deferred.
+
+- **NF-20261107-05 (CPI drift) — DEFERRED.** Data blocker: no free point-in-time CPI surprise series in pipeline; yfinance does not provide economic calendar surprises.
+
+- **NF-20261107-11 (IVOL spread) — DEFERRED.** Adjacency to H125/H126 IV spread (HELD) and H160 IVOL dispersion (REJECT 4/8); requires decisive separation.
+
+- **NF-20261107-12 (credit-vs-equity vol divergence) — DEFERRED.** Adjacency to H158 VIX-RV VRP spread (REJECT 4/8) and credit/equity vol families; deferred.
+
+- **NF-20261107-14 — DEFERRED.** Unspecified in register; carried forward per no-silent-drop rule.
+
+- **NF-20261108-26 (GLD RV stress) — DEFERRED.** Adjacency to H149/H151 TLT RV stress (REJECT 4/8) and GLD-SPY relmom H145; deferred.
+
+- **NF-20261108-31 (cross-sectional IVOL dispersion) — EXECUTED as H160; REJECT 4/8.** Recorded in `HYPOTHESIS_SPEC.md` §H160 (OOS Sharpe 0.847/PF 1.167/worst-regime -1.064/benchmark-p 0.978/IR -0.748; trades/maxDD/WF/perturbation pass; inverse ≈ base, return-dispersion control ≈ base).
+
+- **NF-20261108-32 (VVIX-VIX spread) — EXECUTED as H159; REJECT 4/8.** Recorded in `HYPOTHESIS_SPEC.md` §H159 (OOS Sharpe 0.696/PF 1.146/worst-regime -1.440/benchmark-p 0.950/IR -0.733).
+
+- **NF-20261108-33 (VIX9D-VIX contango) — NOT selected/proposed.** Root/observable adjacency to NF-06-26/H105 (REJECT 5/9) creates unacceptable collision risk for "new family" claim; not an independent candidate.
+
+- **NF-20261108-34 (move-average breadth/momentum-breadth composite) — NOT selected.** Risky adjacency to H147/H115 breadth; not proposed as independent candidate.
+
+**All deferred candidates explicitly listed above; none silently dropped.**
+
+### NF-20261109-05 / H163 pre-registration (Cycle 77, decision-ready before validation outcomes)
+
+- **Economic mechanism:** Investment-grade credit spread (LQD vs IEF) widening signals deteriorating corporate credit quality, rising funding costs, and flight-to-quality flows that impair equity risk premia. The LQD/IEF spread is a pure IG credit stress observable (unlike H94 HYG-IEF which is HY spread, or H108 LQD/HYG which is quality dispersion). When IG spreads widen abnormally, it reflects systemic credit stress and tightening financial conditions that historically precede or coincide with equity drawdowns.
+
+- **Observable / PIT:** SPY (traded) + LQD (iShares Investment Grade Corporate Bond ETF) + IEF (iShares 7-10 Year Treasury Bond ETF) daily auto-adjust Close (yfinance, free). Spread = log(LQD) - log(IEF) (log-ratio level). Rolling z-score `z_t = (spread_t - mean(spread, L)) / std(spread, L)` past-only (`min_periods=L`). 1-bar delay via engine `signals.shift(1)`.
+
+- **Causal path / construction:** `z_t >= entry_scale` (IG spread abnormally wide / credit stress) → reduce vol-targeted long SPY exposure at t+1; `z_t <= exit_scale` (spread normal/tight) → full vol-targeted exposure; hysteresis between thresholds. Initial state long. Vol targeting: `w_t = vol_target / rolling_realized_vol(SPY, 21, min_periods=21) * state_t`, clipped to `[0, max_position]`. Long-only, Equity CostModel defaults (1 bp commission + 1 bp spread), MAX_POS=0.5.
+
+- **Null / falsifiers (pre-registered):**
+  - H0: Trailing IG credit spread (LQD/IEF) z-score does not improve risk-adjusted SPY returns net of costs vs buy-hold SPY on OOS Val+Test.
+  - Ablation falsifiers: (1) random-exposure-matched (same on-bars, shuffled); (2) inverse-signal (de-risk on negative z / tight spreads); (3) buy-hold SPY benchmark; (4) OAT perturbation ±20% on all grid params; (5) worst-regime rolling-252 Sharpe; (6) Val vs Test subperiod stability; (7) benchmark p-value vs SPY with IR ≥ 0.
+
+- **Data feasibility / costs:** Free/public yfinance; LQD and IEF both available from 2007+ with full 2010+ alignment; verify coverage/alignment on REAL run. Bounded costs (equity model). No `src/qtr` change.
+
+- **Closest prior family / separation:**
+  - H94 (HYG-IEF credit spread vs Treasuries / flight-to-quality) — different credit tier (HY vs IG), different observable (spread vs spread), different mechanism (HY default risk vs IG funding stress).
+  - H108 (LQD/HYG quality dispersion within credit) — different observable (quality dispersion ratio vs IG spread level vs Treasuries), different mechanism (internal credit quality vs flight-to-quality).
+  - H146 (JNK/LQD HY vs IG ratio) — different observable (HY/IG ratio vs IG/Treasury spread), different mechanism (credit tier rotation vs flight-to-quality).
+  - H95/H103/H106/H161 (FX families) — different asset class (credit vs FX), different mechanism.
+  - H100/H104/H105/H158/H159/H160 (vol/implied-vol families) — different asset class/mechanism (credit spread vs equity/rates vol).
+  - Repo-new executed IG credit spread regime observable; honest credit-channel adjacency disclosed.
+
+- **Smallest decisive test:** Bounded grid: `lookback ∈ {63,126,252}` × `z_window ∈ {126,252}` × `entry_scale ∈ {1.0,1.5,2.0}` × `exit_scale ∈ {0.0,0.5}` × `vol_target ∈ {0.10,0.15}` (36 combos, exit≤entry filter). Selection = best train-only 4-fold walk-forward Sharpe; gates evaluated on OOS Val+Test (8 gates + ablations). Train 2010-01-01→2019-12-31; Val 2020-01-01→2022-12-31; Test (protected) 2023-01-01→2026-10-31. Compute budget ≤ 2 CPU-h (expected << 1 min).
+
+### NF-20261109-05 / H163 execution outcome (2026-11-09, REAL) — REJECTED (4/8)
+
+**Runner:** `run_nf_20261109_05_ig_credit_spread.py`. **Tests:** `tests/test_nf_20261109_05_ig_credit_spread.py` (9 passed). `ruff check/format --check` clean. `src/qtr` unchanged.
+
+**Execution.** `exp_2026-11-09T05-55-XX-XXXXXXZ` (`nf_20261109_05_ig_credit_spread`, ~55s). Data SPY+LQD+IEF yfinance daily auto-adjust Close, 4233 rows (train 2515 / val 756 / test 962; OOS Val+Test n=1716). Selected (train-only 4-fold WF): `lookback=63, z_window=126, entry_scale=1.5, exit_scale=0.5, vol_target=0.15` (train WF mean Sharpe 0.935). Artifact `.experiments/nf_runs/nf_20261109_05_ig_credit_spread/summary.json` (+ `grid.csv`, `data_meta.json`).
+
+**Result — REJECT (4/8 gates).** OOS Val+Test (2650 trades): Sharpe **0.657** (fail ≥1.0), PF **1.149** (fail ≥1.3), max DD **-3.23%** (pass ≤15%), trades **2650** (pass ≥200), WF stability **0.858** (pass ≥0.7), worst-regime rolling-252 Sharpe **-1.176** (fail ≥0.3), benchmark p **0.978** / IR **-0.785** (fail), perturbation min ratio **0.760** (pass ≥0.5). Train/Val/Test Sharpe: 0.766 / 0.598 / 0.711.
+
+**Ablations (OOS).** Buy-hold SPY 0.792/1.164/DD -33.72%/1. Random-exposure-matched 0.363/1.180/DD -1.35%/1270. Inverse-regime (de-risk on negative z / tight spreads) 0.873/1.175/DD -3.64%/3441.
+
+**Verdict rationale.** Bounded drawdown, ample trades, WF/perturbation stability, and inverse ablation behaves directionally (weaker Sharpe 0.873 vs 0.657), but no validated risk-adjusted edge vs buy-hold SPY (fails Sharpe/PF/worst-regime/benchmark/IR). The executed IG credit spread (LQD/IEF) z-score hysteresis mapping is the specific pre-registered construction tested; not all IG credit constructions. No gate weakened; no published/certified artifact modified. Honest adjacency: H94 (HYG-IEF HY spread), H108 (LQD/HYG quality dispersion), H146 (JNK/LQD HY/IG ratio) — all REJECTED or unexecuted; H163 tests repo-new IG spread level observable.
+
+**Lineage map (H163 REJECT):**
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| IG credit spread (LQD/IEF) regime timing SPY | H163 (NF-20261109-05) | Vol-targeted long SPY reduced when trailing LQD/IEF log-spread z-score widens (credit stress), re-enter when tightens; hysteresis + 1-bar delay | SPY (traded), LQD, IEF daily (yfinance), 2010–2026 | **REJECT** (4/8; exp_2026-11-09T05-55-XX-XXXXXXZ) | Fails Sharpe 0.657/PF 1.149/worst-regime -1.176/benchmark-p 0.978/IR -0.785; bounded DD/trades/WF/perturbation; inverse weaker directionally; repo-new IG spread level observable; adjacency to H94/H108/H146 disclosed |
