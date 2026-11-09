@@ -8126,3 +8126,41 @@ Lineage reconciled to H167: **H85–H167 all rejected/recorded**. Next unused H-
 
 **Lineage map (H171 REJECT):**
 | Yield curve slope regime SPY timing (^TYX-^FVX 30Y-5Y, term-premium/curve-shape/financial-conditions transmission) | H171 (NF-20261109-21) | Continuous vol-targeted long SPY reduced when z-score of trailing (TYX-FVX) slope abnormally negative (flattening/inversion stress); 1-bar delay, long-only | ^TYX/^FVX (signal) + SPY (traded), yfinance daily 2010–2026 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261109_21_yield_curve_slope_spy_20261109_155438/summary.json`) | Fails Sharpe 0.903/PF 1.224/worst-regime -1.006/benchmark-p 0.971/IR -0.725; DD -5.75%/trades 740/WF 1.153/perturbation 1.286 pass; random-exposure 0.620 weaker (some structure); inverse 0.336 much weaker (direction supported, no benchmark edge); repo-new slope observable, honest adjacency to H141/H154/H155/H100 rates domain |
+
+---
+
+## H172 — NF-20261109-01: Intraday Equity Time-of-Day Seasonality (SPY 1h) (Cycle 86)
+
+**NF-ID:** NF-20261109-01 (H172). **Status:** Pre-registered for execution. `src/qtr` unchanged. Free/public yfinance hourly data only. No commit/push.
+
+**Broad mechanism category:** Microstructure / intraday seasonality (repo-new root family; distinct from H87 opening-gap fill, H10 intraday futures TSMOM, and calendar/seasonal families H91/H140/H142/H168).
+
+**Repo-relative novelty (honest).** H87 (opening-gap fill, REJECT 1/9) tests overnight gap → same-day intraday fill. H10 (intraday futures TSMOM with CT exits, PASS 7/8 but PF fail) tests trend-following on *futures* hourly bars with path-dependent exits. Calendar/seasonal families (H91/H140/H142/H168) test monthly/quarterly *calendar rules*. H172 tests *equity (SPY) hourly time-of-day patterns* — specific hours of the trading day that systematically outperform/underperform due to institutional execution algorithms, market-maker inventory cycles, and liquidity provision patterns. Different instrument class (equity vs futures), different mechanism (microstructure seasonality vs trend-following or gap-fill), different frequency construction (hourly seasonality windows vs daily calendar rules).
+
+**Statement.** Specific hours of the SPY trading day exhibit persistent return patterns. A vol-targeted long SPY position during pre-registered "favorable" hour windows (held only during those hours, flat otherwise) generates net pooled out-of-sample (Val+Test) Sharpe ≥ 1.0 with ≥ 200 trades, PF ≥ 1.3, max DD ≤ 15%, WF stability ≥ 0.7, worst-regime rolling-252 Sharpe ≥ 0.3, benchmark p ≤ 0.05 vs buy-hold SPY with IR ≥ 0, and perturbation min ratio ≥ 0.5.
+
+**Null (H0).** Hour-of-day membership has no predictive power for SPY intraday returns beyond random chance after costs.
+
+**Pre-registration (decision-ready before validation outcomes).** NF-20261109-01 verified unused (no executed NF/H/runner/artifact). H172 next unused after H171 (H24/H68–H73/H76–H79 unassigned, not recycled). PIT causal: SPY hourly bars known at hour close; hour-window membership is calendar-known at session start; signal for hour h uses only information available at hour h-1 close; position for hour h earns return from hour h open to hour h close. Free/public yfinance hourly SPY: ~730 daily bars available (yfinance 1h limit), covering ~2024-11 → 2026-10. Sample splits: Train first 50%, Val next 25%, Test protected final 25% (by time). Selection = train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+
+**Construction (hourly, causal).**
+1. Fetch SPY 1h bars via `DataFetcher.fetch_yahoo` (interval="1h"). Use `Open`, `High`, `Low`, `Close`, `Volume`.
+2. Compute hourly returns: `ret_h = Close_h / Open_h - 1` (intraday return for hour h).
+3. Hour-of-day index: `hour_idx = timestamp.hour` (9-15 for 9:30-16:00 ET; 13:30-19:30 UTC).
+4. Pre-registered favorable hour windows (tested via grid): `hour_window ∈ { {13,14}, {14,15}, {13,14,15}, {10,11}, {9,10}, {15} }` — representing morning momentum, lunch doldrums, afternoon trend, close auction, etc. Grid encodes specific hour sets; not a continuous parameter.
+5. Signal: `sig_h = 1.0` if `hour_idx in hour_window` else `0.0`. Applied at hour h-1 close for hour h return (1-bar delay via engine).
+6. Vol targeting: trailing 21-hour realized vol of SPY hourly returns, target annual vol 15% (scaled to hourly: 0.15 / sqrt(252*6.5)). Position clipped to `[0, 0.5]`.
+7. Costs: Equity `CostModel` defaults (1 bp commission + 1 bp spread + 0.1 bp impact per 1% ADV). Hourly turnover ≈ 2× per active hour (entry + exit).
+
+**Bounded grid (pre-registered).** `hour_window ∈ { {13,14}, {14,15}, {13,14,15}, {15,16}, {16,17}, {19} }` × `vol_target ∈ {0.10, 0.15, 0.20}` × `vol_window ∈ {21, 63}` = 6 × 3 × 2 = **36 combos**. Selection by train-only 4-fold walk-forward Sharpe; Test protected.
+
+**Falsifiers / ablations.** Buy-hold SPY benchmark; random-hour control (same number of active hours, randomly shuffled); inverse-hour (long unfavorable hours); always-flat; OAT perturbation (±20% on vol_target, vol_window, hour_window membership); Val/Test subperiods; worst-regime rolling-252 Sharpe. No gate weakening.
+
+**Gates (OOS Val+Test, fail-closed).** Sharpe ≥ 1.0; trades ≥ 200; PF ≥ 1.3; max DD ≤ 15%; WF stability ≥ 0.7; worst-regime rolling-252 Sharpe ≥ 0.3; benchmark p ≤ 0.05 with IR ≥ 0 (direction-aware); perturbation min ratio ≥ 0.5.
+
+**Runner:** `run_nf_20261109_01_intraday_seasonality.py`. **Tests:** `tests/test_nf_20261109_01_intraday_seasonality.py` (to be implemented).
+
+**Lineage map (H172 pre-registered):**
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known risks |
+|---|---|---|---|---|---|
+| Intraday equity time-of-day seasonality | H172 (NF-20261109-01) | Vol-targeted long SPY during pre-registered favorable hour windows (e.g., 13-15h UTC = 9-11 AM ET, 14-15h = 10-11 AM ET, etc.); microstructure seasonality | SPY hourly (yfinance 1h, ~730 bars, 2024-11→2026-10) | **PRE-REGISTERED** | Hourly data limited to ~730 bars (yfinance limit); microstructure seasonality may be crowded/arbitraged; adjacency to H87/H10/calendar families honestly disclosed |
