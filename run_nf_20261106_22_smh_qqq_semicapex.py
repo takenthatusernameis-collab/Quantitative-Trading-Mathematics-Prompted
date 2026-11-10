@@ -55,6 +55,7 @@ from qtr.backtest.engine import (
 from qtr.data.fetcher import DataCache, DataFetcher
 from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
+    benchmark_significance_gate,
     compare_to_benchmark,
     sharpe_ratio,
     walk_forward_splits,
@@ -237,7 +238,7 @@ def evaluate_gates(oos_result, train_result, bench_oos, prices, oos_mask, params
     pass_dd = bool(abs(oos_result.metrics["max_drawdown"]) <= GATES["max_drawdown"])
     pass_wf = bool(wf_stab >= GATES["min_walkforward_stability"])
     pass_reg = bool(regime.get("min", -9) >= GATES["min_worst_regime_sharpe"])
-    pass_bench = bool((pval <= GATES["max_p_value"]) and (ir >= GATES["min_information_ratio"]))
+    pass_bench = benchmark_significance_gate(pval, ir, GATES["max_p_value"])
     pass_pert = bool(pert["min_ratio"] >= GATES["min_perturbed_sharpe_ratio"])
     gates = {
         "oos_sharpe_gte_1_0": {"value": oos_sh, "threshold": GATES["min_sharpe"], "pass": pass_sh},

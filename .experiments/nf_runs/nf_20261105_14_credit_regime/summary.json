@@ -46,7 +46,7 @@
     },
     "wf_stability": 1.7145128224133703,
     "worst_regime_sharpe": -1.395614712426491,
-    "benchmark_p": 1.0,
+    "benchmark_p": 0.0501106717849943,
     "information_ratio": -0.4781784634877802,
     "passes": {
       "sharpe": false,
@@ -127,5 +127,5 @@
     }
   },
   "verdict": "REJECT",
-  "duration_seconds": 1.145
+  "duration_seconds": 1.122
 }

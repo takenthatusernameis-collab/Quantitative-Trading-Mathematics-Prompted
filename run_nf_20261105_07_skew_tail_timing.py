@@ -40,6 +40,7 @@ from qtr.backtest.engine import (
 from qtr.data.fetcher import DataCache, DataFetcher
 from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
+    benchmark_significance_gate,
     compare_to_benchmark,
     sharpe_ratio,
     walk_forward_splits,
@@ -248,7 +249,7 @@ def full_gate_eval(result, oos_mask, val_mask, test_mask, prices, bench_result):
         "max_drawdown": oos_m["max_drawdown"] >= -GATES["max_drawdown"],
         "walkforward_stability": wf_stab >= GATES["min_walkforward_stability"],
         "worst_regime_sharpe": worst_regime >= GATES["min_worst_regime_sharpe"],
-        "p_value": bench_p <= GATES["max_p_value"],
+        "p_value": benchmark_significance_gate(bench_p, ir, GATES["max_p_value"]),
         "information_ratio": ir >= GATES["min_information_ratio"],
     }
 

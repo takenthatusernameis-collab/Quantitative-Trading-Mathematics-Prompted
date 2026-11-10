@@ -54,6 +54,7 @@ from qtr.backtest.engine import (
 from qtr.data.fetcher import DataCache, DataFetcher
 from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
+    benchmark_significance_gate,
     compare_to_benchmark,
     sharpe_ratio,
     walk_forward_splits,
@@ -239,8 +240,10 @@ def evaluate_gates(
     pass_dd = max_dd <= GATES["max_drawdown"]
     pass_wf = (wf >= GATES["min_walkforward_stability"]) if train_sh > 0 else False
     pass_reg = (worst >= GATES["min_worst_regime_sharpe"]) if np.isfinite(worst) else False
-    pass_bench = (
-        pval is not None and pval <= GATES["max_p_value"] and ir >= GATES["min_information_ratio"]
+    pass_bench = benchmark_significance_gate(
+        float(pval) if pval is not None else 1.0,
+        float(ir),
+        GATES["max_p_value"],
     )
     pass_pert = pert >= GATES["min_perturbed_sharpe_ratio"]
 

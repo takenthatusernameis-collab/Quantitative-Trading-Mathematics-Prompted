@@ -43,6 +43,7 @@ from qtr.backtest.engine import (  # noqa: E402
     run_backtest,
 )
 from qtr.validation.statistics import (  # noqa: E402
+    benchmark_significance_gate,
     compare_to_benchmark,
     sharpe_ratio,
     walk_forward_splits,
@@ -214,7 +215,7 @@ def evaluate_gates(oos_res, train_res, benchmark_oos, prices, oos_mask, selected
     pass_wf = (wf_stab >= GATES["min_walkforward_stability"]) if np.isfinite(wf_stab) else False
     pass_reg = worst_reg >= GATES["min_worst_regime_sharpe"] if np.isfinite(worst_reg) else False
     pass_bench = (
-        (pval <= GATES["max_p_value"] and ir >= GATES["min_information_ratio"])
+        (benchmark_significance_gate(pval, ir, GATES["max_p_value"]))
         if (np.isfinite(pval) and np.isfinite(ir))
         else False
     )

@@ -37,6 +37,7 @@ from qtr.backtest.engine import (
 from qtr.data.fetcher import DataFetcher
 from qtr.tracking.experiment import get_tracker
 from qtr.validation.statistics import (
+    benchmark_significance_gate,
     compare_to_benchmark,
     sharpe_ratio,
     walk_forward_splits,
@@ -308,7 +309,11 @@ def evaluate_gates(train_m, oos_m, wf_ratio, worst_regime, bench, perturb) -> tu
         "max_drawdown": abs(oos_m["max_drawdown"]) <= GATES["max_drawdown"],
         "wf_stability": wf_ratio >= GATES["min_walkforward_stability"],
         "worst_regime": worst_regime >= GATES["min_worst_regime_sharpe"],
-        "benchmark": bench["alpha_p_value"] <= GATES["max_p_value"]
+        "benchmark": benchmark_significance_gate(
+            bench["alpha_p_value"],
+            bench["information_ratio"],
+            GATES["max_p_value"],
+        )
         and bench["information_ratio"] >= GATES["min_information_ratio"],
         "perturbation": perturb["min_ratio_vs_optimum"] >= GATES["min_perturbed_sharpe_ratio"],
     }
