@@ -1,0 +1,95 @@
+{
+  "experiment": "nf_20261110_03_equity_pc_ratio",
+  "nf_id": "NF-20261110-03",
+  "hypothesis": "H178",
+  "timestamp_utc": "2026-11-10T05:55:31Z",
+  "runtime_sec": 24.521,
+  "data": {
+    "spy_rows": 4233,
+    "pc_rows": 4233,
+    "start": "2010-01-04",
+    "end": "2026-10-30",
+    "train_end_exclusive": "2018-05-31",
+    "val_start": "2018-05-31",
+    "test_start": "2022-08-12",
+    "oos_rows": 2117
+  },
+  "selected": {
+    "pc_window": 20,
+    "entry_z": 0.5,
+    "exit_z": -0.5,
+    "vol_target": 0.1,
+    "mode": "contrarian"
+  },
+  "wf_train_sharpe": 0.0,
+  "train_selected_sharpe": 0.0,
+  "oos_val_test": {
+    "sharpe": 0.0,
+    "profit_factor": 0.0,
+    "max_drawdown": 0.0,
+    "trades": 0,
+    "periods": 2117,
+    "total_return": 0.0,
+    "equity_end": 1000000.0,
+    "worst_regime_rolling252_sharpe": 0.0
+  },
+  "benchmark_buy_hold_oos": {
+    "sharpe": 0.0,
+    "profit_factor": 0.0,
+    "max_drawdown": 0.0,
+    "trades": 0,
+    "periods": 2117,
+    "total_return": 0.0,
+    "equity_end": 1000000.0,
+    "worst_regime_rolling252_sharpe": 0.0
+  },
+  "ablations": {
+    "random_signal_oos": {
+      "sharpe": 0.0,
+      "profit_factor": 0.0,
+      "max_drawdown": 0.0,
+      "trades": 0,
+      "periods": 2117,
+      "total_return": 0.0,
+      "equity_end": 1000000.0,
+      "worst_regime_rolling252_sharpe": 0.0
+    },
+    "inverse_signal_oos": {
+      "sharpe": 0.0,
+      "profit_factor": 0.0,
+      "max_drawdown": 0.0,
+      "trades": 0,
+      "periods": 2117,
+      "total_return": 0.0,
+      "equity_end": 1000000.0,
+      "worst_regime_rolling252_sharpe": 0.0
+    },
+    "inverse_mode": "momentum"
+  },
+  "wf_stability_oos_over_train": 0.0,
+  "benchmark_pvalue_one_sided": 1.0,
+  "information_ratio_vs_buy_hold": 0.0,
+  "perturbation": {
+    "min_ratio": 0.0,
+    "n_points": 81,
+    "min_sharpe": 0.0
+  },
+  "gates": {
+    "sharpe_ge_1": false,
+    "trades_ge_50": false,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": true,
+    "wf_stability_ge_0_7": false,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_and_ir_ge_0": false,
+    "perturbation_min_ratio_ge_0_5": false
+  },
+  "gates_passed": 1,
+  "verdict": "REJECT",
+  "integrity": {
+    "src_qtr_unchanged": true,
+    "gate_weakening": false,
+    "published_artifacts_modified": false,
+    "selection_holdout_feedback": false
+  }
+}

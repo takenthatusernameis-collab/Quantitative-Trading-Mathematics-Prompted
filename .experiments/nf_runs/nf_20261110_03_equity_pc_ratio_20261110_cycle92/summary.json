@@ -1,0 +1,95 @@
+{
+  "experiment": "nf_20261110_03_equity_pc_ratio",
+  "nf_id": "NF-20261110-03",
+  "hypothesis": "H178",
+  "timestamp_utc": "2026-11-10T05:57:38Z",
+  "runtime_sec": 28.774,
+  "data": {
+    "spy_rows": 4233,
+    "pc_rows": 4233,
+    "start": "2010-01-04",
+    "end": "2026-10-30",
+    "train_end_exclusive": "2018-05-31",
+    "val_start": "2018-05-31",
+    "test_start": "2022-08-12",
+    "oos_rows": 2117
+  },
+  "selected": {
+    "pc_window": 20,
+    "entry_z": 0.5,
+    "exit_z": -0.5,
+    "vol_target": 0.1,
+    "mode": "momentum"
+  },
+  "wf_train_sharpe": 0.9572850494976044,
+  "train_selected_sharpe": 0.846792175302439,
+  "oos_val_test": {
+    "sharpe": 0.5572219153485176,
+    "profit_factor": 1.4069740401946167,
+    "max_drawdown": -0.027830257951330428,
+    "trades": 115,
+    "periods": 2117,
+    "total_return": 0.08286710702721023,
+    "equity_end": 1082867.1070272103,
+    "worst_regime_rolling252_sharpe": -1.0019900517195865
+  },
+  "benchmark_buy_hold_oos": {
+    "sharpe": 0.8188586162298693,
+    "profit_factor": 1.1699600990445793,
+    "max_drawdown": -0.17971865313125535,
+    "trades": 1,
+    "periods": 2117,
+    "total_return": 0.8502977791812969,
+    "equity_end": 1850112.7494033787,
+    "worst_regime_rolling252_sharpe": -0.792151528838115
+  },
+  "ablations": {
+    "random_signal_oos": {
+      "sharpe": 0.8347568827315084,
+      "profit_factor": 1.1636145825408832,
+      "max_drawdown": -0.1121024581630391,
+      "trades": 479,
+      "periods": 2117,
+      "total_return": 0.6331505642654276,
+      "equity_end": 1632987.249209001,
+      "worst_regime_rolling252_sharpe": -0.927484602805402
+    },
+    "inverse_signal_oos": {
+      "sharpe": -0.15587206551001448,
+      "profit_factor": 0.9091221882558912,
+      "max_drawdown": -0.09247095306497,
+      "trades": 98,
+      "periods": 2117,
+      "total_return": -0.03170508697041641,
+      "equity_end": 968198.0835382807,
+      "worst_regime_rolling252_sharpe": -1.1604260795505075
+    },
+    "inverse_mode": "contrarian"
+  },
+  "wf_stability_oos_over_train": 0.6580385738088582,
+  "benchmark_pvalue_one_sided": 0.9830084957521239,
+  "information_ratio_vs_buy_hold": -0.7311626221460976,
+  "perturbation": {
+    "min_ratio": 0.5881353429264771,
+    "n_points": 81,
+    "min_sharpe": 0.32772190226964876
+  },
+  "gates": {
+    "sharpe_ge_1": false,
+    "trades_ge_50": true,
+    "pf_ge_1_3": true,
+    "maxdd_le_15pct": true,
+    "wf_stability_ge_0_7": false,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_and_ir_ge_0": false,
+    "perturbation_min_ratio_ge_0_5": true
+  },
+  "gates_passed": 4,
+  "verdict": "REJECT",
+  "integrity": {
+    "src_qtr_unchanged": true,
+    "gate_weakening": false,
+    "published_artifacts_modified": false,
+    "selection_holdout_feedback": false
+  }
+}

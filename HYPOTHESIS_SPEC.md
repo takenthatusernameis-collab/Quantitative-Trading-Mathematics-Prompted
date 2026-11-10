@@ -8439,3 +8439,40 @@ Benchmark buy-hold SPY OOS: Sharpe 0.810, total return +83.7%. Inverse-regime di
 **Cycle 91 complete.** H85–H177 all rejected/recorded. `src/qtr` unchanged; pinned suite not rerun (no `src/qtr` change). No commit/push. Deferred pool unchanged (NF-16, NF-18, NF-19, NF-02, NF-22, NF-23, NF-12, NF-20, NF-04, NF-05, NF-08-16, NF-09-03 remain deferred with documented risks). Next unused H-ID is H178. Per directive §4/§6, Cycle 92 requires a fresh mechanism search across ≥3 repo-new broad categories before selecting H178 — do not recycle parameter/instrument/universe/timeframe variants of rejected families.
 
 (End of file)
+
+
+---
+
+### Hypothesis H178: CBOE Equity Put/Call Ratio Regime Timing (Options Sentiment/Positioning)
+
+**Statement.** Trailing z-score of the CBOE daily equity put/call volume ratio provides a point-in-time sentiment/positioning regime for SPY. A vol-targeted SPY exposure rule (contrarian or momentum mode with hysteresis, 1-bar delayed) targeting net OOS (Val+Test) Sharpe ≥ 1.0 with ≥ 50 trades, PF ≥ 1.3, max DD ≤ 15%, WF stability ≥ 0.7, worst-regime rolling-252 Sharpe ≥ 0.3, benchmark p ≤ 0.05 vs buy-hold SPY with IR ≥ 0, and perturbation min ratio ≥ 0.5.
+
+**Mechanism (repo-new root execution).** Equity put/call volume ratio reflects crowd hedging/speculation positioning; extremes may precede sentiment mean reversion or persistence. Distinct from exhausted VIX-complex/implied-surface families (H17/H86/H89/H100/H104/H105/H165/H167): observable is *options volume positioning/sentiment ratio*, not implied vol level/term structure/skew/vol-of-vol.
+
+**Null (H0).** CBOE equity put/call ratio has no predictive power for next-period SPY returns beyond random chance after costs.
+
+**Pre-registration (Cycle 92, decision-ready before validation outcomes).** NF-20261110-03, H178. Data: SPY daily Close (yfinance) + CBOE equity P/C CSV (free PIT). 2010-01-04→2026-10-30. Train 2010-01-04→2018-05-31 (50%), Val 2018-06-01→2022-08-12, Test protected 2022-08-13→2026-10-30. OOS gates on Val+Test only; train-only 4-fold WF Sharpe selection. Grid 108: `pc_window {20,60,120} × entry_z {0.5,1.0,1.5} × exit_z {-0.5,0.0,0.5} × vol_target {0.10,0.15} × mode {contrarian,momentum}`. Equity CostModel defaults (1bp+1bp), MAX_POS 0.5, long-only exposure, 1-bar delay via engine. No gate weakening.
+
+**Gates (OOS Val+Test, fail-closed).** Sharpe≥1.0; trades≥50; PF≥1.3; maxDD≤15%; WF stability≥0.7; worst-regime rolling-252 Sharpe≥0.3; benchmark p≤0.05 with IR≥0; perturbation min ratio≥0.5.
+
+---
+
+### H178 Execution (Cycle 92) — REAL
+
+**Runner:** `run_nf_20261110_03_equity_pc_ratio.py`. **Tests:** `tests/test_nf_20261110_03_equity_pc_ratio.py` (14 passed). `ruff check/format --check` clean. `src/qtr` unchanged.
+
+**Execution.** 2026-11-10T05:57:38Z (28.8s). SPY+CBOE P/C aligned 4233 rows (2010-01-04→2026-10-30). OOS Val+Test 2117 rows. Selected (train-only WF 0.957, train 0.847): `pc_window=20, entry_z=0.5, exit_z=-0.5, vol_target=0.10, mode=momentum`. Artifact `.experiments/nf_runs/nf_20261110_03_equity_pc_ratio_20261110_cycle92/summary.json`.
+
+**Result — REJECT (4/8 gates).** OOS Sharpe **0.557** (fail), PF **1.407** (pass), maxDD **−2.78%** (pass), trades **115** (pass), WF stability **0.658** (fail), worst-regime rolling-252 Sharpe **−1.002** (fail), benchmark p **0.983** / IR **−0.731** vs buy-hold SPY 0.819/+85.03% (fail), perturbation min ratio **0.588** (pass). Strategy +8.29%.
+
+**Ablations.** Random-signal Sharpe **0.835** (outperformed). Inverse-mode (contrarian) Sharpe **−0.156**.
+
+**Verdict rationale.** No certifiable sentiment edge: key risk-adjusted/benchmark/regime/WF gates fail and random-signal falsifier outperforms selected strategy. `src/qtr` unchanged; no gate weakening.
+
+**Lineage map (H178 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Options market sentiment / positioning (equity P/C ratio regime timing) | H178 (NF-20261110-03) | Vol-targeted SPY exposure by trailing z-score of CBOE equity P/C ratio (momentum/contrarian, hysteresis, 1-bar delay) | SPY daily (yfinance) + CBOE equity P/C CSV, 2010–2026 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261110_03_equity_pc_ratio_20261110_cycle92/summary.json`) | OOS Sharpe 0.557, WF 0.658, worst-regime −1.002, bench fail; random-signal outperforms (0.835) |
+
+**Cycle 92 complete.** H85–H178 all rejected/recorded. `src/qtr` unchanged. No commit/push. Next unused H-ID **H179**. Cycle 93 requires directive §4 discovery (≥3 repo-new/decisive candidates across ≥3 broad mechanism categories, honest scoring, NF-root checks) before selecting H179.
