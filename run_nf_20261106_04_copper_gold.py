@@ -287,7 +287,7 @@ def main() -> int:
         raise RuntimeError(f"fetch_yahoo returned {type(raw)}, expected dict")
 
     def _close(df):
-        c = df.get("adj_close") if "adj_close" in df.columns else df.get("close")
+        c = df.get("close")
         if c is None:
             c = df.get("Close")
         if c is None:

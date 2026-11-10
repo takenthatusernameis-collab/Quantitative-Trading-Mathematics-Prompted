@@ -107,13 +107,9 @@ def _align_prices(fetcher: DataFetcher, symbols, start: str, end: str) -> pd.Dat
         if df is None or df.empty:
             raise RuntimeError(f"Data fetch failed for {s}")
         col = (
-            "adj_close"
-            if "adj_close" in df.columns
-            else (
-                "close"
-                if "close" in df.columns
-                else ("Close" if "Close" in df.columns else df.columns[0])
-            )
+            "close"
+            if "close" in df.columns
+            else ("Close" if "Close" in df.columns else df.columns[0])
         )
         c = df[col].astype(float)
         if (c <= 0).any():
