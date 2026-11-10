@@ -339,7 +339,7 @@ def evaluate_gates(train_m, oos_m, wf_ratio, worst_regime, bench, perturb) -> tu
         "wf_stability": wf_ratio >= GATES["min_walkforward_stability"],
         "worst_regime": worst_regime >= GATES["min_worst_regime_sharpe"],
         "benchmark": benchmark_significance_gate(
-            bench["alpha_p_value"],
+            bench["p_value"],
             bench["information_ratio"],
             GATES["max_p_value"],
         )
@@ -498,7 +498,7 @@ def main() -> int:
             "oos_max_dd": oos_m["max_drawdown"],
             "wf_ratio": wf_ratio,
             "worst_regime": worst_regime,
-            "benchmark_p": bench_out["alpha_p_value"],
+            "benchmark_p": bench_out["p_value"],
             "benchmark_ir": bench_out["information_ratio"],
             "perturb_min_ratio": perturb["min_ratio_vs_optimum"],
             "gates_passed": int(passed),
