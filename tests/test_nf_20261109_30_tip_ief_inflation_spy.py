@@ -41,18 +41,14 @@ def test_rolling_z_shape_and_nans():
 
 def test_build_signal_bounds_and_columns():
     prices = _prices()
-    sig = build_signal(
-        prices, mom_window=21, z_window=126, entry_scale=1.0, vol_target=0.15
-    )
+    sig = build_signal(prices, mom_window=21, z_window=126, entry_scale=1.0, vol_target=0.15)
     assert list(sig.columns) == ["SPY"]
     assert sig["SPY"].between(0.0, 0.5 + 1e-12).all()
 
 
 def test_build_signal_zero_when_z_nan():
     prices = _prices(200)
-    sig = build_signal(
-        prices, mom_window=21, z_window=126, entry_scale=1.0, vol_target=0.15
-    )
+    sig = build_signal(prices, mom_window=21, z_window=126, entry_scale=1.0, vol_target=0.15)
     assert (sig["SPY"].iloc[:125] == 0.0).all()
 
 
@@ -100,8 +96,6 @@ def test_de_risk_direction_negative_z_reduces_exposure():
     tip = pd.Series(np.linspace(100, 90, n), index=idx)
     ief = pd.Series(100.0, index=idx)
     prices = pd.DataFrame({"SPY": spy, "TIP": tip, "IEF": ief}, index=idx)
-    sig = build_signal(
-        prices, mom_window=21, z_window=126, entry_scale=1.0, vol_target=0.15
-    )
+    sig = build_signal(prices, mom_window=21, z_window=126, entry_scale=1.0, vol_target=0.15)
     tail = sig["SPY"].iloc[150:]
     assert (tail < 0.5).any()

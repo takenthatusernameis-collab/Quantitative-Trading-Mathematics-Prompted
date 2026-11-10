@@ -52,9 +52,7 @@ DAYS_PER_YEAR = 252
 
 
 def fetch_prices() -> pd.DataFrame:
-    raw = yf.download(
-        SYMBOLS, start=START, end=END, auto_adjust=True, progress=False
-    )
+    raw = yf.download(SYMBOLS, start=START, end=END, auto_adjust=True, progress=False)
     if isinstance(raw.columns, pd.MultiIndex):
         close = raw["Close"].copy()
     else:
@@ -126,9 +124,9 @@ def worst_regime_sharpe(returns: pd.Series, window: int = 252) -> float:
     if len(returns) < window:
         return float("nan")
     roll = returns.rolling(window).apply(
-        lambda x: (x.mean() / x.std(ddof=0) * math.sqrt(DAYS_PER_YEAR))
-        if x.std(ddof=0) > 0
-        else 0.0,
+        lambda x: (
+            (x.mean() / x.std(ddof=0) * math.sqrt(DAYS_PER_YEAR)) if x.std(ddof=0) > 0 else 0.0
+        ),
         raw=False,
     )
     return float(roll.min())
@@ -153,9 +151,7 @@ def _run_backtest_daily(prices: pd.DataFrame, signal: pd.DataFrame) -> dict:
         mdd = float(m.get("max_drawdown", float("nan")))
         trades = int(m.get("num_trades", 0))
     else:
-        sharpe = float(
-            getattr(m, "sharpe_ratio", getattr(m, "sharpe", float("nan")))
-        )
+        sharpe = float(getattr(m, "sharpe_ratio", getattr(m, "sharpe", float("nan"))))
         pf = float(getattr(m, "profit_factor", float("nan")))
         mdd = float(getattr(m, "max_drawdown", float("nan")))
         trades = int(getattr(m, "trades_count", getattr(m, "num_trades", 0)))
@@ -278,9 +274,7 @@ def main() -> None:
                 "train_trades": tr["trades"],
             }
         )
-    grid_df = pd.DataFrame(rows).sort_values(
-        ["wf_sharpe", "train_sharpe"], ascending=False
-    )
+    grid_df = pd.DataFrame(rows).sort_values(["wf_sharpe", "train_sharpe"], ascending=False)
     best = grid_df.iloc[0].to_dict()
     selected = {
         "mom_window": int(best["mom_window"]),
@@ -340,9 +334,7 @@ def main() -> None:
     pert = perturbation_min_ratio(prices, selected, oos_ev["sharpe"], oos_idx)
 
     gates = {
-        "sharpe_ge_1": bool(
-            math.isfinite(oos_ev["sharpe"]) and oos_ev["sharpe"] >= 1.0
-        ),
+        "sharpe_ge_1": bool(math.isfinite(oos_ev["sharpe"]) and oos_ev["sharpe"] >= 1.0),
         "profit_factor_ge_1_3": bool(
             math.isfinite(oos_ev["profit_factor"]) and oos_ev["profit_factor"] >= 1.3
         ),
@@ -356,9 +348,7 @@ def main() -> None:
             and oos_ev["worst_regime_sharpe_252"] >= 0.3
         ),
         "benchmark_p_le_0_05_ir_ge_0": bool(p <= 0.05 and ir >= 0.0),
-        "perturbation_min_ratio_ge_0_5": bool(
-            math.isfinite(pert) and pert >= 0.5
-        ),
+        "perturbation_min_ratio_ge_0_5": bool(math.isfinite(pert) and pert >= 0.5),
     }
     passed = sum(1 for v in gates.values() if v)
     verdict = "ACCEPT" if passed == 8 else "REJECT"

@@ -214,7 +214,8 @@ def _regime_sharpes(returns: np.ndarray, window: int = 252):
 
 def _perturbation(prices: pd.DataFrame, params: dict, cfg: BacktestConfig):
     base_sig = build_max_lottery_signal(prices, **params)
-    base = run_backtest(prices[[SPY]], base_sig, cfg).metrics["sharpe"]
+    base_bt = run_backtest(prices[[SPY]], base_sig, cfg)
+    base = sharpe_ratio(base_bt.returns.values)
     ratios = []
     for dlb in (-5, 5):
         for dzw in (-21, 21):
@@ -223,7 +224,8 @@ def _perturbation(prices: pd.DataFrame, params: dict, cfg: BacktestConfig):
                 zw = max(63, params["z_window"] + dzw)
                 es = max(0.25, params["entry_scale"] + des)
                 sig = build_max_lottery_signal(prices, lb, zw, es, params["vol_target"])
-                sh = run_backtest(prices[[SPY]], sig, cfg).metrics["sharpe"]
+                bt = run_backtest(prices[[SPY]], sig, cfg)
+                sh = sharpe_ratio(bt.returns.values)
                 if base and not np.isnan(base) and base > 0:
                     ratios.append(float(sh / base))
     return {
@@ -235,12 +237,11 @@ def _perturbation(prices: pd.DataFrame, params: dict, cfg: BacktestConfig):
 
 
 def evaluate_gates(oos_result, train_result, bench_oos, prices, oos_mask, params, cfg) -> dict:
-    m = oos_result.metrics
     oos_rets = oos_result.returns.fillna(0.0).values
     pf = _profit_factor(oos_rets)
     regime = _regime_sharpes(oos_rets)
-    train_sh = train_result.metrics["sharpe"]
-    oos_sh = m["sharpe"]
+    train_sh = sharpe_ratio(train_result.returns.values)
+    oos_sh = sharpe_ratio(oos_result.returns.values)
     if train_sh and not np.isnan(train_sh) and train_sh > 0:
         wf_stab = float(oos_sh / train_sh)
     else:
@@ -252,21 +253,17 @@ def evaluate_gates(oos_result, train_result, bench_oos, prices, oos_mask, params
     pval = 1.0 if pval is None or (isinstance(pval, float) and np.isnan(pval)) else float(pval)
     pert = _perturbation(prices.loc[oos_mask], params, cfg)
     pass_sh = bool(oos_sh >= GATES["min_sharpe"])
-    pass_tr = bool(m["num_trades"] >= GATES["min_trades"])
+    pass_tr = bool(oos_result.metrics["num_trades"] >= GATES["min_trades"])
     pass_pf = bool(pf >= GATES["min_profit_factor"])
-    pass_dd = bool(abs(m["max_drawdown"]) <= GATES["max_drawdown"])
+    pass_dd = bool(abs(oos_result.metrics["max_drawdown"]) <= GATES["max_drawdown"])
     pass_wf = bool(wf_stab >= GATES["min_walkforward_stability"])
     pass_reg = bool(regime.get("min", -9) >= GATES["min_worst_regime_sharpe"])
     pass_bench = bool((pval <= GATES["max_p_value"]) and (ir >= GATES["min_information_ratio"]))
     pass_pert = bool(pert["min_ratio"] >= GATES["min_perturbed_sharpe_ratio"])
     gates = {
-        "oos_sharpe_gte_1_0": {
-            "value": oos_sh,
-            "threshold": GATES["min_sharpe"],
-            "pass": pass_sh,
-        },
+        "oos_sharpe_gte_1_0": {"value": oos_sh, "threshold": GATES["min_sharpe"], "pass": pass_sh},
         "trades_gte_200": {
-            "value": m["num_trades"],
+            "value": oos_result.metrics["num_trades"],
             "threshold": GATES["min_trades"],
             "pass": pass_tr,
         },
@@ -276,7 +273,7 @@ def evaluate_gates(oos_result, train_result, bench_oos, prices, oos_mask, params
             "pass": pass_pf,
         },
         "max_drawdown_lte_15pct": {
-            "value": abs(m["max_drawdown"]),
+            "value": abs(oos_result.metrics["max_drawdown"]),
             "threshold": GATES["max_drawdown"],
             "pass": pass_dd,
         },
