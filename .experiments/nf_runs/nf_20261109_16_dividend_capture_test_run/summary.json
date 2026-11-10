@@ -1,0 +1,103 @@
+{
+  "experiment": "nf_20261109_16_dividend_capture",
+  "nf_id": "NF-20261109-16",
+  "hypothesis": "H180",
+  "timestamp_utc": "2026-11-10T12:56:46Z",
+  "runtime_sec": 7.988,
+  "data": {
+    "spy_rows": 4233,
+    "dividend_ex_date_counts": {
+      "SPY": 136,
+      "XLF": 111,
+      "XLE": 112,
+      "XLV": 106,
+      "XLI": 110,
+      "XLB": 111,
+      "XLP": 111,
+      "XLU": 112,
+      "XLY": 111,
+      "XLC": 33,
+      "XLK": 85
+    },
+    "start": "2010-01-04",
+    "end": "2026-10-30",
+    "train_end": "2018-12-31",
+    "val_end": "2022-12-31",
+    "test_end": "2026-10-30",
+    "oos_rows": 1969,
+    "note": "yfinance raw daily closes (ex-date price drop visible) + yfinance dividend history (ex-date index)"
+  },
+  "selected": {
+    "hold_days": 2,
+    "vol_target": 0.1,
+    "universe": "SPY"
+  },
+  "wf_train_sharpe": -0.6752113709692179,
+  "train_selected_sharpe": -0.6197777001064914,
+  "oos_val_test": {
+    "sharpe": 0.1942897227961162,
+    "profit_factor": 1.1489737571783891,
+    "max_drawdown": -0.03887643241773153,
+    "trades": 78,
+    "periods": 1969,
+    "total_return": 0.021140151868979773,
+    "worst_regime_rolling252_sharpe": -1.979963120375258
+  },
+  "benchmark_buy_hold_spy_oos": {
+    "sharpe": 0.910634753023023,
+    "profit_factor": 1.1907038829145042,
+    "max_drawdown": -0.17971871758269597,
+    "trades": 0,
+    "periods": 1969,
+    "total_return": 0.907497987031453,
+    "worst_regime_rolling252_sharpe": -0.792150800799392
+  },
+  "ablations": {
+    "random_dates_oos": {
+      "sharpe": 0.08776068722986512,
+      "profit_factor": 1.3356291442673935,
+      "max_drawdown": -0.002651014030341736,
+      "trades": 8,
+      "periods": 1969,
+      "total_return": 0.001195864357066645,
+      "worst_regime_rolling252_sharpe": -1.1235249500923157
+    },
+    "inverse_signal_oos": {
+      "sharpe": 0.0,
+      "profit_factor": 0.0,
+      "max_drawdown": 0.0,
+      "trades": 0,
+      "periods": 1969,
+      "total_return": 0.0,
+      "worst_regime_rolling252_sharpe": 0.0
+    }
+  },
+  "wf_stability_oos_over_train": -0.31348291938017936,
+  "benchmark_pvalue_one_sided": 0.9920039980009995,
+  "information_ratio_vs_buy_hold": -0.8988364032867289,
+  "perturbation": {
+    "min_ratio": -3.115397047801699,
+    "n_points": 9,
+    "min_sharpe": -0.6052896288172308
+  },
+  "gates": {
+    "sharpe_ge_1": false,
+    "trades_ge_50": true,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": true,
+    "wf_stability_ge_0_7": false,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_and_ir_ge_0": false,
+    "perturbation_min_ratio_ge_0_5": false
+  },
+  "gates_passed": 2,
+  "gates_total": 8,
+  "verdict": "REJECT",
+  "integrity": {
+    "src_qtr_unchanged": true,
+    "gate_weakening": false,
+    "published_artifacts_modified": false,
+    "selection_holdout_feedback": false,
+    "real_data": true
+  }
+}

@@ -528,3 +528,52 @@ No deferred candidates silently dropped; all carried forward with documented dec
 | Short-constraint / limits to arbitrage (short interest / securities lending flow) | H179 (NF-20261110-06) | Vol-targeted SPY+sector ETF exposure by trailing z-score of FINRA bi-weekly short interest (hysteresis, PIT publication lag, 1-bar delay) | SPY+sector ETFs daily (yfinance) + FINRA exchange-listed short interest CSV (real), 2018–2026 | **REJECT** (2/8; `.experiments/nf_runs/nf_20261110_06_short_interest_20261110_cycle93/summary.json`) | OOS Sharpe −0.449/PF 0.920/maxDD −16.95%/WF −2.647/worst-regime −1.970/bench fail; train→OOS collapse; inverse/random ablations outperform selected mapping |
 
 ---
+
+
+---
+## Cycle 94 (2026-11-10) — Discovery & REAL Execution of H180 (NF-20261109-16)
+
+**Lineage reconciled to H179.** H85–H179 all rejected/recorded. Next unused H-ID **H180** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged. No published/certified artifact, verdict, threshold, or frozen number modified. Selection/validation used no protected-test feedback. Free/public real data only.
+
+### Deferred candidates reassessed (concrete evidence, Cycle 94; none silently dropped)
+
+| Candidate | Score | Category | Status | Evidence / blocker |
+|---|---:|---|---|---|
+| NF-20261110-07 Russell 2000 annual reconstitution flow | 4.05 | Structural flow / discrete index event | Deferred | Annual frequency → very low OOS statistical power; public reconstitution lists/event alignment complexity; not smallest decisive daily test. Prior distinction from H168 (quarterly S&P rebalance calendar) remains valid but power/execution blocker dominates. |
+| NF-20261110-08 Insider transaction signal (Form 4/13F) | 3.80 | Institutional flow / informed trading | Deferred | PIT Form 4/13F parsing/aggregation/filing-lag handling non-trivial on free data; not decision-ready for minimal real-data test this cycle. |
+| NF-20261109-18 S&P 500 inclusion/deletion | 3.70 | Structural flow / discrete event | Deferred | External calendar dependency; low frequency (~25/yr). |
+| NF-20261109-19 Options dealer GEX | 3.10 | Dealer positioning | Deferred | No free historical options chain/GEX. |
+| NF-20261109-02 Earnings estimate revision momentum | 3.65 | Fundamental / analyst revision | Deferred | No free PIT revision history. |
+| NF-20261109-22 RSP-SPY breadth relmom | 3.75 | Participation relmom | Deferred | Adjacency/recycling risk vs H97/H92/H96/H152/H157/H144/H145. |
+| NF-20261109-23 USMV-SPY low-vol relmom | 3.55 | Factor/style momentum | Deferred | Inception/adjacency limits. |
+| NF-20261109-12 Holiday/pre-holiday drift | 4.00 | Calendar microstructure | HELD | Calendar adjacency H91/H140/H142/H168. |
+| NF-20261110-04 10Y-3M inversion depth de-risking | 3.80 | Macro term-premium | Deferred | Adjacency to H171/H11r curve families (same observable class). |
+| NF-20261110-05 SPY upside/downside jump asymmetry | 3.80 | Higher-moment jump asymmetry | Deferred | Adjacency to H122/H128/H135; low plausibility/support. |
+| NF-04 Commodity carry | — | Carry/term structure | **BLOCKED** | No free PIT term-structure/roll proxy. |
+| NF-05 Short-term CS reversal | — | Liquidity provision | **DEFERRED** | Turnover/net-of-cost; H119 REJECT 3/8. |
+| NF-08-16 Halloween seasonal | 3.90 | Calendar seasonal | **HELD** | Calendar adjacency H91/H140/H142. |
+| NF-09-03 Breakeven-inflation | 3.40 | Macro regime | **DEFERRED/DATA-LIMITED** | ^T5YIE/^T10YIE unavailable; H175 proxy. |
+| NF-20261109-20 Stock split effects | — | Corporate action | DEFERRED | Low frequency; incomplete split data. |
+
+### Cycle 94 discovery (≥3 repo-new/decisive candidates, ≥3 mechanism categories, honest scoring)
+
+| Candidate | NF-ID | Mechanism category | Nov (25) | Plaus (25) | Data (20) | Fals (15) | Exec (10) | Supp (5) | **Weighted** | Decision |
+|---|---|---|---:|---:|---:|---:|---:|---:|---:|---|
+| Dividend capture / ex-dividend microstructure premium | NF-20261109-16 | Corporate action / microstructure | 4 | 3 | 5 | 5 | 3 | 3 | **3.95** | **Selected as H180** |
+| Russell 2000 annual reconstitution flow | NF-20261110-07 | Structural flow / discrete index event | 4 | 4 | 4 | 5 | 3 | 4 | **4.05** | Deferred (annual low power/event alignment; not smallest decisive test) |
+| Insider transaction signal (Form 4/13F flow) | NF-20261110-08 | Institutional flow / informed trading | 4 | 4 | 3 | 5 | 3 | 4 | **3.80** | Deferred (PIT parsing/aggregation complexity on free data) |
+
+**Notes (honest).** NF-20261110-07 highest arithmetic score but deferred on expected-information/power grounds (annual event). NF-20261109-16 chosen as highest expected-information feasible candidate with clean free PIT ex-date/dividend data. A tracked incomplete draft file `run_nf_20261110_07_es_basis.py` (unrelated futures-basis concept, NF-20261110-07/H180 label misuse, no `main`, unexecuted) was relabeled to NF-20261110-09/TBD draft to prevent NF-label collision; it was **not** selected/executed.
+
+### NF-20261109-16 / H180 execution (REAL)
+
+- **Runner:** `run_nf_20261109_16_dividend_capture.py`. **Tests:** `tests/test_nf_20261109_16_dividend_capture.py` (**10 passed**, 1 third-party DeprecationWarning). `py_compile` ok; `ruff check/format --check` clean.
+- **Data:** yfinance raw daily OHLC (`auto_adjust=False`) + dividend history for SPY/sector ETFs, aligned 2010-01-04→2026-10-30 (4233 rows). Ex-dates (sample): SPY 136. Train→2018-12-31, Val→2022-12-31, Test protected→2026-10-30 (OOS 1969).
+- **Grid (12):** `hold_days {0,1,2} × vol_target {0.10,0.15} × universe {SPY,SPY_SECTORS}`. Train-only 4-fold WF selection.
+- **Selected:** `hold_days=2, vol_target=0.10, universe=SPY` (WF −0.675, train −0.620).
+- **OOS Val+Test (1969, 78 trades):** Sharpe **0.194** (fail), PF **1.149** (fail), maxDD **−3.89%** (pass), trades **78** (pass), WF stability **−0.313** (fail), worst-regime rolling-252 **−1.980** (fail), benchmark p **0.992** / IR **−0.899** vs buy-hold SPY 0.911/+90.75% (fail), perturbation min ratio **−3.115** (fail). Return **+2.11%**.
+- **Ablations:** random-dates Sharpe 0.088 / PF 1.336 (8 trades); inverse-signal flat.
+- **Verdict:** **REJECT (2/8)**. Artifact `.experiments/nf_runs/nf_20261109_16_dividend_capture_test_run/summary.json` (+`grid.csv`).
+- **Rationale:** No certifiable ex-dividend microstructure edge on free daily data; unstable train→OOS, low risk-adjusted performance, worst-regime/perturbation/benchmark failures, buy-hold dominates. `src/qtr` unchanged.
+
+**Cycle 94 complete.** H85–H180 all rejected/recorded. Next unused H-ID **H181**. Cycle 95 requires directive §4 discovery before selecting H181.

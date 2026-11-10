@@ -8521,3 +8521,62 @@ Benchmark buy-hold SPY OOS: Sharpe 0.810, total return +83.7%. Inverse-regime di
 | Short-constraint / limits to arbitrage (short interest / securities lending flow) | H179 (NF-20261110-06) | Vol-targeted SPY+sector ETF exposure by trailing z-score of FINRA bi-weekly short interest (hysteresis, PIT publication lag, 1-bar delay) | SPY+sector ETFs daily (yfinance) + FINRA exchange-listed short interest CSV (real), 2018–2026 | **REJECT** (2/8; `.experiments/nf_runs/nf_20261110_06_short_interest_20261110_cycle93/summary.json`) | OOS Sharpe −0.449/PF 0.920/maxDD −16.95%/WF −2.647/worst-regime −1.970/bench fail; train→OOS collapse; inverse/random ablations outperform selected mapping |
 
 **Cycle 93 complete.** H85–H179 all rejected/recorded. `src/qtr` unchanged. No commit/push. Next unused H-ID **H180**. Cycle 94 requires directive §4 discovery (≥3 repo-new/decisive candidates across ≥3 broad mechanism categories, honest scoring, NF-root checks) before selecting H180.
+
+---
+## H180 (NF-20261109-16): Dividend Capture / Ex-Dividend Microstructure Premium (Cycle 94)
+
+**Status:** REAL executed, **REJECT (2/8)**. Free/public real data only (yfinance raw daily OHLC, `auto_adjust=False`, + yfinance dividend history). `src/qtr` unchanged. No published/certified artifact, verdict, threshold, or frozen number modified.
+
+**NF-ID:** NF-20261109-16 (H180). **Broad mechanism category:** Corporate action / microstructure (discrete ex-dividend cash-flow event).
+
+### Directive §4 discovery (Cycle 94, before H180 validation outcomes)
+
+Lineage reconciled to H179 (H85–H179 rejected/recorded; H24/H68–H73/H76–H79 unassigned, not recycled). No executed runner/artifact existed for NF-20261109-16 before this cycle’s REAL run (runner/tests were present in working tree; this cycle executed and recorded artifact). NF-root/label checks: NF-20261110-07 remains deferred (Russell reconstitution) — an unrelated tracked draft file `run_nf_20261110_07_es_basis.py` (futures-basis, incomplete/unexecuted) was renamed to NF-20261110-09/TBD draft to remove NF/H180 label collision and not treated as an executed candidate. NF-20261109-16 is repo-new vs all executed families.
+
+Deferred pool reassessed with concrete evidence (no silent drops): NF-20261110-07 Russell reconstitution (4.05, annual/low power, external calendar/event alignment complexity), NF-20261110-08 insider/Form 4/13F (3.80, PIT parsing/aggregation complexity on free data), NF-18/NF-19/NF-02/NF-22/NF-23/NF-12/NF-20/NF-04/NF-05/NF-08-16/NF-09-03/NF-20261110-04/NF-20261110-05 remain deferred/blocked/held per prior evidence (execution/slippage risk, external calendars, no free PIT options/revision/term-structure data, relmom/calendar/rates adjacency, breakeven-data limits). No exhausted construction recycled without materially different mechanism/observable.
+
+Candidates scored honestly (weights novelty 25 / plausibility 25 / data 20 / falsifiability 15 / execution 10 / support 5):
+
+| Candidate | NF-ID | Mechanism category | Nov | Plaus | Data | Fals | Exec | Supp | **Wtd** | Decision |
+|---|---|---|---:|---:|---:|---:|---:|---:|---:|---|
+| Dividend capture / ex-dividend microstructure premium (SPY/sector ETFs) | NF-20261109-16 | Corporate action / microstructure | 4 | 3 | 5 | 5 | 3 | 3 | **3.95** | **Selected as H180** (smallest decisive real-data test) |
+| Russell 2000 annual reconstitution flow | NF-20261110-07 | Structural flow / discrete index event | 4 | 4 | 4 | 5 | 3 | 4 | **4.05** | Deferred (annual frequency → very low OOS statistical power; event/calendar alignment complexity; not smallest decisive daily test) |
+| Insider transaction signal (Form 4/13F flow) | NF-20261110-08 | Institutional flow / informed trading | 4 | 4 | 3 | 5 | 3 | 4 | **3.80** | Deferred (PIT Form 4/13F parsing/aggregation complexity on free data; not decision-ready for minimal real-data test this cycle) |
+
+**Selection rationale (honest).** NF-20261110-07 scores higher arithmetically but is deferred for low annual event power and alignment complexity (poor expected information per cycle). NF-20261109-16 selected as highest expected-information *feasible/decision-ready* repo-new candidate with clean free PIT ex-date/dividend data and a focused daily backtest. Microstructure/open-slippage risk was pre-registered as a decisive caveat and addressed by real-data evaluation.
+
+### Pre-registration (decision-ready before validation outcomes)
+
+**Mechanism / causal chain.** Ex-dividend dates are discrete corporate cash-flow events. Dividend clientele/microstructure effects can make the ex-date price drop differ from the cash dividend; buying before ex-date and holding through/after may capture net premium if resilient. PIT: ex-date schedule/dividend amount treated as known ex-ante at close t−1 (yfinance ex-date index); position set at close t−1 earns return t→t+1 via engine 1-bar delay plus credited dividend cash on ex-date. Strictly causal.
+
+**Novelty (repo-relative).** Distinct from H173 (dividend-yield/ERP level timing, not ex-div microstructure), H168 (quarterly calendar rebalance flow), H176 (tax-loss harvesting), H174 (ETF premium/discount, invalid), H91/H140/H142 (generic calendar windows), and all other exhausted families. Observable/mechanism: discrete ex-dividend corporate action + microstructure premium, not valuation level, seasonality, or index-rebalance flow.
+
+**Data/splits.** yfinance daily OHLC `auto_adjust=False` (raw, ex-date drop visible) + total-return benchmark `auto_adjust=True`; yfinance dividend history for SPY and sector ETFs (XLF,XLE,XLV,XLI,XLB,XLP,XLU,XLY,XLC,XLK). Aligned 2010-01-04→2026-10-30 (4233 rows). Train → 2018-12-31, Val → 2022-12-31, Test protected → 2026-10-30. OOS gates on Val+Test only (1969 rows). Train-only 4-fold WF selection. No holdout feedback.
+
+**Grid (bounded).** `hold_days {0,1,2} × vol_target {0.10,0.15} × universe {SPY, SPY_SECTORS}` = 12 combos. `MAX_POS=0.5`, Equity `CostModel` defaults (1bp+1bp).
+
+**Gates (OOS Val+Test, fail-closed).** Sharpe≥1.0; trades≥50; PF≥1.3; maxDD≤15%; WF stability≥0.7; worst-regime rolling-252 Sharpe≥0.3; benchmark p≤0.05 with IR≥0; perturbation min ratio≥0.5.
+
+**Null/falsifiers.** Random ex-date control, inverse-signal (flat/long baseline behavior per runner), benchmark buy-hold SPY, OAT perturbation.
+
+### Execution outcome (REAL)
+
+**Runner:** `run_nf_20261109_16_dividend_capture.py`. **Tests:** `tests/test_nf_20261109_16_dividend_capture.py` (**10 passed**, 1 third-party DeprecationWarning). `py_compile` ok; `ruff check/format --check` clean. Runtime ~8.0s. Artifact: `.experiments/nf_runs/nf_20261109_16_dividend_capture_test_run/summary.json` (+`grid.csv`). Dividend ex-date counts (sample): SPY 136, sectors 33–112.
+
+**Selected (train-only WF −0.675, train −0.620):** `hold_days=2, vol_target=0.10, universe=SPY`.
+
+**OOS Val+Test (1969 periods, 78 trades):** Sharpe **0.194** (fail), PF **1.149** (fail), maxDD **−3.89%** (pass), trades **78** (pass), WF stability **−0.313** (fail), worst-regime rolling-252 **−1.980** (fail), benchmark p **0.992** / IR **−0.899** vs buy-hold SPY 0.911/+90.75% (fail), perturbation min ratio **−3.115** (fail). Strategy return **+2.11%**.
+
+**Ablations.** Random-dates OOS Sharpe 0.088 / PF 1.336 (8 trades) / worst-regime −1.124; inverse-signal flat. Buy-hold SPY dominates.
+
+**Result — REJECT (2/8 gates).**
+
+**Verdict rationale.** No certifiable ex-dividend microstructure edge on free daily data: unstable train→OOS, low Sharpe/PF, worst-regime/perturbation/benchmark failures, buy-hold dominates. Low-frequency event nature and ex-date microstructure/slippage sensitivity remain decisive on modeled costs.
+
+**Lineage map (H180 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Corporate action / microstructure (ex-dividend capture) | H180 (NF-20261109-16) | Vol-targeted long exposure around ex-dividend dates (PIT ex-date/dividend, 1-bar delay + dividend cash credit) | SPY/sector ETFs daily raw OHLC + dividend history (yfinance), 2010–2026 | **REJECT** (2/8; `.experiments/nf_runs/nf_20261109_16_dividend_capture_test_run/summary.json`) | OOS Sharpe 0.194/PF 1.149/WF −0.313/worst-regime −1.980/perturb −3.115/bench fail; unstable, buy-hold dominates; microstructure/slippage sensitivity on free data |
+
+**Cycle 94 complete.** H85–H180 all rejected/recorded. `src/qtr` unchanged. No commit/push. Next unused H-ID **H181**. Cycle 95 requires directive §4 discovery (≥3 repo-new/decisive candidates across ≥3 broad mechanism categories, honest scoring, NF-root checks, deferred reassessment with evidence) before selecting H181.

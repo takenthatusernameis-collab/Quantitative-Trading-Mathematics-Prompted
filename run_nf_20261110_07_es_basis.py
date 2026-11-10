@@ -1,4 +1,4 @@
-"""NF-20261110-07 / H180 (Cycle 94): S&P 500 E-mini Futures-to-Spot Basis Regime Timing.
+"""NF-20261110-09 / DRAFT (unexecuted): S&P 500 E-mini Futures-to-Spot Basis Regime Timing.
 
 Repo-new root family: futures-basis / index-arbitrage transmission. Distinct from all
 exhausted families: TSMOM (H1/H7-12/21-23/25), cross-sectional momentum (H2/H16),
@@ -53,8 +53,8 @@ except Exception:  # pragma: no cover
 from qtr.backtest.engine import AssetClass, BacktestConfig, CostModel, run_backtest
 
 EXPERIMENT = "nf_20261110_07_es_basis"
-NF_ID = "NF-20261110-07"
-HYPOTHESIS = "H180"
+NF_ID = "NF-20261110-09"
+HYPOTHESIS = "TBD"
 START = "2010-01-01"
 END = "2026-11-09"
 MAX_POS = 0.5
@@ -297,8 +297,7 @@ def _benchmark_pvalue(strat: pd.Series, bench: pd.Series, n_boot: int = 2000) ->
     rng = np.random.default_rng(SEED)
     centered = diff - obs
     boots = [
-        float(rng.choice(centered, size=len(centered), replace=True).mean())
-        for _ in range(n_boot)
+        float(rng.choice(centered, size=len(centered), replace=True).mean()) for _ in range(n_boot)
     ]
     boots_arr = np.array(boots)
     p = (1.0 + float(np.sum(boots_arr >= obs))) / (n_boot + 1.0)
