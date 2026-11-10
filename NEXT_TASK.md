@@ -12,6 +12,9 @@ Cycle 97 infrastructure fixes for engine-Sharpe contract remain verified (`tests
 
 ## Precise next task (bounded, no behavior change)
 Create `INFRASTRUCTURE_AUDIT_BENCHMARK_GATE.md` inventorying the 38 offenders reported by `test_no_runner_compares_a_p_value_against_max_p_value_directly`:
+
+**Status: COMPLETE.** `INFRASTRUCTURE_AUDIT_BENCHMARK_GATE.md` written with the full offender table (runner path, line, NF ID, offending comparison snippet, linked `.experiments/nf_runs/*` artifact dirs), summary counts by NF family/date bucket, and artifact presence (31/38 with artifacts, 7 without). Pointers added to `HANDOFF_NEXT.md` and `HANDOFF_CURRENT_SESSION.md`.
+
 - For each: runner path, line(s), offending comparison snippet, NF/H identifier (from filename/header/comments when available), and linked `.experiments/nf_runs/*` artifact dirs if present.
 - Add short summary counts by NF family/date bucket.
 - Update `HANDOFF_NEXT.md` and `HANDOFF_CURRENT_SESSION.md` pointers to this audit file.

@@ -28,5 +28,10 @@
 - Do not claim full-suite green when `benchmark_gate_contract` fails. Do not mass-edit NF runners to satisfy benchmark gate contract without understanding each runner's historical gate semantics and artifact provenance.
 - Prior H85–H181 all rejected on free PIT data (see `HANDOFF_NEXT.md`).
 
-## One precise next task
-**Bounded audit/documentation task:** produce a machine-readable inventory of the 38 offending runners from `test_no_runner_compares_a_p_value_against_max_p_value_directly` (file, line, gate context, associated NF/H ID from filename or headers, whether result artifacts exist under `.experiments/nf_runs/`) and record it in a new `INFRASTRUCTURE_AUDIT_BENCHMARK_GATE.md` plus concise pointer updates in `HANDOFF_NEXT.md`/`NEXT_TASK.md`. Do **not** modify runner logic, `src/qtr`, gates, or artifacts. Re-verify `ruff`, `tests/test_engine_metric_agreement.py`, focused core tests, and `tests/test_benchmark_gate_contract.py` (expected same 1 failure) and report exact counts.
+## This session (Cycle 98 audit) — completed
+- Produced `INFRASTRUCTURE_AUDIT_BENCHMARK_GATE.md`: machine-readable inventory of all **38** offenders from `test_no_runner_compares_a_p_value_against_max_p_value_directly` (runner path, line, NF ID, offending comparison snippet, artifact presence under `.experiments/nf_runs/`), plus counts by date bucket (2026-11-04: 1, 2026-11-05: 10, 2026-11-06: 19, 2026-11-07: 8) and comparison form (15 / 2 / 17 / 4). **31** of 38 runners have a committed `.experiments/nf_runs/<slug>/summary.json`; **7** have none.
+- No source/runner/test/gate/artifact changes; no commit/push.
+- Pointers added to `HANDOFF_NEXT.md`.
+
+## One precise next task (unchanged scope, now documented)
+The audit is complete. Remaining: re-verify `ruff`, `tests/test_engine_metric_agreement.py`, focused core tests, and `tests/test_benchmark_gate_contract.py` (expected same 1 failure) and report exact counts; then hand off to next agent. H182 remains unassigned; NF discovery queue exhausted per Cycle 96.
