@@ -33,6 +33,7 @@ No gate, threshold, verdict or certified number is changed by this audit.
 """
 
 import json
+import math
 import os
 import sys
 import time
@@ -212,10 +213,27 @@ def engine_gross_returns(prices: pd.DataFrame, positions: pd.DataFrame) -> pd.Se
 
 
 def engine_costs(prices: pd.DataFrame, positions: pd.DataFrame) -> pd.Series:
-    """The engine's per-bar transaction-cost series (fraction of capital)."""
-    backtester = VectorizedBacktester(backtest_config())
+    """The engine's per-bar transaction-cost series (fraction of capital).
+
+    Replicates the FUTURE cost path of ``VectorizedBacktester.run``:
+    ``contracts = |dWeight| x capital / (price x multiplier)`` and
+    ``cost = contracts x cost_per_contract / capital``, summed across symbols
+    per bar.
+    """
+    cfg = backtest_config()
+    cost_model = cfg.cost_model
+    capital = float(cfg.initial_capital)
     changes = positions.diff().fillna(positions.iloc[0])
-    return backtester._calculate_costs(changes, prices, None, None)
+    costs = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
+    for sym in prices.columns:
+        multiplier = cost_model.get_future_contract_multiplier(sym)
+        if not (math.isfinite(multiplier) and multiplier > 0.0):
+            continue
+        per_contract = cost_model.future_cost_per_contract(sym)
+        price_sym = prices[sym].astype(float)
+        contracts = changes[sym].abs() * capital / (price_sym * multiplier)
+        costs[sym] = contracts * per_contract / capital
+    return costs.sum(axis=1)
 
 
 def costs_from_trades(trades: pd.DataFrame) -> pd.Series:
