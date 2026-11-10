@@ -450,3 +450,93 @@ No deferred candidates silently dropped; all carried forward with documented dec
 | Options market sentiment / positioning (equity P/C ratio regime timing) | H178 (NF-20261110-03) | Vol-targeted SPY exposure gated by trailing z-score of CBOE equity put/call ratio (contrarian/momentum modes, hysteresis, 1-bar delay) | SPY daily (yfinance) + CBOE equity P/C CSV, 2010–2026 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261110_03_equity_pc_ratio_20261110_cycle92/summary.json`) | OOS Sharpe 0.557/WF 0.658/worst-regime −1.002/benchmark fail; random-signal ablation outperforms (0.835); no reliable sentiment edge after costs |
 
 **Cycle 92 complete.** H85–H178 all rejected/recorded. `src/qtr` unchanged; pinned suite not rerun (no `src/qtr` change). No commit/push. Deferred pool carried forward with evidence (no silent drops): NF-16, NF-18, NF-19, NF-02, NF-22, NF-23, NF-12 (held), NF-20, NF-04 (blocked), NF-05, NF-08-16 (held), NF-09-03 (data-limited), NF-20261110-04, NF-20261110-05. Next unused H-ID **H179**. Cycle 93 requires directive §4 discovery (≥3 repo-new/decisive candidates across ≥3 broad mechanism categories, honest scoring, NF-root checks) before selecting H179; do not recycle exhausted constructions without materially different mechanism/observable.
+
+---
+## Cycle 93 (2026-11-10) — Discovery / Pre-registration & Selection of H179
+
+**Lineage reconciled to H178 (H85–H178 all rejected/recorded).** Next unused H-ID **H179** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified. Selection/validation uses no protected-test feedback. Free/public data only.
+
+### Deferred candidates reassessed (concrete evidence, Cycle 93; none silently dropped)
+
+| Candidate | Score | Category | Status | Evidence / blocker |
+|---|---:|---|---|---|
+| NF-20261109-16 Dividend capture / ex-dividend microstructure premium | 4.05 | Corporate action / microstructure | Deferred | Overnight/open slippage risk decisive on free data; tax-clientele/microstructure fragility; mixed literature post-costs. Adjacency to NF-20 (stock splits) and H173 (ERP level) disclosed — distinct mechanism (microstructure capture vs valuation level). |
+| NF-20261109-18 S&P 500 inclusion/deletion discrete event flow | 3.70 | Structural flow / discrete event | Deferred | External calendar dependency (S&P/Wikipedia) not purely yfinance-self-contained; low frequency (~25 events/yr) limits statistical power; event alignment complexity. Adjacency to H168 (quarterly calendar rebalance) distinct mechanism but data dependency remains blocker. |
+| NF-20261109-19 Options dealer gamma exposure (GEX) | 3.10 | Market structure / dealer positioning | Deferred | No free historical options chain/GEX data unavailable; yfinance `option_chain` provides only current snapshot; CBOE/SpotGamma historical data not free. Adjacency to VIX-complex families (H17/H86/H89/H100/H104/H105/H165/H167) — distinct mechanism (dealer hedging flows vs vol level/term structure) but data infeasible. |
+| NF-20261109-02 Earnings estimate revision momentum | 3.65 | Fundamental / analyst revision | Deferred | No free PIT revision history; yfinance provides only current consensus snapshot; revision-history PIT construction requires paid data (IBES, FactSet) or careful web scraping with survivorship risk. Adjacency to H98 (PEAD) distinct timing/mechanism but data infeasible. |
+| NF-20261109-22 RSP-SPY breadth-participation relmom | 3.75 | Cross-asset participation / factor momentum | Deferred | Adjacency to H97 (RSP-SPY same pair), H92/H96/H152/H157/H144/H145 (relmom families) — mechanism distinction (breadth/equal-weight vs cap-weight) must be explicit; high risk of silent recycling of exhausted relmom category. |
+| NF-20261109-23 USMV-SPY low-vol factor relmom | 3.55 | Factor anomaly / style momentum | Deferred | USMV inception 2011 limits history; style momentum adjacency to exhausted factor families; low-vol anomaly crowded/decayed literature. |
+| NF-20261109-12 Holiday / pre-holiday drift SPY timing | 4.00 | Calendar microstructure | HELD | Calendar adjacency to H91/H140/H142/H168 exhausted calendar families; no materially distinct mechanism from seasonal window. |
+| NF-20261110-04 10Y-3M yield-curve inversion depth de-risking | 3.80 | Macro term-premium / recession-risk transmission | Deferred | Honest adjacency to H171/H11r yield-slope/level families (same observable class). Yield-curve depth is a parameter/instrument variant of exhausted curve-slope family, not a new root mechanism. |
+| NF-20261110-05 SPY realized upside/downside jump asymmetry stress timing | 3.80 | Higher-moment / jump-risk asymmetry | Deferred | Low plausibility/support post-costs; adjacency to H122/H128/H135 (semivariance, realized skew, realized vol-of-vol). Realized jump asymmetry is a construction variant within exhausted higher-moment stress family. |
+| NF-04 Commodity carry | — | Carry / term structure | **BLOCKED** | No free PIT term-structure/roll proxy. ETF proxies confound roll/flows/equity beta. |
+| NF-05 Short-term CS reversal | — | Liquidity provision | **DEFERRED** | Turnover/net-of-cost; H119 weekly REJECT 3/8. |
+| NF-08-16 Halloween seasonal | 3.90 | Calendar seasonal | **HELD** | Calendar adjacency H91/H140/H142; declined repeatedly. |
+| NF-09-03 Breakeven-inflation | 3.40 | Macro regime | **DEFERRED/DATA-LIMITED** | ^T5YIE/^T10YIE unavailable on yfinance; TIP/IEF proxy used in H175 (REJECT) subsumes this observable. |
+| NF-20261109-20 Stock split announcement effects | — | Corporate action / microstructure | DEFERRED | Low frequency; corporate action data on yfinance incomplete for splits. Adjacency to NF-16 corporate action category. |
+
+No deferred candidates silently dropped; all carried forward with documented decisive risks.
+
+### Cycle 93 discovery scan (§4) — 4 repo-new candidates across 4 broad mechanism categories (scored honestly, weights novelty 25/plausibility 25/data 20/falsifiability 15/execution 10/support 5)
+
+| Candidate | Mechanism category | Novelty | Plaus | Data | Falsif | Exec | Support | Weighted | Status |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---|
+| **NF-20261110-06 Short Interest / Securities Lending Flow Timing** | Short-constraint / limits to arbitrage | 5 | 4 | 4 | 5 | 4 | 4 | **4.40** | **SELECTED → H179** |
+| **NF-20261110-07 Russell 2000 Annual Reconstitution Flow** | Structural flow / discrete index event | 4 | 4 | 4 | 5 | 3 | 4 | **4.05** | Deferred (annual frequency → low statistical power) |
+| **NF-20261109-16 Dividend Capture / Ex-Dividend Microstructure Premium** | Corporate action / microstructure | 4 | 3 | 5 | 5 | 3 | 3 | **3.95** | Deferred (microstructure/open-slippage risk decisive on free data) |
+| **NF-20261110-08 Insider Transaction Signal (Form 4 / 13F Flow)** | Institutional flow / informed trading | 4 | 4 | 3 | 5 | 3 | 4 | **3.80** | Deferred (PIT construction complexity; free 13F/Form 4 parsing non-trivial) |
+
+**Scoring notes (honest).**
+
+- **NF-20261110-06 (Short Interest / Securities Lending Flow Timing).** Novelty 5: repo-new root family; no executed H-ID tests short interest/securities lending as equity timing signal. Distinct from all exhausted families (TSMOM, cross-sectional momentum, vol/credit/macro/calendar/relmom/VIX-complex, corporate action, event-driven). Short interest reflects crowded positioning and limits-to-arbitrage (borrow constraints); mechanism persists due to institutional constraints. Plausibility 4: short interest anomaly well-documented (Dechow et al. 2001; Engelberg et al. 2012); high short interest predicts negative returns, low borrow supply creates squeeze potential. Data 4: FINRA short interest bi-weekly free CSV (public); yfinance for prices; PIT construction feasible (short interest reported mid/end month, available ~1 week later; latency PIT-safe). Falsifiability 5: clean regime z-score test; random-short-interest control; inverse signal (long high short interest). Execution 4: single instrument SPY or sector ETFs; bi-weekly rebalance (low turnover); no `src/qtr` change; free data. Support 4: strong academic literature (short interest anomaly, limits to arbitrage); post-cost edge debated but mechanism well-grounded. **Weighted 4.40.**
+
+- **NF-20261110-07 (Russell 2000 Annual Reconstitution Flow).** Novelty 4: repo-new discrete structural flow event. H168 tested S&P 500 *quarterly calendar* rebalance; this is Russell *annual reconstitution* (additions/deletions) — different mechanism (discrete event-driven vs recurring calendar), different index, different flow magnitude (~$200B+ AUM tracking Russell 2000). Plausibility 4: reconstitution effect well-documented (Chakraborty & Johnson 2017; Chen et al. 2020); index fund flows predictable. Data 4: Russell reconstitution dates public (FTSE Russell press releases); historical additions/deletions via public sources/SEC; yfinance prices; PIT feasible (effective date known ~early June, effective late June). Falsifiability 5: clean event study; random-date control; inverse signal; holdout test years. Execution 3: annual frequency (low power); event alignment complexity; universe construction; no `src/qtr` change. Support 4: strong academic evidence for inclusion effect; deletion effect mixed. **Weighted 4.05.** Deferred: annual frequency → low statistical power; not smallest decisive test.
+
+- **NF-20261109-16 (Dividend Capture / Ex-Dividend Microstructure Premium).** Carried forward from deferred pool with updated honest scoring. Novelty 4 (repo-new corporate action mechanism; H173 tested ERP/div yield LEVEL, not ex-div microstructure). Plausibility 3 (tax-clientele/microstructure effects small post-costs; overnight gap risk; mixed literature). Data 5 (SPY/sector ETF dividend dates/amounts free yfinance; clean PIT). Falsifiability 5 (ex-ante calendar rule; random-date control; inverse signal). Execution 3 (requires overnight/intraday holding; open prices on yfinance; slippage at open may exceed model). Support 3 (mixed literature; some find capture, others no net edge after costs/taxes). **Weighted 3.95.** Deferred: microstructure/open-slippage risk decisive on free data.
+
+- **NF-20261110-08 (Insider Transaction Signal).** Novelty 4: repo-new root family; no executed H-ID tests insider trading/13F flows as timing signal. Distinct from all exhausted families. Plausibility 4: insider buying/selling predicts returns (Seyhun 1986; Jeng et al. 2003); 13F institutional flows reveal smart money. Data 3: SEC EDGAR Form 4/13F free but parsing complex; aggregated insider data from free sources limited; PIT construction non-trivial (filing lag, amendment risk). Falsifiability 5: clean cross-sectional test; random-insider control; inverse signal. Execution 3: monthly/quarterly rebalance; universe construction; parsing complexity. Support 4: strong academic evidence for insider signal; 13F flow literature. **Weighted 3.80.** Deferred: PIT construction complexity; free 13F/Form 4 parsing non-trivial for minimal decisive test.
+
+**Selection:** **NF-20261110-06 (Short Interest / Securities Lending Flow Timing) selected as H179** — highest weighted score (4.40) among repo-new candidates, genuinely distinct mechanism category (short-constraint / limits to arbitrage) not tested in repository, free/public data feasible (FINRA bi-weekly CSV + yfinance), clean regime falsification design, smallest decisive test (bi-weekly SPY/sector ETF timing). NF-20261110-07 (Russell Reconstitution, 4.05) deferred due to low frequency/power. NF-20261109-16 (Dividend Capture, 3.95) deferred due to microstructure execution risk. NF-20261110-08 (Insider Signal, 3.80) deferred due to PIT parsing complexity. All deferred candidates from prior cycles carried forward with documented risks; no silent drops.
+
+**Comparison with deferred pool:** Highest deferred score is NF-16 (4.05) but microstructure execution risk is decisive and unmitigated on free data. NF-22 (3.75) has relmom adjacency risk. NF-18 (3.70) has external calendar dependency. The selected NF-20261110-06 (4.40) offers a clean, repo-new mechanism with feasible free data and no adjacency to exhausted families.
+
+**Next task:** Pre-register NF-20261110-06 as **H179** in `HYPOTHESIS_SPEC.md`; implement `run_nf_20261110_06_short_interest.py` + focused tests `tests/test_nf_20261110_06_short_interest.py`; run lint/format + focused pytest; execute REAL; record verdict/artifacts in `HYPOTHESIS_SPEC.md` §H179, `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 93, `NEXT_TASK.md`, `HANDOFF_NEXT.md`. Do not fabricate results. No gate weakening; no published/certified artifact modification.
+
+---
+### NF-20261110-06 / H179 — Short Interest / Securities Lending Flow Timing (PRE-REGISTERED)
+
+**NF-ID:** NF-20261110-06 (H179). **Status:** Pre-registered; decision-ready before validation outcomes. `src/qtr` unchanged. Free/public data only (FINRA short interest CSV + yfinance).
+
+**Broad mechanism category:** Short-constraint / limits to arbitrage (repo-new root family; distinct from all directional, vol, macro, calendar, dispersion, relmom, carry, VIX-complex, corporate action, and event-driven families tested in H1–H178).
+
+**Repo-relative novelty (honest).** No executed H-ID tests short interest or securities lending supply as an equity timing signal. H119 tested short-term cross-sectional reversal (liquidity provision); H178 tested options sentiment (put/call ratio); H176 tested tax-loss harvesting (calendar flow). This tests *short interest crowding and borrow-constraint dynamics* as a causal driver of subsequent returns — a structural limits-to-arbitrage mechanism from short-selling frictions.
+
+**Statement.** FINRA bi-weekly short interest data reveals crowded short positioning and securities lending supply constraints. Elevated short interest (or rising short interest) indicates overvaluation/crowded shorts; extremely low short interest indicates lack of bearish conviction. A vol-targeted SPY/sector ETF position scaled by trailing z-score of short interest (or short interest change) targets net OOS (Val+Test) Sharpe ≥ 1.0 with ≥ 50 trades, PF ≥ 1.3, max DD ≤ 15%, WF stability ≥ 0.7, worst-regime rolling-252 Sharpe ≥ 0.3, benchmark p ≤ 0.05 vs buy-hold SPY with IR ≥ 0, and perturbation min ratio ≥ 0.5.
+
+**Null (H0).** Short interest level/changes have no predictive power for next-period SPY returns beyond random chance after costs.
+
+**Pre-registration (decision-ready before validation outcomes).** NF-20261110-06 verified unused (no executed NF/H/runner/artifact). H179 next unused after H178 (H24/H68–H73/H76–H79 unassigned, not recycled). PIT causal: FINRA short interest published ~1 week after settlement date (mid-month and end-month); position established at next available close via engine `signals.shift(1)` (position at close t earns return t→t+1). Free/public data: FINRA short interest CSV (https://www.finra.org/filing-reporting/short-interest-data); SPY + sector ETFs daily Close (yfinance). Data 2010-01-01→2026-10-31. Train first 50% (~2010→2018), Val next 25%, Test protected final 25% (~2022→2026). Selection = train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+
+**Construction (bi-weekly event-driven + daily, causal).**
+1. Fetch FINRA short interest CSV for SPY and/or sector ETFs (XLF, XLE, XLV, XLI, XLB, XLP, XLU, XLY, XLC, XLK). Parse into DataFrame keyed by settlement date (mid-month and end-month).
+2. For each security, compute **short interest signal** = trailing z-score of short interest (or short interest change) over rolling `si_window` periods using past-only windows (`min_periods=si_window`).
+3. Signal: on publication date (or next business day), if short interest z-score ≥ `entry_z` (crowded shorts / overvaluation) → vol-targeted flat/short SPY; if ≤ `-entry_z` (low short interest / complacency) → vol-targeted long SPY; hysteresis with `exit_z` between thresholds.
+4. Vol targeting: trailing `vol_window`-day realized vol of security daily returns; target annual vol `vol_target` scaled to daily. Position clipped to `[max_short, max_long]`.
+5. Costs: Equity `CostModel` defaults (1 bp commission + 1 bp spread). Long/short allowed, MAX_POS=0.5.
+6. 1-bar delay via engine `signals.shift(1)` (publication day result known → position next day).
+
+**Bounded grid (pre-registered).** `si_window ∈ {6, 12, 24}` (bi-weekly periods ≈ 3/6/12 months) × `entry_z ∈ {0.5, 1.0, 1.5}` × `exit_z ∈ {0.0, 0.5}` × `vol_target ∈ {0.10, 0.15}` × `universe ∈ {{SPY}, {SPY, XLF, XLE, XLV, XLI, XLB, XLP, XLU, XLY, XLC, XLK}}` = 3 × 3 × 2 × 2 × 2 = **72 combos** (reduced if short interest data unavailable for some ETFs). Selection by train-only 4-fold walk-forward Sharpe; Test protected.
+
+**Falsifiers / ablations.** Buy-hold SPY benchmark; random-short-interest control (same number of active periods, randomly chosen); inverse signal (long high short interest, flat low short interest — direction falsifier); OAT perturbation (±20% on si_window, entry_z, exit_z, vol_target); Val/Test subperiods; worst-regime rolling-252 Sharpe. No gate weakening.
+
+**Gates (OOS Val+Test, fail-closed).** Sharpe ≥ 1.0; trades ≥ 50; PF ≥ 1.3; max DD ≤ 15%; WF stability ≥ 0.7; worst-regime rolling-252 Sharpe ≥ 0.3; benchmark p ≤ 0.05 with IR ≥ 0 (direction-aware); perturbation min ratio ≥ 0.5.
+
+**Runner:** `run_nf_20261110_06_short_interest.py` (to be implemented). **Tests:** `tests/test_nf_20261110_06_short_interest.py`.
+
+**Lineage map (H179 pre-registered):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known risks |
+|---|---|---|---|---|---|
+| Short-constraint / limits to arbitrage (short interest / securities lending flow) | H179 (NF-20261110-06) | Vol-targeted SPY/sector ETF position scaled by trailing z-score of FINRA bi-weekly short interest (or change); flat/short crowded shorts, long low short interest; hysteresis + 1-bar delay | SPY + sector ETFs daily (yfinance) + FINRA short interest CSV (bi-weekly), 2010–2026 | **PRE-REGISTERED** | FINRA CSV parsing/availability; publication lag (~1 week); bi-weekly frequency; short interest data quality; securities lending supply not directly observed |
+
+---

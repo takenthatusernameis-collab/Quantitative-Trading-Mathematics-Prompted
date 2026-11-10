@@ -8476,3 +8476,40 @@ Benchmark buy-hold SPY OOS: Sharpe 0.810, total return +83.7%. Inverse-regime di
 | Options market sentiment / positioning (equity P/C ratio regime timing) | H178 (NF-20261110-03) | Vol-targeted SPY exposure by trailing z-score of CBOE equity P/C ratio (momentum/contrarian, hysteresis, 1-bar delay) | SPY daily (yfinance) + CBOE equity P/C CSV, 2010–2026 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261110_03_equity_pc_ratio_20261110_cycle92/summary.json`) | OOS Sharpe 0.557, WF 0.658, worst-regime −1.002, bench fail; random-signal outperforms (0.835) |
 
 **Cycle 92 complete.** H85–H178 all rejected/recorded. `src/qtr` unchanged. No commit/push. Next unused H-ID **H179**. Cycle 93 requires directive §4 discovery (≥3 repo-new/decisive candidates across ≥3 broad mechanism categories, honest scoring, NF-root checks) before selecting H179.
+
+---
+## H179 (NF-20261110-06): Short Interest / Securities Lending Flow Timing (Cycle 93)
+
+**Status:** Pre-registered (Cycle 93 discovery, NF-20261110-06). Free/public FINRA short interest CSV + yfinance, no `src/qtr` change. Not yet executed in this session.
+
+**Statement.** FINRA bi-weekly short interest data reveals crowded short positioning and securities lending supply constraints. Elevated short interest (or rising short interest) indicates overvaluation/crowded shorts; extremely low short interest indicates lack of bearish conviction. A vol-targeted SPY/sector ETF position scaled by trailing z-score of short interest (or short interest change) targets net pooled OOS (Val+Test) Sharpe ≥ 1.0 with ≥ 50 trades, PF ≥ 1.3, max DD ≤ 15%, WF stability ≥ 0.7, worst-regime rolling-252 Sharpe ≥ 0.3, benchmark p ≤ 0.05 vs buy-hold SPY with IR ≥ 0, and perturbation min ratio ≥ 0.5.
+
+**Null (H0).** Short interest level/changes have no predictive power for next-period SPY returns beyond random chance after costs.
+
+**Mechanism / causal chain (pre-registered).** Short interest reflects the aggregate short positioning of market participants; when short interest is abnormally high (crowded shorts), the security is vulnerable to short squeezes and overvaluation, but more importantly, high short interest signals negative informed opinion and limits to arbitrage (borrow constraints). Conversely, abnormally low short interest indicates complacency and lack of bearish hedging. Compute short interest `si_t` (or change `Δsi_t`) for each security, take trailing z-score `z_t` over `si_window` bi-weekly periods using past-only windows (`min_periods=si_window`). When `z_t ≥ entry_z` (crowded shorts) → reduce/short exposure; when `z_t ≤ -entry_z` (low short interest/complacency) → increase long exposure; hysteresis with `exit_z` between thresholds. Vol targeting scales position by trailing `vol_window`-day realized vol to `vol_target` annual vol. Engine applies `signals.shift(1)`: FINRA data published ~1 week after settlement → position at next close earns return t→t+1 — strictly causal. This tests the directional mapping (crowded shorts reduce exposure, low short interest increase exposure); it does not test all short-interest constructions.
+
+**Novelty (repo-relative).** Repo-new root family candidate: **short-constraint / limits to arbitrage via short interest / securities lending flow**. Distinct from H119 (short-term cross-sectional reversal — liquidity provision), H178 (options sentiment/put-call ratio — derivatives positioning), H176 (tax-loss harvesting — calendar flow), H177 (Treasury auction — government supply operations), H175 (macro regime — growth/inflation proxies), and all directional/vol/credit/rates/calendar/relmom/VIX-complex families. The mechanism is short-selling frictions and informed short positioning (limits to arbitrage), not momentum, volatility, macro, calendar, or order-flow channels.
+
+**Data.** FINRA short interest bi-weekly CSV (free/public: https://www.finra.org/filing-reporting/short-interest-data) for SPY and sector ETFs (XLF, XLE, XLV, XLI, XLB, XLP, XLU, XLY, XLC, XLK). yfinance daily adjusted close for same universe. 2010-01-01 → 2026-10-31. FINRA data available from ~2010; alignment from common start gives sufficient history. Verify no non-positive short interest; use settlement-date series consistently. Publication lag ~1 week after settlement date handled via PIT alignment.
+
+**Universe/splits (protected holdout).** Trade SPY (primary) and/or sector ETFs; signal FINRA short interest for same securities. Train 2010-01-01 → 2018-12-31; Val 2019-01-01 → 2022-12-31; Test (protected) 2023-01-01 → 2026-10-31. Selection = best train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+
+**Grid (bounded).** `si_window ∈ {6, 12, 24}` (bi-weekly periods ≈ 3/6/12 months) × `entry_z ∈ {0.5, 1.0, 1.5}` × `exit_z ∈ {0.0, 0.5}` × `vol_target ∈ {0.10, 0.15}` × `universe ∈ {{SPY}, {SPY, XLF, XLE, XLV, XLI, XLB, XLP, XLU, XLY, XLC, XLK}}` = 3 × 3 × 2 × 2 × 2 = **72 combos** (reduced if short interest data unavailable for some ETFs). `max_position=0.5`, long/short allowed.
+
+**Costs/constraints.** Equity `CostModel` defaults (1 bp commission + 1 bp spread). No live trading. Use free/public data only.
+
+**Gates (OOS Val+Test).** Sharpe ≥ 1.0; trades ≥ 50; PF ≥ 1.3; max DD ≤ 15%; WF stability ≥ 0.7; worst-regime rolling-252 Sharpe ≥ 0.3; benchmark p ≤ 0.05 with IR ≥ 0 (direction-aware); perturbation min ratio ≥ 0.5.
+
+**Runner.** `run_nf_20261110_06_short_interest.py` (to be created). **Tests.** `tests/test_nf_20261110_06_short_interest.py` (to be created).
+
+### H179 execution outcome (2026-11-10, REAL)
+
+[To be filled after execution]
+
+**Lineage map (H179 PRE-REGISTERED):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known risks |
+|---|---|---|---|---|---|
+| Short-constraint / limits to arbitrage (short interest / securities lending flow) | H179 (NF-20261110-06) | Vol-targeted SPY/sector ETF position scaled by trailing z-score of FINRA bi-weekly short interest (or change); flat/short crowded shorts, long low short interest; hysteresis + 1-bar delay | SPY + sector ETFs daily (yfinance) + FINRA short interest CSV (bi-weekly), 2010–2026 | **PRE-REGISTERED** | FINRA CSV parsing/availability; publication lag (~1 week); bi-weekly frequency; short interest data quality; securities lending supply not directly observed |
+
+**Cycle 93 discovery complete.** H85–H179 pre-registered. `src/qtr` unchanged. Next: implement runner + tests, execute REAL, record verdict.

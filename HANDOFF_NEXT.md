@@ -1,4 +1,4 @@
-# HANDOFF_NEXT.md — Cycle 93 (after H178 REJECT 4/8)
+# HANDOFF_NEXT.md — Cycle 93 (after H178 REJECT 4/8, H179 PRE-REGISTERED)
 
 ## Session summary
 - **Cycle 92 complete.** Performed directive §4 discovery (≥3 candidates across ≥3 categories, honest scoring, deferred reassessment, NF-root checks), pre-registered and executed **H178 (NF-20261110-03: CBOE Equity Put/Call Ratio Regime Timing)** as a real, honest test.
@@ -8,14 +8,16 @@
 - **Files added/modified:** `run_nf_20261110_03_equity_pc_ratio.py`, `tests/test_nf_20261110_03_equity_pc_ratio.py` (14 passed), `HYPOTHESIS_SPEC.md` §H178, `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 92, `NEXT_TASK.md`, `HANDOFF_NEXT.md`, `HANDOFF_CURRENT_SESSION.md`.
 - **Integrity (honest):** `ruff check/format --check` clean on new runner/tests; focused pytest 14 passed. No gate/threshold/grid/construction weakened; `src/qtr` unchanged. No published/certified artifact modified.
 
+- **Cycle 93 discovery complete.** Performed directive §4 discovery (4 repo-new candidates across 4 broad mechanism categories, honest scoring, deferred pool reassessed with evidence, NF-root checks). Pre-registered **H179 (NF-20261110-06: Short Interest / Securities Lending Flow Timing)** as highest-expected-information candidate (weighted 4.40). Implementation pending.
+
 ## Lineage state
-- H85–H178 all rejected/recorded. Next unused H-ID: **H179** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged. No commit/push.
+- H85–H178 all rejected/recorded. H179 pre-registered. Next unused H-ID after H179: **H180** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged. No commit/push.
 
 ## Deferred pool (no silent drops; reassess with concrete evidence)
 | Candidate | Score | Category | Status | Evidence / blocker |
 |---|---:|---|---|---|
-| NF-20261109-16 Dividend capture / ex-dividend microstructure | 4.05 | Corporate action / microstructure | Deferred | Overnight/open slippage risk; tax-clientele/microstructure fragility; mixed literature post-costs |
-| NF-20261109-18 S&P 500 inclusion/deletion discrete event | 3.70 | Structural flow / discrete event | Deferred | Low frequency (~20-40 events/yr); external index-change calendar dependency |
+| NF-20261109-16 Dividend capture / ex-dividend microstructure premium | 4.05 | Corporate action / microstructure | Deferred | Overnight/open slippage risk decisive on free data; tax-clientele/microstructure fragility; mixed literature post-costs |
+| NF-20261109-18 S&P 500 inclusion/deletion discrete event flow | 3.70 | Structural flow / discrete event | Deferred | Low frequency (~20-40 events/yr); external index-change calendar dependency |
 | NF-20261109-19 Options dealer gamma exposure (GEX) | 3.10 | Market structure / dealer positioning | Deferred | No free historical options chain/GEX (yfinance snapshot only) |
 | NF-20261109-02 Earnings estimate revision momentum | 3.65 | Fundamental / analyst revision | Deferred | No free PIT revision history |
 | NF-20261109-22 RSP-SPY breadth-participation relmom | 3.75 | Cross-asset participation / factor momentum | Deferred | Adjacency to H97 + exhausted relmom families; mechanism distinction must be explicit |
@@ -25,16 +27,14 @@
 | NF-20261110-05 SPY realized upside/downside jump asymmetry | 3.80 | Higher-moment / jump-risk asymmetry | Deferred | Low plausibility/support post-costs; adjacency to H122/H128/H135 |
 | NF-04 Commodity carry | — | Carry / term structure | **BLOCKED** | No free PIT term-structure/roll proxy |
 | NF-05 Short-term CS reversal | — | Liquidity provision | **DEFERRED** | Turnover/net-of-cost; H119 weekly REJECT 3/8 |
-| NF-08-16 Halloween seasonal | 3.90 | Calendar seasonal | **HELD** | Calendar adjacency H91/H92/H142 |
+| NF-08-16 Halloween seasonal | 3.90 | Calendar seasonal | **HELD** | Calendar adjacency H91/H140/H142 |
 | NF-09-03 Breakeven-inflation | 3.40 | Macro regime | **DEFERRED/DATA-LIMITED** | ^T5YIE/^T10YIE unavailable on yfinance |
+| NF-20261109-20 Stock split announcement effects | — | Corporate action / microstructure | DEFERRED | Low frequency; corporate action data on yfinance incomplete for splits |
 
-## Required next work (Cycle 93 / H179)
-1. Reconcile lineage to H178; confirm H179 next unused; avoid NF-label reuse.
-2. **Directive §4 discovery:** ≥3 repo-new/decisive candidates across ≥3 broad mechanism categories, honest 25/25/20/15/10/5 scoring, no silent drops. Search materially different mechanism categories before recycling.
-3. Reassess deferred pool above with concrete evidence; verify NF roots against executed H-IDs/artifacts/runners.
-4. Pre-register H179 before validation outcomes (decision-ready).
-5. Implement runner + focused tests; `ruff check/format` clean; focused `pytest` pass.
-6. Execute REAL; record verdict in `HYPOTHESIS_SPEC.md` §H179, `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 93, `NEXT_TASK.md`, `HANDOFF_NEXT.md`.
+## Required next work (Cycle 93 / H179 implementation)
+1. Implement runner `run_nf_20261110_06_short_interest.py` + focused tests `tests/test_nf_20261110_06_short_interest.py`.
+2. Run `ruff check/format --check` on new files; focused `pytest -q` pass.
+3. Execute REAL; record verdict in `HYPOTHESIS_SPEC.md` §H179, `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 93, `NEXT_TASK.md`, `HANDOFF_NEXT.md`.
 
 ## Integrity constraints
 - No gate weakening; no published/certified artifact modification; no fabrication; free data only.

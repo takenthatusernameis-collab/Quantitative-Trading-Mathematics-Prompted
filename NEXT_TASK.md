@@ -1,6 +1,6 @@
-# NEXT_TASK.md — Cycle 93 (after H178 REJECT 4/8)
+# NEXT_TASK.md — Cycle 93 (after H178 REJECT 4/8, H179 PRE-REGISTERED)
 
-## Status: Cycle 92 complete (H178 executed REAL; REJECT) — Cycle 93 discovery pending
+## Status: Cycle 92 complete (H178 executed REAL; REJECT) — Cycle 93 discovery complete, H179 pre-registered — implementation pending
 
 ## H178 result (REAL, not fabricated) — REJECT 4/8
 - Runner `run_nf_20261110_03_equity_pc_ratio.py` + tests `tests/test_nf_20261110_03_equity_pc_ratio.py` (**14 passed**). `ruff check/format --check` clean. Artifact `.experiments/nf_runs/nf_20261110_03_equity_pc_ratio_20261110_cycle92/summary.json` (+`grid.csv`, ~29s).
@@ -12,15 +12,22 @@
 - **Integrity (honest):** no gate weakening; `src/qtr` unchanged; no published/certified artifact modified. No commit/push.
 
 ## Lineage
-- H85–H178 all rejected/recorded. Next unused H-ID: **H179** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged. Selection/validation uses no protected-test feedback. Free/public data only.
+- H85–H178 all rejected/recorded. H179 pre-registered (NF-20261110-06). Next unused H-ID after H179: **H180** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged. Selection/validation uses no protected-test feedback. Free/public data only.
 
-## Cycle 93 Discovery Pending (Directive §4)
-1. Reconcile lineage/collisions to H178; confirm H179 next unused; avoid NF-label reuse.
-2. **Discovery scan:** propose ≥3 repo-new/decisive candidates across ≥3 broad mechanism categories with honest 25/25/20/15/10/5 scoring and no silent drops. Search materially different mechanism categories before recycling; scrutinize heavily executed categories.
-3. **Reassess deferred pool with evidence:** NF-16 (4.05, microstructure/open-slippage risk), NF-18 (3.70, low freq + external calendar), NF-19 (3.10, no free historical GEX), NF-02 (3.65, no PIT revision history), NF-22 (3.75, relmom adjacency H97), NF-23 (3.55, inception/style adjacency), NF-12 held (4.00), NF-20 deferred, NF-04 blocked, NF-05 deferred, NF-08-16 held, NF-09-03 data-limited, **NF-20261110-04** (3.80, curve-family adjacency to H171/H11r), **NF-20261110-05** (3.80, higher-moment adjacency to H122/H128/H135) — alongside ≥1 other repo-new mechanism if needed.
-4. Verify NF roots against executed H-IDs/artifacts/runners.
-5. Pre-register highest-expected-information feasible candidate as **H179** before validation outcomes (decision-ready).
-6. Implement runner + focused tests; `ruff check/format --check`; `PYTHONPATH=src pytest -q` focused tests; execute REAL; record verdict/artifacts in `HYPOTHESIS_SPEC.md` §H179, `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 93, `NEXT_TASK.md`, `HANDOFF_NEXT.md`. **Do not fabricate results.**
+## Cycle 93 Discovery Complete (Directive §4)
+1. ✅ Reconciled lineage/collisions to H178; confirmed H179 next unused; avoided NF-label reuse.
+2. ✅ **Discovery scan:** proposed 4 repo-new/decisive candidates across 4 broad mechanism categories with honest 25/25/20/15/10/5 scoring and no silent drops.
+3. ✅ **Reassessed deferred pool with evidence:** NF-16 (4.05, microstructure/open-slippage risk), NF-18 (3.70, low freq + external calendar), NF-19 (3.10, no free historical GEX), NF-02 (3.65, no PIT revision history), NF-22 (3.75, relmom adjacency H97), NF-23 (3.55, inception/style adjacency), NF-12 held (4.00), NF-20 deferred, NF-04 blocked, NF-05 deferred, NF-08-16 held, NF-09-03 data-limited, NF-20261110-04 (3.80, curve-family adjacency to H171/H11r), NF-20261110-05 (3.80, higher-moment adjacency to H122/H128/H135) — all carried forward with documented risks; no silent drops.
+4. ✅ Verified NF roots against executed H-IDs/artifacts/runners.
+5. ✅ Pre-registered highest-expected-information feasible candidate as **H179 (NF-20261110-06: Short Interest / Securities Lending Flow Timing)** before validation outcomes (decision-ready). Weighted score 4.40 (novelty 5, plausibility 4, data 4, falsifiability 5, execution 4, support 4).
+6. ⏳ **Next:** Implement runner + focused tests; `ruff check/format --check`; `PYTHONPATH=src pytest -q` focused tests; execute REAL; record verdict/artifacts in `HYPOTHESIS_SPEC.md` §H179, `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 93, `NEXT_TASK.md`, `HANDOFF_NEXT.md`. **Do not fabricate results.**
+
+## H179 (NF-20261110-06) — Short Interest / Securities Lending Flow Timing — PRE-REGISTERED
+- **Mechanism:** Short-constraint / limits to arbitrage (repo-new root family). FINRA bi-weekly short interest reveals crowded short positioning and securities lending supply constraints. Elevated short interest → overvaluation/crowded shorts → reduce/short exposure; low short interest → complacency → increase long exposure.
+- **Data:** FINRA short interest CSV (free/public) + SPY/sector ETFs daily yfinance. 2010-01-01→2026-10-31. PIT: FINRA published ~1 week after settlement; 1-bar delay via engine `signals.shift(1)`.
+- **Grid (72 combos):** `si_window {6,12,24} × entry_z {0.5,1.0,1.5} × exit_z {0.0,0.5} × vol_target {0.10,0.15} × universe {{SPY}, {SPY + 10 sector ETFs}}`.
+- **Gates (OOS Val+Test, fail-closed):** Sharpe≥1.0, trades≥50, PF≥1.3, maxDD≤15%, WF stability≥0.7, worst-regime rolling-252 Sharpe≥0.3, benchmark p≤0.05 with IR≥0, perturbation min ratio≥0.5.
+- **Ablations:** buy-hold SPY; random-short-interest control; inverse signal; OAT perturbation (±20%); worst-regime rolling-252 Sharpe.
 
 ## Constraints
 - Free/public data only; no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modification; no commit/push unless explicitly authorized.
