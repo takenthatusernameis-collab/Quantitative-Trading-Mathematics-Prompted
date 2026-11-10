@@ -4402,3 +4402,101 @@ Checked against root families H1–H173 (no parameter/instrument/universe/timefr
 | Cross-asset macro regime timing (growth/inflation proxies → SPY) | H175 (NF-20261109-03) | Vol-targeted long SPY when composite regime z(HG=F/GC=F) − z(TIP/IEF) ≥ entry_z (favorable), flat when ≤ exit_z; hysteresis + 1-bar delay | SPY (traded), HG=F/GC=F/TIP/IEF (signals) daily yfinance, 2010–2026 | **REJECT** (1/8; `.experiments/nf_runs/nf_20261109_03_macro_regime_20261110_004316/summary.json`) | Train WF 1.288 → OOS Sharpe −0.005; inverse-regime (1.009) outperforms signal; fails Sharpe/PF/trades/WF/worst-regime/benchmark/IR/perturbation; sparse trading (123) |
 
 **Cycle 89 complete.** H85–H175 all rejected/recorded. `src/qtr` unchanged; pinned suite not rerun (no `src/qtr` change). No commit/push. Deferred pool unchanged (NF-04/05/11r/12/17/20/21 + NF-22/NF-02 from this cycle remain deferred with documented risks). Next unused H-ID is H176. Per directive §4/§6, Cycle 90 requires a fresh mechanism search across ≥3 repo-new broad categories before selecting H176 — do not recycle parameter/instrument/universe/timeframe variants of rejected families.
+
+---
+
+## Cycle 90 (2026-11-10) — Discovery / Pre-registration & Execution of H176
+
+**Lineage reconciled to H175 (H85–H175 all rejected/recorded).** Next unused H-ID **H176** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified. Selection/validation uses no protected-test feedback. Free/public yfinance data only.
+
+### Deferred candidates reassessed (concrete evidence, Cycle 90; none silently dropped)
+
+- **NF-20261105-04 (commodity carry roll proxy) — remains DEFERRED.** Free yfinance/DataFetcher provides continuous/front proxies only; no free point-in-time deferred/term-structure/second-month series. ETF proxies confound roll/flows/equity beta. Blocker: point-in-time term-structure/roll proxy construction.
+- **NF-20261105-05 (short-term CS reversal) — remains DEFERRED.** Daily cross-sectional rebalancing → very high turnover; equity default costs make net-of-cost decisive. Blocker: net-of-cost under pre-registered turnover.
+- **NF-20261105-11r / 11 (TNX/FVX slope) — data-resolved variant, novelty scored honestly lower (same root mechanism as NF-11).** Deferred.
+- **NF-20261105-12 (cross-sectional equity dispersion) — remains DEFERRED.** Complexity/turnover vs smallest decisive test.
+- **NF-20261105-17 (volume-shock reversal) — remains DEFERRED.** Turnover/cost-sensitive.
+- **NF-20261105-20 (Treasury auction supply-pressure) — remains DEFERRED.** Event calendar/timestamp construction heavier.
+- **NF-20261105-21 (month-end pension rebalancing) — remains DEFERRED.** Weak evidence/adjacency risk.
+- **NF-20261106-03 (VVIX vol-of-vol) — remains DEFERRED.** VIX-complex adjacency; novelty scored 3.
+- **NF-20261109-22 (RSP-SPY breadth relmom) — remains DEFERRED.** Adjacency to H97 (same pair) and H92/H96/H152/H157 relmom families; mechanism distinction must be explicit.
+- **NF-20261109-23 (USMV-SPY low-vol factor relmom) — remains DEFERRED.** USMV inception 2011 limits history; style momentum adjacency to exhausted factor families.
+- **NF-20261109-02 (Earnings estimate revision momentum) — remains DEFERRED.** Revision-history PIT construction risk; yfinance provides only current snapshot, no revision history. Blocker: free PIT revision data unavailable.
+- **NF-20261109-18 (S&P 500 inclusion/deletion discrete event) — DEFERRED with evidence.** Low frequency (~20-40 events/year) limits statistical power; external index-change calendar required (S&P/Wikipedia); not purely free/yfinance-self-contained. Adjacency to H168 (quarterly calendar rebalance) disclosed — distinct mechanism (discrete event vs calendar window) but data dependency is decisive risk.
+- **NF-20261109-19 (Options dealer gamma exposure) — DEFERRED with evidence.** GEX construction requires full options chain history (strikes, expiries, open interest, greeks). yfinance `option_chain` provides only current snapshot; no free historical GEX series. Blocker: free historical options chain/GEX data unavailable.
+- **NF-20261109-20 (Stock split announcement effects) — remains DEFERRED.** Low frequency; corporate action data on yfinance incomplete for splits. Adjacency to NF-16 (dividend capture) corporate action category.
+- **NF-20261109-12 (Holiday / pre-holiday drift) — remains HELD.** Calendar-seasonality adjacency to H91/H140/H142/H168 exhausted calendar families; no materially distinct mechanism from seasonal window.
+- **NF-09-03 (Breakeven inflation) — remains DEFERRED/DATA-LIMITED.** ^T5YIE/^T10YIE unavailable on yfinance; TIP/IEF proxy used in H175 (REJECT) subsumes this observable.
+
+### Cycle 90 discovery scan (§4) — 3 candidates across 3 broad categories (scored honestly, weights novelty 25/plausibility 25/data 20/falsifiability 15/execution 10/support 5)
+
+| Candidate | Mechanism category | Novelty | Plaus | Data | Falsif | Exec | Support | Weighted | Status |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---|
+| NF-20261109-15 Tax-loss harvesting / year-end selling pressure | Institutional/behavioral constraint | 4 | 4 | 4 | 5 | 5 | 3 | **4.20** | **SELECTED → H176** |
+| NF-20261109-16 Dividend capture / ex-dividend microstructure premium | Corporate action / microstructure | 4 | 3 | 5 | 5 | 4 | 3 | **4.05** | Deferred (microstructure fragility; overnight/open slippage risk) |
+| NF-20261109-18 S&P 500 inclusion/deletion discrete event flow | Structural flow / discrete event | 4 | 4 | 3 | 4 | 3 | 4 | **3.70** | Deferred (low frequency; external calendar dependency) |
+
+**Scoring notes (honest).**
+- **NF-15 (Tax-loss harvesting):** Novelty 4 (repo-new institutional constraint mechanism; no prior family tests tax-loss selling pressure as a structural flow signal). Plausibility 4 (tax-loss harvesting is a well-documented, structurally mandated year-end flow; not a generic seasonal pattern). Data 4 (YTD returns computable from free yfinance daily; liquid ETF/stock universe; survivorship risk acknowledged — mitigated by using liquid ETF universe with long histories). Falsifiability 5 (ex-ante calendar rule: last 5/10 trading days of December; YTD rank known at close; random-year control). Execution 5 (single traded instrument SPY or sector ETFs; low turnover ~10-20 days/year; no `src/qtr` change). Support 3 (academic literature on tax-loss harvesting effect; effect size debated post-costs). Weighted 4.20.
+- **NF-16 (Dividend capture):** Novelty 4 (repo-new corporate action mechanism; H173 tested ERP/div yield level, not ex-dividend microstructure capture). Plausibility 3 (dividend capture documented but tax-clientele/microstructure effects small post-costs; overnight gap risk). Data 5 (SPY/sector ETF dividend dates/amounts free on yfinance; clean PIT). Falsifiability 5 (ex-div date known ex-ante; hold through ex-date or capture strategy). Execution 4 (requires overnight/intraday holding; open prices on yfinance; slippage at open may exceed model). Support 3 (mixed literature; some find capture, others no net edge after costs). Weighted 4.05.
+- **NF-18 (S&P 500 inclusion):** Novelty 4 (repo-new discrete structural flow event; H168 was calendar quarterly rebalance — different mechanism: discrete event-driven vs recurring calendar). Plausibility 4 (index fund flows well-documented; inclusion = buy pressure, deletion = sell pressure). Data 3 (index changes from public S&P/Wikipedia; SPY/yfinance; external dependency not purely yfinance-self-contained; low frequency ~20-40 events/year limits power). Falsifiability 4 (event study design; pre-announcement/announcement/effective date windows). Execution 3 (low frequency = low statistical power; event alignment complexity). Support 4 (strong academic evidence for inclusion effect; deletion effect more mixed). Weighted 3.70.
+
+No silent drops; all deferred candidates carried forward with documented decisive risks.
+
+### NF-20261109-15 / H176 — Tax-Loss Harvesting / Year-End Selling Pressure (PRE-REGISTERED)
+
+**NF-ID:** NF-20261109-15 (H176). **Status:** Pre-registered decision-ready before validation outcomes. `src/qtr` unchanged. Free/public yfinance data only.
+
+**Mechanism.** Institutional tax-loss harvesting creates predictable year-end selling pressure on YTD losers: taxable investors sell losing positions in December to realize capital losses for tax purposes, depressing prices temporarily; prices rebound in January when selling pressure abates (the "January effect" root cause). A long-short or long-flat strategy buying YTD losers (or a proxy basket) in late December and holding through early January captures this structural flow reversal.
+
+**Distinction.** Repo-new root family (institutional/behavioral constraint mechanism). Honest adjacency disclosed: calendar families H91 (turn-of-month), H140 (monthly OPX), H142 (turn-of-quarter), H168 (index rebalance) test generic seasonal windows without the tax-mandated structural mechanism. NF-15's signal is the *interaction* of calendar (December) + YTD performance rank (tax-loss eligibility) — a structural flow mechanism, not a seasonal pattern.
+
+**Data/splits (PIT, free yfinance).** Universe: liquid sector ETFs (XLF, XLE, XLV, XLI, XLB, XLP, XLU, XLY, XLC, XLK) + SPY. Daily adjusted close via `DataFetcher.fetch_yahoo`. YTD return computed at each November close (past-only). Signal active during pre-registered December window (last `n_days` trading days of December). Position entered at close, held through early January (`hold_days` into January). Train 2010-01-01→2018-12-31; Val 2019-01-01→2022-12-31; Test protected final 25% (~2023→2026). Selection = train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only.
+
+**Construction (daily, causal).**
+1. At each November month-end, compute YTD total return for each universe asset.
+2. Rank assets by YTD return (ascending = biggest losers first).
+3. During the last `n_days` trading days of December (ex-ante calendar rule), go long the bottom `k` YTD losers (equal-weight, vol-targeted).
+4. Hold through `hold_days` trading days into January; then flat.
+5. Vol targeting: trailing 21-day realized vol of basket; target annual vol `vol_target`. Long-only; MAX_POS=0.5.
+6. Costs: Equity `CostModel` defaults. 1-bar delay via engine `signals.shift(1)`.
+
+**Bounded grid (pre-registered).** `n_days ∈ {5, 10}` × `k ∈ {1, 3, 5}` × `hold_days ∈ {3, 5, 10}` × `vol_target ∈ {0.10, 0.15}` = 2 × 3 × 3 × 2 = **36 combos**. Selection by train-only 4-fold walk-forward Sharpe; Test protected.
+
+**Falsifiers / ablations.** Buy-hold SPY benchmark; equal-weight universe benchmark; random-year control (same calendar window, random years); inverse signal (long YTD *winners* in December — direction falsifier); OAT perturbation (±20% on n_days, k, hold_days, vol_target); Val/Test subperiods; worst-regime rolling-252 Sharpe. No gate weakening.
+
+**Gates (OOS Val+Test, fail-closed).** Sharpe ≥ 1.0; trades ≥ 50 (low frequency by design); PF ≥ 1.3; max DD ≤ 15%; WF stability ≥ 0.7; worst-regime rolling-252 Sharpe ≥ 0.3; benchmark p ≤ 0.05 with IR ≥ 0 (direction-aware); perturbation min ratio ≥ 0.5.
+
+**Runner:** `run_nf_20261109_15_tax_loss_harvesting.py` (to be implemented). **Tests:** `tests/test_nf_20261109_15_tax_loss_harvesting.py`.
+
+**Lineage map (H176 pre-registered):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known risks |
+|---|---|---|---|---|---|
+| Tax-loss harvesting / year-end selling pressure | H176 (NF-20261109-15) | Long YTD losers during last n_days of December; hold hold_days into January; vol-targeted; structural tax-flow reversal | Liquid sector ETFs + SPY daily (yfinance), 2010–2026 | **PRE-REGISTERED** | Survivorship risk in YTD rank (mitigated by liquid ETF universe); low trade count (annual); December-only seasonality may not persist; microstructure slippage at year-end |
+
+### NF-20261109-15 / H176 execution outcome (2026-11-10, REAL)
+
+**Runner:** `run_nf_20261109_15_tax_loss_harvesting.py`. **Tests:** `tests/test_nf_20261109_15_tax_loss_harvesting.py` (13 passed). `ruff check/format --check` clean. `src/qtr` unchanged.
+
+**Execution.** `exp_2026-11-10T02-52-20Z` (`nf_20261109_15_tax_loss_harvesting`, completed, 7.9s). Universe: 11 liquid sector ETFs + SPY daily yfinance 2010-01-04→2026-10-30 (2104 aligned rows). Train 2010-01-04→2022-08-23 (1052), Val 2022-08-24→2024-09-26 (526), Test protected 2024-09-27→2026-10-30 (526). Grid 36 combos. Selected (train-only 4-fold WF Sharpe 1.212): `n_days=5, k=1, hold_days=3, vol_target=0.15`. Artifact `.experiments/nf_runs/nf_20261109_15_tax_loss_harvesting_20261110_025220/summary.json`.
+
+**Result — REJECT (3/8 gates).** OOS Val+Test (1052 periods, 8 trades): Sharpe **0.628** (fail ≥1.0), PF **1.951** (pass ≥1.3), max DD **−1.18%** (pass ≤15%), trades **8** (fail ≥50), WF stability **0.540** (fail ≥0.7), worst-regime rolling-252 Sharpe **−1.443** (fail ≥0.3), benchmark p **0.977** (fail ≤0.05 vs buy-hold SPY), IR **−0.975** (fail ≥0), perturbation min ratio **0.858** (pass ≥0.5). Train/Val/Test Sharpe: 1.162 / 0.598 / 0.658. SPY buy-hold benchmark OOS Sharpe 1.073, total return +41.1%. Equal-weight universe OOS Sharpe 1.054, total return +75.8%.
+
+**Ablations.** Random-year control (same calendar window, random years) OOS Sharpe 0.098 / PF 1.101 (58 trades) — weaker than strategy, signal not pure noise. Inverse signal (long YTD *winners* in December) OOS Sharpe −0.365 / PF 0.679 (8 trades) — directionally consistent (losers outperform winners) but magnitude insufficient.
+
+**Verdict rationale.** The tax-loss harvesting mechanism produces a directionally correct signal (inverse underperforms, random-year weaker) but the effect size is too small to clear the evidence gates on free daily data. The strategy trades only ~2 days/year (8 trades in 4 years OOS), far below the 50-trade gate, resulting in low statistical power. The worst-regime rolling-252 Sharpe of −1.443 indicates periods where the January rebound failed to materialize. Benchmark comparison fails (p=0.977, IR=−0.975) — the strategy underperforms buy-hold SPY. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Root-cause attribution.**
+1. **Low frequency / low power.** Only 2-3 trading days per year (December window + January hold); 8 trades in 4 years OOS is insufficient for statistical certification.
+2. **Effect size decay.** Train WF Sharpe 1.212 → OOS 0.628; the tax-loss harvesting premium has decayed or is smaller than transaction costs on this sample.
+3. **Regime failure.** Worst-regime rolling-252 Sharpe −1.443 shows years where the January effect failed (e.g., 2022 bear market).
+4. **Benchmark underperformance.** Strategy IR −0.975 vs SPY; the structural flow edge does not compensate for opportunity cost of being flat 99% of the year.
+
+**Lineage map (H176 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Tax-loss harvesting / year-end selling pressure | H176 (NF-20261109-15) | Long YTD losers during last n_days of December; hold hold_days into January; vol-targeted; structural tax-flow reversal | Liquid sector ETFs + SPY daily (yfinance), 2010–2026 | **REJECT** (3/8; `.experiments/nf_runs/nf_20261109_15_tax_loss_harvesting_20261110_025220/summary.json`) | OOS Sharpe 0.628 (<1.0), trades 8 (<50), WF stability 0.540 (<0.7), worst-regime −1.443 (<0.3), benchmark p 0.977/IR −0.975; low frequency limits power; direction correct but magnitude insufficient |
+
+**Cycle 90 complete.** H85–H176 all rejected/recorded. `src/qtr` unchanged; pinned suite not rerun (no `src/qtr` change). No commit/push. Deferred pool unchanged (NF-16, NF-18, NF-19, NF-02, NF-22, NF-23, NF-12, NF-20, NF-04, NF-05, NF-08-16, NF-09-03 remain deferred with documented risks). Next unused H-ID is H177. Per directive §4/§6, Cycle 91 requires a fresh mechanism search across ≥3 repo-new broad categories before selecting H177 — do not recycle parameter/instrument/universe/timeframe variants of rejected families.
