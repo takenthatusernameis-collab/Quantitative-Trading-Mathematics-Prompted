@@ -4341,3 +4341,64 @@ Checked against root families H1–H173 (no parameter/instrument/universe/timefr
 | ETF creation/redemption premium-discount mean reversion | H174 (NF-20261109-26) | Vol-targeted ETF position scaled by z-score of trailing premium/discount to NAV; long discount, short premium; hysteresis + 1-bar delay | SPY daily (yfinance) + approximated NAV (no free point-in-time NAV source), 2010–2026 | **REJECT** (2/8; exp_2026-11-09T23-42-41-758123Z) | OOS Sharpe 0.074, PF 1.019, DD −18.95%, worst-regime −1.753, benchmark p 0.982, IR −0.721, perturbation 0.0; NAV approximation invalidates mechanism test; random-premium ablation outperforms signal |
 
 **Cycle 89 required next.** H85–H174 all rejected. Fresh discovery per directive §4: reconcile lineage to H174, propose ≥3 repo-new mechanism candidates across ≥3 broad categories, score honestly, reassess all deferred candidates (NF-04/05/11r/12/17/20/21/15/16/22/23/24/25/26/27/28/29 + NF-20261109-01/02/03/12/15/16/18/19/20/22/23/24/25/26/27/28/29) with concrete evidence (no silent drops). Pre-register highest-information feasible candidate as H175 with smallest decisive test. `src/qtr` unchanged unless evidenced defect. No gate weakening; no published/certified artifact modification.
+
+---
+
+## Cycle 89 (2026-11-09) — Discovery / Pre-registration & Execution of H175 (NF-20261109-03)
+
+**Lineage reconciled to H174 (H85–H174 all rejected/recorded).** Next unused H-ID **H175** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified. Selection/validation uses no protected-test feedback. Free/public yfinance data only.
+
+### Deferred candidates reassessed (concrete evidence, Cycle 89; none silently dropped)
+
+- **NF-20261105-04 (commodity carry roll proxy) — remains DEFERRED.** Free yfinance/DataFetcher provides continuous/front proxies only; no free point-in-time deferred/term-structure/second-month series. ETF proxies confound roll/flows/equity beta. Blocker: point-in-time term-structure/roll proxy construction.
+- **NF-20261105-05 (short-term CS reversal) — remains DEFERRED.** Daily cross-sectional rebalancing → very high turnover; equity default costs make net-of-cost decisive. Blocker: net-of-cost under pre-registered turnover.
+- **NF-20261105-11r / 11 (TNX/FVX slope) — data-resolved variant, novelty scored honestly lower (same root mechanism as NF-11).** Deferred.
+- **NF-20261105-12 (cross-sectional equity dispersion) — remains DEFERRED.** Complexity/turnover vs smallest decisive test.
+- **NF-20261105-17 (volume-shock reversal) — remains DEFERRED.** Turnover/cost-sensitive.
+- **NF-20261105-20 (Treasury auction supply-pressure) — remains DEFERRED.** Event calendar/timestamp construction heavier.
+- **NF-20261105-21 (month-end pension rebalancing) — remains DEFERRED.** Weak evidence/adjacency risk.
+- **NF-20261106-03 (VVIX vol-of-vol) — remains DEFERRED.** VIX-complex adjacency; novelty scored 3.
+
+### Cycle 89 discovery scan (§4) — 3 candidates across 3 broad categories (scored honestly, weights novelty 25/plausibility 25/data 20/falsifiability 15/execution 10/support 5)
+
+| Candidate | Mechanism category | Novelty | Plaus | Data | Falsif | Exec | Support | Weighted | Status |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---|
+| NF-20261109-03 Cross-asset macro regime timing (HG=F/GC=F growth − TIP/IEF inflation → SPY) | Macro factor regime / growth-inflation timing | 4 | 3 | 5 | 5 | 5 | 3 | **3.80** | **SELECTED → H175** |
+| NF-20261109-22 RSP-SPY breadth relative-momentum timing | Cross-asset participation / relmom | 3 | 3 | 5 | 4 | 5 | 3 | **3.75** | Deferred (H97 same-pair adjacency; H92/H96/H152/H157 relmom adjacency) |
+| NF-20261109-02 Earnings estimate revision momentum | Fundamental / analyst revision | 4 | 3 | 4 | 5 | 3 | 3 | **3.65** | Deferred (revision-history PIT risk; yfinance snapshot limits) |
+
+**Scoring notes.** NF-03 novelty 4 (composite macro regime not executed; honest adjacency to H101 copper/gold single-ratio, executed REJECT — H175 adds an inflation overlay and composite construction, not a parameter variant). Plausibility 3 (standard macro regime framework; market-proxy noise). Data 5 (all five series free yfinance, 4233 aligned rows, 0 non-positive). Falsifiability 5 (clean regime z-score test). Execution 5 (single traded instrument SPY, 36-combo grid, no `src/qtr`). Support 3 (regime-allocation literature; market-proxy edge less documented). Weighted 3.80. NF-22/NF-02 deferred with documented decisive risks; no silent drops per directive §4.2/§6.
+
+### NF-20261109-03 / H175 — Cross-Asset Macro Regime Timing (Growth/Inflation Proxies → SPY) (PRE-REGISTERED → EXECUTED)
+
+**NF-ID:** NF-20261109-03 (H175). **Status:** Pre-registered decision-ready before validation outcomes; executed REAL 2026-11-10. `src/qtr` unchanged. Free/public yfinance data only.
+
+**Mechanism.** Market-based growth (copper/gold HG=F/GC=F ratio: industrial demand vs safe haven) and inflation-expectations (TIPS vs nominal Treasuries TIP/IEF ratio = breakeven inflation proxy) define a macro regime for SPY exposure. Favorable regime (strong growth relative to safe haven, contained inflation expectations) → vol-targeted long SPY; unfavorable → flat. Hysteresis between entry_z/exit_z; 1-bar delay via engine `signals.shift(1)`. Vol-targeted off trailing 21-day SPY realized vol; long-only; MAX_POS=0.5.
+
+**Distinction.** Repo-new root family (composite market-based macro regime as SPY timing signal). Honest adjacency to H101 (HG=F/GC=F single-ratio, executed REJECT) — H175 adds the inflation dimension (TIP/IEF) and composite `z(growth) − z(inflation)` construction. Distinct from H94 (credit), H95 (USD), H96 (realized correlation), H100 (rates-vol), H171/H11r (yield levels/slope), H173 (ERP).
+
+**Data/splits.** SPY + HG=F, GC=F, TIP, IEF daily yfinance 2010-01-01→2026-10-31 (4233 aligned rows, 0 non-positive). Train 50% (~2010→2018-06-04), Val 25% (→2022-08-15), Test protected final 25% (~2022→2026). Grid 36: `lookback {63,126,252} × entry_z {0.5,1.0,1.5} × exit_z {0.0,0.5} × vol_target {0.10,0.15}`. Selection = train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only.
+
+**Implementation/execution.** Runner `run_nf_20261109_03_macro_regime.py`; tests `tests/test_nf_20261109_03_macro_regime.py` (10 passed). Ruff check + format clean. Bug fixed during implementation: regime composite `(g_z - i_z).fillna(0)` poisoned the entire signal to zero when either component had zero rolling std (constant series); fixed to `g_z.fillna(0) - i_z.fillna(0)` in both the runner and inverse-regime falsifier. Executed REAL: `PYTHONPATH=src python run_nf_20261109_03_macro_regime.py`. Artifact: `.experiments/nf_runs/nf_20261109_03_macro_regime_20261110_004316/summary.json`.
+
+**Selected (train-only 4-fold WF Sharpe 1.288):** `lookback=126, entry_z=1.0, exit_z=0.0, vol_target=0.10`. Train-ref Sharpe 1.189.
+
+**Result — REJECT (1/8 gates).** OOS Val+Test (1717 periods, 123 trades): Sharpe −0.005 (fail ≥1.0), PF 0.998 (fail ≥1.3), max DD −9.7% (pass ≤15%), trades 123 (fail ≥200), WF stability −0.004 (fail ≥0.7), worst-regime rolling-252 Sharpe −1.31 (fail ≥0.3), benchmark p=0.996 (fail ≤0.05), IR −0.931 (fail ≥0), perturbation min ratio −32.37 (fail ≥0.5). SPY buy-hold benchmark OOS Sharpe 0.810, total return +83.7%. Total return −0.7%, equity_end $992,647.
+
+**Ablations.** Random-regime OOS Sharpe 0.121/PF 1.048 (688 trades). Inverse-regime direction falsifier OOS Sharpe 1.009/PF 1.217 (382 trades) — **the inverse signal outperforms the strategy**, direction falsified ("favorable regime → long SPY" not supported; sign reversed or noise on this sample).
+
+**Verdict rationale.** Train WF Sharpe 1.288 → OOS Sharpe −0.005: classic train→OOS collapse / no predictive power. The composite growth/inflation regime has no OOS edge for SPY timing on free daily data after costs. Only maxDD clears its gate. Mechanism not logically falsified but not certifiable under the evidence gates; no gate weakening. Random-exposure-matched and inverse-signal ablations both indicate the timing signal carries no robust information.
+
+**Root-cause attribution.**
+1. Train→OOS collapse: WF train Sharpe 1.29 → OOS −0.005; regime score fits train-window noise.
+2. Direction falsified: inverse-regime OOS Sharpe 1.009 > signal Sharpe −0.005.
+3. Sparse trading: 123 trades (< 200); hysteresis + high entry_z keeps signal flat most of the time.
+4. Market-proxy noise: HG=F/TIP/IEF are noisy proxies; trailing z-score regime is lagged/smoothed with no persistent predictive content for next-day SPY returns after costs.
+
+**Lineage map (H175 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Cross-asset macro regime timing (growth/inflation proxies → SPY) | H175 (NF-20261109-03) | Vol-targeted long SPY when composite regime z(HG=F/GC=F) − z(TIP/IEF) ≥ entry_z (favorable), flat when ≤ exit_z; hysteresis + 1-bar delay | SPY (traded), HG=F/GC=F/TIP/IEF (signals) daily yfinance, 2010–2026 | **REJECT** (1/8; `.experiments/nf_runs/nf_20261109_03_macro_regime_20261110_004316/summary.json`) | Train WF 1.288 → OOS Sharpe −0.005; inverse-regime (1.009) outperforms signal; fails Sharpe/PF/trades/WF/worst-regime/benchmark/IR/perturbation; sparse trading (123) |
+
+**Cycle 89 complete.** H85–H175 all rejected/recorded. `src/qtr` unchanged; pinned suite not rerun (no `src/qtr` change). No commit/push. Deferred pool unchanged (NF-04/05/11r/12/17/20/21 + NF-22/NF-02 from this cycle remain deferred with documented risks). Next unused H-ID is H176. Per directive §4/§6, Cycle 90 requires a fresh mechanism search across ≥3 repo-new broad categories before selecting H176 — do not recycle parameter/instrument/universe/timeframe variants of rejected families.

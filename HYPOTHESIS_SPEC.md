@@ -8261,4 +8261,80 @@ Lineage reconciled to H167: **H85–H167 all rejected/recorded**. Next unused H-
 
 ---
 
-## H175 — Next Cycle Discovery
+## H175 — NF-20261109-03: Cross-Asset Macro Regime Timing (Growth/Inflation Proxies → SPY) (Cycle 89)
+
+**NF-ID:** NF-20261109-03 (H175). **Status:** Pre-registered; decision-ready before validation outcomes. `src/qtr` unchanged. Free/public yfinance data only.
+
+**Broad mechanism category:** Macro factor regime / growth-inflation regime timing (repo-new root family; distinct from yield-level H154/H155/H171, yield-curve-slope H171/H11r, ERP H173, credit H94/H94/H108, USD H95, realized-correlation H96, rates-vol H100, copper-gold single-ratio H101, and all directional/vol/dispersion/calendar families).
+
+**Repo-relative novelty (honest).** No executed H-ID tests a composite market-based macro regime (growth proxy + inflation proxy combined) as a SPY timing signal. H101 (NF-20261106-04, executed REJECT) tests a *single* copper/gold (HG=F/GC=F) ratio growth regime; H175 adds a second, distinct inflation dimension (TIP/IEF breakeven proxy) and a composite regime score g_z − i_z, so it is not a parameter/instrument variant of H101. H171/H11r use yield levels/slope (monetary); H173 uses equity dividend yield − bond yield (valuation); H175 uses market-based real-asset growth and inflation-expectation proxies. Adjacency to H101 is scored honestly (shared HG=F/GC=F growth observable); novelty rests on the inflation overlay and composite construction.
+
+**Statement.** Market-based growth (copper/gold HG=F/GC=F ratio) and inflation-expectations (TIPS vs nominal Treasuries TIP/IEF ratio = breakeven inflation proxy) proxies define a macro regime for SPY exposure. A favorable regime (strong industrial-demand growth relative to safe-haven gold, with contained inflation-expectations) supports the equity risk premium → vol-targeted long SPY; an unfavorable regime (weak growth and/or rising inflation expectations) → flat. A vol-targeted position scaled by the regime score targets net OOS (Val+Test) Sharpe ≥ 1.0.
+
+**Null (H0).** The composite growth/inflation macro regime has no predictive power for next-period SPY returns beyond random chance after costs.
+
+**Pre-registration (decision-ready before validation outcomes).** NF-20261109-03 verified unused (deferred candidate in Cycles 86–88, never executed). H175 next unused after H174 (H24/H68–H73/H76–H79 unassigned, not recycled). PIT causal: HG=F, GC=F, TIP, IEF, SPY closes known at daily close t; regime score computed from trailing-only data; position at close t earns return t→t+1 via engine `signals.shift(1)`. Data 2010-01-01→2026-10-31. Train first 50% (~2010→2018), Val next 25%, Test protected final 25% (~2022→2026). Selection = train-only 4-fold walk-forward Sharpe; gates on OOS Val+Test only. No holdout feedback.
+
+**Construction (daily, causal).**
+1. Fetch daily adjusted Close for SPY (traded) and HG=F, GC=F, TIP, IEF (signals) via yfinance; align on common index.
+2. Growth proxy: `growth_t = log(HG=F_t / GC=F_t)` (industrial demand vs safe haven). Inflation proxy: `inflation_t = log(TIP_t / IEF_t)` (breakeven inflation expectations).
+3. Regime score: `regime_t = z(growth, L) − z(inflation, L)`, trailing rolling z-scores over lookback `L` (past-only, `min_periods=L`).
+4. Signal: vol-targeted long SPY when regime ≥ entry_z (favorable), flat when regime ≤ exit_z (unfavorable), hysteresis holding prior state between thresholds. 1-bar delay via engine `signals.shift(1)`.
+5. Vol targeting: trailing 21-day SPY realized vol; daily target `vol_target / sqrt(252)`; scale clipped to `[0, 3.0]`; position clipped to `[0, MAX_POS=0.5]`; long-only.
+6. Costs: Equity `CostModel` defaults (1 bp commission + 1 bp spread). MAX_POS=0.5.
+
+**Bounded grid (pre-registered).** `lookback ∈ {63, 126, 252}` × `entry_z ∈ {0.5, 1.0, 1.5}` × `exit_z ∈ {0.0, 0.5}` × `vol_target ∈ {0.10, 0.15}` = 3 × 3 × 2 × 2 = **36 combos**. Selection by train-only 4-fold walk-forward Sharpe; Test protected.
+
+**Falsifiers / ablations.** Buy-hold SPY benchmark; random-regime control (same number of active days, randomly chosen); inverse-regime (flat when favorable, long when unfavorable — direction falsifier); OAT perturbation (±20% on lookback, entry_z, exit_z, vol_target); Val/Test subperiods; worst-regime rolling-252 Sharpe. No gate weakening.
+
+**Gates (OOS Val+Test, fail-closed).** Sharpe ≥ 1.0; trades ≥ 200; PF ≥ 1.3; max DD ≤ 15%; WF stability ≥ 0.7; worst-regime rolling-252 Sharpe ≥ 0.3; benchmark p ≤ 0.05 with IR ≥ 0 (direction-aware); perturbation min ratio ≥ 0.5.
+
+**Runner:** `run_nf_20261109_03_macro_regime.py`. **Tests:** `tests/test_nf_20261109_03_macro_regime.py`.
+
+**Cycle 89 discovery scan (§4).** Three repo-new candidates across three broad categories, scored honestly (weights novelty 25/plausibility 25/data 20/falsifiability 15/execution 10/support 5), none silently dropped:
+| Candidate | Category | Novelty | Plaus | Data | Falsif | Exec | Support | Weighted | Status |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---|
+| NF-20261109-03 Cross-asset macro regime timing (growth HG=F/GC=F + inflation TIP/IEF → SPY) | Macro factor regime | 4 | 3 | 5 | 5 | 5 | 3 | **3.80** | **SELECTED → H175** |
+| NF-20261109-22 RSP-SPY breadth relative-momentum timing | Cross-asset participation / relmom | 3 | 3 | 5 | 4 | 5 | 3 | **3.75** | Deferred (H97 same-pair adjacency; H92/H96/H152/H157 relmom adjacency) |
+| NF-20261109-02 Earnings estimate revision momentum | Fundamental / analyst revision | 4 | 3 | 4 | 5 | 3 | 3 | **3.65** | Deferred (revision-history PIT construction risk; yfinance snapshot limits) |
+
+**Scoring notes.** NF-03 novelty 4 (composite macro regime not executed; honest adjacency to H101 copper/gold single-ratio, executed REJECT), plausibility 3 (standard macro regime framework, market-proxy noise), data 5 (all five series free yfinance, 4233 rows, 0 non-positive), falsifiability 5 (clean regime z-score test), execution 5 (single traded instrument SPY, 36-combo grid, monthly-slow regime, no `src/qtr`), support 3 (regime-allocation literature, market-proxy edge less documented). Weighted 3.80. NF-22/NF-02 deferred with documented decisive risks; no silent drops per directive §4.2/§6.
+
+---
+
+**Execution — Cycle 89 (executed 2026-11-10, REAL yfinance).** Runner `run_nf_20261109_03_macro_regime.py`; artifact `.experiments/nf_runs/nf_20261109_03_macro_regime_20261110_004316/`. 4233 aligned rows 2010-01-04→2026-10-30 (SPY + HG=F, GC=F, TIP, IEF). Train 50% (~2010→2018-06-04), Val 25% (→2022-08-15), Test protected final 25% (~2022→2026). Grid 36 combos; selection by train-only 4-fold walk-forward Sharpe → `lookback=126, entry_z=1.0, exit_z=0.0, vol_target=0.10`.
+
+| Split | Sharpe |
+|-------|--------|
+| Train (~2010→2018-06) | 1.189 |
+| Train-only 4-fold WF (selection) | 1.288 |
+| **OOS Val+Test (gated, ~2018-06→2026-10)** | **-0.005** |
+
+| Gate (OOS) | Value | Threshold | Result |
+|------------|-------|-----------|--------|
+| Net Sharpe | -0.005 | ≥ 1.0 | FAIL |
+| Trades | 123 | ≥ 200 | FAIL |
+| Profit factor | 0.998 | ≥ 1.3 | FAIL |
+| Max drawdown | -9.7% | ≤ 15% | PASS |
+| Walk-forward stability | -0.004 | ≥ 0.7 | FAIL |
+| Worst-regime rolling-252 Sharpe | -1.31 | ≥ 0.3 | FAIL |
+| Benchmark p-value | 0.996 | ≤ 0.05 | FAIL |
+| Information ratio vs buy-hold | -0.931 | ≥ 0 | FAIL |
+| Perturbation min ratio (±20%) | -32.37 | ≥ 0.5 | FAIL |
+
+Benchmark buy-hold SPY OOS: Sharpe 0.810, total return +83.7%. Inverse-regime direction falsifier OOS: Sharpe 1.009 (outperforms the signal) — direction falsified. Random-regime ablation OOS Sharpe 0.121. Total return -0.7%, equity_end $992,647.
+
+**Verdict: REJECT H175.** 7/8 gates fail (only maxDD passes). Train WF Sharpe 1.288 → OOS Sharpe -0.005: classic overfit / no predictive power. The composite growth/inflation regime has no OOS edge for SPY timing on free daily data; the inverse-regime configuration beats the signal, confirming the direction is wrong (or noise). Mechanism not falsified in the logical sense, but not certifiable under the evidence gates. No gate weakening.
+
+**Root-cause attribution.**
+1. **Train→OOS collapse.** WF train Sharpe 1.29 → OOS -0.005. The regime score fits noise in the train window; no stable regime-return relationship OOS.
+2. **Direction falsified.** Inverse-regime (flat when favorable, long when unfavorable) OOS Sharpe 1.009 > signal Sharpe -0.005. The "favorable regime → long SPY" causal chain is not supported; if anything, the sign is reversed on this sample.
+3. **Sparse trading.** Only 123 trades OOS (< 200 gate). The hysteresis + high entry_z (1.0) keeps the signal flat most of the time; regime rarely crosses ±1.0.
+4. **Market-proxy noise.** HG=F (copper futures) and TIP/IEF are noisy proxies; the trailing z-score regime score is a lagging, smoothed construct with no persistent predictive content for next-day SPY returns after costs.
+
+**What would invalidate the rejection.**
+- Intraday or higher-frequency macro regime construction (daily z-scores are too slow/lagged).
+- A fundamentally different regime definition (e.g., term-structure / credit-spread / real-rate proxies rather than HG=F/GC=F and TIP/IEF).
+- Longer sample including pre-2010 regimes where macro-timing literature reports stronger edges.
+
+---
