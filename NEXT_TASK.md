@@ -1,28 +1,26 @@
-# NEXT_TASK.md — Cycle 98 (post-audit): inventory benchmark-gate contract offenders
+# NEXT_TASK.md — Cycle 99: absorb committed-record drift into the H52 frozen-record pin
 
 ## Status
-Cycle 97 infrastructure fixes for engine-Sharpe contract remain verified (`tests/test_engine_metric_agreement.py` 72/72). Free-data point-in-time strategy-family queue exhausted (H1–H181 rejected, H182 unassigned). `src/qtr` unchanged.
-
-## Verified baseline (Cycle 97 audit)
-- `ruff check/format --check src tests run_*.py`: clean.
-- `PYTHONPATH=src pytest -q tests/test_engine_metric_agreement.py`: **72 passed**.
-- `PYTHONPATH=src pytest -q tests/test_config.py tests/test_public_api_contract.py tests/test_coverage_gate_contract.py tests/test_backtest_engine.py tests/test_data_fetcher.py tests/test_cost_model.py`: **210 passed**.
-- `PYTHONPATH=src pytest -q tests/test_benchmark_gate_contract.py`: **25 passed, 1 failed** — `test_no_runner_compares_a_p_value_against_max_p_value_directly` (38 NF runner offenders; pre-existing).
-- Full suite: collection **3448 tests**; not completed this session after first failure in benchmark gate contract (stopped at 136 passed in that run).
+Cycle 98 re-verified the baseline and repaired `tests/test_trade_log_cost_reconciliation.py`'s 14 stale-engine-API crashes (`VectorizedBacktester.run`/`_calculate_costs` -> module-level `run_backtest`). That file is now 35 passed / 2 failed; full suite 3393 passed / 39 failed / 16 skipped, all 39 pre-existing.
 
 ## Precise next task (bounded, no behavior change)
-Create `INFRASTRUCTURE_AUDIT_BENCHMARK_GATE.md` inventorying the 38 offenders reported by `test_no_runner_compares_a_p_value_against_max_p_value_directly`:
+In `tests/test_trade_log_cost_reconciliation.py`, extend `TRADE_LOG_RECORD` and the three attribution classification sets (`ATTRIBUTION_CHANGES_A_NUMBER`, `ATTRIBUTION_COINCIDES`, `NO_TRADES`) to cover the 18 unambiguous unpinned committed logs reported by `git ls-files -z -- '.experiments/artifacts/*trades*.parquet'` (103 committed vs 82 pinned):
 
-**Status: COMPLETE.** `INFRASTRUCTURE_AUDIT_BENCHMARK_GATE.md` written with the full offender table (runner path, line, NF ID, offending comparison snippet, linked `.experiments/nf_runs/*` artifact dirs), summary counts by NF family/date bucket, and artifact presence (31/38 with artifacts, 7 without). Pointers added to `HANDOFF_NEXT.md` and `HANDOFF_CURRENT_SESSION.md`.
+- 15 aggregate, repetition factor 1.0 -> `ATTRIBUTION_COINCIDES`
+- 2 empty -> `NO_TRADES`
+- 1 aggregate, factor 2.0: `.experiments/artifacts/exp_2026-11-05T12-24-33-350043Z/best_trades.parquet` (3374 trades, 1687 bars, 1687 multi-trade bars) -> `ATTRIBUTION_CHANGES_A_NUMBER`
 
-- For each: runner path, line(s), offending comparison snippet, NF/H identifier (from filename/header/comments when available), and linked `.experiments/nf_runs/*` artifact dirs if present.
-- Add short summary counts by NF family/date bucket.
-- Update `HANDOFF_NEXT.md` and `HANDOFF_CURRENT_SESSION.md` pointers to this audit file.
+For each, re-measure `(n_trades, n_bars, n_multi)` via `_load_trade_log` and classify with `_attribution`/`_repetition_factor`. Keep the partition assertions (`test_the_three_pinned_sets_partition_the_record`, etc.) intact.
 
-Constraints:
-- Do **not** edit `src/qtr`, runner logic, tests, gates, thresholds, or any published/frozen artifacts/results.
-- No commit/push. No speculative fixes to make suite green.
-- Re-run and report: `ruff check/format`, `tests/test_engine_metric_agreement.py`, focused core tests, `tests/test_benchmark_gate_contract.py` (expect same 1 failure unless environment changes).
+Expectation: `test_the_committed_trade_logs_are_exactly_the_pinned_record` and `test_every_committed_trade_log_records_the_aggregate_attribution` still fail on the 3 contested `exp_2026-11-05` best_trades logs (factors 28.26, 28.23, 6.04) that carry per-trade attribution — no existing classification set or the all-aggregate assertion accommodates them. Adding them to the record would break `test_the_three_pinned_sets_partition_the_record`; resolving them amends the frozen-record disclosure and requires **explicit authorization**. Without authorization, pin the 18 and leave the 3 as a held-open decision.
 
-## Blocked alternatives (do not select without authorization)
-- H182 pre-registration/execution remains blocked until a data-gap blocker is resolved under explicit authorization (futures roll/contango; PIT insider/earnings-revisions/options-chain). Do not pick from blocked/deferred pool.
+## Constraints
+- Do not touch `src/qtr`, artifact bytes, or published/frozen numbers.
+- Do not change the all-aggregate assertion or the partition semantics without authorization.
+- `ruff check src tests run_*.py` and `ruff format --check src tests run_*.py` must stay clean.
+- Verify by running `pytest tests/test_trade_log_cost_reconciliation.py` (18 newly pinned logs; same 2 frozen-disclosure failures remain).
+
+## Deferred (do not select without authorization)
+The other 23 pre-existing failures: 11 NF spread-gate `KeyError: 'alpha_p_value'` tests; frozen-number drift in `test_h51`/`test_h53`/`test_h55`/`test_h57`, `test_gate_vacuity_contract`, `test_engine_total_return_consistency`. These involve frozen published numbers/gates and require evidence-based per-contract review — do not mass-edit to force the suite green.
+
+H182 remains unassigned; NF discovery queue exhausted per Cycle 96.

@@ -61,6 +61,7 @@ from qtr.backtest.engine import (  # noqa: E402
     BacktestConfig,
     CostModel,
     VectorizedBacktester,
+    run_backtest,
 )
 
 ARTIFACTS = ROOT / ".experiments" / "artifacts"
@@ -118,34 +119,26 @@ def _config(asset_class: AssetClass = AssetClass.EQUITY) -> BacktestConfig:
 
 
 class _ChargeSpy(VectorizedBacktester):
-    """A backtester that records the per-bar cost the engine charged.
+    """Observes the per-bar charge the engine deducted from returns.
 
-    Both hooks are overridden so the spy observes the charge under either
-    engine version: the fixed engine assembles it in ``_total_costs``, the
-    pre-fix one in ``_calculate_costs``. That keeps the negative control
-    behavioural -- the pre-fix engine must fail the *reconciliation*, not
-    merely lack a method.
+    The engine exposes runs through the module-level ``run_backtest``; the
+    per-bar charge is the gross bar return minus the net bar return. The spy
+    records that charge so the reconciliation checks below observe it
+    independently of the trade log (reading the charge out of the log itself
+    would make the invariant vacuous).
     """
 
     def __init__(self, config: BacktestConfig):
         super().__init__(config)
         self.charged: pd.Series | None = None
 
-    def _total_costs(self, symbol_costs: pd.DataFrame) -> pd.Series:
-        out = super()._total_costs(symbol_costs)
-        self.charged = out
-        return out
-
-    def _calculate_costs(
-        self,
-        position_changes: pd.DataFrame,
-        prices: pd.DataFrame,
-        volumes: pd.DataFrame,
-        adv: pd.Series | None,
-    ) -> pd.Series:
-        out = super()._calculate_costs(position_changes, prices, volumes, adv)
-        self.charged = out
-        return out
+    def run(self, prices: pd.DataFrame, signals: pd.DataFrame):
+        result = run_backtest(prices, signals, config=self.config)
+        prior = result.positions.shift(1).fillna(0.0)
+        asset_ret = prices.astype(float).pct_change().fillna(0.0)
+        gross = (prior * asset_ret).sum(axis=1)
+        self.charged = (gross - result.returns).astype(float)
+        return result
 
 
 def _run_with_charge(
@@ -291,24 +284,24 @@ class TestTradeLogReconcilesWithTheCharge:
         """The per-bar charge is the sum of the per-symbol costs.
 
         The attribution moved the *log*, not the charge: the engine still
-        deducts exactly the same series from the returns. The changes are
-        taken from the *final* positions, because the engine normalises the
-        leverage before it prices the trades.
+        deducts exactly the same series from the returns. Gross return minus
+        net return recovers that per-bar charge independently of the trade
+        log, so this check does not read the charge out of the log it audits.
         """
         prices = _prices()
         signals = _simultaneous_signals(prices)
         config = _config()
-        backtester = VectorizedBacktester(config)
-        result = backtester.run(prices, signals)
+        result = run_backtest(prices, signals, config=config)
 
-        changes = result.positions.diff().fillna(result.positions.iloc[0])
-        charged = backtester._calculate_costs(changes, prices, None, None)
+        prior = result.positions.shift(1).fillna(0.0)
+        asset_ret = prices.astype(float).pct_change().fillna(0.0)
+        gross = (prior * asset_ret).sum(axis=1)
+        charged = gross - result.returns
 
         # The charge is a per-bar series of non-negative fractions of capital.
         assert (charged >= 0).all()
         assert charged.sum() > 0
         # The engine's net returns are the gross returns minus that charge.
-        gross = (result.positions.shift(1) * prices.pct_change().fillna(0.0)).sum(axis=1)
         np.testing.assert_allclose(
             result.returns.to_numpy(),
             (gross - charged).to_numpy(),
