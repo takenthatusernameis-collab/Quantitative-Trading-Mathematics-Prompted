@@ -577,3 +577,52 @@ No deferred candidates silently dropped; all carried forward with documented dec
 - **Rationale:** No certifiable ex-dividend microstructure edge on free daily data; unstable train→OOS, low risk-adjusted performance, worst-regime/perturbation/benchmark failures, buy-hold dominates. `src/qtr` unchanged.
 
 **Cycle 94 complete.** H85–H180 all rejected/recorded. Next unused H-ID **H181**. Cycle 95 requires directive §4 discovery before selecting H181.
+
+---
+
+## Cycle 95 (2026-11-10) — Discovery & REAL Execution of H181 (NF-20261104-03)
+
+**Lineage reconciled to H180.** H85–H180 all rejected/recorded. Next unused H-ID **H181** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged. No published/certified artifact, verdict, threshold, or frozen number modified. Selection/validation used no protected-test feedback. Free/public real data only.
+
+### Deferred candidates reassessed (concrete evidence, Cycle 95; none silently dropped)
+
+| Candidate | Score | Category | Status | Evidence / blocker |
+|---|---:|---|---|---|
+| NF-20261110-07 Russell 2000 annual reconstitution flow | 4.05 | Structural flow / discrete index event | Deferred | Annual frequency → very low OOS power; event/calendar alignment complexity; not smallest decisive daily test (distinct from H168 quarterly S&P rebalance). |
+| NF-20261110-08 Insider transaction signal (Form 4/13F) | 3.80 | Institutional flow / informed trading | Deferred | PIT Form 4/13F parsing/aggregation/filing-lag handling non-trivial on free data; not decision-ready. |
+| NF-20261109-18 S&P 500 inclusion/deletion | 3.70 | Structural flow / discrete event | Deferred | External calendar dependency; low frequency (~25/yr). |
+| NF-20261109-19 Options dealer GEX | 3.10 | Dealer positioning | Deferred | No free historical options chain/GEX. |
+| NF-20261109-02 Earnings estimate revision momentum | 3.65 | Fundamental / analyst revision | Deferred | No free PIT revision history. |
+| NF-20261109-22 RSP-SPY breadth relmom | 3.75 | Participation relmom | Deferred | Adjacency/recycling risk vs H97/H92/H96/H152/H157/H144/H145. |
+| NF-20261109-23 USMV-SPY low-vol relmom | 3.55 | Factor/style momentum | Deferred | Inception/style adjacency limits. |
+| NF-20261109-12 Holiday/pre-holiday drift | 4.00 | Calendar microstructure | HELD | Calendar adjacency H91/H140/H142/H168. |
+| NF-20261110-04 10Y-3M inversion depth de-risking | 3.80 | Macro term-premium | Deferred | Adjacency to H171/H11r curve families (same observable class). |
+| NF-20261110-05 SPY upside/downside jump asymmetry | 3.80 | Higher-moment jump asymmetry | Deferred | Adjacency to H122/H128/H135; low plausibility/support. |
+| NF-04 Commodity carry | — | Carry/term structure | **BLOCKED** | No free PIT term-structure/roll proxy. |
+| NF-05 Short-term CS reversal | — | Liquidity provision | **DEFERRED** | Turnover/net-of-cost; H119 REJECT 3/8. |
+| NF-08-16 Halloween seasonal | 3.90 | Calendar seasonal | **HELD** | Calendar adjacency H91/H140/H142. |
+| NF-09-03 Breakeven-inflation | 3.40 | Macro regime | **DEFERRED/DATA-LIMITED** | ^T5YIE/^T10YIE unavailable; H175 proxy. |
+| NF-20261109-20 Stock split effects | — | Corporate action | DEFERRED | Low frequency; incomplete split data. |
+
+### Cycle 95 discovery (≥3 repo-new/decisive candidates, ≥3 mechanism categories, honest scoring)
+
+| Candidate | NF-ID | Mechanism category | Nov (25) | Plaus (25) | Data (20) | Fals (15) | Exec (10) | Supp (5) | **Weighted** | Decision |
+|---|---|---|---:|---:|---:|---:|---:|---:|---:|---|
+| ES-SPY cash-futures basis mean-reversion timing | NF-20261104-03 | Relative value / cash-futures basis convergence (index arbitrage) | 4 | 3 | 5 | 5 | 4 | 3 | **4.05** | **Selected as H181** (smallest decisive daily real-data test) |
+| Russell 2000 annual reconstitution flow | NF-20261110-07 | Structural flow / discrete index event | 4 | 4 | 4 | 5 | 3 | 4 | **4.05** | Deferred (annual low power/event alignment; poor expected information per cycle) |
+| Insider transaction signal (Form 4/13F flow) | NF-20261110-08 | Institutional flow / informed trading | 4 | 4 | 3 | 5 | 3 | 4 | **3.80** | Deferred (PIT parsing/aggregation complexity on free data) |
+
+**Notes (honest).** NF-20261110-07 ties arithmetically but deferred on expected-information/power. NF-20261104-03 (previously proposed, never executed) selected as highest expected-information feasible repo-new mechanism: cash-futures relative-value convergence distinct from executed directional futures TSMOM families. NF-root check: tracked draft `run_nf_20261110_07_es_basis.py` (NF-20261110-09/TBD, incomplete/unexecuted, no `main`) not selected/executed.
+
+### NF-20261104-03 / H181 execution (REAL)
+
+- **Runner:** `run_nf_20261104_03_es_spy_basis.py`. **Tests:** `tests/test_nf_20261104_03_es_spy_basis.py` (**8 passed**, 1 third-party DeprecationWarning). `py_compile` ok; `ruff check/format --check` clean. Runtime ~10.3s.
+- **Data:** yfinance daily auto-adjusted closes ES=F + SPY, aligned 2010-01-04→2026-10-30 (4231 rows). Train→2018-12-31, Val→2022-12-31, Test protected→2026-10-30 (OOS 1969).
+- **Grid (36):** `basis_window {21,63,126} × entry_z {1.0,1.5,2.0} × exit_z {0.0,0.5} × vol_target {0.10,0.15}`. Train-only 4-fold WF selection.
+- **Selected:** `basis_window=21, entry_z=2.0, exit_z=0.0, vol_target=0.10` (WF 0.234, train 0.246).
+- **OOS Val+Test (1969, 99 trades):** Sharpe **0.297** (fail), PF **1.162** (fail), maxDD **−6.16%** (pass), trades **99** (pass), WF stability **1.208** (pass), worst-regime rolling-252 **−1.410** (fail), benchmark p **0.992** / IR **−0.877** vs buy-hold SPY 0.911/+90.75% (fail), perturbation min ratio **0.552** (pass). Return **+6.89%**.
+- **Ablations:** random-signal 0.032/PF 1.014; inverse-signal −0.017/PF 0.995. Buy-hold dominates.
+- **Verdict:** **REJECT (4/8)**. Artifact `.experiments/nf_runs/nf_20261104_03_es_spy_basis_20261110_cycle95/summary.json` (+`grid.csv`).
+- **Rationale:** No certifiable daily-close ES-SPY basis convergence edge; magnitude/noise/costs leave Sharpe, PF, worst-regime, benchmark failing. `src/qtr` unchanged.
+
+**Cycle 95 complete.** H85–H181 all rejected/recorded. Next unused H-ID **H182**. Cycle 96 requires directive §4 discovery before selecting H182.

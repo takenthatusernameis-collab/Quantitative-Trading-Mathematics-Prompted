@@ -8580,3 +8580,78 @@ Candidates scored honestly (weights novelty 25 / plausibility 25 / data 20 / fal
 | Corporate action / microstructure (ex-dividend capture) | H180 (NF-20261109-16) | Vol-targeted long exposure around ex-dividend dates (PIT ex-date/dividend, 1-bar delay + dividend cash credit) | SPY/sector ETFs daily raw OHLC + dividend history (yfinance), 2010–2026 | **REJECT** (2/8; `.experiments/nf_runs/nf_20261109_16_dividend_capture_test_run/summary.json`) | OOS Sharpe 0.194/PF 1.149/WF −0.313/worst-regime −1.980/perturb −3.115/bench fail; unstable, buy-hold dominates; microstructure/slippage sensitivity on free data |
 
 **Cycle 94 complete.** H85–H180 all rejected/recorded. `src/qtr` unchanged. No commit/push. Next unused H-ID **H181**. Cycle 95 requires directive §4 discovery (≥3 repo-new/decisive candidates across ≥3 broad mechanism categories, honest scoring, NF-root checks, deferred reassessment with evidence) before selecting H181.
+
+---
+
+## H181 (NF-20261104-03): ES-SPY Cash-Futures Basis Mean-Reversion Timing (Cycle 95)
+
+**Status:** REAL executed, **REJECT (4/8)**. Free/public real data only (yfinance daily auto-adjusted closes, ES=F + SPY). `src/qtr` unchanged. No published/certified artifact, verdict, threshold, or frozen number modified.
+
+**NF-ID:** NF-20261104-03 (H181). **Broad mechanism category:** Relative value / cash-futures basis convergence (index arbitrage; repo-new root family vs executed H1–H180).
+
+### Directive §4 discovery (Cycle 95, before H181 validation outcomes)
+
+Lineage reconciled to H180 (H85–H180 rejected/recorded; H24/H68–H73/H76–H79 unassigned, not recycled). NF-root/label checks: NF-20261104-03 proposed in early register but never executed/pre-registered as an H; no executed runner/artifact/H verdict for ES-SPY basis mean-reversion prior to this run. Tracked draft `run_nf_20261110_07_es_basis.py` (NF-20261110-09/TBD, incomplete/unexecuted, no `main`) is a separate unexecuted concept and was not selected/executed. H1/H7–H12/H21–H23/H25 used futures directionally (TSMOM), not cash-futures relative-value basis convergence.
+
+Deferred pool reassessed with concrete evidence (no silent drops):
+- NF-20261110-07 Russell 2000 annual reconstitution (4.05, structural flow/discrete event): annual frequency → very low OOS power; event/calendar alignment complexity; not smallest decisive daily test.
+- NF-20261110-08 Insider Form 4/13F flow (3.80, institutional flow/informed trading): PIT parsing/aggregation/filing-lag handling non-trivial on free data; not decision-ready.
+- NF-20261109-18 S&P 500 inclusion/deletion (3.70): external calendar dependency; low frequency (~25/yr).
+- NF-20261109-19 Options dealer GEX (3.10): no free historical options chain/GEX.
+- NF-20261109-02 Earnings estimate revision (3.65): no free PIT revision history.
+- NF-20261109-22 RSP-SPY breadth relmom (3.75): adjacency/recycling risk vs H97/H92/H96/H152/H157/H144/H145.
+- NF-20261109-23 USMV-SPY low-vol relmom (3.55): inception/style adjacency.
+- NF-20261109-12 Holiday/pre-holiday drift (4.00, HELD): calendar adjacency H91/H140/H142/H168.
+- NF-20261110-04 10Y-3M inversion depth (3.80): adjacency to H171/H11r curve families.
+- NF-20261110-05 SPY upside/downside jump asymmetry (3.80): adjacency to H122/H128/H135; low plausibility/support.
+- NF-04 Commodity carry: **BLOCKED** (no free PIT term-structure/roll proxy).
+- NF-05 Short-term CS reversal: **DEFERRED** (turnover/net-of-cost; H119 REJECT 3/8).
+- NF-08-16 Halloween seasonal (3.90, HELD): calendar adjacency H91/H140/H142.
+- NF-09-03 Breakeven-inflation (3.40): **DEFERRED/DATA-LIMITED** (^T5YIE/^T10YIE unavailable; H175 proxy).
+- NF-20261109-20 Stock split effects: DEFERRED (low frequency; incomplete split data).
+
+Candidates scored honestly (weights novelty 25 / plausibility 25 / data 20 / falsifiability 15 / execution 10 / support 5):
+
+| Candidate | NF-ID | Mechanism category | Nov | Plaus | Data | Fals | Exec | Supp | **Wtd** | Decision |
+|---|---|---|---:|---:|---:|---:|---:|---:|---:|---|
+| ES-SPY cash-futures basis mean-reversion timing | NF-20261104-03 | Relative value / cash-futures basis convergence (index arbitrage) | 4 | 3 | 5 | 5 | 4 | 3 | **4.05** | **Selected as H181** (smallest decisive real-data daily test) |
+| Russell 2000 annual reconstitution flow | NF-20261110-07 | Structural flow / discrete index event | 4 | 4 | 4 | 5 | 3 | 4 | **4.05** | Deferred (annual low power/event alignment; poor expected information per cycle) |
+| Insider transaction signal (Form 4/13F flow) | NF-20261110-08 | Institutional flow / informed trading | 4 | 4 | 3 | 5 | 3 | 4 | **3.80** | Deferred (PIT parsing/aggregation complexity on free data) |
+
+**Selection rationale (honest).** NF-20261110-07 ties on arithmetic score but remains deferred on expected-information/power grounds (annual event, alignment complexity). NF-20261104-03 selected as highest expected-information *feasible/decision-ready* repo-new mechanism with clean free daily PIT data (ES=F, SPY), low turnover potential, and direct causal linkage (cost-of-carry/index arbitrage). Plausibility/support scored moderately (basis deviations small at daily close; continuous ES=F proxy/financing/dividend approximations and cost drag are real risks).
+
+### Pre-registration (decision-ready before validation outcomes)
+
+**Mechanism / causal chain.** ES=F and SPY are linked by cost-of-carry/index-arbitrage. Basis `(ES/SPY - 1)` deviations from rolling mean tend to compress as arbitrage/financing pressures normalize. Trailing z-score (past-only window) gates vol-targeted SPY exposure as a minimal decisive convergence test: long SPY when basis is rich (positive z, compression expected toward cash) with hysteresis/exit; flat when cheap/neutral. PIT causal: ES/SPY closes known at close t, signal from past-only window, engine `signals.shift(1)` → position at close t earns t→t+1. No same-bar/future information.
+
+**Novelty (repo-relative).** Distinct from directional futures TSMOM (H1/H7–H12/H21–H23/H25), intraday/roll/causal audits (H9–H15/H26–H29), and all non-futures families. Observable/mechanism: cash-futures relative-value basis convergence, not own-asset trend, volatility, macro, calendar, sentiment, or microstructure event capture.
+
+**Data/splits.** yfinance daily auto-adjusted closes for ES=F and SPY, aligned 2010-01-04→2026-10-30 (4231 rows). Train → 2018-12-31, Val 2019-01-01→2022-12-31, Test protected 2023-01-01→2026-10-30 (OOS Val+Test 1969). Train-only 4-fold WF Sharpe selection. Gates on pre-registered OOS Val+Test only. No holdout feedback.
+
+**Grid (bounded, 36).** `basis_window {21,63,126} × entry_z {1.0,1.5,2.0} × exit_z {0.0,0.5}` (with `exit_z ≤ entry_z`) × `vol_target {0.10,0.15}`. `MAX_POS=0.5`, Equity `CostModel` defaults (1bp+1bp), `VOL_WINDOW=21`, long-only SPY exposure (minimal decisive test).
+
+**Gates (OOS Val+Test, fail-closed).** Sharpe≥1.0; trades≥50; PF≥1.3; maxDD≤15%; WF stability≥0.7; worst-regime rolling-252 Sharpe≥0.3; benchmark p≤0.05 with IR≥0; perturbation min ratio≥0.5.
+
+**Null/falsifiers/ablations.** Buy-hold SPY benchmark; random-signal control (same active-day count, random dates, seed 42); inverse-basis signal (long when cheap/negative z); OAT perturbation (±20% bounded). No gate weakening.
+
+### Execution outcome (REAL)
+
+**Runner:** `run_nf_20261104_03_es_spy_basis.py`. **Tests:** `tests/test_nf_20261104_03_es_spy_basis.py` (**8 passed**, 1 third-party DeprecationWarning). `py_compile` ok; `ruff check/format --check` clean. Runtime ~10.3s. Artifact: `.experiments/nf_runs/nf_20261104_03_es_spy_basis_20261110_cycle95/summary.json` (+`grid.csv`).
+
+**Selected (train-only WF 0.234, train 0.246):** `basis_window=21, entry_z=2.0, exit_z=0.0, vol_target=0.10`.
+
+**OOS Val+Test (1969 periods, 99 trades):** Sharpe **0.297** (fail), PF **1.162** (fail), maxDD **−6.16%** (pass), trades **99** (pass), WF stability **1.208** (pass), worst-regime rolling-252 **−1.410** (fail), benchmark p **0.992** / IR **−0.877** vs buy-hold SPY 0.911/+90.75% (fail), perturbation min ratio **0.552** (pass). Strategy return **+6.89%**.
+
+**Ablations.** Random-signal OOS Sharpe 0.032 / PF 1.014 (469 trades); inverse-signal OOS Sharpe −0.017 / PF 0.995 (196 trades). Buy-hold SPY dominates.
+
+**Result — REJECT (4/8 gates).**
+
+**Verdict rationale.** ES-SPY basis convergence signal shows no certifiable OOS edge: Sharpe/PF/worst-regime/benchmark fail materially despite low drawdown and stable (but low-base) train selection. Inverse ablation is weak/negative (directionally consistent but unprofitable) and random control near zero, yet strategy magnitude is far below gates and dominated by buy-hold. Daily-close basis on continuous futures proxy appears too small/noisy after costs for this construction.
+
+**Lineage map (H181 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Relative value / cash-futures basis convergence (index arbitrage) | H181 (NF-20261104-03) | Vol-targeted SPY exposure by trailing z-score of ES/SPY basis (rich-basis convergence, hysteresis, 1-bar delay) | ES=F + SPY daily auto-adjusted closes (yfinance), 2010–2026 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261104_03_es_spy_basis_20261110_cycle95/summary.json`) | OOS Sharpe 0.297/PF 1.162/worst-regime −1.410/bench fail; edge too small/noisy on daily close, buy-hold dominates |
+
+**Cycle 95 complete.** H85–H181 all rejected/recorded. `src/qtr` unchanged. No commit/push. Next unused H-ID **H182**. Cycle 96 requires directive §4 discovery (≥3 repo-new/decisive candidates across ≥3 broad mechanism categories, honest scoring, NF-root checks, deferred reassessment with evidence) before selecting H182.

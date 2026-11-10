@@ -1,0 +1,94 @@
+{
+  "experiment": "nf_20261104_03_es_spy_basis",
+  "nf_id": "NF-20261104-03",
+  "hypothesis": "H181",
+  "timestamp_utc": "2026-11-10T13:09:48Z",
+  "runtime_sec": 10.319,
+  "data": {
+    "tickers": [
+      "ES=F",
+      "SPY"
+    ],
+    "rows": 4231,
+    "start": "2010-01-04",
+    "end": "2026-10-30",
+    "train_end": "2018-12-31",
+    "val_end": "2022-12-31",
+    "oos_rows": 1969,
+    "note": "yfinance daily auto_adjusted closes (ES=F, SPY), free/public PIT"
+  },
+  "selected": {
+    "basis_window": 21,
+    "entry_z": 2.0,
+    "exit_z": 0.0,
+    "vol_target": 0.1
+  },
+  "wf_train_sharpe": 0.23411209589240461,
+  "train_selected_sharpe": 0.2456346799921887,
+  "oos_val_test": {
+    "sharpe": 0.29676815047250216,
+    "profit_factor": 1.1622904643774723,
+    "max_drawdown": -0.06155853280631873,
+    "trades": 99,
+    "periods": 1969,
+    "total_return": 0.06891777851506209,
+    "worst_regime_rolling252_sharpe": -1.40981345679304
+  },
+  "benchmark_buy_hold_spy_oos": {
+    "sharpe": 0.9106348854603378,
+    "profit_factor": 1.1907040621234282,
+    "max_drawdown": -0.17971879941277424,
+    "trades": 0,
+    "periods": 1969,
+    "total_return": 0.9074981098161681,
+    "worst_regime_rolling252_sharpe": -0.7921507240943382
+  },
+  "ablations": {
+    "random_signal_oos": {
+      "sharpe": 0.031983456870673846,
+      "profit_factor": 1.0141614560625936,
+      "max_drawdown": -0.07774671784224751,
+      "trades": 469,
+      "periods": 1969,
+      "total_return": 0.0039034729442719573,
+      "worst_regime_rolling252_sharpe": -1.9164332430509103
+    },
+    "inverse_signal_oos": {
+      "sharpe": -0.016832168324895373,
+      "profit_factor": 0.9950263953638979,
+      "max_drawdown": -0.13119050202258598,
+      "trades": 196,
+      "periods": 1969,
+      "total_return": -0.014436959859602139,
+      "worst_regime_rolling252_sharpe": -1.612458864087831
+    }
+  },
+  "wf_stability_oos_over_train": 1.2081687751987609,
+  "benchmark_pvalue_one_sided": 0.991504247876062,
+  "information_ratio_vs_buy_hold": -0.8768091072418105,
+  "perturbation": {
+    "min_ratio": 0.5515048850379333,
+    "n_points": 27,
+    "min_sharpe": 0.1636690847092574
+  },
+  "gates": {
+    "sharpe_ge_1": false,
+    "trades_ge_50": true,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": true,
+    "wf_stability_ge_0_7": true,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_and_ir_ge_0": false,
+    "perturbation_min_ratio_ge_0_5": true
+  },
+  "gates_passed": 4,
+  "gates_total": 8,
+  "verdict": "REJECT",
+  "integrity": {
+    "src_qtr_unchanged": true,
+    "gate_weakening": false,
+    "published_artifacts_modified": false,
+    "selection_holdout_feedback": false,
+    "real_data": true
+  }
+}
