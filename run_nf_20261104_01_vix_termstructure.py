@@ -238,6 +238,10 @@ def full_gate_eval(result, oos_mask, val_mask, test_mask, prices, bench_result):
     else:
         wf_stab = test_m["sharpe"]
 
+    # Worst-regime Sharpe: the weakest of the two held-out sub-periods.
+    # The gate must evaluate a statistic, not a constant (H35).
+    worst = min(val_m["sharpe"], test_m["sharpe"])
+
     # Benchmark comparison
     bench_p = 1.0
     ir = 0.0
@@ -254,7 +258,7 @@ def full_gate_eval(result, oos_mask, val_mask, test_mask, prices, bench_result):
         "profit_factor": oos_m["profit_factor"] >= GATES["min_profit_factor"],
         "max_drawdown": oos_m["max_drawdown"] >= -GATES["max_drawdown"],
         "walkforward_stability": wf_stab >= GATES["min_walkforward_stability"],
-        "worst_regime_sharpe": True,  # simplified
+        "worst_regime_sharpe": worst >= GATES["min_worst_regime_sharpe"],
         "p_value": benchmark_significance_gate(bench_p, ir, GATES["max_p_value"]),
         "information_ratio": ir >= GATES["min_information_ratio"],
     }
@@ -265,6 +269,7 @@ def full_gate_eval(result, oos_mask, val_mask, test_mask, prices, bench_result):
         "val_sharpe": val_m["sharpe"],
         "test_metrics": test_m,
         "wf_stability": wf_stab,
+        "worst_regime_sharpe": float(worst),
         "benchmark_p_value": bench_p,
         "information_ratio": ir,
         "passes": passes,
