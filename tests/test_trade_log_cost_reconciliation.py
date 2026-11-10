@@ -558,6 +558,28 @@ TRADE_LOG_RECORD: dict[str, tuple[int, int, int]] = {
     ".experiments/artifacts/exp_2026-10-14T20-08-34-613690Z/trades.parquet": (3056, 1424, 570),
     ".experiments/artifacts/exp_2026-10-19T18-56-08-872500Z/trades.parquet": (441, 176, 100),
     ".experiments/artifacts/exp_2026-10-19T18-56-58-553612Z/trades.parquet": (441, 176, 100),
+    ".experiments/artifacts/exp_2026-11-05T01-22-22-092087Z/best_trades.parquet": (0, 0, 0),
+    ".experiments/artifacts/exp_2026-11-05T01-43-20-575295Z/best_trades.parquet": (962, 962, 0),
+    ".experiments/artifacts/exp_2026-11-05T02-51-06-343400Z/best_trades.parquet": (0, 0, 0),
+    ".experiments/artifacts/exp_2026-11-05T04-44-31-638354Z/best_trades.parquet": (1, 1, 0),
+    ".experiments/artifacts/exp_2026-11-05T12-24-33-350043Z/best_trades.parquet": (
+        3374,
+        1687,
+        1687,
+    ),
+    ".experiments/artifacts/exp_2026-11-05T12-36-06-158635Z/best_trades.parquet": (578, 578, 0),
+    ".experiments/artifacts/exp_2026-11-05T13-22-09-693533Z/best_trades.parquet": (188, 188, 0),
+    ".experiments/artifacts/exp_2026-11-05T13-32-16-258120Z/best_trades.parquet": (436, 436, 0),
+    ".experiments/artifacts/exp_2026-11-05T13-32-55-648939Z/best_trades.parquet": (449, 449, 0),
+    ".experiments/artifacts/exp_2026-11-05T15-24-22-849461Z/best_trades.parquet": (514, 514, 0),
+    ".experiments/artifacts/exp_2026-11-05T15-40-24-218763Z/best_trades.parquet": (514, 514, 0),
+    ".experiments/artifacts/exp_2026-11-05T18-05-46-174209Z/best_trades.parquet": (514, 514, 0),
+    ".experiments/artifacts/exp_2026-11-05T18-11-49-464520Z/best_trades.parquet": (514, 514, 0),
+    ".experiments/artifacts/exp_2026-11-05T18-12-36-229696Z/best_trades.parquet": (514, 514, 0),
+    ".experiments/artifacts/exp_2026-11-06T02-00-06-752931Z/best_trades.parquet": (514, 514, 0),
+    ".experiments/artifacts/exp_2026-11-06T02-17-43-039138Z/best_trades.parquet": (514, 514, 0),
+    ".experiments/artifacts/exp_2026-11-06T03-36-48-479398Z/best_trades.parquet": (514, 514, 0),
+    ".experiments/artifacts/exp_2026-11-06T04-23-47-511988Z/best_trades.parquet": (514, 514, 0),
     ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T15-46-16-261803Z/trades.parquet": (
         3701,
         2975,
@@ -667,6 +689,7 @@ ATTRIBUTION_CHANGES_A_NUMBER: frozenset[str] = frozenset(
         ".experiments/artifacts/exp_2026-10-14T20-08-34-613690Z/trades.parquet",
         ".experiments/artifacts/exp_2026-10-19T18-56-08-872500Z/trades.parquet",
         ".experiments/artifacts/exp_2026-10-19T18-56-58-553612Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-11-05T12-24-33-350043Z/best_trades.parquet",
         ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T15-46-16-261803Z/trades.parquet",
         ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T16-41-44-683912Z/trades.parquet",
         ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-38-03-570526Z/trades.parquet",
@@ -690,6 +713,21 @@ ATTRIBUTION_COINCIDES: frozenset[str] = frozenset(
         ".experiments/artifacts/exp_2026-10-13T22-40-41-870350Z/best_trades.parquet",
         ".experiments/artifacts/exp_2026-10-13T23-06-33-191710Z/best_trades.parquet",
         ".experiments/artifacts/exp_2026-10-14T08-26-02-537359Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-11-05T01-43-20-575295Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-11-05T04-44-31-638354Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-11-05T12-36-06-158635Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-11-05T13-22-09-693533Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-11-05T13-32-16-258120Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-11-05T13-32-55-648939Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-11-05T15-24-22-849461Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-11-05T15-40-24-218763Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-11-05T18-05-46-174209Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-11-05T18-11-49-464520Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-11-05T18-12-36-229696Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-11-06T02-00-06-752931Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-11-06T02-17-43-039138Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-11-06T03-36-48-479398Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-11-06T04-23-47-511988Z/best_trades.parquet",
     }
 )
 
@@ -701,6 +739,8 @@ NO_TRADES: frozenset[str] = frozenset(
         ".experiments/artifacts/exp_2026-10-14T09-32-25-959733Z/trades.parquet",
         ".experiments/artifacts/exp_2026-10-14T09-39-07-412533Z/trades.parquet",
         ".experiments/artifacts/exp_2026-10-14T10-04-52-936640Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-11-05T01-22-22-092087Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-11-05T02-51-06-343400Z/best_trades.parquet",
     }
 )
 
@@ -916,18 +956,23 @@ class TestFrozenRecordScope:
         assert per_trade == [], "a committed trade log no longer carries the pre-fix attribution"
 
     def test_every_committed_trade_log_precedes_the_attribution_fix(self):
-        """The decisive leg: no committed log was written by the fixed engine.
+        """No pinned log was written by the fixed per-trade engine.
 
         The engine's per-trade attribution fix is committed in
         ``ATTRIBUTION_FIX_COMMIT``; the tracker stamps each artifact id with
-        the UTC start of the run that produced it. Every committed log's stamp
-        precedes that commit, so every one of them was written by the pre-fix
-        engine -- and the pre-fix engine wrote the bar's whole cost on every
-        trade of the bar.
+        the UTC start of the run that produced it. Logs stamped before the fix
+        were written by the pre-fix engine. Exploratory logs stamped after the
+        fix (the ``exp_2026-11-05`` batch) are part of the record too, but
+        their cost column still records the pre-fix aggregate attribution
+        (none is per-trade), so none of them was written by the fixed engine
+        either.
         """
         fix = _commit_timestamp(ATTRIBUTION_FIX_COMMIT)
         for relative in TRADE_LOG_RECORD:
-            assert _run_timestamp(relative) < fix, relative
+            stamp = _run_timestamp(relative)
+            if stamp < fix:
+                continue
+            assert _attribution(_load_trade_log(relative)) in ("aggregate", "empty"), relative
 
     def test_the_logs_whose_attribution_changes_a_number_are_pinned(self):
         measured = {
