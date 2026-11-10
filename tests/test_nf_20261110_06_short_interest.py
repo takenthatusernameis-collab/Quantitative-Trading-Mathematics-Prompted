@@ -72,11 +72,13 @@ def test_entry_exit_hysteresis():
 
 
 def test_universe_filter_spy_only():
-    prices = pd.DataFrame({
-        "SPY": _make_prices(300)["SPY"],
-        "XLF": _make_prices(300, seed=13)["SPY"],
-        "XLE": _make_prices(300, seed=17)["SPY"],
-    })
+    prices = pd.DataFrame(
+        {
+            "SPY": _make_prices(300)["SPY"],
+            "XLF": _make_prices(300, seed=13)["SPY"],
+            "XLE": _make_prices(300, seed=17)["SPY"],
+        }
+    )
     si_aligned = {
         "SPY": _make_si(300),
         "XLF": _make_si(300, seed=19),
@@ -99,18 +101,23 @@ def test_run_bt_and_metrics_shapes():
     si_aligned = {"SPY": si.reindex(prices.index).ffill()}
     w = mod._compute_weights(prices, si_aligned, 12, 1.0, 0.0, 0.10, "SPY")
 
-    config = mod.BacktestConfig(
-        cost_model=mod.CostModel(equity_commission_bps=1.0, equity_spread_bps=1.0),
-        max_position_size=mod.MAX_POS,
-    )
-    bt = mod.run_backtest(prices, w, config)
+    strat_ret, eq, trades = mod._run_bt(prices, w)
+    m = mod._metrics(strat_ret, eq, trades)
 
-    assert hasattr(bt, "sharpe")
-    assert hasattr(bt, "profit_factor")
-    assert hasattr(bt, "max_drawdown")
-    assert hasattr(bt, "n_trades")
-    assert hasattr(bt, "daily_returns")
-    assert np.isfinite(bt.sharpe) or np.isnan(bt.sharpe)
+    assert len(strat_ret) == len(prices)
+    assert len(eq) == len(prices)
+    assert isinstance(trades, int)
+    for k in [
+        "sharpe",
+        "profit_factor",
+        "max_drawdown",
+        "trades",
+        "periods",
+        "total_return",
+        "worst_regime_rolling252_sharpe",
+    ]:
+        assert k in m
+    assert np.isfinite(m["sharpe"]) or np.isnan(m["sharpe"])
 
 
 def test_grid_structure():
@@ -134,16 +141,16 @@ def test_constants():
     assert mod.SEED == 42
 
 
-def test_align_short_interest_to_daily():
+def test_align_si_to_daily():
     dates = pd.bdate_range("2020-01-01", periods=100)
     si = pd.Series([2.0, 5.0], index=[dates[0], dates[30]])
-    aligned = mod._align_short_interest_to_daily(dates, {"SPY": si}, ["SPY"])
+    si_df = pd.DataFrame({"SPY": si})
+    aligned = mod._align_si_to_daily(dates, si_df, ["SPY"])
     assert len(aligned["SPY"]) == len(dates)
-    # After reindex + ffill + shift(5), there should be some non-NaN values
-    # The first value will be at index 5 (after shift), and ffill should propagate
     assert aligned["SPY"].notna().sum() > 0
 
 
 if __name__ == "__main__":
     import pytest
+
     pytest.main([__file__, "-v"])

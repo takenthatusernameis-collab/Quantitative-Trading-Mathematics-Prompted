@@ -1,0 +1,106 @@
+{
+  "experiment": "nf_20261110_06_short_interest",
+  "nf_id": "NF-20261110-06",
+  "hypothesis": "H179",
+  "timestamp_utc": "2026-11-10T09:05:25Z",
+  "runtime_sec": 107.031,
+  "data": {
+    "spy_rows": 2195,
+    "finra_settlement_dates": 145,
+    "finra_coverage": {
+      "SPY": 144,
+      "XLF": 145,
+      "XLE": 145,
+      "XLV": 145,
+      "XLI": 145,
+      "XLB": 145,
+      "XLP": 145,
+      "XLU": 145,
+      "XLY": 145,
+      "XLC": 138,
+      "XLK": 145
+    },
+    "start": "2018-02-07",
+    "end": "2026-10-30",
+    "train_end_exclusive": "2022-06-16",
+    "val_start": "2022-06-16",
+    "test_start": "2024-08-23",
+    "oos_rows": 1098,
+    "note": "FINRA exchange-listed short interest (real data); publication lag PIT-aligned"
+  },
+  "selected": {
+    "si_window": 24,
+    "entry_z": 1.5,
+    "exit_z": 0.0,
+    "vol_target": 0.15,
+    "universe": "SPY_SECTORS"
+  },
+  "wf_train_sharpe": 1.0993713810322387,
+  "train_selected_sharpe": 0.1697282042981249,
+  "oos_val_test": {
+    "sharpe": -0.4492241009508741,
+    "profit_factor": 0.9201801097355405,
+    "max_drawdown": -0.16953563847868958,
+    "trades": 3437,
+    "periods": 1098,
+    "total_return": -0.13929615824522446,
+    "worst_regime_rolling252_sharpe": -1.969592523317885
+  },
+  "benchmark_buy_hold_spy_oos": {
+    "sharpe": 1.1954746547777226,
+    "profit_factor": 1.2404449505642372,
+    "max_drawdown": -0.0974087299018993,
+    "trades": 0,
+    "periods": 1098,
+    "total_return": 0.5006622122730102,
+    "worst_regime_rolling252_sharpe": -0.113306528044787
+  },
+  "ablations": {
+    "random_si_oos": {
+      "sharpe": 0.12352231529269009,
+      "profit_factor": 1.022378077651735,
+      "max_drawdown": -0.08512535314361813,
+      "trades": 3131,
+      "periods": 1098,
+      "total_return": 0.024186849372475283,
+      "worst_regime_rolling252_sharpe": -1.4236560736114525
+    },
+    "inverse_signal_oos": {
+      "sharpe": 0.3819242100058645,
+      "profit_factor": 1.0732361317804482,
+      "max_drawdown": -0.0969590261928236,
+      "trades": 3437,
+      "periods": 1098,
+      "total_return": 0.11353172006192347,
+      "worst_regime_rolling252_sharpe": -1.1565585689609053
+    }
+  },
+  "wf_stability_oos_over_train": -2.6467262928312083,
+  "benchmark_pvalue_one_sided": 0.9955022488755623,
+  "information_ratio_vs_buy_hold": -1.201783774491702,
+  "perturbation": {
+    "min_ratio": 1.8694198745871302,
+    "n_points": 27,
+    "min_sharpe": -0.8397884624610994
+  },
+  "gates": {
+    "sharpe_ge_1": false,
+    "trades_ge_50": true,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": false,
+    "wf_stability_ge_0_7": false,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_and_ir_ge_0": false,
+    "perturbation_min_ratio_ge_0_5": true
+  },
+  "gates_passed": 2,
+  "gates_total": 8,
+  "verdict": "REJECT",
+  "integrity": {
+    "src_qtr_unchanged": true,
+    "gate_weakening": false,
+    "published_artifacts_modified": false,
+    "selection_holdout_feedback": false,
+    "real_data": true
+  }
+}

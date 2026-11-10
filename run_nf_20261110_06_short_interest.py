@@ -34,9 +34,12 @@ import csv
 import io
 import json
 import math
+import sys
 import time
 from pathlib import Path
 from urllib.request import Request, urlopen
+
+csv.field_size_limit(sys.maxsize)
 
 import numpy as np
 import pandas as pd
@@ -51,7 +54,7 @@ from qtr.backtest.engine import AssetClass, BacktestConfig, CostModel, run_backt
 EXPERIMENT = "nf_20261110_06_short_interest"
 NF_ID = "NF-20261110-06"
 HYPOTHESIS = "H179"
-START = "2018-01-01"   # FINRA exchange-listed short interest available ~2018+
+START = "2018-01-01"  # FINRA exchange-listed short interest available ~2018+
 END = "2026-10-31"
 MAX_POS = 0.5
 SEED = 42
@@ -61,9 +64,7 @@ PUBLICATION_LAG_DAYS = 5  # ~1 week after bi-weekly settlement
 BASE_URL = "https://cdn.finra.org/equity/otcmarket/biweekly/shrt{date}.csv"
 
 # Sector ETFs for universe expansion (all confirmed present in FINRA short interest).
-SECTOR_ETFS = [
-    "SPY", "XLF", "XLE", "XLV", "XLI", "XLB", "XLP", "XLU", "XLY", "XLC", "XLK"
-]
+SECTOR_ETFS = ["SPY", "XLF", "XLE", "XLV", "XLI", "XLB", "XLP", "XLU", "XLY", "XLC", "XLK"]
 
 GRID = {
     "si_window": [6, 12, 24],
@@ -222,9 +223,7 @@ def fetch_finra_short_interest(
         series_dict[sym] = s
     if not series_dict:
         return pd.DataFrame(index=pd.DatetimeIndex([]), columns=universe, dtype=float)
-    all_dates = sorted(
-        {ts for s in series_dict.values() for ts in s.index}
-    )
+    all_dates = sorted({ts for s in series_dict.values() for ts in s.index})
     df = pd.DataFrame(index=pd.DatetimeIndex(all_dates), columns=universe, dtype=float)
     for sym in universe:
         if not series_dict[sym].empty:
@@ -433,8 +432,9 @@ def _benchmark_pvalue(strat: pd.Series, bench: pd.Series, n_boot: int = 2000) ->
         return 1.0
     rng = np.random.default_rng(SEED)
     centered = diff - obs
-    boots = [float(rng.choice(centered, size=len(centered), replace=True).mean())
-             for _ in range(n_boot)]
+    boots = [
+        float(rng.choice(centered, size=len(centered), replace=True).mean()) for _ in range(n_boot)
+    ]
     boots_arr = np.array(boots)
     p = (1.0 + float(np.sum(boots_arr >= obs))) / (n_boot + 1.0)
     return float(p)
@@ -457,16 +457,29 @@ def _perturbation_oos_sharpes(
     base = selected.copy()
     sharpes = []
     pcw_opts = sorted(
-        set([max(3, int(round(base["si_window"] * 0.8))),
-             base["si_window"],
-             min(60, int(round(base["si_window"] * 1.2)))])
+        set(
+            [
+                max(3, int(round(base["si_window"] * 0.8))),
+                base["si_window"],
+                min(60, int(round(base["si_window"] * 1.2))),
+            ]
+        )
     )
-    ez_opts = sorted(set([round(base["entry_z"] * 0.8, 4), base["entry_z"],
-                          round(base["entry_z"] * 1.2, 4)]))
-    xz_opts = sorted(set([round(base["exit_z"] * 0.8, 4), base["exit_z"],
-                          round(base["exit_z"] * 1.2, 4)]))
-    vt_opts = sorted(set([round(base["vol_target"] * 0.8, 4), base["vol_target"],
-                          round(base["vol_target"] * 1.2, 4)]))
+    ez_opts = sorted(
+        set([round(base["entry_z"] * 0.8, 4), base["entry_z"], round(base["entry_z"] * 1.2, 4)])
+    )
+    xz_opts = sorted(
+        set([round(base["exit_z"] * 0.8, 4), base["exit_z"], round(base["exit_z"] * 1.2, 4)])
+    )
+    vt_opts = sorted(
+        set(
+            [
+                round(base["vol_target"] * 0.8, 4),
+                base["vol_target"],
+                round(base["vol_target"] * 1.2, 4),
+            ]
+        )
+    )
     for pcw in pcw_opts:
         for vt in vt_opts:
             for ez in ez_opts:
@@ -478,7 +491,8 @@ def _perturbation_oos_sharpes(
                     p["exit_z"] = float(xz)
                     w = _compute_weights(prices, si_aligned, **p)
                     mask = (prices.index >= pd.Timestamp(val_start)) & (
-                        prices.index <= pd.Timestamp(test_end))
+                        prices.index <= pd.Timestamp(test_end)
+                    )
                     r, _, _ = _run_bt(prices.loc[mask], w.loc[mask])
                     sharpes.append(_annualized_sharpe(r))
     return [s for s in sharpes if np.isfinite(s)]
@@ -492,7 +506,9 @@ def main(out_dir: str | None = None) -> dict:
     tickers = SECTOR_ETFS
     print("Downloading price data...")
     prices = _download_yfinance_daily(tickers, START, END)
-    print(f"Price data shape: {prices.shape}  {prices.index[0].date()} -> {prices.index[-1].date()}")
+    print(
+        f"Price data shape: {prices.shape}  {prices.index[0].date()} -> {prices.index[-1].date()}"
+    )
 
     print("Building FINRA settlement-date list...")
     settlement_dates = _biweekly_settlement_dates(START, END)
@@ -535,8 +551,7 @@ def main(out_dir: str | None = None) -> dict:
     if valid_grid.empty:
         raise RuntimeError("no valid grid rows")
     sel = valid_grid.iloc[0].to_dict()
-    selected = {k: sel[k] for k in
-                ["si_window", "entry_z", "exit_z", "vol_target", "universe"]}
+    selected = {k: sel[k] for k in ["si_window", "entry_z", "exit_z", "vol_target", "universe"]}
     selected["si_window"] = int(selected["si_window"])
     selected["vol_target"] = float(selected["vol_target"])
     selected["entry_z"] = float(selected["entry_z"])
@@ -572,15 +587,21 @@ def main(out_dir: str | None = None) -> dict:
 
     train_sel_ret, _, _ = _run_bt(train_close, w_sel.loc[train_mask])
     train_sel_sharpe = _annualized_sharpe(train_sel_ret)
-    wf_stability = (float(oos_m["sharpe"] / train_sel_sharpe)
-                    if np.isfinite(train_sel_sharpe) and train_sel_sharpe != 0
-                    else (float("inf") if oos_m["sharpe"] > 0 else 0.0))
+    wf_stability = (
+        float(oos_m["sharpe"] / train_sel_sharpe)
+        if np.isfinite(train_sel_sharpe) and train_sel_sharpe != 0
+        else (float("inf") if oos_m["sharpe"] > 0 else 0.0)
+    )
 
     pert_sharpes = _perturbation_oos_sharpes(
-        prices, si_aligned, selected, val_start, str(prices.index[-1].date()))
+        prices, si_aligned, selected, val_start, str(prices.index[-1].date())
+    )
     base_sh = oos_m["sharpe"]
-    min_ratio = (float(min(pert_sharpes) / base_sh)
-                 if pert_sharpes and np.isfinite(base_sh) and base_sh != 0 else 0.0)
+    min_ratio = (
+        float(min(pert_sharpes) / base_sh)
+        if pert_sharpes and np.isfinite(base_sh) and base_sh != 0
+        else 0.0
+    )
 
     ir = _information_ratio(oos_ret, bench_ret)
     bp = _benchmark_pvalue(oos_ret, bench_ret)
@@ -589,11 +610,17 @@ def main(out_dir: str | None = None) -> dict:
         "sharpe_ge_1": bool(np.isfinite(oos_m["sharpe"]) and oos_m["sharpe"] >= 1.0),
         "trades_ge_50": bool(oos_m["trades"] >= 50),
         "pf_ge_1_3": bool(np.isfinite(oos_m["profit_factor"]) and oos_m["profit_factor"] >= 1.3),
-        "maxdd_le_15pct": bool(np.isfinite(oos_m["max_drawdown"]) and oos_m["max_drawdown"] >= -0.15),
+        "maxdd_le_15pct": bool(
+            np.isfinite(oos_m["max_drawdown"]) and oos_m["max_drawdown"] >= -0.15
+        ),
         "wf_stability_ge_0_7": bool(np.isfinite(wf_stability) and wf_stability >= 0.7),
-        "worst_regime_ge_0_3": bool(np.isfinite(oos_m["worst_regime_rolling252_sharpe"])
-                                    and oos_m["worst_regime_rolling252_sharpe"] >= 0.3),
-        "benchmark_p_le_0_05_and_ir_ge_0": bool(np.isfinite(bp) and bp <= 0.05 and np.isfinite(ir) and ir >= 0.0),
+        "worst_regime_ge_0_3": bool(
+            np.isfinite(oos_m["worst_regime_rolling252_sharpe"])
+            and oos_m["worst_regime_rolling252_sharpe"] >= 0.3
+        ),
+        "benchmark_p_le_0_05_and_ir_ge_0": bool(
+            np.isfinite(bp) and bp <= 0.05 and np.isfinite(ir) and ir >= 0.0
+        ),
         "perturbation_min_ratio_ge_0_5": bool(np.isfinite(min_ratio) and min_ratio >= 0.5),
     }
     gates_passed = int(sum(1 for v in gates.values() if v))
@@ -626,7 +653,9 @@ def main(out_dir: str | None = None) -> dict:
             "random_si_oos": rand_m,
             "inverse_signal_oos": inv_m,
         },
-        "wf_stability_oos_over_train": float(wf_stability) if np.isfinite(wf_stability) else wf_stability,
+        "wf_stability_oos_over_train": float(wf_stability)
+        if np.isfinite(wf_stability)
+        else wf_stability,
         "benchmark_pvalue_one_sided": float(bp),
         "information_ratio_vs_buy_hold": float(ir),
         "perturbation": {
@@ -648,8 +677,17 @@ def main(out_dir: str | None = None) -> dict:
     }
     (art / "summary.json").write_text(json.dumps(summary, indent=2, default=str) + "\n")
     grid.to_csv(art / "grid.csv", index=False)
-    print(json.dumps({"verdict": verdict, "gates_passed": gates_passed,
-                      "artifact": str(art), "oos_sharpe": oos_m["sharpe"]}, indent=2))
+    print(
+        json.dumps(
+            {
+                "verdict": verdict,
+                "gates_passed": gates_passed,
+                "artifact": str(art),
+                "oos_sharpe": oos_m["sharpe"],
+            },
+            indent=2,
+        )
+    )
     return summary
 
 

@@ -8475,7 +8475,7 @@ Benchmark buy-hold SPY OOS: Sharpe 0.810, total return +83.7%. Inverse-regime di
 |---|---|---|---|---|---|
 | Options market sentiment / positioning (equity P/C ratio regime timing) | H178 (NF-20261110-03) | Vol-targeted SPY exposure by trailing z-score of CBOE equity P/C ratio (momentum/contrarian, hysteresis, 1-bar delay) | SPY daily (yfinance) + CBOE equity P/C CSV, 2010–2026 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261110_03_equity_pc_ratio_20261110_cycle92/summary.json`) | OOS Sharpe 0.557, WF 0.658, worst-regime −1.002, bench fail; random-signal outperforms (0.835) |
 
-**Cycle 92 complete.** H85–H178 all rejected/recorded. `src/qtr` unchanged. No commit/push. Next unused H-ID **H179**. Cycle 93 requires directive §4 discovery (≥3 repo-new/decisive candidates across ≥3 broad mechanism categories, honest scoring, NF-root checks) before selecting H179.
+**Cycle 93 complete.** H85–H179 all rejected/recorded. `src/qtr` unchanged. No commit/push. Next unused H-ID **H180**. Cycle 94 requires directive §4 discovery (≥3 repo-new/decisive candidates across ≥3 broad mechanism categories, honest scoring, NF-root checks) before selecting H180.
 
 ---
 ## H179 (NF-20261110-06): Short Interest / Securities Lending Flow Timing (Cycle 93)
@@ -8500,16 +8500,24 @@ Benchmark buy-hold SPY OOS: Sharpe 0.810, total return +83.7%. Inverse-regime di
 
 **Gates (OOS Val+Test).** Sharpe ≥ 1.0; trades ≥ 50; PF ≥ 1.3; max DD ≤ 15%; WF stability ≥ 0.7; worst-regime rolling-252 Sharpe ≥ 0.3; benchmark p ≤ 0.05 with IR ≥ 0 (direction-aware); perturbation min ratio ≥ 0.5.
 
-**Runner.** `run_nf_20261110_06_short_interest.py` (to be created). **Tests.** `tests/test_nf_20261110_06_short_interest.py` (to be created).
+**Runner.** `run_nf_20261110_06_short_interest.py`. **Tests.** `tests/test_nf_20261110_06_short_interest.py` (8 passed).
 
 ### H179 execution outcome (2026-11-10, REAL)
 
-[To be filled after execution]
+**Runner:** `run_nf_20261110_06_short_interest.py` (fixed `csv.field_size_limit(sys.maxsize)` for FINRA CSV parsing). **Tests:** `tests/test_nf_20261110_06_short_interest.py` (8 passed, 1 warning). `ruff check/format --check` clean on H179 runner/tests. `src/qtr` unchanged.
 
-**Lineage map (H179 PRE-REGISTERED):**
+**Execution.** 2026-11-10T09:05:25Z (107.0s). Real FINRA exchange-listed bi-weekly short interest (145 settlement dates, 2018-02-07→2026-10-30) + daily yfinance closes for SPY+sector ETFs (2195 aligned daily rows with SPY SI known, PIT publication lag applied). Train 2018-02-07→2022-06-16, Val 2022-06-16→2024-08-23, Test protected 2024-08-23→2026-10-30 (OOS Val+Test 1098 rows). Grid 72. Selected (train-only 4-fold WF 1.099, train selected 0.170): `si_window=24, entry_z=1.5, exit_z=0.0, vol_target=0.15, universe=SPY_SECTORS`. Artifact `.experiments/nf_runs/nf_20261110_06_short_interest_20261110_cycle93/summary.json` (+`grid.csv`, `finra_cache/`).
 
-| Root family | H-IDs | Mechanism | Markets / data | Status | Known risks |
+**Result — REJECT (2/8 gates).** OOS Val+Test (1098 periods, 3437 trades): Sharpe **−0.449** (fail), PF **0.920** (fail), max DD **−16.95%** (fail), trades **3437** (pass), WF stability **−2.647** (fail), worst-regime rolling-252 Sharpe **−1.970** (fail), benchmark p **0.996** / IR **−1.202** vs buy-hold SPY Sharpe 1.195/+50.07% (fail), perturbation min ratio **1.869** (pass). Strategy total return −13.93%.
+
+**Ablations.** Random-SI OOS Sharpe 0.124/PF 1.022; inverse-signal OOS Sharpe 0.382/PF 1.073 (both materially better than strategy but still weak) — selected signal mapping harmful OOS.
+
+**Verdict rationale.** No certifiable short-interest edge: severe OOS degradation from train WF selection, negative Sharpe/PF, drawdown breach, worst-regime collapse, and benchmark massively dominates. Inverse/random ablations outperforming selected mapping indicates unstable/mis-specified signal-to-return relationship in this construction. No gate weakened; `src/qtr` unchanged.
+
+**Lineage map (H179 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
 |---|---|---|---|---|---|
-| Short-constraint / limits to arbitrage (short interest / securities lending flow) | H179 (NF-20261110-06) | Vol-targeted SPY/sector ETF position scaled by trailing z-score of FINRA bi-weekly short interest (or change); flat/short crowded shorts, long low short interest; hysteresis + 1-bar delay | SPY + sector ETFs daily (yfinance) + FINRA short interest CSV (bi-weekly), 2010–2026 | **PRE-REGISTERED** | FINRA CSV parsing/availability; publication lag (~1 week); bi-weekly frequency; short interest data quality; securities lending supply not directly observed |
+| Short-constraint / limits to arbitrage (short interest / securities lending flow) | H179 (NF-20261110-06) | Vol-targeted SPY+sector ETF exposure by trailing z-score of FINRA bi-weekly short interest (hysteresis, PIT publication lag, 1-bar delay) | SPY+sector ETFs daily (yfinance) + FINRA exchange-listed short interest CSV (real), 2018–2026 | **REJECT** (2/8; `.experiments/nf_runs/nf_20261110_06_short_interest_20261110_cycle93/summary.json`) | OOS Sharpe −0.449/PF 0.920/maxDD −16.95%/WF −2.647/worst-regime −1.970/bench fail; train→OOS collapse; inverse/random ablations outperform selected mapping |
 
-**Cycle 93 discovery complete.** H85–H179 pre-registered. `src/qtr` unchanged. Next: implement runner + tests, execute REAL, record verdict.
+**Cycle 93 complete.** H85–H179 all rejected/recorded. `src/qtr` unchanged. No commit/push. Next unused H-ID **H180**. Cycle 94 requires directive §4 discovery (≥3 repo-new/decisive candidates across ≥3 broad mechanism categories, honest scoring, NF-root checks) before selecting H180.
