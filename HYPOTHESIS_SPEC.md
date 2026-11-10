@@ -8654,4 +8654,18 @@ Candidates scored honestly (weights novelty 25 / plausibility 25 / data 20 / fal
 |---|---|---|---|---|---|
 | Relative value / cash-futures basis convergence (index arbitrage) | H181 (NF-20261104-03) | Vol-targeted SPY exposure by trailing z-score of ES/SPY basis (rich-basis convergence, hysteresis, 1-bar delay) | ES=F + SPY daily auto-adjusted closes (yfinance), 2010–2026 | **REJECT** (4/8; `.experiments/nf_runs/nf_20261104_03_es_spy_basis_20261110_cycle95/summary.json`) | OOS Sharpe 0.297/PF 1.162/worst-regime −1.410/bench fail; edge too small/noisy on daily close, buy-hold dominates |
 
-**Cycle 95 complete.** H85–H181 all rejected/recorded. `src/qtr` unchanged. No commit/push. Next unused H-ID **H182**. Cycle 96 requires directive §4 discovery (≥3 repo-new/decisive candidates across ≥3 broad mechanism categories, honest scoring, NF-root checks, deferred reassessment with evidence) before selecting H182.
+**Cycle 95 complete.** H85–H181 all rejected/recorded. `src/qtr` unchanged. No commit/push. Next unused H-ID **H182**.
+
+## Cycle 96 (2026-11-10): Directive §4 discovery — no feasible H182 candidate; family queue exhausted
+
+**Discovery.** Per STRATEGY_FAMILY_EXPANSION_DIRECTIVE §4, ≥3 repo-new candidates were proposed across ≥3 broad mechanism categories (structural flow/discrete index event, institutional flow/informed trading, macro term premium, higher-moment/jump-risk, carry/term structure, calendar seasonal, liquidity provision, macro regime, corporate action, market structure/dealer positioning, fundamental/analyst revision, participation/factor momentum) and honestly scored 1–5 on novelty/plausibility/data/falsifiability/execution/support (see NEW_FAMILY_RESEARCH_REGISTER.md Cycle 96).
+
+**Result: no candidate selected as H182.** Every remaining candidate is blocked/deferred/held for a concrete reason:
+- **Data-blocked:** commodity carry (no free PIT roll/contango proxy), insider Form 4/13F (no free PIT source), earnings-estimate revisions (no free PIT history), options dealer GEX (no free historical options chain), breakeven inflation (^T5YIE/^T10YIE unavailable).
+- **Statistical power:** Russell 2000 annual reconstitution (~16 events/16 yr), S&P 500 inclusion/deletion (few/yr), stock split effects (low frequency).
+- **Mechanism adjacency to executed families:** 10Y-3M curve (H171/H11r), SPY jump asymmetry (H122/H128/H135), short-term CS reversal (H119 REJECT 3/8), RSP-SPY/USMV-SPY relmom (H97 + exhausted relmom families).
+- **Calendar adjacency (held):** Halloween (H91/H140/H142), holiday/pre-holiday drift (H91/H140/H142/H168).
+
+**NF-root check:** none of the Cycle 96 candidates appears as an executed H-ID or executed artifact in `.experiments/nf_runs`; no label reuse. Tracked draft `run_nf_20261110_07_es_basis.py` remains NF-20261110-09/TBD (incomplete/unexecuted, no `main`).
+
+**Conclusion.** Per directive §6, the free-data point-in-time strategy-family queue is exhausted: H1–H181 all executed and rejected; carry data-blocked; the rest blocked/deferred/held. **H182 is not pre-registered and no runner is executed this cycle.** Next cycle should either resolve a data gap under explicit authorization (futures roll/contango for carry; PIT insider/earnings/options data) or conclude free-data family discovery is exhausted. `src/qtr` unchanged; no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified; no fabrication; no commit/push.

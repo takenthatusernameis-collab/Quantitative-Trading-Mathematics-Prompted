@@ -625,4 +625,43 @@ No deferred candidates silently dropped; all carried forward with documented dec
 - **Verdict:** **REJECT (4/8)**. Artifact `.experiments/nf_runs/nf_20261104_03_es_spy_basis_20261110_cycle95/summary.json` (+`grid.csv`).
 - **Rationale:** No certifiable daily-close ES-SPY basis convergence edge; magnitude/noise/costs leave Sharpe, PF, worst-regime, benchmark failing. `src/qtr` unchanged.
 
-**Cycle 95 complete.** H85–H181 all rejected/recorded. Next unused H-ID **H182**. Cycle 96 requires directive §4 discovery before selecting H182.
+**Cycle 96 (2026-11-10) — Directive §4 discovery: no feasible H182 candidate; strategy-family queue exhausted.**
+
+Lineage reconciled to H181: H85–H181 all rejected/recorded. Next unused H-ID **H182** (H24/H68–H73/H76–H79 unassigned, not recycled). `src/qtr` unchanged. No published/certified artifact, verdict, threshold, or frozen number modified. Selection/validation used no protected-test feedback. Free/public data only.
+
+### Directive §4 discovery (Cycle 96) — ≥3 repo-new candidates across ≥3 mechanism categories, honest scoring
+
+| Candidate | NF-ID | Mechanism category | Nov(25)|Plaus(25)|Data(20)|Fals(15)|Exec(10)|Supp(5)|**Weighted**|Decision |
+|---|---|---|---:|---:|---:|---:|---:|---:|---:|---|
+| Russell 2000 annual reconstitution flow | NF-20261110-07 | Structural flow / discrete index event | 4 | 4 | 4 | 5 | 3 | 4 | **4.05** | **DEFERRED** — annual frequency (~16 events 2010–2026) → OOS power below 200 trades; reconstitution calendar/alignment complexity |
+| Insider transaction signal (Form 4/13F flow) | NF-20261110-08 | Institutional flow / informed trading | 4 | 4 | 3 | 5 | 3 | 4 | **3.80** | **DEFERRED** — no free PIT insider source; PIT parsing/aggregation complexity |
+| S&P 500 inclusion/deletion | NF-20261109-18 | Structural flow / discrete index event | 4 | 4 | 3 | 3 | 3 | 4 | **3.50** | **DEFERRED** — external calendar dependency; low frequency (few/yr) → low power |
+| Options dealer GEX / dealer positioning | NF-20261109-19 | Market structure / dealer positioning | 4 | 4 | 1 | 4 | 2 | 3 | **2.85** | **DEFERRED** — no free historical options chain/GEX; data-blocked |
+| Earnings estimate revision momentum | NF-20261109-02 | Fundamental / analyst revision | 4 | 4 | 1 | 4 | 2 | 3 | **2.85** | **DEFERRED** — no free PIT revision history; data-blocked |
+| 10Y-3M yield-curve inversion depth | NF-20261110-04 | Macro term premium | 2 | 3 | 5 | 4 | 5 | 4 | **3.35** | **DEFERRED** — adjacency to executed H171/H11r curve families |
+| SPY realized jump asymmetry | NF-20261110-05 | Higher-moment / jump-risk asymmetry | 2 | 2 | 5 | 4 | 5 | 2 | **2.95** | **DEFERRED** — adjacency to H122/H128/H135; low plausibility/support |
+| Commodity carry | NF-04 | Carry / term structure | 5 | 4 | 1 | 4 | 3 | 4 | **3.05** | **BLOCKED** — no free PIT term-structure/roll proxy (yfinance pipeline lacks roll data; MATHEMATICAL_DISCOVERY_REPORT carry deferred) |
+| Short-term cross-sectional reversal | NF-05 | Liquidity provision | 2 | 3 | 5 | 4 | 3 | 3 | **3.00** | **DEFERRED** — H119 REJECT 3/8 (reversal premium not cost-robust); turnover/net-of-cost |
+| Halloween seasonal | NF-08-16 | Calendar seasonal | 2 | 3 | 5 | 4 | 5 | 3 | **3.20** | **HELD** — calendar adjacency to executed H91/H140/H142 |
+| Breakeven inflation | NF-09-03 | Macro regime | 3 | 3 | 1 | 4 | 3 | 3 | **2.70** | **DEFERRED/DATA-LIMITED** — ^T5YIE/^T10YIE unavailable on free pipeline |
+| Stock split effects | NF-20261109-20 | Corporate action | 3 | 3 | 2 | 3 | 3 | 3 | **2.75** | **DEFERRED** — low frequency; incomplete split data |
+| Holiday / pre-holiday drift | NF-20261109-12 | Calendar microstructure | 2 | 3 | 4 | 4 | 5 | 3 | **3.10** | **HELD** — calendar adjacency to executed H91/H140/H142/H168 |
+| RSP-SPY breadth relmom | NF-20261109-22 | Participation / factor momentum | 2 | 3 | 4 | 3 | 3 | 3 | **2.90** | **DEFERRED** — adjacency to H97; exhausted relmom families |
+| USMV-SPY low-vol relmom | NF-20261109-23 | Factor/style momentum | 2 | 3 | 4 | 3 | 3 | 3 | **2.90** | **DEFERRED** — USMV inception/style adjacency |
+
+**Notes (honest).** No candidate is selected as H182. Scoring is intentionally conservative: novelty is penalized for adjacency to executed families rather than inflated. None of the proposals is merely a parameter/timeframe/universe variation of an executed family, but each is blocked by a concrete, durable limitation (data, power, or adjacency), so none clears the directive's "materially different mechanism + free PIT data + smallest decisive test" bar for a REAL execution.
+
+### NF-root / label checks (no reuse)
+Verified against HYPOTHESIS_SPEC.md H85–H181 inventory and `.experiments/nf_runs` artifacts: none of NF-20261110-07/08, NF-20261109-18/19/02/22/23/12/20, NF-20261110-04/05, NF-04/05/08-16/09-03 appears as an executed H-ID or executed artifact. Tracked draft `run_nf_20261110_07_es_basis.py` remains NF-20261110-09/TBD (incomplete/unexecuted, no `main`) — not treated as executed, no label collision.
+
+### Deferred pool reassessed with concrete evidence (no silent drops)
+Blocker classification:
+- **Data-blocked:** commodity carry (roll/contango), insider Form 4/13F (no free PIT source), earnings estimate revisions (no free PIT history), options dealer GEX (no free historical options chain), breakeven inflation (^T5YIE/^T10YIE unavailable).
+- **Statistical power:** Russell 2000 annual reconstitution (~16 events/16 yr), S&P 500 inclusion/deletion (few/yr), stock split effects (low frequency).
+- **Mechanism adjacency (executed families):** 10Y-3M curve (H171/H11r), SPY jump asymmetry (H122/H128/H135), short-term CS reversal (H119 REJECT 3/8), RSP-SPY/USMV-SPY relmom (H97 + exhausted relmom families).
+- **Calendar adjacency (held):** Halloween (H91/H140/H142), holiday/pre-holiday drift (H91/H140/H142/H168).
+
+### Conclusion (Cycle 96)
+Per STRATEGY_FAMILY_EXPANSION_DIRECTIVE §6, the free-data point-in-time strategy-family queue is exhausted: every feasible daily/monthly mechanism family (H1–H181) has been executed and rejected, carry is data-blocked, and the remaining candidates are blocked/deferred/held for the reasons above. **No H182 is pre-registered and no runner is executed this cycle.** Next cycle should either (a) resolve a data gap under explicit authorization (futures roll/contango data for carry; PIT insider/earnings/options data), or (b) conclude free-data family discovery is exhausted and shift to auditing/infrastructure. No commit/push.
+
+**Cycle 96 complete.** H85–H181 all rejected/recorded; H182 unassigned. `src/qtr` unchanged.
