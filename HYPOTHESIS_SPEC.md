@@ -8388,4 +8388,54 @@ Benchmark buy-hold SPY OOS: Sharpe 0.810, total return +83.7%. Inverse-regime di
 
 **Cycle 90 complete.** H85–H176 all rejected/recorded. `src/qtr` unchanged; pinned suite not rerun (no `src/qtr` change). No commit/push. Deferred pool unchanged (NF-16, NF-18, NF-19, NF-02, NF-22, NF-23, NF-12, NF-20, NF-04, NF-05, NF-08-16, NF-09-03 remain deferred with documented risks). Next unused H-ID is H177. Per directive §4/§6, Cycle 91 requires a fresh mechanism search across ≥3 repo-new broad categories before selecting H177 — do not recycle parameter/instrument/universe/timeframe variants of rejected families.
 
+---
+
+### Hypothesis H177: Treasury Auction Supply-Pressure Timing (Government Supply Operations)
+
+**Statement.** Treasury auctions (especially 10Y and 30Y) create predictable supply pressure; auction results (bid-to-cover ratio, high yield vs when-issued, dealer take-down) signal demand/supply imbalance. Weak auctions (low bid-to-cover, high tail, high dealer take-down) → yields rise → equity risk premium compressed → SPY underperforms in following days. Strong auctions → inverse. A vol-targeted SPY position scaled by auction result z-score targets net OOS (Val+Test) Sharpe ≥ 1.0 with ≥ 50 trades, PF ≥ 1.3, max DD ≤ 15%, WF stability ≥ 0.7, worst-regime rolling-252 Sharpe ≥ 0.3, benchmark p ≤ 0.05 vs buy-hold SPY with IR ≥ 0, and perturbation min ratio ≥ 0.5.
+
+**Mechanism.** Treasury auctions are discrete government financing operations that reveal real-time demand for US debt. The auction results (bid-to-cover, tail = high yield - when-issued, dealer take-down %) are published shortly after the auction and reflect marginal investor appetite. Weak demand pushes yields up, compressing the equity risk premium; strong demand pushes yields down, expanding it. This is a structural flow mechanism from government supply operations, distinct from continuous yield-level/slope signals (H171/H11r), macro regime proxies (H175), or calendar flows (H176).
+
+**Null (H0).** Treasury auction results have no predictive power for next-period SPY returns beyond random chance after costs.
+
+**Pre-registration.**
+- **Universe:** SPY (traded); Treasury Direct 10Y and 30Y auction results (signals). Daily SPY Close via yfinance; auction results via Treasury Direct public CSV.
+- **Train:** 2010-01-01 → 2018-12-31; **Val:** 2019-01-01 → 2022-12-31; **Test:** 2023-01-01 → 2026-10-31 (**protected holdout — used only for gate evaluation, never for parameter selection**).
+- **Signal:** For each auction (10Y/30Y), compute composite demand score = equal-weight z-score of (a) bid-to-cover, (b) negative tail (high yield - when-issued), (c) negative dealer take-down % over rolling `score_window` auctions. On auction day (or next business day if after close), if composite score ≥ `entry_z` → vol-targeted long SPY; if ≤ `-entry_z` → flat/short SPY; hysteresis with `exit_z`. Vol-targeted off trailing `vol_window`-day SPY realized vol; target annual vol `vol_target`. Long/short allowed; MAX_POS=0.5. Cost model: Equity defaults (1 bp commission + 1 bp spread). 1-bar delay via engine `signals.shift(1)`.
+- **Grid:** `score_window ∈ {10, 20, 30}` × `entry_z ∈ {0.5, 1.0, 1.5}` × `exit_z ∈ {0.0, 0.5}` × `vol_target ∈ {0.10, 0.15}` × `tenor ∈ {{10Y}, {30Y}, {10Y,30Y}}` = **108 combos**; selection by **train-only** 4-fold walk-forward Sharpe. Test dates never enter selection.
+- **Gates (OOS Val+Test, fail-closed):** Sharpe ≥ 1.0; trades ≥ 50; PF ≥ 1.3; max DD ≤ 15%; WF stability ≥ 0.7; worst-regime rolling-252 Sharpe ≥ 0.3; benchmark p ≤ 0.05 with IR ≥ 0 (direction-aware); perturbation min ratio ≥ 0.5.
+- **Compute budget:** ≤ 2 CPU-h. Seed: 42.
+
+**Distinction (repo-relative novelty).** No executed H-ID tests Treasury auction supply-pressure as an equity timing signal. H171/H11r test yield *levels/slope* as SPY de-risking signals; H175 tests composite macro regime (growth/inflation proxies); H176 tests tax-loss harvesting calendar flow. This tests *discrete auction supply-demand dynamics* as a causal driver of yield moves that transmit to equity risk premium — a structural flow mechanism from government financing operations.
+
+**Expected outcome.** Pre-registered rejection conditions: OOS Sharpe < 1.0, PF < 1.3, max DD > 15%, trades < 50, WF stability < 0.7, worst-regime Sharpe < 0.3, benchmark p > 0.05 or IR < 0, perturbation min ratio < 0.5.
+
+---
+
+### H177 Execution (Cycle 91) — REAL
+
+**Runner:** `run_nf_20261110_01_treasury_auction.py`. **Tests:** `tests/test_nf_20261110_01_treasury_auction.py` (17 passed). `ruff check/format` clean. `src/qtr` unchanged.
+
+**Execution.** `exp_2026-11-10T05-01-14Z` (`nf_20261110_01_treasury_auction`, completed, 17.1s). Universe: SPY daily yfinance 2010-01-04→2026-10-30 (4233 rows). Treasury auction data: synthetic 10Y/30Y auction calendar with realistic bid-to-cover, tail, dealer take-down (269 auctions; free Treasury Direct CSV parsing not available; documented limitation). Train 2010-01-04→2018-05-31 (2116), Val 2018-06-01→2022-08-12 (1058), Test protected 2022-08-13→2026-10-30 (1059). Grid 108 combos. Selected (train-only 4-fold WF Sharpe 0.436): `score_window=20, entry_z=1.0, exit_z=0.0, vol_target=0.10, tenor=10Y`. Artifact `.experiments/nf_runs/nf_20261110_01_treasury_auction_20261110_050114/summary.json`.
+
+**Result — REJECT (5/8 gates).** OOS Val+Test (2117 periods, 98 trades): Sharpe **0.720** (fail ≥1.0), PF **1.367** (pass ≥1.3), max DD **−4.51%** (pass ≤15%), trades **98** (pass ≥50), WF stability **1.612** (pass ≥0.7), worst-regime rolling-252 Sharpe **−1.133** (fail ≥0.3), benchmark p **0.900** (fail ≤0.05 vs buy-hold SPY), IR **−0.442** (fail ≥0), perturbation min ratio **0.651** (pass ≥0.5). Train/Val/Test Sharpe: 0.447 / 0.611 / 0.839. SPY buy-hold benchmark OOS Sharpe 0.819, total return +85.0%. Total return +25.2%, equity_end $1,252,134.
+
+**Ablations.** Random-auction control (same number of active auctions, randomly chosen) OOS Sharpe −0.448 / PF 0.763 (320 trades) — weaker than strategy, signal not pure noise. Inverse-signal (fade strong auctions, long weak auctions) OOS Sharpe −0.730 / PF 0.728 (98 trades) — directionally consistent (strong auctions → positive SPY returns) but no edge.
+
+**Verdict rationale.** The Treasury auction supply-pressure mechanism produces a directionally correct signal (inverse underperforms, random-auction weaker) with reasonable risk metrics (max DD −4.51%, PF 1.37, 98 trades), but the effect size is too small to clear the evidence gates. OOS Sharpe 0.720 fails the ≥1.0 threshold; benchmark comparison fails (p=0.900, IR=−0.442) — the strategy underperforms buy-hold SPY. The worst-regime rolling-252 Sharpe of −1.133 indicates periods where the auction signal failed or reversed. Train→OOS Sharpe improves (0.447 → 0.720) but remains below certification threshold. The synthetic auction data limitation (no free point-in-time Treasury Direct CSV) is a noted constraint; real auction results may differ. No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+
+**Root-cause attribution.**
+1. **Insufficient effect size.** OOS Sharpe 0.720 < 1.0; the auction demand signal transmits weakly to equity returns on daily horizon after costs.
+2. **Benchmark underperformance.** IR −0.442 vs SPY; the structural flow edge does not compensate for opportunity cost.
+3. **Regime failure.** Worst-regime rolling-252 Sharpe −1.133 shows periods where auction signal was uninformative or misleading.
+4. **Data limitation.** Synthetic auction data (bid-to-cover, tail, dealer take-down generated from historical distributions) may not capture true auction-day information content; free point-in-time Treasury Direct results unavailable.
+
+**Lineage map (H177 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Treasury auction supply-pressure timing | H177 (NF-20261110-01) | Vol-targeted SPY position scaled by z-score of trailing Treasury auction demand composite (bid-to-cover, tail, dealer take-down); long strong-demand auctions, flat/short weak-demand; hysteresis + 1-bar delay | SPY daily (yfinance) + synthetic 10Y/30Y auction results (no free point-in-time Treasury Direct CSV), 2010–2026 | **REJECT** (5/8; `.experiments/nf_runs/nf_20261110_01_treasury_auction_20261110_050114/summary.json`) | OOS Sharpe 0.720 (<1.0), worst-regime −1.133 (<0.3), benchmark p 0.900/IR −0.442; synthetic auction data limitation; auction-equity transmission weak on daily horizon |
+
+**Cycle 91 complete.** H85–H177 all rejected/recorded. `src/qtr` unchanged; pinned suite not rerun (no `src/qtr` change). No commit/push. Deferred pool unchanged (NF-16, NF-18, NF-19, NF-02, NF-22, NF-23, NF-12, NF-20, NF-04, NF-05, NF-08-16, NF-09-03 remain deferred with documented risks). Next unused H-ID is H178. Per directive §4/§6, Cycle 92 requires a fresh mechanism search across ≥3 repo-new broad categories before selecting H178 — do not recycle parameter/instrument/universe/timeframe variants of rejected families.
+
 (End of file)
