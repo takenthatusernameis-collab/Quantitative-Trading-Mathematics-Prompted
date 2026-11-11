@@ -31,12 +31,28 @@
 - Do not recycle H1–H181 families as H182 without a materially distinct mechanism and free PIT data.
 - Do not weaken the coverage gate or delete the new fail-closed tests to make the number convenient — the guards are load-bearing (they refuse invalid cost inputs to 0.0).
 
+## This session (2026-11-11T12:35Z) — baseline verified; research task blocked
+
+**What changed:** No source, test, gate, frozen-number, or artifact changes. `src/qtr` unchanged; no commit/push.
+
+**Actually verified (this session, own evidence):**
+- `python -m ruff check src tests run_*.py` — All checks passed.
+- `python -m ruff format --check src tests run_*.py` — 316 files already formatted.
+- `PYTHONPATH=src python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` — **100% coverage** (TOTAL 1209/0/420/0; `src/qtr/backtest/engine.py` 229/0/76/0); full suite **3433 passed, 9 failed, 16 skipped**.
+- The 9 failures are exactly the pre-existing frozen-contract drifts (H51 ×1, H53 ×2, H55 ×4, trade-log ×2) listed above; **no new code bug, no regression**.
+
+**Blocked / cannot execute in this session:**
+- **No network access** (yfinance/CCXT/Wikipedia all timeout) → no REAL data execution is possible. A new-family experiment requires real per-registered data (H159/H160 precedent), so no H-ID can be executed now.
+- **H160 is already executed** (Cycle 74, NF-20261109-01 cross-sectional IVOL dispersion, REJECT 4/8; recorded in `HYPOTHESIS_SPEC.md` §H160). The HANDOFF.md "Cycle 74 → implement H160" task is **stale**; do not re-run or re-implement H160.
+- Register state (Cycle 96): **H85–H181 all executed/rejected**; free-data point-in-time strategy-family queue **exhausted**; **H182 unassigned and data-blocked** (commodity carry needs free PIT roll/contango proxy; insider/earnings/options PIT needs paid data).
+- **9 frozen-contract failures require per-contract authorization** — do not mass-edit frozen counts/contested logs.
+
 ## Next task for the next agent
 
-**One precise next task:** Await authorization to (a) resolve the 9 frozen-contract drifts via per-contract evidence review (exact failures listed above), or (b) resolve a free-data gap under explicit authorization (futures roll/contango data for carry; PIT insider/earnings/options data) and select H182. Absent authorization, conclude free-data family discovery is exhausted and shift to auditing/infrastructure rather than inventing candidates.
+**One precise next task:** When network access **and** explicit authorization are available, do exactly one of: (a) resolve one frozen-contract drift via per-contract evidence review (the 9 exact failures listed above), or (b) resolve the commodity-carry free-PIT data gap / PIT insider-earnings-options data gap under explicit authorization and select H182. Per `NEW_FAMILY_RESEARCH_REGISTER.md` (Cycle 96) and `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6, H1–H181 are all executed and rejected and the free-data family queue is exhausted; absent a data-gap resolution, conclude free-data family discovery is exhausted and shift to auditing/infrastructure rather than inventing candidates. Do not recycle H1–H181; H160 already executed (Cycle 74 REJECT 4/8).
 
-**Constraints:** `src/qtr` unchanged unless an evidenced defect requires it (then rerun pinned full gates); no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified; no commit/push unless explicitly requested.
+**Constraints:** `src/qtr` unchanged unless an evidenced defect requires it (then rerun pinned full gates); no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified without authorization; no commit/push unless explicitly requested.
 
-**Evidence to review before authorization:** Exact failure diffs above; `test_h57_total_return_audit.py` (66 passed) and `test_engine_total_return_consistency.py` (16 passed) disprove the total-return code-bug hypothesis; H53 H92 `benchmark_p_value` mismatches resolved by committed recipe correction; full-suite baseline now 3433 passed / 9 failed / 16 skipped with `src/qtr` at 100% coverage.
+**Evidence to review before authorization:** This session's baseline (3433 passed / 9 failed / 16 skipped, 100% coverage, ruff clean); exact frozen-drift failure diffs above; `test_h57_total_return_audit.py` (66 passed) and `test_engine_total_return_consistency.py` (16 passed) disprove the total-return code-bug hypothesis; H53 H92 `benchmark_p_value` mismatches resolved by committed recipe correction.
 
 (End of file - total 47 lines)

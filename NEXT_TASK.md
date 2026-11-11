@@ -60,7 +60,9 @@ miss). `src/qtr` source unchanged; only tests added.
 
 ## Next task
 
-**One precise next task:** Await authorization to (a) resolve the 9 frozen-contract drifts via per-contract evidence review (exact failures listed above), or (b) resolve a free-data gap under explicit authorization (commodity carry roll/contango; PIT insider/earnings/options data) and select H182. Per `NEW_FAMILY_RESEARCH_REGISTER.md` (Cycle 96) and `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6, H1–H181 are all executed and rejected and the free-data family queue is exhausted; absent a data-gap resolution, conclude free-data family discovery is exhausted and shift to auditing/infrastructure. This session verified that one of the previously-reported failures (`test_benchmark_gate_contract.py::test_every_call_site_reads_only_keys_the_library_returns`) was a real code bug and fixed it (parameter rename in `run_nf_20261107_{03,04,07,08}_*.py`; `ruff`/contract test clean; full suite 3425 passed / 9 failed / 16 skipped, the 9 all documented drift). Constraints: `src/qtr` unchanged unless an evidenced defect requires it (then rerun pinned full gates); no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified; no commit/push unless explicitly requested.
+**One precise next task:** When network access **and** explicit authorization are available, do exactly one of: (a) resolve one of the 9 frozen-contract drifts via per-contract evidence review (exact failures listed in §"The 9 remaining frozen-contract failures"), or (b) resolve the commodity-carry free-PIT data gap / PIT insider-earnings-options data gap under explicit authorization and select H182. Per `NEW_FAMILY_RESEARCH_REGISTER.md` (Cycle 96) and `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6, H1–H181 are all executed and rejected and the free-data family queue is exhausted; absent a data-gap resolution, conclude free-data family discovery is exhausted and shift to auditing/infrastructure rather than inventing candidates.
+
+**Status verified this session (2026-11-11T12:35Z, own evidence):** `src/qtr` unchanged; `ruff check/format` clean (316 files); coverage **100%** (TOTAL 1209/0/420/0); full suite **3433 passed, 9 failed, 16 skipped** — the 9 failures are exactly the documented frozen-contract drifts below, no new code bug, no regression. **No network access**, so no REAL data execution is possible this session. **H160 is already executed** (Cycle 74, NF-20261109-01 IVOL dispersion, REJECT 4/8, recorded in `HYPOTHESIS_SPEC.md` §H160); do not re-implement H160.
 
 ## Deferred (do not select without authorization)
 
@@ -72,3 +74,5 @@ miss). `src/qtr` source unchanged; only tests added.
   breaks partition; authorization required.
 - Select H182 — commodity-carry data gap / no feasible free-data family per Cycle 96
   (discovery queue exhausted unless data gap resolved under authorization).
+
+**Constraints:** `src/qtr` unchanged unless an evidenced defect requires it (then rerun pinned full gates); no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified; no commit/push unless explicitly requested.
