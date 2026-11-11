@@ -31,15 +31,15 @@
 - Do not recycle H1–H181 families as H182 without a materially distinct mechanism and free PIT data.
 - Do not weaken the coverage gate or delete the new fail-closed tests to make the number convenient — the guards are load-bearing (they refuse invalid cost inputs to 0.0).
 
-## This session (2026-11-11T12:51Z) — baseline re-verified; no unblocked high-value task
+## This session (2026-11-11T13:17Z) — baseline re-verified; no unblocked high-value task
 
 **What changed:** No source, test, gate, frozen-number, or artifact changes. `src/qtr` unchanged; working tree clean; no commit/push.
 
 **Actually verified (this session, own evidence):**
 - `python -m ruff check src tests run_*.py` — All checks passed (ruff 0.17.4).
 - `python -m ruff format --check src tests run_*.py` — 316 files already formatted.
-- `PYTHONPATH=src python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` — **100% coverage** (TOTAL 1209/0/420/0; `src/qtr/backtest/engine.py` 229/0/76/0); full suite **3433 passed, 9 failed, 16 skipped**.
 - `PYTHONPATH=src python -m pytest -q --tb=short tests/test_h51_benchmark_container_invariance.py tests/test_h53_published_metrics_disclosure.py tests/test_h55_nested_metrics_disclosure.py tests/test_trade_log_cost_reconciliation.py` — **321 passed, 9 failed, 12 skipped**; failures are exactly the documented frozen-contract drifts (H51 IR disclosure ×1: 21 new experiments not in pinned `PUBLISHED_INFORMATION_RATIOS`; H53 count pins ×2: 58 vs 54, 674 vs 630; H55 ×4: nested-block set, leaf 1292 vs 1188, rederivable 631 vs 627, perturbation gate 40 vs 36; trade-log ×2: 3 contested `exp_2026-11-05` per-trade logs extra in committed set and missing pre-fix attribution). No new code bug, no regression.
+- Coverage/full suite were re-verified in the immediately preceding session (100% coverage TOTAL 1209/0/420/0; 3433 passed / 9 failed / 16 skipped); `src/qtr` is unchanged since, so that baseline still holds.
 
 **Blocked / cannot execute in this session:**
 - **No network access** → no REAL data execution possible; cannot run a new-family experiment.
