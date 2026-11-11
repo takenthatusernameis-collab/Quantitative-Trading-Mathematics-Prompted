@@ -338,8 +338,10 @@ FAMILY_RECIPES = {
     # (runner passes Series containers; compare_to_benchmark is container-
     # invariant / ddof=0 IR), no regime/VIX, val-window Sharpe. wf_stability is
     # published as test_sharpe/val_sharpe (ratio convention), not fold-based.
+    # benchmark_p_value: published as 1.0 (runner read compare_to_benchmark's
+    # p_value key, which is not returned -> fell back to the default). Pinned
+    # per artifact in BENCH_P_PUBLISHED_DEFAULT_ARTIFACTS.
     "nf_20261104_01_vix_termstructure": dict(
-        bench_p_published_default=True,
         split=("date", "2019-12-31", "2022-12-31"),
         sharpe_ddof=0,
         pf_scope="oos",
@@ -357,8 +359,10 @@ FAMILY_RECIPES = {
     # (pre-registered train<=2020, val<=2023, test>2023), ddof=0, OOS PF/trades,
     # benchmark on FULL series, no regime/VIX, val-window Sharpe. wf_stability is
     # published as test_sharpe/train_sharpe (ratio convention; 0 when train_sr==0).
+    # benchmark_p_value: published as 1.0 (runner read compare_to_benchmark's
+    # p_value key, which is not returned -> fell back to the default). Pinned
+    # per artifact in BENCH_P_PUBLISHED_DEFAULT_ARTIFACTS.
     "nf_20261105_01_opening_gap": dict(
-        bench_p_published_default=True,
         split=("date", "2020-12-31", "2023-12-31"),
         sharpe_ddof=0,
         pf_scope="oos",
@@ -398,8 +402,9 @@ FAMILY_RECIPES = {
     # val-window Sharpe. wf_stability = test_sharpe/train_sharpe (ratio). Runner
     # read compare_to_benchmark `p_value` (not returned) -> published benchmark_p_value 1.0.
     # worst_regime_sharpe = min rolling-252 Sharpe on OOS (diagnostic; no VIX).
+    # benchmark_p_value: published as 1.0 (p_value key mismatch). Pinned per
+    # artifact in BENCH_P_PUBLISHED_DEFAULT_ARTIFACTS.
     "nf_20261105_07_skew_tail_timing": dict(
-        bench_p_published_default=True,
         split=("date", "2019-12-31", "2022-12-31"),
         sharpe_ddof=0,
         pf_scope="oos",
@@ -417,9 +422,9 @@ FAMILY_RECIPES = {
     # NF-20261105-08 (H90): FOMC pre-announcement event drift. Date splits
     # 2019-12-31/2022-12-31, ddof=0, OOS PF/trades, benchmark on FULL series,
     # val-window Sharpe. wf_stability published as 0.0. Runner published
-    # benchmark_p_value default (p_value key mismatch).
+    # benchmark_p_value default (p_value key mismatch). Pinned per artifact
+    # in BENCH_P_PUBLISHED_DEFAULT_ARTIFACTS.
     "nf_20261105_08_fomc_event_drift": dict(
-        bench_p_published_default=True,
         split=("date", "2019-12-31", "2022-12-31"),
         sharpe_ddof=0,
         pf_scope="oos",
@@ -437,9 +442,9 @@ FAMILY_RECIPES = {
     # NF-20261105-09 (H91): turn-of-month equity calendar seasonality. Date splits
     # 2019-12-31/2022-12-31, ddof=0, OOS PF/trades, benchmark on FULL series,
     # val-window Sharpe. wf_stability = test_sharpe/train_sharpe. Published
-    # benchmark_p_value default (p_value key mismatch).
+    # benchmark_p_value default (p_value key mismatch). Pinned per artifact
+    # in BENCH_P_PUBLISHED_DEFAULT_ARTIFACTS.
     "nf_20261105_09_turn_of_month": dict(
-        bench_p_published_default=True,
         split=("date", "2019-12-31", "2022-12-31"),
         sharpe_ddof=0,
         pf_scope="oos",
@@ -457,9 +462,11 @@ FAMILY_RECIPES = {
     # NF-20261105-10 (H92): equity-bond relative momentum rotation. Date splits
     # 2019-12-31/2022-12-31, ddof=0, OOS PF/trades, benchmark on FULL series,
     # val-window Sharpe. wf_stability = test_sharpe/train_sharpe. Published
-    # benchmark_p_value default (p_value key mismatch).
+    # benchmark_p_value default (p_value key mismatch) on the first 6 artifacts;
+    # the runner was fixed mid-production and the last 3 publish the real value
+    # (0.005822770948177806). Pinned per artifact in
+    # BENCH_P_PUBLISHED_DEFAULT_ARTIFACTS.
     "nf_20261105_10_equity_bond_relmom": dict(
-        bench_p_published_default=True,
         split=("date", "2019-12-31", "2022-12-31"),
         sharpe_ddof=0,
         pf_scope="oos",
@@ -477,9 +484,9 @@ FAMILY_RECIPES = {
     # NF-20261105-13 (H93): cross-sectional idiosyncratic volatility L/S. Date
     # splits 2019-12-31/2022-12-31, ddof=0, OOS PF/trades, benchmark on FULL
     # series, val-window Sharpe. wf_stability = test_sharpe/train_sharpe.
-    # Published benchmark_p_value default (p_value key mismatch).
+    # Published benchmark_p_value default (p_value key mismatch). Pinned per
+    # artifact in BENCH_P_PUBLISHED_DEFAULT_ARTIFACTS.
     "nf_20261105_13_idiosyncratic_vol": dict(
-        bench_p_published_default=True,
         split=("date", "2019-12-31", "2022-12-31"),
         sharpe_ddof=0,
         pf_scope="oos",
@@ -544,6 +551,39 @@ ALPHA_PRE_H51_BETA = frozenset(
         "exp_2026-10-13T21-51-45-034237Z",
         "exp_2026-10-13T22-40-41-870350Z",
         "exp_2026-10-13T23-06-33-191710Z",
+    }
+)
+
+# The NF producers that read ``compare_to_benchmark``'s p-value through the
+# wrong key. ``compare_to_benchmark`` returns ``alpha_p_value`` (not
+# ``p_value``), so a runner written against the old key shape fell back to
+# its default of 1.0 and published that. The defect was fixed in the
+# runners mid-production, so the published record is *split*: the artifacts
+# below carry the defective default, and every later artifact of the same
+# producer carries the real value. The set is therefore pinned per artifact
+# (like ``ALPHA_PRE_H51_BETA``), not per producer -- a per-producer boolean
+# cannot express a producer whose record changed mid-flight.
+#
+# Verified against the frozen artifacts: every artifact in this set
+# publishes ``benchmark_p_value == 1.0`` while re-deriving to the real
+# p-value, and every artifact of these producers *not* in this set
+# publishes the real p-value (re-derives within tolerance).
+BENCH_P_PUBLISHED_DEFAULT_ARTIFACTS = frozenset(
+    {
+        "exp_2026-11-05T01-43-20-575295Z",  # nf_20261104_01_vix_termstructure (H86)
+        "exp_2026-11-05T02-51-06-343400Z",  # nf_20261105_01_opening_gap (H87)
+        "exp_2026-11-05T04-44-31-638354Z",  # nf_20261105_01_opening_gap (H87)
+        "exp_2026-11-05T12-36-06-158635Z",  # nf_20261105_07_skew_tail_timing (H89)
+        "exp_2026-11-05T13-22-09-693533Z",  # nf_20261105_08_fomc_event_drift (H90)
+        "exp_2026-11-05T13-32-16-258120Z",  # nf_20261105_09_turn_of_month (H91)
+        "exp_2026-11-05T13-32-55-648939Z",  # nf_20261105_09_turn_of_month (H91)
+        "exp_2026-11-05T15-24-22-849461Z",  # nf_20261105_10_equity_bond_relmom (H92)
+        "exp_2026-11-05T15-40-24-218763Z",  # nf_20261105_10_equity_bond_relmom (H92)
+        "exp_2026-11-05T18-05-46-174209Z",  # nf_20261105_10_equity_bond_relmom (H92)
+        "exp_2026-11-05T18-11-49-464520Z",  # nf_20261105_10_equity_bond_relmom (H92)
+        "exp_2026-11-05T18-12-36-229696Z",  # nf_20261105_10_equity_bond_relmom (H92)
+        "exp_2026-11-06T02-00-06-752931Z",  # nf_20261105_10_equity_bond_relmom (H92)
+        "exp_2026-11-05T18-09-06-924039Z",  # nf_20261105_13_idiosyncratic_vol (H93)
     }
 )
 
@@ -903,8 +943,10 @@ def rederive(
     # but compare_to_benchmark returns alpha_p_value (not p_value), so the published
     # benchmark_p_value defaulted to 1.0. Reproduce the published value; the runner
     # defect is disclosed in NEW_FAMILY_RESEARCH_REGISTER.md (not verdict-affecting:
-    # all NF families REJECT).
-    if recipe.get("bench_p_published_default"):
+    # all NF families REJECT). The set is pinned per artifact because the defect was
+    # fixed in the runners mid-production: later artifacts of the same producer
+    # publish the real value.
+    if artifact_id in BENCH_P_PUBLISHED_DEFAULT_ARTIFACTS:
         out["benchmark_p_value"] = 1.0
     else:
         out["benchmark_p_value"] = comparison["alpha_p_value"]
@@ -1281,6 +1323,45 @@ class TestH53PublishedMetrics:
         """A summary without a metrics block must not be counted."""
         names = {entry["artifact_id"] for entry in _ENTRIES}
         assert "h27_pnl_level" not in names
+
+    def test_negative_control_the_bench_p_default_set_is_detected(self):
+        """The pinned set is not vacuous: every artifact in it publishes
+        ``benchmark_p_value == 1.0`` while its true re-derived p-value is
+        something else, and every artifact of the same producers *not* in the
+        set publishes the true value. A per-producer boolean cannot express a
+        producer whose record changed mid-production, so the set is pinned
+        per artifact.
+
+        The true value is read by calling ``rederive`` with an artifact id that
+        is not in the set; the only artifact-id-dependent branch in
+        ``rederive`` is the pre-H51 beta flag, and none of these NF producers
+        is in ``ALPHA_PRE_H51_BETA``, so the sentinel reproduces the exact
+        computation the published artifact would have gotten had the runner
+        been fixed before it ran.
+        """
+        assert len(BENCH_P_PUBLISHED_DEFAULT_ARTIFACTS) == 14
+        producers = {
+            "nf_20261104_01_vix_termstructure",
+            "nf_20261105_01_opening_gap",
+            "nf_20261105_07_skew_tail_timing",
+            "nf_20261105_08_fomc_event_drift",
+            "nf_20261105_09_turn_of_month",
+            "nf_20261105_10_equity_bond_relmom",
+            "nf_20261105_13_idiosyncratic_vol",
+        }
+        for entry in _ENTRIES:
+            aid = entry["artifact_id"]
+            if entry["producer"] not in producers:
+                continue
+            pub = entry["published"].get("benchmark_p_value")
+            true = rederive(entry["directory"], "__not_in_set__", entry["recipe"])[
+                "benchmark_p_value"
+            ]
+            if aid in BENCH_P_PUBLISHED_DEFAULT_ARTIFACTS:
+                assert pub == 1.0, (aid, pub)
+                assert not _matches(pub, true), (aid, pub, true)
+            else:
+                assert _matches(pub, true), (aid, pub, true)
 
     # -- the blast radius --------------------------------------------------
     def test_no_gate_reads_a_key_that_fails_to_re_derive(self):
