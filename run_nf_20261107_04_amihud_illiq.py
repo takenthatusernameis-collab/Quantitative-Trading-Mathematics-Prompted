@@ -332,7 +332,9 @@ def _perturbation(
     return {"rows": rows, "min_oos_sharpe": float(min_s), "min_ratio_vs_optimum": ratio}
 
 
-def evaluate_gates(train_m, oos_m, wf_ratio, worst_regime, bench, perturb) -> tuple[bool, dict]:
+def evaluate_gates(
+    train_m, oos_m, wf_ratio, worst_regime, bench_gate, perturb
+) -> tuple[bool, dict]:
     gates = {
         "sharpe": oos_m["sharpe"] >= GATES["min_sharpe"],
         "trades": oos_m["trades"] >= GATES["min_trades"],
@@ -341,11 +343,11 @@ def evaluate_gates(train_m, oos_m, wf_ratio, worst_regime, bench, perturb) -> tu
         "wf_stability": wf_ratio >= GATES["min_walkforward_stability"],
         "worst_regime": worst_regime >= GATES["min_worst_regime_sharpe"],
         "benchmark": benchmark_significance_gate(
-            bench["p_value"],
-            bench["information_ratio"],
+            bench_gate["p_value"],
+            bench_gate["information_ratio"],
             GATES["max_p_value"],
         )
-        and bench["information_ratio"] >= GATES["min_information_ratio"],
+        and bench_gate["information_ratio"] >= GATES["min_information_ratio"],
         "perturbation": perturb["min_ratio_vs_optimum"] >= GATES["min_perturbed_sharpe_ratio"],
     }
     return all(gates.values()), gates

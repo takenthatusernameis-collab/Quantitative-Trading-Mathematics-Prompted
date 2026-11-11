@@ -52,14 +52,7 @@ mismatches are gone.
 
 ## Next task
 
-**One precise next task:** Await authorization to (a) update frozen counts in
-`test_h51_benchmark_container_invariance.py`, `test_h53_published_metrics_disclosure.py`,
-and `test_h55_nested_metrics_disclosure.py`, or (b) resolve the 3 contested per-trade logs
-in `test_trade_log_cost_reconciliation.py`. Both require per-contract evidence review.
-
-**Evidence to review before authorization:** exact failure diffs above; the H53 recipe
-correction is confirmed resolved (18 passed vs 16 previously); the H57/total-return
-"code bug" hypothesis is disproven (66 + 16 passed).
+**One precise next task:** Await authorization to (a) resolve the 9 frozen-contract drifts via per-contract evidence review (exact failures listed above), or (b) resolve a free-data gap under explicit authorization (commodity carry roll/contango; PIT insider/earnings/options data) and select H182. Per `NEW_FAMILY_RESEARCH_REGISTER.md` (Cycle 96) and `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6, H1–H181 are all executed and rejected and the free-data family queue is exhausted; absent a data-gap resolution, conclude free-data family discovery is exhausted and shift to auditing/infrastructure. This session verified that one of the previously-reported failures (`test_benchmark_gate_contract.py::test_every_call_site_reads_only_keys_the_library_returns`) was a real code bug and fixed it (parameter rename in `run_nf_20261107_{03,04,07,08}_*.py`; `ruff`/contract test clean; full suite 3425 passed / 9 failed / 16 skipped, the 9 all documented drift). Constraints: `src/qtr` unchanged unless an evidenced defect requires it (then rerun pinned full gates); no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified; no commit/push unless explicitly requested.
 
 ## Deferred (do not select without authorization)
 

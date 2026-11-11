@@ -1,5 +1,7 @@
 # HANDOFF.md — H53 recipe verified in dep-enabled env; 9 frozen-contract failures are all drift
 
+> **Current-session addendum (2026-11-11T04:20Z, verified):** one of the 10 frozen-contract failures was a real code bug, now fixed: `tests/test_benchmark_gate_contract.py::test_every_call_site_reads_only_keys_the_library_returns` flagged 4 NF runners whose `evaluate_gates` parameter `bench` (reads `bench["p_value"]`) was conflated by the flow-insensitive AST check with `bench = compare_to_benchmark(...)` (library returns `alpha_p_value`, not `p_value`). Renamed the parameter to `bench_gate` in `run_nf_20261107_{03,04,07,08}_*.py` — runtime behavior unchanged (callers pass `bench_out`, a runner-owned dict carrying `p_value`). `ruff check/format` clean; contract test 26/26. Full suite now **3425 passed, 9 failed, 16 skipped** — the 9 remaining are exactly the pre-existing frozen-count/contested-log drifts below, all requiring per-contract review authorization. `src/qtr` unchanged; no commit/push. See `HANDOFF_CURRENT_SESSION.md` for the full record.
+
 > **Current-session addendum (2026-11-11T03:24Z, verified):** the environment now has
 > `pytest` 9.2.0 / `ruff` 0.17.4 / Python 3.14.4 (the prior session lacked them). The
 > H53 recipe correction from commit `70cf696` is confirmed: the 3 stale H92
