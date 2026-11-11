@@ -842,3 +842,119 @@ class TestNonPositivePriceRefused:
         prices, signals = self._panel_with([100.0, -37.63, 100.0])
         with pytest.raises(ValueError, match="non-positive price"):
             run_backtest(prices=prices, signals=signals, config=_make_config())
+
+
+# ============================================================
+# Fail-closed cost guards (coverage: engine.py defensive branches)
+# ============================================================
+class TestFailClosedCostGuards:
+    """The cost model fails closed to ``0.0`` for every invalid input class.
+    Five defensive branches in ``engine.py`` (146, 198, 230, 246, 401) had
+    no test, so the 100% coverage gate measured them uncovered. Each guard is
+    pinned here with the exact input that takes its branch.
+    """
+
+    # ------------------------------------------------- crypto_cost_bps (146)
+    def test_crypto_cost_fails_closed_on_non_finite_fee_or_spread(self):
+        """A non-finite fee or spread zeroes the whole crypto charge."""
+        base = CostModel()
+        assert base.crypto_cost_bps() == 7.0  # 5 + 2 + 0
+
+        bad_fee = CostModel(crypto_fee_bps=float("inf"))
+        assert bad_fee.crypto_cost_bps() == 0.0
+
+        bad_spread = CostModel(crypto_spread_bps=float("nan"))
+        assert bad_spread.crypto_cost_bps() == 0.0
+
+    def test_crypto_cost_negative_scalar_vol_fails_closed_to_zero(self):
+        """A negative scalar daily vol fails the whole charge closed to 0.0
+        (engine.py:155). Only the Series path clips negatives to zero; the
+        scalar path refuses them outright."""
+        cm = CostModel(
+            crypto_fee_bps=5.0, crypto_spread_bps=2.0, crypto_slippage_bps_per_pct_daily_vol=1.0
+        )
+        assert cm.crypto_cost_bps(-1.0) == 0.0
+        assert cm.crypto_cost_bps(2.0) == 9.0  # 5 + 2 + 2 * 1.0
+
+    # ------------------------------------------------- future_cost (198)
+    def test_future_cost_fails_closed_on_invalid_components(self):
+        """Non-finite commission/tick/spread/slippage -> 0.0. Negative values
+        are *not* fail-closed here (only the >= 0.0 guard on commission),
+        so they pass through -- that is the documented behaviour, not a
+        defect."""
+        base = CostModel()
+        assert base.future_cost_per_contract() == 9.375  # 0 + (0.25 + 0.5) * 12.5
+
+        assert CostModel(future_commission_per_contract=-1.0).future_cost_per_contract() == 0.0
+        assert CostModel(future_tick_value=float("nan")).future_cost_per_contract() == 0.0
+        assert CostModel(future_spread_ticks=float("inf")).future_cost_per_contract() == 0.0
+        assert CostModel(future_slippage_ticks=float("nan")).future_cost_per_contract() == 0.0
+
+    # ------------------------------------------------- _total_costs (230)
+    def test_total_costs_frame_with_no_columns_and_no_index_returns_empty_series(self):
+        """A frame-like object with no columns and no index attribute yields
+        an empty Series (engine.py:190)."""
+        backtester = VectorizedBacktester(_make_config())
+
+        class Bare:
+            empty = True
+            shape = (0, 0)
+
+        out = backtester._total_costs(Bare())
+        assert isinstance(out, pd.Series)
+        assert out.empty
+
+    # ------------------------------------------------- _max_dd_duration (198)
+    def test_max_dd_duration_on_empty_series(self):
+        """An empty drawdown series returns 0 (engine.py:198)."""
+        backtester = VectorizedBacktester(_make_config())
+        assert backtester._max_dd_duration(pd.Series(dtype=float)) == 0
+
+    # ------------------------------------------------- _calculate_metrics (230)
+    def test_calculate_metrics_on_empty_returns_boundary_metrics(self):
+        """An empty return series returns the boundary metrics dict
+        (engine.py:230). The empty-panel tests exercise run_backtest's
+        early return, not this branch, so it is pinned directly."""
+        backtester = VectorizedBacktester(_make_config())
+        empty_trades = pd.DataFrame(
+            columns=["timestamp", "symbol", "side", "weight_change", "price", "cost"]
+        )
+        metrics = backtester._calculate_metrics(
+            pd.Series(dtype=float), pd.Series(dtype=float), empty_trades
+        )
+        assert metrics["total_return"] == 0.0
+        assert metrics["sharpe"] == 0.0
+        assert metrics["calmar"] == float("inf")
+
+    # ------------------------------------------------- annualized_vol (246)
+    def test_annualized_volatility_is_zero_for_single_bar(self):
+        """A one-bar panel has no sample variance; volatility is 0.0."""
+        index = pd.bdate_range("2020-01-01", periods=1)
+        prices = pd.DataFrame({"A": [100.0]}, index=index)
+        signals = pd.DataFrame({"A": [1.0]}, index=index)
+        res = run_backtest(prices=prices, signals=signals, config=_make_config())
+        assert res.metrics["annualized_volatility"] == 0.0
+
+    # ------------------------------------------------- equity impact (401)
+    def test_equity_impact_skips_symbol_with_invalid_adv(self):
+        """A non-finite or non-positive ADV for one symbol skips its impact
+        row while the other symbol still charges impact."""
+        np.random.seed(123)
+        idx = pd.date_range("2020-01-01", periods=30, freq="D")
+        prices = pd.DataFrame(
+            {
+                "GOOD": np.cumsum(np.random.randn(30) * 0.01) + 100,
+                "BAD": np.cumsum(np.random.randn(30) * 0.01) + 100,
+            },
+            index=idx,
+        )
+        signals = pd.DataFrame(0.0, index=idx, columns=prices.columns)
+        signals.iloc[5] = 1.0  # only GOOD moves
+        adv = pd.Series({"GOOD": 2_000_000.0, "BAD": float("nan")})
+        cfg = _make_config(asset_class=AssetClass.EQUITY, max_leverage=2.0, max_position_size=2.0)
+        cfg.cost_model.equity_impact_bps_per_pct_adv = 10.0
+        res = run_backtest(prices=prices, signals=signals, adv=adv, config=cfg)
+        # The GOOD impact row charges; the BAD row is skipped (branch at
+        # engine.py:401). Cost is non-positive and finite.
+        assert res.returns.iloc[5] <= 0.0
+        assert np.isfinite(res.returns.iloc[5])

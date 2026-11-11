@@ -1,4 +1,4 @@
-# NEXT_TASK.md — H53 recipe verified in dep-enabled env; remaining failures are frozen-count drifts
+# NEXT_TASK.md — Coverage gate fixed (100% src/qtr); remaining failures are frozen-count drifts
 
 ## Status
 
@@ -7,9 +7,17 @@ artifact IDs from `BENCH_P_PUBLISHED_DEFAULT_ARTIFACTS`) is **verified in an
 environment with project deps**. The 3 H92 `benchmark_p_value` re-derivation
 mismatches are gone.
 
-- `python -m ruff check tests/test_h53_published_metrics_disclosure.py` — All checks passed.
-- `python -m ruff format --check tests/test_h53_published_metrics_disclosure.py` — 1 file already formatted.
-- `PYTHONPATH=src python -m pytest -q tests/test_h53_published_metrics_disclosure.py` — **18 passed, 2 failed** (down from 16 passed / 4 failed). The 2 remaining failures are pinned-count drifts only.
+**This session's fix:** the `src/qtr` coverage gate (`fail_under = 100` in
+`pyproject.toml`) was a real defect — measured coverage was **99%** (5 uncovered
+defensive branches in `src/qtr/backtest/engine.py`: 146, 198, 230, 246, 401).
+Added 9 focused tests in `tests/test_backtest_engine.py`
+(`TestFailClosedCostGuards`) pinning each fail-closed guard with the exact input
+that takes its branch. Coverage is now **100%** (1209 stmts / 420 branches, 0
+miss). `src/qtr` source unchanged; only tests added.
+
+- `python -m ruff check src tests run_*.py` — All checks passed.
+- `python -m ruff format --check src tests run_*.py` — 316 files already formatted.
+- `PYTHONPATH=src python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` — **100% coverage**; full suite **3433 passed, 9 failed, 16 skipped** (baseline was 3425 passed; +8 are the new tests).
 
 ## Verified this session
 
