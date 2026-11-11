@@ -1,24 +1,18 @@
-# HANDOFF_NEXT.md — H53 recipe verified; 9 frozen-contract failures are all drift
+# HANDOFF_NEXT.md — Frozen-contract state verified; free-data family discovery exhausted
 
 ## What changed (verified this session)
 
-- **H53 recipe correction confirmed**: the 3 H92 (`nf_20261105_10_equity_bond_relmom`)
-  artifacts `exp_2026-11-06T02-17-43-039138Z`, `03-36-48-479398Z`, `04-23-47-511988Z`
-  are correctly excluded from `BENCH_P_PUBLISHED_DEFAULT_ARTIFACTS`. The
-  `test_every_published_value_re_derives` test now **passes** (was failing on those 3
-  `benchmark_p_value` mismatches).
-- Lint/format on `tests/test_h53_published_metrics_disclosure.py` — clean.
-- Full frozen-contract suite run — all 9 failures are pre-existing frozen-number/count
-  drifts or contested trade logs. No new code bug found.
+- **Prior session's fix confirmed**: The 4 NF runner bug fix (parameter-name collision in `evaluate_gates`) is verified — `test_every_call_site_reads_only_keys_the_library_returns` now passes.
+- **Benchmark gate contract**: 26 passed (was failing before the fix).
+- **Frozen-contract suite**: 9 failures, all pre-existing frozen-number/count drifts or contested trade logs. No new code bugs found.
+- **Lint/format**: Clean across `src`, `tests`, and `run_*.py` (316 files).
 
 ## Actually verified (this session)
 
-- `python -m ruff check tests/test_h53_published_metrics_disclosure.py && python -m ruff format --check tests/test_h53_published_metrics_disclosure.py` — clean.
-- `PYTHONPATH=src python -m pytest -q tests/test_h53_published_metrics_disclosure.py` — **18 passed, 2 failed** (pinned-count drifts only: 58 vs 54 summaries, 674 vs 630 values).
-- `PYTHONPATH=src python -m pytest -q` on all 6 frozen-contract files — **348 passed, 9 failed, 12 skipped**. No new code bugs found.
-- **Baseline evidence:** the original commit `82eb68a`'s version of this same test file,
-  run against the current working tree, also yields **58 / 674**. So the pins `54` / `630`
-  were already stale at commit time — pure frozen-number drift, not a regression.
+- `python -m ruff check src tests run_*.py && python -m ruff format --check src tests run_*.py` — clean.
+- `PYTHONPATH=src python -m pytest -q tests/test_benchmark_gate_contract.py` — **26 passed**.
+- `PYTHONPATH=src python -m pytest -q` on 6 frozen-contract files — **348 passed, 9 failed, 12 skipped**.
+- **Baseline evidence**: The 9 failures are identical to the prior session's report — pure frozen-number drift, not regressions.
 
 ## Unresolved / pre-existing (require authorization, do not mass-fix)
 
@@ -40,3 +34,5 @@
 **One precise next task:** Await authorization to update frozen counts in H51/H53/H55 test files, resolve the 3 contested per-trade logs in `test_trade_log_cost_reconciliation.py`, or select H182 (requires resolving commodity-carry data gap under authorization or concluding free-data family discovery exhausted per Cycle 96).
 
 **Evidence to review before authorization:** Exact failure diffs above; artifact inspection confirms the 3 H92 `benchmark_p_value` mismatches are resolved by the recipe correction already committed; the H57/total-return code-bug hypothesis is disproven.
+
+**Constraints:** `src/qtr` unchanged unless an evidenced defect requires it (then rerun pinned full gates); no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified; no commit/push unless explicitly requested.
