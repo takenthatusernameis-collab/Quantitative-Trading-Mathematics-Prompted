@@ -547,6 +547,30 @@ ALPHA_PRE_H51_BETA = frozenset(
     }
 )
 
+# (c) The H92 runner (`run_nf_20261105_10_equity_bond_relmom`) reads
+#     `cmp.get("alpha_p_value", 1.0)` from `compare_to_benchmark`, which is the
+#     CORRECT key: `compare_to_benchmark` returns the two-sided p-value under
+#     `alpha_p_value` (verified against the library source and against a
+#     runtime call on the frozen artifact). So the runner's real published
+#     `benchmark_p_value` is 0.0058227... for every H92 artifact -- all nine
+#     share the same data (n=4233) and re-derive to the same value.
+#
+#     The SIX artifacts produced 2026-11-05 publish 1.0 instead: those were
+#     produced by an earlier version of the runner whose benchmark block
+#     defaulted to 1.0 (the `alpha_p_value`/`p_value` key mismatch the
+#     docstring at the top of this module discloses for the H85-H93 NF
+#     families). The THREE artifacts produced 2026-11-06 publish the correct
+#     0.0058. The recipe flag `bench_p_published_default` reproduces the
+#     published value, so it applies to every artifact of a flag-bearing
+#     family EXCEPT these three, which publish the real value.
+BENCH_P_PUBLISHED_REAL_ARTIFACTS = frozenset(
+    {
+        "exp_2026-11-06T02-17-43-039138Z",
+        "exp_2026-11-06T03-36-48-479398Z",
+        "exp_2026-11-06T04-23-47-511988Z",
+    }
+)
+
 # The tolerance of a re-derivation. The published values are full float64
 # round-trips of the same computation, so they agree to ~1e-12 relative when
 # the series is read back from the committed parquet; the tolerance is set
@@ -899,12 +923,16 @@ def rederive(
         right = benchmark.dropna().values
     pre_h51 = artifact_id in ALPHA_PRE_H51_BETA if beta_pre_h51 is None else beta_pre_h51
     comparison = _benchmark_comparison(left, right, recipe["bench_ddof"], pre_h51)
-    # NF runners (H85/H86/H87) read cmp.get("p_value", 1.0) from compare_to_benchmark,
-    # but compare_to_benchmark returns alpha_p_value (not p_value), so the published
-    # benchmark_p_value defaulted to 1.0. Reproduce the published value; the runner
-    # defect is disclosed in NEW_FAMILY_RESEARCH_REGISTER.md (not verdict-affecting:
-    # all NF families REJECT).
-    if recipe.get("bench_p_published_default"):
+    # The NF families' benchmark block defaulted to 1.0 when the runner read a
+    # key that `compare_to_benchmark` does not return (`p_value` instead of
+    # `alpha_p_value`). H92's runner reads the CORRECT key, so its real value
+    # is 0.0058 for all nine artifacts; only the six produced 2026-11-05
+    # actually published the default (the three produced 2026-11-06 publish
+    # the real value). Reproduce the published value per artifact.
+    if (
+        recipe.get("bench_p_published_default")
+        and artifact_id not in BENCH_P_PUBLISHED_REAL_ARTIFACTS
+    ):
         out["benchmark_p_value"] = 1.0
     else:
         out["benchmark_p_value"] = comparison["alpha_p_value"]
