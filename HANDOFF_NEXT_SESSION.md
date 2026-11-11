@@ -3,6 +3,7 @@
 ## What changed (this session)
 
 - **Coverage gate defect fixed.** `pyproject.toml` enforces `fail_under = 100` for `src/qtr`, but measured coverage was **99%** — 5 uncovered defensive branches in `src/qtr/backtest/engine.py` (lines 146, 198, 230, 246, 401). Added 9 focused tests in `tests/test_backtest_engine.py` (`TestFailClosedCostGuards`) pinning each fail-closed guard with the exact input that takes its branch. `src/qtr` source is unchanged; only tests were added.
+- **This session (audit):** verified tracked draft `run_nf_20261110_07_es_basis.py` is correctly classified as NF-20261110-09/TBD (no `main`, no artifacts in `.experiments/nf_runs/`, no NF/H label collision in `HYPOTHESIS_SPEC.md` or the register). Research-queue exhaustion conclusion (Cycle 96) stands on intact evidence.
 
 ## Actually verified (this session)
 
@@ -21,7 +22,7 @@
 
 ## Research queue status
 
-- `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96: H85–H181 all executed and rejected; free-data point-in-time strategy-family queue exhausted; H182 unassigned. Commodity carry data-blocked (no free PIT roll/contango proxy); insider/earnings/options PIT data unavailable without paid services. Selecting H182 requires resolving a data gap under explicit authorization per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6.
+- `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96: H85–H181 all executed and rejected; free-data point-in-time strategy-family queue exhausted; H182 unassigned. Commodity carry data-blocked (no free PIT roll/contango proxy); insider/earnings/options PIT data unavailable without paid services. Selecting H182 requires resolving a data gap under explicit authorization per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6. Network access IS available (yfinance returns real SPY data, verified 2026-11-11T18:30Z) — data-gap path is authorization-blocked, not network-blocked.
 
 ## Failed approaches / do not blindly repeat
 
@@ -31,6 +32,7 @@
 - Do not mass-edit runners/tests/gates to force the suite green.
 - Do not recycle H1–H181 families as H182 without a materially distinct mechanism and free PIT data.
 - Do not weaken the coverage gate or delete the new fail-closed tests to make the number convenient — the guards are load-bearing (they refuse invalid cost inputs to 0.0).
+- Do not treat `run_nf_20261110_07_es_basis.py` as an executed experiment — it has no `main`, no artifacts, and is registered as NF-20261110-09/TBD draft only.
 
 ## Next task for the next agent
 
@@ -38,6 +40,6 @@
 
 **Constraints:** `src/qtr` unchanged unless an evidenced defect requires it (then rerun pinned full gates); no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified; no commit/push unless explicitly requested.
 
-**Evidence to review before authorization:** Exact failure diffs above; `test_h57_total_return_audit.py` (66 passed) and `test_engine_total_return_consistency.py` (16 passed) disprove the total-return code-bug hypothesis; H53 H92 `benchmark_p_value` mismatches resolved by committed recipe correction; full-suite baseline now 3433 passed / 9 failed / 16 skipped with `src/qtr` at 100% coverage.
+**Evidence to review before authorization:** Exact failure diffs above; `test_h57_total_return_audit.py` (66 passed) and `test_engine_total_return_consistency.py` (16 passed) disprove the total-return code-bug hypothesis; H53 H92 `benchmark_p_value` mismatches resolved by committed recipe correction; full-suite baseline now 3433 passed / 9 failed / 16 skipped with `src/qtr` at 100% coverage; draft audit confirms `run_nf_20261110_07_es_basis.py` is NF-20261110-09/TBD (unexecuted, no collision).
 
 (End of file - total 47 lines)
