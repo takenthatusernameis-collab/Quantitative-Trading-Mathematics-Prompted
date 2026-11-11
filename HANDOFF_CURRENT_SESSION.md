@@ -31,21 +31,21 @@
 - Do not recycle H1–H181 families as H182 without a materially distinct mechanism and free PIT data.
 - Do not weaken the coverage gate or delete the new fail-closed tests to make the number convenient — the guards are load-bearing (they refuse invalid cost inputs to 0.0).
 
-## This session (2026-11-11T12:35Z) — baseline verified; research task blocked
+## This session (2026-11-11T12:51Z) — baseline re-verified; no unblocked high-value task
 
-**What changed:** No source, test, gate, frozen-number, or artifact changes. `src/qtr` unchanged; no commit/push.
+**What changed:** No source, test, gate, frozen-number, or artifact changes. `src/qtr` unchanged; working tree clean; no commit/push.
 
 **Actually verified (this session, own evidence):**
-- `python -m ruff check src tests run_*.py` — All checks passed.
+- `python -m ruff check src tests run_*.py` — All checks passed (ruff 0.17.4).
 - `python -m ruff format --check src tests run_*.py` — 316 files already formatted.
 - `PYTHONPATH=src python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` — **100% coverage** (TOTAL 1209/0/420/0; `src/qtr/backtest/engine.py` 229/0/76/0); full suite **3433 passed, 9 failed, 16 skipped**.
-- The 9 failures are exactly the pre-existing frozen-contract drifts (H51 ×1, H53 ×2, H55 ×4, trade-log ×2) listed above; **no new code bug, no regression**.
+- `PYTHONPATH=src python -m pytest -q --tb=short tests/test_h51_benchmark_container_invariance.py tests/test_h53_published_metrics_disclosure.py tests/test_h55_nested_metrics_disclosure.py tests/test_trade_log_cost_reconciliation.py` — **321 passed, 9 failed, 12 skipped**; failures are exactly the documented frozen-contract drifts (H51 IR disclosure ×1: 21 new experiments not in pinned `PUBLISHED_INFORMATION_RATIOS`; H53 count pins ×2: 58 vs 54, 674 vs 630; H55 ×4: nested-block set, leaf 1292 vs 1188, rederivable 631 vs 627, perturbation gate 40 vs 36; trade-log ×2: 3 contested `exp_2026-11-05` per-trade logs extra in committed set and missing pre-fix attribution). No new code bug, no regression.
 
 **Blocked / cannot execute in this session:**
-- **No network access** (yfinance/CCXT/Wikipedia all timeout) → no REAL data execution is possible. A new-family experiment requires real per-registered data (H159/H160 precedent), so no H-ID can be executed now.
-- **H160 is already executed** (Cycle 74, NF-20261109-01 cross-sectional IVOL dispersion, REJECT 4/8; recorded in `HYPOTHESIS_SPEC.md` §H160). The HANDOFF.md "Cycle 74 → implement H160" task is **stale**; do not re-run or re-implement H160.
-- Register state (Cycle 96): **H85–H181 all executed/rejected**; free-data point-in-time strategy-family queue **exhausted**; **H182 unassigned and data-blocked** (commodity carry needs free PIT roll/contango proxy; insider/earnings/options PIT needs paid data).
-- **9 frozen-contract failures require per-contract authorization** — do not mass-edit frozen counts/contested logs.
+- **No network access** → no REAL data execution possible; cannot run a new-family experiment.
+- **H160 already executed** (Cycle 74, NF-20261109-01, REJECT 4/8; `HYPOTHESIS_SPEC.md` §H160). Do not re-implement/re-run H160.
+- **Research queue exhausted on free data** (Cycle 96): H85–H181 all executed/rejected; H182 unassigned and data-blocked (commodity carry needs free PIT roll/contango proxy; insider/earnings/options PIT needs paid data). No feasible repo-new free-data candidate to select per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6.
+- **All 9 frozen-contract failures require per-contract authorization** to modify pinned numbers/sets/log records — do not mass-edit.
 
 ## Next task for the next agent
 
