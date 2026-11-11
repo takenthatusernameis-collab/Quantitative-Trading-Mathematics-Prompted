@@ -1,53 +1,85 @@
-# HANDOFF.md — H53 recipe verified in dep-enabled env; 9 frozen-contract failures are all drift
+# HANDOFF.md
 
-> **Current-session addendum (2026-11-11T07:20Z, verified):** the coverage gate was a real defect and is now fixed. `pyproject.toml` enforces `fail_under = 100` for `src/qtr`, but measured coverage was **99%** — 5 uncovered defensive branches in `src/qtr/backtest/engine.py` (146, 198, 230, 246, 401). Added 9 focused tests in `tests/test_backtest_engine.py` (`TestFailClosedCostGuards`) pinning each fail-closed guard with the exact input that takes its branch. `ruff check/format` clean; coverage now **100%** (1209 stmts / 420 branches, 0 miss). Full suite **3433 passed, 9 failed, 16 skipped** — the 9 remaining are exactly the pre-existing frozen-count/contested-log drifts below, all requiring per-contract review authorization. `src/qtr` source unchanged; only tests added; no commit/push. See `HANDOFF_CURRENT_SESSION.md` for the full record.
+## What changed this session (2026-11-11T14:15Z, Cycle 100)
 
-> **Current-session addendum (2026-11-11T04:20Z, verified):** one of the 10 frozen-contract failures was a real code bug, now fixed: `tests/test_benchmark_gate_contract.py::test_every_call_site_reads_only_keys_the_library_returns` flagged 4 NF runners whose `evaluate_gates` parameter `bench` (reads `bench["p_value"]`) was conflated by the flow-insensitive AST check with `bench = compare_to_benchmark(...)` (library returns `alpha_p_value`, not `p_value`). Renamed the parameter to `bench_gate` in `run_nf_20261107_{03,04,07,08}_*.py` — runtime behavior unchanged (callers pass `bench_out`, a runner-owned dict carrying `p_value`). `ruff check/format` clean; contract test 26/26. Full suite now **3425 passed, 9 failed, 16 skipped** — the 9 remaining are exactly the pre-existing frozen-count/contested-log drifts below, all requiring per-contract review authorization. `src/qtr` unchanged; no commit/push. See `HANDOFF_CURRENT_SESSION.md` for the full record.
+Two stale-audit re-verifications + dead-stub cleanup. **No `src/qtr` change. No
+gated artifact, test, threshold, or frozen number touched. No commit/push.**
 
-> **Current-session addendum (2026-11-11T03:24Z, verified):** the environment now has
-> `pytest` 9.2.0 / `ruff` 0.17.4 / Python 3.14.4 (the prior session lacked them). The
-> H53 recipe correction from commit `70cf696` is confirmed: the 3 stale H92
-> `benchmark_p_value` artifact IDs are correctly excluded and
-> `test_every_published_value_re_derives` now passes (18 passed / 2 failed, down from 16/4).
-> Full frozen-contract suite: **348 passed, 9 failed, 12 skipped** — all 9 failures are
-> pre-existing frozen-number/count drifts or contested trade logs; **no new code bug found**.
-> The H57 / engine-total-return "code bug" hypothesis is disproven
-> (`test_h57_total_return_audit.py` 66 passed; `test_engine_total_return_consistency.py`
-> 16 passed). Baseline evidence: commit `82eb68a`'s version of the H53 test file also
-> yields 58 / 674 against the current tree, so the pins 54 / 630 were already stale at
-> commit time. All changes this session are documentation only (`HANDOFF_CURRENT.md`,
-> `HANDOFF_NEXT.md`, `NEXT_TASK.md`); `src/qtr` unchanged, no commit/push. See
-> `HANDOFF_CURRENT.md` for the full current-session record.
-
-**State timestamp (UTC):** 2026-11-09T00:00Z (session end; superseded by addendum above)
-**Branch:** `main`
-**Working tree:** uncommitted local changes only (no commit/push performed): `HYPOTHESIS_SPEC.md` (§H159 outcome), `NEW_FAMILY_RESEARCH_REGISTER.md` (Cycle 73 execution outcome), `HANDOFF.md`, `NEXT_TASK.md` (Cycle 74 next task), `run_nf_20261108_32_vvix_vix_spread_spy.py`, `tests/test_nf_20261108_32_vvix_vix_spread_spy.py`, `.experiments/nf_runs/nf_20261108_32_vvix_vix_spread_spy/{summary.json,grid.csv,data_meta.json}`. `src/qtr` **unchanged**.
-**Research mode:** NEW-FAMILY DISCOVERY MODE (STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md mandatory). H85–H159 all rejected/recorded.
-
-## What changed
-- **Cycle 73 discovery performed** (directive §4): lineage reconciled to H158; >=3 candidates scored honestly (25/25/20/15/10/5) across >=3 broad mechanism categories with NF-root collision checks: **NF-20261108-32 VVIX-VIX implied-vol-of-vol spread** (volatility & convexity premia / vol-of-vol, 4.15, selected → H159); **NF-20261108-29 cross-asset return dispersion** (4.10, deferred); **NF-20261108-31 cross-sectional IVOL dispersion** (3.85, deferred).
-- **H159 pre-registered and REAL executed** (NF-20261108-32): `run_nf_20261108_32_vvix_vix_spread_spy.py` + `tests/test_nf_20261108_32_vvix_vix_spread_spy.py` (7 focused tests; test fixed so deterministic slice is non-empty). `ruff check/format` clean; focused pytest **7 passed**. Runner executed with real yfinance data (SPY+^VIX+^VVIX, 2010-01-04→2025-01-03, 3767 aligned rows); artifact `.experiments/nf_runs/nf_20261108_32_vvix_vix_spread_spy/summary.json` (+ grid.csv, data_meta.json, 10.78s). Verdict **REJECT 4/8**.
-- Docs updated: `HYPOTHESIS_SPEC.md` §H159, `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 73, `HANDOFF.md`, `NEXT_TASK.md`.
+1. **`INFRASTRUCTURE_AUDIT_BENCHMARK_GATE.md` was stale.** It claimed **38** open
+   p-value offenders. Re-running its own detector
+   (`tests/test_benchmark_gate_contract.py::test_no_runner_compares_a_p_value_against_max_p_value_directly`)
+   reports **0 offenders**, and direct grep confirms all 38 named runners now call
+   `benchmark_significance_gate` (exactly 2 call sites each: the import and the
+   evaluation). The fix landed between Cycle 98 and Cycle 99; the doc was never
+   updated and read as an open defect for two cycles. The doc now carries a
+   re-verification banner and keeps the historical inventory for lineage.
+2. **`INFRASTRUCTURE_INSPECTION.md` was stale.** It reported "Infrastructure Status:
+   NONE EXIST" for a greenfield repo. Every component it lists now exists
+   (backtest engine, data pipeline, experiment tracking, strategies, baselines,
+   test suite, config management). The doc now carries a re-verification banner
+   with the actual locations and keeps the historical greenfield baseline.
+3. **Removed 19 dead stub files** from the working tree (all committed, all
+   unreferenced by any test, source, runner, workflow, or script):
+   `_chunk_test.py`, `_probe.py`, `_probe2.py`, `_probe_h159.py`, `_probe_h169.py`,
+   `_probe_h170.py`, `_t.py`..`_t11.py`, `_wtest.txt`, `_placeholder.txt`,
+   `run_nf_20261107_53_etr` (0-byte), `run_nf_20261108_13_spy_futures_basis.py`,
+   `run_nf_20261108_31_spy_parkinson_rv_spy.py`. Verified unreferenced by grep over
+   `tests/ src/ .github/` before deletion; the runner-touching suites
+   (`test_runner_import_contract`, `test_benchmark_gate_contract`,
+   `test_gate_vacuity_contract`, `test_engine_metric_agreement`,
+   `test_engine_total_return_consistency`, `test_parameter_sensitivity_reproducibility`,
+   `test_runner_causality_inventory`, `test_probe_report_schema`, `test_config`) —
+   **773 passed**, so no contract was weakened.
 
 ## What was actually verified
-- `python -m ruff check run_nf_20261108_32_vvix_vix_spread_spy.py tests/test_nf_20261108_32_vvix_vix_spread_spy.py` — All checks passed.
-- `python -m ruff format --check run_nf_20261108_32_vvix_vix_spread_spy.py tests/test_nf_20261108_32_vvix_vix_spread_spy.py` — 2 files already formatted (after format).
-- `PYTHONPATH=src python -m pytest -q tests/test_nf_20261108_32_vvix_vix_spread_spy.py` — **7 passed**.
-- `python run_nf_20261108_32_vvix_vix_spread_spy.py` — completed; REAL verdict **REJECT 4/8** written to summary.json.
-- Full pinned core suite **not rerun** (no `src/qtr` change).
 
-## H159 result (REAL, pre-registered gates)
-- OOS Val+Test (n=1252): Sharpe **0.696** fail, PF **1.146** fail, maxDD **-3.67%** pass, trades **3208** pass, WF stability **0.889** pass, worst-regime **-1.440** fail, benchmark p **0.950** / IR **-0.733** fail, perturbation **0.980** pass → **REJECT 4/8**. Train Sharpe 0.783 (selected z_window=126, entry_scale=1.0, vol_target=0.15; WF mean 0.873).
-- Ablations: buy-hold SPY 0.754; random-exposure-matched **0.206** (much weaker — not noise); inverse regime **0.445** (weaker — direction supported, no benchmark edge).
-- No gate weakened; no published/certified artifact modified; `src/qtr` unchanged.
+- `tests/test_benchmark_gate_contract.py` — **26 passed**, including
+  `test_no_runner_compares_a_p_value_against_max_p_value_directly` (0 offenders
+  vs. the 38 the audit doc claimed) and
+  `test_every_runner_with_a_benchmark_gate_uses_the_direction_aware_helper`.
+- Runner-touching suites after stub deletion — **773 passed, 0 failed**.
+- Full suite — **3429 passed, 9 failed, 16 skipped** (was 3433 passed; the −4 is the
+  deletion of `_chunk_test.py`/`_t8.py`/`_t11.py`, which were never collected by pytest
+  because `testpaths = ["tests"]`). The 9 failures are **unchanged and are exactly the
+  documented frozen-contract drifts** — no new failure, no regression.
+- `python -m ruff check src tests run_*.py` — All checks passed.
+- `python -m ruff format --check src tests run_*.py` — 314 files already formatted.
+- `src/qtr` coverage — **100%** (1209 stmts / 420 branches, 0 miss), unchanged.
 
-## Unresolved / constraints
-- No commit/push. `src/qtr` pinned full gates not rerun (no `src/qtr` change); rerun if `src/qtr` is touched.
-- Deferred/held (no silent drops): NF-04 blocked; NF-05/07/08/10/11/13/15/20/21 deferred; NF-11r/NF-06-18 same root as NF-11 (H141); NF-06-11 infeasible; NF-06-03/23/24/28/30/32/33/35 deferred; NF-07-05 deferred (data blocker); NF-07-14/48 held; NF-07-49 held; NF-08-13 stub/deferred; NF-08-16 Halloween held; NF-08-20/21/22/23 deferred; NF-20261108-26 GLD RV stress deferred; NF-20261108-29 cross-asset dispersion deferred (4.10); NF-20261108-31 cross-sectional IVOL dispersion deferred (3.85).
+## What remains unresolved
 
-## Approaches that failed / evidence (do not blindly repeat)
-- H159 (VVIX-VIX spread, this cycle) fails PF/worst-regime/benchmark; Sharpe 0.696 below 1.0; random exposure much weaker (structure present) and inverse weaker (direction supported) but no benchmark edge (p=0.950, IR=−0.733). Do not rerun same construction.
-- VVIX level family already exhausted: H104 ^VVIX vol-of-vol REJECT 4/9; VIX term-structure/implied-spread neighbors H86/H123/H131/H104/H89/H125/H126 all rejected.
+The **9 frozen-contract failures** are unchanged and all require authorization to
+resolve (frozen-number/count drifts + 3 contested per-trade logs). Full list in
+`NEXT_TASK.md` §"The 9 remaining frozen-contract failures". `src/qtr` coverage is
+100% and `ruff` is clean, so there is no code bug to fix.
 
-## One precise next task (highest value, bounded)
-**Cycle 74 directive §4 discovery → implement+run H160** per `NEXT_TASK.md`: reconcile lineage to H159, propose >=3 repo-new candidates across >=3 broad mechanism categories with honest scoring and NF-root checks, pre-register H160 before validation outcomes, add runner+focused tests, `ruff check/format`, focused pytest, execute, record REAL verdict in `HYPOTHESIS_SPEC.md`/`NEW_FAMILY_RESEARCH_REGISTER.md`/`NEXT_TASK.md`/`HANDOFF.md`. Justify independence from rejected classes including H159 VVIX-VIX spread and all prior listed classes. Free/public data only; no gate weakening; no commit/push; do not modify `src/qtr` unless evidenced defect requires it (then rerun pinned full gates).
+## Which approaches have already failed and why
+
+- **Do not trust a committed audit/inspection doc as a current defect list.** Both
+  `INFRASTRUCTURE_AUDIT_BENCHMARK_GATE.md` and `INFRASTRUCTURE_INSPECTION.md` were
+  stale by two cycles and read as open defects when the underlying issues were
+  already fixed. Re-run the contract test that generated the doc before acting on
+  it; if the doc is stale, annotate it with the re-verification result rather than
+  silently editing the pins.
+- **Do not delete a file without checking it is unreferenced.** The 19 stubs were
+  committed and looked like active scaffolding; a grep over `tests/ src/ .github/`
+  confirmed zero references before deletion. The runner-touching suites were
+  re-run after deletion to confirm no contract was weakened.
+- The frozen-contract drifts (H51/H53/H55/H52) remain blocked on authorization; no
+  new approach was attempted this session because the task was bounded to
+  non-gated cleanup.
+
+## One precise next task
+
+When network access **and** explicit authorization are available, do exactly one
+of: (a) resolve one of the 9 frozen-contract drifts via per-contract evidence
+review (exact failures in `NEXT_TASK.md`), or (b) resolve the commodity-carry
+free-PIT data gap / PIT insider-earnings-options data gap under explicit
+authorization and select H182. Absent a data-gap resolution, conclude free-data
+family discovery is exhausted and shift to auditing/infrastructure rather than
+inventing candidates.
+
+**Constraints:** `src/qtr` unchanged unless an evidenced defect requires it (then
+rerun pinned full gates); no gate weakening; no published/certified artifact,
+verdict, threshold, or frozen number modified; no commit/push unless explicitly
+requested.

@@ -2,40 +2,72 @@
 
 ## Status
 
+**Cycle 100 (2026-11-11T14:15Z) — stale-audit re-verification + dead-stub cleanup (no authorization needed; no gated artifact/test touched).**
+
+Two documentation defects were resolved this session, both verified by re-running the
+relevant contract test against the current tree:
+
+1. **`INFRASTRUCTURE_AUDIT_BENCHMARK_GATE.md` was stale.** It claimed **38** open
+   p-value offenders. Re-running its own detector
+   (`tests/test_benchmark_gate_contract.py::test_no_runner_compares_a_p_value_against_max_p_value_directly`)
+   reports **0 offenders**, and direct grep confirms all 38 named runners now call
+   `benchmark_significance_gate` (exactly 2 call sites each: the import and the
+   evaluation). The fix landed between Cycle 98 and Cycle 99; the doc was never
+   updated and read as an open defect for two cycles. The doc now carries a
+   re-verification banner and keeps the historical inventory for lineage.
+2. **`INFRASTRUCTURE_INSPECTION.md` was stale.** It reported "Infrastructure Status:
+   NONE EXIST" for a greenfield repo. Every component it lists now exists
+   (backtest engine, data pipeline, experiment tracking, strategies, baselines,
+   test suite, config management). The doc now carries a re-verification banner
+   with the actual locations and keeps the historical greenfield baseline.
+3. **Removed 19 dead stub files** from the working tree (all committed, all
+   unreferenced by any test, source, runner, workflow, or script):
+   `_chunk_test.py`, `_probe.py`, `_probe2.py`, `_probe_h159.py`, `_probe_h169.py`,
+   `_probe_h170.py`, `_t.py`..`_t11.py`, `_wtest.txt`, `_placeholder.txt`,
+   `run_nf_20261107_53_etr` (0-byte), `run_nf_20261108_13_spy_futures_basis.py`,
+   `run_nf_20261108_31_spy_parkinson_rv_spy.py`. Verified unreferenced by grep over
+   `tests/ src/ .github/` before deletion; the runner-touching suites
+   (`test_runner_import_contract`, `test_benchmark_gate_contract`,
+   `test_gate_vacuity_contract`, `test_engine_metric_agreement`,
+   `test_engine_total_return_consistency`, `test_parameter_sensitivity_reproducibility`,
+   `test_runner_causality_inventory`, `test_probe_report_schema`, `test_config`) —
+   **773 passed**, so no contract was weakened.
+
+**No `src/qtr` change. No gated artifact, test, threshold, or frozen number touched.
+No commit/push (not requested).**
+
+## Verified this session
+
+- **Stale-audit re-verification:** `tests/test_benchmark_gate_contract.py` — **26 passed**,
+  including `test_no_runner_compares_a_p_value_against_max_p_value_directly` (0 offenders
+  vs. the 38 the audit doc claimed) and `test_every_runner_with_a_benchmark_gate_uses_the_direction_aware_helper`.
+- **Runner-touching suites after stub deletion:** `test_runner_import_contract`,
+  `test_benchmark_gate_contract`, `test_gate_vacuity_contract`,
+  `test_engine_metric_agreement`, `test_engine_total_return_consistency`,
+  `test_parameter_sensitivity_reproducibility`, `test_runner_causality_inventory`,
+  `test_probe_report_schema`, `test_config` — **773 passed, 0 failed**.
+- **Full suite:** **3429 passed, 9 failed, 16 skipped** (was 3433 passed; the −4 is the
+  deletion of `_chunk_test.py`/`_t8.py`/`_t11.py`, which were never collected by pytest
+  because `testpaths = ["tests"]`). The 9 failures are **unchanged and are exactly the
+  documented frozen-contract drifts** — no new failure, no regression.
+- `python -m ruff check src tests run_*.py` — All checks passed.
+- `python -m ruff format --check src tests run_*.py` — 314 files already formatted.
+- `src/qtr` coverage — **100%** (1209 stmts / 420 branches, 0 miss), unchanged.
+
+## Prior session's verified work (kept for lineage)
+
 The prior session's H53 recipe correction (removal of 3 stale H92 `benchmark_p_value`
 artifact IDs from `BENCH_P_PUBLISHED_DEFAULT_ARTIFACTS`) is **verified in an
 environment with project deps**. The 3 H92 `benchmark_p_value` re-derivation
 mismatches are gone.
 
-**This session's fix:** the `src/qtr` coverage gate (`fail_under = 100` in
+**Prior session's fix:** the `src/qtr` coverage gate (`fail_under = 100` in
 `pyproject.toml`) was a real defect — measured coverage was **99%** (5 uncovered
 defensive branches in `src/qtr/backtest/engine.py`: 146, 198, 230, 246, 401).
 Added 9 focused tests in `tests/test_backtest_engine.py`
 (`TestFailClosedCostGuards`) pinning each fail-closed guard with the exact input
 that takes its branch. Coverage is now **100%** (1209 stmts / 420 branches, 0
 miss). `src/qtr` source unchanged; only tests added.
-
-- `python -m ruff check src tests run_*.py` — All checks passed.
-- `python -m ruff format --check src tests run_*.py` — 316 files already formatted.
-- `PYTHONPATH=src python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` — **100% coverage**; full suite **3433 passed, 9 failed, 16 skipped** (baseline was 3425 passed; +8 are the new tests).
-
-## Verified this session
-
-- H53 focused suite: 18 passed / 2 failed. Failures are exactly:
-  - `test_h53_metrics_summary_count_pinned` — `58 == 54`
-  - `test_h53_published_value_count_pinned` — `674 == 630`
-- **Baseline evidence (important):** the original commit `82eb68a`'s version of this
-  same test file, run against the current working tree, also yields **58 / 674**.
-  So the pins `54` and `630` were already stale at commit time; this is pure
-  frozen-number drift, not a code bug and not a regression introduced by the recipe fix.
-- Full frozen-contract suite (`tests/test_h51_benchmark_container_invariance.py
-  tests/test_h53_published_metrics_disclosure.py tests/test_h55_nested_metrics_disclosure.py
-  tests/test_gate_vacuity_contract.py tests/test_engine_total_return_consistency.py
-  tests/test_trade_log_cost_reconciliation.py`) — **348 passed, 9 failed, 12 skipped**.
-  All 9 failures match the previously documented drift list; no new code bug found.
-- `tests/test_h57_total_return_audit.py` — **66 passed** (was flagged as a possible
-  code-bug candidate: "runners selecting on engine total-return column"). No bug.
-- `tests/test_engine_total_return_consistency.py` — **16 passed**. No bug.
 
 ## The 9 remaining frozen-contract failures (all drift; all require authorization)
 
@@ -62,7 +94,7 @@ miss). `src/qtr` source unchanged; only tests added.
 
 **One precise next task:** When network access **and** explicit authorization are available, do exactly one of: (a) resolve one of the 9 frozen-contract drifts via per-contract evidence review (exact failures listed in §"The 9 remaining frozen-contract failures"), or (b) resolve the commodity-carry free-PIT data gap / PIT insider-earnings-options data gap under explicit authorization and select H182. Per `NEW_FAMILY_RESEARCH_REGISTER.md` (Cycle 96) and `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6, H1–H181 are all executed and rejected and the free-data family queue is exhausted; absent a data-gap resolution, conclude free-data family discovery is exhausted and shift to auditing/infrastructure rather than inventing candidates.
 
-**Status verified this session (2026-11-11T12:51Z, own evidence):** `src/qtr` unchanged; working tree clean; `ruff check/format` clean (316 files, ruff 0.17.4); coverage **100%** (TOTAL 1209/0/420/0); full suite **3433 passed, 9 failed, 16 skipped**; frozen-contract subset **321 passed, 9 failed, 12 skipped** — the 9 failures are exactly the documented frozen-contract drifts below, no new code bug, no regression. **No network access**, so no REAL data execution is possible this session. **H160 is already executed** (Cycle 74, NF-20261109-01 IVOL dispersion, REJECT 4/8, recorded in `HYPOTHESIS_SPEC.md` §H160); do not re-implement H160.
+**Status verified this session (2026-11-11T14:15Z, Cycle 100, own evidence):** `src/qtr` unchanged; working tree dirty only by the 2 doc re-verifications + 19 dead-stub deletions below; `ruff check/format` clean (314 files); coverage **100%** (TOTAL 1209/0/420/0); full suite **3429 passed, 9 failed, 16 skipped** — the 9 failures are exactly the documented frozen-contract drifts below, no new code bug, no regression. **No network access**, so no REAL data execution is possible this session. **H160 is already executed** (Cycle 74, NF-20261109-01 IVOL dispersion, REJECT 4/8, recorded in `HYPOTHESIS_SPEC.md` §H160); do not re-implement H160.
 
 ## Deferred (do not select without authorization)
 

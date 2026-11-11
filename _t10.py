@@ -1,1 +1,0 @@
-"""Test chunk C."""

@@ -1,6 +1,31 @@
 # Phase 2: Infrastructure Inspection Report
 
-## Repository State (as of commit 73267c7)
+> **RE-VERIFIED 2026-11-11 (Cycle 100): THE "NO INFRASTRUCTURE" FINDING IS STALE.**
+>
+> This document reports "Infrastructure Status: NONE EXIST" for a backtesting
+> engine, data pipeline, experiment tracking, strategies, baselines, test
+> suite, configuration management, data sources, and compute resources. Every
+> one of those components exists in the current tree:
+>
+> | Component | Status | Where |
+> |-----------|--------|-------|
+> | Backtesting engine | present | `src/qtr/backtest/engine.py` (`run_backtest`, `VectorizedBacktester`, `CostModel`) |
+> | Data pipeline | present | `src/qtr/data/` (fetchers, cache) |
+> | Experiment tracking | present | `src/qtr/tracking/experiment.py` + `.experiments/` |
+> | Existing strategies | present | `src/qtr/strategies/baselines.py` |
+> | Baselines | present | `src/qtr/strategies/baselines.py` |
+> | Test suite | present | `tests/` (3,429+ passing tests) |
+> | Configuration management | present | `src/qtr/utils/config.py` (YAML + env overrides) |
+> | Data sources | configured | `pyproject.toml` optional `data` deps (yfinance, ccxt) |
+> | Compute resources | GitHub Actions | `.github/workflows/main.yml` |
+>
+> The report is preserved below as the **historical greenfield baseline** (it
+> was accurate at commit 73267c7). It is not a defect in the current tree and no
+> component it describes is missing. Do not treat its "Recommended Next Step"
+> (build a minimal backtesting framework) as an open task: that work is
+> complete and gated by the frozen-contract suite instead.
+
+Repository State (as of commit 73267c7)
 
 ### Files Present:
 - `.github/workflows/main.yml` - Kilo agent orchestration workflow
