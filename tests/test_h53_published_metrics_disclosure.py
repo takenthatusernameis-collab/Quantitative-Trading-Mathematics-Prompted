@@ -461,9 +461,10 @@ FAMILY_RECIPES = {
     ),
     # NF-20261105-10 (H92): equity-bond relative momentum rotation. Date splits
     # 2019-12-31/2022-12-31, ddof=0, OOS PF/trades, benchmark on FULL series,
-    # val-window Sharpe. wf_stability = test_sharpe/train_sharpe. Published
-    # benchmark_p_value default (p_value key mismatch) on the first 6 artifacts;
-    # the runner was fixed mid-production and the last 3 publish the real value
+    # val-window Sharpe. wf_stability = test_sharpe/train_sharpe. The runner
+    # initially read compare_to_benchmark's p-value through the wrong key and
+    # published benchmark_p_value=1.0 for the first 6 artifacts; it was fixed
+    # mid-production and the last 3 publish the real value
     # (0.005822770948177806). Pinned per artifact in
     # BENCH_P_PUBLISHED_DEFAULT_ARTIFACTS.
     "nf_20261105_10_equity_bond_relmom": dict(
@@ -584,6 +585,9 @@ BENCH_P_PUBLISHED_DEFAULT_ARTIFACTS = frozenset(
         "exp_2026-11-05T18-12-36-229696Z",  # nf_20261105_10_equity_bond_relmom (H92)
         "exp_2026-11-06T02-00-06-752931Z",  # nf_20261105_10_equity_bond_relmom (H92)
         "exp_2026-11-05T18-09-06-924039Z",  # nf_20261105_13_idiosyncratic_vol (H93)
+        # H92 artifacts exp_2026-11-06T02-17-43-039138Z, 03-36-48-479398Z,
+        # 04-23-47-511988Z ran after the runner fix and publish the real
+        # benchmark_p_value (0.005822770948177806) — intentionally excluded.
     }
 )
 
