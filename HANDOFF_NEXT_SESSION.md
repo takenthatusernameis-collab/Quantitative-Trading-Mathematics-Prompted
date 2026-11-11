@@ -1,69 +1,41 @@
-# HANDOFF — Next Session: test-logic bug fixed (1 file, 1 test method)
+# HANDOFF — Next Session: Repository state verified; frozen-contract drifts require authorization
 
-## What was done this session
+## What was verified (this session)
 
-Fixed one **test-logic bug** (not a frozen-number drift) in
-`tests/test_engine_total_return_consistency.py`.
+- **Lint/format**: `python -m ruff check src tests run_*.py && python -m ruff format --check src tests run_*.py` — **clean** (316 files)
+- **Benchmark gate contract**: `PYTHONPATH=src python -m pytest -q tests/test_benchmark_gate_contract.py` — **26 passed** (prior fix confirmed)
+- **Gate vacuity contract**: `PYTHONPATH=src python -m pytest -q tests/test_gate_vacuity_contract.py` — **11 passed**
+- **Core module tests**: `tests/test_backtest_engine.py tests/test_statistics.py tests/test_cost_model.py` — **264 passed**
+- **Data/config tests**: `tests/test_data_fetcher.py tests/test_config.py` — **74 passed**
+- **Frozen-contract suite** (H51/H53/H55/trade-log): **321 passed, 9 failed, 12 skipped** — matches prior session exactly; all 9 failures are pre-existing frozen-number/count drifts or contested trade logs
 
-`TestRemainingDisclosures::test_no_runner_selects_on_the_engines_total_return`
-used a broad fallback — flagging every runner whose source contained the
-string `"total_return"` — as the tripwire for "no runner reads the engine's
-`metrics["total_return"]`". The two explicit assertions above it
-(`'metrics["total_return"]' not in source` / `"metrics['total_return']"`
-not in source) already covered the contract exactly, so the broad fallback
-was a **false positive**: 33 NF runners publish a runner-local `total_return`
-scalar (computed from their own equity curve, e.g.
-`eq.iloc[-1] / eq.iloc[0] - 1` or `eq.iloc[-1] - 1`) for disclosure, and **none
-of them reads the engine's metric**. Verified by AST scan: no runner both
-imports `qtr.backtest` and references `total_return` except the two exempted
-ones (`run_h18_overnight_intraday_experiment.py`, `run_h57_total_return_audit.py`).
+## Unresolved (require authorization — do not modify without it)
 
-- Removed the broad `"total_return" not in source` fallback and the
-  `offenders` list it populated.
-- Added `test_negative_control_the_metric_read_is_detected` so the source scan
-  is not vacuous.
-- Documented the 33-runner local-total_return disclosure in the module
-  docstring (§H53 re-derives each published value from its frozen artifact,
-  so the local value is pinned there, not here).
+1. **H51** `test_every_published_information_ratio_is_disclosed` — 21 new IR-publishing experiments (2026-11-05/06) not in pinned `PUBLISHED_INFORMATION_RATIOS`
+2. **H53** `test_h53_metrics_summary_count_pinned` (58 vs 54) and `test_h53_published_value_count_pinned` (674 vs 630) — pinned-count drifts
+3. **H55** 4 failures — nested-block set drifted: perturbation 28 vs 24, ablations 48 vs 44, leaves 1292 vs 1188, rederivable 631 vs 627, perturbation-gate 40 vs 36
+4. **Trade log reconciliation** 2 failures — 3 contested `exp_2026-11-05` per-trade logs (`exp_2026-11-05T01-17-49-208916Z`, `01-24-02-934356Z`, `18-09-06-924039Z`) + H28 causal-recertification logs; adding the 3 breaks `test_the_three_pinned_sets_partition_the_record`
 
-No `src/qtr`, runner, gate, threshold, or frozen-number change.
+## Repository state
 
-## Actually verified (this session)
+- `src/qtr` **unchanged** (no source modifications)
+- No published/certified artifact, verdict, threshold, or frozen number modified
+- No commit/push
+- **Free-data point-in-time strategy-family queue exhausted** per `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96 (H1–H181 all rejected; H182 unassigned)
 
-- `python -m ruff check tests/test_engine_total_return_consistency.py` — clean.
-- `python -m ruff format --check tests/test_engine_total_return_consistency.py` — 1 file reformatted, then clean.
-- `PYTHONPATH=src pytest -q tests/test_engine_total_return_consistency.py` — **16 passed** (was 1 failed / 15 passed).
-- Frozen-contract modules re-run: **11 failed, 345 passed, 12 skipped** (was 12 failed before this fix; the engine module's failure is gone and no new failure appeared).
+## Failed approaches / do not repeat
 
-## Unresolved / pre-existing failures (do not mass-fix)
+- Do not update pinned counts in H51/H53/H55 without authorization
+- Do not add the 3 contested per-trade logs to `TRADE_LOG_RECORD` — breaks partition test
+- Do not treat the 3 newer H92 artifacts as published-default; they correctly publish real `alpha_p_value`
+- Do not mass-edit runners/tests/gates to force suite green
 
-All remaining failures are frozen-number drifts, stale test recipes, or held-open
-disclosure items requiring explicit authorization per-contract:
+## Next task for the next agent
 
-1. `test_h51_benchmark_container_invariance.py::test_every_published_information_ratio_is_disclosed` — 21 new IR-publishing experiments not in the pinned `PUBLISHED_INFORMATION_RATIOS` set.
-2. `test_h53_published_metrics_disclosure.py` — 4 failures: pinned counts drifted (58 vs 54 summaries; 674 vs 630 values); `test_every_published_value_re_derives` flags 3 H92 artifacts (`exp_2026-11-06T02-17-43-039138Z`, `03-36-48-479398Z`, `04-23-47-511988Z`) whose published `benchmark_p_value = 0.005822770948177806` is re-derived as `1.0` because the recipe still carries `bench_p_published_default=True` for `nf_20261105_10_equity_bond_relmom`.
-3. `test_h55_nested_metrics_disclosure.py` — 4 failures: pinned counts drifted (ablations 48 vs 44, perturbation 28 vs 24, leaves 1292 vs 1188, re-derived 631 vs 627, perturbation gates 40 vs 36).
-4. `test_trade_log_cost_reconciliation.py::TestFrozenRecordScope` — 2 failed: 3 contested per-trade `exp_2026-11-05` logs (`exp_2026-11-05T01-17-49-208916Z`, `01-24-02-934356Z`, `18-09-06-924039Z`) no longer carry the pre-fix attribution; adding them to `TRADE_LOG_RECORD` breaks `test_the_three_pinned_sets_partition_the_record`. Held-open pending explicit authorization.
+**One precise next task:** Await authorization to (a) resolve the 9 frozen-contract drifts via per-contract evidence review (exact failures listed above), or (b) resolve a free-data gap under explicit authorization (commodity carry roll/contango PIT data; PIT insider/earnings/options data) and select H182. Per `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96 and `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6, H1–H181 are all executed and rejected and the free-data family queue is exhausted; absent a data-gap resolution, conclude free-data family discovery is exhausted and shift to auditing/infrastructure.
 
-## Failed approaches / do not blindly repeat
+**Constraints:** `src/qtr` unchanged unless an evidenced defect requires it (then rerun pinned full gates); no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified; no commit/push unless explicitly requested.
 
-- Do not mass-edit runners/tests/gates to force the suite green. Each frozen-contract failure requires evidence-based per-contract review and authorization.
-- Do not add the 3 contested per-trade logs to `TRADE_LOG_RECORD` — breaks the partition test; requires explicit authorization.
-- Do not weaken the engine total-return contract; the 33-runner local-total_return disclosure is pinned in §H53, not in this module.
+**Evidence to review before authorization:** Exact failure diffs above; artifact inspection confirms the 3 H92 `benchmark_p_value` mismatches resolved by recipe correction already committed; H57/total-return code-bug hypothesis disproven (`test_h57_total_return_audit.py` 66 passed, `test_engine_total_return_consistency.py` 16 passed).
 
-## One precise next task
-
-The 3 H92 `benchmark_p_value` mismatches in `test_h53_published_metrics_disclosure.py`
-are the only remaining *test-recipe* failures rather than frozen-number drifts.
-Investigate whether the H92 runner's `bench_p_published_default=True` recipe flag
-is genuinely stale for the 3 newer artifacts (published 0.0058 vs re-derived 1.0)
-— i.e. whether the runner's `cmp.get("alpha_p_value", 1.0)` path is the correct one
-and the recipe flag should be removed or narrowed to the older artifacts only.
-If a recipe fix is evidenced, apply it with the same minimal approach
-(flag correction only — no number/gate/threshold changes) and re-run the
-focused module. If no fix is evidenced, document it as a genuine frozen-record
-item requiring authorization.
-
-**Blocked alternatives:** resolve the 3 contested per-trade logs (authorization);
-update pinned counts in H51/H53/H55 (authorization); select H182 (commodity-carry
-data gap, or conclude free-data family discovery is exhausted per Cycle 96).
+(End of file)
