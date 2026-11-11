@@ -1,31 +1,73 @@
-# NEXT_TASK.md — H53 H92 benchmark_p_value recipe corrected; verify with deps
+# NEXT_TASK.md — H53 recipe verified in dep-enabled env; remaining failures are frozen-count drifts
 
 ## Status
 
-Corrected one **test-recipe** defect in `tests/test_h53_published_metrics_disclosure.py` (no `src/qtr`, runner, gate, threshold, or frozen-number change).
+The prior session's H53 recipe correction (removal of 3 stale H92 `benchmark_p_value`
+artifact IDs from `BENCH_P_PUBLISHED_DEFAULT_ARTIFACTS`) is **verified in an
+environment with project deps**. The 3 H92 `benchmark_p_value` re-derivation
+mismatches are gone.
 
-- The 3 newer H92 (`nf_20261105_10_equity_bond_relmom`) artifacts `exp_2026-11-06T02-17-43-039138Z`, `03-36-48-479398Z`, `04-23-47-511988Z` were pinned in `BENCH_P_PUBLISHED_DEFAULT_ARTIFACTS` but publish the real `benchmark_p_value = 0.005822770948177806` (post-runner-fix; runner uses `cmp.get("alpha_p_value", 1.0)`).
-- Removed those 3 IDs from the set (14 IDs remain) and documented the mid-production split in the H92 recipe comment. The 6 older H92 artifacts correctly remain pinned as published-default (`1.0`).
+- `python -m ruff check tests/test_h53_published_metrics_disclosure.py` — All checks passed.
+- `python -m ruff format --check tests/test_h53_published_metrics_disclosure.py` — 1 file already formatted.
+- `PYTHONPATH=src python -m pytest -q tests/test_h53_published_metrics_disclosure.py` — **18 passed, 2 failed** (down from 16 passed / 4 failed). The 2 remaining failures are pinned-count drifts only.
 
 ## Verified this session
 
-- Artifact inspection: 6 older H92 artifacts publish `1.0`; 3 newer publish `0.005822770948177806`.
-- `python3 -m py_compile tests/test_h53_published_metrics_disclosure.py` — OK.
-- `python3 -m compileall -q tests/test_h53_published_metrics_disclosure.py` — OK.
-- Structural checks: 3 newer IDs absent from set literal; 14 ID entries present; `len == 14` assertion retained.
-- **Not run:** `pytest`/`ruff` unavailable in this environment.
+- H53 focused suite: 18 passed / 2 failed. Failures are exactly:
+  - `test_h53_metrics_summary_count_pinned` — `58 == 54`
+  - `test_h53_published_value_count_pinned` — `674 == 630`
+- **Baseline evidence (important):** the original commit `82eb68a`'s version of this
+  same test file, run against the current working tree, also yields **58 / 674**.
+  So the pins `54` and `630` were already stale at commit time; this is pure
+  frozen-number drift, not a code bug and not a regression introduced by the recipe fix.
+- Full frozen-contract suite (`tests/test_h51_benchmark_container_invariance.py
+  tests/test_h53_published_metrics_disclosure.py tests/test_h55_nested_metrics_disclosure.py
+  tests/test_gate_vacuity_contract.py tests/test_engine_total_return_consistency.py
+  tests/test_trade_log_cost_reconciliation.py`) — **348 passed, 9 failed, 12 skipped**.
+  All 9 failures match the previously documented drift list; no new code bug found.
+- `tests/test_h57_total_return_audit.py` — **66 passed** (was flagged as a possible
+  code-bug candidate: "runners selecting on engine total-return column"). No bug.
+- `tests/test_engine_total_return_consistency.py` — **16 passed**. No bug.
+
+## The 9 remaining frozen-contract failures (all drift; all require authorization)
+
+1. `test_h51_benchmark_container_invariance.py::test_every_published_information_ratio_is_disclosed` — 21 new IR-publishing experiments not in pinned `PUBLISHED_INFORMATION_RATIOS`.
+2. `test_h53_published_metrics_disclosure.py::test_h53_metrics_summary_count_pinned` — 58 vs 54.
+3. `test_h53_published_metrics_disclosure.py::test_h53_published_value_count_pinned` — 674 vs 630.
+4. `test_h55_nested_metrics_disclosure.py::test_the_summaries_that_publish_a_nested_block_are_pinned` — nested-block set drifted.
+5. `test_h55_nested_metrics_disclosure.py::test_the_published_leaf_count_is_pinned` — 1292 vs 1188.
+6. `test_h55_nested_metrics_disclosure.py::test_the_rederivable_and_disclosed_counts_are_pinned` — 631 vs 627.
+7. `test_h55_nested_metrics_disclosure.py::test_the_perturbation_gate_reads_only_the_ratio` — 40 vs 36.
+8. `test_trade_log_cost_reconciliation.py::TestFrozenRecordScope::test_the_committed_trade_logs_are_exactly_the_pinned_record` — 3 contested `exp_2026-11-05` per-trade logs (`exp_2026-11-05T01-17-49-208916Z`, `01-24-02-934356Z`, `18-09-06-924039Z`) + H28 causal-recertification logs.
+9. `test_trade_log_cost_reconciliation.py::TestFrozenRecordScope::test_every_committed_trade_log_records_the_aggregate_attribution` — the 3 contested logs no longer carry the pre-fix attribution.
+
+## Failed approaches / do not blindly repeat
+
+- Do not update pinned counts in H51/H53/H55 without authorization — frozen-number drifts.
+- Do not add the 3 contested per-trade logs to `TRADE_LOG_RECORD` — breaks
+  `test_the_three_pinned_sets_partition_the_record`; authorization required.
+- Do not treat the 3 newer H92 artifacts as published-default p-values; artifacts show
+  the real `0.005822770948177806` (runner uses `cmp.get("alpha_p_value", 1.0)`).
+- Do not mass-edit runners/tests/gates to force the suite green.
 
 ## Next task
 
-In an environment with project deps, run:
-- `python -m ruff check tests/test_h53_published_metrics_disclosure.py && python -m ruff format --check tests/test_h53_published_metrics_disclosure.py`
-- `PYTHONPATH=src python -m pytest -q tests/test_h53_published_metrics_disclosure.py`
-- frozen-contract set: `tests/test_h51_benchmark_container_invariance.py tests/test_h53_published_metrics_disclosure.py tests/test_h55_nested_metrics_disclosure.py tests/test_gate_vacuity_contract.py tests/test_engine_total_return_consistency.py tests/test_trade_log_cost_reconciliation.py`
+**One precise next task:** Await authorization to (a) update frozen counts in
+`test_h51_benchmark_container_invariance.py`, `test_h53_published_metrics_disclosure.py`,
+and `test_h55_nested_metrics_disclosure.py`, or (b) resolve the 3 contested per-trade logs
+in `test_trade_log_cost_reconciliation.py`. Both require per-contract evidence review.
 
-Confirm the 3 H92 `benchmark_p_value` re-derivation mismatches are gone. If H53 still fails only on pinned-count drifts (previously 54→58 summaries, 630→674 values), record exact failures/evidence and stop for authorization before updating frozen counts.
+**Evidence to review before authorization:** exact failure diffs above; the H53 recipe
+correction is confirmed resolved (18 passed vs 16 previously); the H57/total-return
+"code bug" hypothesis is disproven (66 + 16 passed).
 
 ## Deferred (do not select without authorization)
 
-- Update pinned counts in `test_h51_benchmark_container_invariance.py`, `test_h53_published_metrics_disclosure.py`, `test_h55_nested_metrics_disclosure.py` — frozen-number/count drifts.
-- Resolve 3 contested per-trade logs in `test_trade_log_cost_reconciliation.py` (`exp_2026-11-05T01-17-49-208916Z`, `01-24-02-934356Z`, `18-09-06-924039Z`) — breaks partition; authorization required.
-- Select H182 — commodity-carry data gap/no feasible free-data family per Cycle 96 (discovery queue exhausted unless data gap resolved under authorization).
+- Update pinned counts in `test_h51_benchmark_container_invariance.py`,
+  `test_h53_published_metrics_disclosure.py`, `test_h55_nested_metrics_disclosure.py` —
+  frozen-number/count drifts.
+- Resolve 3 contested per-trade logs in `test_trade_log_cost_reconciliation.py`
+  (`exp_2026-11-05T01-17-49-208916Z`, `01-24-02-934356Z`, `18-09-06-924039Z`) —
+  breaks partition; authorization required.
+- Select H182 — commodity-carry data gap / no feasible free-data family per Cycle 96
+  (discovery queue exhausted unless data gap resolved under authorization).

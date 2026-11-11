@@ -1,6 +1,21 @@
-# HANDOFF.md — Cycle 73 complete: H159 REAL executed, REJECT 4/8 (VVIX-VIX implied-vol-of-vol spread SPY timing)
+# HANDOFF.md — H53 recipe verified in dep-enabled env; 9 frozen-contract failures are all drift
 
-**State timestamp (UTC):** 2026-11-09T00:00Z (session end)
+> **Current-session addendum (2026-11-11T03:24Z, verified):** the environment now has
+> `pytest` 9.2.0 / `ruff` 0.17.4 / Python 3.14.4 (the prior session lacked them). The
+> H53 recipe correction from commit `70cf696` is confirmed: the 3 stale H92
+> `benchmark_p_value` artifact IDs are correctly excluded and
+> `test_every_published_value_re_derives` now passes (18 passed / 2 failed, down from 16/4).
+> Full frozen-contract suite: **348 passed, 9 failed, 12 skipped** — all 9 failures are
+> pre-existing frozen-number/count drifts or contested trade logs; **no new code bug found**.
+> The H57 / engine-total-return "code bug" hypothesis is disproven
+> (`test_h57_total_return_audit.py` 66 passed; `test_engine_total_return_consistency.py`
+> 16 passed). Baseline evidence: commit `82eb68a`'s version of the H53 test file also
+> yields 58 / 674 against the current tree, so the pins 54 / 630 were already stale at
+> commit time. All changes this session are documentation only (`HANDOFF_CURRENT.md`,
+> `HANDOFF_NEXT.md`, `NEXT_TASK.md`); `src/qtr` unchanged, no commit/push. See
+> `HANDOFF_CURRENT.md` for the full current-session record.
+
+**State timestamp (UTC):** 2026-11-09T00:00Z (session end; superseded by addendum above)
 **Branch:** `main`
 **Working tree:** uncommitted local changes only (no commit/push performed): `HYPOTHESIS_SPEC.md` (§H159 outcome), `NEW_FAMILY_RESEARCH_REGISTER.md` (Cycle 73 execution outcome), `HANDOFF.md`, `NEXT_TASK.md` (Cycle 74 next task), `run_nf_20261108_32_vvix_vix_spread_spy.py`, `tests/test_nf_20261108_32_vvix_vix_spread_spy.py`, `.experiments/nf_runs/nf_20261108_32_vvix_vix_spread_spy/{summary.json,grid.csv,data_meta.json}`. `src/qtr` **unchanged**.
 **Research mode:** NEW-FAMILY DISCOVERY MODE (STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md mandatory). H85–H159 all rejected/recorded.
