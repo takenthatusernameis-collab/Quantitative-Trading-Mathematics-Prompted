@@ -71,13 +71,7 @@ resolve (frozen-number/count drifts + 3 contested per-trade logs). Full list in
 
 ## One precise next task
 
-When network access **and** explicit authorization are available, do exactly one
-of: (a) resolve one of the 9 frozen-contract drifts via per-contract evidence
-review (exact failures in `NEXT_TASK.md`), or (b) resolve the commodity-carry
-free-PIT data gap / PIT insider-earnings-options data gap under explicit
-authorization and select H182. Absent a data-gap resolution, conclude free-data
-family discovery is exhausted and shift to auditing/infrastructure rather than
-inventing candidates.
+When explicit authorization is available, do exactly one of: (a) resolve one of the 9 frozen-contract drifts via per-contract evidence review (exact failures in `NEXT_TASK.md`), or (b) resolve the commodity-carry free-PIT data gap / PIT insider-earnings-options data gap under explicit authorization and select H182. Network access IS available (yfinance returns real SPY data, verified 2026-11-11T18:30Z), so the data-gap path is no longer network-blocked — but still authorization-blocked per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6. Absent a data-gap resolution under authorization, conclude free-data family discovery is exhausted and shift to auditing/infrastructure rather than inventing candidates.
 
 **Constraints:** `src/qtr` unchanged unless an evidenced defect requires it (then
 rerun pinned full gates); no gate weakening; no published/certified artifact,

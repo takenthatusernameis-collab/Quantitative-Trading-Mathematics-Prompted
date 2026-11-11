@@ -34,7 +34,7 @@
 
 ## Next task for the next agent
 
-**One precise next task:** Await authorization to (a) resolve the 9 frozen-contract drifts via per-contract evidence review (exact failures listed above), or (b) resolve a free-data gap under explicit authorization (futures roll/contango data for carry; PIT insider/earnings/options data) and select H182. Absent authorization, conclude free-data family discovery is exhausted and shift to auditing/infrastructure rather than inventing candidates.
+**One precise next task:** Await explicit authorization to (a) resolve the 9 frozen-contract drifts via per-contract evidence review (exact failures listed above), or (b) resolve a free-data gap under explicit authorization (futures roll/contango data for carry; PIT insider/earnings/options data) and select H182. Network access IS available (yfinance returns real SPY data, verified 2026-11-11T18:30Z), so the data-gap path is no longer network-blocked — but still authorization-blocked per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6. Absent authorization, conclude free-data family discovery is exhausted and shift to auditing/infrastructure rather than inventing candidates.
 
 **Constraints:** `src/qtr` unchanged unless an evidenced defect requires it (then rerun pinned full gates); no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified; no commit/push unless explicitly requested.
 
