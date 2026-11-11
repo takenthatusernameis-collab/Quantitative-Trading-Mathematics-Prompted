@@ -69,6 +69,21 @@ resolve (frozen-number/count drifts + 3 contested per-trade logs). Full list in
   new approach was attempted this session because the task was bounded to
   non-gated cleanup.
 
+## Session 2026-11-11T21:11Z — read-only per-contract re-verification (no changes)
+
+No source, test, gate, frozen-number, or artifact change. Working tree clean; no commit/push.
+
+**Actually verified (this session, own evidence):**
+- Re-ran the four frozen-drift test files — **all 9 failures still present, unchanged** (exact evidence below; no new failure, no regression):
+  - h51 `test_every_published_information_ratio_is_disclosed` — set drift: 21 new IR-publishing experiments not in pinned `PUBLISHED_INFORMATION_RATIOS`.
+  - h53 `test_h53_metrics_summary_count_pinned` — 58 vs 54; `test_h53_published_value_count_pinned` — 674 vs 630.
+  - h55 `test_the_summaries_that_publish_a_nested_block_are_pinned` — nested-block set drift; `test_the_published_leaf_count_is_pinned` — 1292 vs 1188; `test_the_rederivable_and_disclosed_counts_are_pinned` — 631 vs 627; `test_the_perturbation_gate_reads_only_the_ratio` — 40 vs 36.
+  - trade-log `test_the_committed_trade_logs_are_exactly_the_pinned_record` + `test_every_committed_trade_log_records_the_aggregate_attribution` — 3 contested `exp_2026-11-05` per-trade logs (`...T01-17-49-208916Z`, `...T01-24-02-934356Z`, `...T18-09-06-924039Z`) + H28 causal-recertification logs.
+- Full suite `pytest -q --cov=qtr --cov-branch` — **3526 passed, 9 failed, 16 skipped** (all 9 = documented frozen drifts; no code bug, no regression).
+- `src/qtr` coverage — **100%** (1209 stmts / 420 branches, 0 miss; engine.py 100%).
+- `python -m ruff check src tests run_*.py` — all checks passed.
+- `python -m ruff format --check src tests run_*.py` — 315 files already formatted.
+
 ## One precise next task
 
 When explicit authorization is available, do exactly one of: (a) resolve one of the 9 frozen-contract drifts via per-contract evidence review (exact failures in `NEXT_TASK.md`), or (b) resolve the commodity-carry free-PIT data gap / PIT insider-earnings-options data gap under explicit authorization and select H182. Network access IS available (yfinance returns real SPY data, verified 2026-11-11T18:30Z), so the data-gap path is no longer network-blocked — but still authorization-blocked per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6. Absent a data-gap resolution under authorization, conclude free-data family discovery is exhausted and shift to auditing/infrastructure rather than inventing candidates.

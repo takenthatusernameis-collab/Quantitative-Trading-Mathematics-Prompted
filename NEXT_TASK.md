@@ -108,3 +108,14 @@ miss). `src/qtr` source unchanged; only tests added.
   (discovery queue exhausted unless data gap resolved under authorization).
 
 **Constraints:** `src/qtr` unchanged unless an evidenced defect requires it (then rerun pinned full gates); no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified; no commit/push unless explicitly requested.
+
+## Session 2026-11-11T21:11Z — read-only re-verification (no changes)
+
+No source, test, gate, frozen-number, or artifact change. Working tree clean; no commit/push.
+
+**Actually verified (this session, own evidence):**
+- Re-ran the four frozen-drift test files — **all 9 failures still present, unchanged** (no new failure, no regression).
+- Full suite `pytest -q --cov=qtr --cov-branch` — **3526 passed, 9 failed, 16 skipped** (all 9 = documented frozen drifts; no code bug, no regression).
+- `src/qtr` coverage — **100%** (1209 stmts / 420 branches, 0 miss).
+- `python -m ruff check src tests run_*.py` — all checks passed.
+- `python -m ruff format --check src tests run_*.py` — 315 files already formatted.
