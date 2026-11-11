@@ -18,7 +18,7 @@
 
 1. **H51** `test_every_published_information_ratio_is_disclosed` — 21 new IR-publishing experiments not in pinned `PUBLISHED_INFORMATION_RATIOS`.
 2. **H53** `test_h53_metrics_summary_count_pinned` (58 vs 54) and `test_h53_published_value_count_pinned` (674 vs 630) — pinned-count drifts.
-3. **H55** 4 failures — nested-block set, leaf count 1292 vs 1188, rederivable count 631 vs 627, perturbation gate 40 vs 36.
+3. **H55** 4 failures — nested-block set drifted; leaf count 1292 vs 1188; rederivable count 631 vs 627; perturbation gate 40 vs 36.
 4. **Trade log reconciliation** 2 failures — 3 contested per-trade `exp_2026-11-05` logs (`exp_2026-11-05T01-17-49-208916Z`, `01-24-02-934356Z`, `18-09-06-924039Z`) + H28 causal-recertification logs; adding them breaks partition.
 5. **H182** unassigned — NF discovery queue exhausted per Cycle 96 (commodity-carry data gap: no free PIT term-structure/roll proxy).
 
@@ -36,3 +36,5 @@
 **Evidence to review before authorization:** Exact failure diffs above; artifact inspection confirms the 3 H92 `benchmark_p_value` mismatches are resolved by the recipe correction already committed; the H57/total-return code-bug hypothesis is disproven.
 
 **Constraints:** `src/qtr` unchanged unless an evidenced defect requires it (then rerun pinned full gates); no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified; no commit/push unless explicitly requested.
+
+(End of file)

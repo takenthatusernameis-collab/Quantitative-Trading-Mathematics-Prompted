@@ -43,7 +43,7 @@ mismatches are gone.
 
 ## Failed approaches / do not blindly repeat
 
-- Do not update pinned counts in H51/H53/H55 without authorization — frozen-number drifts.
+- Do not update pinned counts in H51/H53/H55 without authorization — frozen-number/count drifts.
 - Do not add the 3 contested per-trade logs to `TRADE_LOG_RECORD` — breaks
   `test_the_three_pinned_sets_partition_the_record`; authorization required.
 - Do not treat the 3 newer H92 artifacts as published-default p-values; artifacts show

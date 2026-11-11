@@ -1,4 +1,4 @@
-# HANDOFF — Current Session: Verified frozen-contract state; free-data family discovery exhausted
+# HANDOFF — Current Session: Verified repository state; free-data family discovery exhausted
 
 ## What changed (this session)
 
@@ -6,10 +6,12 @@ No code changes. This session verified the repository state after the prior sess
 
 ## Actually verified (this session)
 
-- `python -m ruff check src tests run_*.py` — clean
-- `python -m ruff format --check src tests run_*.py` — clean (316 files)
+- `python -m ruff check src tests run_*.py` — **clean** (all 316 files)
+- `python -m ruff format --check src tests run_*.py` — **clean** (316 files already formatted)
 - `PYTHONPATH=src python -m pytest tests/test_benchmark_gate_contract.py` — **26 passed** (the fix from prior session is confirmed)
 - Frozen-contract subset: `PYTHONPATH=src python -m pytest tests/test_h51_benchmark_container_invariance.py tests/test_h53_published_metrics_disclosure.py tests/test_h55_nested_metrics_disclosure.py tests/test_trade_log_cost_reconciliation.py` — **321 passed, 9 failed, 12 skipped** (matches prior session's count)
+- Core module tests: `tests/test_backtest_engine.py tests/test_statistics.py tests/test_cost_model.py` — **264 passed**
+- Data/config tests: `tests/test_data_fetcher.py tests/test_config.py` — **74 passed**
 
 ## Unresolved / pre-existing (require authorization, do not mass-fix)
 
@@ -41,3 +43,5 @@ All 9 failures are frozen-number/count drifts or contested trade logs from commi
 **Constraints:** `src/qtr` unchanged unless an evidenced defect requires it (then rerun pinned full gates); no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified; no commit/push unless explicitly requested.
 
 **Evidence to review before authorization:** Exact failure diffs above; artifact inspection confirms the 3 H92 `benchmark_p_value` mismatches are resolved by the recipe correction already committed; the H57/total-return code-bug hypothesis is disproven (both `test_h57_total_return_audit.py` and `test_engine_total_return_consistency.py` pass).
+
+(End of file)
