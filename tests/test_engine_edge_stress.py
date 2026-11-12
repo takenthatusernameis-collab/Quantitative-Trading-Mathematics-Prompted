@@ -196,3 +196,81 @@ class TestLookAheadBoundary:
         res = run_backtest(prices=prices, signals=signals, config=cfg)
         assert np.allclose(res.positions["A"].iloc[0], 1.0)
         assert res.returns.iloc[0] == pytest.approx(0.0, abs=1e-12)
+
+
+# --------------------------------------------------------------------------- #
+# NaN prices
+# --------------------------------------------------------------------------- #
+class TestNaNPrices:
+    def test_nan_price_bar_earns_nothing_fail_closed(self):
+        """A NaN price cannot be the base of a percentage return. The engine
+        must not manufacture a return from it and must not crash: the bar
+        whose price is NaN earns 0.0 (fail closed), every return stays finite,
+        and positions, equity curve and metrics are all well formed."""
+        prices = _make_prices(symbols=("A",))
+        nan_bar = prices.index[10]
+        prices.loc[nan_bar, "A"] = np.nan
+        signals = pd.DataFrame({"A": 1.0}, index=prices.index)
+        cfg = _make_config()
+        res = run_backtest(prices=prices, signals=signals, config=cfg)
+
+        assert np.isfinite(res.returns.values).all()
+        assert res.returns.loc[nan_bar] == pytest.approx(0.0, abs=1e-12)
+        assert np.isfinite(res.equity_curve.values).all()
+        assert all(np.isfinite(v) for v in res.metrics.values())
+        assert (res.positions["A"] == 1.0).all()
+
+    def test_nan_price_at_first_bar_does_not_crash(self):
+        """A NaN price on bar 0 (which earns nothing anyway under shift(1))
+        must not raise or emit a non-finite return."""
+        prices = _make_prices(symbols=("A",))
+        prices.iloc[0] = np.nan
+        signals = pd.DataFrame({"A": np.nan}, index=prices.index)
+        signals.iloc[0] = 1.0
+        cfg = _make_config()
+        res = run_backtest(prices=prices, signals=signals, config=cfg)
+
+        assert np.isfinite(res.returns.values).all()
+        assert res.returns.iloc[0] == pytest.approx(0.0, abs=1e-12)
+
+    def test_trade_at_nan_price_bar_records_without_crashing(self):
+        """A position change at a NaN-price bar still logs the trade (the
+        equity cost is weight-based and price-invariant) without crashing;
+        returns stay finite. The NaN price itself is not asserted on the
+        trade log here - that is a separate data-quality concern."""
+        prices = _make_prices(symbols=("A",))
+        trade_bar = prices.index[5]
+        prices.loc[trade_bar, "A"] = np.nan
+        signals = pd.DataFrame({"A": 0.0}, index=prices.index)
+        signals.loc[trade_bar] = 1.0
+        cfg = _make_config()
+        res = run_backtest(prices=prices, signals=signals, config=cfg)
+
+        assert np.isfinite(res.returns.values).all()
+        assert len(res.trades) == 2
+        assert res.trades["symbol"].eq("A").all()
+
+
+# --------------------------------------------------------------------------- #
+# Equity zero volume
+# --------------------------------------------------------------------------- #
+class TestEquityZeroVolume:
+    def test_zero_volume_and_adv_skips_impact_without_crashing(self):
+        """An equity symbol with zero volume and zero ADV cannot support a
+        market-impact estimate. The engine must skip impact (fail closed)
+        rather than divide by zero, still charge the weight-based cost, and
+        produce finite returns without crashing."""
+        prices = _make_prices(symbols=("A",))
+        signals = pd.DataFrame({"A": 0.0}, index=prices.index)
+        signals.iloc[5] = 1.0
+        volumes = pd.DataFrame({"A": 0.0}, index=prices.index)
+        adv = pd.Series({"A": 0.0})
+        cfg = _make_config(asset_class=AssetClass.EQUITY, max_position_size=1.0)
+        cfg.cost_model.equity_impact_bps_per_pct_adv = 10.0
+        res = run_backtest(prices=prices, signals=signals, volumes=volumes, adv=adv, config=cfg)
+
+        assert np.isfinite(res.returns.values).all()
+        # Impact is skipped for zero ADV; only the weight-based cost applies,
+        # so the entry bar earns a non-positive cost drag.
+        assert res.returns.iloc[5] <= 0.0
+        assert len(res.trades) == 2
