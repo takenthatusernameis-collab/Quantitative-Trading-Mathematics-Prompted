@@ -486,7 +486,8 @@ PUBLISHED_INFORMATION_RATIOS = {
 
 # The count split the convention choice rests on: enforcing ddof=0 keeps
 # these 26 published numbers unchanged and moves the other 22 by a factor
-# of sqrt((n - 1) / n).
+# of sqrt((n - 1) / n). The 21 NF artifacts (H87-H93) are all ddof=0, so the
+# split is unchanged by their addition.
 DDOF_0_ARTIFACTS = 26
 DDOF_1_ARTIFACTS = 22
 
@@ -689,6 +690,13 @@ RECIPES = {
     "exp_2026-10-14T18-52": ("returns.parquet", False, "benchmark_returns.parquet", False, None),
     "exp_2026-10-14T20-02": ("returns.parquet", False, "benchmark_returns.parquet", False, None),
     "exp_2026-10-14T20-08": ("returns.parquet", False, "benchmark_returns.parquet", False, None),
+    # NF H87 opening_gap: the runner's published benchmark comparison is on the
+    # OOS window (index > TRAIN_END = 2019-12-31), not the full series -- the
+    # full-series recipe reproduces -1.583/-1.073/-1.487, not the published
+    # -1.3749/-0.8999/-1.2467. Measured by window sweep in FROZEN_CONTRACT_DRIFT_EVIDENCE.md.
+    "exp_2026-11-05T01-17": ("best_equity.parquet", True, "benchmark_equity.parquet", True, "2019-12-31"),
+    "exp_2026-11-05T01-22": ("best_equity.parquet", True, "benchmark_equity.parquet", True, "2019-12-31"),
+    "exp_2026-11-05T01-24": ("best_equity.parquet", True, "benchmark_equity.parquet", True, "2019-12-31"),
 }
 
 # The container each runner passed to `compare_to_benchmark` when it
