@@ -1,5 +1,15 @@
 # HANDOFF.md
 
+## Re-verification banner (2026-11-12T10:00Z, Cycle 101)
+
+**This doc was stale.** It claimed 9 frozen-contract failures remained. Re-running the
+full suite at HEAD `1712a5e` reports **3619 passed, 51 skipped, 0 failed**, `src/qtr`
+coverage **100%** (1209 stmts / 420 branches / 0 miss), `ruff check` clean, `ruff
+format --check` 314 files. The 9 failures were resolved in commits `11e8aeb` (H51,
+2026-11-12T08:23Z) and `bec162f` (trade log, 2026-11-12T08:30Z); this doc was never
+updated and read as an open defect for ~1.5h. Historical inventory below is preserved;
+the "What remains unresolved" section is superseded by the banner above.
+
 ## What changed this session (2026-11-11T14:15Z, Cycle 100)
 
 Two stale-audit re-verifications + dead-stub cleanup. **No `src/qtr` change. No
@@ -48,6 +58,10 @@ gated artifact, test, threshold, or frozen number touched. No commit/push.**
 
 ## What remains unresolved
 
+**Superseded by the re-verification banner above** — the 9 frozen-contract failures it
+lists here were resolved in commits `11e8aeb` (H51) and `bec162f` (trade log) and the
+full suite is green at HEAD. Historical record preserved for lineage only.
+
 The **9 frozen-contract failures** are unchanged and all require authorization to
 resolve (frozen-number/count drifts + 3 contested per-trade logs). Full list in
 `NEXT_TASK.md` §"The 9 remaining frozen-contract failures". `src/qtr` coverage is
@@ -61,6 +75,11 @@ resolve (frozen-number/count drifts + 3 contested per-trade logs). Full list in
   already fixed. Re-run the contract test that generated the doc before acting on
   it; if the doc is stale, annotate it with the re-verification result rather than
   silently editing the pins.
+- **Do not trust a handoff doc's failure list either.** This same failure list
+  (`9 frozen-contract failures`) was stale by ~1.5h at Cycle 101: the H51 and
+  trade-log drifts were resolved in `11e8aeb`/`bec162f` and the full suite is green.
+  Always re-run the suite (or the focused contract file) before acting on a
+  handoff's "unresolved" section.
 - **Do not delete a file without checking it is unreferenced.** The 19 stubs were
   committed and looked like active scaffolding; a grep over `tests/ src/ .github/`
   confirmed zero references before deletion. The runner-touching suites were
@@ -71,22 +90,43 @@ resolve (frozen-number/count drifts + 3 contested per-trade logs). Full list in
 
 ## Session 2026-11-11T21:11Z — read-only per-contract re-verification (no changes)
 
+**Superseded.** This section's evidence (3526 passed / 9 failed) was accurate *at that
+moment* but is now stale: the 9 failures it lists were resolved in commits `11e8aeb`
+(H51, 2026-11-12T08:23Z) and `bec162f` (trade log, 2026-11-12T08:30Z). Re-running at
+HEAD `1712a5e` (2026-11-12T10:00Z, Cycle 101) reports **3619 passed, 51 skipped, 0
+failed** with `src/qtr` coverage **100%**. Historical record preserved for lineage.
+
 No source, test, gate, frozen-number, or artifact change. Working tree clean; no commit/push.
 
-**Actually verified (this session, own evidence):**
+**Actually verified (this session, own evidence) — STALE, preserved for lineage:**
 - Re-ran the four frozen-drift test files — **all 9 failures still present, unchanged** (exact evidence below; no new failure, no regression):
   - h51 `test_every_published_information_ratio_is_disclosed` — set drift: 21 new IR-publishing experiments not in pinned `PUBLISHED_INFORMATION_RATIOS`.
   - h53 `test_h53_metrics_summary_count_pinned` — 58 vs 54; `test_h53_published_value_count_pinned` — 674 vs 630.
   - h55 `test_the_summaries_that_publish_a_nested_block_are_pinned` — nested-block set drift; `test_the_published_leaf_count_is_pinned` — 1292 vs 1188; `test_the_rederivable_and_disclosed_counts_are_pinned` — 631 vs 627; `test_the_perturbation_gate_reads_only_the_ratio` — 40 vs 36.
   - trade-log `test_the_committed_trade_logs_are_exactly_the_pinned_record` + `test_every_committed_trade_log_records_the_aggregate_attribution` — 3 contested `exp_2026-11-05` per-trade logs (`...T01-17-49-208916Z`, `...T01-24-02-934356Z`, `...T18-09-06-924039Z`) + H28 causal-recertification logs.
 - Full suite `pytest -q --cov=qtr --cov-branch` — **3526 passed, 9 failed, 16 skipped** (all 9 = documented frozen drifts; no code bug, no regression).
-- `src/qtr` coverage — **100%** (1209 stmts / 420 branches, 0 miss; engine.py 100%).
+- `src/qtr` coverage — **100%** (1209 stmts / 420 branches / 0 miss; engine.py 100%).
 - `python -m ruff check src tests run_*.py` — all checks passed.
 - `python -m ruff format --check src tests run_*.py` — 315 files already formatted.
 
+**Current re-verification (2026-11-12T10:00Z, Cycle 101) — supersedes all above:**
+- Full suite `pytest -q --cov=qtr --cov-branch` — **3619 passed, 51 skipped, 0 failed** (636s).
+- `src/qtr` coverage — **100%** (1209 stmts / 420 branches / 0 miss).
+- `python -m ruff check src tests run_*.py` — All checks passed.
+- `python -m ruff format --check src tests run_*.py` — 314 files already formatted.
+
 ## One precise next task
 
-When explicit authorization is available, do exactly one of: (a) resolve one of the 9 frozen-contract drifts via per-contract evidence review (exact failures in `NEXT_TASK.md`), or (b) resolve the commodity-carry free-PIT data gap / PIT insider-earnings-options data gap under explicit authorization and select H182. Network access IS available (yfinance returns real SPY data, verified 2026-11-11T18:30Z), so the data-gap path is no longer network-blocked — but still authorization-blocked per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6. Absent a data-gap resolution under authorization, conclude free-data family discovery is exhausted and shift to auditing/infrastructure rather than inventing candidates.
+**Superseded** — see the re-verification banner at the top of this file. The H51 and
+trade-log drifts it describes are resolved at HEAD and the full suite is green
+(3619 passed, 51 skipped, 0 failed; `src/qtr` coverage 100%; ruff clean). The only
+remaining open item is **H182 selection**: per
+`STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6 and `NEW_FAMILY_RESEARCH_REGISTER.md`
+Cycle 96, the free-data point-in-time strategy-family queue is exhausted (H1–H181
+executed/rejected; commodity carry data-blocked; insider/earnings/options PIT
+unavailable without paid services). Selecting H182 requires resolving a data gap
+under explicit authorization. Absent that, conclude free-data family discovery is
+exhausted and shift to auditing/infrastructure rather than inventing candidates.
 
 **Constraints:** `src/qtr` unchanged unless an evidenced defect requires it (then
 rerun pinned full gates); no gate weakening; no published/certified artifact,

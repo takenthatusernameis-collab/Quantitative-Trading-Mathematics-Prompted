@@ -1,5 +1,15 @@
 # Handoff — Current Session: H53 recipe verified in dep-enabled env; remaining failures are frozen-count drifts
 
+## Re-verification banner (2026-11-12T10:00Z, Cycle 101)
+
+**This doc was stale.** It claimed 9 frozen-contract failures remained. Re-running the
+full suite at HEAD `1712a5e` reports **3619 passed, 51 skipped, 0 failed**, `src/qtr`
+coverage **100%** (1209 stmts / 420 branches / 0 miss), `ruff check` clean, `ruff
+format --check` 314 files. The 9 failures were resolved in commits `11e8aeb` (H51,
+2026-11-12T08:23Z) and `bec162f` (trade log, 2026-11-12T08:30Z); this doc was never
+updated and read as an open defect for ~1.5h. Historical inventory below is preserved;
+the "Unresolved / pre-existing" section is superseded by the banner above.
+
 ## What changed
 
 Verified the prior session's H53 recipe correction in an environment with project deps
@@ -29,9 +39,13 @@ installed (`pytest` 9.2.0, `ruff` 0.17.4, Python 3.14.4 — the prior session la
   engine total-return column" hypothesis from the prior handoff is **disproven** — no bug.
 - `tests/test_engine_total_return_consistency.py` — **16 passed**. No bug.
 
-## Unresolved / pre-existing (require authorization, do not mass-fix)
+## Unresolved / pre-existing
 
-1. `test_h51_benchmark_container_invariance.py::test_every_published_information_ratio_is_disclosed` — 21 new IR-publishing experiments not in pinned `PUBLISHED_INFORMATION_RATIOS`.
+**Superseded by the re-verification banner above** — every item it lists here was
+resolved in commits `11e8aeb` (H51) and `bec162f` (trade log) and the full suite is
+green at HEAD. Historical record preserved for lineage only.
+
+1. `test_h51_benchmark_container_invariance.py::test_every_published_information_ratio_is_disclosed` — 21 new IR-publishing experiments (2026-11-05/06) not in pinned `PUBLISHED_INFORMATION_RATIOS`.
 2. `test_h53_published_metrics_disclosure.py` — pinned-count drifts: 58 vs 54 summaries; 674 vs 630 values.
 3. `test_h55_nested_metrics_disclosure.py` — 4 failures: nested-block set, leaf count 1292 vs 1188, rederivable count 631 vs 627, perturbation gate 40 vs 36.
 4. `test_trade_log_cost_reconciliation.py::TestFrozenRecordScope` — 2 failures: 3 contested per-trade `exp_2026-11-05` logs (`exp_2026-11-05T01-17-49-208916Z`, `01-24-02-934356Z`, `18-09-06-924039Z`) + H28 causal-recertification logs; adding them breaks partition.
@@ -48,13 +62,23 @@ evidence-based per-contract review. Do not mass-edit.
 - Do not treat the 3 newer H92 artifacts as published-default p-values; artifacts show
   real `0.005822770948177806`.
 - The H57 / engine-total-return "code bug" hypothesis is disproven — both tests pass.
+- **Do not trust a handoff doc's failure list.** This doc's own "Unresolved" section
+  was stale by ~1.5h at Cycle 101: the H51 and trade-log drifts it lists were
+  resolved in `11e8aeb`/`bec162f` and the full suite is green. Re-run the suite (or
+  the focused contract file) before acting on a handoff's "unresolved" section.
 
 ## Next task
 
-**One precise next task:** Await authorization to update frozen counts in
-`test_h51_benchmark_container_invariance.py`, `test_h53_published_metrics_disclosure.py`,
-and `test_h55_nested_metrics_disclosure.py`, or to resolve the 3 contested per-trade logs
-in `test_trade_log_cost_reconciliation.py`. Both require per-contract evidence review.
+**Superseded** — see the re-verification banner at the top of this file. Every item it
+lists is resolved at HEAD and the full suite is green (3619 passed, 51 skipped, 0
+failed; `src/qtr` coverage 100%; ruff clean). The only remaining open item is
+**H182 selection**: per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6 and
+`NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96, the free-data point-in-time
+strategy-family queue is exhausted (H1–H181 executed/rejected; commodity carry
+data-blocked; insider/earnings/options PIT unavailable without paid services).
+Selecting H182 requires resolving a data gap under explicit authorization. Absent
+that, conclude free-data family discovery is exhausted and shift to
+auditing/infrastructure rather than inventing candidates.
 
 **Blocked alternatives:** select H182 (commodity-carry data gap / no feasible free-data
 family per Cycle 96; discovery queue exhausted).

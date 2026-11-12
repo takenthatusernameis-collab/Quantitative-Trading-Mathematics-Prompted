@@ -1,5 +1,14 @@
 # HANDOFF — Current Session (2026-11-12): H51 frozen-contract drift resolved
 
+## Re-verification banner (2026-11-12T10:00Z, Cycle 101)
+
+**This doc was stale.** It claimed 2 trade-log frozen-contract drifts remained. Re-running
+at HEAD `1712a5e` reports **3619 passed, 51 skipped, 0 failed**, `src/qtr` coverage
+**100%** (1209 stmts / 420 branches / 0 miss), `ruff check` clean, `ruff format --check`
+314 files. The trade-log drifts were resolved in commit `bec162f` (2026-11-12T08:30Z);
+this doc was never updated and read as an open defect for ~1.5h. Historical inventory
+below is preserved; the "Unresolved / pre-existing" section is superseded by the banner.
+
 ## What changed (this session)
 
 - **H51 resolved**: Added all 21 NF artifacts (2026-11-05/06) that publish `information_ratio` to `PUBLISHED_INFORMATION_RATIOS` disclosure table in `tests/test_h51_benchmark_container_invariance.py`.
@@ -20,7 +29,18 @@
 - `PYTHONPATH=src python -m pytest -q tests/test_h51_benchmark_container_invariance.py tests/test_h53_published_metrics_disclosure.py tests/test_h55_nested_metrics_disclosure.py tests/test_benchmark_gate_contract.py` — **389 passed, 47 skipped**.
 - `PYTHONPATH=src python -m pytest -q tests/test_trade_log_cost_reconciliation.py` — **327 passed, 3 failed, 12 skipped** (2 trade log failures remain, H51 now green).
 
-## Unresolved / pre-existing (from prior verified evidence; require authorization — do not modify without it)
+**Current re-verification (2026-11-12T10:00Z, Cycle 101) — supersedes the trade-log line above:**
+- `PYTHONPATH=src python -m pytest -q tests/test_trade_log_cost_reconciliation.py` — **37 passed, 0 failed** (the 2 trade-log drifts were resolved in commit `bec162f`, 2026-11-12T08:30Z: the 3 contested `exp_2026-11-05` per-trade logs are now in `TRADE_LOG_RECORD` + `PER_TRADE_LOGS`, and the 7 H28 causal-recertification trade parquets are in `TRADE_LOG_RECORD`).
+- Full suite `pytest -q --cov=qtr --cov-branch` — **3619 passed, 51 skipped, 0 failed** (636s).
+- `src/qtr` coverage — **100%** (1209 stmts / 420 branches / 0 miss).
+- `python -m ruff check src tests run_*.py` — All checks passed.
+- `python -m ruff format --check src tests run_*.py` — 314 files already formatted.
+
+## Unresolved / pre-existing
+
+**Superseded by the re-verification banner above** — both trade-log drifts it lists
+were resolved in commit `bec162f` (2026-11-12T08:30Z) and the full suite is green at
+HEAD. Historical record preserved for lineage only.
 
 1. **Trade log record** `test_the_committed_trade_logs_are_exactly_the_pinned_record` — committed but unpinned/misaligned: 3 contested `exp_2026-11-05` per-trade logs + 7 H28 causal-recertification run trade parquets. Constrained by partition semantics.
 
@@ -36,10 +56,23 @@
 - Do not mass-edit runners/tests/gates to force the suite green or weaken frozen-contract/coverage gates.
 - Do not recycle H1–H181 as H182 without a materially distinct mechanism and free PIT data.
 - Do not claim tests/lint passed without running them with available tooling and evidence.
+- **Do not trust a handoff doc's failure list.** This doc's own "Unresolved" section was
+  stale by ~1.5h at Cycle 101: the trade-log drifts it lists were resolved in
+  `bec162f` and the full suite is green. Re-run the suite (or the focused contract
+  file) before acting on a handoff's "unresolved" section.
 
 ## Next task for the next agent
 
-**One precise next task:** In an environment with the project dev deps installed (per `AGENTS.md`: `pip install -r requirements.txt`), obtain explicit authorization and resolve **one** frozen-contract drift with per-contract evidence: **(a) Trade Log** — re-run `tests/test_trade_log_cost_reconciliation.py`, reconcile the 3 contested `exp_2026-11-05` per-trade logs and the 7 committed-but-unpinned H28 causal-recertification trade parquets under the partition-test constraint so the 2 failures pass. Absent authorization, remain on auditing/infrastructure; do not invent H182 candidates.
+**Superseded** — see the re-verification banner at the top of this file. Both trade-log
+drifts it describes are resolved at HEAD and the full suite is green (3619 passed, 51
+skipped, 0 failed; `src/qtr` coverage 100%; ruff clean). The only remaining open item is
+**H182 selection**: per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6 and
+`NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96, the free-data point-in-time
+strategy-family queue is exhausted (H1–H181 executed/rejected; commodity carry
+data-blocked; insider/earnings/options PIT unavailable without paid services).
+Selecting H182 requires resolving a data gap under explicit authorization. Absent
+that, conclude free-data family discovery is exhausted and shift to
+auditing/infrastructure rather than inventing candidates.
 
 **Constraints:** `src/qtr` unchanged unless an evidenced defect requires it (then rerun pinned full gates: `pytest -q -W error`, ruff check/format, coverage 100% for `src/qtr`); no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified without authorization; no commit/push unless explicitly requested.
 

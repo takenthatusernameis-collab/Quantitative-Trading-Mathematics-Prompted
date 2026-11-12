@@ -1,8 +1,21 @@
-# NEXT_TASK.md — H51 resolved; 2 trade-log frozen-contract drifts remain authorization-gated
+# NEXT_TASK.md — H51 and trade-log frozen-contract drifts resolved; suite green
+
+## Re-verification banner (2026-11-12T10:00Z, Cycle 101)
+
+**This doc was stale.** It claimed 2 trade-log frozen-contract failures remained. Re-running
+at HEAD `1712a5e` reports **3619 passed, 51 skipped, 0 failed**, `src/qtr` coverage
+**100%** (1209 stmts / 420 branches / 0 miss), `ruff check` clean, `ruff format --check`
+314 files. The trade-log drifts were resolved in commit `bec162f` (2026-11-12T08:30Z);
+this doc was never updated and read as an open defect for ~1.5h. Historical inventory
+below is preserved; the "The 2 remaining frozen-contract failures" section is
+superseded by the banner.
 
 ## Status
 
-**Current session (2026-11-12):** H51 frozen-contract drift resolved by adding all 21 NF IR entries to `PUBLISHED_INFORMATION_RATIOS` with correct recipes, containers, conventions, and p-values. Lint/format clean. Focused frozen-contract modules re-run: **389 passed, 47 skipped** (H51, H53, H55, benchmark gate all green). Trade log: **327 passed, 3 failed, 12 skipped** — the 3 failures are exactly the 2 documented trade-log drifts (H51 now green).
+**Current session (2026-11-12T10:00Z, Cycle 101):** All frozen-contract drifts resolved.
+Full suite green: **3619 passed, 51 skipped, 0 failed**. `src/qtr` coverage **100%**.
+`ruff check` clean; `ruff format --check` 314 files. The only remaining open item is
+**H182 selection** (data-blocked; see Research queue below).
 
 ## Actually verified (this session)
 

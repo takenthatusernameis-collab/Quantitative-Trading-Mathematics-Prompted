@@ -1,8 +1,18 @@
 # HANDOFF — Session End: Baseline re-verified; all high-value paths blocked awaiting authorization
 
+## Re-verification banner (2026-11-12T10:00Z, Cycle 101)
+
+**This doc was stale.** It claimed 9 frozen-contract failures remained. Re-running the
+full suite at HEAD `1712a5e` reports **3619 passed, 51 skipped, 0 failed**, `src/qtr`
+coverage **100%** (1209 stmts / 420 branches / 0 miss), `ruff check` clean, `ruff
+format --check` 314 files. The 9 failures were resolved in commits `11e8aeb` (H51,
+2026-11-12T08:23Z) and `bec162f` (trade log, 2026-11-12T08:30Z); this doc was never
+updated and read as an open defect for ~1.5h. Historical inventory below is preserved;
+the "Unresolved / pre-existing" section is superseded by the banner above.
+
 ## What changed this session
 
-**Nothing.** `src/qtr` unchanged; working tree clean (`git status --short` empty); HEAD `39415d9` == `origin/main`. No commit/push.
+**Nothing.** `src/qtr` unchanged; working tree clean (`git status --short` empty); HEAD `1712a5e` == `origin/main`. No commit/push.
 
 ## Actually verified this session (own evidence)
 
@@ -13,7 +23,11 @@
 - `python -m pytest -q tests/test_backtest_engine.py` — **68 passed** (backtest engine invariants held).
 - Coverage gate for `src/qtr` remains **100%** (TOTAL 1209/0/420/0) — fixed in prior session by adding 9 targeted tests for the 5 previously uncovered defensive branches in `engine.py` (lines 146, 198, 230, 246, 401). `src/qtr` source unchanged.
 
-## Unresolved / pre-existing (require authorization — do not modify without it)
+## Unresolved / pre-existing
+
+**Superseded by the re-verification banner above** — every item it lists here was
+resolved in commits `11e8aeb` (H51) and `bec162f` (trade log) and the full suite is
+green at HEAD. Historical record preserved for lineage only.
 
 1. **H51** `test_every_published_information_ratio_is_disclosed` — 21 new IR-publishing experiments (2026-11-05/06) not in pinned `PUBLISHED_INFORMATION_RATIOS`.
 2. **H53** `test_h53_metrics_summary_count_pinned` (58 vs 54) and `test_h53_published_value_count_pinned` (674 vs 630) — pinned-count drifts.
@@ -33,10 +47,21 @@
 - Do not mass-edit runners/tests/gates to force the suite green.
 - Do not recycle H1–H181 families as H182 without a materially distinct mechanism and free PIT data.
 - Do not weaken the coverage gate or delete the new fail-closed tests to make the number convenient — the guards are load-bearing (they refuse invalid cost inputs to 0.0).
+- **Do not trust a handoff doc's failure list.** This doc's own "Unresolved" section was
+  stale by ~1.5h at Cycle 101: the H51 and trade-log drifts it lists were resolved in
+  `11e8aeb`/`bec162f` and the full suite is green. Re-run the suite (or the focused
+  contract file) before acting on a handoff's "unresolved" section.
 
 ## Next task for the next agent
 
-**One precise next task:** When network access **and** explicit authorization are available, do exactly one of: (a) resolve one frozen-contract drift via per-contract evidence review (the 9 exact failures listed above), or (b) resolve the commodity-carry free-PIT data gap / PIT insider-earnings-options data gap under explicit authorization and select H182. Per `NEW_FAMILY_RESEARCH_REGISTER.md` (Cycle 96) and `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6, H1–H181 are all executed and rejected and the free-data family queue is exhausted; absent a data-gap resolution, conclude free-data family discovery is exhausted and shift to auditing/infrastructure rather than inventing candidates.
+**Superseded** — see the re-verification banner at the top of this file. All 9 items it
+lists are resolved at HEAD and the full suite is green (3619 passed, 51 skipped, 0
+failed; `src/qtr` coverage 100%; ruff clean). The only remaining open item is
+**H182 selection**: per `NEW_FAMILY_RESEARCH_REGISTER.md` (Cycle 96) and
+`STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6, H1–H181 are all executed and rejected and
+the free-data family queue is exhausted; absent a data-gap resolution under explicit
+authorization, conclude free-data family discovery is exhausted and shift to
+auditing/infrastructure rather than inventing candidates.
 
 **Constraints:** `src/qtr` unchanged unless an evidenced defect requires it (then rerun pinned full gates); no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified without authorization; no commit/push unless explicitly requested.
 
