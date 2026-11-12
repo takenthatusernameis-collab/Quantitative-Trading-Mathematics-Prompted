@@ -875,6 +875,8 @@ def benchmark_significance_gate(
     #   §H34 gate contract.
     if not (np.isfinite(max_p_value) and 0.0 < max_p_value <= 1.0):
         return False
+    if not (np.isfinite(p_value) and np.isfinite(information_ratio)):
+        return False
     return bool(float(p_value) < float(max_p_value) and float(information_ratio) > 0.0)
 
 
