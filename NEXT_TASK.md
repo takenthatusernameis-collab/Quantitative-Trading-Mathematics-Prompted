@@ -3,27 +3,38 @@
 ## Session Summary (2026-11-12)
 
 **Completed:** Backtest engine performance profiling per STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §6 fallback path.
+**Also Completed:** Experiment lineage documentation (fallback item 2).
 
 **Infrastructure audit item executed:** "Performance profiling of backtest engine on large universes"
+**Documentation audit item executed:** "Document experiment lineage — generate automated lineage report from `.experiments/experiments.jsonl`"
 
 ### Verification Results
 - **Core tests:** 359 passed (backtest engine, config, cost model, statistics, data fetcher)
-- **Lint:** Clean (315 files including new profiling script)
-- **Format:** Clean (315 files)
+- **Frozen-contract tests:** 400 passed, 47 skipped (H51, H53, H55, trade log, benchmark gate)
+- **Lint:** Clean (317 files including new scripts)
+- **Format:** Clean (317 files)
 - **Coverage:** src/qtr 100% maintained (no src/qtr changes)
-- **Working tree:** Clean except new profiling artifacts
+- **Working tree:** Clean except new profiling/lineage artifacts
 
-### Key Findings
+### Key Findings (Profiling)
 - Engine scales **linearly** O(n_symbols × n_bars) — no quadratic bottlenecks
 - 500 symbols × 10 years daily: **~22s, <100MB peak memory**
 - Linear fit: `time = 0.0232 * symbols + 0.077` (equity, long-only, 1yr)
 - All asset classes (equity, futures, crypto) show consistent scaling
 - Long-short ~1.6x slower than long-only due to doubled trade count
 
+### Key Findings (Lineage)
+- **173 experiments** tracked in `.experiments/experiments.jsonl`
+- **111 completed**, 46 failed, 16 REJECT (gates)
+- **Strategy families:** H-series (83), NF (60), TSMOM (10), Other (9), MA Crossover (7), Cross-sectional Momentum (2), Regime-gated (2)
+- Complete experiment metadata, configs, metrics, artifacts documented in `EXPERIMENT_LINEAGE_REPORT.md`
+
 ### Artifacts Created
 - `run_backtest_perf_profile.py` — Profiling script (linted, formatted, tested)
 - `.experiments/backtest_perf_profile.csv` — Raw benchmark data (36 configurations)
 - `BACKTEST_PERF_PROFILE_RESULTS.md` — Summary report
+- `generate_experiment_lineage.py` — Lineage report generator (linted, formatted)
+- `EXPERIMENT_LINEAGE_REPORT.md` — Comprehensive experiment lineage (5624 lines, 173 experiments)
 
 ---
 
@@ -69,8 +80,10 @@ Per STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §6:
 - `HANDOFF_FINAL.md` — full re-verification record (Cycle 102)
 - `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96 — complete mechanism search with blockers
 - `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6 — governing rule for queue exhaustion
-- `BACKTEST_PERF_PROFILE_RESULTS.md` — this session's profiling results
+- `BACKTEST_PERF_PROFILE_RESULTS.md` — profiling results
 - `.experiments/backtest_perf_profile.csv` — raw benchmark data
+- `EXPERIMENT_LINEAGE_REPORT.md` — experiment lineage report (173 experiments)
+- `generate_experiment_lineage.py` — re-runnable lineage generator
 
 ---
 
@@ -83,4 +96,4 @@ Per STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §6:
 - **Do not trust a handoff doc's failure list** — always re-run the suite (or focused contract file) before acting on "unresolved" sections
 
 ---
-*Updated 2026-11-12 after infrastructure auditing session.*
+*Updated 2026-11-12 after infrastructure auditing session. Both profiling and lineage documentation completed.*
