@@ -694,9 +694,27 @@ RECIPES = {
     # OOS window (index > TRAIN_END = 2019-12-31), not the full series -- the
     # full-series recipe reproduces -1.583/-1.073/-1.487, not the published
     # -1.3749/-0.8999/-1.2467. Measured by window sweep in FROZEN_CONTRACT_DRIFT_EVIDENCE.md.
-    "exp_2026-11-05T01-17": ("best_equity.parquet", True, "benchmark_equity.parquet", True, "2019-12-31"),
-    "exp_2026-11-05T01-22": ("best_equity.parquet", True, "benchmark_equity.parquet", True, "2019-12-31"),
-    "exp_2026-11-05T01-24": ("best_equity.parquet", True, "benchmark_equity.parquet", True, "2019-12-31"),
+    "exp_2026-11-05T01-17": (
+        "best_equity.parquet",
+        True,
+        "benchmark_equity.parquet",
+        True,
+        "2019-12-31",
+    ),
+    "exp_2026-11-05T01-22": (
+        "best_equity.parquet",
+        True,
+        "benchmark_equity.parquet",
+        True,
+        "2019-12-31",
+    ),
+    "exp_2026-11-05T01-24": (
+        "best_equity.parquet",
+        True,
+        "benchmark_equity.parquet",
+        True,
+        "2019-12-31",
+    ),
 }
 
 # The container each runner passed to `compare_to_benchmark` when it
