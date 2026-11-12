@@ -1,47 +1,44 @@
-# NEXT_TASK.md — H51 and trade-log frozen-contract drifts resolved; suite green
+# NEXT_TASK.md — Baseline Re-verified; Free-Data Family Discovery Exhausted at H181
 
-## Re-verification banner (2026-11-12T10:00Z, Cycle 101)
+## Re-verification banner (2026-11-12T11:30Z, Cycle 102)
 
-**This doc was stale.** It claimed 2 trade-log frozen-contract failures remained. Re-running
-at HEAD `1712a5e` reports **3619 passed, 51 skipped, 0 failed**, `src/qtr` coverage
-**100%** (1209 stmts / 420 branches / 0 miss), `ruff check` clean, `ruff format --check`
-314 files. The trade-log drifts were resolved in commit `bec162f` (2026-11-12T08:30Z);
-this doc was never updated and read as an open defect for ~1.5h. Historical inventory
-below is preserved; the "The 2 remaining frozen-contract failures" section is
-superseded by the banner.
+**Independent re-verification at HEAD `7fd1a1e` confirms:**
+- **Full suite**: 3619 passed, 51 skipped, 0 failed
+- **Coverage**: `src/qtr` 100% (1209 stmts / 420 branches / 0 miss)
+- **Lint/Format**: Clean (314 files)
+- **Working tree**: Clean; `src/qtr` unchanged; no commits this session
 
 ## Status
 
-**Current session (2026-11-12T10:00Z, Cycle 101):** All frozen-contract drifts resolved.
-Full suite green: **3619 passed, 51 skipped, 0 failed**. `src/qtr` coverage **100%**.
-`ruff check` clean; `ruff format --check` 314 files. The only remaining open item is
-**H182 selection** (data-blocked; see Research queue below).
+**Strategy family discovery queue: EXHAUSTED.** H1–H181 all executed and REJECTED. H182 unassigned.
 
-## Actually verified (this session)
+**Blockers for H182 (per Cycle 96, all concrete & documented):**
+1. Commodity carry — no free PIT roll/contango proxy
+2. Insider transactions — no free PIT Form 4/13F source
+3. Earnings estimate revisions — no free PIT revision history
+4. Options dealer GEX — no free historical options chain
+5. Breakeven inflation — ^T5YIE/^T10YIE unavailable on yfinance
+6. Statistical power — annual/low-frequency events (Russell 2000, S&P 500 inclusion, splits)
+7. Mechanism adjacency — curve, jump asymmetry, CS reversal, relmom families exhausted
+8. Calendar adjacency (held) — Halloween, holiday drift adjacent to executed families
 
-- `python -m ruff check src tests run_*.py` — All checks passed.
-- `python -m ruff format --check src tests run_*.py` — 314 files already formatted.
-- `PYTHONPATH=src python -m pytest -q tests/test_h51_benchmark_container_invariance.py tests/test_h53_published_metrics_disclosure.py tests/test_h55_nested_metrics_disclosure.py tests/test_benchmark_gate_contract.py` — **389 passed, 47 skipped** (25.72s).
-- `PYTHONPATH=src python -m pytest -q tests/test_trade_log_cost_reconciliation.py` — **327 passed, 3 failed, 12 skipped** (4.95s).
+**No candidate clears the directive bar** (materially distinct mechanism + free PIT data + smallest decisive test).
 
-## The 2 remaining frozen-contract failures (both drift; both require authorization)
+## Next Task
 
-1. **Trade log** `test_trade_log_cost_reconciliation.py::TestFrozenRecordScope::test_the_committed_trade_logs_are_exactly_the_pinned_record` — committed but unpinned/misaligned: 3 contested `exp_2026-11-05` per-trade logs (`01-17-49-208916Z/best_trades.parquet`, `01-24-02-934356Z/best_trades.parquet`, `18-09-06-924039Z/best_trades.parquet`) + 7 H28 causal-recertification run trade parquets under `h28_causal_recertification/runs/exp_2026-10-19T{15-46-16-261803Z,16-41-44-683912Z,17-38-03-570526Z,17-38-21-389139Z,17-38-39-157337Z,17-38-50-887609Z,17-39-02-719690Z,17-39-12-729639Z}/trades.parquet` (partition-constrained).
+**Primary (requires authorization):** Resolve one data gap to unblock H182:
+- Futures roll/contango data for commodity carry
+- PIT insider/earnings/options data
 
-2. **Trade log** `test_trade_log_cost_reconciliation.py::TestFrozenRecordScope::test_every_committed_trade_log_records_the_aggregate_attribution` — the same 3 contested `exp_2026-11-05` logs record per-trade (not aggregate) attribution.
+**Fallback (no authorization):** Conclude free-data discovery exhausted; shift to auditing/infrastructure per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6.
 
-## Failed approaches / do not blindly repeat
+## Constraints
 
-- Do not add contested per-trade logs to `TRADE_LOG_RECORD` — breaks `test_the_three_pinned_sets_partition_the_record`.
-- Do not mass-edit runners/tests/gates to force the suite green or weaken frozen-contract/coverage gates.
-- Do not recycle H1–H181 as H182 without a materially distinct mechanism and free PIT data.
+- `src/qtr` unchanged unless evidenced defect (then full gates: pytest -q -W error, ruff, 100% coverage)
+- No gate weakening; no frozen number modification without authorization; no commit/push unless requested
 
-## Next task
+## Evidence
 
-**One precise next task:** Obtain explicit authorization and resolve **one** frozen-contract drift with per-contract evidence: **(a) Trade Log** — add the 3 contested `exp_2026-11-05` per-trade logs and the 7 H28 causal-recertification trade parquets to `TRADE_LOG_RECORD` with correct classification (per-trade vs aggregate vs empty) so `tests/test_trade_log_cost_reconciliation.py` passes. Absent authorization, remain on auditing/infrastructure; do not invent H182 candidates.
-
-**Research queue:** `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96 — H1–H181 exhausted/rejected; free-data point-in-time family queue exhausted; H182 unassigned (commodity-carry data gap; insider/earnings/options PIT unavailable without paid services). H182 selection requires data-gap resolution under explicit authorization per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6.
-
-**Constraints:** `src/qtr` unchanged unless an evidenced defect requires it (then rerun pinned full gates); no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified without authorization; no commit/push unless explicitly requested.
-
-(End of file)
+- `HANDOFF_FINAL.md` — full re-verification record
+- `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96 — complete mechanism search with blockers
+- `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6 — governing rule for queue exhaustion
