@@ -204,7 +204,9 @@ def write_md_report(
             "Resolve by correcting `experiments.jsonl` paths (requires authorization)."
         )
         lines.append("")
-        lines.append("| experiment_id | artifact_name | expected_path | source_path | recorded_hash |")
+        lines.append(
+            "| experiment_id | artifact_name | expected_path | source_path | recorded_hash |"
+        )
         lines.append("|---|---|---|---|---|")
         for r in excluded:
             lines.append(
