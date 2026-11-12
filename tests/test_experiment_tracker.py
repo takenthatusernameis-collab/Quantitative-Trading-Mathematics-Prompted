@@ -279,3 +279,44 @@ def test_load_experiment_missing_error(tmp_path):
     loaded = t.load_experiment(eid + "_3")
     assert loaded is not None
     assert loaded.error is None
+
+
+# ===========================================================================
+# Coverage-gap closure: experiment.py branches
+# ===========================================================================
+def test_start_experiment_with_random_seeds(tmp_path):
+    # branch 89->95: random_seeds is not None, so the default-seeds block is
+    # skipped.
+    t = ExperimentTracker(log_dir=tmp_path / "logs")
+    t.start_experiment("exp", random_seeds={"numpy": 7, "python": 7})
+    assert t.current_experiment.random_seeds == {"numpy": 7, "python": 7}
+    t.finish_experiment()
+
+
+def test_log_artifact_without_metadata(tmp_path):
+    # branch 150->155: metadata is falsy, so the metadata-write block is
+    # skipped.
+    t = ExperimentTracker(log_dir=tmp_path / "logs")
+    t.start_experiment("exp")
+    p = tmp_path / "f.txt"
+    p.write_text("hi")
+    h = t.log_artifact("a", p)  # no metadata argument
+    assert isinstance(h, str)
+    t.finish_experiment()
+
+
+def test_experiment_existing_metadata_file(tmp_path):
+    # branch 326->exit: metadata_path already exists, so the write block is
+    # skipped.
+    import json
+
+    from qtr.tracking.experiment import Experiment
+
+    base = tmp_path / "existing" / "existing"
+    base.mkdir(parents=True)
+    meta_path = base / "metadata" / "metadata.json"
+    meta_path.parent.mkdir(parents=True, exist_ok=True)
+    meta_path.write_text(json.dumps({"pre": "existing"}))
+    exp = Experiment("existing", base_dir=tmp_path / "existing")
+    meta = exp.load_metadata()
+    assert meta["pre"] == "existing"

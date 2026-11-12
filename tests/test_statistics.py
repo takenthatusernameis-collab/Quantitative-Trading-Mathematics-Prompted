@@ -1758,3 +1758,90 @@ def test_combinatorial_purged_cv_invalid():
     assert combinatorial_purged_cv(100, 5, 0) == []
     assert combinatorial_purged_cv(100, 5, 5) == []
     assert combinatorial_purged_cv(3, 5, 2) == []
+
+
+# ===========================================================================
+# Coverage-gap closure: bars_per_year / annualized_sharpe edge cases
+# ===========================================================================
+class TestBarsPerYearEdgeCases:
+    def test_bars_per_year_single_bar_returns_nan(self):
+        # line 186: len(idx) < 2 returns nan.
+        idx = pd.DatetimeIndex(["2020-01-01"])
+        assert np.isnan(st.bars_per_year(idx))
+
+    def test_bars_per_year_zero_span_returns_nan(self):
+        # line 189: span_days <= 0 returns nan.
+        idx = pd.DatetimeIndex(["2020-01-01", "2020-01-01"])
+        assert np.isnan(st.bars_per_year(idx))
+
+
+class TestAnnualizedSharpeEdgeCases:
+    def test_annualized_sharpe_invalid_bpy_returns_zero(self):
+        # line 216: non-finite or <= 0 bars_per_year returns 0.0.
+        idx = pd.DatetimeIndex(["2020-01-01"])  # < 2 bars -> bpy is nan
+        assert st.annualized_sharpe(np.array([0.001, 0.002]), idx) == 0.0
+
+
+# ===========================================================================
+# Coverage-gap closure: walk_forward_splits empty split
+# ===========================================================================
+class TestWalkForwardSplitsEmptySplit:
+    def test_walk_forward_splits_train_ratio_zero_skips_split(self):
+        # branch 274->263: train_idx empty when train_ratio == 0, so the split
+        # is not appended.
+        splits = st.walk_forward_splits(100, n_splits=5, train_ratio=0.0)
+        assert splits == []
+
+    def test_walk_forward_splits_train_ratio_one_skips_split(self):
+        # branch 274->263: test_idx empty when train_ratio == 1.0, so the split
+        # is not appended.
+        splits = st.walk_forward_splits(100, n_splits=5, train_ratio=1.0)
+        assert splits == []
+
+
+# ===========================================================================
+# Coverage-gap closure: benchmark_significance_gate invalid threshold
+# ===========================================================================
+class TestBenchmarkSignificanceGateInvalidThreshold:
+    def test_invalid_max_p_value_returns_false(self):
+        # lines 876-878: non-finite or out-of-range max_p_value returns False.
+        for bad in (np.inf, -np.inf, np.nan, 0.0, 1.5, -0.5):
+            assert st.benchmark_significance_gate(0.5, 0.5, max_p_value=bad) is False
+
+
+# ===========================================================================
+# Coverage-gap closure: compare_to_benchmark degenerate inputs
+# ===========================================================================
+class TestCompareToBenchmarkDegenerate:
+    def test_compare_to_benchmark_non_scalar_risk_free_raises(self):
+        # line 927: non-scalar risk_free raises TypeError.
+        with pytest.raises(TypeError, match="risk_free must be a scalar"):
+            st.compare_to_benchmark(
+                np.array([0.001, 0.002]),
+                np.array([0.0, 0.001]),
+                risk_free=np.array([0.05]),
+            )
+
+    def test_compare_to_benchmark_empty_arrays_returns_no_evidence(self):
+        # line 973: min_len == 0 returns _no_comparison().
+        res = st.compare_to_benchmark(np.array([]), np.array([]))
+        assert res["information_ratio"] == 0.0
+        assert res["alpha_p_value"] == 1.0
+
+
+# ===========================================================================
+# Coverage-gap closure: purged / combinatorial CV empty splits
+# ===========================================================================
+class TestPurgedKfoldEmptySplit:
+    def test_purged_kfold_splits_split_not_appended(self):
+        # branch 1459->1446: a fold whose train or test side is empty is not
+        # appended. purge=4 masks all train indices when fold_size=1.
+        splits = st.purged_kfold_splits(5, n_splits=5, purge=4, embargo=4)
+        assert splits == []
+
+    def test_combinatorial_purged_cv_split_not_appended(self):
+        # branch 1496->1483: a combination whose train side is fully masked is
+        # not appended. n_test_splits == n_splits - 1 leaves only one train
+        # index, and purge/embargo can mask it out.
+        splits = st.combinatorial_purged_cv(5, n_splits=3, n_test_splits=2, purge=4, embargo=4)
+        assert splits == []

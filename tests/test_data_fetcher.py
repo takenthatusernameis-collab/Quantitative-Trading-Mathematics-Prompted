@@ -888,6 +888,86 @@ def test_fetcher_is_exported_from_the_data_package():
     assert "fetcher" in namespace
 
 
+def test_fetch_yahoo_non_positive_price_raises(monkeypatch, tmp_path):
+    # lines 150-151: _reject_non_positive_prices raises ValueError on a panel
+    # carrying a non-positive price (zero close here).
+    import sys
+    import types
+
+    df = pd.DataFrame(
+        {"Open": [1.0], "High": [2.0], "Low": [0.5], "Close": [0.0], "Volume": [100]},
+        index=pd.to_datetime(["2020-01-02"]),
+    )
+
+    class FakeTicker:
+        def history(self, **kw):
+            return df
+
+    fake_yf = types.ModuleType("yfinance")
+    fake_yf.Ticker = lambda s: FakeTicker()
+    monkeypatch.setitem(sys.modules, "yfinance", fake_yf)
+
+    fetcher = DataFetcher(cache=DataCache(cache_dir=tmp_path))
+    with pytest.raises(ValueError, match="non-positive price"):
+        fetcher.fetch_yahoo(["SPY"], "2020-01-01", "2020-02-01", use_cache=False)
+
+
+def test_fetch_ccxt_pagination_exactly_1000_rows(monkeypatch, tmp_path):
+    # lines 387->373: the CCXT pagination loop continues when a page returns
+    # exactly 1000 rows (``len(ohlcv) < 1000`` is False), then ends on the
+    # next page returning fewer rows. Use hourly bars so 1000 rows fit within
+    # the start/end window.
+    import sys
+    import types
+
+    rows_1000 = [[1577836800000 + i * 3600000, 1.0, 2.0, 0.5, 1.5, 100.0] for i in range(1000)]
+    rows_tail = [
+        [1577836800000 + 1000 * 3600000, 1.0, 2.0, 0.5, 1.5, 100.0],
+    ]
+
+    class PaginatingExchange:
+        def __init__(self):
+            self.calls = 0
+
+        def fetch_ohlcv(self, symbol, timeframe, since=None, limit=1000):
+            self.calls += 1
+            return rows_1000 if self.calls == 1 else rows_tail
+
+    fake_ccxt = types.ModuleType("ccxt")
+    fake_ccxt.binance = lambda cfg: PaginatingExchange()
+    monkeypatch.setitem(sys.modules, "ccxt", fake_ccxt)
+
+    fetcher = DataFetcher(cache=DataCache(cache_dir=tmp_path))
+    res = fetcher.fetch_ccxt(
+        "binance", ["BTC/USDT"], "2020-01-01", "2020-02-15", "1h", use_cache=False
+    )
+    assert len(res["BTC/USDT"]) == 1001
+
+
+def test_fetch_ccxt_start_ge_end_pagination_loop_skipped(monkeypatch, tmp_path):
+    # lines 373->390: when ``start >= end`` the ``while current_since < end_ms``
+    # condition is False on entry, so the pagination loop body never runs and
+    # execution falls through to the "no data" path.
+    import sys
+    import types
+
+    called = {"n": 0}
+
+    class RecordingExchange:
+        def fetch_ohlcv(self, symbol, timeframe, since=None, limit=1000):
+            called["n"] += 1
+            return [[1577836800000, 1.0, 2.0, 0.5, 1.5, 100.0]]
+
+    fake_ccxt = types.ModuleType("ccxt")
+    fake_ccxt.binance = lambda cfg: RecordingExchange()
+    monkeypatch.setitem(sys.modules, "ccxt", fake_ccxt)
+
+    fetcher = DataFetcher(cache=DataCache(cache_dir=tmp_path))
+    res = fetcher.fetch_ccxt("binance", ["BTC/USDT"], "2020-02-01", "2020-01-01", use_cache=False)
+    assert res["BTC/USDT"].empty
+    assert called["n"] == 0
+
+
 def test_fetch_sp500_constituents_module_level(tmp_path, monkeypatch):
     import sys
 
