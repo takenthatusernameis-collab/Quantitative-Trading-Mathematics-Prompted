@@ -143,7 +143,6 @@ def run_benchmark(
         "peak_memory_mb": peak_mb,
         "trades": result.metrics["num_trades"],
         "sharpe": result.metrics["sharpe"],
-        "total_return": result.metrics["total_return"],
     }
 
     print(f"{elapsed:.3f}s, {peak_mb:.1f}MB, {result.metrics['num_trades']:.0f} trades")
