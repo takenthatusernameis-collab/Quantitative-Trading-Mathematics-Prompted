@@ -1049,7 +1049,7 @@ _UNDETERMINABLE = _undeterminable()
 class TestH53PublishedMetrics:
     # -- the record --------------------------------------------------------
     def test_h53_metrics_summary_count_pinned(self):
-        assert len(_ENTRIES) == 54, len(_ENTRIES)
+        assert len(_ENTRIES) == 58, len(_ENTRIES)
 
     def test_h53_metrics_keys_union_pinned(self):
         keys = set()
@@ -1081,7 +1081,7 @@ class TestH53PublishedMetrics:
             assert entry["producer"] in FAMILY_RECIPES, entry["artifact_id"]
 
     def test_h53_published_value_count_pinned(self):
-        assert len(_published_key_values()) == 630, len(_published_key_values())
+        assert len(_published_key_values()) == 674, len(_published_key_values())
 
     # -- the re-derivation -------------------------------------------------
     def test_every_published_value_re_derives(self):

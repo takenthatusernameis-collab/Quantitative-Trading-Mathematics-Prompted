@@ -629,16 +629,16 @@ class TestTheRecord:
             for key in NESTED_KEYS + ("top_level_perturbation",)
         }
         assert counts == {
-            "ablations": 44,
-            "perturbation": 24,
+            "ablations": 48,
+            "perturbation": 28,
             "perturbation_min_ratio": 7,
             "cross_validation": 2,
             "top_level_perturbation": 5,
         }
-        assert len(NESTED) == 44
+        assert len(NESTED) == 48
 
     def test_the_published_leaf_count_is_pinned(self):
-        assert len(TABLE.leaves) == 1188
+        assert len(TABLE.leaves) == 1292
 
     def test_every_published_leaf_is_accounted_for(self):
         for experiment_id, record in NESTED.items():
@@ -695,8 +695,8 @@ class TestReDerivation:
         assert min(residuals) == 0.0
 
     def test_the_rederivable_and_disclosed_counts_are_pinned(self):
-        assert len(TABLE.rederived) == 627
-        assert len(TABLE.not_rederivable) == 561
+        assert len(TABLE.rederived) == 631
+        assert len(TABLE.not_rederivable) == 661
 
     def test_every_disclosed_leaf_names_its_reason(self):
         for leaf in TABLE.not_rederivable:
@@ -953,7 +953,7 @@ class TestBlastRadius:
             assert len(ratio_leaves) == 1
             assert ratio_leaves[0].status == "rederived"
             checked += 1
-        assert checked == 36
+        assert checked == 40
         assert sorted(without_values) == [
             "exp_2026-10-14T07-12-35-292010Z",
             "exp_2026-10-14T07-12-59-473353Z",
