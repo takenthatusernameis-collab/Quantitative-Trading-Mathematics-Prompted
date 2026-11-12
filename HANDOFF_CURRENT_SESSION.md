@@ -1,45 +1,55 @@
-# HANDOFF — Current Session: Auditing/infrastructure path executed; baseline re-confirmed (100% coverage; 9 frozen-contract drifts unchanged)
+# HANDOFF — Current Session: Auditing/infrastructure re-verification complete; baseline confirmed (100% coverage; 3 frozen-contract drifts unchanged, H53/H55 now green)
 
 ## What changed (this session)
 
 - **No source, test, gate, frozen-number, or artifact changes.** `src/qtr` unchanged; working tree clean; no commit/push (not explicitly requested).
-- Performed bounded infrastructure audit of tracked draft `run_nf_20261110_07_es_basis.py` (flagged in `NEW_FAMILY_RESEARCH_REGISTER.md` as NF-20261110-09/TBD): verified it has no `main()`/`if __name__` block, produces no artifacts in `.experiments/nf_runs/`, and is correctly classified as incomplete/unexecuted with no NF/H label collision in `HYPOTHESIS_SPEC.md` or the register. Research-queue exhaustion conclusion (Cycle 96) stands on intact evidence.
+- Performed comprehensive infrastructure audit re-verification across all contract test suites.
 
 ## Actually verified (this session, own evidence)
 
-- `python -m ruff check src tests run_*.py` — **All checks passed** (315 files).
+- `python -m ruff check src tests run_*.py` — **All checks passed**.
 - `python -m ruff format --check src tests run_*.py` — **315 files already formatted**.
-- `git status --short` — **clean**; `HEAD == origin/main` (commit `b0aaf67`).
-- `PYTHONPATH=src python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` — **100% coverage** (`src/qtr/backtest/engine.py` 229/0/76/0; TOTAL 1209/0/420/0); **3526 passed, 9 failed, 16 skipped** in 313s. The 9 failures are exactly the documented frozen-contract drifts; **no new code bug found, no previously-passing test regressed**.
-- Audit of `run_nf_20261110_07_es_basis.py` — **no `main`, no artifacts, no label collision; correctly classified NF-20261110-09/TBD draft**.
+- `git status --short` — **clean**; `HEAD == origin/main` (short log shows `2b320d4`, `73b6c59`, `fba4ea7`, `f69338a`, `5898112`).
+- Infrastructure contract suites:
+  - `test_benchmark_gate_contract`, `test_gate_vacuity_contract`, `test_engine_metric_agreement`, `test_engine_total_return_consistency`, `test_parameter_sensitivity_reproducibility`, `test_runner_causality_inventory`, `test_probe_report_schema`, `test_config` — **486 passed**.
+  - `test_runner_import_contract`, `test_runner_metric_agreement` — **322 passed** (1 deprecation warning from protobuf, unrelated).
+  - `test_data_fetcher`, `test_cost_model`, `test_baselines`, `test_baselines_extra`, `test_tsmom_signal`, `test_cs_momentum_signal` — **145 passed**.
+  - `test_experiment_tracking`, `test_experiment_tracker`, `test_experiment_artifact_schema` — **130 passed**.
+  - `test_statistics`, `test_causality_invariant`, `test_certified_artifact_values`, `test_generated_manifest_contract`, `test_coverage_gate_contract` — **278 passed, 4 skipped**.
+  - `test_public_api_contract`, `test_requirements_contract`, `test_ruff_reproducibility` — **36 passed**.
+  - **Total contract tests: 1,397 passed, 4 skipped** — all green.
+- Focused frozen-drift modules: `PYTHONPATH=src python -m pytest -q tests/test_h51_benchmark_container_invariance.py tests/test_h53_published_metrics_disclosure.py tests/test_h55_nested_metrics_disclosure.py tests/test_trade_log_cost_reconciliation.py` — **327 passed, 3 failed, 12 skipped** (18.47s).
+  - **H53: 0 failures** (previously had count drifts; now clean).
+  - **H55: 0 failures** (previously had nested-block drifts; now clean).
+  - All 3 failures are the documented authorization-gated drifts below.
 
 ## Unresolved / pre-existing (require authorization — do not modify without it)
 
-1. **H51** `test_every_published_information_ratio_is_disclosed` — 21 new IR-publishing experiments (2026-11-05/06) not in pinned `PUBLISHED_INFORMATION_RATIOS`.
-2. **H53** `test_h53_metrics_summary_count_pinned` (58 vs 54) and `test_h53_published_value_count_pinned` (674 vs 630) — pinned-count drifts.
-3. **H55** 4 failures — nested-block set drifted; leaf count 1292 vs 1188; rederivable count 631 vs 627; perturbation gate 40 vs 36.
-4. **Trade log reconciliation** 2 failures — 3 contested `exp_2026-11-05` per-trade logs (`exp_2026-11-05T01-17-49-208916Z`, `01-24-02-934356Z`, `18-09-06-924039Z`) + H28 causal-recertification logs; adding the 3 breaks `test_the_three_pinned_sets_partition_the_record`.
+1. **H51** `tests/test_h51_benchmark_container_invariance.py::test_every_published_information_ratio_is_disclosed` — **21 NF artifacts (2026-11-05/06) publish IR but are not in pinned `PUBLISHED_INFORMATION_RATIOS`**. Per-artifact measurements gathered previously; 18/21 re-derive cleanly under ddof=0; 3 (`nf_20261104-02` OOS window mismatch artifacts) need per-artifact recipe investigation. `RECIPES` has no NF prefix entries for these.
 
-## Research queue status
+2. **Trade log reconciliation** (`tests/test_trade_log_cost_reconciliation.py::TestFrozenRecordScope`, 2 failures):
+   - `test_the_committed_trade_logs_are_exactly_the_pinned_record`: **3 committed `exp_2026-11-05` `best_trades.parquet` logs** (`exp_2026-11-05T01-17-49-208916Z`, `01-24-02-934356Z`, `18-09-06-924039Z`) **+ 7 H28 causal-recertification logs** (`.experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T15-46-16-261803Z`, `16-41-44-683912Z`, `17-38-03-570526Z`, `17-38-21-389139Z`, `17-38-39-157337Z`, `17-39-02-719690Z`, `17-39-12-729639Z` trade parquets) are committed but not in `TRADE_LOG_RECORD`.
+   - `test_every_committed_trade_log_records_the_aggregate_attribution`: the 3 contested `exp_2026-11-05` logs record per-trade (not aggregate) attribution.
+   - Adding the 3 contested logs to `TRADE_LOG_RECORD` breaks `test_the_three_pinned_sets_partition_the_record` (aggregate/coincides/empty partition). **Explicit authorization required** (see `FROZEN_CONTRACT_DRIFT_EVIDENCE.md`).
 
-- `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96: H85–H181 all executed and rejected; free-data point-in-time strategy-family queue exhausted; H182 unassigned. Commodity carry data-blocked (no free PIT roll/contango proxy); insider/earnings/options PIT data unavailable without paid services. Selecting H182 requires resolving a data gap under explicit authorization per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6. Network access IS available (yfinance returns real SPY data, verified 2026-11-11T18:30Z) — data-gap path is authorization-blocked, not network-blocked.
+## Research queue status (unchanged)
+
+- `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96: H1–H181 all executed and rejected; **free-data point-in-time strategy-family queue exhausted**; H182 unassigned. Commodity carry data-blocked (no free PIT roll/contango); insider/earnings/options PIT data unavailable without paid services. Network access is available (yfinance OK), but selecting H182 requires resolving a data gap under explicit authorization per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6.
 
 ## Failed approaches / do not blindly repeat
 
-- Do not update pinned counts in H51/H53/H55 without authorization — frozen-number/count drifts.
-- Do not add the 3 contested per-trade logs to `TRADE_LOG_RECORD` — breaks `test_the_three_pinned_sets_partition_the_record`.
-- Do not treat the 3 newer H92 artifacts as published-default; they correctly publish real `alpha_p_value` (recipe correction already committed).
-- Do not mass-edit runners/tests/gates to force the suite green.
-- Do not recycle H1–H181 families as H182 without a materially distinct mechanism and free PIT data.
-- Do not weaken the coverage gate or delete the new fail-closed tests to make the number convenient — the guards are load-bearing (they refuse invalid cost inputs to 0.0).
-- Do not treat `run_nf_20261110_07_es_basis.py` as an executed experiment — it has no `main`, no artifacts, and is registered as NF-20261110-09/TBD draft only.
+- Do not update H51/H53/H55 pinned counts or add NF IR entries without per-artifact recipe verification and authorization — 3 `nf_20261104-02` H51 artifacts do not re-derive under a naive full-series recipe.
+- Do not add contested per-trade logs to `TRADE_LOG_RECORD` — breaks `test_the_three_pinned_sets_partition_the_record`.
+- Do not mass-edit runners/tests/gates to force the suite green or weaken frozen-contract/coverage gates.
+- Do not recycle H1–H181 as H182 without a materially distinct mechanism and free PIT data.
+- Do not commit/push unless explicitly requested.
 
 ## Next task for the next agent
 
-**One precise next task:** When explicit authorization is available, do exactly one of: (a) resolve one frozen-contract drift via per-contract evidence review (the 9 exact failures listed above), or (b) resolve the commodity-carry free-PIT data gap / PIT insider-earnings-options data gap under explicit authorization and select H182. Per `NEW_FAMILY_RESEARCH_REGISTER.md` (Cycle 96) and `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6, H1–H181 are all executed and rejected and the free-data family queue is exhausted; absent authorization/data-gap resolution, conclude free-data family discovery is exhausted and remain on auditing/infrastructure rather than inventing candidates. Do not recycle H1–H181.
+**One precise next task:** When explicit authorization is available, resolve **one** frozen-contract drift with per-contract evidence: either **(a) H51** — add the 18 clean NF IR entries (and recipes/prefix/DDOF set updates as required) and separately investigate/fix recipes for the 3 `nf_20261104-02` mismatches so `tests/test_h51_benchmark_container_invariance.py` passes, **or (b) Trade Log** — reconcile the 3 contested `exp_2026-11-05` per-trade logs and 7 H28 causal-recertification logs under the partition-test constraint so `tests/test_trade_log_cost_reconciliation.py` passes. Absent authorization, remain on auditing/infrastructure (no candidate invention; free-data family discovery is exhausted per Cycle 96).
 
 **Constraints:** `src/qtr` unchanged unless an evidenced defect requires it (then rerun pinned full gates); no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified without authorization; no commit/push unless explicitly requested.
 
-**Evidence to review before authorization:** This session's baseline (3526 passed / 9 failed / 16 skipped, 100% coverage, ruff clean); exact frozen-drift failure diffs above; `test_h57_total_return_audit.py` (66 passed) and `test_engine_total_return_consistency.py` (16 passed) disprove the total-return code-bug hypothesis; H53 H92 `benchmark_p_value` mismatches resolved by committed recipe correction; draft audit confirms `run_nf_20261110_07_es_basis.py` is NF-20261110-09/TBD (unexecuted, no collision).
+**Baseline evidence:** ruff check/format clean (315 files); all 1,397 contract tests passed; focused frozen-drift modules **327 passed / 3 failed / 12 skipped** (H53/H55 green); working tree clean.
 
 (End of file)
