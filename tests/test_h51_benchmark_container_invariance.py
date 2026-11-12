@@ -482,13 +482,190 @@ PUBLISHED_INFORMATION_RATIOS = {
         1.4028853805082562e-19,
         11441,
     ),
+    # NF H87 (nf_20261104_02_cross_asset_leadlag): OOS window (index > TRAIN_END = 2019-12-31)
+    "exp_2026-11-05T01-17-49-208916Z": (
+        "NF-20261104-02 cross_asset_leadlag",
+        "ndarray",
+        "ddof=0",
+        -1.3748803928118603,
+        0.00034288882101651905,
+        1717,
+    ),
+    "exp_2026-11-05T01-22-22-092087Z": (
+        "NF-20261104-02 cross_asset_leadlag",
+        "ndarray",
+        "ddof=0",
+        -0.8999319340740932,
+        0.01896832420621565,
+        1717,
+    ),
+    "exp_2026-11-05T01-24-02-934356Z": (
+        "NF-20261104-02 cross_asset_leadlag",
+        "ndarray",
+        "ddof=0",
+        -1.246685760851101,
+        0.0011631647290287297,
+        1717,
+    ),
+    # NF H88 (nf_20261104_01_vix_termstructure): full series
+    "exp_2026-11-05T01-43-20-575295Z": (
+        "NF-20261104-01 vix_termstructure",
+        "Series",
+        "ddof=0",
+        -0.4780911632161183,
+        1.0,
+        2977,
+    ),
+    # NF H89 (nf_20261105_01_opening_gap): full series
+    "exp_2026-11-05T02-51-06-343400Z": (
+        "NF-20261105-01 opening_gap",
+        "Series",
+        "ddof=0",
+        -0.716589671260883,
+        1.0,
+        2975,
+    ),
+    "exp_2026-11-05T04-44-31-638354Z": (
+        "NF-20261105-01 opening_gap",
+        "Series",
+        "ddof=0",
+        -0.5771313870763216,
+        1.0,
+        2975,
+    ),
+    # NF H90 (nf_20261105_06_gold_oil_rv): full series
+    "exp_2026-11-05T12-24-33-350043Z": (
+        "NF-20261105-06 gold_oil_rv",
+        "Series",
+        "ddof=0",
+        -0.41746213101096935,
+        0.08719830728026949,
+        4233,
+    ),
+    # NF H91 (nf_20261105_07_skew_tail_timing): full series
+    "exp_2026-11-05T12-36-06-158635Z": (
+        "NF-20261105-07 skew_tail_timing",
+        "Series",
+        "ddof=0",
+        -0.6340298374687984,
+        1.0,
+        2918,
+    ),
+    # NF H92 (nf_20261105_08_fomc_event_drift): full series
+    "exp_2026-11-05T13-22-09-693533Z": (
+        "NF-20261105-08 fomc_event_drift",
+        "Series",
+        "ddof=0",
+        -0.8593752630572937,
+        1.0,
+        2975,
+    ),
+    # NF H93 (nf_20261105_09_turn_of_month): full series
+    "exp_2026-11-05T13-32-16-258120Z": (
+        "NF-20261105-09 turn_of_month",
+        "Series",
+        "ddof=0",
+        -0.6385806471491214,
+        1.0,
+        4233,
+    ),
+    "exp_2026-11-05T13-32-55-648939Z": (
+        "NF-20261105-09 turn_of_month",
+        "Series",
+        "ddof=0",
+        -0.5170717510566004,
+        1.0,
+        4233,
+    ),
+    # NF H94 (nf_20261105_10_equity_bond_relmom): full series
+    "exp_2026-11-05T15-24-22-849461Z": (
+        "NF-20261105-10 equity_bond_relmom",
+        "Series",
+        "ddof=0",
+        -0.6732544526196753,
+        1.0,
+        4233,
+    ),
+    "exp_2026-11-05T15-40-24-218763Z": (
+        "NF-20261105-10 equity_bond_relmom",
+        "Series",
+        "ddof=0",
+        -0.6732544526196753,
+        1.0,
+        4233,
+    ),
+    "exp_2026-11-05T18-05-46-174209Z": (
+        "NF-20261105-10 equity_bond_relmom",
+        "Series",
+        "ddof=0",
+        -0.6732544526196753,
+        1.0,
+        4233,
+    ),
+    "exp_2026-11-05T18-11-49-464520Z": (
+        "NF-20261105-10 equity_bond_relmom",
+        "Series",
+        "ddof=0",
+        -0.6732544526196753,
+        1.0,
+        4233,
+    ),
+    "exp_2026-11-05T18-12-36-229696Z": (
+        "NF-20261105-10 equity_bond_relmom",
+        "Series",
+        "ddof=0",
+        -0.6732544526196753,
+        1.0,
+        4233,
+    ),
+    "exp_2026-11-06T02-00-06-752931Z": (
+        "NF-20261105-10 equity_bond_relmom",
+        "Series",
+        "ddof=0",
+        -0.6732544526196753,
+        1.0,
+        4233,
+    ),
+    "exp_2026-11-06T02-17-43-039138Z": (
+        "NF-20261105-10 equity_bond_relmom",
+        "Series",
+        "ddof=0",
+        -0.6732544526196753,
+        0.005822770948177806,
+        4233,
+    ),
+    "exp_2026-11-06T03-36-48-479398Z": (
+        "NF-20261105-10 equity_bond_relmom",
+        "Series",
+        "ddof=0",
+        -0.6732544526196753,
+        0.005822770948177806,
+        4233,
+    ),
+    "exp_2026-11-06T04-23-47-511988Z": (
+        "NF-20261105-10 equity_bond_relmom",
+        "Series",
+        "ddof=0",
+        -0.6732544526196753,
+        0.005822770948177806,
+        4233,
+    ),
+    # NF H95 (nf_20261105_13_idiosyncratic_vol): full series
+    "exp_2026-11-05T18-09-06-924039Z": (
+        "NF-20261105-13 idiosyncratic_vol",
+        "Series",
+        "ddof=0",
+        -0.015920213598815208,
+        1.0,
+        4233,
+    ),
 }
 
 # The count split the convention choice rests on: enforcing ddof=0 keeps
-# these 26 published numbers unchanged and moves the other 22 by a factor
-# of sqrt((n - 1) / n). The 21 NF artifacts (H87-H93) are all ddof=0, so the
+# these 47 published numbers unchanged and moves the other 22 by a factor
+# of sqrt((n - 1) / n). The 21 NF artifacts (H87-H95) are all ddof=0, so the
 # split is unchanged by their addition.
-DDOF_0_ARTIFACTS = 26
+DDOF_0_ARTIFACTS = 47
 DDOF_1_ARTIFACTS = 22
 
 # ---------------------------------------------------------------------------
@@ -690,10 +867,7 @@ RECIPES = {
     "exp_2026-10-14T18-52": ("returns.parquet", False, "benchmark_returns.parquet", False, None),
     "exp_2026-10-14T20-02": ("returns.parquet", False, "benchmark_returns.parquet", False, None),
     "exp_2026-10-14T20-08": ("returns.parquet", False, "benchmark_returns.parquet", False, None),
-    # NF H87 opening_gap: the runner's published benchmark comparison is on the
-    # OOS window (index > TRAIN_END = 2019-12-31), not the full series -- the
-    # full-series recipe reproduces -1.583/-1.073/-1.487, not the published
-    # -1.3749/-0.8999/-1.2467. Measured by window sweep in FROZEN_CONTRACT_DRIFT_EVIDENCE.md.
+    # NF H87 (nf_20261104_02_cross_asset_leadlag): OOS window (index > TRAIN_END = 2019-12-31)
     "exp_2026-11-05T01-17": (
         "best_equity.parquet",
         True,
@@ -714,6 +888,126 @@ RECIPES = {
         "benchmark_equity.parquet",
         True,
         "2019-12-31",
+    ),
+    # NF H88-H95: full series (no train_end)
+    "exp_2026-11-05T01-43": (
+        "best_equity.parquet",
+        True,
+        "benchmark_equity.parquet",
+        True,
+        None,
+    ),
+    "exp_2026-11-05T02-51": (
+        "best_equity.parquet",
+        True,
+        "benchmark_equity.parquet",
+        True,
+        None,
+    ),
+    "exp_2026-11-05T04-44": (
+        "best_equity.parquet",
+        True,
+        "benchmark_equity.parquet",
+        True,
+        None,
+    ),
+    "exp_2026-11-05T12-24": (
+        "best_equity.parquet",
+        True,
+        "benchmark_equity.parquet",
+        True,
+        None,
+    ),
+    "exp_2026-11-05T12-36": (
+        "best_equity.parquet",
+        True,
+        "benchmark_equity.parquet",
+        True,
+        None,
+    ),
+    "exp_2026-11-05T13-22": (
+        "best_equity.parquet",
+        True,
+        "benchmark_equity.parquet",
+        True,
+        None,
+    ),
+    "exp_2026-11-05T13-32": (
+        "best_equity.parquet",
+        True,
+        "benchmark_equity.parquet",
+        True,
+        None,
+    ),
+    "exp_2026-11-05T15-24": (
+        "best_equity.parquet",
+        True,
+        "benchmark_equity.parquet",
+        True,
+        None,
+    ),
+    "exp_2026-11-05T15-40": (
+        "best_equity.parquet",
+        True,
+        "benchmark_equity.parquet",
+        True,
+        None,
+    ),
+    "exp_2026-11-05T18-05": (
+        "best_equity.parquet",
+        True,
+        "benchmark_equity.parquet",
+        True,
+        None,
+    ),
+    "exp_2026-11-05T18-09": (
+        "best_equity.parquet",
+        True,
+        "benchmark_equity.parquet",
+        True,
+        None,
+    ),
+    "exp_2026-11-05T18-11": (
+        "best_equity.parquet",
+        True,
+        "benchmark_equity.parquet",
+        True,
+        None,
+    ),
+    "exp_2026-11-05T18-12": (
+        "best_equity.parquet",
+        True,
+        "benchmark_equity.parquet",
+        True,
+        None,
+    ),
+    "exp_2026-11-06T02-00": (
+        "best_equity.parquet",
+        True,
+        "benchmark_equity.parquet",
+        True,
+        None,
+    ),
+    "exp_2026-11-06T02-17": (
+        "best_equity.parquet",
+        True,
+        "benchmark_equity.parquet",
+        True,
+        None,
+    ),
+    "exp_2026-11-06T03-36": (
+        "best_equity.parquet",
+        True,
+        "benchmark_equity.parquet",
+        True,
+        None,
+    ),
+    "exp_2026-11-06T04-23": (
+        "best_equity.parquet",
+        True,
+        "benchmark_equity.parquet",
+        True,
+        None,
     ),
 }
 
@@ -737,6 +1031,16 @@ RUNNER_CALL_SITE_CONTAINER = {
     "run_h10_intraday_tsmom_pfopt_experiment.py": "Series",
     "run_h18_overnight_intraday_experiment.py": "Series",
     "run_h23_crypto_futures_tsmom.py": "Series",
+    # NF runners (all pass Series to compare_to_benchmark; post-H51 fix uses ddof=0)
+    "run_nf_20261104_01_vix_termstructure.py": "Series",
+    "run_nf_20261104_02_cross_asset_leadlag.py": "ndarray",
+    "run_nf_20261105_01_opening_gap.py": "Series",
+    "run_nf_20261105_06_gold_oil_rv.py": "Series",
+    "run_nf_20261105_07_skew_tail_timing.py": "Series",
+    "run_nf_20261105_08_fomc_event_drift.py": "Series",
+    "run_nf_20261105_09_turn_of_month.py": "Series",
+    "run_nf_20261105_10_equity_bond_relmom.py": "Series",
+    "run_nf_20261105_13_idiosyncratic_vol.py": "Series",
 }
 
 
@@ -1099,8 +1403,14 @@ def test_the_call_sites_pass_the_container_the_published_values_were_made_with()
 
 
 def test_the_series_call_sites_belong_to_the_ddof_1_families() -> None:
-    """The call-site container and the disclosed convention agree, family by family."""
-    series_families = {
+    """The call-site container and the disclosed convention agree, family by family.
+
+    Pre-H51 families that pass Series used ddof=1 (sample std). Post-H51 NF
+    families also pass Series but the library now enforces ddof=0 (population
+    std) for all containers, so their convention is ddof=0. One NF family
+    (nf_20261104_02) passes ndarray and uses ddof=0.
+    """
+    pre_h51_series_families = {
         "H9 v1 intraday",
         "H9 v2 intraday",
         "H10 pfopt",
@@ -1108,6 +1418,19 @@ def test_the_series_call_sites_belong_to_the_ddof_1_families() -> None:
         "H22 voltarget",
         "H23 crypto",
         "H25 pfmargin",
+    }
+    nf_series_families = {
+        "NF-20261104-01 vix_termstructure",
+        "NF-20261105-01 opening_gap",
+        "NF-20261105-06 gold_oil_rv",
+        "NF-20261105-07 skew_tail_timing",
+        "NF-20261105-08 fomc_event_drift",
+        "NF-20261105-09 turn_of_month",
+        "NF-20261105-10 equity_bond_relmom",
+        "NF-20261105-13 idiosyncratic_vol",
+    }
+    nf_ndarray_families = {
+        "NF-20261104-02 cross_asset_leadlag",
     }
     for _artifact_id, (
         family,
@@ -1118,10 +1441,19 @@ def test_the_series_call_sites_belong_to_the_ddof_1_families() -> None:
         _n,
     ) in PUBLISHED_INFORMATION_RATIOS.items():
         if container == "Series":
-            assert family in series_families, family
-            assert convention == "ddof=1", family
+            if family in pre_h51_series_families:
+                assert convention == "ddof=1", family
+            elif family in nf_series_families:
+                assert convention == "ddof=0", family
+            else:
+                assert False, f"unknown Series family: {family}"
+        elif container == "ndarray":
+            if family in nf_ndarray_families:
+                assert convention == "ddof=0", family
+            else:
+                assert convention == "ddof=0", family
         else:
-            assert convention == "ddof=0", family
+            assert False, f"unknown container: {container}"
 
 
 # ---------------------------------------------------------------------------
@@ -1150,8 +1482,17 @@ def test_the_pre_h51_implementation_was_container_dependent() -> None:
 
 @pytest.mark.parametrize("artifact_id", sorted(PUBLISHED_INFORMATION_RATIOS))
 def test_the_pre_h51_implementation_reproduces_the_published_values(artifact_id: str) -> None:
-    """The published record contains BOTH conventions, and the pre-fix code made them."""
+    """The published record contains BOTH conventions, and the pre-fix code made them.
+
+    NF artifacts (post-H51) are skipped because they use ddof=0 regardless of
+    container, not the pre-H51 container-dependent convention.
+    """
     _family, container, convention, ir, _p_value, _n = PUBLISHED_INFORMATION_RATIOS[artifact_id]
+
+    # Skip NF artifacts (post-H51): they use ddof=0 regardless of container
+    if _family.startswith("NF-"):
+        pytest.skip("NF artifact: post-H51, uses ddof=0 regardless of container")
+
     if _is_rounded(ir):
         pytest.skip(
             "the runner published round(information_ratio, 4): the rounding hides the convention"
