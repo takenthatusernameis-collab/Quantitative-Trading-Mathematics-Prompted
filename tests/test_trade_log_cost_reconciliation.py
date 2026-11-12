@@ -30,7 +30,7 @@ as before, so the net returns, the equity curve, the positions and every
 metric except ``avg_trade_cost`` are **bit-identical** to the pre-fix engine.
 
 **What is deliberately not changed.** The frozen artifacts are *history*: the
-``cost`` column of **every** committed trade log (**82** of them) and the
+``cost`` column of **every** committed trade log (**114** of them) and the
 ``avg_trade_cost`` of the five summaries that publish it still carry the
 pre-fix aggregate attribution. They are left untouched and pinned below -- for
 the whole record, not for one artifact. No gate, threshold, verdict or
@@ -631,6 +631,23 @@ TRADE_LOG_RECORD: dict[str, tuple[int, int, int]] = {
         1465,
         593,
     ),
+    # 2026-11-12 reconciliation: these 11 logs are tracked in this checkout but
+    # were absent from the pinned record. Measured and classified below.
+    ".experiments/artifacts/exp_2026-10-11T18-36-51-113738Z/frozen_trades.parquet": (
+        3701,
+        2975,
+        513,
+    ),
+    ".experiments/artifacts/exp_2026-10-13T21-48-22-444352Z/best_trades.parquet": (1467, 1467, 0),
+    ".experiments/artifacts/exp_2026-10-13T22-36-40-860592Z/best_trades.parquet": (1424, 1424, 0),
+    ".experiments/artifacts/exp_2026-10-13T22-39-24-772135Z/best_trades.parquet": (1424, 1424, 0),
+    ".experiments/artifacts/exp_2026-10-13T22-39-55-233900Z/best_trades.parquet": (1424, 1424, 0),
+    ".experiments/artifacts/exp_2026-10-13T22-40-15-688927Z/best_trades.parquet": (1424, 1424, 0),
+    ".experiments/artifacts/exp_2026-10-14T19-46-14-356479Z/trades.parquet": (3056, 1424, 570),
+    ".experiments/artifacts/exp_2026-10-14T20-00-08-312708Z/trades.parquet": (3056, 1424, 570),
+    ".experiments/artifacts/exp_2026-10-19T15-44-25-288950Z/trades.parquet": (3056, 1424, 570),
+    ".experiments/artifacts/exp_2026-10-19T15-46-01-180776Z/trades.parquet": (3160, 1465, 593),
+    ".experiments/artifacts/exp_2026-11-05T11-33-50-642571Z/best_trades.parquet": (1, 1, 0),
 }
 
 #: The logs whose recorded attribution differs from the per-trade attribution:
@@ -709,6 +726,11 @@ ATTRIBUTION_CHANGES_A_NUMBER: frozenset[str] = frozenset(
         ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-38-50-887609Z/trades.parquet",
         ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-39-02-719690Z/trades.parquet",
         ".experiments/artifacts/h28_causal_recertification/runs/exp_2026-10-19T17-39-12-729639Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-11T18-36-51-113738Z/frozen_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-14T19-46-14-356479Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-14T20-00-08-312708Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-19T15-44-25-288950Z/trades.parquet",
+        ".experiments/artifacts/exp_2026-10-19T15-46-01-180776Z/trades.parquet",
     }
 )
 
@@ -739,6 +761,12 @@ ATTRIBUTION_COINCIDES: frozenset[str] = frozenset(
         ".experiments/artifacts/exp_2026-11-06T02-17-43-039138Z/best_trades.parquet",
         ".experiments/artifacts/exp_2026-11-06T03-36-48-479398Z/best_trades.parquet",
         ".experiments/artifacts/exp_2026-11-06T04-23-47-511988Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-13T21-48-22-444352Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-13T22-36-40-860592Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-13T22-39-24-772135Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-13T22-39-55-233900Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-10-13T22-40-15-688927Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-11-05T11-33-50-642571Z/best_trades.parquet",
     }
 )
 
@@ -957,8 +985,8 @@ class TestFrozenRecordScope:
 
     §H47 named the families "H10, H11, H16, H21, H22, H25" and pinned the
     disclosure for **one** artifact. The record is wider on both counts:
-    **82** trade logs are committed (the §H47-era scan used a
-    ``trades.parquet``-only glob and so saw 41 of them), they span **eleven**
+    **114** trade logs are committed (the §H47-era scan used a
+    ``trades.parquet``-only glob and so saw 41 of them), they span **twenty**
     families plus the exploratory artifacts, and the attribution is pinned here
     for every one.
     """
