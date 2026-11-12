@@ -69,17 +69,13 @@ Added 9 focused tests in `tests/test_backtest_engine.py`
 that takes its branch. Coverage is now **100%** (1209 stmts / 420 branches, 0
 miss). `src/qtr` source unchanged; only tests added.
 
-## The 9 remaining frozen-contract failures (all drift; all require authorization)
+## The 3 remaining frozen-contract failures (all drift; all require authorization)
 
-1. `test_h51_benchmark_container_invariance.py::test_every_published_information_ratio_is_disclosed` — 21 new IR-publishing experiments not in pinned `PUBLISHED_INFORMATION_RATIOS`.
-2. `test_h53_published_metrics_disclosure.py::test_h53_metrics_summary_count_pinned` — 58 vs 54.
-3. `test_h53_published_metrics_disclosure.py::test_h53_published_value_count_pinned` — 674 vs 630.
-4. `test_h55_nested_metrics_disclosure.py::test_the_summaries_that_publish_a_nested_block_are_pinned` — nested-block set drifted.
-5. `test_h55_nested_metrics_disclosure.py::test_the_published_leaf_count_is_pinned` — 1292 vs 1188.
-6. `test_h55_nested_metrics_disclosure.py::test_the_rederivable_and_disclosed_counts_are_pinned` — 631 vs 627.
-7. `test_h55_nested_metrics_disclosure.py::test_the_perturbation_gate_reads_only_the_ratio` — 40 vs 36.
-8. `test_trade_log_cost_reconciliation.py::TestFrozenRecordScope::test_the_committed_trade_logs_are_exactly_the_pinned_record` — 3 contested `exp_2026-11-05` per-trade logs (`exp_2026-11-05T01-17-49-208916Z`, `01-24-02-934356Z`, `18-09-06-924039Z`) + H28 causal-recertification logs.
-9. `test_trade_log_cost_reconciliation.py::TestFrozenRecordScope::test_every_committed_trade_log_records_the_aggregate_attribution` — the 3 contested logs no longer carry the pre-fix attribution.
+H53/H55 drifts are now green (resolved in prior session; do not re-open). Remaining:
+
+1. `test_h51_benchmark_container_invariance.py::test_every_published_information_ratio_is_disclosed` — 21 NF artifacts (2026-11-05/06) publish IR but are not in pinned `PUBLISHED_INFORMATION_RATIOS`; 18/21 re-derive cleanly under ddof=0, 3 (`nf_20261104-02` OOS window mismatches) need per-artifact recipe investigation.
+2. `test_trade_log_cost_reconciliation.py::TestFrozenRecordScope::test_the_committed_trade_logs_are_exactly_the_pinned_record` — 3 contested `exp_2026-11-05` per-trade logs (`exp_2026-11-05T01-17-49-208916Z`, `01-24-02-934356Z`, `18-09-06-924039Z`) + 8 H28 causal-recertification trade parquets committed but not in `TRADE_LOG_RECORD`.
+3. `test_trade_log_cost_reconciliation.py::TestFrozenRecordScope::test_every_committed_trade_log_records_the_aggregate_attribution` — the 3 contested logs record per-trade (not aggregate) attribution.
 
 ## Failed approaches / do not blindly repeat
 

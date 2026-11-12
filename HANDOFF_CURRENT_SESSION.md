@@ -10,17 +10,12 @@
 - `python -m ruff check src tests run_*.py` — **All checks passed**.
 - `python -m ruff format --check src tests run_*.py` — **315 files already formatted**.
 - `git status --short` — **clean**; `HEAD == origin/main` (short log shows `2b320d4`, `73b6c59`, `fba4ea7`, `f69338a`, `5898112`).
-- Infrastructure contract suites:
-  - `test_benchmark_gate_contract`, `test_gate_vacuity_contract`, `test_engine_metric_agreement`, `test_engine_total_return_consistency`, `test_parameter_sensitivity_reproducibility`, `test_runner_causality_inventory`, `test_probe_report_schema`, `test_config` — **486 passed**.
-  - `test_runner_import_contract`, `test_runner_metric_agreement` — **322 passed** (1 deprecation warning from protobuf, unrelated).
-  - `test_data_fetcher`, `test_cost_model`, `test_baselines`, `test_baselines_extra`, `test_tsmom_signal`, `test_cs_momentum_signal` — **145 passed**.
-  - `test_experiment_tracking`, `test_experiment_tracker`, `test_experiment_artifact_schema` — **130 passed**.
-  - `test_statistics`, `test_causality_invariant`, `test_certified_artifact_values`, `test_generated_manifest_contract`, `test_coverage_gate_contract` — **278 passed, 4 skipped**.
-  - `test_public_api_contract`, `test_requirements_contract`, `test_ruff_reproducibility` — **36 passed**.
-  - **Total contract tests: 1,397 passed, 4 skipped** — all green.
-- Focused frozen-drift modules: `PYTHONPATH=src python -m pytest -q tests/test_h51_benchmark_container_invariance.py tests/test_h53_published_metrics_disclosure.py tests/test_h55_nested_metrics_disclosure.py tests/test_trade_log_cost_reconciliation.py` — **327 passed, 3 failed, 12 skipped** (18.47s).
-  - **H53: 0 failures** (previously had count drifts; now clean).
-  - **H55: 0 failures** (previously had nested-block drifts; now clean).
+- Full suite: `python -m pytest -q -W error` — **3532 passed, 3 failed, 16 skipped** (539.75s). The 3 failures are exactly the documented authorization-gated frozen-contract drifts below; no new failure, no regression, no code bug.
+- Focused frozen-drift modules: `PYTHONPATH=src python -m pytest -q tests/test_h51_benchmark_container_invariance.py tests/test_h53_published_metrics_disclosure.py tests/test_h55_nested_metrics_disclosure.py tests/test_trade_log_cost_reconciliation.py` — **327 passed, 3 failed, 12 skipped** (18.10s).
+  - **H53: 0 failures** (green — drift resolved in prior session).
+  - **H55: 0 failures** (green — drift resolved in prior session).
+  - **H51: 1 failure** (`test_every_published_information_ratio_is_disclosed`).
+  - **Trade log: 2 failures** (`test_the_committed_trade_logs_are_exactly_the_pinned_record`, `test_every_committed_trade_log_records_the_aggregate_attribution`).
   - All 3 failures are the documented authorization-gated drifts below.
 
 ## Unresolved / pre-existing (require authorization — do not modify without it)
