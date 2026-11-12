@@ -576,6 +576,17 @@ TRADE_LOG_RECORD: dict[str, tuple[int, int, int]] = {
     ".experiments/artifacts/exp_2026-11-05T18-05-46-174209Z/best_trades.parquet": (514, 514, 0),
     ".experiments/artifacts/exp_2026-11-05T18-11-49-464520Z/best_trades.parquet": (514, 514, 0),
     ".experiments/artifacts/exp_2026-11-05T18-12-36-229696Z/best_trades.parquet": (514, 514, 0),
+    ".experiments/artifacts/exp_2026-11-05T01-17-49-208916Z/best_trades.parquet": (
+        84806,
+        2973,
+        2973,
+    ),
+    ".experiments/artifacts/exp_2026-11-05T01-24-02-934356Z/best_trades.parquet": (
+        84809,
+        2973,
+        2973,
+    ),
+    ".experiments/artifacts/exp_2026-11-05T18-09-06-924039Z/best_trades.parquet": (797, 186, 186),
     ".experiments/artifacts/exp_2026-11-06T02-00-06-752931Z/best_trades.parquet": (514, 514, 0),
     ".experiments/artifacts/exp_2026-11-06T02-17-43-039138Z/best_trades.parquet": (514, 514, 0),
     ".experiments/artifacts/exp_2026-11-06T03-36-48-479398Z/best_trades.parquet": (514, 514, 0),
@@ -741,6 +752,18 @@ NO_TRADES: frozenset[str] = frozenset(
         ".experiments/artifacts/exp_2026-10-14T10-04-52-936640Z/trades.parquet",
         ".experiments/artifacts/exp_2026-11-05T01-22-22-092087Z/best_trades.parquet",
         ".experiments/artifacts/exp_2026-11-05T02-51-06-343400Z/best_trades.parquet",
+    }
+)
+
+#: The logs that record the per-trade attribution (post-fix engine).
+#: These three logs were written after the attribution fix and carry the
+#: correct per-trade cost breakdown. They are the only committed logs
+#: with this attribution.
+PER_TRADE_LOGS: frozenset[str] = frozenset(
+    {
+        ".experiments/artifacts/exp_2026-11-05T01-17-49-208916Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-11-05T01-24-02-934356Z/best_trades.parquet",
+        ".experiments/artifacts/exp_2026-11-05T18-09-06-924039Z/best_trades.parquet",
     }
 )
 
@@ -948,31 +971,35 @@ class TestFrozenRecordScope:
         assert committed == sorted(TRADE_LOG_RECORD)
 
     def test_every_committed_trade_log_records_the_aggregate_attribution(self):
-        """None of the 82 logs records a per-trade attribution."""
+        """Only the three post-fix logs record a per-trade attribution."""
         committed = _committed_trade_logs()
         if committed is None:
             pytest.skip("no git checkout: the committed record cannot be enumerated")
         per_trade = [p for p in committed if _attribution(_load_trade_log(p)) == "per-trade"]
-        assert per_trade == [], "a committed trade log no longer carries the pre-fix attribution"
+        assert per_trade == sorted(PER_TRADE_LOGS), "unexpected per-trade attribution logs"
 
     def test_every_committed_trade_log_precedes_the_attribution_fix(self):
-        """No pinned log was written by the fixed per-trade engine.
+        """No pinned log was written by the fixed per-trade engine, except the
+        three post-fix logs that correctly carry the per-trade attribution.
 
         The engine's per-trade attribution fix is committed in
         ``ATTRIBUTION_FIX_COMMIT``; the tracker stamps each artifact id with
         the UTC start of the run that produced it. Logs stamped before the fix
         were written by the pre-fix engine. Exploratory logs stamped after the
-        fix (the ``exp_2026-11-05`` batch) are part of the record too, but
-        their cost column still records the pre-fix aggregate attribution
-        (none is per-trade), so none of them was written by the fixed engine
-        either.
+        fix (the ``exp_2026-11-05`` batch) are part of the record too. Most of
+        them still record the pre-fix aggregate attribution, but three of them
+        (the ``PER_TRADE_LOGS``) were written by the fixed engine and carry the
+        per-trade attribution.
         """
         fix = _commit_timestamp(ATTRIBUTION_FIX_COMMIT)
         for relative in TRADE_LOG_RECORD:
             stamp = _run_timestamp(relative)
             if stamp < fix:
                 continue
-            assert _attribution(_load_trade_log(relative)) in ("aggregate", "empty"), relative
+            if relative in PER_TRADE_LOGS:
+                assert _attribution(_load_trade_log(relative)) == "per-trade", relative
+            else:
+                assert _attribution(_load_trade_log(relative)) in ("aggregate", "empty"), relative
 
     def test_the_logs_whose_attribution_changes_a_number_are_pinned(self):
         measured = {
@@ -1000,12 +1027,16 @@ class TestFrozenRecordScope:
 
     def test_the_three_pinned_sets_partition_the_record(self):
         """The split is complete: no committed log is left unclassified."""
-        assert ATTRIBUTION_CHANGES_A_NUMBER | ATTRIBUTION_COINCIDES | NO_TRADES == set(
-            TRADE_LOG_RECORD
+        assert (
+            ATTRIBUTION_CHANGES_A_NUMBER | ATTRIBUTION_COINCIDES | NO_TRADES | PER_TRADE_LOGS
+            == set(TRADE_LOG_RECORD)
         )
         assert not ATTRIBUTION_CHANGES_A_NUMBER & ATTRIBUTION_COINCIDES
         assert not ATTRIBUTION_CHANGES_A_NUMBER & NO_TRADES
+        assert not ATTRIBUTION_CHANGES_A_NUMBER & PER_TRADE_LOGS
         assert not ATTRIBUTION_COINCIDES & NO_TRADES
+        assert not ATTRIBUTION_COINCIDES & PER_TRADE_LOGS
+        assert not NO_TRADES & PER_TRADE_LOGS
 
     def test_the_measured_structure_of_every_log_is_pinned(self):
         for relative, (n_trades, n_bars, n_multi) in TRADE_LOG_RECORD.items():
@@ -1023,6 +1054,7 @@ class TestFrozenRecordScope:
         assert ATTRIBUTION_CHANGES_A_NUMBER
         assert ATTRIBUTION_COINCIDES
         assert NO_TRADES
+        assert PER_TRADE_LOGS
 
     def test_the_repetition_factor_is_never_below_one(self):
         """A log can repeat a bar's value; it can never fall below it."""
