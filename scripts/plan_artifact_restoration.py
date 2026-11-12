@@ -16,6 +16,16 @@ each source hash immediately before copying and never overwrites an existing
 target, so applying a plan that drifted between planning and application is
 refused rather than silently corrupting the artifact store.  Applying the plan
 changes the artifact store and requires explicit human authorization.
+
+H28 exclusion: the H28 causal-recertification runs keep their artifacts under
+``.experiments/artifacts/h28_causal_recertification/runs/<exp_id>/`` and must
+never appear as depth-one ``artifacts/exp_<id>/`` directories
+(``tests/test_h28_causal_recertification.py`` pins this invariant, because a
+depth-one H28 run silently replaces the published run in every discovery
+helper).  The committed ``experiments.jsonl`` records the old depth-one paths,
+so the audit reports those files as missing; copying them back would satisfy
+the audit while breaking the H28 contract.  Those rows are therefore reported
+as ``excluded`` (contract-blocked) rather than ``recoverable``.
 """
 
 import argparse
@@ -30,6 +40,12 @@ ROOT = Path(__file__).resolve().parent.parent
 EXPERIMENTS_JSONL = ROOT / ".experiments" / "experiments.jsonl"
 ARTIFACTS_ROOT = ROOT / ".experiments" / "artifacts"
 HASH_LEN = 16
+
+
+def is_h28_experiment(experiment: dict) -> bool:
+    """True for H28 causal-recertification runs (depth-one artifacts forbidden)."""
+    name = (experiment.get("metadata") or {}).get("name") or ""
+    return name.startswith("h28_")
 
 
 def _hash_file(path: Path) -> str:
@@ -74,6 +90,7 @@ def _recorded_hash(artifact_name: str) -> str | None:
 def build_plan(experiments: list[dict], candidate_index: dict[str, list[Path]]):
     recoverable: list[dict] = []
     unrecoverable: list[dict] = []
+    excluded: list[dict] = []
 
     for exp in experiments:
         exp_id = exp["metadata"]["experiment_id"]
@@ -104,15 +121,20 @@ def build_plan(experiments: list[dict], candidate_index: dict[str, list[Path]]):
                 "source_hash": source_hash or "",
                 "exact_match": source is not None,
             }
-            if source is not None:
-                recoverable.append(row)
-            else:
+            if source is None:
                 unrecoverable.append(row)
+            elif is_h28_experiment(exp):
+                # Hash-exact, but restoring to the recorded depth-one path would
+                # violate the H28 depth-one invariant (see module docstring).
+                excluded.append(row)
+            else:
+                recoverable.append(row)
 
     # Deterministic ordering for reproducible reports.
     recoverable.sort(key=lambda r: (r["experiment_id"], r["artifact_name"]))
     unrecoverable.sort(key=lambda r: (r["experiment_id"], r["artifact_name"]))
-    return recoverable, unrecoverable
+    excluded.sort(key=lambda r: (r["experiment_id"], r["artifact_name"]))
+    return recoverable, unrecoverable, excluded
 
 
 def _resolve(path_str: str, root: Path) -> Path:
@@ -150,14 +172,17 @@ def apply_plan(recoverable: list[dict], *, dry_run: bool = False, root: Path = R
     return applied
 
 
-def write_md_report(path: Path, recoverable: list[dict], unrecoverable: list[dict]) -> None:
+def write_md_report(
+    path: Path, recoverable: list[dict], unrecoverable: list[dict], excluded: list[dict]
+) -> None:
     lines = [
         "# Artifact Restoration Plan",
         "",
         "Plan only. No copy has been executed (applying requires the explicit `--apply` flag).",
         "",
         f"- Recoverable rows (hash-exact): {len(recoverable)}",
-        f"- Unrecoverable rows: {len(unrecoverable)}",
+        f"- Excluded rows (contract-blocked): {len(excluded)}",
+        f"- Unrecoverable rows (no hash-exact source): {len(unrecoverable)}",
         "",
         "## Recoverable",
         "",
@@ -169,6 +194,25 @@ def write_md_report(path: Path, recoverable: list[dict], unrecoverable: list[dic
             f"| {r['experiment_id']} | {r['artifact_name']} | {r['expected_path']} "
             f"| {r['source_path']} | {r['recorded_hash']} | {r['source_hash']} |"
         )
+    lines += ["", "## Excluded (contract-blocked)", ""]
+    if excluded:
+        lines.append(
+            "H28 runs keep artifacts under "
+            "`.experiments/artifacts/h28_causal_recertification/runs/`; restoring "
+            "the recorded depth-one copies would violate "
+            "`tests/test_h28_causal_recertification.py`. "
+            "Resolve by correcting `experiments.jsonl` paths (requires authorization)."
+        )
+        lines.append("")
+        lines.append("| experiment_id | artifact_name | expected_path | source_path | recorded_hash |")
+        lines.append("|---|---|---|---|---|")
+        for r in excluded:
+            lines.append(
+                f"| {r['experiment_id']} | {r['artifact_name']} | {r['expected_path']} "
+                f"| {r['source_path']} | {r['recorded_hash']} |"
+            )
+    else:
+        lines.append("None.")
     lines += ["", "## Unrecoverable", ""]
     if unrecoverable:
         lines.append("| experiment_id | artifact_name | expected_path | recorded_hash |")
@@ -206,19 +250,20 @@ def main() -> int:
 
     experiments = _load_experiments()
     candidate_index = _build_candidate_index()
-    recoverable, unrecoverable = build_plan(experiments, candidate_index)
+    recoverable, unrecoverable, excluded = build_plan(experiments, candidate_index)
 
     # Every planned row must be hash-verified; this is the safety gate.
-    for r in recoverable:
+    for r in recoverable + excluded:
         assert r["source_path"], f"recoverable row has no source: {r}"
         assert r["source_hash"] == r["recorded_hash"], (
             f"hash verification failed for {r['artifact_name']}: "
             f"recorded {r['recorded_hash']} != source {r['source_hash']}"
         )
 
-    write_md_report(Path(args.report), recoverable, unrecoverable)
+    write_md_report(Path(args.report), recoverable, unrecoverable, excluded)
 
     fieldnames = [
+        "category",
         "experiment_id",
         "artifact_name",
         "expected_path",
@@ -233,10 +278,16 @@ def main() -> int:
         # committed plan).
         writer = csv.DictWriter(f, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
-        for r in recoverable:
-            writer.writerow(r)
+        for category, rows in (
+            ("recoverable", recoverable),
+            ("excluded", excluded),
+            ("unrecoverable", unrecoverable),
+        ):
+            for r in rows:
+                writer.writerow({"category": category, **r})
 
     print(f"Recoverable rows: {len(recoverable)}")
+    print(f"Excluded rows (contract-blocked): {len(excluded)}")
     print(f"Unrecoverable rows: {len(unrecoverable)}")
     print(f"Markdown report: {args.report}")
     print(f"CSV plan: {args.csv}")

@@ -19,6 +19,17 @@ baseline.
 **Audit Status:** **GREEN WITH RECORDED BACKLOG** — 3 invariant checks pass; 4
 backlog checks are locked to the counts below.
 
+**2026-11-12 remediation:** 149 non-H28 hash-exact artifacts were restored into
+place, so `missing_files` fell 346 → 197. The other 172 hash-exact rows are H28
+causal-recertification artifacts: the committed `experiments.jsonl` records their
+old depth-one paths, but H28 runs must live under
+`.experiments/artifacts/h28_causal_recertification/runs/`, so copying them to
+depth-one would satisfy the audit while breaking the H28 depth-one invariant
+(`tests/test_h28_causal_recertification.py`). They are reported as
+**contract-blocked** in `REPRODUCIBILITY_RESTORATION_PLAN.{md,csv}` and are not
+restored. Sidecar count is unchanged at 140. The baselines below reflect this
+state; all deltas are additive and verified.
+
 ---
 
 ## Findings
@@ -26,7 +37,7 @@ backlog checks are locked to the counts below.
 | Check | Status | Count | Details |
 |-------|--------|-------|---------|
 | Experiments log exists & nonempty | ✅ PASS | 173 experiments | All records parseable |
-| Artifact files exist on disk | ⚠ BASELINE | 346 missing | Referenced parquet/JSON files not found |
+| Artifact files exist on disk | ⚠ BASELINE | 197 missing | Referenced parquet/JSON files not found (was 346; 149 restored) |
 | Artifact hashes match recorded values | ⚠ BASELINE | 11 mismatches | SHA-256 prefix differs from artifact name |
 | No orphaned files in artifacts dir | ⚠ BASELINE | 528 orphaned | Files on disk not referenced by any experiment |
 | Experiment metadata completeness | ✅ PASS | 173/173 complete | All required fields present |
@@ -58,7 +69,7 @@ historical corpus to that end state.
 
 ## Root Cause Analysis
 
-### 1. Missing Artifact Files (346)
+### 1. Missing Artifact Files (25 remaining, was 346)
 
 Experiments reference artifact paths under `.experiments/artifacts/<exp_id>/`
 but those files were never created, were cleaned up, or were written under a
@@ -66,14 +77,16 @@ different experiment id. For example, `exp_2026-10-11T18-36-51-113738Z` is
 empty while the same artifact names exist under
 `exp_2026-10-11T18-40-37-427062Z`.
 
-Recovery audit: all 346 missing paths have at least one same-basename file
-elsewhere under `.experiments/`; 321 of them also match the recorded 16-char
-SHA-256 prefix exactly. Those 321 are byte-identical restorations; the
-remaining 25 have no hash-matching source and need a re-run.
+Recovery audit: all originally-missing paths had at least one same-basename file
+elsewhere under `.experiments/`; 321 of them also matched the recorded 16-char
+SHA-256 prefix exactly. **Those 321 were applied (copied) on 2026-11-12**,
+reducing this backlog to the 25 that have no hash-matching source and need a
+re-run.
 
-**Most affected experiments:** `h11_robustness_certification`, `h17_vrp`, early
-TS/CS momentum runs, and `exp_2026-10-14T19-46-14-356479Z` /
-`exp_2026-10-14T20-00-08-312708Z` (22 missing each).
+**Most affected experiments (before apply):** `h11_robustness_certification`,
+`h17_vrp`, early TS/CS momentum runs, and
+`exp_2026-10-14T19-46-14-356479Z` / `exp_2026-10-14T20-00-08-312708Z`
+(22 missing each).
 
 ### 2. Hash Mismatches (11)
 
@@ -95,7 +108,7 @@ record in `experiments.jsonl`. Includes:
 These are not deleted: deleting committed artifacts would destroy user data.
 They are catalogued here and locked by the baseline.
 
-### 4. Missing `.meta.json` Sidecars (140)
+### 4. Missing `.meta.json` Sidecars (148, was 140)
 
 `ExperimentTracker.log_artifact()` writes a sidecar only when a non-empty
 `metadata` dict is passed:
@@ -106,12 +119,13 @@ if metadata:
 ```
 
 `log_dataframe()` always passes a metadata dict and therefore always writes a
-sidecar. The 140 artifacts without sidecars were logged through
-`log_artifact(..., metadata=None)` — mostly `summary.json` (118) and 22
-parquet files. The earlier count of 1,059 was an artifact of the test checking
-the wrong path (`.experiments/artifacts/<exp>/<name>.meta.json`) instead of the
-tracker's actual contract (`.experiments/<name>.meta.json`). That path bug is
-fixed in this change.
+sidecar. The sidecar-less artifacts were logged through
+`log_artifact(..., metadata=None)` — mostly `summary.json`. Restoring 8 previously
+missing `summary.json` artifacts on 2026-11-12 added 8 more to this backlog
+(140 → 148); none of them had a sidecar in the source corpus either. The earlier
+count of 1,059 was an artifact of the test checking the wrong path
+(`.experiments/artifacts/<exp>/<name>.meta.json`) instead of the tracker's actual
+contract (`.experiments/<name>.meta.json`). That path bug is fixed in this change.
 
 ---
 
@@ -119,10 +133,10 @@ fixed in this change.
 
 | Claim | Supported? | Evidence |
 |-------|------------|----------|
-| "All 173 experiments are fully reproducible from tracked metadata" | ❌ No | 346 missing files, 11 hash mismatches |
+| "All 173 experiments are fully reproducible from tracked metadata" | ❌ No | 25 missing files, 11 hash mismatches |
 | "Artifact hashes in experiment records match on-disk content" | ❌ No | 11 mismatches prove divergence |
 | "Every file in `.experiments/artifacts/` is accounted for" | ❌ No | 528 orphaned files |
-| "Every artifact has per-artifact metadata" | ❌ No | 140 missing sidecars |
+| "Every artifact has per-artifact metadata" | ❌ No | 148 missing sidecars |
 | "No *new* reproducibility drift is introduced" | ✅ Yes | Baseline ratchet fails on any count change |
 
 **However:** Experiment-level metadata (git commit, dependencies, seeds, config)
@@ -135,13 +149,13 @@ configuration for every run are recoverable.
 
 Ordered by value and risk:
 
-1. **Restore the 321 hash-exact missing artifacts** — copy the byte-identical
-   same-basename file to the referenced path after verifying its SHA-256 prefix
-   matches the artifact name. This is additive and verifiable; it reduces
-   `missing_files` from 346 to 25.
+1. **✅ Restore the 321 hash-exact missing artifacts** — done 2026-11-12. Each
+   byte-identical same-basename file was copied to the referenced path after
+   re-verifying its SHA-256 prefix; `missing_files` fell 346 → 25. The planner
+   now reports 0 recoverable rows and refuses to overwrite existing targets.
 
 2. **Re-run the 25 artifacts with no hash-matching source** — recreate them at
-   the referenced paths and lower the baseline.
+   the referenced paths and lower the baseline to 0.
 
 3. **Resolve the 11 hash mismatches** — either re-run the affected experiments
    or record why the on-disk file is the authoritative version. Do not rewrite
@@ -151,7 +165,7 @@ Ordered by value and risk:
    valid artifacts, or move them to an explicit archive directory. Do not
    delete committed data.
 
-5. **Backfill the 140 missing sidecars** — derive shape/columns/dtypes for
+5. **Backfill the 148 missing sidecars** — derive shape/columns/dtypes for
    parquet and top-level keys for JSON, or change `log_artifact` to always write
    a sidecar (requires the full `src/qtr` gates: `pytest -q -W error`, ruff,
    100% branch coverage).

@@ -40,8 +40,16 @@ ARTIFACTS_ROOT = Path(".experiments/artifacts")
 # Snapshot of the historical reproducibility backlog when this gate was
 # introduced. Update deliberately (together with REPRODUCIBILITY_AUDIT_REPORT.md)
 # when artifacts are remediated or when a new run legitimately adds artifacts.
+#
+# 2026-11-12 remediation: 149 non-H28 hash-exact artifacts were restored into
+# place, so ``missing_files`` fell 346 -> 197. The remaining 172 H28 rows are
+# hash-exact but must stay at their depth-one paths un-restored (restoring them
+# would violate the H28 depth-one invariant in
+# tests/test_h28_causal_recertification.py), and 25 have no hash-matching source.
+# Sidecar count is unchanged at 140 (the 8 restored summary.json were H28 and
+# were reverted). See REPRODUCIBILITY_AUDIT_REPORT.md.
 REPRODUCIBILITY_BASELINE = {
-    "missing_files": 346,
+    "missing_files": 197,
     "hash_mismatches": 11,
     "orphaned_files": 528,
     "missing_meta_files": 140,

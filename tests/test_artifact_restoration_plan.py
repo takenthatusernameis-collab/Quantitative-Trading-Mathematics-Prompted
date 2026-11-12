@@ -24,10 +24,16 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 PLANNER = ROOT / "scripts" / "plan_artifact_restoration.py"
 
-# Baseline computed from the committed corpus at the time this gate was
-# introduced. 346 missing referenced artifacts; 321 have a same-basename
-# candidate whose SHA-256 16-char prefix matches the recorded hash; 25 do not.
-RECOVERABLE_BASELINE = 321
+# Baseline computed from the committed corpus. Originally 346 missing referenced
+# artifacts. On 2026-11-12 the 149 non-H28 hash-exact rows were applied (see
+# NEXT_TASK.md and REPRODUCIBILITY_AUDIT_REPORT.md), so ``missing_files`` fell
+# 346 -> 197. The 172 H28 rows are hash-exact but contract-blocked: restoring the
+# recorded depth-one paths would violate the H28 depth-one invariant pinned by
+# ``tests/test_h28_causal_recertification.py``. The remaining 25 have no
+# hash-matching source. The ratchet still fires if any of these counts drift
+# without a deliberate remediation + report update.
+RECOVERABLE_BASELINE = 0
+EXCLUDED_BASELINE = 172
 UNRECOVERABLE_BASELINE = 25
 
 
@@ -43,7 +49,7 @@ def test_plan_row_counts_match_recorded_baseline():
     planner = _load_planner_module()
     experiments = planner._load_experiments()
     candidate_index = planner._build_candidate_index()
-    recoverable, unrecoverable = planner.build_plan(experiments, candidate_index)
+    recoverable, unrecoverable, excluded = planner.build_plan(experiments, candidate_index)
 
     assert len(recoverable) == RECOVERABLE_BASELINE, (
         f"recoverable rows changed: {len(recoverable)} "
@@ -51,6 +57,13 @@ def test_plan_row_counts_match_recorded_baseline():
         "If this is an authorized remediation, lower the baseline here and in "
         "REPRODUCIBILITY_RESTORATION_PLAN.md. If it is drift, fix the artifact "
         "store instead of raising the baseline."
+    )
+    assert len(excluded) == EXCLUDED_BASELINE, (
+        f"excluded rows changed: {len(excluded)} "
+        f"(recorded baseline {EXCLUDED_BASELINE}).\n"
+        "Excluded rows are H28 depth-one artifacts that must not be restored "
+        "(see the planner docstring). A change means the H28 corpus or the "
+        "recorded paths drifted."
     )
     assert len(unrecoverable) == UNRECOVERABLE_BASELINE, (
         f"unrecoverable rows changed: {len(unrecoverable)} "
@@ -64,7 +77,7 @@ def test_every_recoverable_row_is_hash_verified():
     planner = _load_planner_module()
     experiments = planner._load_experiments()
     candidate_index = planner._build_candidate_index()
-    recoverable, _ = planner.build_plan(experiments, candidate_index)
+    recoverable, _, _ = planner.build_plan(experiments, candidate_index)
 
     for row in recoverable:
         assert row["source_path"], f"recoverable row has no source: {row}"
@@ -84,7 +97,7 @@ def test_no_recoverable_row_targets_an_existing_path():
     planner = _load_planner_module()
     experiments = planner._load_experiments()
     candidate_index = planner._build_candidate_index()
-    recoverable, _ = planner.build_plan(experiments, candidate_index)
+    recoverable, _, _ = planner.build_plan(experiments, candidate_index)
 
     for row in recoverable:
         assert not Path(row["expected_path"]).exists(), (
