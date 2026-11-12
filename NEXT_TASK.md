@@ -2,39 +2,11 @@
 
 ## Status
 
-**Cycle 100 (2026-11-11T14:15Z) — stale-audit re-verification + dead-stub cleanup (no authorization needed; no gated artifact/test touched).**
+**Cycle 101 (2026-11-12) — dead probe/stub cleanup + baseline re-verification (no authorization needed; no gated artifact/test touched).**
 
-Two documentation defects were resolved this session, both verified by re-running the
-relevant contract test against the current tree:
+Removed 2 committed, unreferenced probe/stub files (`_probe_h51.py`, `run_h148_probe.py`; verified unreferenced by grep before deletion). Baseline re-verified green: ruff check/format clean (314 files); runner-touching suites 764 passed/0 failed; full suite 3530 passed/3 failed/16 skipped (the 3 = documented authorization-gated frozen-contract drifts; no new failure, no regression); `src/qtr` coverage unchanged at 100%. Two working-tree deletions left unstaged (no commit/push — not explicitly requested).
 
-1. **`INFRASTRUCTURE_AUDIT_BENCHMARK_GATE.md` was stale.** It claimed **38** open
-   p-value offenders. Re-running its own detector
-   (`tests/test_benchmark_gate_contract.py::test_no_runner_compares_a_p_value_against_max_p_value_directly`)
-   reports **0 offenders**, and direct grep confirms all 38 named runners now call
-   `benchmark_significance_gate` (exactly 2 call sites each: the import and the
-   evaluation). The fix landed between Cycle 98 and Cycle 99; the doc was never
-   updated and read as an open defect for two cycles. The doc now carries a
-   re-verification banner and keeps the historical inventory for lineage.
-2. **`INFRASTRUCTURE_INSPECTION.md` was stale.** It reported "Infrastructure Status:
-   NONE EXIST" for a greenfield repo. Every component it lists now exists
-   (backtest engine, data pipeline, experiment tracking, strategies, baselines,
-   test suite, config management). The doc now carries a re-verification banner
-   with the actual locations and keeps the historical greenfield baseline.
-3. **Removed 19 dead stub files** from the working tree (all committed, all
-   unreferenced by any test, source, runner, workflow, or script):
-   `_chunk_test.py`, `_probe.py`, `_probe2.py`, `_probe_h159.py`, `_probe_h169.py`,
-   `_probe_h170.py`, `_t.py`..`_t11.py`, `_wtest.txt`, `_placeholder.txt`,
-   `run_nf_20261107_53_etr` (0-byte), `run_nf_20261108_13_spy_futures_basis.py`,
-   `run_nf_20261108_31_spy_parkinson_rv_spy.py`. Verified unreferenced by grep over
-   `tests/ src/ .github/` before deletion; the runner-touching suites
-   (`test_runner_import_contract`, `test_benchmark_gate_contract`,
-   `test_gate_vacuity_contract`, `test_engine_metric_agreement`,
-   `test_engine_total_return_consistency`, `test_parameter_sensitivity_reproducibility`,
-   `test_runner_causality_inventory`, `test_probe_report_schema`, `test_config`) —
-   **773 passed**, so no contract was weakened.
-
-**No `src/qtr` change. No gated artifact, test, threshold, or frozen number touched.
-No commit/push (not requested).**
+**No `src/qtr` change. No gated artifact, test, threshold, or frozen number touched. No commit/push.**
 
 ## Verified this session
 

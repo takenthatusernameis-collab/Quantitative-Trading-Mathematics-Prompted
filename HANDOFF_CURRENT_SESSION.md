@@ -1,22 +1,21 @@
-# HANDOFF — Current Session: Auditing/infrastructure re-verification complete; baseline confirmed (100% coverage; 3 frozen-contract drifts unchanged, H53/H55 now green)
+# HANDOFF — Current Session: Dead probe/stub cleanup + baseline re-verification (100% coverage; 3 frozen-contract drifts unchanged, H53/H55 green)
 
 ## What changed (this session)
 
-- **No source, test, gate, frozen-number, or artifact changes.** `src/qtr` unchanged; working tree clean; no commit/push (not explicitly requested).
-- Performed comprehensive infrastructure audit re-verification across all contract test suites.
+- **Removed 2 committed, unreferenced probe/stub files** (verified unreferenced by grep over `tests/ src/ .github/` before deletion; all runner-touching suites re-passed after):
+  - `_probe_h51.py` (119 lines; temporary H51 artifact-recipe probe)
+  - `run_h148_probe.py` (3 lines; `print("ok")` stub)
+- **No source, test, gate, frozen-number, or artifact changes otherwise.** `src/qtr` unchanged; 2 working-tree deletions left **unstaged** (no commit/push — not explicitly requested).
 
 ## Actually verified (this session, own evidence)
 
 - `python -m ruff check src tests run_*.py` — **All checks passed**.
-- `python -m ruff format --check src tests run_*.py` — **315 files already formatted**.
-- `git status --short` — **clean**; `HEAD == origin/main` (short log shows `2b320d4`, `73b6c59`, `fba4ea7`, `f69338a`, `5898112`).
-- Full suite: `python -m pytest -q -W error` — **3532 passed, 3 failed, 16 skipped** (539.75s). The 3 failures are exactly the documented authorization-gated frozen-contract drifts below; no new failure, no regression, no code bug.
-- Focused frozen-drift modules: `PYTHONPATH=src python -m pytest -q tests/test_h51_benchmark_container_invariance.py tests/test_h53_published_metrics_disclosure.py tests/test_h55_nested_metrics_disclosure.py tests/test_trade_log_cost_reconciliation.py` — **327 passed, 3 failed, 12 skipped** (18.10s).
-  - **H53: 0 failures** (green — drift resolved in prior session).
-  - **H55: 0 failures** (green — drift resolved in prior session).
-  - **H51: 1 failure** (`test_every_published_information_ratio_is_disclosed`).
-  - **Trade log: 2 failures** (`test_the_committed_trade_logs_are_exactly_the_pinned_record`, `test_every_committed_trade_log_records_the_aggregate_attribution`).
-  - All 3 failures are the documented authorization-gated drifts below.
+- `python -m ruff format --check src tests run_*.py` — **314 files already formatted** (down from 315: `run_h148_probe.py` matched `run_*.py`).
+- `git status --short` — **2 unstaged deletions** (`_probe_h51.py`, `run_h148_probe.py`); `HEAD == origin/main`.
+- Runner-touching suites (`test_runner_import_contract`, `test_benchmark_gate_contract`, `test_gate_vacuity_contract`, `test_engine_metric_agreement`, `test_engine_total_return_consistency`, `test_parameter_sensitivity_reproducibility`, `test_runner_causality_inventory`, `test_probe_report_schema`, `test_config`) — **764 passed, 0 failed**.
+- Full suite: `python -m pytest -q -W error --cov=qtr --cov-branch` — **3530 passed, 3 failed, 16 skipped** (540.31s). The 3 failures are exactly the documented authorization-gated frozen-contract drifts below; no new failure, no regression, no code bug; coverage gate (`fail_under = 100`) not triggered.
+- `src/qtr` coverage — **unchanged at 100%** (no file under `src/qtr/` modified; prior measurement 1209 stmts / 420 branches, 0 miss).
+- Focused frozen-drift modules — **H53: 0 failures (green); H55: 0 failures (green); H51: 1 failure; Trade log: 2 failures** — all 3 are the documented authorization-gated drifts below.
 
 ## Unresolved / pre-existing (require authorization — do not modify without it)
 
@@ -45,6 +44,6 @@
 
 **Constraints:** `src/qtr` unchanged unless an evidenced defect requires it (then rerun pinned full gates); no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified without authorization; no commit/push unless explicitly requested.
 
-**Baseline evidence:** ruff check/format clean (315 files); all 1,397 contract tests passed; focused frozen-drift modules **327 passed / 3 failed / 12 skipped** (H53/H55 green); working tree clean.
+**Baseline evidence:** ruff check/format clean (314 files); runner-touching suites **764 passed / 0 failed**; full suite **3530 passed / 3 failed / 16 skipped** (the 3 = documented frozen-contract drifts, no regression); `src/qtr` coverage **100%**, unchanged; 2 unstaged deletions ready to commit on request; working tree otherwise clean.
 
 (End of file)
