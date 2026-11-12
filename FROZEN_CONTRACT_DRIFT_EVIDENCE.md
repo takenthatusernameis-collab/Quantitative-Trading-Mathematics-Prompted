@@ -10,19 +10,19 @@
 
 All 9 failures are **pre-existing frozen-number drifts** caused by new NF experiment artifacts (H85–H181) committed after the pinned counts were established. No new code bugs, no gate regressions, no `src/qtr` changes.
 
-| Contract | Test | Expected | Actual | Drift Cause |
-|---|---|---|---|---|
-| H51 | `test_every_published_information_ratio_is_disclosed` | 48 pinned | 69 found (+21) | 21 new NF IR-publishing artifacts (2026-11-05/06) |
-| H53 | `test_h53_metrics_summary_count_pinned` | 54 | 58 (+4) | 4 new NF summaries with metrics blocks |
-| H53 | `test_h53_published_value_count_pinned` | 630 | 674 (+44) | 44 new metric values from NF artifacts |
-| H55 | `test_summaries_publish_nested_block_pinned` | ablations 44, perturbation 24 | ablations 48, perturbation 28 | NF artifacts add nested blocks |
-| H55 | `test_published_leaf_count_pinned` | 1188 | 1292 (+104) | NF nested block leaves |
-| H55 | `test_rederivable_disclosed_counts_pinned` | 627 | 631 (+4) | NF re-derivable leaves |
-| H55 | `test_perturbation_gate_reads_only_ratio` | 36 | 40 (+4) | NF perturbation gates |
-| TradeLog | `test_committed_trade_logs_pinned` | pinned set | +3 contested + H28 logs | 3 `exp_2026-11-05` + H28 causal-recert |
-| TradeLog | `test_aggregate_attribution_recorded` | 0 missing | 3 missing | 3 `exp_2026-11-05` logs lost pre-fix attribution |
+| Contract | Test | Expected | Actual | Drift Cause | Status |
+|---|---|---|---|---|---|
+| H51 | `test_every_published_information_ratio_is_disclosed` | 48 pinned | 69 found (+21) | 21 new NF IR-publishing artifacts (2026-11-05/06) | OPEN |
+| H53 | `test_h53_metrics_summary_count_pinned` | 54 | 58 (+4) | 4 new NF summaries with metrics blocks | RESOLVED — green (re-verified 2026-11-12) |
+| H53 | `test_h53_published_value_count_pinned` | 630 | 674 (+44) | 44 new metric values from NF artifacts | RESOLVED — green (re-verified 2026-11-12) |
+| H55 | `test_summaries_publish_nested_block_pinned` | ablations 44, perturbation 24 | ablations 48, perturbation 28 | NF artifacts add nested blocks | RESOLVED — green (re-verified 2026-11-12) |
+| H55 | `test_published_leaf_count_pinned` | 1188 | 1292 (+104) | NF nested block leaves | RESOLVED — green (re-verified 2026-11-12) |
+| H55 | `test_rederivable_disclosed_counts_pinned` | 627 | 631 (+4) | NF re-derivable leaves | RESOLVED — green (re-verified 2026-11-12) |
+| H55 | `test_perturbation_gate_reads_only_ratio` | 36 | 40 (+4) | NF perturbation gates | RESOLVED — green (re-verified 2026-11-12) |
+| TradeLog | `test_committed_trade_logs_pinned` | pinned set | +3 contested + H28 logs | 3 `exp_2026-11-05` + H28 causal-recert | OPEN |
+| TradeLog | `test_aggregate_attribution_recorded` | 0 missing | 3 missing | 3 `exp_2026-11-05` logs lost pre-fix attribution | OPEN |
 
-**Total drift:** 21 + 4 + 44 + 4 + 4 + 104 + 4 + 4 + 3 = **192** new data points from NF H85–H181 artifacts.
+**Total open drift:** 21 (H51) + 3 (TradeLog contested logs) = **24** open data points; H53/H55 drifts resolved since prior session.
 
 ---
 
@@ -63,22 +63,13 @@ exp_2026-11-06T04-23-47-511988Z   nf_20261105_10_equity_bond_relmom
 
 ## H53: `test_h53_metrics_summary_count_pinned`
 
-**Failure:** 58 summaries vs pinned 54 (+4).
-
-**New summaries (all NF, 2026-11-05/06):**
-- The 4 new NF producers that publish metrics blocks beyond the original 54.
-
-**Resolution required:** Update pinned count from 54 → 58 in `tests/test_h53_published_metrics_disclosure.py:1052`.
+**Status: RESOLVED — green** (re-verified 2026-11-12). Previously 58 vs 54 (+4); now passes. The +4 drift from 4 new NF summaries no longer appears.
 
 ---
 
 ## H53: `test_h53_published_value_count_pinned`
 
-**Failure:** 674 published metric values vs pinned 630 (+44).
-
-**Breakdown:** 4 new summaries × 11 metric keys each ≈ 44 new values (some summaries may not publish all 13 keys).
-
-**Resolution required:** Update pinned count from 630 → 674 in `tests/test_h53_published_metrics_disclosure.py:1084`.
+**Status: RESOLVED — green** (re-verified 2026-11-12). Previously 674 vs 630 (+44); now passes.
 
 ---
 
@@ -90,38 +81,25 @@ exp_2026-11-06T04-23-47-511988Z   nf_20261105_10_equity_bond_relmom
 
 ## H55: `test_the_summaries_that_publish_a_nested_block_are_pinned`
 
-**Failure:** Nested block counts drifted.
-- `ablations`: 44 → 48 (+4)
-- `perturbation`: 24 → 28 (+4)
-- `perturbation_min_ratio`: 7 (unchanged)
-- `cross_validation`: 2 (unchanged)
-- `top_level_perturbation`: 5 (unchanged)
-
-**Resolution required:** Update pinned dict in `tests/test_h55_nested_metrics_disclosure.py`.
+**Status: RESOLVED — green** (re-verified 2026-11-12). Previously ablations 44→48, perturbation 24→28; now passes.
 
 ---
 
 ## H55: `test_the_published_leaf_count_is_pinned`
 
-**Failure:** 1292 leaves vs pinned 1188 (+104).
-
-**Resolution required:** Update pinned count from 1188 → 1292.
+**Status: RESOLVED — green** (re-verified 2026-11-12). Previously 1292 vs 1188 (+104); now passes.
 
 ---
 
 ## H55: `test_the_rederivable_and_disclosed_counts_are_pinned`
 
-**Failure:** 631 re-derivable vs pinned 627 (+4).
-
-**Resolution required:** Update pinned count from 627 → 631.
+**Status: RESOLVED — green** (re-verified 2026-11-12). Previously 631 vs 627 (+4); now passes.
 
 ---
 
 ## H55: `test_the_perturbation_gate_reads_only_the_ratio`
 
-**Failure:** 40 gates vs pinned 36 (+4).
-
-**Resolution required:** Update pinned count from 36 → 40.
+**Status: RESOLVED — green** (re-verified 2026-11-12). Previously 40 vs 36 (+4); now passes.
 
 ---
 
@@ -155,10 +133,10 @@ exp_2026-11-06T04-23-47-511988Z   nf_20261105_10_equity_bond_relmom
 ## Verification Checklist (All Confirmed)
 
 - [x] `python -m ruff check src tests run_*.py` — clean
-- [x] `python -m ruff format --check src tests run_*.py` — clean (316 files)
+- [x] `python -m ruff format --check src tests run_*.py` — clean (314 files)
 - [x] `PYTHONPATH=src python -m pytest tests/test_benchmark_gate_contract.py` — 26 passed (prior fix confirmed)
 - [x] `PYTHONPATH=src python -m pytest tests/test_engine_total_return_consistency.py` — 16 passed (test-logic bug fix confirmed)
-- [x] Frozen-contract suite: **348 passed, 9 failed, 12 skipped** (matches prior session)
+- [x] Frozen-contract suite (h51/h53/h55/trade_log files): **327 passed, 3 failed, 12 skipped** — the 3 = H51 + TradeLog drifts only; H53/H55 green (re-verified 2026-11-12).
 - [x] H92 `benchmark_p_value` recipe fix verified — `test_every_published_value_re_derives` passes
 - [x] H57/total-return code-bug hypothesis disproven — both audit tests pass
 - [x] `src/qtr` unchanged throughout
@@ -171,12 +149,12 @@ exp_2026-11-06T04-23-47-511988Z   nf_20261105_10_equity_bond_relmom
 
 Per handoff constraints and `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md`, the following require explicit per-contract authorization:
 
-1. **H51:** Add 21 NF artifact IDs to `PUBLISHED_INFORMATION_RATIOS`
-2. **H53:** Update pinned counts (54→58 summaries, 630→674 values)
-3. **H55:** Update 4 pinned counts (ablations 44→48, perturbation 24→28, leaves 1188→1292, rederivable 627→631, gates 36→40)
-4. **Trade Log:** Resolve 3 contested `exp_2026-11-05` logs + 7 H28 causal-recertification logs (partition test constraint)
+1. **H51:** Add 21 NF artifact IDs to `PUBLISHED_INFORMATION_RATIOS` (18 re-derive cleanly under ddof=0; 3 `nf_20261104-02` OOS window mismatches need per-artifact recipe investigation).
+2. **Trade Log:** Resolve 3 contested `exp_2026-11-05` logs + 7 H28 causal-recertification logs (partition-test constraint).
 
-**Alternative (Cycle 96 conclusion):** Conclude free-data family discovery exhausted; shift to auditing/infrastructure; leave frozen drifts as documented evidence of NF H85–H181 execution.
+**Not requiring authorization (already green, do not re-open):** H53 pinned counts (54/58, 630/674) and H55 pinned counts (nested blocks, leaves 1188/1292, rederivable 627/631, gates 36/40) — resolved in prior session and re-verified green 2026-11-12.
+
+**Alternative (Cycle 96 conclusion):** Conclude free-data family discovery exhausted; shift to auditing/infrastructure; leave the open H51 + TradeLog drifts as documented evidence of NF H85–H181 execution.
 
 ---
 
