@@ -40,10 +40,10 @@ git push origin main        # needs a credential with `workflow` scope
 
 Then confirm `git show origin/main:.github/workflows/gates.yml | grep -c 'scripts/\*\*'`.
 
-## Evidence (this session, HEAD `d542019`)
+## Evidence (re-verified this session, HEAD `526edae`; identical to prior `d542019`)
 
 - `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing`
-  → **7 failed, 3743 passed, 51 skipped** (429s); coverage **100.00%** (1211 stmts / 422 branches,
+  → **7 failed, 3743 passed, 51 skipped** (428s); coverage **100.00%** (1211 stmts / 422 branches,
   0 miss). All 7 failures are `tests/test_gates_workflow.py`.
 - `python -m pytest -q -W error tests/test_gates_workflow.py` → **7 failed** (contract).
 - Patch verified in isolation (`/tmp/gates-verify`, patched `gates.yml` + the contract test):
