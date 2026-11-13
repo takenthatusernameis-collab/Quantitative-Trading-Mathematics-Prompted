@@ -1,7 +1,7 @@
-# HANDOFF_CURRENT_SESSION.md — CI gates workflow reconciled to pinned contract (2026-11-13)
+# HANDOFF_CURRENT_SESSION.md — CI gates workflow reconciled to pinned contract (2026-11-13, re-verified)
 
 ## What changed
-- `.github/workflows/gates.yml` reconciled to the committed, pinned contract in
+- `.github/workflows/gates.yml` re-reconciled to the committed, pinned contract in
   `tests/test_gates_workflow.py`:
   - added `scripts/**` to both the `push` and `pull_request` path triggers;
   - lint job now runs `python -m ruff check src tests run_*.py scripts` and
@@ -19,12 +19,11 @@
   `tests/test_gates_workflow.py` (`test_jobs_install_the_package_editably`,
   commit `4f5436b`) and claimed the workflow had been reconciled, but
   **`.github/workflows/gates.yml` was never modified** — it remained the original
-  committed at `f86d732`.
-- At the start of this session HEAD therefore had **7 failing** contract tests
+  committed at `f86d732` at HEAD `3434489` (whose only diff was handoff docs).
+- At the start of THIS session HEAD therefore had **7 failing** contract tests
   (5 workflow-shape assertions + 2 editable-install assertions), not the
-  "3753 passed / 0 failed" the handoff claimed. The committed handoff was false.
-- This session made the source (workflow) match the pinned test instead of
-  trusting the doc.
+  "3753 passed / 0 failed" the handoff claimed. This session re-applied the source
+  (workflow) fix and re-verified from scratch; the earlier handoff was false.
 
 ## Actually verified (this session, own evidence)
 - Focused contracts:
@@ -34,10 +33,10 @@
   passed; `python -m ruff format --check src tests run_*.py scripts` → 327 files
   already formatted.
 - Performance gate: `python scripts/backtest_perf_regression_gate.py` →
-  `PERF GATE PASSED` (100 symbols x 252 bars, 0.305s vs 5s limit, 10.7MB peak,
+  `PERF GATE PASSED` (100 symbols x 252 bars, 0.287s vs 5s limit, 10.7MB peak,
   13668 trades).
 - Full suite: `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing`
-  → **3753 passed, 48 skipped, 0 failed** (327.81s), `src/qtr` coverage **100%**
+  → **3753 passed, 48 skipped, 0 failed** (330.91s), `src/qtr` coverage **100%**
   (1211 stmts / 422 branches, 0 miss).
 
 ## What remains unresolved
@@ -54,11 +53,16 @@
   will fail pinned inventory tests until deliberately regenerated.
 - Working tree has one uncommitted change: `.github/workflows/gates.yml`
   (no commit/push performed by this session; prior sessions auto-commit at end).
+  **Persistence is not proven:** the identical fix claimed by the prior handoff was
+  absent at HEAD `3434489`. Confirm it is still present before anything else.
 
 ## Failed approaches / do not repeat
 - Do not trust a committed handoff/task doc as current truth without re-running the
   producing/contract check. This is the exact failure that produced the false
   "green" claim: the doc said 3753 passed but HEAD was 7/7 red.
+- Do not assume an uncommitted working-tree edit survives to the next session. The
+  same workflow fix was missing again at HEAD `3434489`; verify with
+  `git status --short` / `git diff .github/workflows/gates.yml` before anything else.
 - Do not add/modify a pinned test to match an unbuilt source. Make the source
   (workflow) satisfy the committed contract, or update both in one change.
 - Do not invent/execute H182 from exhausted/adjacent families or blocked data.
@@ -67,14 +71,14 @@
 - Do not commit/push unless explicitly requested.
 
 ## One precise next task
-**Confirm the workflow fix persisted and the baseline is green, then hold for the
-authorization-gated H182/discovery decision.**
+**First confirm the workflow fix persisted (do not trust this doc), then re-verify
+the baseline, then hold for the authorization-gated H182/discovery decision.**
 
 Concretely, the next session should:
-1. Inspect `git log`/`git show` to confirm `.github/workflows/gates.yml` now contains
-   `scripts/**`, the `scripts` ruff targets, `python -m pip install -e . --no-deps`,
-   and `python scripts/backtest_perf_regression_gate.py` (this session's fix must be
-   committed by the harness/auto-commit, not left as drift).
+1. Run `git status --short` and `git diff .github/workflows/gates.yml`. If the
+   file is unmodified at HEAD, the fix was lost again (same failure as HEAD
+   `3434489`): re-apply the five changes above and re-run the focused contract
+   test `tests/test_gates_workflow.py`. Do NOT assume the working tree carries it.
 2. Re-verify the baseline with `python -m pytest -q -W error --cov=qtr --cov-branch`
    (expect **3753 passed, 48 skipped, 0 failed**, `src/qtr` 100%), ruff check/format
    clean over `src tests run_*.py scripts`, and `python scripts/backtest_perf_regression_gate.py`
