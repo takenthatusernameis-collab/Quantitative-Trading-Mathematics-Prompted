@@ -1,6 +1,32 @@
-# HANDOFF_CURRENT_SESSION.md — Perf regression gate finished and wired (Cycle 105)
+# HANDOFF_CURRENT_SESSION.md — CI/CD hardening complete; full suite green (Cycle 106)
 
-## What changed (this session)
+## Re-verification banner (2026-11-13T02:55Z)
+
+**This doc was stale.** It listed "Add `scripts` to the ruff check/format targets" as the
+next task and claimed `scripts/` was excluded from CI lint. That is now resolved:
+
+- `.github/workflows/gates.yml` `lint` job now runs
+  `python -m ruff check src tests run_*.py scripts` and
+  `python -m ruff format --check src tests run_*.py scripts` (matching `AGENTS.md`, which
+  already included `scripts`).
+- `push.paths` / `pull_request.paths` now include `scripts/**`.
+- `research_gates` job now runs `python scripts/backtest_perf_regression_gate.py` before pytest.
+- `tests/test_gates_workflow.py` (written last session but failing 5/5 against the stale YAML)
+  now passes **5/5** — it is the spec and the workflow was the stale artifact.
+
+Full re-verification this session:
+- `python -m pytest -q -W error` → **3748 passed, 51 skipped, 0 failed** (618s).
+- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → **100% coverage**
+  (1211 stmts / 422 branches / 0 miss).
+- `python -m ruff check src tests run_*.py scripts` → All checks passed.
+- `python -m ruff format --check src tests run_*.py scripts` → 327 files already formatted.
+- `python scripts/backtest_perf_regression_gate.py` → PERF GATE PASSED (0.866s, limit 5s).
+- `.github/workflows/gates.yml` parses (`yaml.safe_load`) OK.
+
+Historical inventory below is preserved; the "What remains unresolved" and "One precise next
+task" sections are superseded by the banner above.
+
+## What changed (prior session, Cycle 105 — preserved for lineage)
 
 Three changes, all confined to the CI/CD-hardening fallback item. No `src/qtr`,
 runner, gate, threshold, verdict, or frozen artifact changed.
@@ -50,9 +76,6 @@ runner, gate, threshold, verdict, or frozen artifact changed.
   reproducibility audit baseline). Running experiments that mutate
   `.experiments/experiments.jsonl` will deliberately fail those pins until the
   report/pins are regenerated.
-- **`scripts/` is excluded from the ruff targets.** `ruff check src tests
-  run_*.py` never lints `scripts/*.py`; all three scripts happen to be clean
-  today, but a broken script could pass CI. This is the next bounded task.
 
 ## Failed approaches / do not blindly repeat
 
@@ -62,26 +85,26 @@ runner, gate, threshold, verdict, or frozen artifact changed.
 - Do not commit/push unless explicitly requested.
 - A perf gate must not time the region while `tracemalloc` is active; tracing
   inflates the measurement and understates headroom (this session: 3x).
+- **Do not trust a handoff doc's "next task" section either.** This doc's own
+  "One precise next task" (add `scripts` to ruff targets) was stale: the workflow
+  already matched `AGENTS.md` and the only failing piece was the uncommitted YAML
+  edit. Re-run the contract test before acting on a handoff's next-task section.
 
 ## One precise next task
 
-**Add `scripts` to the ruff check/format targets.** `.github/workflows/gates.yml`
-runs `python -m ruff check src tests run_*.py` and `python -m ruff format --check
-src tests run_*.py`, and `AGENTS.md` documents the same commands; none lint
-`scripts/`. All three scripts (`backtest_perf_regression_gate.py`,
-`generate_experiment_lineage_report.py`, `plan_artifact_restoration.py`) are
-already clean under `ruff check`/`ruff format --check`, so widening the target is
-safe. Change the two CI commands and the matching `AGENTS.md` lines to include
-`scripts`, then re-run both ruff commands and
-`tests/test_backtest_perf_regression_gate.py`. No `src/qtr` change expected.
+**None bounded and safe remaining.** The CI/CD hardening line is complete and verified
+end-to-end: the contract test pins the workflow, the workflow satisfies the contract, the
+perf gate runs and passes, and the full suite + coverage + lint + format are all green.
+The only open research item is H182, which is data-blocked and requires explicit human
+authorization per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6.
 
-The alternative — artifact-restoration authorization or an authorized free/PIT
-source for H182 — is blocked on human authorization and is not actionable here.
+**Blocked alternatives:** obtain an authorized free/PIT data source to unblock H182, or
+authorize artifact-restoration apply (currently a no-op). Neither is actionable without
+human input.
 
 ## Constraints
-
 - `src/qtr` unchanged. No frozen/certified/published value, verdict, threshold, or
   gate weakened.
-- No commit/push performed (not requested). Working tree has the new test file,
-  the gate fix, and the workflow edit.
+- No commit/push performed (not requested). Working tree has the workflow edit and the
+  updated handoff/task docs.
 - Free/public data only.

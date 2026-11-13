@@ -1,13 +1,28 @@
-# NEXT_TASK.md — `scripts/` lint coverage wired; perf/repro discovery remains blocked
+# NEXT_TASK.md — CI workflow contract pinned; full suite green
 
-## Current status (re-verified this session)
-- `python3 -m pytest -q -W error tests/test_backtest_perf_regression_gate.py` → **5 passed**.
-- `python3 -m ruff check src tests run_*.py scripts` → All checks passed.
-- `python3 -m ruff format --check src tests run_*.py scripts` → 326 files already formatted.
-- `.github/workflows/gates.yml` parses (`yaml.safe_load`) OK.
+## Current status (re-verified this session, 2026-11-13T02:55Z)
+- `python -m pytest -q -W error` → **3748 passed, 51 skipped, 0 failed** (618s).
+- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` → **100% coverage** (1211 stmts / 422 branches / 0 miss).
+- `python -m ruff check src tests run_*.py scripts` → All checks passed.
+- `python -m ruff format --check src tests run_*.py scripts` → 327 files already formatted.
+- `python scripts/backtest_perf_regression_gate.py` → PERF GATE PASSED (0.866s, limit 5s).
+- `.github/workflows/gates.yml` parses OK.
 
-## What changed this session (CI/CD hardening)
-- `.github/workflows/gates.yml`: lint job and `scripts/**` path triggers now include `scripts/` so all three scripts (`scripts/backtest_perf_regression_gate.py`, `scripts/generate_experiment_lineage_report.py`, `scripts/plan_artifact_restoration.py`) are linted/format-checked in CI. No source changes to scripts or `src/qtr` were required (all already clean).
+## What changed this session (CI/CD hardening — contract test → workflow)
+The prior session wrote `tests/test_gates_workflow.py` (commit `36148b2`) asserting that
+`.github/workflows/gates.yml` lints `scripts/**` and triggers on `scripts/**` edits, but the
+committed YAML did **not** yet satisfy those assertions — the test failed 5/5. This session
+made the YAML match the contract (the test is the spec; the workflow was stale, not the test):
+
+- `.github/workflows/gates.yml`:
+  - `push.paths` and `pull_request.paths` now include `'scripts/**'`.
+  - `lint` job: `Ruff check` → `python -m ruff check src tests run_*.py scripts`;
+    `Ruff format check` → `python -m ruff format --check src tests run_*.py scripts`.
+  - `research_gates` job: added `python scripts/backtest_perf_regression_gate.py` step before
+    the pytest step (the perf gate now runs in CI).
+- `tests/test_gates_workflow.py` → **5 passed** (was 5 failed). No test code changed.
+
+No source changes to `scripts/`, `src/qtr`, or `tests/` were required — all were already clean.
 
 ## Unresolved / blocked
 - **Artifact restoration apply (needs explicit human authorization):** `--apply` is a no-op on this checkout; `--dry-run` → Recoverable 0 / Excluded 172 / Unrecoverable 25. Baseline in `tests/test_reproducibility_audit.py`: `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=140`.
@@ -15,9 +30,11 @@
 - **All generated inventories are pinned.** Running experiments that change `.experiments/experiments.jsonl` will fail `test_report_reproduces_committed_content` and summary pins until `EXPERIMENT_LINEAGE_REPORT.md` is regenerated deliberately and pins updated.
 
 ## One precise next task
-**Verify and, if necessary, pin the new CI workflow behavior with a minimal contract test.** There is no existing test asserting that `.github/workflows/gates.yml` lint steps include `scripts` or that `scripts/**` is in path filters (unlike other pinned gates). Add a small, focused test (e.g. in `tests/test_gates_workflow.py` or alongside perf-gate tests) that loads the workflow YAML and asserts: (1) `lint` job runs `python -m ruff check src tests run_*.py scripts` and `python -m ruff format --check src tests run_*.py scripts`, and (2) push/pull_request `paths` include `scripts/**`. Keep it read-only and deterministic. After adding, run that test and `python -m pytest -q -W error tests/test_backtest_perf_regression_gate.py`.
-
-Alternative (blocked on human authorization): obtain an authorized free/PIT data source to unblock H182, or authorize artifact-restoration apply (currently a no-op).
+**None bounded and safe remaining.** The CI/CD hardening line is complete and verified end-to-end
+(the contract test pins the workflow, the workflow satisfies the contract, the perf gate runs and
+passes, and the full suite + coverage + lint + format are all green). The only open research item
+is H182, which is data-blocked and requires explicit human authorization per
+`STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6.
 
 ## Failed approaches / do not repeat
 - Do not trust committed doc counts without re-running the producing check.
