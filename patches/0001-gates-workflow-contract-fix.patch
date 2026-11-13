@@ -1,0 +1,61 @@
+Maintainer action required: this patch cannot be landed by the autonomous agent.
+
+Why: .github/workflows/** is maintainer-managed. The repository-scoped GitHub App
+token (ghs_*) has no `workflows` permission, so `git push` of a workflow change
+is rejected, and .github/scripts/kilo-controller.sh restores .github/workflows from
+origin/main after every session (and excludes those paths from staging). Committing
+this change in-tree therefore does not persist; origin/main keeps the failing gates.yml.
+
+Apply (maintainer, with workflow scope):
+  git apply patches/0001-gates-workflow-contract-fix.patch
+  git commit -am "fix(ci): satisfy gates workflow contract"
+  git push origin main
+
+Evidence (2026-11-13, HEAD d542019): with this patch applied,
+tests/test_gates_workflow.py -> 7 passed (was 7 failed).
+
+diff --git a/.github/workflows/gates.yml b/.github/workflows/gates.yml
+index a8126b8..1b72c9b 100644
+--- a/.github/workflows/gates.yml
++++ b/.github/workflows/gates.yml
+@@ -7,6 +7,7 @@ on:
+       - 'src/**'
+       - 'tests/**'
+       - 'run_*.py'
++      - 'scripts/**'
+       - 'requirements.txt'
+       - 'pyproject.toml'
+       - '.github/workflows/gates.yml'
+@@ -15,6 +16,7 @@ on:
+       - 'src/**'
+       - 'tests/**'
+       - 'run_*.py'
++      - 'scripts/**'
+       - 'requirements.txt'
+       - 'pyproject.toml'
+       - '.github/workflows/gates.yml'
+@@ -30,10 +32,12 @@ jobs:
+           python-version: '3.12'
+       - name: Install deps
+         run: pip install -r requirements.txt
++      - name: Install package editably
++        run: python -m pip install -e . --no-deps
+       - name: Ruff check
+-        run: python -m ruff check src tests run_*.py
++        run: python -m ruff check src tests run_*.py scripts
+       - name: Ruff format check
+-        run: python -m ruff format --check src tests run_*.py
++        run: python -m ruff format --check src tests run_*.py scripts
+ 
+   research_gates:
+     runs-on: ubuntu-latest
+@@ -45,5 +49,9 @@ jobs:
+           python-version: '3.12'
+       - name: Install deps
+         run: pip install -r requirements.txt
++      - name: Install package editably
++        run: python -m pip install -e . --no-deps
++      - name: Backtest performance regression gate
++        run: python scripts/backtest_perf_regression_gate.py
+       - name: Run gates
+         run: python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing

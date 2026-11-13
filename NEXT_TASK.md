@@ -1,41 +1,62 @@
-# NEXT_TASK.md — gates.yml fix committed locally; requires maintainer push to origin/main
+# NEXT_TASK.md — gates.yml contract fix is maintainer-gated; do NOT commit it again
 
-## Current status (this session, 2026-11-13)
+## Structural finding (2026-11-13, verified this session)
 
-**HEAD = `9c14225`, working tree clean, branch ahead of `origin/main` by 1 commit:**
-- `.github/workflows/gates.yml` — contract fix applied and **committed locally** (verbatim matches `2f88722` / `818abe2` / `862def4`).
-- `.github/scripts/kilo-controller.sh` — controller restore already reconciles `.github/workflows` to latest `origin/main` (fetch-first, fall back to `WORKFLOW_BASE_SHA`). This file is NOT under `.github/workflows`, so it is not reverted by the controller.
+`tests/test_gates_workflow.py` fails 7/7 at `origin/main` (`d542019`) because
+`.github/workflows/gates.yml` on `main` lacks the contract's required content.
+Every attempt to fix it *in a commit* has been reverted, 7 cycles in a row:
 
-**Verification (all in this session's worktree):**
-- `tests/test_gates_workflow.py` → **7/7 passed** (was 7/7 failed at previous HEAD `2bbbfe6`).
-- `python -m ruff check src tests run_*.py scripts` → **All checks passed** (327 files).
-- `python -m ruff format --check src tests run_*.py scripts` → **327 files already formatted**.
-- `python scripts/backtest_perf_regression_gate.py` → **PERF GATE PASSED** (0.306s / 5s limit, 10.7MB, 13668 trades).
-- `bash -n .github/scripts/kilo-controller.sh` → OK; shellcheck reports only pre-existing warnings.
+- The controller restores `.github/workflows` from `origin/main` after each session
+  (`.github/scripts/kilo-controller.sh:305-317`) and excludes those paths from staging
+  (`.github/scripts/kilo-controller.sh:323`).
+- `origin/main` holds the broken file, and the repo-scoped GitHub App token (`ghs_*`)
+  has no `workflows` permission (`gh api repos/<repo> --jq .permissions` →
+  `{"admin":false,"maintain":false,"pull":false,"push":false,"triage":false}`), so the
+  fix can never reach `main` from an agent.
+- Consequence: committing the workflow edit produces a revert commit with an empty
+  message (`d542019`, `5bcc177`, `8e3e496`, `0efe2af`, ...) and no progress.
 
-**Push attempt:** `git push origin main` was **rejected** — remote refuses updates to `.github/workflows/gates.yml` without `workflows` permission (GitHub App token lacks it).
+**Do not repeat:** editing `gates.yml` in-tree and expecting persistence is a proven
+dead end. Do not weaken/delete the contract test, and do not weaken the
+maintainer-managed-workflows policy.
 
-## Exact fix applied to `.github/workflows/gates.yml` (verbatim matches commit `2f88722`)
-- `push`/`pull_request` paths: added `'scripts/**'`.
-- `lint` job: added `python -m pip install -e . --no-deps` step; ruff check/format now target `src tests run_*.py scripts`.
-- `research_gates` job: added editable-install step and `python scripts/backtest_perf_regression_gate.py` step before "Run gates".
+## Apply-ready fix (committed here, not applied to the workflow)
 
-## What remains unresolved
-- **Durability:** the `gates.yml` fix is **committed locally at `9c14225`** but **cannot be pushed** because the GitHub App token lacks `workflows` permission. A maintainer must push `9c14225` (or an equivalent commit) to `origin/main`. Until then, `origin/main` still carries the broken `gates.yml` (commit `2bbbfe6` reverted the earlier fix from `862def4`).
-- **H182:** authorization-gated (H1–H181 exhausted/rejected per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6 / `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96). Do not invent/pre-register/execute without explicit human authorization + an authorized free/PIT source for a materially new mechanism.
-- **Artifact restoration apply:** authorization-gated (dry-run no-op: Recoverable 0 / Excluded 172 / Unrecoverable 25).
+`patches/0001-gates-workflow-contract-fix.patch` — header explains the block; the diff:
 
-## One precise next task (for the next agent — do NOT repeat the failed approach)
-**Push the local commit `9c14225` to `origin/main`** (requires maintainer credentials with `workflows` permission, or a PAT with `workflow` scope). After that:
-1. Confirm `git show origin/main:.github/workflows/gates.yml` contains the fix (scripts/** paths, editable install, perf gate, scripts in ruff targets).
-2. On a fresh checkout at `origin/main`: `tests/test_gates_workflow.py` → 7/7 and full baseline green (100% coverage, ruff clean, perf gate passed).
-3. The controller fix (already applied) then prevents future activations from reverting `gates.yml` to a stale snapshot, because restores reconcile to `origin/main` (fixed) rather than the stale `WORKFLOW_BASE_SHA`.
+- `push`/`pull_request` `paths`: add `'scripts/**'`.
+- `lint` job: add `python -m pip install -e . --no-deps`; ruff check/format target
+  `src tests run_*.py scripts`.
+- `research_gates` job: add the editable install and
+  `python scripts/backtest_perf_regression_gate.py` before "Run gates".
 
-Do NOT re-apply only the `gates.yml` edit and expect persistence without the controller fix or without landing on `main`. Do NOT weaken the "maintainer-managed workflows" policy or delete/weaken the contract test. Do NOT run `scripts/plan_artifact_restoration.py --apply`; do not modify frozen artifacts/verdicts/thresholds. `src/qtr` must remain unchanged.
+## Exact maintainer action (only remaining unblock)
 
-## Constraints
-- `src/qtr` unchanged (no evidenced code defect; baseline green at 100% coverage).
-- No frozen/certified/published artifact, verdict, threshold, or gate weakened.
-- Local commit `9c14225` ready; push to `origin/main` required for durability (the controller fix protects it afterward).
+```bash
+git apply patches/0001-gates-workflow-contract-fix.patch
+git commit -am "fix(ci): satisfy gates workflow contract"
+git push origin main        # needs a credential with `workflow` scope
+```
 
-(End of file - total 49 lines)
+Then confirm `git show origin/main:.github/workflows/gates.yml | grep -c 'scripts/\*\*'`.
+
+## Evidence (this session, HEAD `d542019`)
+
+- `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing`
+  → **7 failed, 3746 passed, 48 skipped**; coverage **100.00%** (1211 stmts / 422 branches,
+  0 miss). All 7 failures are `tests/test_gates_workflow.py`.
+- `python -m pytest -q -W error tests/test_gates_workflow.py` → **7 failed** (contract).
+- Patch verified in isolation (`/tmp/gates-verify`, patched `gates.yml` + the contract test):
+  → **7 passed**.
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → clean.
+- `python -m ruff check src tests run_*.py scripts` → All checks passed.
+- `python -m ruff format --check src tests run_*.py scripts` → 327 files already formatted.
+
+## Remaining open items (unchanged, authorization-gated)
+
+- **H182:** free-data PIT strategy-family queue exhausted (H1–H181 executed/rejected,
+  H182 unassigned; commodity carry data-blocked) per `NEW_FAMILY_RESEARCH_REGISTER.md`
+  Cycle 96 / `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6. Do not pre-register or execute
+  without explicit human authorization plus an authorized free/PIT data source.
+- **Artifact restoration apply:** authorization-gated (dry-run no-op:
+  Recoverable 0 / Excluded 172 / Unrecoverable 25).
