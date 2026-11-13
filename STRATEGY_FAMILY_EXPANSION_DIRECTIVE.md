@@ -10,6 +10,8 @@ The research program must keep looking for genuinely new systematic-trading stra
 
 The latest handoff records H1–H30 as exhausted and hypotheses through H84 as documented. Treat that as a trigger to enter **NEW-FAMILY DISCOVERY MODE** now. Before proposing a candidate, verify the complete current inventory, including any hypotheses added after H84. Do not assume that every H-number represents a distinct strategy family.
 
+> **Re-verified 2026-11-12 (Cycle 102):** the "H1–H30 exhausted / through H84" line above is **stale by 97+ hypotheses**. The current research record is **H1–H181 exhausted/rejected, H182 unassigned**, per `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96 and `HANDOFF.md`. The directive's instruction to verify the complete current inventory before proposing a candidate already governs this — the line is preserved as historical lineage only and is not the current inventory.
+
 This directive is repository-relative: it requires ideas that are genuinely new relative to this repository's prior research. It does not claim that any idea is globally unprecedented.
 
 ## 2. What counts as a new strategy family
