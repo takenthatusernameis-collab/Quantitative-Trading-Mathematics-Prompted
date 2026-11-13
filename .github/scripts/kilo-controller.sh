@@ -299,10 +299,20 @@ PY
     consecutive_failures=0
   fi
 
-  # Keep Actions workflow definitions maintainer-managed. Restore tracked
-  # workflow files to the revision at session start and remove agent-created
-  # workflow files before creating the checkpoint commit.
-  if ! git restore --source="$WORKFLOW_BASE_SHA" --staged --worktree -- .github/workflows; then
+  # Keep Actions workflow definitions maintainer-managed. Discard agent
+  # edits to workflow files by reconciling them to the latest committed
+  # revision on origin/main (fetch first; fall back to the session-start
+  # snapshot on fetch failure) rather than a potentially-stale activation
+  # snapshot. Agents may not introduce durable workflow changes through the
+  # checkpoint: .github/workflows is excluded from staging below, and any
+  # worktree edits here are overwritten at the next activation.
+  workflow_restore_source="$WORKFLOW_BASE_SHA"
+  if git fetch origin "$DEFAULT_BRANCH" >/dev/null 2>&1; then
+    if remote_head="$(git rev-parse --verify "origin/$DEFAULT_BRANCH^{commit}" 2>/dev/null)"; then
+      workflow_restore_source="$remote_head"
+    fi
+  fi
+  if ! git restore --source="$workflow_restore_source" --staged --worktree -- .github/workflows; then
     echo "::warning::Could not fully restore workflow files; workflow paths remain excluded."
   fi
   git clean -fd -- .github/workflows || true
