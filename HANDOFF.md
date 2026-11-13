@@ -2,6 +2,17 @@
 
 ## Re-verification banner (2026-11-12T10:00Z, Cycle 101)
 
+> **Provenance caution (added 2026-11-13, Cycle 104):** this banner cites HEAD `1712a5e`
+> and commits `11e8aeb` / `bec162f`. **None of those objects exist in this repository** —
+> `git cat-file -t` returns "Not a valid object name" for each; the full history is 6
+> commits (0891237 → 09372cf), all empty-message. The counts quoted here (3619 passed,
+> 1209 stmts, 314 files) are also stale: current is **3,743 passed / 51 skipped / 7 failed**
+> (the 7 = maintainer-gated `test_gates_workflow.py`), **1211 stmts / 422 branches**, and
+> **327 files** (re-verified 2026-11-13). The 9 frozen-contract drifts this banner claims
+> were "resolved" are green in the working tree; `FROZEN_CONTRACT_DRIFT_EVIDENCE.md`
+> carries the durable re-verification. Treat this banner's *substance* (suite green,
+> drifts resolved) as correct and its *object references* as unreliable.
+
 **This doc was stale.** It claimed 9 frozen-contract failures remained. Re-running the
 full suite at HEAD `1712a5e` reports **3619 passed, 51 skipped, 0 failed**, `src/qtr`
 coverage **100%** (1209 stmts / 420 branches / 0 miss), `ruff check` clean, `ruff

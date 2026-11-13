@@ -65,6 +65,9 @@ All asset classes show similar O(n_symbols * n_bars) scaling. Futures and crypto
 4. **Cost model overhead is minimal:** Equity impact cost model adds ~10-15% overhead vs base cost model.
 
 5. **No regressions:** All existing tests pass (359 core tests, lint clean, format clean).
+   *Current full-suite status (re-verified 2026-11-13):* **3,743 passed, 51 skipped, 7
+   failed** — the 7 are exclusively the maintainer-gated `tests/test_gates_workflow.py`
+   contract block (documented in `NEXT_TASK.md`).
 
 ## Files Created
 
@@ -73,8 +76,8 @@ All asset classes show similar O(n_symbols * n_bars) scaling. Futures and crypto
 
 ## Verification
 
-- ✅ `python -m ruff check src tests run_*.py` — All checks passed (315 files)
-- ✅ `python -m ruff format --check src tests run_*.py` — 315 files already formatted
+- ✅ `python -m ruff check src tests run_*.py scripts` — All checks passed (327 files)
+- ✅ `python -m ruff format --check src tests run_*.py scripts` — 327 files already formatted
 - ✅ `python -m pytest tests/test_backtest_engine.py tests/test_config.py tests/test_cost_model.py tests/test_statistics.py tests/test_data_fetcher.py -q` — 359 passed
 
 ## Next Steps (if continuing audit work)
