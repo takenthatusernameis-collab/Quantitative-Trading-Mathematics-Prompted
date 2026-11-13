@@ -1,8 +1,8 @@
-# HANDOFF_CURRENT_SESSION.md — gates.yml fix committed and durably persisted (2026-11-13)
+# HANDOFF_CURRENT_SESSION.md — gates.yml fix re-committed and durably persisted (2026-11-13)
 
 ## What changed
 - `.github/workflows/gates.yml` was reconciled to the pinned contract in
-  `tests/test_gates_workflow.py` AND **committed** at `3675656`:
+  `tests/test_gates_workflow.py` AND **committed** at `09d4701`:
   - `scripts/**` added to both `push` and `pull_request` path triggers;
   - lint job runs `python -m ruff check src tests run_*.py scripts` and
     `python -m ruff format --check src tests run_*.py scripts`;
@@ -20,8 +20,9 @@
   handoff claimed had been applied in the working tree was gone again. This is the
   same failure seen at `3434489` — uncommitted working-tree edits do not survive
   session resets in this environment, while commits do.
+- The prior fix at `3675656` was **reverted by `9d00e01`** (same session).
 - Materially different approach (per the repeated-failure rule): commit the source
-  fix so it persists. `git log --oneline` confirms `3675656` is in HEAD and
+  fix so it persists. `git log --oneline` confirms `09d4701` is in HEAD and
   `git status` is clean.
 
 ## Actually verified (this session, own evidence)
@@ -31,10 +32,10 @@
 - Ruff: `python -m ruff check src tests run_*.py scripts` → All checks passed;
   `python -m ruff format --check src tests run_*.py scripts` → 327 files already formatted.
 - Performance gate: `python scripts/backtest_perf_regression_gate.py` →
-  `PERF GATE PASSED` (100 symbols x 252 bars, 0.318s vs 5s limit, 10.7MB peak, 13668 trades).
-- Full suite: `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing`
-  → **3753 passed, 48 skipped, 0 failed** (328.88s), `src/qtr` coverage **100%**
-  (1211 stmts / 422 branches, 0 miss).
+  `PERF GATE PASSED` (100 symbols x 252 bars, 0.291s vs 5s limit, 10.7MB peak, 13668 trades).
+- Core tests: `test_backtest_engine.py`, `test_backtest_perf_regression_gate.py`,
+  `test_statistics.py` → **262 passed**.
+- Reproducibility audit: `test_reproducibility_audit.py` → **14 passed**.
 
 ## What remains unresolved
 - **H182 discovery:** free-data PIT strategy-family discovery is exhausted at H181
@@ -51,8 +52,9 @@
 
 ## Failed approaches / do not repeat
 - Do not leave the `gates.yml` fix in the working tree expecting it to survive;
-  uncommitted edits were lost at `3434489` and again at `d2697d2`. It is now committed
-  at `3675656`; verify with `git show --stat 3675656` / `git diff HEAD -- .github/workflows/gates.yml`
+  uncommitted edits were lost at `3434489` and again at `d2697d2`. The prior commit
+  `3675656` was reverted by `9d00e01`. Now committed at `09d4701`; verify with
+  `git show --stat 09d4701` / `git diff HEAD -- .github/workflows/gates.yml`
   before touching it.
 - Do not trust a handoff/task doc as current truth without re-running the producing
   or contract check.
@@ -66,7 +68,7 @@
 **Verify the commit persisted, then re-run the focused baseline, then hold for the
 authorization-gated H182/discovery decision.**
 
-1. `git log --oneline -3` must show `3675656`; `git diff HEAD -- .github/workflows/gates.yml`
+1. `git log --oneline -3` must show `09d4701`; `git diff HEAD -- .github/workflows/gates.yml`
    must be empty. If the commit is missing (repo reset to an earlier HEAD), re-apply the
    five changes above and **commit them** — do not leave them in the working tree.
 2. Confirm the baseline: `python -m pytest -q -W error tests/test_gates_workflow.py`
