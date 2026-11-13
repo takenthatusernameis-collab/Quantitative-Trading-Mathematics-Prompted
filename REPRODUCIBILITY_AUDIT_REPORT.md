@@ -170,7 +170,7 @@ Ordered by value and risk:
    valid artifacts, or move them to an explicit archive directory. Do not
    delete committed data.
 
-5. **Backfill the 148 missing sidecars** — derive shape/columns/dtypes for
+5. **Backfill the 140 missing sidecars** — derive shape/columns/dtypes for
    parquet and top-level keys for JSON, or change `log_artifact` to always write
    a sidecar (requires the full `src/qtr` gates: `pytest -q -W error`, ruff,
    100% branch coverage).
