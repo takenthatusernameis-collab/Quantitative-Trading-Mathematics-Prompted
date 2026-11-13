@@ -3,10 +3,10 @@
 ## Current status (verified this session, 2026-11-13)
 - `python -m pytest -q -W error tests/test_gates_workflow.py tests/test_generated_manifest_contract.py` → **18 passed** (0 skipped).
 - `python -m pytest -q -W error tests/test_performance_regression_gate.py tests/test_backtest_perf_regression_gate.py` → **6 passed**.
-- `python scripts/backtest_perf_regression_gate.py` → **PERF GATE PASSED** (0.300s, limit 5s, 10.7MB peak, 13668 trades).
+- `python scripts/backtest_perf_regression_gate.py` → **PERF GATE PASSED** (0.298s, limit 5s, 10.7MB peak, 13668 trades).
 - `python -m ruff check src tests run_*.py scripts` → All checks passed.
 - `python -m ruff format --check src tests run_*.py scripts` → 327 files already formatted.
-- Prior handoff claims full suite **3751 passed, 48 skipped, 0 failed**, `src/qtr` coverage **100%** (1211 stmts / 422 branches); full suite not re-run this session (no `src/qtr`/tests logic changed beyond workflow reconciliation).
+- Full suite: `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` → **3753 passed, 48 skipped, 0 failed**, `src/qtr` coverage **100%** (1211 stmts / 422 branches).
 
 ## What changed this session
 - `.github/workflows/gates.yml`: reconciled to pinned contract/tests — added `scripts/**` to push/pull_request path triggers; lint runs ruff on `scripts`; both `lint` and `research_gates` install package via `python -m pip install -e . --no-deps` after deps; `research_gates` runs `python scripts/backtest_perf_regression_gate.py` before pytest. (At session start the committed workflow lacked these steps and `test_gates_workflow.py` failed 7/18.)
@@ -22,7 +22,7 @@ new mechanism and pre-register H182 per directive §4 (honest scoring, lineage c
 decisive test) before any runner execution; or (b) with explicit authorization, document
 free-data family discovery as exhausted and shift effort to auditing/infrastructure only.
 Do not invent H182 or modify frozen artifacts/gates. Re-verify baseline first:
-`pytest -q -W error` (expect 3751 passed, 48 skipped), ruff check/format clean, perf gate passed,
+`pytest -q -W error` (expect 3753 passed, 48 skipped), ruff check/format clean, perf gate passed,
 100% `src/qtr` coverage.
 
 ## Unresolved / blocked

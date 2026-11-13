@@ -29,10 +29,9 @@
 - Lint/format: `python -m ruff check src tests run_*.py scripts` → All checks passed;
   `python -m ruff format --check src tests run_*.py scripts` → 327 files already formatted.
 - Performance gate: `python scripts/backtest_perf_regression_gate.py` → `PERF GATE PASSED`
-  (0.300s vs 5s limit, 10.7MB peak, 13668 trades).
-- Full suite **not re-run** this session (no `src/qtr`, runner, or test-logic change; only CI workflow
-  and handoff/task docs changed). Prior verified baseline remains: 3751 passed, 48 skipped, 0 failed,
-  `src/qtr` coverage 100% (1211 stmts / 422 branches). Next session should re-verify as specified below.
+  (0.298s vs 5s limit, 10.7MB peak, 13668 trades).
+- Full suite: `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing`
+  → **3753 passed, 48 skipped, 0 failed**, `src/qtr` coverage **100%** (1211 stmts / 422 branches).
 
 ## What remains unresolved
 - **H182 discovery:** free-data PIT strategy-family discovery is exhausted at H181
@@ -47,8 +46,7 @@
 - **Generated inventories/pins remain frozen;** mutating `.experiments/experiments.jsonl`
   will fail pinned inventory tests until deliberately regenerated.
 - Working tree has uncommitted changes to `.github/workflows/gates.yml`,
-  `tests/test_gates_workflow.py`, `HANDOFF_CURRENT_SESSION.md`, and `NEXT_TASK.md`
-  (no commit/push performed).
+  `HANDOFF_CURRENT_SESSION.md`, and `NEXT_TASK.md` (no commit/push performed).
 
 ## Failed approaches / do not repeat
 - Do not trust committed handoff/task docs as current truth without re-running the
