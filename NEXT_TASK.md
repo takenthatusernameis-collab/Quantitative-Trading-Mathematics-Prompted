@@ -48,7 +48,8 @@ Then confirm `git show origin/main:.github/workflows/gates.yml | grep -c 'script
 - `python -m pytest -q -W error tests/test_gates_workflow.py` → **7 failed** (contract).
 - Patch verified in isolation (`/tmp/gates-verify`, patched `gates.yml` + the contract test):
   → **7 passed**.
-- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → clean.
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → clean (re-verified this session at HEAD f4de826).
+- This session: `git apply` the patch → `python -m pytest tests/test_gates_workflow.py` → **7 passed**; then `git checkout -- .github/workflows/gates.yml` to restore tree (no persistent workflow change, per maintainer-gated policy). Working tree clean.
 - `python -m ruff check src tests run_*.py scripts` → All checks passed.
 - `python -m ruff format --check src tests run_*.py scripts` → 327 files already formatted.
 
