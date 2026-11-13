@@ -1,6 +1,18 @@
 # HANDOFF.md
 
-> **Latest (2026-11-13):** completed the read-only audit of the 11 hash
+> **Latest (2026-11-13, post-audit session):** fixed a caller-dict mutation in
+> `ExperimentTracker.log_dataframe` (`src/qtr/tracking/experiment.py`): it now
+> copies the caller's `metadata` dict before adding the frame schema keys, so a
+> reused dict no longer leaks `shape`/`columns`/`dtypes`/`index_type` into later
+> calls. The on-disk sidecar is byte-identical to before. Added a regression
+> test (`test_log_dataframe_does_not_mutate_caller_metadata`). Verified: tracker
+> tests 24 passed; focused reproducibility suites 342 passed; full suite
+> **3744 passed / 51 skipped / 7 failed** (the 7 = maintainer-gated
+> `test_gates_workflow.py`); `experiment.py` 100% stmts/branch; ruff clean. No
+> published/frozen artifact, verdict, threshold, or experiment record changed.
+> See `NEXT_TASK.md` for the next task (backfill the 140 missing sidecars).
+
+> **Prior (2026-11-13):** completed the read-only audit of the 11 hash
 > mismatches. All 11 are superseded duplicate/stale entries: 8 duplicate
 > same-path `param_grid_results` writes (runners log the path 2–3× with
 > different frames) and 3 fixed-`run_dir` `summary.json` re-runs. The on-disk

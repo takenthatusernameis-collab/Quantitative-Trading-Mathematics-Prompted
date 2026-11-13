@@ -59,6 +59,26 @@ def test_log_dataframe(tmp_path):
     t.finish_experiment()
 
 
+def test_log_dataframe_does_not_mutate_caller_metadata(tmp_path):
+    """The caller's metadata dict must survive ``log_dataframe`` unchanged.
+
+    ``log_dataframe`` augments the sidecar with the frame's schema
+    (``shape``/``columns``/``dtypes``/``index_type``). Those keys belong to
+    this artifact only; writing them into the caller's dict in place would
+    leak them into any later call that reuses the same dict (for example a
+    subsequent ``log_artifact`` sidecar would record a DataFrame's schema
+    against a non-DataFrame artifact).
+    """
+    t = ExperimentTracker(log_dir=tmp_path / "logs")
+    t.start_experiment("exp")
+    caller_meta = {"tag": "runner"}
+    t.log_dataframe("df", pd.DataFrame({"x": [1, 2]}), metadata=caller_meta)
+    assert caller_meta == {"tag": "runner"}
+    t.log_dataframe("other", pd.DataFrame({"y": [1, 2, 3]}), metadata=caller_meta)
+    assert caller_meta == {"tag": "runner"}
+    t.finish_experiment()
+
+
 def test_finish_without_experiment(tmp_path):
     t = ExperimentTracker(log_dir=tmp_path / "logs")
     with pytest.raises(RuntimeError):

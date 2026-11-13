@@ -165,7 +165,12 @@ class ExperimentTracker:
         file_path = artifact_dir / f"{name}.parquet"
         df.to_parquet(file_path)
 
-        meta = metadata or {}
+        # Copy the caller's dict rather than mutating it in place. The schema
+        # keys below belong to THIS artifact; writing them into the caller's
+        # dict leaks them into every later call that reuses the same dict (a
+        # subsequent ``log_artifact`` sidecar would then record a DataFrame's
+        # shape/columns/dtypes against a non-DataFrame artifact).
+        meta = dict(metadata) if metadata else {}
         meta.update(
             {
                 "shape": df.shape,
