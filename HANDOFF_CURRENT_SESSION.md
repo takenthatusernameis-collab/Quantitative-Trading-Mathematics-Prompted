@@ -1,54 +1,51 @@
-# HANDOFF_CURRENT_SESSION.md — gates workflow fix converted to apply-ready patch; loop stopped
+# HANDOFF_CURRENT_SESSION.md — Stale sidecar count in REPRODUCIBILITY_AUDIT_REPORT.md corrected; no code change
 
 ## What changed
-- **`patches/0001-gates-workflow-contract-fix.patch`** (new): the previously-recurring
-  `.github/workflows/gates.yml` fix as an apply-ready patch with a header explaining why
-  an agent cannot land it. Not applied to the workflow in this commit.
-- **`AGENTS.md`**: documented that workflow files are maintainer-managed/agent-unreachable,
-  that `tests/test_gates_workflow.py` is red on `main` by that design, and where the fix
-  lives. Also closed the unclosed ```bash fence in the Lint section (line 15-18).
-- **`NEXT_TASK.md`**: rewritten with the structural root cause, the exact maintainer
-  command, and this session's evidence.
-- No `src/qtr`, test, threshold, verdict, or frozen artifact changed. `.github/workflows`
-  restored to HEAD before commit (no workflow edit in this commit).
+- **`REPRODUCIBILITY_AUDIT_REPORT.md`**: corrected the stale prose claim that the
+  missing-`.meta.json`-sidecar backlog is **148**. Independent recount against the
+  committed corpus yields **140** missing (1,068 present), which matches
+  `REPRODUCIBILITY_BASELINE["missing_meta_files"]` in
+  `tests/test_reproducibility_audit.py` exactly. The 8-restore delta (140 → 148)
+  recorded in the prior session's prose never materialized. Updated the §4 root-cause
+  paragraph and the implications table. The baseline and the gate are unchanged.
 
-## Root cause (structural, supersedes "push the commit")
-`tests/test_gates_workflow.py` fails 7/7 at `origin/main` (`d542019`). Fixing it in a
-commit is impossible for an agent, for two independent reasons:
-1. `.github/scripts/kilo-controller.sh:305-317` restores `.github/workflows` from
-   `origin/main` after each session and `:323` excludes those paths from staging.
-2. The repo GitHub App token has no `workflows` permission
-   (`gh api repos/<repo> --jq .permissions` → all `false`), so the fix can never be
-   pushed to `main`.
+No `src/qtr`, test, threshold, verdict, frozen number, or artifact change. No commit/push.
 
-Every "fix" commit since `f86d732` was therefore reverted by an empty-message commit
-(`d542019`, `5bcc177`, `8e3e496`, `0efe2af`, ...). This was the 7th cycle.
+## Why this was worth doing
+The repo has a documented history of stale handoff/audit docs reading as open
+defects long after the underlying issue was fixed (see `HANDOFF.md` "Which approaches
+have already failed"). This was the same failure mode in miniature: a prose figure
+that disagreed with its own pinned baseline by 8. Left alone, the next session would
+have re-investigated a non-existent regression.
 
 ## Actually verified (this session)
-- Full suite: `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing`
-  → **7 failed, 3746 passed, 48 skipped**; coverage **100.00%** (1211 stmts / 422 branches / 0 miss).
-  All 7 failures are `tests/test_gates_workflow.py` (the known workflow block).
-- Patch applied in isolation (`/tmp/gates-verify` = patched `gates.yml` + the contract test)
-  → `tests/test_gates_workflow.py` **7 passed**.
-- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → clean.
-- `python -m ruff check src tests run_*.py scripts` → All checks passed (327 files with format check).
-- `python -m ruff format --check src tests run_*.py scripts` → 327 files already formatted.
+- `python -m pytest -q tests/test_reproducibility_audit.py tests/test_artifact_restoration_plan.py tests/test_experiment_lineage_report.py` — **20 passed**.
+- Independent sidecar recount (own script, not the test): **140 missing / 1,068 present**.
+- Full suite `python -m pytest -q -W error` — **7 failed, 3743 passed, 51 skipped**
+  (429s). All 7 failures are `tests/test_gates_workflow.py`, the known
+  maintainer-gated workflow block. No new failure, no regression.
+- `python -m ruff check src tests run_*.py scripts` — All checks passed.
+- `python -m ruff format --check src tests run_*.py scripts` — 327 files already formatted.
+- `python scripts/backtest_perf_regression_gate.py` — PERF GATE PASSED (0.423s, limit 5s).
+- `python scripts/generate_experiment_lineage_report.py` — success, 173 records.
 
 ## What remains unresolved
-- **Maintainer push** of `patches/0001-gates-workflow-contract-fix.patch` (needs `workflow` scope).
+- **Maintainer push** of `patches/0001-gates-workflow-contract-fix.patch` (needs `workflow`
+  scope). The 7 `test_gates_workflow.py` failures are red on `origin/main` by design.
 - **H182:** authorization-gated (free-data PIT families H1–H181 exhausted/rejected).
-- **Artifact restoration apply:** authorization-gated (dry-run no-op).
+- **Artifact restoration apply:** authorization-gated (dry-run no-op: 0 recoverable rows).
 
 ## Failed approaches / do not repeat
-- Do NOT commit the `gates.yml` edit again and report it durable — it is reverted by
-  `kilo-controller.sh:305` and cannot be pushed (no `workflows` permission). 7 cycles.
-- Do NOT weaken/delete `tests/test_gates_workflow.py` or the maintainer-managed-workflows policy.
-- Do NOT trust a handoff's failure list without re-running the suite (this repo has a
-  history of stale handoff docs).
+- Do not trust a handoff/audit doc's prose counts without re-deriving them against the
+  pinned baseline first. This repo's docs are repeatedly stale by one or more cycles.
+- Do not commit a `gates.yml` edit expecting persistence — reverted by
+  `kilo-controller.sh:305`, and no `workflows` push permission. 7 cycles.
+- Do not weaken `tests/test_gates_workflow.py`, the coverage gate, or any frozen contract.
 
 ## One precise next task
-For a human maintainer only: `git apply patches/0001-gates-workflow-contract-fix.patch`,
-commit, and push to `origin/main` with `workflow` scope; then confirm
+For a human maintainer: `git apply patches/0001-gates-workflow-contract-fix.patch`,
+commit, push to `origin/main` with `workflow` scope; then confirm
 `test_gates_workflow.py` 7/7 and a green full suite. For an agent: the free-data
 research queue is exhausted (H182 unassigned), so the next agent should audit
-infrastructure or await explicit authorization for a data gap — not invent a family.
+infrastructure/docs for the next stale-claim correction, or await explicit
+authorization for a data gap — not invent a strategy family.

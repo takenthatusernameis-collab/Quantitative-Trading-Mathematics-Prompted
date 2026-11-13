@@ -108,7 +108,7 @@ record in `experiments.jsonl`. Includes:
 These are not deleted: deleting committed artifacts would destroy user data.
 They are catalogued here and locked by the baseline.
 
-### 4. Missing `.meta.json` Sidecars (148, was 140)
+### 4. Missing `.meta.json` Sidecars (140)
 
 `ExperimentTracker.log_artifact()` writes a sidecar only when a non-empty
 `metadata` dict is passed:
@@ -120,12 +120,17 @@ if metadata:
 
 `log_dataframe()` always passes a metadata dict and therefore always writes a
 sidecar. The sidecar-less artifacts were logged through
-`log_artifact(..., metadata=None)` — mostly `summary.json`. Restoring 8 previously
-missing `summary.json` artifacts on 2026-11-12 added 8 more to this backlog
-(140 → 148); none of them had a sidecar in the source corpus either. The earlier
-count of 1,059 was an artifact of the test checking the wrong path
+`log_artifact(..., metadata=None)` — mostly `summary.json`. None of them had a
+sidecar in the source corpus either. The earlier count of 1,059 was an artifact
+of the test checking the wrong path
 (`.experiments/artifacts/<exp>/<name>.meta.json`) instead of the tracker's actual
 contract (`.experiments/<name>.meta.json`). That path bug is fixed in this change.
+
+**Re-verified 2026-11-13:** the 8-restore delta (140 → 148) recorded in the
+prior session's prose never materialized. Independent recount against the
+committed corpus yields **140** missing sidecars (1,068 present), matching
+`REPRODUCIBILITY_BASELINE["missing_meta_files"]` exactly. The prose figure is
+stale and is corrected here; the baseline and the gate are unchanged.
 
 ---
 
@@ -136,7 +141,7 @@ contract (`.experiments/<name>.meta.json`). That path bug is fixed in this chang
 | "All 173 experiments are fully reproducible from tracked metadata" | ❌ No | 25 missing files, 11 hash mismatches |
 | "Artifact hashes in experiment records match on-disk content" | ❌ No | 11 mismatches prove divergence |
 | "Every file in `.experiments/artifacts/` is accounted for" | ❌ No | 528 orphaned files |
-| "Every artifact has per-artifact metadata" | ❌ No | 148 missing sidecars |
+| "Every artifact has per-artifact metadata" | ❌ No | 140 missing sidecars |
 | "No *new* reproducibility drift is introduced" | ✅ Yes | Baseline ratchet fails on any count change |
 
 **However:** Experiment-level metadata (git commit, dependencies, seeds, config)

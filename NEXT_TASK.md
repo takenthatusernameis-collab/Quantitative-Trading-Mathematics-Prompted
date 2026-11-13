@@ -43,7 +43,7 @@ Then confirm `git show origin/main:.github/workflows/gates.yml | grep -c 'script
 ## Evidence (this session, HEAD `d542019`)
 
 - `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing`
-  → **7 failed, 3746 passed, 48 skipped**; coverage **100.00%** (1211 stmts / 422 branches,
+  → **7 failed, 3743 passed, 51 skipped** (429s); coverage **100.00%** (1211 stmts / 422 branches,
   0 miss). All 7 failures are `tests/test_gates_workflow.py`.
 - `python -m pytest -q -W error tests/test_gates_workflow.py` → **7 failed** (contract).
 - Patch verified in isolation (`/tmp/gates-verify`, patched `gates.yml` + the contract test):
@@ -51,6 +51,14 @@ Then confirm `git show origin/main:.github/workflows/gates.yml | grep -c 'script
 - `git apply --check patches/0001-gates-workflow-contract-fix.patch` → clean.
 - `python -m ruff check src tests run_*.py scripts` → All checks passed.
 - `python -m ruff format --check src tests run_*.py scripts` → 327 files already formatted.
+
+## Sidecar-count correction (2026-11-13)
+
+`REPRODUCIBILITY_AUDIT_REPORT.md` §4 prose claimed the missing-`.meta.json`-sidecar
+backlog was **148** (an 8-restore delta from a prior session that never materialized).
+Independent recount against the committed corpus yields **140** missing (1,068 present),
+exactly matching `REPRODUCIBILITY_BASELINE["missing_meta_files"]`. Prose corrected;
+baseline and gate unchanged. `tests/test_reproducibility_audit.py` — **7 passed**.
 
 ## Remaining open items (unchanged, authorization-gated)
 
