@@ -7,8 +7,13 @@ This is the CI/CD hardening item from STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md
 §6 fallback path: "CI/CD hardening - performance regression gate".
 
 The gate is intentionally conservative: local baseline for 100 symbols x 252
-bars is ~2.5s, so the 5.0s threshold has ~2x headroom and only triggers on a
-real regression (e.g. an accidental O(n^2) path in the engine).
+bars is ~0.8s wall-clock, so the 5.0s threshold has ~6x headroom and only
+triggers on a real regression (e.g. an accidental O(n^2) path in the engine).
+
+The timed run is measured with tracing disabled. ``tracemalloc`` slows the
+engine ~3x (0.8s -> 2.3s on this host), so it runs as a separate, untimed
+memory probe; charging its overhead to the wall clock would understate the
+gate's real headroom.
 
 Does not touch src/qtr, tests, frozen contracts, or any published artifact.
 """
@@ -77,10 +82,15 @@ def main() -> int:
     )
 
     gc.collect()
-    tracemalloc.start()
     start = time.perf_counter()
     result = run_backtest(prices=prices, signals=signals, volumes=volumes, adv=adv, config=config)
     elapsed = time.perf_counter() - start
+
+    # Memory probe: a separate, untimed run so tracemalloc's allocation tracing
+    # does not inflate the wall-clock measurement above.
+    gc.collect()
+    tracemalloc.start()
+    run_backtest(prices=prices, signals=signals, volumes=volumes, adv=adv, config=config)
     _, peak = tracemalloc.get_traced_memory()
     tracemalloc.stop()
 
