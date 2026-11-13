@@ -56,3 +56,8 @@ def test_research_gates_job_runs_performance_regression_gate(workflow):
     assert "python scripts/backtest_perf_regression_gate.py" in _run_steps(
         workflow, "research_gates"
     )
+
+
+@pytest.mark.parametrize("job", ["lint", "research_gates"])
+def test_jobs_install_the_package_editably(workflow, job):
+    assert "python -m pip install -e . --no-deps" in _run_steps(workflow, job)
