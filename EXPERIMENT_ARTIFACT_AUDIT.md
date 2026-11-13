@@ -4,13 +4,20 @@
 **Scope:** All 103 directories under `.experiments/nf_runs/`
 **Trigger:** Handoff directive to shift to auditing/infrastructure (free-data family discovery exhausted)
 
+> **Re-verified 2026-11-13:** the summary statistics below were recomputed directly from the
+> corpus (`os.walk` over every `summary.json`, 95 files) and corrected. The prior summary
+> claimed 87 distinct keys, 6 keys ≥50%, 1 key ≥80%, and 19 cache-only directories; the
+> actual values are **130 / 9 / 3 / 11**. The detailed per-key tables were already correct
+> and are unchanged. These counts are now pinned by
+> `tests/test_experiment_artifact_schema.py` so the summary cannot silently drift again.
+
 ---
 
 ## Executive Summary
 
-Audit of 103 experiment artifact directories reveals **severe schema inconsistency** across `summary.json` files. Only 95 directories contain a `summary.json`; 8 directories have only `grid.csv`/`auctions.csv` (incomplete runs), and 19 are cache-only subdirectories.
+Audit of 103 experiment artifact directories reveals **severe schema inconsistency** across `summary.json` files. Only 95 directories contain a `summary.json`; 8 directories have only `grid.csv`/`auctions.csv` (incomplete runs), and 11 are cache-only subdirectories.
 
-**Key finding:** No two experiment summaries share an identical schema. There are 87 distinct keys across 95 files, with only 1 key (`verdict`) appearing in >90% of files. Critical fields like `hypothesis`, `nf_id`, `timestamp_utc`, `selected` parameters, and OOS metrics are missing from 30–80% of artifacts.
+**Key finding:** No two experiment summaries share an identical schema. There are 130 distinct keys across 95 files, with only 1 key (`verdict`) appearing in >90% of files. Critical fields like `hypothesis`, `nf_id`, `timestamp_utc`, `selected` parameters, and OOS metrics are missing from 30–80% of artifacts.
 
 This inconsistency prevents programmatic analysis of the experiment corpus and undermines reproducibility guarantees.
 
@@ -23,10 +30,10 @@ This inconsistency prevents programmatic analysis of the experiment corpus and u
 | Total artifact directories | 103 |
 | Directories with `summary.json` | 95 |
 | Directories without `summary.json` (incomplete/cache) | 8 |
-| Cache-only subdirectories | 19 |
-| Distinct keys across all summaries | 87 |
-| Keys appearing in ≥50% of summaries | 6 |
-| Keys appearing in ≥80% of summaries | 1 (`verdict`) |
+| Cache-only subdirectories | 11 |
+| Distinct keys across all summaries | 130 |
+| Keys appearing in ≥50% of summaries | 9 |
+| Keys appearing in ≥80% of summaries | 3 (`data`, `gates`, `verdict`) |
 
 ---
 
@@ -138,7 +145,7 @@ This inconsistency prevents programmatic analysis of the experiment corpus and u
 
 ---
 
-## Cache-Only Subdirectories (19)
+## Cache-Only Subdirectories (11)
 
 These are data cache directories, not experiment runs:
 - `nf_20261105_14_credit_regime/cache/`

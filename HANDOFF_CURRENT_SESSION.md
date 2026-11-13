@@ -1,75 +1,92 @@
-# HANDOFF_CURRENT_SESSION.md — Gates re-verified green (Cycle 102); stale-doc repair only
+# HANDOFF_CURRENT_SESSION.md — Artifact-audit drift fixed and pinned (Cycle 103)
 
 ## What changed (this session)
 
-No `src/qtr`, test, runner, gate, threshold, verdict, or committed artifact was modified.
-Three live operational docs were repaired because they contradicted the verified state and
-would have misdirected the next agent:
+Two files only. No `src/qtr`, runner, gate, threshold, verdict, or frozen artifact changed.
 
-1. **`NEXT_TASK.md`** — corrected a false "321 hash-exact recoverable rows" claim. Re-running
-   `scripts/plan_artifact_restoration.py --dry-run` on this checkout reports
-   **Recoverable: 0 / Excluded (contract-blocked): 172 / Unrecoverable: 25**, which is exactly
-   what the committed `REPRODUCIBILITY_RESTORATION_PLAN.md/csv` and
-   `tests/test_artifact_restoration_plan.py` already pin. The restoration next-task was rewritten
-   to state that `--apply` is a no-op and must not be run.
-2. **`AGENTS.md`** — annotated the stale "H1–H30 exhausted / hypotheses through H84" lines with
-   the re-verified current inventory (**H1–H181 exhausted/rejected, H182 unassigned**, per
-   `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96 and `HANDOFF.md`); merged the duplicate
-   strategy-family section into `## Notes`.
-3. **`STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md`** — added a re-verification callout under §1.
+1. **`EXPERIMENT_ARTIFACT_AUDIT.md` — summary statistics corrected.** The doc's summary
+   contradicted the corpus. Recomputing from every `summary.json` under
+   `.experiments/nf_runs/` (95 files) gives:
 
-## What was actually verified (this session, own evidence — from a clean checkout)
+   | Metric | Doc (wrong) | Actual |
+   |---|---:|---:|
+   | Distinct keys | 87 | **130** |
+   | Keys ≥50% of summaries | 6 | **9** |
+   | Keys ≥80% of summaries | 1 (`verdict`) | **3** (`data`, `gates`, `verdict`) |
+   | Cache-only subdirectories | 19 | **11** |
 
-- `PYTHONPATH=src python3 -m pytest -q` → **3730 passed, 51 skipped, 0 failed** (623s).
-- `PYTHONPATH=src python3 -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` →
-  **100.00%** `src/qtr` (1211 stmts / 422 branches / 0 miss).
+   The detailed per-key tables (timing, selected, OOS, benchmark, worst-regime,
+   walk-forward) were already correct and are unchanged. A re-verification banner
+   records the corrected values and the pinning test.
+
+2. **`tests/test_experiment_artifact_schema.py` — added a reproducibility ratchet.**
+   New tests pin the recomputed summary statistics so this drift class cannot recur
+   silently:
+   - `test_summary_statistics_match_audit_inventory` — 95 summaries, 130 distinct
+     keys, exact ≥50% and ≥80% key sets.
+   - `test_cache_only_directory_inventory_matches_audit` — 11 cache-only dirs.
+   - `test_total_directory_inventory_matches_audit` — 103 top-level dirs.
+
+## What was actually verified (this session, own evidence)
+
+- `PYTHONPATH=src python3 -m pytest -q` **before** changes → 3730 passed, 51 skipped, 0 failed (625s).
+- `PYTHONPATH=src python3 -m pytest -q` **after** changes → **3733 passed, 51 skipped, 0 failed** (623s).
+- `PYTHONPATH=src python3 -m pytest -q tests/test_experiment_artifact_schema.py` → **100 passed** (0.12s).
 - `python3 -m ruff check src tests run_*.py` → All checks passed.
 - `python3 -m ruff format --check src tests run_*.py` → 321 files already formatted.
-- `python scripts/plan_artifact_restoration.py --dry-run` → Recoverable 0 / Excluded 172 /
-  Unrecoverable 25 (matches committed plan and `tests/test_artifact_restoration_plan.py` baselines).
-- `PYTHONPATH=src python3 -m pytest -q tests/test_reproducibility_audit.py
-  tests/test_artifact_restoration_plan.py` → passed (the audit's `missing_files=197`,
-  `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=140` baseline holds).
-- `git status --short` → only the three doc files above modified; no `src/qtr` change.
+- Corpus recomputation (evidence for the corrected numbers): 103 top-level dirs,
+  95 `summary.json`, 130 distinct keys, 9 keys ≥50%, 3 keys ≥80%, 11 cache-only
+  dirs, 8 incomplete-run dirs.
+- `git status --short` → only `EXPERIMENT_ARTIFACT_AUDIT.md` and
+  `tests/test_experiment_artifact_schema.py` modified.
+
+Coverage of `src/qtr` was not re-measured this session (no `src/qtr` change); the prior
+session measured 100.00% (1211 stmts / 422 branches / 0 miss).
 
 ## What remains unresolved
 
-- **Artifact restoration apply:** requires explicit human authorization to act on, and is
-  currently a **no-op** (`--apply` would copy 0 rows). The 172 hash-exact rows are
-  contract-blocked by the H28 depth-one invariant; the 25 unrecoverable rows have no
-  hash-matching source. Any reduction in the audit baselines requires editing
-  `experiments.jsonl` paths under authorization, then lowering the baselines in
-  `tests/test_reproducibility_audit.py` and `tests/test_artifact_restoration_plan.py` only to
-  evidenced values, regenerating the plan docs, and rerunning the full gates.
-- **H182 strategy-family discovery:** blocked on authorized free/PIT data for a materially new
-  mechanism (see `NEW_FAMILY_RESEARCH_REGISTER.md`, `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6).
+- **Artifact restoration apply:** requires explicit human authorization and is a **no-op**
+  on this checkout (`scripts/plan_artifact_restoration.py --dry-run` → Recoverable 0 /
+  Excluded 172 / Unrecoverable 25). The 172 hash-exact rows are contract-blocked by the
+  H28 depth-one invariant; the 25 unrecoverable rows have no hash-matching source.
+- **H182 strategy-family discovery:** blocked on authorized free/PIT data for a materially
+  new mechanism (see `NEW_FAMILY_RESEARCH_REGISTER.md`, `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6).
   Free-data point-in-time discovery is exhausted at H181.
+- **New pins are an intentional ratchet:** running new experiments that add a
+  `summary.json`, a new top-level directory, or a `cache` directory will fail the new
+  tests until the audit doc and pins are updated deliberately. That is the intended
+  behavior, matching `test_incomplete_runs_match_audit_inventory` and the
+  reproducibility-audit baseline ratchet.
 
 ## Failed approaches / do not blindly repeat
 
-- Do not trust a committed doc's counts without re-running the check that produced them. This
-  session found `NEXT_TASK.md` claiming "321 recoverable rows" when the planner reports 0.
-- Do not run `scripts/plan_artifact_restoration.py --apply` without authorization, and note that
-  on this checkout it would copy nothing even if authorized.
-- Do not treat the stale "H1–H30 / through H84" lines in `AGENTS.md` /
-  `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` as the current inventory; they are now annotated.
+- Do not trust a committed doc's counts without re-running the check that produced them.
+  This session found `EXPERIMENT_ARTIFACT_AUDIT.md`'s summary contradicting its own
+  detailed tables and the corpus (the previous handoff's "321 recoverable rows" claim was
+  already corrected in `NEXT_TASK.md`).
+- Do not run `scripts/plan_artifact_restoration.py --apply` without authorization; on this
+  checkout it would copy nothing.
 - Do not invent H182 from exhausted/adjacent families or blocked data.
 - Do not commit/push unless explicitly requested.
 
 ## One precise next task
 
-**No authorized write path exists for the remaining open items.** Restoration is a no-op and
-H182 is data/authorization-blocked. If authorization arrives for artifact-path remediation:
-edit `experiments.jsonl` → re-run `python scripts/plan_artifact_restoration.py --dry-run` and
-capture actual counts → lower baselines in `tests/test_reproducibility_audit.py` and
-`tests/test_artifact_restoration_plan.py` **only** to evidenced values → regenerate
-`REPRODUCIBILITY_RESTORATION_PLAN.md/csv` and `REPRODUCIBILITY_AUDIT_REPORT.md` → rerun full
-gates (`pytest -q`, ruff check/format, 100% `src/qtr` coverage). Absent authorization, the only
-safe work is further stale-doc auditing (no candidate invention; free-data family discovery is
-exhausted per Cycle 96).
+**Pin `EXPERIMENT_LINEAGE_REPORT.md` reproducibility.** The report is generated by
+`scripts/generate_experiment_lineage_report.py` from `.experiments/experiments.jsonl`
+(173 records), and re-running it on this checkout reproduced the committed file exactly
+except for the `**Generated:**` timestamp line. There is currently **no test** guarding it
+(grep of `tests/` finds no reference). Add a test in `tests/` that regenerates the report
+in-memory and asserts the non-timestamp content matches the committed
+`EXPERIMENT_LINEAGE_REPORT.md`; this closes the last unpinned generated inventory in the
+same drift class as the artifact audit. Constraint: read-only regeneration (do not rewrite
+the committed report as a side effect of the test), and keep the 100% `src/qtr` coverage
+gate untouched.
+
+Absent that, the only authorized progress requires restoration authorization or an
+authorized PIT/free data source for a materially new mechanism.
 
 ## Constraints
 
 - `src/qtr` unchanged. No frozen/certified/published value, verdict, threshold, or gate weakened.
-- No commit/push performed (not requested). Working tree has the three doc-file changes above.
+- No commit/push performed (not requested). Working tree has the two file changes above.
 - Free/public data only.

@@ -19,6 +19,7 @@ Read-only: does not modify ``src/qtr``, frozen-contract tests, or artifacts.
 """
 
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -88,4 +89,81 @@ def test_incomplete_runs_match_audit_inventory():
     )
     assert actual == EXPECTED_INCOMPLETE, (
         f"incomplete-run set changed: {sorted(actual)} vs expected {sorted(EXPECTED_INCOMPLETE)}"
+    )
+
+
+# Summary statistics pinned from EXPERIMENT_ARTIFACT_AUDIT.md (re-verified
+# 2026-11-13 by recomputing from the corpus). The audit doc previously stated
+# 87 distinct keys / 6 keys >=50% / 1 key >=80% / 19 cache-only directories;
+# the corpus actually has 130 / 9 / 3 / 11. These pins make the summary
+# recomputable so a future audit cannot silently drift from the artifacts.
+EXPECTED_TOTAL_DIRS = 103
+EXPECTED_SUMMARY_COUNT = 95
+EXPECTED_CACHE_ONLY_DIRS = 11
+EXPECTED_DISTINCT_KEYS = 130
+EXPECTED_KEYS_GE_50_PCT = frozenset(
+    {
+        "ablations",
+        "data",
+        "experiment",
+        "gates",
+        "gates_passed",
+        "hypothesis",
+        "nf_id",
+        "selected_params",
+        "verdict",
+    }
+)
+EXPECTED_KEYS_GE_80_PCT = frozenset({"data", "gates", "verdict"})
+
+
+def _key_counts():
+    """Return (per-key frequency, number of summaries) over the corpus."""
+    counts: dict[str, int] = {}
+    total = 0
+    for path in SUMMARY_PATHS:
+        total += 1
+        with open(path) as f:
+            data = json.load(f)
+        for key in data:
+            counts[key] = counts.get(key, 0) + 1
+    return counts, total
+
+
+def test_summary_statistics_match_audit_inventory():
+    """Distinct-key and frequency statistics match the pinned audit summary."""
+    counts, total = _key_counts()
+    assert total == EXPECTED_SUMMARY_COUNT
+    assert len(counts) == EXPECTED_DISTINCT_KEYS, (
+        f"distinct keys changed: {len(counts)} vs expected {EXPECTED_DISTINCT_KEYS}"
+    )
+    ge_50 = frozenset(key for key, count in counts.items() if count >= 0.5 * total)
+    ge_80 = frozenset(key for key, count in counts.items() if count >= 0.8 * total)
+    assert ge_50 == EXPECTED_KEYS_GE_50_PCT, (
+        f"keys >=50% changed: {sorted(ge_50)} vs expected {sorted(EXPECTED_KEYS_GE_50_PCT)}"
+    )
+    assert ge_80 == EXPECTED_KEYS_GE_80_PCT, (
+        f"keys >=80% changed: {sorted(ge_80)} vs expected {sorted(EXPECTED_KEYS_GE_80_PCT)}"
+    )
+
+
+def test_cache_only_directory_inventory_matches_audit():
+    """The number of cache-only subdirectories matches the audit inventory."""
+    cache_dirs = [
+        os.path.join(root, name)
+        for root, dirnames, _ in os.walk(NF_RUNS)
+        for name in dirnames
+        if "cache" in name.lower()
+    ]
+    assert len(cache_dirs) == EXPECTED_CACHE_ONLY_DIRS, (
+        f"cache-only directory count changed: {len(cache_dirs)} vs "
+        f"expected {EXPECTED_CACHE_ONLY_DIRS}"
+    )
+
+
+def test_total_directory_inventory_matches_audit():
+    """The number of top-level artifact directories matches the audit inventory."""
+    total_dirs = sum(1 for d in NF_RUNS.iterdir() if d.is_dir())
+    assert total_dirs == EXPECTED_TOTAL_DIRS, (
+        f"total artifact directories changed: {total_dirs} vs expected {EXPECTED_TOTAL_DIRS}"
     )
