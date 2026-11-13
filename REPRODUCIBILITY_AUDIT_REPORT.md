@@ -1,6 +1,11 @@
 # REPRODUCIBILITY AUDIT REPORT
 
 **Session:** 2026-11-12
+**Re-verified:** 2026-11-13 — `missing_files` is **197** (172 H28 contract-blocked +
+25 unrecoverable), the planner reports 0 recoverable / 172 excluded / 25
+unrecoverable, and `missing_meta_files` is **140**. The earlier prose that said
+"25 remaining" / "321 restored" was wrong and is corrected in §1 and
+§Recommended Remediation below.
 **Task:** Verify all experiment artifacts can be re-derived from tracked metadata (STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §6 fallback path)
 
 ---
@@ -69,19 +74,24 @@ historical corpus to that end state.
 
 ## Root Cause Analysis
 
-### 1. Missing Artifact Files (25 remaining, was 346)
+### 1. Missing Artifact Files (197 remaining, was 346)
 
 Experiments reference artifact paths under `.experiments/artifacts/<exp_id>/`
 but those files were never created, were cleaned up, or were written under a
-different experiment id. For example, `exp_2026-10-11T18-36-51-113738Z` is
-empty while the same artifact names exist under
-`exp_2026-10-11T18-40-37-427062Z`.
+different experiment id. For example, `exp_2026-10-13T21-46-52-446478Z`
+(`h17_vrp`) is missing 12 referenced artifacts, and
+`exp_2026-10-11T18-36-51-113738Z` is missing only its `summary.json` after the
+2026-11-12 restore (it is no longer empty).
 
-Recovery audit: all originally-missing paths had at least one same-basename file
-elsewhere under `.experiments/`; 321 of them also matched the recorded 16-char
-SHA-256 prefix exactly. **Those 321 were applied (copied) on 2026-11-12**,
-reducing this backlog to the 25 that have no hash-matching source and need a
-re-run.
+Recovery audit: of the 346 originally-missing paths, 321 had a same-basename
+candidate whose recorded 16-char SHA-256 prefix matched. Of those 321,
+**149 non-H28 rows were applied (copied) on 2026-11-12**, reducing
+`missing_files` from 346 to 197. The remaining 197 rows are **172 H28
+contract-blocked** (their hash-exact sources live under
+`.experiments/artifacts/h28_causal_recertification/runs/`; restoring depth-one
+copies would break `tests/test_h28_causal_recertification.py`) plus **25 with no
+hash-matching source** that need a re-run. The planner reports 0 recoverable /
+172 excluded / 25 unrecoverable (`REPRODUCIBILITY_RESTORATION_PLAN.{md,csv}`).
 
 **Most affected experiments (before apply):** `h11_robustness_certification`,
 `h17_vrp`, early TS/CS momentum runs, and
@@ -138,7 +148,7 @@ stale and is corrected here; the baseline and the gate are unchanged.
 
 | Claim | Supported? | Evidence |
 |-------|------------|----------|
-| "All 173 experiments are fully reproducible from tracked metadata" | ❌ No | 25 missing files, 11 hash mismatches |
+| "All 173 experiments are fully reproducible from tracked metadata" | ❌ No | 197 missing files (172 H28 contract-blocked + 25 unrecoverable), 11 hash mismatches |
 | "Artifact hashes in experiment records match on-disk content" | ❌ No | 11 mismatches prove divergence |
 | "Every file in `.experiments/artifacts/` is accounted for" | ❌ No | 528 orphaned files |
 | "Every artifact has per-artifact metadata" | ❌ No | 140 missing sidecars |
@@ -154,10 +164,12 @@ configuration for every run are recoverable.
 
 Ordered by value and risk:
 
-1. **✅ Restore the 321 hash-exact missing artifacts** — done 2026-11-12. Each
-   byte-identical same-basename file was copied to the referenced path after
-   re-verifying its SHA-256 prefix; `missing_files` fell 346 → 25. The planner
-   now reports 0 recoverable rows and refuses to overwrite existing targets.
+1. **✅ Restore the 149 non-H28 hash-exact missing artifacts** — done 2026-11-12.
+   Each byte-identical same-basename file was copied to the referenced path after
+   re-verifying its SHA-256 prefix; `missing_files` fell 346 → 197. The remaining
+   197 are 172 H28 contract-blocked rows plus 25 with no hash-exact source; the
+   planner now reports 0 recoverable / 172 excluded / 25 unrecoverable and refuses
+   to overwrite existing targets.
 
 2. **Re-run the 25 artifacts with no hash-matching source** — recreate them at
    the referenced paths and lower the baseline to 0.
@@ -188,7 +200,7 @@ Ordered by value and risk:
 | Core unit tests | `pytest tests/test_backtest_engine.py tests/test_config.py tests/test_cost_model.py tests/test_statistics.py tests/test_data_fetcher.py -q` | ✅ 359 passed |
 | Edge stress tests | `pytest tests/test_engine_edge_stress.py -q` | ✅ 12 passed |
 | Performance regression gate | `pytest tests/test_performance_regression_gate.py -q` | ✅ 1 passed |
-| Full pinned suite | `pytest -q -W error` | ✅ 3641 passed, 51 skipped |
+| Full pinned suite | `pytest -q -W error --cov=qtr --cov-branch` | ⚠ 3,743 passed, 51 skipped, 7 failed (all 7 = maintainer-gated `tests/test_gates_workflow.py`; re-verified 2026-11-13) |
 | Lint (ruff) | `ruff check src tests run_*.py` | ✅ Clean |
 | Format (ruff) | `ruff format --check src tests run_*.py` | ✅ Clean |
 

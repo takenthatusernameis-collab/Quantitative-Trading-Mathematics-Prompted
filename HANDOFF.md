@@ -1,5 +1,15 @@
 # HANDOFF.md
 
+> **Latest (2026-11-13):** this session corrected stale prose in
+> `REPRODUCIBILITY_AUDIT_REPORT.md` (missing-artifact arithmetic: 197 = 172 H28
+> contract-blocked + 25 unrecoverable; 149 restored, 346 → 197) and
+> `BACKTEST_PERF_PROFILE_RESULTS.md` (the 500 × 10-year performance claims were
+> not measured; largest measured cell is 200 × 5 years = 21.3s / 93.9MB).
+> Full suite re-verified: **7 failed** (maintainer-gated
+> `tests/test_gates_workflow.py`), **3,743 passed / 51 skipped**, coverage
+> **100%** (1,211 stmts / 422 branches). See `NEXT_TASK.md` for the current next
+> task (read-only audit of the 11 hash mismatches).
+
 ## Re-verification banner (2026-11-12T10:00Z, Cycle 101)
 
 > **Provenance caution (added 2026-11-13, Cycle 104):** this banner cites HEAD `1712a5e`

@@ -56,15 +56,22 @@ All asset classes show similar O(n_symbols * n_bars) scaling. Futures and crypto
 
 ## Conclusions
 
-1. **Engine is production-ready for large universes:** 500 symbols × 10 years completes in ~22s with <100MB peak memory.
+1. **Engine is production-ready at measured scales:** the largest measured cell,
+   200 symbols × 5 years (1,260 bars), completes in **21.3s** with **93.9MB** peak
+   memory. The matrix does not measure 500 symbols × 10 years; linear extrapolation
+   from the fitted model is ~117s and ~521MB, so that cell should be measured before
+   it is claimed.
 
 2. **Linear scaling confirmed:** Both time and memory scale linearly with symbols × bars. No quadratic bottlenecks detected.
 
-3. **Memory efficient:** Peak memory stays under 100MB even for 200 symbols × 10 years (93MB). The vectorized pandas/numpy implementation avoids excessive intermediate allocations.
+3. **Memory efficient at measured scales:** peak memory stays under 100MB for every
+   measured cell up to 200 symbols × 5 years (93.9MB). Memory scales linearly with
+   symbols × bars, so extrapolating to 500 symbols × 10 years implies ~521MB; measure
+   that cell rather than asserting a bound.
 
 4. **Cost model overhead is minimal:** Equity impact cost model adds ~10-15% overhead vs base cost model.
 
-5. **No regressions:** All existing tests pass (359 core tests, lint clean, format clean).
+5. **No regressions in the core suite:** the 359 core tests pass, lint clean, format clean.
    *Current full-suite status (re-verified 2026-11-13):* **3,743 passed, 51 skipped, 7
    failed** — the 7 are exclusively the maintainer-gated `tests/test_gates_workflow.py`
    contract block (documented in `NEXT_TASK.md`).
@@ -72,7 +79,7 @@ All asset classes show similar O(n_symbols * n_bars) scaling. Futures and crypto
 ## Files Created
 
 - `run_backtest_perf_profile.py` - Profiling script (linted, formatted, tested)
-- `.experiments/backtest_perf_profile.csv` - Raw benchmark data (36 rows)
+- `.experiments/backtest_perf_profile.csv` - Raw benchmark data (33 rows)
 
 ## Verification
 
@@ -80,11 +87,13 @@ All asset classes show similar O(n_symbols * n_bars) scaling. Futures and crypto
 - ✅ `python -m ruff format --check src tests run_*.py scripts` — 327 files already formatted
 - ✅ `python -m pytest tests/test_backtest_engine.py tests/test_config.py tests/test_cost_model.py tests/test_statistics.py tests/test_data_fetcher.py -q` — 359 passed
 
-## Next Steps (if continuing audit work)
+## Fallback Items Status
 
-1. **Stress-test frozen-contract gates** against edge cases (NaN prices, extreme leverage, zero-volume bars)
-2. **Document experiment lineage** - generate automated lineage report from `.experiments/experiments.jsonl`
-3. **CI/CD hardening** - add performance regression gate to prevent accidental O(n²) regressions
+1. **Stress-test engine/gate edge cases** — done: `tests/test_engine_edge_stress.py`
+   (12 passed) pins NaN prices, zero/extreme leverage, zero-volume/degenerate
+   futures, and the bar-0 look-ahead boundary.
+2. **Document experiment lineage** — done: `scripts/generate_experiment_lineage_report.py`, `EXPERIMENT_LINEAGE_REPORT.md`.
+3. **CI/CD hardening** — done: `scripts/backtest_perf_regression_gate.py` (performance regression gate).
 
 ---
 *Generated as part of infrastructure auditing per STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §6 fallback path.*
