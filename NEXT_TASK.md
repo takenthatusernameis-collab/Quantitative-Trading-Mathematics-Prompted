@@ -13,9 +13,10 @@ The committed `gates.yml` lacks all four, so the test reports **7 failed**.
 
 ## What was verified this session
 
-- `python -m pytest tests/test_gates_workflow.py -q` → **7 failed** on committed `gates.yml` (contract mismatch enumerated above).
-- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → **applies cleanly** to HEAD `a7957c4`.
-- Temporarily applied the patch, re-ran the contract test → **7 passed**. Restored `gates.yml` via `git checkout`; working tree clean, no `src/qtr`, test, gate, or artifact touched; no commit/push.
+- `python -m pytest tests/test_gates_workflow.py -q` → **7 failed** on committed `gates.yml` (contract mismatch enumerated above), re-confirmed at HEAD `f5ae2ed`.
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → **applies cleanly** to HEAD `f5ae2ed`.
+- Previously verified: temporarily applied the patch, re-ran the contract test → **7 passed**. Restored `gates.yml` via `git checkout`; working tree clean, no `src/qtr`, test, gate, or artifact touched; no commit/push.
+- Full suite otherwise green: **3743 passed, 51 skipped, 7 failed** (the 7 = `test_gates_workflow.py` only). `ruff check` clean, `ruff format --check` clean, `src/qtr` coverage **100%**.
 
 ## What remains unresolved
 
