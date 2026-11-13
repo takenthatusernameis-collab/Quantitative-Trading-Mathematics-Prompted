@@ -165,6 +165,30 @@ record in `experiments.jsonl`. Includes:
 These are not deleted: deleting committed artifacts would destroy user data.
 They are catalogued here and locked by the baseline.
 
+**Re-audit 2026-11-13 (Cycle 105):** recomputed the orphan set with the audit's
+own logic (`tests/test_reproducibility_audit.py::test_orphaned_artifacts_match_recorded_backlog`):
+**528 orphans, unchanged.** Each orphan was (a) checked for a byte-identical
+copy already referenced by `experiments.jsonl` (SHA-256, 16-char prefix), and
+(b) checked for citation by path in `tests/`, `run_*.py`, or `*.md`. Results:
+
+| Category | Count | Byte-identical to a referenced artifact? | Cited by a test/runner/doc? |
+|---|---|---|---|
+| `h28_causal_recertification/runs/` (depth-3 subdirs of the H28 shared dir) | 172 | **133 are byte-identical to a referenced artifact** (the referenced copy lives in a different depth-3 subdir; the H28 depth-one invariant forbids merging them) | No — H28 contract-blocked by `tests/test_h28_causal_recertification.py` |
+| `h28_causal_recertification/` top-level (`summary.json`, `recertification_table.parquet`, 18 orphaned `summary.json` under `runs/`) | 39 | No | `summary.json`/`recertification_table.parquet` are cited by `test_h28_causal_recertification.py` at this exact path |
+| `exp_.../cache/*.parquet` (4 dirs, 250 files: `exp_2026-11-05T01-22-22-092087Z` ×100, `...T01-17-49-208916Z` ×50, `...T01-15-02-402660Z` ×50, `...T01-24-02-934356Z` ×50) | 250 | No — filenames are bare SHA-256 hashes, none appears in `experiments.jsonl`; content is cached price/OHLCV frames (e.g. 2975×6 `open/high/low/close/volume/adj_close`) | No |
+| Shared dirs `h26_sharpe_scale/`, `h27_pnl_level/`, `h29_lookahead_sweep/`, `h57_total_return/`, `pf_robustness/` | 15 | No | **Yes — cited at these exact paths** by `test_h26_sharpe_scale_audit.py`, `test_h27_pnl_level_audit.py`, `test_h29_lookahead_sweep.py`, `test_h57_total_return_audit.py`, `test_h25_pf_robustness.py`, `test_h54_non_metrics_block_disclosure.py` |
+| Never-appended experiment dirs (`exp_2026-10-11T14-53-13-076438Z/summary.json`, `exp_2026-10-14T08-20-16-720432Z/summary.json`, `exp_2026-10-19T18-56-08-872500Z/summary.json`, `exp_2026-10-19T18-56-58-553612Z/summary.json`, `exp_2026-10-13T19-01-59-371405Z/subset_oos_metrics.parquet`+`topk_selected.parquet`, `exp_2026-10-13T22-13-37-475937Z/metadata.json`, `exp_2026-10-11T15-54-17-212022Z/run_h9_intraday_tsmom_experiment.py`) | 10 | No | `subset_oos_metrics.parquet`/`topk_selected.parquet` cited by `test_certified_artifact_values.py`+`test_h14_artifacts.py`; `metadata.json` cited by `test_gate_vacuity_contract.py`+`test_h56_stats_json_echoes.py`; `run_h9_intraday_tsmom_experiment.py` cited by 5 runner/gate tests; the 4 `summary.json` are cited only by basename (33 files) |
+| 31 singleton `exp_.../` dirs (1 file each) | 31 | No | No |
+
+**Conclusion.** No orphan is a secret duplicate of a referenced artifact that
+could be safely merged without a contract change: the 133 byte-identical H28
+rows are contract-blocked at depth one, the 250 cache files are unreferenced
+price frames, and the 15 shared-dir artifacts are *actively cited* by tests at
+their orphan path (moving them would break those tests). The remaining 130 are
+unappended experiment records with no on-disk twin. Deletion remains out of
+scope (committed data). The orphan count is frozen at 528 by
+`REPRODUCIBILITY_BASELINE["orphaned_files"]`.
+
 ### 4. Missing `.meta.json` Sidecars (140)
 
 `ExperimentTracker.log_artifact()` writes a sidecar only when a non-empty
