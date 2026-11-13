@@ -147,7 +147,7 @@ recorded name is a superseded duplicate/stale entry.** Remediation should correc
 final path), not overwrite the artifacts. This is authorization-gated because it
 edits the committed record; no baseline change is needed.
 
-**Verified 2026-11-13:** `tests/test_reproducibility_audit.py` — 7 passed;
+**Verified 2026-11-13:** `tests/test_reproducibility_audit.py` — 8 passed;
 `tests/test_h54_non_metrics_block_disclosure.py` — 21 passed; the three
 `tests/test_nf_20261105_1{4,6,9}_*.py` — 34 passed; read-only planner unchanged
 (0 recoverable / 172 excluded / 25 unrecoverable).
@@ -165,29 +165,35 @@ record in `experiments.jsonl`. Includes:
 These are not deleted: deleting committed artifacts would destroy user data.
 They are catalogued here and locked by the baseline.
 
-**Re-audit 2026-11-13 (Cycle 105):** recomputed the orphan set with the audit's
-own logic (`tests/test_reproducibility_audit.py::test_orphaned_artifacts_match_recorded_backlog`):
-**528 orphans, unchanged.** Each orphan was (a) checked for a byte-identical
-copy already referenced by `experiments.jsonl` (SHA-256, 16-char prefix), and
-(b) checked for citation by path in `tests/`, `run_*.py`, or `*.md`. Results:
+**Re-audit 2026-11-13 (Cycle 105, corrected Cycle 106):** recomputed the orphan
+set with the audit's own logic and partitioned it into six disjoint categories.
+The earlier Cycle-105 table was internally inconsistent (its rows summed to 517,
+not 528) and miscounted several buckets (cache 250 vs. actual 282, H28 top-level
+39 vs. actual 2, shared dirs 15 vs. actual 13). The corrected partition below is
+now machine-checked by
+`tests/test_reproducibility_audit.py::TestReproducibilityAudit::test_orphan_categorization_reconciles_to_backlog`
+against `ORPHAN_CATEGORIES`, so the prose counts cannot silently drift again.
 
-| Category | Count | Byte-identical to a referenced artifact? | Cited by a test/runner/doc? |
-|---|---|---|---|
-| `h28_causal_recertification/runs/` (depth-3 subdirs of the H28 shared dir) | 172 | **133 are byte-identical to a referenced artifact** (the referenced copy lives in a different depth-3 subdir; the H28 depth-one invariant forbids merging them) | No — H28 contract-blocked by `tests/test_h28_causal_recertification.py` |
-| `h28_causal_recertification/` top-level (`summary.json`, `recertification_table.parquet`, 18 orphaned `summary.json` under `runs/`) | 39 | No | `summary.json`/`recertification_table.parquet` are cited by `test_h28_causal_recertification.py` at this exact path |
-| `exp_.../cache/*.parquet` (4 dirs, 250 files: `exp_2026-11-05T01-22-22-092087Z` ×100, `...T01-17-49-208916Z` ×50, `...T01-15-02-402660Z` ×50, `...T01-24-02-934356Z` ×50) | 250 | No — filenames are bare SHA-256 hashes, none appears in `experiments.jsonl`; content is cached price/OHLCV frames (e.g. 2975×6 `open/high/low/close/volume/adj_close`) | No |
-| Shared dirs `h26_sharpe_scale/`, `h27_pnl_level/`, `h29_lookahead_sweep/`, `h57_total_return/`, `pf_robustness/` | 15 | No | **Yes — cited at these exact paths** by `test_h26_sharpe_scale_audit.py`, `test_h27_pnl_level_audit.py`, `test_h29_lookahead_sweep.py`, `test_h57_total_return_audit.py`, `test_h25_pf_robustness.py`, `test_h54_non_metrics_block_disclosure.py` |
-| Never-appended experiment dirs (`exp_2026-10-11T14-53-13-076438Z/summary.json`, `exp_2026-10-14T08-20-16-720432Z/summary.json`, `exp_2026-10-19T18-56-08-872500Z/summary.json`, `exp_2026-10-19T18-56-58-553612Z/summary.json`, `exp_2026-10-13T19-01-59-371405Z/subset_oos_metrics.parquet`+`topk_selected.parquet`, `exp_2026-10-13T22-13-37-475937Z/metadata.json`, `exp_2026-10-11T15-54-17-212022Z/run_h9_intraday_tsmom_experiment.py`) | 10 | No | `subset_oos_metrics.parquet`/`topk_selected.parquet` cited by `test_certified_artifact_values.py`+`test_h14_artifacts.py`; `metadata.json` cited by `test_gate_vacuity_contract.py`+`test_h56_stats_json_echoes.py`; `run_h9_intraday_tsmom_experiment.py` cited by 5 runner/gate tests; the 4 `summary.json` are cited only by basename (33 files) |
-| 31 singleton `exp_.../` dirs (1 file each) | 31 | No | No |
+| Category | Count | Dirs | Byte-identical to a referenced artifact? | Cited by a test/runner at this path? |
+|---|---|---|---|---|
+| `exp_.../cache/*.parquet` (bare SHA-256 price/OHLCV frames) | 282 | 24 | No — bare hash filenames appear in no record | No |
+| `h28_causal_recertification/runs/` (depth-3 H28 run artifacts) | 172 | — | **135 are byte-identical** to a referenced artifact (the referenced copy lives in a different depth-3 subdir; the H28 depth-one invariant forbids merging them) | No — contract-blocked by `tests/test_h28_causal_recertification.py` |
+| `h28_causal_recertification/` top-level (`summary.json`, `recertification_table.parquet`) | 2 | — | No | `summary.json` cited by `test_h28_causal_recertification.py:45`; `recertification_table.parquet` written by `run_h28_causal_recertification.py:553` |
+| Shared audit dirs `h26_sharpe_scale/` (2), `h27_pnl_level/` (2), `h29_lookahead_sweep/` (3), `h57_total_return/` (1), `pf_robustness/` (5) | 13 | 5 | No | **Yes** — cited at these exact paths by `test_h26_sharpe_scale_audit.py`, `test_h27_pnl_level_audit.py`, `test_h29_lookahead_sweep.py`, `test_h57_total_return_audit.py`, `test_h25_pf_robustness.py`, `test_h54_non_metrics_block_disclosure.py` |
+| Never-appended experiment dirs (no record in `experiments.jsonl`) | 53 | 7 | No | Only by basename (`prices.parquet`, `summary.json`, …), not by full path |
+| Orphan artifacts of experiments that *are* in the log | 6 | 5 | No | `subset_oos_metrics.parquet`/`topk_selected.parquet` (`test_certified_artifact_values.py`, `test_h14_artifacts.py`); `metadata.json` (`test_gate_vacuity_contract.py`, `test_h56_stats_json_echoes.py`); `run_h9_intraday_tsmom_experiment.py` (runner/gate tests) |
+| **Total** | **528** | | | |
 
-**Conclusion.** No orphan is a secret duplicate of a referenced artifact that
-could be safely merged without a contract change: the 133 byte-identical H28
-rows are contract-blocked at depth one, the 250 cache files are unreferenced
-price frames, and the 15 shared-dir artifacts are *actively cited* by tests at
-their orphan path (moving them would break those tests). The remaining 130 are
-unappended experiment records with no on-disk twin. Deletion remains out of
-scope (committed data). The orphan count is frozen at 528 by
-`REPRODUCIBILITY_BASELINE["orphaned_files"]`.
+**Conclusion.** The partition reconciles exactly to the 528 pinned by
+`REPRODUCIBILITY_BASELINE["orphaned_files"]`. No orphan is a secret duplicate of
+a referenced artifact that could be safely merged without a contract change: the
+135 byte-identical H28 rows are contract-blocked at depth one, the 282 cache files
+are unreferenced price frames, and the 13 shared-dir artifacts are *actively
+cited* by tests at their orphan path (moving them would break those tests). The
+remaining 59 are unappended or partially-logged experiment outputs with no
+on-disk twin referenced by their record. Deletion remains out of scope (committed
+data). Both the total (528) and the per-category split are pinned by
+`tests/test_reproducibility_audit.py`.
 
 ### 4. Missing `.meta.json` Sidecars (140)
 
@@ -273,13 +279,13 @@ Ordered by value and risk:
 
 | Check | Command | Result |
 |-------|---------|--------|
-| Reproducibility audit | `pytest tests/test_reproducibility_audit.py -q` | ✅ 7 passed |
+| Reproducibility audit | `pytest tests/test_reproducibility_audit.py -q` | ✅ 8 passed |
 | Hash-mismatch re-derivation | `pytest tests/test_h54_non_metrics_block_disclosure.py -q` | ✅ 21 passed (8 on-disk grids match published `param_grid_summary`) |
 | NF runner tests | `pytest tests/test_nf_20261105_1{4,6,9}_*.py -q` | ✅ 34 passed |
 | Core unit tests | `pytest tests/test_backtest_engine.py tests/test_config.py tests/test_cost_model.py tests/test_statistics.py tests/test_data_fetcher.py -q` | ✅ 359 passed |
 | Edge stress tests | `pytest tests/test_engine_edge_stress.py -q` | ✅ 12 passed |
 | Performance regression gate | `pytest tests/test_performance_regression_gate.py -q` | ✅ 1 passed |
-| Full pinned suite | `pytest -q -W error --cov=qtr --cov-branch` | ⚠ 3,743 passed, 51 skipped, 7 failed (all 7 = maintainer-gated `tests/test_gates_workflow.py`; re-verified 2026-11-13) |
+| Full pinned suite | `pytest -q -W error` | ⚠ 3,744 passed, 51 skipped, 7 failed (all 7 = maintainer-gated `tests/test_gates_workflow.py`; re-verified 2026-11-13, Cycle 106 — was 3,743 before the +1 orphan-categorization test) |
 | Lint (ruff) | `ruff check src tests run_*.py` | ✅ Clean |
 | Format (ruff) | `ruff format --check src tests run_*.py` | ✅ Clean |
 

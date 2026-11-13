@@ -1,16 +1,21 @@
 # HANDOFF.md
 
-> **Latest (2026-11-13):** completed the read-only audit of the 11 hash
-> mismatches. All 11 are superseded duplicate/stale entries: 8 duplicate
-> same-path `param_grid_results` writes (runners log the path 2–3× with
-> different frames) and 3 fixed-`run_dir` `summary.json` re-runs. The on-disk
-> file is authoritative in every case and feeds the published values; the
-> frozen `test_h54_non_metrics_block_disclosure.py` re-derivation (21 passed)
-> reads the on-disk grids. Table + authority verdict appended to
-> `REPRODUCIBILITY_AUDIT_REPORT.md` §2. Verified: audit 7 passed, nf runners 34
-> passed, planner unchanged (0/172/25), ruff clean. No `src/qtr`, test, gate,
-> or artifact changed; no commit/push. See `NEXT_TASK.md` for the next task
-> (read-only audit of the 528 orphaned artifacts).
+> **Latest (2026-11-13, Cycle 106):** completed and *corrected* the read-only
+> audit of the 528 orphaned artifacts. The prior Cycle-105 §3 table was
+> internally inconsistent (rows summed to 517, not 528) and miscounted buckets
+> (cache 250→282, H28 top-level 39→2, shared dirs 15→13, and it omitted a
+> "partially-logged experiment artifacts" bucket). Recomputed the exact,
+> disjoint partition from the on-disk tree: cache_files 282 (24 dirs) + h28_runs
+> 172 + h28_top_level 2 + shared_audit_dirs 13 + never_appended_experiment_dirs
+> 53 + partially_logged_experiment_artifacts 6 = **528**. Corrected
+> `REPRODUCIBILITY_AUDIT_REPORT.md` §3 and pinned the partition in
+> `tests/test_reproducibility_audit.py` via a new
+> `test_orphan_categorization_reconciles_to_backlog` (refactored the orphan walk
+> into a shared `_collect_orphans` helper; existing backlog test unchanged in
+> behavior). Verified: `tests/test_reproducibility_audit.py` **8 passed** (was
+> 7), ruff check/format clean, gates workflow still the only failing file (7,
+> maintainer-gated). No `src/qtr`, gate, frozen number, or artifact changed; no
+> commit/push. See `NEXT_TASK.md` for the next task.
 
 ## Re-verification banner (2026-11-12T10:00Z, Cycle 101)
 

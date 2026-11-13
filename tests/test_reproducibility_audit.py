@@ -29,6 +29,7 @@ for the remediation plan.
 
 import hashlib
 import json
+from collections import Counter
 from pathlib import Path
 
 import pytest
@@ -54,6 +55,38 @@ REPRODUCIBILITY_BASELINE = {
     "orphaned_files": 528,
     "missing_meta_files": 140,
 }
+
+# Per-category breakdown of the 528 orphaned files. This partitions the same
+# orphan set that ``test_orphaned_artifacts_match_recorded_backlog`` pins in
+# total, so the prose categorization in REPRODUCIBILITY_AUDIT_REPORT.md §3 is
+# machine-checked and cannot silently drift. The earlier prose table summed to
+# 517 (cache 250, h28 top 39, shared 15, singletons 31) and was corrected on
+# 2026-11-13 after recomputation against the on-disk tree; the categories below
+# reconcile exactly to ``REPRODUCIBILITY_BASELINE["orphaned_files"]``.
+ORPHAN_CATEGORIES = {
+    # Bare SHA-256-named price/OHLCV frames under ``<exp>/cache/`` (24 dirs).
+    "cache_files": 282,
+    # Depth-3 H28 causal-recertification run artifacts (contract-blocked).
+    "h28_runs": 172,
+    # ``summary.json`` + ``recertification_table.parquet`` at the H28 root.
+    "h28_top_level": 2,
+    # Artifacts in the shared audit dirs cited by name from tests.
+    "shared_audit_dirs": 13,
+    # Experiment dirs whose records were never appended to experiments.jsonl.
+    "never_appended_experiment_dirs": 53,
+    # Orphan artifacts belonging to experiments that *are* in the log.
+    "partially_logged_experiment_artifacts": 6,
+}
+
+# Directories that hold cross-experiment audit artifacts rather than a single
+# experiment's output; their files are cited by path from the test suite.
+_ORPHAN_SHARED_DIRS = (
+    "h26_sharpe_scale",
+    "h27_pnl_level",
+    "h29_lookahead_sweep",
+    "h57_total_return",
+    "pf_robustness",
+)
 
 
 def _compute_file_hash(filepath: Path, length: int = 16) -> str:
@@ -91,6 +124,45 @@ def _assert_backlog_matches_baseline(check: str, count: int, details: str) -> No
         "REPRODUCIBILITY_AUDIT_REPORT.md. If it is a regression, fix the "
         "artifact drift instead of raising the baseline."
     )
+
+
+def _collect_orphans() -> list[Path]:
+    """Return artifact files on disk that no experiment record references."""
+    if not ARTIFACTS_ROOT.exists():
+        pytest.skip(f"Artifacts directory not found: {ARTIFACTS_ROOT}")
+
+    experiments = _load_experiments()
+    referenced_paths = set()
+    for exp in experiments:
+        for artifact_path_str in exp.get("artifacts", {}).values():
+            referenced_paths.add(Path(artifact_path_str).resolve())
+
+    orphaned = []
+    for artifact_file in ARTIFACTS_ROOT.rglob("*"):
+        if artifact_file.is_file() and not artifact_file.name.endswith(".meta.json"):
+            if artifact_file.resolve() not in referenced_paths:
+                orphaned.append(artifact_file)
+    return orphaned
+
+
+def _categorize_orphans(orphans: list[Path]) -> Counter:
+    """Partition orphaned files into the categories pinned by ORPHAN_CATEGORIES."""
+    logged_ids = {exp["metadata"]["experiment_id"] for exp in _load_experiments()}
+    categories: Counter = Counter()
+    for artifact_file in orphans:
+        parts = artifact_file.relative_to(ARTIFACTS_ROOT).parts
+        if "cache" in parts:
+            categories["cache_files"] += 1
+        elif "h28_causal_recertification" in parts:
+            key = "h28_runs" if "runs" in parts else "h28_top_level"
+            categories[key] += 1
+        elif parts[0] in _ORPHAN_SHARED_DIRS:
+            categories["shared_audit_dirs"] += 1
+        elif parts[0] in logged_ids:
+            categories["partially_logged_experiment_artifacts"] += 1
+        else:
+            categories["never_appended_experiment_dirs"] += 1
+    return categories
 
 
 class TestReproducibilityAudit:
@@ -172,28 +244,36 @@ class TestReproducibilityAudit:
 
     def test_orphaned_artifacts_match_recorded_backlog(self):
         """Unreferenced artifact files must equal the recorded backlog."""
-        if not ARTIFACTS_ROOT.exists():
-            pytest.skip(f"Artifacts directory not found: {ARTIFACTS_ROOT}")
-
-        # Collect all referenced artifact paths
-        experiments = _load_experiments()
-        referenced_paths = set()
-        for exp in experiments:
-            for artifact_path_str in exp.get("artifacts", {}).values():
-                referenced_paths.add(Path(artifact_path_str).resolve())
-
-        # Walk artifacts directory
-        orphaned = []
-        for artifact_file in ARTIFACTS_ROOT.rglob("*"):
-            if artifact_file.is_file() and not artifact_file.name.endswith(".meta.json"):
-                resolved = artifact_file.resolve()
-                if resolved not in referenced_paths:
-                    orphaned.append(str(artifact_file))
-
+        orphaned = _collect_orphans()
         details = "\n".join(f"  {p}" for p in orphaned[:20])
         if len(orphaned) > 20:
             details += f"\n  ... and {len(orphaned) - 20} more"
         _assert_backlog_matches_baseline("orphaned_files", len(orphaned), details)
+
+    def test_orphan_categorization_reconciles_to_backlog(self):
+        """The per-category orphan breakdown must match and sum to the total.
+
+        REPRODUCIBILITY_AUDIT_REPORT.md §3 describes the orphan set by category.
+        This test recomputes the partition from the on-disk tree so the prose
+        counts are verifiable: the categories must equal ``ORPHAN_CATEGORIES``
+        exactly and their sum must equal the pinned ``orphaned_files`` total.
+        """
+        orphans = _collect_orphans()
+        categories = _categorize_orphans(orphans)
+
+        for category, expected in ORPHAN_CATEGORIES.items():
+            actual = categories.get(category, 0)
+            assert actual == expected, (
+                f"orphan category {category!r} changed: {actual} "
+                f"(recorded {expected}). Update ORPHAN_CATEGORIES and "
+                "REPRODUCIBILITY_AUDIT_REPORT.md §3 together."
+            )
+
+        total = sum(categories.values())
+        assert total == REPRODUCIBILITY_BASELINE["orphaned_files"], (
+            f"orphan categories sum to {total}, expected "
+            f"{REPRODUCIBILITY_BASELINE['orphaned_files']}"
+        )
 
     def test_experiment_metadata_completeness(self):
         """Every experiment must have required metadata fields."""
