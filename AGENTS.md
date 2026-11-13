@@ -13,9 +13,8 @@ python -m pytest -q -W error  # as used in handoffs
 
 ## Lint and format
 ```bash
-python -m ruff check src tests run_*.py
-python -m ruff format --check src tests run_*.py
-```
+python -m ruff check src tests run_*.py scripts
+python -m ruff format --check src tests run_*.py scripts
 
 ## Coverage
 ```bash
