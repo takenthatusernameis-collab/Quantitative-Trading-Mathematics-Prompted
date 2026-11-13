@@ -101,9 +101,56 @@ hash-matching source** that need a re-run. The planner reports 0 recoverable /
 ### 2. Hash Mismatches (11)
 
 The artifact name embeds a 16-char SHA-256 prefix, but the file at the
-referenced path has different content. Most cases are `param_grid_results`
-artifacts reused across experiments; the file on disk was overwritten by a later
-run. Three are `summary.json` files under `.experiments/nf_runs/`.
+referenced path has different content. The 11 rows fall into two distinct
+mechanisms, re-derived 2026-11-13 with the audit's own hash logic.
+
+**8 × `param_grid_results` — duplicate same-path log entries within one run.**
+The momentum runners call `log_dataframe("param_grid_results", ...)` more than
+once on the same output path, with different DataFrame contents (e.g.
+`run_ts_momentum_experiment.py:440` pre-correction, `:473` post-correction,
+`:708` pre-correction again; `run_cs_momentum_experiment.py:294` then `:516`;
+`run_regime_gated_momentum_experiment.py:573` then `:613`). Only one write
+survives on disk, so the superseded recorded name can never match the file. The
+on-disk file matches the *other* recorded name in every case.
+
+**3 × `summary.json` under `.experiments/nf_runs/` — fixed `run_dir` re-run.**
+These runners derive `run_dir` from `EXPERIMENT_NAME` alone
+(`run_nf_20261105_14_credit_regime.py:281`, `..._16_usd_macro.py:281`,
+`..._19_pead.py:292`), so re-running an experiment overwrites `summary.json`
+while the earlier experiment record keeps its original hash.
+
+| Experiment id | Artifact (recorded name) | Recorded | On disk | Likely cause | Test/gate pins it? | On disk authoritative? |
+|---|---|---|---|---|---|---|
+| exp_2026-10-10T20-56-30-507309Z | param_grid_results_3c3ca96bf45b5f28 | 3c3ca96bf45b5f28 | 2cfbb88200656d0d | duplicate same-path write (ts_momentum_20etf_v1) | No (stale duplicate); published counts re-derived from disk | Yes |
+| exp_2026-10-10T20-57-26-136503Z | param_grid_results_3c3ca96bf45b5f28 | 3c3ca96bf45b5f28 | 2cfbb88200656d0d | duplicate same-path write (ts_momentum_20etf_v1) | No (stale duplicate); published counts re-derived from disk | Yes |
+| exp_2026-10-10T20-59-28-306148Z | param_grid_results_3c5c66cd85442477 | 3c5c66cd85442477 | c7a1cedb8a4fc5b1 | duplicate same-path write (cs_momentum_10etf_v1) | No (stale duplicate); published counts re-derived from disk | Yes |
+| exp_2026-10-10T21-08-54-188263Z | param_grid_results_3c3ca96bf45b5f28 | 3c3ca96bf45b5f28 | 2cfbb88200656d0d | duplicate same-path write (ts_momentum_20etf_v1) | No (stale duplicate); published counts re-derived from disk | Yes |
+| exp_2026-10-10T21-09-06-830199Z | param_grid_results_3c5c66cd85442477 | 3c5c66cd85442477 | c7a1cedb8a4fc5b1 | duplicate same-path write (cs_momentum_10etf_v1) | No (stale duplicate); published counts re-derived from disk | Yes |
+| exp_2026-10-10T21-27-13-928282Z | param_grid_results_5aa48f8683d54d37 | 5aa48f8683d54d37 | b7dddfb0dc0c524d | duplicate same-path write (regime_gated_momentum_20etf_v1) | No (stale duplicate); published counts re-derived from disk | Yes |
+| exp_2026-10-10T21-28-20-920399Z | param_grid_results_5aa48f8683d54d37 | 5aa48f8683d54d37 | b7dddfb0dc0c524d | duplicate same-path write (regime_gated_momentum_20etf_v1) | No (stale duplicate); published counts re-derived from disk | Yes |
+| exp_2026-10-14T08-26-18-385545Z | param_grid_results_3c3ca96bf45b5f28 | 3c3ca96bf45b5f28 | 2cfbb88200656d0d | duplicate same-path write (ts_momentum_20etf_v1) | No (stale duplicate); published counts re-derived from disk | Yes |
+| exp_2026-11-05T18-20-38-363385Z | summary_b8cf0dae88579c7a | b8cf0dae88579c7a | 63139e710dc45c09 | fixed `run_dir` re-run overwrote summary.json (later run exp_2026-11-10T17-24-06-550812Z) | No; later record is the on-disk hash | Yes (later run) |
+| exp_2026-11-05T19-06-45-864432Z | summary_361a5942ebe194a6 | 361a5942ebe194a6 | 7ec56dd201670d5a | fixed `run_dir` re-run overwrote summary.json (later run exp_2026-11-05T19-09-07-377344Z) | No; register cites later run | Yes (later run) |
+| exp_2026-11-06T01-28-49-517869Z | summary_4eff6682192c3e69 | 4eff6682192c3e69 | da9da6784d5a7d8d | fixed `run_dir` re-run overwrote summary.json (later run exp_2026-11-06T01-30-29-259047Z) | No; register cites later run | Yes (later run) |
+
+**No mismatch feeds a published/frozen number.** The frozen published
+`param_grid_summary` values (`n_combos`, `benjamini_hochberg_significant`) are
+re-derived from the *on-disk* parquet by
+`tests/test_h54_non_metrics_block_disclosure.py::test_the_re_derivable_families_re_derive`;
+an independent recount confirms all 8 on-disk grids match their summaries
+(18/18, 54/54, 108/108 rows and BH = 0 in each case). The three `nf_runs`
+summaries are re-run products; the later record carries the on-disk hash and
+`HYPOTHESIS_SPEC.md` cites the later execution ids for `_16_usd_macro` and
+`_19_pead`. **The on-disk file is authoritative in all 11 rows; the flagged
+recorded name is a superseded duplicate/stale entry.** Remediation should correct
+`experiments.jsonl` (drop superseded duplicate keys) or the runner (log once per
+final path), not overwrite the artifacts. This is authorization-gated because it
+edits the committed record; no baseline change is needed.
+
+**Verified 2026-11-13:** `tests/test_reproducibility_audit.py` — 7 passed;
+`tests/test_h54_non_metrics_block_disclosure.py` — 21 passed; the three
+`tests/test_nf_20261105_1{4,6,9}_*.py` — 34 passed; read-only planner unchanged
+(0 recoverable / 172 excluded / 25 unrecoverable).
 
 ### 3. Orphaned Artifact Files (528)
 
@@ -174,9 +221,15 @@ Ordered by value and risk:
 2. **Re-run the 25 artifacts with no hash-matching source** — recreate them at
    the referenced paths and lower the baseline to 0.
 
-3. **Resolve the 11 hash mismatches** — either re-run the affected experiments
-   or record why the on-disk file is the authoritative version. Do not rewrite
-   `experiments.jsonl` without authorization.
+3. **✅ Audit the 11 hash mismatches** — done 2026-11-13 (§2). All 11 are
+   superseded duplicate/stale entries: 8 are duplicate same-path
+   `param_grid_results` log entries and 3 are fixed-`run_dir` re-runs. The
+   on-disk file is authoritative and feeds the published values (the frozen h54
+   re-derivation reads it). The only remediation is to drop the superseded keys
+   from `experiments.jsonl` (or log once per final path); it is
+   authorization-gated and must not overwrite artifacts. A cross-basename
+   hash-exact scan of all 2,155 on-disk artifacts found **0** sources for the 25
+   unrecoverable rows, so the missing backlog cannot be reduced this way.
 
 4. **Catalog or archive the 528 orphaned files** — add references if they are
    valid artifacts, or move them to an explicit archive directory. Do not
@@ -197,6 +250,8 @@ Ordered by value and risk:
 | Check | Command | Result |
 |-------|---------|--------|
 | Reproducibility audit | `pytest tests/test_reproducibility_audit.py -q` | ✅ 7 passed |
+| Hash-mismatch re-derivation | `pytest tests/test_h54_non_metrics_block_disclosure.py -q` | ✅ 21 passed (8 on-disk grids match published `param_grid_summary`) |
+| NF runner tests | `pytest tests/test_nf_20261105_1{4,6,9}_*.py -q` | ✅ 34 passed |
 | Core unit tests | `pytest tests/test_backtest_engine.py tests/test_config.py tests/test_cost_model.py tests/test_statistics.py tests/test_data_fetcher.py -q` | ✅ 359 passed |
 | Edge stress tests | `pytest tests/test_engine_edge_stress.py -q` | ✅ 12 passed |
 | Performance regression gate | `pytest tests/test_performance_regression_gate.py -q` | ✅ 1 passed |
