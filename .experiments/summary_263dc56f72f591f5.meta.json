@@ -1,0 +1,9 @@
+{
+  "keys": [
+    "experiment_id",
+    "strategy_metrics",
+    "benchmark_metrics",
+    "validation",
+    "config"
+  ]
+}

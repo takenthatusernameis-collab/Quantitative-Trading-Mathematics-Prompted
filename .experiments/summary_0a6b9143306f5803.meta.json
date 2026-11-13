@@ -1,0 +1,20 @@
+{
+  "keys": [
+    "experiment_id",
+    "hypothesis",
+    "h10_artifact_id",
+    "frozen_config",
+    "f1",
+    "e1_seed_robustness",
+    "e2_perturbation",
+    "e3_cost_stress",
+    "e4_window_robustness",
+    "e5_per_symbol",
+    "live_extension_probe",
+    "total_elapsed_sec",
+    "compute_cpu_hours",
+    "verdict_components",
+    "all_pass",
+    "verdict"
+  ]
+}

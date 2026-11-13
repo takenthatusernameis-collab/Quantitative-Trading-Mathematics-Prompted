@@ -1,0 +1,9 @@
+{
+  "keys": [
+    "hypothesis",
+    "selected_config",
+    "oos_metrics",
+    "gate_metrics",
+    "all_combo_results"
+  ]
+}

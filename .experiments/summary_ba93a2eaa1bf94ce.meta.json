@@ -1,0 +1,18 @@
+{
+  "keys": [
+    "experiment",
+    "hypothesis",
+    "family",
+    "mechanism",
+    "verdict",
+    "reject_reasons",
+    "data",
+    "selection",
+    "gate_result",
+    "perturbation_detail_count",
+    "subperiod_oos",
+    "ablations",
+    "gates",
+    "runtime_sec"
+  ]
+}

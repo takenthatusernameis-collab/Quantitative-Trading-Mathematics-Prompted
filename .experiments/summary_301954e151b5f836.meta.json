@@ -1,0 +1,19 @@
+{
+  "keys": [
+    "experiment_id",
+    "best_weight",
+    "best_val_sharpe",
+    "grid",
+    "gate_metrics",
+    "passes",
+    "all_pass",
+    "verdict",
+    "ablations",
+    "base_metrics",
+    "benchmark_sharpe",
+    "benchmark_return",
+    "benchmark_max_dd",
+    "data_available",
+    "roll_dates_count"
+  ]
+}

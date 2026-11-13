@@ -1,0 +1,39 @@
+{
+  "shape": [
+    50,
+    14
+  ],
+  "columns": [
+    "combo_index",
+    "val_pf_margin",
+    "val_profit_factor",
+    "val_sharpe",
+    "oos_sharpe",
+    "oos_profit_factor",
+    "pf_boot_ci_lb",
+    "pf_boot_ci_ub",
+    "pf_boot_median",
+    "pf_boot_geq_1_3",
+    "dsr_adj_sharpe_at_k",
+    "p_at_k",
+    "loo_pf",
+    "all_symbols_dispensable"
+  ],
+  "dtypes": {
+    "combo_index": "int64",
+    "val_pf_margin": "float64",
+    "val_profit_factor": "float64",
+    "val_sharpe": "float64",
+    "oos_sharpe": "float64",
+    "oos_profit_factor": "float64",
+    "pf_boot_ci_lb": "float64",
+    "pf_boot_ci_ub": "float64",
+    "pf_boot_median": "float64",
+    "pf_boot_geq_1_3": "float64",
+    "dsr_adj_sharpe_at_k": "float64",
+    "p_at_k": "float64",
+    "loo_pf": "object",
+    "all_symbols_dispensable": "bool"
+  },
+  "index_type": "int64"
+}

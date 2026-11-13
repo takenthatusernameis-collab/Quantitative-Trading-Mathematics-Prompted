@@ -1,0 +1,20 @@
+{
+  "keys": [
+    "experiment_id",
+    "hypothesis",
+    "h10_selected_config",
+    "frozen_config",
+    "oos_window",
+    "oos_deflation",
+    "per_symbol_net_oos",
+    "pf_bootstrap",
+    "shifted_splits",
+    "cost_breakeven",
+    "reproduction_checks",
+    "gates",
+    "all_pass",
+    "verdict",
+    "total_elapsed_sec",
+    "compute_cpu_hours"
+  ]
+}

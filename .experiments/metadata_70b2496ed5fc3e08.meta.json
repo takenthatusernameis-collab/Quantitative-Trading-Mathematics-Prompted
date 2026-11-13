@@ -1,0 +1,12 @@
+{
+  "keys": [
+    "run_id",
+    "script",
+    "start_time",
+    "end_time",
+    "duration_seconds",
+    "duration_cpu_hours",
+    "timestamp_start",
+    "timestamp_end"
+  ]
+}

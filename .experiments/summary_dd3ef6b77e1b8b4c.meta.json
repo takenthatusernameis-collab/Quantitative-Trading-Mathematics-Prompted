@@ -1,0 +1,11 @@
+{
+  "keys": [
+    "experiment_id",
+    "all_results",
+    "best_strategy",
+    "best_params",
+    "best_sharpe",
+    "benchmark",
+    "config"
+  ]
+}

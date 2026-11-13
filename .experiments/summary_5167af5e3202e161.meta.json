@@ -1,0 +1,17 @@
+{
+  "keys": [
+    "experiment_id",
+    "hypothesis",
+    "selected_config",
+    "selection_rule",
+    "grid_size",
+    "n_evaluated",
+    "grid_elapsed_sec",
+    "total_elapsed_sec",
+    "compute_cpu_hours",
+    "metrics",
+    "passes",
+    "all_pass",
+    "verdict"
+  ]
+}

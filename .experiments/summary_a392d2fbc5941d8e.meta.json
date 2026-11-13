@@ -1,0 +1,22 @@
+{
+  "keys": [
+    "experiment_id",
+    "hypothesis",
+    "h10_selected_config",
+    "n_obs_val_bars",
+    "val_return_skewness",
+    "val_return_kurtosis",
+    "trial_sharpe_variance",
+    "observed_val_sharpe",
+    "dsr",
+    "pbo",
+    "family_wide",
+    "pf_margin",
+    "rerun_oos_metrics",
+    "gates",
+    "all_pass",
+    "verdict",
+    "total_elapsed_sec",
+    "compute_cpu_hours"
+  ]
+}

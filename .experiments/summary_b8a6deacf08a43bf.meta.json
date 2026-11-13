@@ -1,0 +1,19 @@
+{
+  "keys": [
+    "experiment_id",
+    "best_ddcv",
+    "ddcv_grid",
+    "oos_sharpe",
+    "oos_pf",
+    "oos_max_dd",
+    "oos_trades",
+    "train_sharpe",
+    "wf_stability",
+    "worst_regime_sharpe",
+    "alpha_vs_benchmark",
+    "passes",
+    "all_pass",
+    "ablations",
+    "data_available"
+  ]
+}

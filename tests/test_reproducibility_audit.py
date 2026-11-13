@@ -46,13 +46,15 @@ ARTIFACTS_ROOT = Path(".experiments/artifacts")
 # hash-exact but must stay at their depth-one paths un-restored (restoring them
 # would violate the H28 depth-one invariant in
 # tests/test_h28_causal_recertification.py), and 25 have no hash-matching source.
-# Sidecar count is unchanged at 140 (the 8 restored summary.json were H28 and
-# were reverted). See REPRODUCIBILITY_AUDIT_REPORT.md.
+# Sidecar count is unchanged at 0 after the 2026-11-13 backfill: all 140
+# historically missing ``.meta.json`` sidecars were derived additively
+# (JSON -> top-level keys; parquet -> shape/columns/dtypes/index_type) and no
+# existing sidecar was overwritten. See REPRODUCIBILITY_AUDIT_REPORT.md §4.
 REPRODUCIBILITY_BASELINE = {
     "missing_files": 197,
     "hash_mismatches": 11,
     "orphaned_files": 528,
-    "missing_meta_files": 140,
+    "missing_meta_files": 0,
 }
 
 

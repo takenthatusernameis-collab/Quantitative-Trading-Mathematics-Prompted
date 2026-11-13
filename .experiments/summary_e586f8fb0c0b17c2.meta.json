@@ -1,0 +1,14 @@
+{
+  "keys": [
+    "experiment",
+    "hypothesis",
+    "seed",
+    "data",
+    "splits",
+    "grid_rows",
+    "selected",
+    "gate_eval_oos_val_test",
+    "verdict",
+    "duration_seconds"
+  ]
+}

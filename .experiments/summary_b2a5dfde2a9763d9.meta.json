@@ -1,0 +1,20 @@
+{
+  "keys": [
+    "experiment_id",
+    "hypothesis",
+    "selected_params",
+    "gates",
+    "all_gates_pass",
+    "verdict",
+    "oos_metrics",
+    "split_metrics",
+    "benchmark_comparison",
+    "regime_metrics",
+    "crisis_drawdowns",
+    "perturbations",
+    "stressed_costs",
+    "param_grid_summary",
+    "hedge_data_availability",
+    "gates_spec"
+  ]
+}

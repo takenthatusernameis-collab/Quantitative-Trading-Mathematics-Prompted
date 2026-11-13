@@ -1,0 +1,17 @@
+{
+  "keys": [
+    "experiment_id",
+    "hypothesis",
+    "k_top",
+    "n_trials_family_k",
+    "topk_count",
+    "configs_evaluated",
+    "min_pf_gate",
+    "min_sr_gate",
+    "n_passing",
+    "all_pass",
+    "verdict",
+    "null_h0",
+    "passes"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "keys": [
+    "experiment_id",
+    "selected_params",
+    "gates",
+    "all_gates_pass",
+    "oos_metrics",
+    "split_metrics",
+    "benchmark_comparison",
+    "regime_metrics",
+    "perturbations",
+    "param_grid_summary",
+    "gates_spec"
+  ]
+}

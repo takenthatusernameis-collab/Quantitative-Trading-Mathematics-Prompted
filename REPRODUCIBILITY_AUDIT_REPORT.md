@@ -47,7 +47,7 @@ state; all deltas are additive and verified.
 | No orphaned files in artifacts dir | ⚠ BASELINE | 528 orphaned | Files on disk not referenced by any experiment |
 | Experiment metadata completeness | ✅ PASS | 173/173 complete | All required fields present |
 | Git commit consistency | ✅ PASS | 173/173 valid | No "unknown" commits |
-| Artifact `.meta.json` sidecars exist | ⚠ BASELINE | 140 missing | Sidecars absent for artifacts logged without metadata |
+| Artifact `.meta.json` sidecars exist | ✅ PASS | 0 missing | All 140 historically missing sidecars backfilled 2026-11-13 (additive; none overwritten) |
 
 ---
 
@@ -189,7 +189,7 @@ unappended experiment records with no on-disk twin. Deletion remains out of
 scope (committed data). The orphan count is frozen at 528 by
 `REPRODUCIBILITY_BASELINE["orphaned_files"]`.
 
-### 4. Missing `.meta.json` Sidecars (140)
+### 4. Missing `.meta.json` Sidecars (140 → 0, remediated 2026-11-13)
 
 `ExperimentTracker.log_artifact()` writes a sidecar only when a non-empty
 `metadata` dict is passed:
@@ -207,11 +207,14 @@ of the test checking the wrong path
 (`.experiments/artifacts/<exp>/<name>.meta.json`) instead of the tracker's actual
 contract (`.experiments/<name>.meta.json`). That path bug is fixed in this change.
 
-**Re-verified 2026-11-13:** the 8-restore delta (140 → 148) recorded in the
-prior session's prose never materialized. Independent recount against the
-committed corpus yields **140** missing sidecars (1,068 present), matching
-`REPRODUCIBILITY_BASELINE["missing_meta_files"]` exactly. The prose figure is
-stale and is corrected here; the baseline and the gate are unchanged.
+**Remediated 2026-11-13:** all 140 missing sidecars were derived additively
+(JSON artifacts → `{"keys": [<top-level keys>]}`; parquet artifacts →
+`{"shape": [...], "columns": [...], "dtypes": {...}, "index_type": "..."}` matching
+`log_dataframe`'s schema) and no existing sidecar was overwritten. Independent
+recount against the committed corpus yields **0** missing sidecars (1,188
+present), matching the lowered
+`REPRODUCIBILITY_BASELINE["missing_meta_files"]` (140 → 0). The baseline and
+this report were updated together per the ratchet contract.
 
 ---
 

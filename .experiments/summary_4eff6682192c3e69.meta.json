@@ -1,0 +1,16 @@
+{
+  "keys": [
+    "experiment",
+    "hypothesis",
+    "seed",
+    "data",
+    "splits",
+    "hold_days",
+    "max_pos",
+    "n_symbols",
+    "n_events_total",
+    "gate_eval_oos_val_test",
+    "verdict",
+    "duration_seconds"
+  ]
+}

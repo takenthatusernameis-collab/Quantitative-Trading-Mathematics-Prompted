@@ -1,0 +1,9 @@
+{
+  "keys": [
+    "experiment_id",
+    "metrics",
+    "passes",
+    "all_pass",
+    "verdict"
+  ]
+}

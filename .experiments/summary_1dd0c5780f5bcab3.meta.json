@@ -1,0 +1,28 @@
+{
+  "keys": [
+    "experiment_id",
+    "hypothesis",
+    "h10_selected_config",
+    "baseline_oos_sharpe",
+    "perturbation_sharpe_floor",
+    "perturbation_gate_pass",
+    "worst_perturbation",
+    "cost_sensitivity",
+    "pf_at_cost_x1.5",
+    "pf_at_cost_x2.0",
+    "cost_gate_pass",
+    "per_symbol_concentration",
+    "concentration_gate_pass",
+    "fresh_oos",
+    "fresh_oos_verdict",
+    "baseline_gates",
+    "baseline_metrics",
+    "gates",
+    "all_pass",
+    "verdict",
+    "grid_size",
+    "total_elapsed_sec",
+    "compute_cpu_hours",
+    "selection_rule"
+  ]
+}
