@@ -1,38 +1,30 @@
-# HANDOFF_CURRENT_SESSION.md — Cycle 116 (2026-11-14): Directive §4 H183 discovery — no feasible repo-new candidate; free-data queue confirmed exhausted
+# HANDOFF_CURRENT_SESSION.md — Cycle 117 (2026-11-14): maintenance/audit verification; no actionable agent fix
 
 ## What changed
 
-- `NEW_FAMILY_RESEARCH_REGISTER.md` — appended **Cycle 116** discovery (no H183 selected).
-- `HYPOTHESIS_SPEC.md` — appended matching **Cycle 116** conclusion.
-- No `src/qtr`, runner, test, artifact, or frozen number modified.
+- Documentation/handoff only: updated `NEXT_TASK.md` and `HANDOFF_CURRENT_SESSION.md` with this session's verification evidence. No `src/qtr`, runner, test, artifact, workflow, or frozen number modified.
 
 ## Actually verified (this session, own evidence)
 
-- **Full suite:** `python -m pytest -q --ignore=tests/test_gates_workflow.py` — **3,795 passed / 51 skipped / 0 failed** (439s). The 7 `tests/test_gates_workflow.py` failures are the maintainer-gated workflow-contract block (unchanged, per AGENTS.md); fix = `patches/0001-gates-workflow-contract-fix.patch`.
-- **Artifact schema:** `python -m pytest tests/test_experiment_artifact_schema.py -q` — **105 passed**. The prior handoff's "2 artifact-schema failures" were already resolved in HEAD commit 16e52d3.
-- **Baseline clean.** No defect found. Discovery-only cycle (no `src/qtr` change), so ruff/coverage gates unaffected.
-
-## Evidence gathered (free yfinance, no `src/qtr` change)
-
-- Commodity futures term-structure carry: no free PIT per-contract/deferred series (`=F` spliced-continuous; `CLF26.NYM`/`CLG26.NYM` → 404). Spliced 12-1 proxy probed: monthly CS Sharpe **−0.17** (same-bar) / **−0.38** (1-month lag), 2004–2026.
-- Crypto perpetual funding/basis: no free historical funding-rate series (H23 precedent). Data-blocked.
-- VIX/OVX term-structure & short-vol: OVX, VIX9D, ^RVX delisted from free feed. Data-blocked.
-- Equity day-of-week / weekday seasonality: no cross-period-stable edge (SPY Tue/Wed positive in test t≈1.96/2.32 but flat/negative in train; QQQ Thu positive in train collapses in test); calendar adjacency H91/H140/H142.
+- `python -m pytest -q tests/test_reproducibility_audit.py` — **7 passed** (0.23s). Baseline counts unchanged (`missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0`); orphan audit already completed and recorded in `REPRODUCIBILITY_AUDIT_REPORT.md` §3.
+- `python -m pytest -q tests/test_gates_workflow.py` — **7 failed** (expected maintainer-gated contract drift vs current `.github/workflows/gates.yml`); fix is `patches/0001-gates-workflow-contract-fix.patch` (agent-unreachable).
+- `python -m ruff check src tests run_*.py scripts` — **All checks passed**.
+- `python -m ruff format --check src tests run_*.py scripts` — **335 files already formatted**.
+- `python scripts/backtest_perf_regression_gate.py` — **PASSED** (100 symbols x 252 bars -> 0.431s, limit 5s).
 
 ## What remains unresolved
 
-1. **Maintainer-only:** apply `patches/0001-gates-workflow-contract-fix.patch` to turn the 7 red `tests/test_gates_workflow.py` tests green.
-2. **Free-data family queue exhausted:** H1–H182 all executed/rejected; remaining categories data-blocked, underpowered, or mechanism/calendar-adjacent. No H183 clears the directive's bar.
+1. **Maintainer-only:** apply/push `patches/0001-gates-workflow-contract-fix.patch` to satisfy `tests/test_gates_workflow.py` (workflow edits are agent-unreachable).
+2. **Research queue (blocked by data/authorization):** free-data point-in-time strategy-family queue exhausted (H1–H182 executed/rejected; Cycles 96/116). H183 requires explicit authorization to resolve a paid/PIT data gap (commodity carry term structure, crypto funding, or options/GEX).
 
 ## Failed approaches / do not repeat
 
-- Do not repeat discovery-only cycles that re-confirm exhaustion without new data authorization or a §6 shift (Cycle 96 and Cycle 116 both exhausted).
-- Do not treat a spliced-continuous `=F` series as valid per-contract carry data.
-- Do not edit `.github/workflows/**` or weaken `tests/test_gates_workflow.py` / coverage / frozen contracts.
-- Do not treat a delisted free ticker (OVX, VIX9D, ^RVX) as available data.
+- Do not repeat exhaustion-only discovery cycles without new data authorization or directive §6 shift.
+- Do not edit `.github/workflows/**` or weaken workflow/coverage/frozen-contract gates.
+- Do not relabel spliced/delisted/unavailable free series as valid PIT inputs.
 
 ## One precise next task
 
-Per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6, **shift the research program**: either (a) obtain explicit authorization for one paid/PIT data gap (futures roll/contango term-structure for commodity carry; crypto perpetual funding; historical options chain for GEX) and run the smallest decisive test, or (b) shift to auditing/infrastructure/maintenance work on the 100%-green suite. Do **not** run another discovery-only cycle that re-confirms exhaustion without new data or a §6 shift.
+Maintainer applies `patches/0001-gates-workflow-contract-fix.patch` with workflow scope and verifies `tests/test_gates_workflow.py` passes; if research resumes, obtain explicit authorization for one paid/PIT data gap and run the smallest decisive pre-registered test for that mechanism only. Do not invent a free-data H183.
 
 **Constraints:** no gate weakening; no published/frozen artifact, verdict, threshold, or frozen number modified; no commit/push of `.github/workflows/**`; `src/qtr` changes require 100% coverage.
