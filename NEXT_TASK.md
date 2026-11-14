@@ -1,5 +1,29 @@
 # NEXT_TASK.md
 
+## Latest session (2026-11-14, Cycle 110) — full pinned gate re-verification; fix integrated, no further agent action needed
+
+### What was verified this session (own evidence)
+
+- Full pinned gate `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing` (431s) — **3,746 passed / 51 skipped / 7 failed**. The count matches the Cycle 109 expectation exactly: Cycle 108's 3,745 + 1 for the new `test_log_dataframe_requires_experiment` test. The 7 failures are *exclusively* `tests/test_gates_workflow.py`, the known maintainer-gated contract block — unchanged from Cycle 108, no regression, no new failure.
+- `src/qtr` coverage — **100%** (1213 stmts / 424 branches / 0 miss); coverage gate "Required test coverage of 100.0% reached."
+- `python -m ruff check src tests run_*.py scripts` — all checks passed.
+- `python -m ruff format --check src tests run_*.py scripts` — 329 files already formatted.
+- `git status` — clean. No source/test/artifact/frozen-number change this session; the Cycle 109 fix (`src/qtr/tracking/experiment.py` guard + `tests/test_experiment_tracker.py` regression test) was already committed in prior cycle and is now confirmed integrated.
+
+### Conclusion
+
+The Cycle 109 `log_dataframe` no-experiment guard fix is integrated and green across the full pinned gate. **No further agent action is needed on the code.**
+
+### One precise next task (unchanged, maintainer-only)
+
+**Apply `patches/0001-gates-workflow-contract-fix.patch`** to turn the 7 red `tests/test_gates_workflow.py` failures green (re-verified applicable in Cycles 106–108; patched `gates.yml` satisfies all 7 assertions; `scripts/backtest_perf_regression_gate.py` passes on this host). Agent cannot land it (no `workflows` token; `.github/scripts/kilo-controller.sh` restores `.github/workflows/**` from `origin/main` each session). If applied, full suite goes green at **3,753 passed / 51 skipped / 0 failed**.
+
+**Agent path (blocked unless authorized):** resolve the H182 data gap (free PIT commodity roll/contango for carry, or PIT insider/earnings/options data) and select H182 per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §4/§6 and `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96. Absent authorization, conclude free-data family discovery is exhausted — do not invent an H182 candidate.
+
+**Constraints:** `src/qtr` unchanged unless an evidenced defect requires it; no gate weakening; no published/frozen artifact, verdict, threshold, or frozen number modified; no commit/push of `.github/workflows/**`.
+
+---
+
 ## Latest session (2026-11-14, Cycle 109) — real defect fix: `log_dataframe` no-experiment guard
 
 The prior four cycles (105–108) were re-verification-only and produced no source change.
