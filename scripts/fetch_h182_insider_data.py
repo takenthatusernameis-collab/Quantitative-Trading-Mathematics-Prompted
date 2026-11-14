@@ -44,6 +44,24 @@ START = "2024-06-01"
 END = "2026-11-14"
 
 
+def requested_symbols(raw: str) -> list[str]:
+    """Normalize the ``--symbols`` list and reject symbols outside ``UNIVERSE``.
+
+    The whole list is validated before any fetch or cache write so a typo
+    (e.g. ``AAPL,TSLA``) fails fast with a clear message instead of raising a
+    bare ``KeyError`` halfway through -- after some caches were written but
+    before the manifest was persisted, which would leave a silently incomplete
+    corpus. Symbols are upper-cased and stripped so ``aapl`` and `` AAPL ``
+    resolve to the pre-registered AAPL.
+    """
+    symbols = [token.strip().upper() for token in raw.split(",") if token.strip()]
+    unknown = [symbol for symbol in symbols if symbol not in UNIVERSE]
+    if unknown:
+        known = ", ".join(sorted(UNIVERSE))
+        raise SystemExit(f"unknown symbol(s): {', '.join(unknown)}. Known symbols: {known}.")
+    return symbols
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--symbols", default=",".join(UNIVERSE))
@@ -58,7 +76,7 @@ def main() -> None:
     )
     args = ap.parse_args()
 
-    symbols = [s.strip() for s in args.symbols.split(",") if s.strip()]
+    symbols = requested_symbols(args.symbols)
     cache = Path(args.cache_dir)
     cache.mkdir(parents=True, exist_ok=True)
 

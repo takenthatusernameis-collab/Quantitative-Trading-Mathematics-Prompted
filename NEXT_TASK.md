@@ -1,6 +1,40 @@
 # NEXT_TASK.md
 
-## Latest session (2026-11-14) — closed H182 lineage gap; fixed two evidenced defects; no workflow/artifact baseline change
+## Latest session (2026-11-14, Cycle 122) — fixed H182 fetch-script crash on unknown `--symbols`; no gate/artifact/workflow change
+
+### What changed
+- `scripts/fetch_h182_insider_data.py`: new `requested_symbols(raw)` normalizes (strip/upper) the `--symbols` list and validates every token against `UNIVERSE` **before any fetch or cache write**. Previously `cik = UNIVERSE[sym]` inside the per-symbol loop raised a bare `KeyError` on an unknown symbol *mid-run*, after partial cache writes but before the manifest was persisted (silently incomplete corpus, opaque traceback). Unknown symbols now raise `SystemExit` listing the offenders + the known set. `src/qtr` untouched.
+- `tests/test_fetch_h182_insider_data.py`: 2 new regression cases (`test_unknown_symbol_fails_before_any_fetch_or_cache_write`, `test_requested_symbols_normalizes_case_and_whitespace`).
+
+### What was actually verified (own evidence)
+- `pytest -q tests/test_fetch_h182_insider_data.py` — **7 passed** (was 5).
+- `pytest -q tests/test_sec_insider.py tests/test_nf_20261110_08_insider_signal.py tests/test_reproducibility_audit.py tests/test_sidecar_schema_contract.py` — **67 passed**.
+- Full pinned suite `pytest -q -W error` (375s) — **3824 passed, 51 skipped, 7 failed**; +2 vs 3822 is the two new tests; the 7 are exclusively the maintainer-gated `tests/test_gates_workflow.py`.
+- `ruff check src tests run_*.py scripts` — All checks passed. `ruff format --check ...` — 335 files already formatted.
+- Behavioral proof (fetch stubbed): `--symbols " aapl "` resolves + writes manifest; `--symbols AAPL,TSLA` → `SystemExit`, 0 fetch calls, empty cache dir.
+
+### What remains unresolved
+1. **Maintainer-only (CI contract):** `.github/workflows/gates.yml` not updated; 7 `tests/test_gates_workflow.py` tests red until the maintainer applies `patches/0001-gates-workflow-contract-fix.patch` with workflow-scoped credentials. Agent cannot land `.github/workflows/**`.
+2. **Research queue exhausted under free/public PIT data:** H1–H182 executed/rejected (register Cycles 96/116/118). Do not invent a free-data H183.
+3. **Reproducibility backlog:** `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0` unchanged; baseline-frozen where contract/citation constraints apply.
+
+### Approaches already tried and why they should not be repeated
+- Do not re-derive a "H182 is missing from the corpus" finding (false: 174 records; H182 is record 174).
+- Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or alter coverage/frozen-contract gates.
+- Do not treat delisted/spliced-continuous/unavailable free series as valid PIT inputs.
+- Do not mass-edit runners/tests/gates or frozen artifacts to chase green, or raise the reproducibility baseline instead of remediating.
+- Do not append H182 to `experiments.jsonl` without sidecars + coordinated baseline/pinned-test updates.
+- Do not make speculative `src/qtr` changes absent an evidenced defect.
+- Do not change `log_artifact` to always write a sidecar without a coordinated `missing_meta_files` baseline + sidecar-schema update (an empty `{}` sidecar fails the JSON `keys` contract; `test_log_artifact_without_metadata` pins the current falsy-metadata branch).
+
+### One precise next task
+**Maintainer (preferred, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch` with workflow-scoped credentials, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed) on `origin/main`. **Agent alternative (only if a new evidenced defect is wanted):** audit other `scripts/` and `run_*.py` entry points that index a dict by a CLI/argument value for the same bare-`KeyError`-after-partial-writes pattern. Do not invent a free-data H183; do not touch the frozen H182 runner/record.
+
+**Constraints:** no gate weakening; no modification of published/frozen artifacts, verdicts, thresholds, or frozen numbers except a deliberate authorized corpus/baseline update; no commit/push of `.github/workflows/**`; any `src/qtr` change must preserve 100% coverage and pass ruff/suite.
+
+---
+
+## Prior session (2026-11-14) — closed H182 lineage gap; fixed two evidenced defects; no workflow/artifact baseline change
 
 ### What changed
 - `scripts/generate_experiment_lineage_report.py`: `extract_key_info` now reads `config` and `data_sources` from each record's `metadata` (tracker format) instead of the top level; tolerates dict/list `data_sources`. Previously every row rendered `data_source=unknown` with an empty Config column.

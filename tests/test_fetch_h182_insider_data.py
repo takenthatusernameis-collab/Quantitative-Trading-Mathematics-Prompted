@@ -129,3 +129,38 @@ def test_empty_fetch_is_not_cached_as_a_valid_result(script, monkeypatch, tmp_pa
     assert entry["rows"] == 0
     assert entry["source"] == "empty"
     assert len(pd.read_parquet(tmp_path / "AAPL.parquet")) == 0
+
+
+def test_unknown_symbol_fails_before_any_fetch_or_cache_write(script, monkeypatch, tmp_path):
+    """A typo must not abort a run halfway with a bare ``KeyError``.
+
+    The whole ``--symbols`` list is validated up front, so an unknown symbol
+    fails fast (no fetch, no cache, no manifest) instead of after partial writes.
+    """
+    calls = []
+    monkeypatch.setattr(
+        insider,
+        "fetch_insider_transactions",
+        lambda cik, **k: calls.append(cik) or _transactions(1),
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "fetch_h182_insider_data.py",
+            "--cache-dir",
+            str(tmp_path),
+            "--symbols",
+            "AAPL,TSLA",
+        ],
+    )
+    with pytest.raises(SystemExit, match="unknown symbol"):
+        script.main()
+    assert calls == []
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_requested_symbols_normalizes_case_and_whitespace(script):
+    assert script.requested_symbols(" aapl , msft ") == ["AAPL", "MSFT"]
+    assert script.requested_symbols("AAPL,,AAPL") == ["AAPL", "AAPL"]
+    assert script.requested_symbols("") == []

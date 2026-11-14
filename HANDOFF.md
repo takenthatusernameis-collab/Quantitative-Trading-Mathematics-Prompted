@@ -1,6 +1,22 @@
 # HANDOFF.md
 
-> **Latest (2026-11-14, Cycle 121 — documentation-only: corrected the false "H182 lineage gap" claim):**
+> **Latest (2026-11-14, Cycle 122 — real defect fix: H182 fetch script crashed on an unknown `--symbols` entry):**
+> The previous handoff's two "next tasks" were both blocked (maintainer-only
+> `.github/workflows/**`; free-data research exhausted), so I fixed a demonstrated,
+> agent-actionable defect instead of re-verifying. `scripts/fetch_h182_insider_data.py`
+> did `cik = UNIVERSE[sym]` inside the per-symbol loop, so `--symbols AAPL,TSLA`
+> raised a bare `KeyError: 'TSLA'` **mid-run** — after partial cache writes but
+> before the manifest was written, leaving a silently incomplete corpus (reproduced:
+> `AAPL.parquet` present, `manifest.json` absent, `KeyError 'TSLA'`). Added
+> `requested_symbols()` which upper-cases/strips tokens and validates the whole list
+> against `UNIVERSE` before any fetch/write, raising `SystemExit` with the offending
+> symbols + the known set. Added 2 regression tests. **No `src/qtr`, gate, artifact,
+> sidecar, hash, frozen-number, or workflow change.** Full pinned suite `pytest -q -W
+> error` → **3824 passed / 51 skipped / 7 failed** (the +2 vs. 3822 is exactly the two
+> new tests; the 7 are exclusively the maintainer-gated `tests/test_gates_workflow.py`
+> block); ruff check/format clean (335 files). See `HANDOFF_CURRENT_SESSION.md`.
+
+> **Prior (2026-11-14, Cycle 121 — documentation-only: corrected the false "H182 lineage gap" claim):**
 > The previous session's handoff asserted H182 was absent from the audit corpus
 > (173 records, 0 insider records). That claim was **false** and is corrected in
 > `REPRODUCIBILITY_AUDIT_REPORT.md` §H182 lineage reconciliation and here.
