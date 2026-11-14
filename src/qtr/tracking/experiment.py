@@ -393,3 +393,101 @@ class Experiment:
 
 def create_experiment(name: str, base_dir: Path | None = None) -> Experiment:
     return Experiment(name, base_dir=base_dir)
+
+
+@dataclass
+class DataSummary:
+    """Summary of data used in the experiment."""
+
+    tickers: list[str]
+    rows: int
+    start: str
+    end: str
+    train_end: str
+    val_end: str
+    oos_rows: int
+    note: str = ""
+
+
+@dataclass
+class SelectionSummary:
+    """Summary of parameter selection method."""
+
+    method: str
+    folds: int
+    train_score: float
+
+
+@dataclass
+class MetricsSummary:
+    """Summary of key metrics."""
+
+    sharpe: float
+    profit_factor: float
+    max_drawdown: float
+    trades: int
+    periods: int
+    total_return: float
+    worst_regime_rolling252_sharpe: float
+
+
+@dataclass
+class AblationSummary:
+    """Summary of ablation results."""
+
+    random_signal_oos: MetricsSummary | None = None
+    inverse_signal_oos: MetricsSummary | None = None
+
+
+@dataclass
+class GateResult:
+    """Result of a single gate evaluation."""
+
+    threshold: float
+    achieved: float
+    passed: bool
+
+
+@dataclass
+class ExperimentSummary:
+    """Standardized experiment summary schema.
+
+    This schema is the frozen contract for all experiment runners.
+    See EXPERIMENT_ARTIFACT_AUDIT.md for the full specification.
+    """
+
+    experiment_id: str
+    experiment_name: str
+    nf_id: str
+    hypothesis_id: str
+    timestamp_utc: str
+    runtime_seconds: float
+    data: DataSummary
+    selected_params: dict[str, float | int]
+    selection: SelectionSummary
+    oos_val_test: MetricsSummary
+    benchmark_buy_hold_spy_oos: MetricsSummary
+    ablations: AblationSummary
+    gates: dict[str, GateResult]
+    gates_passed: int
+    gates_total: int
+    verdict: str
+    verdict_reason: str
+    perturbation_min_ratio: float
+    walk_forward_stability_ratio: float
+    information_ratio_vs_buy_hold: float
+    benchmark_p_value: float
+    src_qtr_changed: bool
+
+
+def emit_summary(summary: ExperimentSummary, output_path: Path) -> None:
+    """Write a standardized ExperimentSummary to a JSON file.
+
+    Args:
+        summary: The ExperimentSummary dataclass instance.
+        output_path: Path to write the summary.json file.
+    """
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w") as f:
+        json.dump(asdict(summary), f, indent=2, default=str)
+    logger.debug(f"Emitted standardized summary to {output_path}")

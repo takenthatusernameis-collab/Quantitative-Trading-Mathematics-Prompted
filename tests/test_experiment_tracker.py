@@ -353,3 +353,346 @@ def test_experiment_existing_metadata_file(tmp_path):
     exp = Experiment("existing", base_dir=tmp_path / "existing")
     meta = exp.load_metadata()
     assert meta["pre"] == "existing"
+
+
+# ===========================================================================
+# ExperimentSummary dataclass and emit_summary helper
+# ===========================================================================
+def test_experiment_summary_dataclass_construction(tmp_path):
+    """ExperimentSummary can be constructed with all required fields."""
+    from qtr.tracking.experiment import (
+        AblationSummary,
+        DataSummary,
+        ExperimentSummary,
+        GateResult,
+        MetricsSummary,
+        SelectionSummary,
+    )
+
+    data = DataSummary(
+        tickers=["SPY", "XLF"],
+        rows=1000,
+        start="2020-01-01",
+        end="2024-01-01",
+        train_end="2022-01-01",
+        val_end="2023-01-01",
+        oos_rows=250,
+    )
+    selection = SelectionSummary(method="walk_forward_sharpe", folds=4, train_score=1.2)
+    oos = MetricsSummary(
+        sharpe=1.1,
+        profit_factor=1.4,
+        max_drawdown=0.1,
+        trades=60,
+        periods=250,
+        total_return=0.25,
+        worst_regime_rolling252_sharpe=0.4,
+    )
+    bench = MetricsSummary(
+        sharpe=0.9,
+        profit_factor=1.2,
+        max_drawdown=0.15,
+        trades=250,
+        periods=250,
+        total_return=0.2,
+        worst_regime_rolling252_sharpe=0.3,
+    )
+    ablations = AblationSummary(
+        random_signal_oos=MetricsSummary(
+            sharpe=0.1,
+            profit_factor=1.0,
+            max_drawdown=0.05,
+            trades=50,
+            periods=250,
+            total_return=0.02,
+            worst_regime_rolling252_sharpe=-0.1,
+        ),
+        inverse_signal_oos=MetricsSummary(
+            sharpe=-0.2,
+            profit_factor=0.9,
+            max_drawdown=0.08,
+            trades=50,
+            periods=250,
+            total_return=-0.03,
+            worst_regime_rolling252_sharpe=-0.3,
+        ),
+    )
+    gates = {
+        "sharpe_ge_1": GateResult(threshold=1.0, achieved=1.1, passed=True),
+        "trades_ge_50": GateResult(threshold=50.0, achieved=60.0, passed=True),
+    }
+    summary = ExperimentSummary(
+        experiment_id="exp_2024-01-01T00-00-00Z",
+        experiment_name="test_experiment",
+        nf_id="NF-20240101-01",
+        hypothesis_id="H100",
+        timestamp_utc="2024-01-01T00:00:00Z",
+        runtime_seconds=10.5,
+        data=data,
+        selected_params={"param1": 1.0, "param2": 5},
+        selection=selection,
+        oos_val_test=oos,
+        benchmark_buy_hold_spy_oos=bench,
+        ablations=ablations,
+        gates=gates,
+        gates_passed=2,
+        gates_total=2,
+        verdict="PASS",
+        verdict_reason="All gates passed",
+        perturbation_min_ratio=0.6,
+        walk_forward_stability_ratio=0.8,
+        information_ratio_vs_buy_hold=0.5,
+        benchmark_p_value=0.03,
+        src_qtr_changed=False,
+    )
+    assert summary.experiment_id == "exp_2024-01-01T00-00-00Z"
+    assert summary.verdict == "PASS"
+    assert summary.gates_passed == 2
+    assert summary.gates_total == 2
+
+
+def test_emit_summary_writes_valid_json(tmp_path):
+    """emit_summary writes a valid JSON file with all fields."""
+    from qtr.tracking.experiment import (
+        AblationSummary,
+        DataSummary,
+        ExperimentSummary,
+        GateResult,
+        MetricsSummary,
+        SelectionSummary,
+        emit_summary,
+    )
+
+    data = DataSummary(
+        tickers=["SPY"],
+        rows=500,
+        start="2020-01-01",
+        end="2024-01-01",
+        train_end="2022-01-01",
+        val_end="2023-01-01",
+        oos_rows=100,
+    )
+    selection = SelectionSummary(method="walk_forward_sharpe", folds=4, train_score=1.0)
+    oos = MetricsSummary(
+        sharpe=1.0,
+        profit_factor=1.3,
+        max_drawdown=0.12,
+        trades=55,
+        periods=100,
+        total_return=0.15,
+        worst_regime_rolling252_sharpe=0.35,
+    )
+    bench = MetricsSummary(
+        sharpe=0.8,
+        profit_factor=1.1,
+        max_drawdown=0.14,
+        trades=100,
+        periods=100,
+        total_return=0.12,
+        worst_regime_rolling252_sharpe=0.25,
+    )
+    ablations = AblationSummary()
+    gates = {
+        "sharpe_ge_1": GateResult(threshold=1.0, achieved=1.0, passed=True),
+    }
+    summary = ExperimentSummary(
+        experiment_id="exp_2024-01-01T00-00-00Z",
+        experiment_name="test_experiment",
+        nf_id="NF-20240101-01",
+        hypothesis_id="H100",
+        timestamp_utc="2024-01-01T00:00:00Z",
+        runtime_seconds=5.0,
+        data=data,
+        selected_params={"vol_target": 0.15},
+        selection=selection,
+        oos_val_test=oos,
+        benchmark_buy_hold_spy_oos=bench,
+        ablations=ablations,
+        gates=gates,
+        gates_passed=1,
+        gates_total=1,
+        verdict="PASS",
+        verdict_reason="All gates passed",
+        perturbation_min_ratio=0.55,
+        walk_forward_stability_ratio=0.75,
+        information_ratio_vs_buy_hold=0.4,
+        benchmark_p_value=0.04,
+        src_qtr_changed=False,
+    )
+
+    out_path = tmp_path / "summary.json"
+    emit_summary(summary, out_path)
+
+    assert out_path.exists()
+    import json
+
+    with open(out_path) as f:
+        loaded = json.load(f)
+
+    assert loaded["experiment_id"] == "exp_2024-01-01T00-00-00Z"
+    assert loaded["experiment_name"] == "test_experiment"
+    assert loaded["nf_id"] == "NF-20240101-01"
+    assert loaded["hypothesis_id"] == "H100"
+    assert loaded["verdict"] == "PASS"
+    assert loaded["gates_passed"] == 1
+    assert loaded["gates_total"] == 1
+    assert "data" in loaded
+    assert loaded["data"]["tickers"] == ["SPY"]
+    assert "selected_params" in loaded
+    assert "selection" in loaded
+    assert "oos_val_test" in loaded
+    assert "benchmark_buy_hold_spy_oos" in loaded
+    assert "ablations" in loaded
+    assert "gates" in loaded
+    assert "perturbation_min_ratio" in loaded
+    assert "walk_forward_stability_ratio" in loaded
+    assert "information_ratio_vs_buy_hold" in loaded
+    assert "benchmark_p_value" in loaded
+    assert "src_qtr_changed" in loaded
+
+
+def test_experiment_summary_reject_verdict(tmp_path):
+    """ExperimentSummary supports REJECT verdict with reason."""
+    from qtr.tracking.experiment import (
+        AblationSummary,
+        DataSummary,
+        ExperimentSummary,
+        GateResult,
+        MetricsSummary,
+        SelectionSummary,
+    )
+
+    data = DataSummary(
+        tickers=["SPY"],
+        rows=100,
+        start="2020-01-01",
+        end="2024-01-01",
+        train_end="2022-01-01",
+        val_end="2023-01-01",
+        oos_rows=20,
+    )
+    selection = SelectionSummary(method="walk_forward_sharpe", folds=4, train_score=0.5)
+    oos = MetricsSummary(
+        sharpe=0.3,
+        profit_factor=1.0,
+        max_drawdown=0.2,
+        trades=10,
+        periods=20,
+        total_return=-0.05,
+        worst_regime_rolling252_sharpe=-0.5,
+    )
+    bench = MetricsSummary(
+        sharpe=0.8,
+        profit_factor=1.2,
+        max_drawdown=0.1,
+        trades=20,
+        periods=20,
+        total_return=0.1,
+        worst_regime_rolling252_sharpe=0.3,
+    )
+    ablations = AblationSummary()
+    gates = {
+        "sharpe_ge_1": GateResult(threshold=1.0, achieved=0.3, passed=False),
+        "trades_ge_50": GateResult(threshold=50.0, achieved=10.0, passed=False),
+    }
+    summary = ExperimentSummary(
+        experiment_id="exp_2024-01-01T00-00-00Z",
+        experiment_name="failed_experiment",
+        nf_id="NF-20240101-02",
+        hypothesis_id="H101",
+        timestamp_utc="2024-01-01T00:00:00Z",
+        runtime_seconds=2.0,
+        data=data,
+        selected_params={},
+        selection=selection,
+        oos_val_test=oos,
+        benchmark_buy_hold_spy_oos=bench,
+        ablations=ablations,
+        gates=gates,
+        gates_passed=0,
+        gates_total=2,
+        verdict="REJECT",
+        verdict_reason="2/2 gates failed: Sharpe, trades",
+        perturbation_min_ratio=0.4,
+        walk_forward_stability_ratio=0.3,
+        information_ratio_vs_buy_hold=-0.2,
+        benchmark_p_value=0.95,
+        src_qtr_changed=False,
+    )
+    assert summary.verdict == "REJECT"
+    assert summary.gates_passed == 0
+    assert summary.gates_total == 2
+    assert "Sharpe" in summary.verdict_reason
+
+
+def test_emit_summary_creates_parent_directories(tmp_path):
+    """emit_summary creates parent directories if they don't exist."""
+    from qtr.tracking.experiment import (
+        AblationSummary,
+        DataSummary,
+        ExperimentSummary,
+        GateResult,
+        MetricsSummary,
+        SelectionSummary,
+        emit_summary,
+    )
+
+    data = DataSummary(
+        tickers=["SPY"],
+        rows=10,
+        start="2020-01-01",
+        end="2024-01-01",
+        train_end="2022-01-01",
+        val_end="2023-01-01",
+        oos_rows=2,
+    )
+    selection = SelectionSummary(method="walk_forward_sharpe", folds=4, train_score=1.0)
+    oos = MetricsSummary(
+        sharpe=1.0,
+        profit_factor=1.3,
+        max_drawdown=0.1,
+        trades=5,
+        periods=2,
+        total_return=0.01,
+        worst_regime_rolling252_sharpe=0.3,
+    )
+    bench = MetricsSummary(
+        sharpe=0.8,
+        profit_factor=1.1,
+        max_drawdown=0.1,
+        trades=2,
+        periods=2,
+        total_return=0.01,
+        worst_regime_rolling252_sharpe=0.2,
+    )
+    ablations = AblationSummary()
+    gates = {"sharpe_ge_1": GateResult(threshold=1.0, achieved=1.0, passed=True)}
+    summary = ExperimentSummary(
+        experiment_id="exp_2024-01-01T00-00-00Z",
+        experiment_name="test",
+        nf_id="NF-20240101-01",
+        hypothesis_id="H100",
+        timestamp_utc="2024-01-01T00:00:00Z",
+        runtime_seconds=1.0,
+        data=data,
+        selected_params={},
+        selection=selection,
+        oos_val_test=oos,
+        benchmark_buy_hold_spy_oos=bench,
+        ablations=ablations,
+        gates=gates,
+        gates_passed=1,
+        gates_total=1,
+        verdict="PASS",
+        verdict_reason="All gates passed",
+        perturbation_min_ratio=0.5,
+        walk_forward_stability_ratio=0.7,
+        information_ratio_vs_buy_hold=0.3,
+        benchmark_p_value=0.05,
+        src_qtr_changed=False,
+    )
+
+    out_path = tmp_path / "deep" / "nested" / "summary.json"
+    emit_summary(summary, out_path)
+    assert out_path.exists()
+    assert out_path.parent.exists()

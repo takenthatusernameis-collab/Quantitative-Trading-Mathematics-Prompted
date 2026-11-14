@@ -87,9 +87,7 @@ class TestEffectiveSignalDays:
         pd.testing.assert_series_equal(naive, aware)
 
     def test_empty_inputs_yield_an_empty_mapping(self):
-        effective = nf08._effective_signal_days(
-            _prices(), pd.Series([], dtype="datetime64[ns]")
-        )
+        effective = nf08._effective_signal_days(_prices(), pd.Series([], dtype="datetime64[ns]"))
         assert len(effective) == 0
 
     def test_empty_price_panel_yields_all_nat(self):
@@ -178,9 +176,7 @@ class TestNoLookAheadInDailySignals:
         corpus = {"AAPL": _filing("P", "2026-11-04 14:00:00")}
         near = nf08._compute_daily_signals(prices, corpus, 0.6, 0.4)["AAPL"]
         # Append a filing far in the future and re-run.
-        far = pd.concat(
-            [corpus["AAPL"], _filing("S", "2026-11-09 18:00:00")], ignore_index=True
-        )
+        far = pd.concat([corpus["AAPL"], _filing("S", "2026-11-09 18:00:00")], ignore_index=True)
         far_signal = nf08._compute_daily_signals(prices, {"AAPL": far}, 0.6, 0.4)["AAPL"]
         pd.testing.assert_series_equal(near.iloc[:-1], far_signal.iloc[:-1])
 
