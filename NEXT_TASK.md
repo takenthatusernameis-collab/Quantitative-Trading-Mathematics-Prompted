@@ -1,6 +1,6 @@
 # NEXT_TASK.md
 
-## Latest session (2026-11-14, Cycle 122) — fixed H182 fetch-script crash on unknown `--symbols`; no gate/artifact/workflow change
+## Latest session (2026-11-14, Cycle 122) — fixed H182 fetch-script crash on unknown `--symbols`; audited KeyError pattern across all entry points; no gate/artifact/workflow change
 
 ### What changed
 - `scripts/fetch_h182_insider_data.py`: new `requested_symbols(raw)` normalizes (strip/upper) the `--symbols` list and validates every token against `UNIVERSE` **before any fetch or cache write**. Previously `cik = UNIVERSE[sym]` inside the per-symbol loop raised a bare `KeyError` on an unknown symbol *mid-run*, after partial cache writes but before the manifest was persisted (silently incomplete corpus, opaque traceback). Unknown symbols now raise `SystemExit` listing the offenders + the known set. `src/qtr` untouched.
@@ -12,6 +12,7 @@
 - Full pinned suite `pytest -q -W error` (375s) — **3824 passed, 51 skipped, 7 failed**; +2 vs 3822 is the two new tests; the 7 are exclusively the maintainer-gated `tests/test_gates_workflow.py`.
 - `ruff check src tests run_*.py scripts` — All checks passed. `ruff format --check ...` — 335 files already formatted.
 - Behavioral proof (fetch stubbed): `--symbols " aapl "` resolves + writes manifest; `--symbols AAPL,TSLA` → `SystemExit`, 0 fetch calls, empty cache dir.
+- **KeyError pattern audit complete:** searched all `scripts/` and `run_*.py` entry points for bare-`KeyError`-after-partial-writes when indexing a dict by CLI/argument value. **No additional instances found.** The only such pattern was in `fetch_h182_insider_data.py` (already fixed). All other runners use only `--out`/`--smoke` flags and iterate over fixed lists, not user-indexed mappings.
 
 ### What remains unresolved
 1. **Maintainer-only (CI contract):** `.github/workflows/gates.yml` not updated; 7 `tests/test_gates_workflow.py` tests red until the maintainer applies `patches/0001-gates-workflow-contract-fix.patch` with workflow-scoped credentials. Agent cannot land `.github/workflows/**`.
@@ -26,9 +27,12 @@
 - Do not append H182 to `experiments.jsonl` without sidecars + coordinated baseline/pinned-test updates.
 - Do not make speculative `src/qtr` changes absent an evidenced defect.
 - Do not change `log_artifact` to always write a sidecar without a coordinated `missing_meta_files` baseline + sidecar-schema update (an empty `{}` sidecar fails the JSON `keys` contract; `test_log_artifact_without_metadata` pins the current falsy-metadata branch).
+- **Do not re-audit the KeyError pattern** — it is complete; no further entry points exhibit this defect.
 
 ### One precise next task
-**Maintainer (preferred, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch` with workflow-scoped credentials, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed) on `origin/main`. **Agent alternative (only if a new evidenced defect is wanted):** audit other `scripts/` and `run_*.py` entry points that index a dict by a CLI/argument value for the same bare-`KeyError`-after-partial-writes pattern. Do not invent a free-data H183; do not touch the frozen H182 runner/record.
+**Maintainer (preferred, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch` with workflow-scoped credentials, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed) on `origin/main`.
+
+**If research is explicitly authorized:** obtain one paid/PIT data gap (commodity futures per-contract roll/contango, crypto perpetual funding rates, or historical options chain/GEX) and run the smallest decisive pre-registered test for that single mechanism.
 
 **Constraints:** no gate weakening; no modification of published/frozen artifacts, verdicts, thresholds, or frozen numbers except a deliberate authorized corpus/baseline update; no commit/push of `.github/workflows/**`; any `src/qtr` change must preserve 100% coverage and pass ruff/suite.
 
