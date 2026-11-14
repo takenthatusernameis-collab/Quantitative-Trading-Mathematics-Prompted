@@ -72,7 +72,7 @@ All asset classes show similar O(n_symbols * n_bars) scaling. Futures and crypto
 4. **Cost model overhead is minimal:** Equity impact cost model adds ~10-15% overhead vs base cost model.
 
 5. **No regressions in the core suite:** the 359 core tests pass, lint clean, format clean.
-   *Current full-suite status (re-verified 2026-11-13):* **3,743 passed, 51 skipped, 7
+*Current full-suite status (re-verified 2026-11-14, Cycle 105):* **3,744 passed, 51 skipped, 7
    failed** — the 7 are exclusively the maintainer-gated `tests/test_gates_workflow.py`
    contract block (documented in `NEXT_TASK.md`).
 

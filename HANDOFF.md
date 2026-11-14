@@ -30,9 +30,9 @@
 > and commits `11e8aeb` / `bec162f`. **None of those objects exist in this repository** —
 > `git cat-file -t` returns "Not a valid object name" for each; the full history is 6
 > commits (0891237 → 09372cf), all empty-message. The counts quoted here (3619 passed,
-> 1209 stmts, 314 files) are also stale: current is **3,743 passed / 51 skipped / 7 failed**
+> 1209 stmts, 314 files) are also stale: current is **3,744 passed / 51 skipped / 7 failed**
 > (the 7 = maintainer-gated `test_gates_workflow.py`), **1211 stmts / 422 branches**, and
-> **327 files** (re-verified 2026-11-13). The 9 frozen-contract drifts this banner claims
+> **327 files** (re-verified 2026-11-14, Cycle 105). The 9 frozen-contract drifts this banner claims
 > were "resolved" are green in the working tree; `FROZEN_CONTRACT_DRIFT_EVIDENCE.md`
 > carries the durable re-verification. Treat this banner's *substance* (suite green,
 > drifts resolved) as correct and its *object references* as unreliable.
@@ -144,18 +144,20 @@ No source, test, gate, frozen-number, or artifact change. Working tree clean; no
 - `python -m ruff check src tests run_*.py` — all checks passed.
 - `python -m ruff format --check src tests run_*.py` — 315 files already formatted.
 
-**Current re-verification (2026-11-12T10:00Z, Cycle 101) — supersedes all above:**
-- Full suite `pytest -q --cov=qtr --cov-branch` — **3619 passed, 51 skipped, 0 failed** (636s).
-- `src/qtr` coverage — **100%** (1209 stmts / 420 branches / 0 miss).
-- `python -m ruff check src tests run_*.py` — All checks passed.
-- `python -m ruff format --check src tests run_*.py` — 314 files already formatted.
+**Current re-verification (2026-11-14T02:47Z, Cycle 105) — supersedes all above:**
+- Full suite `pytest -q --cov=qtr --cov-branch` — **3744 passed, 51 skipped, 7 failed** (424s; the 7 are exclusively `tests/test_gates_workflow.py`, the known maintainer-gated contract block).
+- `src/qtr` coverage — **100%** (1211 stmts / 422 branches / 0 miss).
+- `python -m ruff check src tests run_*.py scripts` — All checks passed.
+- `python -m ruff format --check src tests run_*.py scripts` — 327 files already formatted.
 
 ## One precise next task
 
 **Superseded** — see the re-verification banner at the top of this file. The H51 and
-trade-log drifts it describes are resolved at HEAD and the full suite is green
-(3619 passed, 51 skipped, 0 failed; `src/qtr` coverage 100%; ruff clean). The only
-remaining open item is **H182 selection**: per
+trade-log drifts it describes are resolved at HEAD. The full suite at HEAD is
+**3,744 passed / 51 skipped / 7 failed** (re-verified 2026-11-14, Cycle 105); the 7
+failures are exclusively `tests/test_gates_workflow.py`, the maintainer-gated contract
+block whose fix is `patches/0001-gates-workflow-contract-fix.patch`. The only remaining
+open item is **H182 selection**: per
 `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6 and `NEW_FAMILY_RESEARCH_REGISTER.md`
 Cycle 96, the free-data point-in-time strategy-family queue is exhausted (H1–H181
 executed/rejected; commodity carry data-blocked; insider/earnings/options PIT

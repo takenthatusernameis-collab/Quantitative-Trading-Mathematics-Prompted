@@ -14,7 +14,7 @@
 > | Experiment tracking | present | `src/qtr/tracking/experiment.py` + `.experiments/` |
 > | Existing strategies | present | `src/qtr/strategies/baselines.py` |
 > | Baselines | present | `src/qtr/strategies/baselines.py` |
-> | Test suite | present | `tests/` (3,743+ passing tests; re-verified 2026-11-13, Cycle 103) |
+> | Test suite | present | `tests/` (3,744+ passing tests; re-verified 2026-11-14, Cycle 105) |
 > | Configuration management | present | `src/qtr/utils/config.py` (YAML + env overrides) |
 > | Data sources | configured | `pyproject.toml` optional `data` deps (yfinance, ccxt) |
 > | Compute resources | GitHub Actions | `.github/workflows/main.yml` |

@@ -282,7 +282,7 @@ Ordered by value and risk:
 | Core unit tests | `pytest tests/test_backtest_engine.py tests/test_config.py tests/test_cost_model.py tests/test_statistics.py tests/test_data_fetcher.py -q` | ✅ 359 passed |
 | Edge stress tests | `pytest tests/test_engine_edge_stress.py -q` | ✅ 12 passed |
 | Performance regression gate | `pytest tests/test_performance_regression_gate.py -q` | ✅ 1 passed |
-| Full pinned suite | `pytest -q -W error --cov=qtr --cov-branch` | ⚠ 3,743 passed, 51 skipped, 7 failed (all 7 = maintainer-gated `tests/test_gates_workflow.py`; re-verified 2026-11-13) |
+| Full pinned suite | `pytest -q -W error --cov=qtr --cov-branch` | ⚠ 3,744 passed, 51 skipped, 7 failed (all 7 = maintainer-gated `tests/test_gates_workflow.py`; re-verified 2026-11-14, Cycle 105) |
 | Lint (ruff) | `ruff check src tests run_*.py` | ✅ Clean |
 | Format (ruff) | `ruff format --check src tests run_*.py` | ✅ Clean |
 

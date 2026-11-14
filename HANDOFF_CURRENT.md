@@ -5,9 +5,9 @@
 > **Provenance caution (added 2026-11-13, Cycle 104):** this banner cites HEAD `1712a5e`
 > and commits `11e8aeb` / `bec162f` / `70cf696` / `82eb68a`. **None of those objects exist
 > in this repository** (`git cat-file -t` → "Not a valid object name"; full history is 6
-> commits, all empty-message). The counts here are also stale: current is **3,743 passed /
+> commits, all empty-message). The counts here are also stale: current is **3,744 passed /
 > 51 skipped / 7 failed** (the 7 = maintainer-gated `test_gates_workflow.py`), **1211 stmts
-> / 422 branches**, **327 files** (re-verified 2026-11-13). The 9 drifts this banner
+> / 422 branches**, **327 files** (re-verified 2026-11-14, Cycle 105). The 9 drifts this banner
 > claims "resolved" are green in the working tree; see
 > `FROZEN_CONTRACT_DRIFT_EVIDENCE.md` for the durable re-verification.
 

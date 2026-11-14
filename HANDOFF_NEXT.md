@@ -5,18 +5,18 @@
 > **Provenance caution (added 2026-11-13, Cycle 104):** this banner cites HEAD `1712a5e`
 > and commit `bec162f`. **Neither object exists in this repository** (`git cat-file -t` →
 > "Not a valid object name"; full history is 6 commits, all empty-message). The counts here
-> are also stale: current is **3,743 passed / 51 skipped / 7 failed** (the 7 =
+> are also stale: current is **3,744 passed / 51 skipped / 7 failed** (the 7 =
 > maintainer-gated `test_gates_workflow.py`), **1211 stmts / 422 branches**, and **327
-> files** (re-verified 2026-11-13). The trade-log drifts this banner claims "resolved" are
+> files** (re-verified 2026-11-14, Cycle 105). The trade-log drifts this banner claims "resolved" are
 > green in the working tree; `FROZEN_CONTRACT_DRIFT_EVIDENCE.md` carries the durable
 > re-verification. **No trade-log drifts remain unresolved.**
 
 **This doc was stale.** It claimed 2 trade-log frozen-contract drifts remained. Re-running
-at HEAD `1712a5e` reports **3619 passed, 51 skipped, 0 failed**, `src/qtr` coverage
-**100%** (1209 stmts / 420 branches / 0 miss), `ruff check` clean, `ruff format --check`
-314 files. The trade-log drifts were resolved in commit `bec162f` (2026-11-12T08:30Z);
-this doc was never updated and read as an open defect for ~1.5h. Historical inventory
-below is preserved; the "Unresolved / pre-existing" section is superseded by the banner.
+at HEAD reports **3,744 passed / 51 skipped / 7 failed** (re-verified 2026-11-14, Cycle 105);
+the 7 failures are exclusively `tests/test_gates_workflow.py`, the maintainer-gated contract
+block. `src/qtr` coverage is **100%** (1211 stmts / 422 branches / 0 miss), `ruff check` clean,
+`ruff format --check` clean on 327 files. Historical inventory below is preserved; the
+"Unresolved / pre-existing" section is superseded by the banner.
 
 ## What changed (verified this session)
 
