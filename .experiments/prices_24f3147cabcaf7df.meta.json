@@ -17,5 +17,5 @@
     "EFA": "float64",
     "EEM": "float64"
   },
-  "index_type": "datetime64[s]"
+  "index_type": "datetime64[ms]"
 }

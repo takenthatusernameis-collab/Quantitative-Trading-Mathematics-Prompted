@@ -27,5 +27,5 @@
     "XLC": "float64",
     "XLK": "float64"
   },
-  "index_type": "datetime64[s]"
+  "index_type": "datetime64[ms]"
 }

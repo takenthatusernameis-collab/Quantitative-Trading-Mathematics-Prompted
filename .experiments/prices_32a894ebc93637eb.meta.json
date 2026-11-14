@@ -19,5 +19,5 @@
     "volume": "int64",
     "adj_close": "float64"
   },
-  "index_type": "datetime64[s]"
+  "index_type": "datetime64[ms]"
 }

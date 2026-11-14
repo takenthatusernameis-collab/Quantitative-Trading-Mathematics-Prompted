@@ -12,7 +12,7 @@
     "cost"
   ],
   "dtypes": {
-    "timestamp": "datetime64[s]",
+    "timestamp": "datetime64[ms]",
     "symbol": "str",
     "side": "str",
     "weight_change": "float64",

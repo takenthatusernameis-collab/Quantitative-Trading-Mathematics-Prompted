@@ -13,5 +13,5 @@
     "^VIX3M": "float64",
     "SPY": "float64"
   },
-  "index_type": "datetime64[s]"
+  "index_type": "datetime64[ms]"
 }

@@ -11,5 +11,5 @@
     "SPY": "float64",
     "TLT": "float64"
   },
-  "index_type": "datetime64[s]"
+  "index_type": "datetime64[ms]"
 }

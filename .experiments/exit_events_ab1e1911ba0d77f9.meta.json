@@ -12,7 +12,7 @@
     "price"
   ],
   "dtypes": {
-    "timestamp": "datetime64[s]",
+    "timestamp": "datetime64[ms]",
     "symbol": "str",
     "type": "str",
     "prev_position": "float64",

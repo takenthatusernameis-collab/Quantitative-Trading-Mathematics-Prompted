@@ -107,5 +107,5 @@
     "NVDA": "int64",
     "ORCL": "int64"
   },
-  "index_type": "datetime64[s]"
+  "index_type": "datetime64[ms]"
 }

@@ -267,6 +267,21 @@ Ordered by value and risk:
    a sidecar (requires the full `src/qtr` gates: `pytest -q -W error`, ruff,
    100% branch coverage).
 
+   **✅ Done 2026-11-13 (backfill) + 2026-11-14 (schema repair).** All 140
+   historically missing sidecars were derived additively (JSON → top-level
+   keys; parquet → shape/columns/dtypes/index_type); `missing_meta_files` fell
+   140 → 0 and the baseline ratchet was lowered in
+   `tests/test_reproducibility_audit.py`. **Follow-up repair:** the backfill
+   derived the parquet schema by reading each artifact, and for 77 sidecars the
+   recorded datetime resolution (`datetime64[s]`) disagreed with the resolution
+   actually stored on disk (`datetime64[ms]`) — a pandas/pyarrow version
+   artifact. `scripts/repair_sidecar_schemas.py` re-derives every hash-exact
+   sidecar from its artifact and rewrites only the disagreeing ones. Verified:
+   all **1,197** hash-exact sidecars now match their artifacts
+   (shape/columns/dtypes/index_type for parquet; keys for JSON); the script is
+   idempotent (second run repairs 0). No artifact, published number, or frozen
+   contract was modified.
+
 6. **Keep the baseline ratchet in CI** — it prevents new drift while remediation
    proceeds.
 
