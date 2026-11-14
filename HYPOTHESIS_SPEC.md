@@ -8669,3 +8669,17 @@ Candidates scored honestly (weights novelty 25 / plausibility 25 / data 20 / fal
 **NF-root check:** none of the Cycle 96 candidates appears as an executed H-ID or executed artifact in `.experiments/nf_runs`; no label reuse. Tracked draft `run_nf_20261110_07_es_basis.py` remains NF-20261110-09/TBD (incomplete/unexecuted, no `main`).
 
 **Conclusion.** Per directive §6, the free-data point-in-time strategy-family queue is exhausted: H1–H181 all executed and rejected; carry data-blocked; the rest blocked/deferred/held. **H182 is not pre-registered and no runner is executed this cycle.** Next cycle should either resolve a data gap under explicit authorization (futures roll/contango for carry; PIT insider/earnings/options data) or conclude free-data family discovery is exhausted. `src/qtr` unchanged; no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified; no fabrication; no commit/push.
+
+## Cycle 116 (2026-11-14): Directive §4 discovery — no feasible H183 candidate; free-data family queue confirmed exhausted
+
+**Discovery.** Per STRATEGY_FAMILY_EXPANSION_DIRECTIVE §4, ≥3 repo-new candidates were proposed across ≥3 broad mechanism categories (carry/term structure, institutional funding/basis, calendar seasonal, volatility/convexity) and honestly scored 1–5 on novelty/plausibility/data/falsifiability/execution/support (see NEW_FAMILY_RESEARCH_REGISTER.md Cycle 116). Concrete evidence gathered this cycle:
+- **Commodity futures term-structure carry (NF-20261114-01, 3.50):** no free PIT per-contract/deferred series (yfinance `=F` is spliced-continuous; `CLF26.NYM`/`CLG26.NYM` → 404). Best free 12-1 proxy probed directly: monthly cross-sectional Sharpe **-0.17** (same-bar) / **-0.38** (1-month lag), 2004–2026. Blocked + adjacent to H88/H181 commodity families.
+- **Crypto perpetual funding/basis (NF-20261114-02, 3.00):** no free historical funding-rate series (H23 precedent). Data-blocked.
+- **VIX/OVX term-structure & short-vol (NF-20261114-04, 2.45):** OVX, VIX9D, ^RVX all delisted from free feed. Data-blocked.
+- **Equity day-of-week / weekday seasonality (NF-20261114-03, 2.90):** exploratory train/test split shows no cross-period-stable edge (SPY Tue/Wed positive in test but flat/negative in train; QQQ Thu positive in train collapses in test); calendar adjacency H91/H140/H142. Deferred.
+
+**Result: no candidate selected as H183.** Every remaining candidate is blocked/deferred/held for a concrete, durable reason; none clears the directive's bar for a REAL execution. This matches Cycle 96 (H182 not registered) and the H182 evidence (executed REJECT this session).
+
+**Conclusion.** Per directive §6, the free-data point-in-time strategy-family queue is **exhausted**: H1–H182 all executed/rejected; remaining categories data-blocked, underpowered, or mechanism/calendar-adjacent. **H183 is not pre-registered and no runner is executed this cycle.** Next cycle must either resolve a data gap under explicit authorization (futures roll/contango PIT, crypto funding PIT, options PIT) or shift to auditing/infrastructure/maintenance per directive §6. `src/qtr` unchanged; no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified; no fabrication; no commit/push.
+
+**Cycle 116 complete.** H85–H182 all rejected/recorded. `src/qtr` unchanged. No commit/push. Next unused H-ID **H183** (blocked on data authorization or a directive §6 shift).
