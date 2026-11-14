@@ -1,5 +1,29 @@
 # NEXT_TASK.md
 
+## Latest session (2026-11-14, Cycle 113) — re-verified agent-unreachable maintainer-gated block
+
+### What changed
+
+Nothing in `src/qtr`, tests, gates, artifacts, or frozen numbers. This session only re-verified the documented state; no source change.
+
+### What was actually verified (own evidence)
+
+- `python -m ruff check src tests run_*.py scripts` — all checks passed.
+- `python -m ruff format --check src tests run_*.py scripts` — 332 files already formatted.
+- `pytest tests/test_gates_workflow.py -q` — **7 failed**, exclusively the maintainer-gated contract block (assertions expect `scripts/**` path triggers, editable install step, ruff-on-scripts step, and perf-gate step that are missing from the committed `.github/workflows/gates.yml`).
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` — **applies cleanly**; patch content unchanged and correct.
+- `.github/workflows/**` is agent-unreachable (no `workflows` token; kilo-controller restores from origin/main each session). No commit/push attempted.
+
+### One precise next task (maintainer-only)
+
+**Apply `patches/0001-gates-workflow-contract-fix.patch`** to turn the 7 red `tests/test_gates_workflow.py` failures green (re-verified applicable in this session; patched `gates.yml` satisfies all 7 assertions; `scripts/backtest_perf_regression_gate.py` passes on this host). Agent cannot land it (no `workflows` token; `.github/scripts/kilo-controller.sh` restores `.github/workflows/**` from `origin/main` each session). If applied, full suite goes green at **3,788 passed / 51 skipped / 0 failed**.
+
+**Agent path (blocked unless authorized):** resolve the H182 data gap (free PIT commodity roll/contango for carry, or PIT insider/earnings/options data) and select H182 per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §4/§6 and `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96. Absent authorization, conclude free-data family discovery is exhausted — do not invent an H182 candidate.
+
+**Constraints:** `src/qtr` unchanged unless an evidenced defect requires it; no gate weakening; no published/frozen artifact, verdict, threshold, or frozen number modified; no commit/push of `.github/workflows/**`.
+
+---
+
 ## Latest session (2026-11-14, Cycle 112) — full pinned gate re-run confirms Cycle 109 fix integrates cleanly
 
 ### What changed
