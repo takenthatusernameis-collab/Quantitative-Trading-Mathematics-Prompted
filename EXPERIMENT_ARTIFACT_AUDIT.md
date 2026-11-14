@@ -11,6 +11,16 @@
 > and are unchanged. These counts are now pinned by
 > `tests/test_experiment_artifact_schema.py` so the summary cannot silently drift again.
 
+> **Re-verified 2026-11-14 (Cycle 115):** the H182 insider-signal experiment ran and produced
+> 5 new `summary.json` artifacts (`.experiments/nf_runs/nf_20261110_08_insider_signal_20261114_*`),
+> moving the corpus to **108 directories / 100 summaries / 131 distinct keys / 9 keys ≥50%
+> / 3 keys ≥80% / 11 cache-only directories**. The new runner introduced exactly one new
+> key (`information_ratio_vs_equal_weight`) and pushed `oos_val_test` over the 50% threshold
+> while `selected_params` (49→54/100, still below 50%) dropped out of the ≥50% set. The
+> incomplete-run set (8) and cache-only directory set (11) are unchanged. The pins in
+> `tests/test_experiment_artifact_schema.py` and the coverage table below were updated to the
+> Cycle 115 values; the per-key frequency tables are unchanged except for the two moved keys.
+
 ---
 
 ## Executive Summary
