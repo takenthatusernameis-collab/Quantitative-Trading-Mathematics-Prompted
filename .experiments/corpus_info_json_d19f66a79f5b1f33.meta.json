@@ -1,0 +1,15 @@
+{
+  "type": "json",
+  "keys": [
+    "AAPL",
+    "MSFT",
+    "GOOGL",
+    "AMZN",
+    "NVDA",
+    "META",
+    "JPM",
+    "XOM",
+    "JNJ",
+    "WMT"
+  ]
+}

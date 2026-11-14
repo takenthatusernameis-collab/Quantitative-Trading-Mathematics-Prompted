@@ -1,0 +1,25 @@
+{
+  "type": "csv",
+  "shape": [
+    1,
+    7
+  ],
+  "columns": [
+    "entry_threshold",
+    "exit_threshold",
+    "vol_target",
+    "max_pos",
+    "wf_train_sharpe",
+    "train_sharpe",
+    "train_trades"
+  ],
+  "dtypes": {
+    "entry_threshold": "float64",
+    "exit_threshold": "float64",
+    "vol_target": "float64",
+    "max_pos": "float64",
+    "wf_train_sharpe": "float64",
+    "train_sharpe": "float64",
+    "train_trades": "int64"
+  }
+}

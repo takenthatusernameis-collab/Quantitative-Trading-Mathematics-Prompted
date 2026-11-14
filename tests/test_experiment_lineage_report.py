@@ -35,8 +35,8 @@ GENERATOR = ROOT / "scripts" / "generate_experiment_lineage_report.py"
 # The only line that is not reproducible is the wall-clock generation stamp.
 TIMESTAMP_PREFIX = "**Generated:**"
 
-# Pinned from the committed report (re-verified 2026-11-13 by regeneration).
-EXPECTED_TOTAL_EXPERIMENTS = 173
+# Pinned from the committed report (re-verified 2026-11-14 by regeneration with H182 added).
+EXPECTED_TOTAL_EXPERIMENTS = 174
 EXPECTED_CATEGORY_SUMMARY = frozenset(
     {
         ("Baseline / MA Crossover", 9, 6, 0, 3),
@@ -46,7 +46,7 @@ EXPECTED_CATEGORY_SUMMARY = frozenset(
         ("Volatility / VRP", 9, 5, 2, 2),
         ("Volume Predictive", 6, 3, 0, 3),
         ("Hypothesis H10-H29", 23, 16, 0, 7),
-        ("New Family (NF) - Recent", 51, 27, 14, 10),
+        ("New Family (NF) - Recent", 52, 27, 15, 10),
         ("New Family (NF) - Factor/Other", 5, 4, 0, 1),
         ("Other / Uncategorized", 3, 2, 0, 1),
     }

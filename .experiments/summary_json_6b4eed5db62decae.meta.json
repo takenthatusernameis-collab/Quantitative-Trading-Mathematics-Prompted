@@ -1,0 +1,26 @@
+{
+  "type": "json",
+  "keys": [
+    "experiment",
+    "nf_id",
+    "hypothesis",
+    "timestamp_utc",
+    "runtime_sec",
+    "data",
+    "grid_n",
+    "selected",
+    "wf_train_sharpe",
+    "train_ref_sharpe",
+    "oos_val_test",
+    "benchmark_equal_weight_oos",
+    "ablations",
+    "information_ratio_vs_equal_weight",
+    "benchmark_pvalue_one_sided",
+    "worst_regime_rolling252_sharpe",
+    "wf_stability_oos_over_train",
+    "perturbation",
+    "gates",
+    "gates_passed",
+    "verdict"
+  ]
+}

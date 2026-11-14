@@ -1,8 +1,8 @@
 # Experiment Lineage Report
 
-**Generated:** 2026-11-14 17:08:50 UTC
+**Generated:** 2026-11-14 18:08:42 UTC
 **Source:** `.experiments/experiments.jsonl`
-**Total Experiments:** 173
+**Total Experiments:** 174
 
 ## Summary by Category
 
@@ -15,7 +15,7 @@
 | Volatility / VRP | 9 | 5 | 2 | 2 |
 | Volume Predictive | 6 | 3 | 0 | 3 |
 | Hypothesis H10-H29 | 23 | 16 | 0 | 7 |
-| New Family (NF) - Recent | 51 | 27 | 14 | 10 |
+| New Family (NF) - Recent | 52 | 27 | 15 | 10 |
 | New Family (NF) - Factor/Other | 5 | 4 | 0 | 1 |
 | Other / Uncategorized | 3 | 2 | 0 | 1 |
 
@@ -225,6 +225,7 @@
 | 04-18-08-373455 | nf_20261107_04_amihud_illiq | 2026-11-07 04:18:08 UTC | 7a3b454e | REJECT | oos_sharpe=0.8693<br>oos_trades=971<br>oos_pf=1.1758<br>oos_max_dd=-0.0316<br>wf_ratio=0.9634<br>worst_regime=-0.9190<br>benchmark_p=1.0000<br>benchmark_ir=-0.7730... | data_source=unknown | — | — |
 | 05-23-54-586792 | nf_20261107_07_realized_sem... | 2026-11-07 05:23:54 UTC | a47dfb51 | REJECT | oos_sharpe=0.8114<br>oos_trades=1174<br>oos_pf=1.1731<br>oos_max_dd=-0.0292<br>wf_ratio=0.9099<br>worst_regime=-0.7603<br>benchmark_p=1.0000<br>benchmark_ir=-0.7787... | data_source=unknown | — | — |
 | 10-42-29-663331 | nf_20261107_09_max_lottery | 2026-11-07 10:42:29 UTC | d0ecfa18 | REJECT | — | data_source=unknown | — | — |
+| 11-39-15 | nf_20261110_08_insider_signal | 2026-11-14 11:39:15 UTC | 3f41aab5 | REJECT | oos_sharpe=0.4208<br>oos_trades=142<br>oos_pf=1.1054<br>oos_max_dd=-0.0938<br>wf_ratio=0.4241<br>worst_regime=-0.1824<br>benchmark_p=0.9708<br>perturb_min_ratio=1.1743... | symbols=['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', <br>strategy=insider_net_buy_ratio<br>strategy_params={'entry_threshold': 0.5, 'exit_threshold': 0.4, 'v | 3 artifacts | — |
 
 ### New Family (NF) - Factor/Other
 
@@ -331,3 +332,4 @@
 | 00d209e6 | 2026-11-07 10:33:55 UTC | 1 | Volatility / VRP |
 | d0ecfa18 | 2026-11-07 10:42:29 UTC | 1 | New Family (NF) - Recent |
 | 022a9e16 | 2026-11-10 17:24:06 UTC | 1 | Regime-Gated |
+| 3f41aab5 | 2026-11-14 11:39:15 UTC | 1 | New Family (NF) - Recent |
