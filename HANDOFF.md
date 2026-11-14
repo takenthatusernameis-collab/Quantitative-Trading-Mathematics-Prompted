@@ -229,30 +229,27 @@ in the repo is green.
   Cycle 105's 3,744 count was itself stale relative to the `62df672` commit
   that added `test_sidecar_schema_contract.py`; always re-run after a commit.
 
+## Session 2026-11-14T05:09Z (Cycle 107): agent-path review — all actions blocked; green baseline confirmed
+
+**What changed:** nothing in `src/qtr`, tests, gates, artifacts, or frozen numbers. HEAD `08e551f` is annotation-only (HANDOFF.md, NEXT_TASK.md, patch prose header) on top of `62df672`.
+
+**What was actually verified (this session, own evidence):**
+- `python -m ruff check src tests run_*.py scripts` — all checks passed.
+- `python -m ruff format --check src tests run_*.py scripts` — 329 files already formatted.
+- Green baseline holds at HEAD (no source/test change since the last full run at `62df672`: 3,745 passed / 51 skipped / 7 failed; 7 = exclusively `tests/test_gates_workflow.py`). Full suite not re-run per the "do not re-run to confirm a change that was never made" rule — HEAD is annotation-only and cannot affect tests.
+
+**What remains unresolved:**
+1. **7 `tests/test_gates_workflow.py` failures** — maintainer-gated; fix is `patches/0001-gates-workflow-contract-fix.patch` (verified applicable and correct in a clean checkout); agent cannot land `.github/workflows/**`.
+2. **H182 selection** — free-data point-in-time strategy-family queue exhausted (H1–H181 all rejected/recorded, `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96); selecting H182 requires resolving a data gap (commodity carry roll/contango, insider/earnings PIT, options GEX) under explicit authorization. No H182 is pre-registered; no runner executed this cycle.
+
+**Which approaches have already failed and why they should not be repeated:** (all prior entries stand) plus:
+- Do not invent/select H182 without a resolved data gap and explicit authorization — directive §6 forbids defaulting to maintenance-only work or recycling parameter/instrument/universe variants of exhausted families; Cycle 96 already mapped every feasible candidate and its durable blocker.
+- `src/qtr` has no evidenced defect (100% coverage, ruff clean, suite green except the maintainer-gated block), so there is no agent-actionable code change.
+
 ## One precise next task
 
-**Maintainer-only: apply `patches/0001-gates-workflow-contract-fix.patch` to
-turn the 7 red `tests/test_gates_workflow.py` failures green.** Re-verified
-this cycle (Cycle 106) in a clean checkout: the patch applies, the patched
-`gates.yml` satisfies all 7 contract assertions, and the new CI step
-`scripts/backtest_perf_regression_gate.py` passes on this host. Agent cannot
-land it (no `workflows` token permission; `.github/scripts/kilo-controller.sh`
-restores `.github/workflows/**` from `origin/main` after every session).
+**Maintainer-only: apply `patches/0001-gates-workflow-contract-fix.patch`** to turn the 7 red `tests/test_gates_workflow.py` failures green (re-verified Cycle 106: patch applies, patched `gates.yml` satisfies all 7 assertions, `scripts/backtest_perf_regression_gate.py` passes on this host). Agent cannot land it (no `workflows` token; kilo-controller restores `.github/workflows/**` from `origin/main` each session). If applied, full suite goes green at **3,752 passed / 51 skipped / 0 failed**.
 
-If the maintainer applies it, the full suite goes green at **3,752 passed /
-51 skipped / 0 failed** and the CI `scripts/**` path filter + editable
-install + perf-gate step become live. No agent-side follow-up is needed.
+**Agent path (blocked unless authorized):** resolve the H182 data gap (e.g. free point-in-time commodity roll/contango data for carry, or PIT insider/earnings/options data) and select H182 per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §4/§6 and `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96. Absent authorization, conclude free-data family discovery is exhausted — do not invent an H182 candidate.
 
-**Otherwise (agent path):** the only remaining open item is **H182
-selection**: per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6 and
-`NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96, the free-data point-in-time
-strategy-family queue is exhausted (H1–H181 executed/rejected; commodity
-carry data-blocked; insider/earnings/options PIT unavailable without paid
-services). Selecting H182 requires resolving a data gap under explicit
-authorization. Absent that, conclude free-data family discovery is exhausted
-and shift to auditing/infrastructure rather than inventing candidates.
-
-**Constraints:** `src/qtr` unchanged unless an evidenced defect requires it
-(then rerun pinned full gates); no gate weakening; no published/certified
-artifact, verdict, threshold, or frozen number modified; no commit/push of
-`.github/workflows/**`.
+**Constraints:** `src/qtr` unchanged unless an evidenced defect requires it (then rerun pinned full gates); no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified; no commit/push of `.github/workflows/**`.
