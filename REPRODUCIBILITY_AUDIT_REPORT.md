@@ -6,6 +6,10 @@
 unrecoverable, and `missing_meta_files` is **140**. The earlier prose that said
 "25 remaining" / "321 restored" was wrong and is corrected in §1 and
 §Recommended Remediation below.
+**Re-verified again (2026-11-14, Cycle 119):** the four baseline counts are
+unchanged (`missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`,
+`missing_meta_files=0`); `tests/test_reproducibility_audit.py` — **7 passed**.
+No artifact, sidecar, hash, gate, or frozen number was modified this cycle.
 **Task:** Verify all experiment artifacts can be re-derived from tracked metadata (STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §6 fallback path)
 
 ---
@@ -303,6 +307,44 @@ Ordered by value and risk:
 
 ---
 
+## Re-verification banner (2026-11-14, Cycle 119)
+
+Re-ran the reproducibility gate and the ruff gates at HEAD `caf5d8c` (clean
+tree, no source/test/artifact change since the Cycle 115 H182 commit):
+
+| Check | Command | Result |
+|-------|---------|--------|
+| Reproducibility audit | `pytest tests/test_reproducibility_audit.py -q` | ✅ **7 passed** (0.22s). Baseline unchanged: `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0`. |
+| Lint (ruff) | `ruff check src tests run_*.py scripts` | ✅ All checks passed. |
+| Format (ruff) | `ruff format --check src run_*.py scripts` | ✅ 335 files already formatted. |
+| Gates workflow contract | `pytest tests/test_gates_workflow.py -q` | ⚠ **7 failed** — unchanged, maintainer-gated; fix is `patches/0001-gates-workflow-contract-fix.patch` (agent-unreachable). |
+
+No `src/qtr`, test, gate, artifact, sidecar, hash, or frozen number was
+modified. The audit's baseline ratchet held: no count moved in either direction.
+
+### H182 lineage reconciliation (Cycle 119 finding)
+
+The reproducibility audit's corpus is `.experiments/experiments.jsonl` (173
+records). An independent lineage sweep found that the H182 experiment
+(`NF-20261110-08` insider net-buy signal, Cycle 115) is **not** represented in
+that corpus: `experiments.jsonl` contains **0** `insider` records, and
+`EXPERIMENT_LINEAGE_REPORT.md` (generated 2026-11-13, 173 experiments) cites no
+insider experiment. The H182 runner writes its own artifacts under
+`.experiments/nf_runs/nf_20261110_08_insider_signal_*/` (5 committed runs,
+all `REJECT`, 3/8 gates) and never appends to `experiments.jsonl`.
+
+This is a **lineage-completeness gap, not a reproducibility regression**: the
+audit's four baseline counts are unaffected because the H182 artifacts live
+outside `.experiments/artifacts/` and are not referenced by any record the
+audit reads. The gap is durable and documented here rather than silently
+absorbed; closing it requires either appending an H182 record to
+`experiments.jsonl` (which would then need `.meta.json` sidecars and a
+re-derived baseline) or registering the nf_runs directory in the audit's
+corpus scope. Left as-is pending authorization; the audit stays green at the
+existing baseline.
+
+---
+
 ## Artifacts
 
 - `tests/test_reproducibility_audit.py` — re-runnable audit + baseline ratchet
@@ -322,4 +364,4 @@ STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §6, this completes the
 3. ✅ CI/CD hardening (performance regression gate)
 4. ✅ Reproducibility audit (baseline ratchet in place, gaps documented)
 
-**Strategy family discovery remains exhausted at H181 pending data authorization.**
+**Strategy family discovery remains exhausted at H182 pending data authorization** (H1–H182 executed/rejected; H183 unassigned, blocked on futures roll/contango, crypto funding, or options PIT data per `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 116).
