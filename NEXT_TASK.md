@@ -1,6 +1,24 @@
 # NEXT_TASK.md
 
-## Latest session (2026-11-14, Cycle 122) — fixed H182 fetch-script crash on unknown `--symbols`; audited KeyError pattern across all entry points; no gate/artifact/workflow change
+## Latest session (2026-11-14, Cycle 123) — baseline re-confirmed green; no agent-actionable work
+
+### What changed
+None. Working tree clean at `origin/main` (63813d7); the prior session's KeyError fix in `scripts/fetch_h182_insider_data.py` is already committed. No `src/qtr`, test, gate, artifact, sidecar, hash, frozen-number, or workflow change.
+
+### What was actually verified (own evidence)
+- `pytest -q tests/test_reproducibility_audit.py tests/test_fetch_h182_insider_data.py` — **14 passed**.
+- `python -m ruff check src tests run_*.py scripts` — All checks passed; `ruff format --check src tests run_*.py scripts` — 335 files formatted.
+- Baseline green per Cycle 122: full suite **3824 passed / 51 skipped / 7 failed** (all 7 = maintainer-gated `tests/test_gates_workflow.py`); `src/qtr` coverage **100%**.
+
+### What remains unresolved
+Same three blocked items as Cycle 122: (1) maintainer-only `.github/workflows/gates.yml` patch; (2) H182 research needs data authorization; (3) reproducibility backlog baseline-frozen at 197/11/528/0.
+
+### One precise next task
+Unchanged: maintainer applies and pushes `patches/0001-gates-workflow-contract-fix.patch`, then `pytest -q tests/test_gates_workflow.py` (expect 7 passed). **No agent-actionable code change exists this session — do not make speculative edits.**
+
+---
+
+## Prior session (2026-11-14, Cycle 122) — fixed H182 fetch-script crash on unknown `--symbols`; audited KeyError pattern across all entry points; no gate/artifact/workflow change
 
 ### What changed
 - `scripts/fetch_h182_insider_data.py`: new `requested_symbols(raw)` normalizes (strip/upper) the `--symbols` list and validates every token against `UNIVERSE` **before any fetch or cache write**. Previously `cik = UNIVERSE[sym]` inside the per-symbol loop raised a bare `KeyError` on an unknown symbol *mid-run*, after partial cache writes but before the manifest was persisted (silently incomplete corpus, opaque traceback). Unknown symbols now raise `SystemExit` listing the offenders + the known set. `src/qtr` untouched.
