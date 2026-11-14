@@ -1,34 +1,31 @@
-# HANDOFF_CURRENT_SESSION.md — Cycle 120 (2026-11-14 17:01Z): baseline re-verification; all assigned agent paths confirmed blocked
+# HANDOFF — current session (2026-11-14)
 
 ## What changed
+- No repository code, test, artifact, gate, frozen number, or workflow file modified. Working tree clean at HEAD `3c083db`; no commit/push performed.
 
-- No code change this session. Working tree clean at HEAD `957c9eb`. No `src/qtr`, runner, test, artifact, sidecar, hash, gate, or frozen number modified. No commit/push.
-
-## Actually verified (this session, own evidence)
-
-- `python -m pytest -q tests/test_reproducibility_audit.py tests/test_experiment_lineage_report.py` — **12 passed** (0.24s). Baseline counts unchanged (`missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0`); lineage report total pinned at 173 experiments.
-- `python -m pytest -q tests/test_gates_workflow.py` — **7 failed** (unchanged, expected maintainer-gated contract drift vs `.github/workflows/gates.yml`); fix is `patches/0001-gates-workflow-contract-fix.patch` (agent-unreachable: `.github/scripts/kilo-controller.sh` restores `.github/workflows/**` from `origin/main` each session; agent has no `workflows` token).
-- `git apply --check patches/0001-gates-workflow-contract-fix.patch` — **applies cleanly**; patched `gates.yml` would satisfy all 7 assertions.
-- `python -m ruff check src tests run_*.py scripts` — **All checks passed**.
-- `python -m ruff format --check src tests run_*.py scripts` — **335 files already formatted**.
-- Grep over `src/qtr/` — **no TODO/FIXME/XXX markers**; src is clean and small (11 modules).
+## What was actually verified
+- `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (expected; contract drift vs committed `.github/workflows/gates.yml`, maintainer-gated).
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → **applies cleanly**.
+- `python -m pytest -q tests/test_reproducibility_audit.py tests/test_experiment_lineage_report.py` → **12 passed** (0.25s). Baseline unchanged: `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0`; lineage total pinned at 173.
+- `python -m ruff check src tests run_*.py scripts` → **All checks passed**.
+- `python -m ruff format --check src tests run_*.py scripts` → **335 files already formatted**.
+- `python scripts/backtest_perf_regression_gate.py` → **PASSED** (0.413s, limit 5s).
+- `grep -rn "TODO\|FIXME\|XXX" src/qtr` → no matches. No evidenced `src/qtr` defect identified.
 
 ## What remains unresolved
+1. **Maintainer-only:** apply `patches/0001-gates-workflow-contract-fix.patch` to `.github/workflows/gates.yml` and push with workflow-scoped credentials to clear the 7 workflow-contract tests. Agent cannot modify/persist `.github/workflows/**`.
+2. **Research queue (free/public PIT data) exhausted:** H1–H182 executed/rejected (NEW_FAMILY_RESEARCH_REGISTER / directive §6); remaining repo-new mechanisms are data-blocked/underpowered or mechanism-adjacent. No honest free-data H183 pre-registrable.
+3. **H182 lineage gap:** NF-20261110-08 (insider net-buy, REJECTED) not recorded in `experiments.jsonl` / `EXPERIMENT_LINEAGE_REPORT.md`; requires authorized corpus+baseline update (sidecars, pinned counts 173→174, audit baseline) or audit-scope extension to `.experiments/nf_runs/`.
 
-1. **Maintainer-only:** apply/push `patches/0001-gates-workflow-contract-fix.patch` to satisfy `tests/test_gates_workflow.py` (workflow edits cannot be landed by agent).
-2. **Research queue (blocked by data/authorization):** free-data point-in-time strategy-family queue exhausted (H1–H182 executed/rejected; Cycles 96/116). No H183 can be honestly pre-registered without explicit paid/PIT data-gap authorization.
-3. **H182 lineage gap (new):** the Cycle 115 H182 experiment (`NF-20261110-08` insider net-buy signal) is absent from `experiments.jsonl` / `EXPERIMENT_LINEAGE_REPORT.md`. Requires authorization to append (with `.meta.json` sidecars + baseline re-derivation) or to extend the audit's corpus scope to `.experiments/nf_runs/`; appending would break pinned test counts (total=173, category summary, reproducibility baseline) and is not agent-actionable unilaterally.
-
-## Failed approaches / do not repeat
-
-- Do not repeat exhaustion-only discovery cycles without new data authorization or directive §6 shift (Cycles 96, 116).
-- Do not edit `.github/workflows/**` or weaken workflow/coverage/frozen-contract gates.
-- Do not relabel spliced/delisted/unavailable free series as valid PIT inputs (OVX, VIX9D, ^RVX; spliced `=F`; no free crypto funding).
-- Do not append an H182 record to `experiments.jsonl` without also generating `.meta.json` sidecars and re-deriving the audit baseline, or the ratchet will fail.
-- Do not make speculative code changes: `src/qtr` has no evidenced defect (100% coverage, ruff clean, suite green except maintainer-gated block).
+## Approaches already failed / must not be repeated
+- Re-running exhaustion-only discovery without new data authorization or directive §6 shift.
+- Editing `.github/workflows/**` from agent, weakening `tests/test_gates_workflow.py`, or relaxing coverage/frozen-contract gates.
+- Using delisted/spliced/unavailable free series as PIT-valid data (OVX, VIX9D, ^RVX; spliced `=F` carry; no free crypto funding history).
+- Mass edits to runners/tests/gates/frozen artifacts to force green; reproducibility backlog (528 orphans, 197 missing, 11 mismatches) is baseline-frozen where constrained.
+- Appending H182 to lineage without sidecars and coordinated baseline/pinned-test updates.
+- Speculative `src/qtr` changes without an evidenced defect.
 
 ## One precise next task
+**Maintainer (preferred):** apply/push `patches/0001-gates-workflow-contract-fix.patch` with workflow scope, then verify `python -m pytest -q tests/test_gates_workflow.py` → 7 passed. **Authorized research alternative:** secure one paid/PIT data gap (commodity per-contract roll/contango, crypto perpetual funding, or historical options chain/GEX) and run the smallest decisive pre-registered test for that mechanism (no invented free-data H183). **Authorized bookkeeping alternative:** close the H182 lineage gap by adding NF-20261110-08 to `experiments.jsonl` with `.meta.json` sidecars and re-deriving lineage/audit baselines and pinned tests.
 
-**Maintainer:** apply `patches/0001-gates-workflow-contract-fix.patch` with workflow scope and verify `python -m pytest -q tests/test_gates_workflow.py` passes (expect 7). **If research resumes:** obtain explicit authorization for one paid/PIT data gap (commodity futures per-contract roll/contango term structure, crypto perpetual funding rates, or historical options chain/GEX) and run the smallest decisive pre-registered test for that single mechanism. **Alternatively:** authorize closing the H182 lineage gap (append H182 to `experiments.jsonl` + sidecars + baseline re-derivation, or extend the audit's corpus scope to `.experiments/nf_runs/`), including updating the pinned counts in `tests/test_experiment_lineage_report.py` (173 → 174, category summary) and `tests/test_reproducibility_audit.py` baseline as needed.
-
-**Constraints:** no gate weakening; no published/frozen artifact, verdict, threshold, or frozen number modified except via the deliberate corpus update above; no commit/push of `.github/workflows/**`; `src/qtr` changes require 100% coverage.
+**Constraints:** preserve gates/contracts/100% `src/qtr` coverage; do not alter published/frozen artifacts or thresholds except deliberate authorized corpus/baseline update; no workflow commit from agent.
