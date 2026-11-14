@@ -1,19 +1,19 @@
 # NEXT_TASK.md
 
-## Latest session (2026-11-14, Cycle 117) — Maintenance/audit verification; no actionable agent fix (free-data queue exhausted, workflow maintainer-gated)
+## Latest session (2026-11-14, Cycle 118) — Re-verification of maintenance state; no actionable agent fix (free-data queue exhausted, workflow maintainer-gated)
 
 ### What changed
 
-- Documentation/handoff only: refreshed `NEXT_TASK.md` and `HANDOFF_CURRENT_SESSION.md` with this session's own verification evidence. No `src/qtr`, runner, test, artifact, workflow, or frozen number was modified.
+- Documentation/handoff only: refreshed `NEXT_TASK.md` and `HANDOFF_CURRENT_SESSION.md` with this session's own verification evidence/timestamps. No `src/qtr`, runner, test, artifact, workflow, or frozen number modified.
 
 ### What was actually verified (own evidence)
 
-- `python -m pytest -q tests/test_reproducibility_audit.py` — **7 passed** (0.23s). Reproducibility backlog remains locked at baseline (`missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0`); the 528-orphan read-only audit is already recorded in `REPRODUCIBILITY_AUDIT_REPORT.md` §3 (Cycle 105) with no safe merge/delete path.
+- `python -m pytest -q tests/test_reproducibility_audit.py` — **7 passed** (0.24s). Reproducibility backlog remains locked at baseline (`missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0`); the 528-orphan read-only audit is recorded in `REPRODUCIBILITY_AUDIT_REPORT.md` §3 (Cycle 105) with no safe merge/delete path.
 - `python -m pytest -q tests/test_gates_workflow.py` — **7 failed** (expected, unchanged). Contract requires `scripts/**` path triggers, editable install, `ruff ... scripts`, and perf-gate step in `.github/workflows/gates.yml`; fix remains `patches/0001-gates-workflow-contract-fix.patch` (agent-unreachable: `.github/workflows/**` maintainer-managed/restored, no workflow-scoped token).
 - `python -m ruff check src tests run_*.py scripts` — **All checks passed**.
 - `python -m ruff format --check src tests run_*.py scripts` — **335 files already formatted**.
-- `python scripts/backtest_perf_regression_gate.py` — **PASSED** (`100 symbols x 252 bars -> 0.431s`, limit 5s).
-- Prior-cycle suite evidence (not re-run here): `NEXT_TASK.md`/Cycle 116 recorded `pytest -q --ignore=tests/test_gates_workflow.py` **3,795 passed / 51 skipped / 0 failed** and `tests/test_experiment_artifact_schema.py` **105 passed**; no source/test/artifact changes were made this session.
+- `python scripts/backtest_perf_regression_gate.py` — **PASSED** (`100 symbols x 252 bars -> 0.426s`, limit 5s).
+- Prior-cycle suite evidence (not re-run here): Cycle 116 recorded `pytest -q --ignore=tests/test_gates_workflow.py` **3,795 passed / 51 skipped / 0 failed** and `tests/test_experiment_artifact_schema.py` **105 passed**; no source/test/artifact changes were made this session.
 
 ### What remains unresolved
 
