@@ -1,33 +1,36 @@
-# HANDOFF_SESSION_END.md — Cycle 119 (2026-11-14): verification of maintenance state complete
+# HANDOFF_SESSION_END.md
 
-## What changed
+## Session Summary (2026-11-14)
 
-- No source, test, artifact, workflow, or frozen number modifications. Read-only verification of Cycle 118 state.
+### Repository State Verified
+- **All tests passing** (except 7 maintainer-gated `tests/test_gates_workflow.py`): 3822 passed, 51 skipped, 7 failed (CI contract only)
+- **Coverage**: 100.00% for `src/qtr` (branch coverage enforced)
+- **Linting**: `python -m ruff check src tests run_*.py scripts` — All checks passed
+- **Formatting**: `python -m ruff format --check src tests run_*.py scripts` — 335 files already formatted
+- **Performance gate**: `python scripts/backtest_perf_regression_gate.py` — PASSED (0.417s, limit 5s)
+- **Reproducibility audit**: `tests/test_reproducibility_audit.py` — 7 passed (backlog frozen: missing=197, hash_mismatches=11, orphans=528, missing_meta=0)
 
-## Actually verified (this session, own evidence)
+### What Changed This Session
+- No code changes made. The repository was already in a verified, contract-compliant state from the prior session (which closed H182 lineage gap, fixed two evidenced defects in `scripts/generate_experiment_lineage_report.py` and `src/qtr/tracking/__init__.py`, and updated pinned tests/artifacts).
 
-- `python -m pytest -q tests/test_reproducibility_audit.py` — **7 passed** (0.23s). Baseline counts unchanged (`missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0`).
-- `python -m pytest -q tests/test_experiment_artifact_schema.py` — **105 passed** (0.28s combined with above).
-- `python -m pytest -q tests/test_gates_workflow.py` — **7 failed** (expected, maintainer-gated). Contract drift vs `.github/workflows/gates.yml`; fix is `patches/0001-gates-workflow-contract-fix.patch` (agent-unreachable per AGENTS.md/controller).
-- `python -m ruff check src tests run_*.py scripts` — **All checks passed**.
-- `python -m ruff format --check src tests run_*.py scripts` — **335 files already formatted**.
-- `python scripts/backtest_perf_regression_gate.py` — **PASSED** (`100 symbols x 252 bars -> 0.432s`, limit 5s).
-- `git status` — **clean**, branch up to date with `origin/main`.
+### What Remains Unresolved
+1. **Maintainer-only (CI contract)**: `.github/workflows/gates.yml` not updated; 7 `tests/test_gates_workflow.py` tests red until maintainer applies `patches/0001-gates-workflow-contract-fix.patch` with workflow-scoped credentials. Agent cannot land `.github/workflows/**`.
+2. **Research queue exhausted under free/public PIT data**: H1–H182 executed/rejected (register Cycles 96/116/118). Do not invent a free-data H183.
+3. **Reproducibility backlog**: `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0` unchanged; baseline-frozen where contract/citation constraints apply.
 
-## What remains unresolved
+### Approaches Already Tried (Do Not Repeat)
+- Do not re-run exhaustion-only discovery without new data authorization or a §6 shift.
+- Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or alter coverage/frozen-contract gates.
+- Do not treat delisted/spliced-continuous/unavailable free series as valid PIT inputs.
+- Do not mass-edit runners/tests/gates or frozen artifacts to chase green, or raise the reproducibility baseline instead of remediating.
+- Do not make speculative `src/qtr` changes absent an evidenced defect.
 
-1. **Maintainer-only:** apply/push `patches/0001-gates-workflow-contract-fix.patch` to satisfy `tests/test_gates_workflow.py` (workflow edits cannot be landed by agent; repo-scoped token lacks `workflows` permission; `kilo-controller.sh` restores `.github/workflows/**` from `origin/main`).
-2. **Research queue (blocked by data/authorization):** free-data point-in-time strategy-family queue exhausted (H1–H182 executed/rejected; Cycles 96/116/118). No H183 can be honestly pre-registered without explicit paid/PIT data-gap authorization.
+### One Precise Next Task
+**Maintainer (preferred, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch` with workflow-scoped credentials, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed) on `origin/main`.
 
-## Failed approaches / do not repeat
+**If research is explicitly authorized:** obtain one paid/PIT data gap (commodity futures per-contract roll/contango, crypto perpetual funding rates, or historical options chain/GEX) and run the smallest decisive pre-registered test for that single mechanism.
 
-- Do not repeat exhaustion-only discovery cycles without new data authorization or directive §6 shift (Cycles 96, 116, 118).
-- Do not edit `.github/workflows/**` or weaken workflow/coverage/frozen-contract gates.
-- Do not relabel spliced/delisted/unavailable free series as valid PIT inputs (OVX, VIX9D, ^RVX; spliced `=F`; no free crypto funding).
-- Do not mass-edit runners/tests/gates or frozen artifacts to chase green; the 528 orphans and other reproducibility backlog items are intentionally baseline-frozen where contract/citation/authority constraints apply (`REPRODUCIBILITY_AUDIT_REPORT.md`).
-
-## One precise next task
-
-**Maintainer:** apply `patches/0001-gates-workflow-contract-fix.patch` with workflow scope and verify `python -m pytest -q tests/test_gates_workflow.py` passes (expect 7). **If research resumes:** obtain explicit authorization for one paid/PIT data gap (commodity futures per-contract roll/contango term structure, crypto perpetual funding rates, or historical options chain/GEX) and run the smallest decisive pre-registered test for that single mechanism. Do not invent a free-data H183 or run another exhaustion-only cycle.
-
-**Constraints:** no gate weakening; no published/frozen artifact, verdict, threshold, or frozen number modified; no commit/push of `.github/workflows/**`; `src/qtr` changes require 100% coverage.
+### Constraints
+- No gate weakening; no modification of published/frozen artifacts, verdicts, thresholds, or frozen numbers except a deliberate authorized corpus/baseline update.
+- No commit/push of `.github/workflows/**`.
+- Any `src/qtr` change must preserve 100% coverage and pass ruff/suite.
