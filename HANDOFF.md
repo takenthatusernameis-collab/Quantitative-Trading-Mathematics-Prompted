@@ -1,6 +1,28 @@
 # HANDOFF.md
 
-> **Latest (2026-11-14, Cycle 122 — real defect fix: H182 fetch script crashed on an unknown `--symbols` entry):**
+> **Latest (2026-11-14, Cycle 123 — reconciled to `origin/main`; maintainer-patch evidence refreshed; no source/test/gate/artifact change):**
+> The local branch was 3 commits behind `origin/main` (annotation-only handoff
+> commits 28a15a3 / 6dababb / 63813d7). Fast-forwarded (`git pull --ff-only`) so the
+> working tree is now at **63813d7** and matches `origin/main` exactly; nothing local
+> was overwritten or stashed. Re-verified the one concrete artifact the handoff points
+> at: `patches/0001-gates-workflow-contract-fix.patch` **applies cleanly to the current
+> `origin/main`** (`git apply --check` succeeds) and, applied in a clean throwaway
+> checkout under `/tmp/wfverify2`, turns all 7 red `tests/test_gates_workflow.py`
+> failures green (**7 passed**, was 7 failed). The patch's prose header carried a
+> stale evidence annotation (it cited a commit hash that does not exist in this repo's
+> 6-empty-message history), so I appended a dated Cycle 121 re-verification block naming
+> the real current HEAD (63813d7); git ignores everything before the `diff --git` line,
+> so the patch itself is byte-identical and still applies. Focused regression re-run on
+> the live tree: `tests/test_fetch_h182_insider_data.py` + `test_reproducibility_audit.py`
+> + `test_experiment_lineage_report.py` + `test_public_api_contract.py` +
+> `test_experiment_tracker.py` + `test_experiment_artifact_schema.py` → **187 passed**;
+> `ruff check scripts tests run_*.py` → All checks passed; `ruff format --check` → 321
+> files already formatted. Reproducibility baseline unchanged (197 / 11 / 528 / 0).
+> **No `src/qtr`, test, gate, artifact, sidecar, hash, frozen-number, or workflow change.**
+> Only file touched: `patches/0001-gates-workflow-contract-fix.patch` (prose evidence
+> annotation only). See `HANDOFF_CURRENT_SESSION.md`.
+
+> **Prior (2026-11-14, Cycle 122 — real defect fix: H182 fetch script crashed on an unknown `--symbols` entry):**
 > The previous handoff's two "next tasks" were both blocked (maintainer-only
 > `.github/workflows/**`; free-data research exhausted), so I fixed a demonstrated,
 > agent-actionable defect instead of re-verifying. `scripts/fetch_h182_insider_data.py`
