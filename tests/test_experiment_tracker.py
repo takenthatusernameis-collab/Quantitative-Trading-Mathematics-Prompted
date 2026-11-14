@@ -21,6 +21,19 @@ def test_log_metric_requires_experiment(tmp_path):
         t.log_metric("m", 1.0)
 
 
+def test_log_dataframe_requires_experiment(tmp_path):
+    """``log_dataframe`` must fail with the same clear ``RuntimeError`` as its
+    sibling logging methods when no experiment is active.
+
+    It dereferences ``self.current_experiment.experiment_id`` to build the
+    artifact directory, so without a guard it would raise an opaque
+    ``AttributeError`` (NoneType) instead of the documented contract error.
+    """
+    t = ExperimentTracker(log_dir=tmp_path / "logs")
+    with pytest.raises(RuntimeError):
+        t.log_dataframe("df", pd.DataFrame({"x": [1, 2]}))
+
+
 def test_log_metric_and_metrics(tmp_path):
     t = ExperimentTracker(log_dir=tmp_path / "logs")
     t.start_experiment("exp")

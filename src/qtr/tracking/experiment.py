@@ -159,6 +159,9 @@ class ExperimentTracker:
         self, name: str, df: pd.DataFrame, metadata: dict[str, Any] | None = None
     ) -> str:
         """Log a DataFrame as parquet artifact."""
+        if self.current_experiment is None:
+            raise RuntimeError("No active experiment. Call start_experiment() first.")
+
         artifact_dir = self.log_dir / "artifacts" / self.current_experiment.experiment_id
         artifact_dir.mkdir(parents=True, exist_ok=True)
 

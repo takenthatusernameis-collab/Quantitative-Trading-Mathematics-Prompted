@@ -1,6 +1,98 @@
 # NEXT_TASK.md
 
-## Latest session (2026-11-14T05:52Z, Cycle 108) — full-suite re-verification; green baseline confirmed, no agent-actionable work
+## Latest session (2026-11-14, Cycle 109) — real defect fix: `log_dataframe` no-experiment guard
+
+The prior four cycles (105–108) were re-verification-only and produced no source change.
+This cycle found and fixed an evidenced, bounded defect in `src/qtr`.
+
+### The defect (reproduced before the fix)
+
+`ExperimentTracker.log_dataframe` built the artifact directory with
+`self.log_dir / "artifacts" / self.current_experiment.experiment_id` **before** any
+"active experiment" guard. Calling it with no active experiment raised
+`AttributeError: 'NoneType' object has no attribute 'experiment_id'` instead of the
+`RuntimeError("No active experiment. Call start_experiment() first.")` that its sibling
+methods (`log_metric`, `log_artifact`, `finish_experiment`) raise. `log_metric` and
+`finish_experiment` already had requires-experiment tests; `log_dataframe` had none.
+
+### What changed (minimal, additive)
+
+- `src/qtr/tracking/experiment.py` — `log_dataframe` now raises the documented
+  `RuntimeError` when `self.current_experiment is None`, before dereferencing it.
+- `tests/test_experiment_tracker.py` — added
+  `test_log_dataframe_requires_experiment` (mirrors `test_log_metric_requires_experiment`).
+
+### What was actually verified (this session, own evidence)
+
+- Reproduced before the fix: `log_dataframe` -> `AttributeError`; after the fix ->
+  `RuntimeError: No active experiment. Call start_experiment() first.`
+- `python -m pytest tests/test_experiment_tracker.py -q` -> **25 passed** (was 24; +1 new test).
+- `src/qtr/tracking/experiment.py` coverage -> **100%** (183 stmts / 40 branch / 0 miss);
+  both guard branches (experiment present / absent) exercised.
+- Tracking-adjacent suites
+  (`test_experiment_tracker`, `test_experiment_tracking`,
+  `test_experiment_artifact_schema`, `test_reproducibility_audit`,
+  `test_h56_stats_json_echoes`) -> **332 passed**.
+- `python -m ruff check src/qtr/tracking/experiment.py tests/test_experiment_tracker.py`
+  -> all checks passed; `ruff format --check` -> 2 files already formatted.
+- `git diff` -> only the two files above; no published/frozen artifact, verdict,
+  threshold, sidecar, or experiment record modified.
+
+### What remains unresolved
+
+1. **Maintainer-only (unchanged).** `tests/test_gates_workflow.py` is red on
+   `origin/main` by design; the fix is
+   `patches/0001-gates-workflow-contract-fix.patch` (re-verified applicable and correct
+   in Cycle 108). `.github/workflows/**` is agent-unreachable.
+2. **Full-suite end-to-end re-run not repeated this session.** The changed method is
+   100% covered at module level and the focused suites are green; the full
+   `--cov=qtr --cov-branch` gate was last green at Cycle 108 (3,745 passed / 51 skipped
+   / 7 failed; 7 = `test_gates_workflow.py` only) and this change cannot regress other
+   modules, but the next session should re-run the full gate after this lands.
+3. **H182 selection** — free-data point-in-time strategy-family queue exhausted
+   (H1–H181 all rejected/recorded, `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96);
+   selecting H182 requires resolving a data gap under explicit authorization.
+
+### Approaches already tried and why they should not be repeated
+
+- Do not repeat re-verification-only cycles (105–108): the suite is green and stable;
+  re-running it does not constitute progress. Look for real, evidenced defects instead.
+- Do not edit `.github/workflows/**` to chase the 7 failures (restored from
+  `origin/main`, excluded from staging, no `workflows` token).
+- Do not invent/select H182 without a resolved data gap and authorization.
+
+## One precise next task
+
+**Re-run the full pinned gate to confirm this Cycle 109 fix integrates cleanly:**
+
+```bash
+python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing
+python -m ruff check src tests run_*.py scripts
+python -m ruff format --check src tests run_*.py scripts
+```
+
+Expected: **3,746 passed / 51 skipped / 7 failed** (the +1 vs Cycle 108 is the new
+`test_log_dataframe_requires_experiment`; the 7 remain the maintainer-gated
+`tests/test_gates_workflow.py`). `src/qtr` coverage stays **100%**. If the count is
+exactly that, the fix is integrated and no further agent action is needed.
+
+**Maintainer-only (still blocked):** apply
+`patches/0001-gates-workflow-contract-fix.patch` to turn the 7 red
+`tests/test_gates_workflow.py` failures green (full suite -> 3,753 / 51 / 0).
+
+**Agent path (blocked unless authorized):** resolve the H182 data gap (free PIT
+commodity roll/contango for carry, or PIT insider/earnings/options data) and select H182
+per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §4/§6 and
+`NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96. Absent authorization, conclude free-data
+family discovery is exhausted — do not invent an H182 candidate.
+
+**Constraints:** additive sidecars only; do not delete/move artifacts; do not touch
+published/frozen numbers, gates, or `src/qtr` beyond evidenced defects; no commit/push of
+`.github/workflows/**`.
+
+---
+
+## Prior session (2026-11-14T05:52Z, Cycle 108) — full-suite re-verification; green baseline confirmed, no agent-actionable work
 
 The previous "agent-path review" session (Cycle 107) confirmed no agent-actionable change exists. This session independently re-ran the full suite to verify the baseline.
 

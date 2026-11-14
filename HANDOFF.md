@@ -1,6 +1,20 @@
 # HANDOFF.md
 
-> **Latest (2026-11-14, Cycle 106, post-sidecar-repair session):** full suite
+> **Latest (2026-11-14, Cycle 109 — real defect fix: `log_dataframe` no-experiment guard):**
+> Broke the re-verification-only loop. Found and fixed an evidenced source defect:
+> `ExperimentTracker.log_dataframe` dereferenced `self.current_experiment.experiment_id`
+> *before* any "active experiment" guard, so calling it with no experiment active
+> raised an opaque `AttributeError: 'NoneType' object has no attribute 'experiment_id'`
+> instead of the documented `RuntimeError` that its sibling methods (`log_metric`,
+> `log_artifact`, `finish_experiment`) raise. Added the guard at the top of the method
+> and a regression test `test_log_dataframe_requires_experiment`. Reproduced the
+> `AttributeError` before the fix and confirmed `RuntimeError` after. `src/qtr/tracking/
+> experiment.py` stays **100%** (183 stmts / 40 branch / 0 miss). Tracker suite 25
+> passed (was 24); tracking-adjacent suites 332 passed; ruff clean. **No published /
+> frozen number, gate, artifact, or threshold touched.** See `NEXT_TASK.md` for the
+> next task.
+
+> **Prior (2026-11-14, Cycle 106, post-sidecar-repair session):** full suite
 > re-run at HEAD `62df672` (the sidecar-schema-repair commit) reports
 > **3,745 passed / 51 skipped / 7 failed** (the 7 = maintainer-gated
 > `test_gates_workflow.py`); `src/qtr` coverage **100%** (1211 stmts / 422
