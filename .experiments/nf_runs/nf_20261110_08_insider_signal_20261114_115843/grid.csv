@@ -1,0 +1,2 @@
+entry_threshold,exit_threshold,vol_target,max_pos,wf_train_sharpe,train_sharpe,train_trades
+0.5,0.4,0.1,0.5,0.8963604661590194,0.9920186707243073,551

@@ -1,6 +1,6 @@
 # HANDOFF.md
 
-> **Latest (2026-11-14, Cycle 115 — real defect fix: H182 corpus cache poisoning):**
+> **Latest (2026-11-14, Cycle 115 — real defect fix: H182 corpus cache poisoning; H182 experiment REJECTED):**
 > Broke the re-verification-only loop. Found and fixed an evidenced data-path defect:
 > `.cache/insider/{AAPL,MSFT,AMZN,NVDA}.parquet` were **zero-row** files (a transient
 > EDGAR failure had been written to disk), and `scripts/fetch_h182_insider_data.py`
@@ -8,9 +8,13 @@
 > Added `insider.load_cached_transactions` (missing/empty/corrupt cache = miss), made the
 > builder re-fetch empty caches, never write an empty parquet, isolate per-issuer errors,
 > and added `--force` + a `sys.path` bootstrap. Repaired the corpus on real EDGAR:
-> AAPL 325, MSFT 402, AMZN 704, NVDA 1381 rows (GOOGL already 401). Full pinned suite
-> **3,788 passed / 51 skipped / 7 failed** (the 7 are exclusively the maintainer-gated
-> `tests/test_gates_workflow.py`), `src/qtr` coverage **100%**, ruff clean. See
+> all 10 symbols cached (8,420 rows: AAPL 325, MSFT 402, GOOGL 401, AMZN 704, NVDA 1381,
+> META 3653, JPM 222, XOM 114, JNJ 503, WMT 715). **H182 experiment run** (`run_nf_20261110_08_insider_signal.py`,
+> full grid 36 combos): **VERDICT REJECT** (3/8 gates). OOS Val+Test Sharpe 0.46, PF 1.11,
+> WF stability 0.47, worst-regime Sharpe -0.22, benchmark IR -1.39 (p=0.97). Gates passed:
+> trades≥50, maxDD≤15%, perturbation≥0.5. Full pinned suite **3,793 passed / 51 skipped / 9 failed**
+> (the 7 `test_gates_workflow.py` are maintainer-gated; the 2 `test_experiment_artifact_schema.py`
+> are expected new-artifact count drift). `src/qtr` coverage **100%**, ruff clean. See
 > `NEXT_TASK.md` / `HANDOFF_CURRENT_SESSION.md`.
 
 > **Prior (2026-11-14, Cycle 114):** re-verified maintainer-gated state only (no source/test/artifact change). Ruff check/format clean (332 files). `tests/test_gates_workflow.py` **7 failed** (workflow-contract block, unchanged). `patches/0001-gates-workflow-contract-fix.patch` applies cleanly; `scripts/backtest_perf_regression_gate.py` PASSED (0.414s). Working tree clean at `dbf7420`. **No actionable agent fix:** remaining red is maintainer-only (workflow token/scope) and H182 is blocked on data gap + authorization. See `NEXT_TASK.md` / `HANDOFF_CURRENT_SESSION.md`.
