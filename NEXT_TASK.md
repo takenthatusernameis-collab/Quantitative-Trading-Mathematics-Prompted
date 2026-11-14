@@ -9,6 +9,7 @@
 - `src/qtr/tracking/__init__.py`: exported the 7 public names already defined in `qtr.tracking.experiment` but missing from the subpackage API (`AblationSummary`, `DataSummary`, `ExperimentSummary`, `GateResult`, `MetricsSummary`, `SelectionSummary`, `emit_summary`).
 - `.experiments/experiments.jsonl`: appended tracker-format record for NF-20261110-08 (H182, insider net-buy, REJECT) with `metadata.config`, `metadata.data_sources`, and proper `status.verdict`.
 - `.experiments/*.meta.json`: created 3 sidecars for the new artifacts (`summary.json`, `corpus_info.json`, `grid.csv`).
+- **`REPRODUCIBILITY_AUDIT_REPORT.md`: corrected a stale, factually wrong section.** The "H182 lineage reconciliation" block claimed `experiments.jsonl` held 173 records with 0 `insider` records and that H182 was a lineage gap. Verified false: the corpus is **174** records and H182 is present (record 174, `exp_2026-11-14T11-39-15Z`, REJECT, 3 artifacts on disk under `.experiments/nf_runs/`). The earlier finding was drawn from a stale corpus count. All "173 experiments" prose in the report was updated to 174. Documentation-only: no artifact, sidecar, hash, gate, or frozen number was modified; the four baseline counts are unchanged.
 
 ### What was actually verified (own evidence)
 - `python -m pytest -q tests/test_experiment_lineage_report.py` — **6 passed**.
@@ -32,6 +33,7 @@
 - Do not mass-edit runners/tests/gates or frozen artifacts to chase green, or raise the reproducibility baseline instead of remediating.
 - Do not append H182 to `experiments.jsonl` without sidecars + coordinated baseline/pinned-test updates.
 - Do not make speculative `src/qtr` changes absent an evidenced defect (this session's `tracking/__init__.py` fix is evidenced by `test_public_api_contract.py`).
+- **Do not re-derive a "H182 is missing from the corpus" finding.** It is false: `experiments.jsonl` holds **174** records and H182 is present (record 174, `exp_2026-11-14T11-39-15Z`, REJECT, 3 artifacts on disk under `.experiments/nf_runs/`). The prior sweep erred by counting a stale 173-record file and by searching for a substring (`insider`) that does match the committed name `nf_20261110_08_insider_signal`. Always count the corpus directly before drawing lineage conclusions.
 
 ### One precise next task
 **Maintainer (preferred, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch` with workflow-scoped credentials, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed) on `origin/main`. **If research is explicitly authorized:** obtain one paid/PIT data gap (commodity futures per-contract roll/contango, crypto perpetual funding rates, or historical options chain/GEX) and run the smallest decisive pre-registered test for that single mechanism.

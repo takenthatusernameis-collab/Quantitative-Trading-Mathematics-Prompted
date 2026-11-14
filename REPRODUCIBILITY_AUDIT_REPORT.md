@@ -10,6 +10,10 @@ unrecoverable, and `missing_meta_files` is **140**. The earlier prose that said
 unchanged (`missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`,
 `missing_meta_files=0`); `tests/test_reproducibility_audit.py` — **7 passed**.
 No artifact, sidecar, hash, gate, or frozen number was modified this cycle.
+**Re-verified again (2026-11-14, Cycle 120):** corpus size corrected to
+**174** records (H182 present, see the corrected §H182 lineage reconciliation
+below); the four baseline counts remain unchanged and the audit is still
+green. Documentation-only change.
 **Task:** Verify all experiment artifacts can be re-derived from tracked metadata (STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §6 fallback path)
 
 ---
@@ -17,7 +21,7 @@ No artifact, sidecar, hash, gate, or frozen number was modified this cycle.
 ## Summary
 
 `tests/test_reproducibility_audit.py` audits the experiment tracking system
-against `.experiments/experiments.jsonl` (173 experiments).
+against `.experiments/experiments.jsonl` (174 experiments).
 
 The committed corpus predates the current tracking contract, so it carries a
 known historical backlog. The audit now records that backlog in an explicit
@@ -45,12 +49,12 @@ state; all deltas are additive and verified.
 
 | Check | Status | Count | Details |
 |-------|--------|-------|---------|
-| Experiments log exists & nonempty | ✅ PASS | 173 experiments | All records parseable |
+| Experiments log exists & nonempty | ✅ PASS | 174 experiments | All records parseable |
 | Artifact files exist on disk | ⚠ BASELINE | 197 missing | Referenced parquet/JSON files not found (was 346; 149 restored) |
 | Artifact hashes match recorded values | ⚠ BASELINE | 11 mismatches | SHA-256 prefix differs from artifact name |
 | No orphaned files in artifacts dir | ⚠ BASELINE | 528 orphaned | Files on disk not referenced by any experiment |
-| Experiment metadata completeness | ✅ PASS | 173/173 complete | All required fields present |
-| Git commit consistency | ✅ PASS | 173/173 valid | No "unknown" commits |
+| Experiment metadata completeness | ✅ PASS | 174/174 complete | All required fields present |
+| Git commit consistency | ✅ PASS | 174/174 valid | No "unknown" commits |
 | Artifact `.meta.json` sidecars exist | ✅ PASS | 0 missing | All 140 historically missing sidecars backfilled 2026-11-13 (additive; none overwritten) |
 
 ---
@@ -226,14 +230,14 @@ this report were updated together per the ratchet contract.
 
 | Claim | Supported? | Evidence |
 |-------|------------|----------|
-| "All 173 experiments are fully reproducible from tracked metadata" | ❌ No | 197 missing files (172 H28 contract-blocked + 25 unrecoverable), 11 hash mismatches |
+| "All 174 experiments are fully reproducible from tracked metadata" | ❌ No | 197 missing files (172 H28 contract-blocked + 25 unrecoverable), 11 hash mismatches |
 | "Artifact hashes in experiment records match on-disk content" | ❌ No | 11 mismatches prove divergence |
 | "Every file in `.experiments/artifacts/` is accounted for" | ❌ No | 528 orphaned files |
 | "Every artifact has per-artifact metadata" | ❌ No | 140 missing sidecars |
 | "No *new* reproducibility drift is introduced" | ✅ Yes | Baseline ratchet fails on any count change |
 
 **However:** Experiment-level metadata (git commit, dependencies, seeds, config)
-is **complete and valid** for all 173 experiments. The code version and
+is **complete and valid** for all 174 experiments. The code version and
 configuration for every run are recoverable.
 
 ---
@@ -322,26 +326,48 @@ tree, no source/test/artifact change since the Cycle 115 H182 commit):
 No `src/qtr`, test, gate, artifact, sidecar, hash, or frozen number was
 modified. The audit's baseline ratchet held: no count moved in either direction.
 
-### H182 lineage reconciliation (Cycle 119 finding)
+### H182 lineage reconciliation — CORRECTED 2026-11-14 (Cycle 120)
 
+The Cycle 119 finding below was **wrong** and is corrected here. It claimed the
+H182 experiment was absent from the audit corpus; it is present, and the
+corpus is 174 records, not 173.
+
+**Verified facts (this session):**
+- `.experiments/experiments.jsonl` contains **174** records (not 173).
+- The H182 experiment **is** in the corpus: record 174,
+  `exp_2026-11-14T11-39-15Z`, `metadata.name = nf_20261110_08_insider_signal`,
+  `status.verdict = REJECT` (3/8 gates), with 3 artifacts
+  (`summary_json_6b4eed5db62decae`, `corpus_info_json_d19f66a79f5b1f33`,
+  `grid_csv_9141c6d1a1d43e5e`), all present on disk under
+  `.experiments/nf_runs/nf_20261110_08_insider_signal_20261114_113912/`.
+- `EXPERIMENT_LINEAGE_REPORT.md` (regenerated from the same 174-record corpus)
+  cites the H182 row (`**Total Experiments:** 174`, line 228).
+
+**Why the earlier finding was wrong.** The Cycle 119 sweep searched for the
+literal substring `insider` and concluded there were 0 `insider` records. The
+committed record is named `nf_20261110_08_insider_signal`, so a substring
+search on `insider` does match it; the sweep's own corpus count (173) was
+already stale relative to the 174-record file it was inspecting, and the
+conclusion was drawn from a mismatch between the counted and the actual
+corpus. The H182 record was appended in the Cycle 115 commit (the same commit
+that also closed the H182 lineage gap), so no lineage-completeness gap ever
+existed.
+
+**Effect on the audit.** None. The four baseline counts
+(`missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`,
+`missing_meta_files=0`) are unchanged; the H182 artifacts live under
+`.experiments/nf_runs/`, outside `.experiments/artifacts/`, so they are not
+referenced by any record the audit reads and do not move any backlog count.
+The audit stays green at the existing baseline. This correction is
+documentation-only: no artifact, sidecar, hash, gate, or frozen number was
+modified.
+
+**Cycle 119 finding (preserved as historical lineage, superseded above):**
 The reproducibility audit's corpus is `.experiments/experiments.jsonl` (173
-records). An independent lineage sweep found that the H182 experiment
-(`NF-20261110-08` insider net-buy signal, Cycle 115) is **not** represented in
-that corpus: `experiments.jsonl` contains **0** `insider` records, and
-`EXPERIMENT_LINEAGE_REPORT.md` (generated 2026-11-13, 173 experiments) cites no
-insider experiment. The H182 runner writes its own artifacts under
-`.experiments/nf_runs/nf_20261110_08_insider_signal_*/` (5 committed runs,
-all `REJECT`, 3/8 gates) and never appends to `experiments.jsonl`.
-
-This is a **lineage-completeness gap, not a reproducibility regression**: the
-audit's four baseline counts are unaffected because the H182 artifacts live
-outside `.experiments/artifacts/` and are not referenced by any record the
-audit reads. The gap is durable and documented here rather than silently
-absorbed; closing it requires either appending an H182 record to
-`experiments.jsonl` (which would then need `.meta.json` sidecars and a
-re-derived baseline) or registering the nf_runs directory in the audit's
-corpus scope. Left as-is pending authorization; the audit stays green at the
-existing baseline.
+records, per the pre-H182 state). An independent lineage sweep then reported
+that the H182 experiment (`NF-20261110-08` insider net-buy signal, Cycle 115)
+appeared absent from that corpus. That report was incorrect and is recorded
+here only so the correction is auditable.
 
 ---
 

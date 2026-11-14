@@ -1,6 +1,6 @@
 # HANDOFF_SESSION_END.md
 
-## Session Summary (2026-11-14)
+## Session Summary (2026-11-14, Cycle 120)
 
 ### Repository State Verified
 - **All tests passing** (except 7 maintainer-gated `tests/test_gates_workflow.py`): 3822 passed, 51 skipped, 7 failed (CI contract only)
@@ -11,7 +11,22 @@
 - **Reproducibility audit**: `tests/test_reproducibility_audit.py` — 7 passed (backlog frozen: missing=197, hash_mismatches=11, orphans=528, missing_meta=0)
 
 ### What Changed This Session
-- No code changes made. The repository was already in a verified, contract-compliant state from the prior session (which closed H182 lineage gap, fixed two evidenced defects in `scripts/generate_experiment_lineage_report.py` and `src/qtr/tracking/__init__.py`, and updated pinned tests/artifacts).
+- **`REPRODUCIBILITY_AUDIT_REPORT.md`: corrected a stale, factually wrong section.**
+  The "H182 lineage reconciliation" block (added Cycle 119) claimed
+  `experiments.jsonl` held **173** records with **0** `insider` records and that
+  the H182 experiment was a lineage-completeness gap. Verified false: the corpus
+  is **174** records and H182 is present (record 174,
+  `exp_2026-11-14T11-39-15Z`, `REJECT`, 3/8 gates, 3 artifacts on disk under
+  `.experiments/nf_runs/nf_20261110_08_insider_signal_20261114_113912/`). The
+  prior finding was drawn from a stale corpus count and a substring search that
+  does match the committed name `nf_20261110_08_insider_signal`. The section
+  was rewritten as a correction (original preserved as historical lineage), and
+  all "173 experiments" prose in the report was updated to 174 (Summary,
+  Findings table, Implications, and the re-verified banner).
+- **`NEXT_TASK.md`: updated** to record the correction and add a "do not
+  repeat" rule against re-deriving the false H182-absent finding.
+- Documentation-only change: no artifact, sidecar, hash, gate, or frozen number
+  was modified; the four baseline counts are unchanged.
 
 ### What Remains Unresolved
 1. **Maintainer-only (CI contract)**: `.github/workflows/gates.yml` not updated; 7 `tests/test_gates_workflow.py` tests red until maintainer applies `patches/0001-gates-workflow-contract-fix.patch` with workflow-scoped credentials. Agent cannot land `.github/workflows/**`.
@@ -24,6 +39,7 @@
 - Do not treat delisted/spliced-continuous/unavailable free series as valid PIT inputs.
 - Do not mass-edit runners/tests/gates or frozen artifacts to chase green, or raise the reproducibility baseline instead of remediating.
 - Do not make speculative `src/qtr` changes absent an evidenced defect.
+- **Do not re-derive a "H182 is missing from the corpus" finding.** It is false: the corpus is 174 records and H182 is present. Always count the corpus directly before drawing lineage conclusions.
 
 ### One Precise Next Task
 **Maintainer (preferred, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch` with workflow-scoped credentials, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed) on `origin/main`.
