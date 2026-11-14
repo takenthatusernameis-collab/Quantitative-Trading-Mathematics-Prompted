@@ -60,7 +60,7 @@ except Exception:  # pragma: no cover
     yf = None
 
 from qtr.backtest.engine import AssetClass, BacktestConfig, CostModel, run_backtest
-from qtr.data.insider import TRANSACTION_COLUMNS, insider_net_buy_ratio, load_cached_transactions
+from qtr.data.insider import load_cached_transactions
 
 EXPERIMENT = "nf_20261110_08_insider_signal"
 NF_ID = "NF-20261110-08"
@@ -158,56 +158,127 @@ def _load_insider_corpus(symbols: list[str]) -> dict[str, pd.DataFrame]:
     return corpus
 
 
+def _effective_signal_days(prices: pd.DataFrame, accepted_at: pd.Series) -> pd.Series:
+    """Map each filing acceptance instant to the trading day it may first move.
+
+    A Form 4 is public at ``acceptance_datetime`` (UTC), not at midnight of its
+    date.  Truncating the timestamp to a calendar date -- which is what
+    ``insider_net_buy_ratio`` does, because it aggregates on the *date* -- lets a
+    filing accepted after the cash close act on that same session's close, and
+    one accepted on a Saturday act on Friday.  Both read the future.
+
+    The mapping is therefore the first trading day whose regular-session close
+    (16:00 America/New_York) is at or after the acceptance instant.  A filing
+    accepted at 09:00 ET on day *t* is actionable at day *t*'s close; one
+    accepted at 18:58 ET on day *t* is actionable at day *t+1*'s close; a
+    weekend filing is actionable at the next session's close.
+
+    Rows whose acceptance falls after the last available close cannot be acted
+    on and are dropped (``NaN``).
+
+    Args:
+        prices: Price panel whose index is the trading-day calendar.
+        accepted_at: Filing acceptance instants.  Timezone-naive values are
+            interpreted as UTC (the EDGAR convention).
+
+    Returns:
+        A UTC-naive ``datetime64`` Series aligned to ``accepted_at``, holding the
+        effective trading day (normalised to midnight) or ``NaT``.
+    """
+    days = pd.DatetimeIndex(prices.index)
+    if len(days) == 0 or len(accepted_at) == 0:
+        return pd.Series(pd.NaT, index=accepted_at.index, dtype="datetime64[ns]")
+
+    stamps = pd.DatetimeIndex(pd.to_datetime(accepted_at))
+    if stamps.tz is None:
+        stamps = stamps.tz_localize("UTC")
+    else:
+        stamps = stamps.tz_convert("UTC")
+    closes = days.tz_localize("America/New_York") + pd.Timedelta(hours=16)
+    positions = closes.searchsorted(stamps.to_numpy(), side="left")
+    effective = pd.Series(pd.NaT, index=accepted_at.index, dtype="datetime64[ns]")
+    in_range = positions < len(days)
+    if in_range.any():
+        effective.iloc[np.flatnonzero(in_range)] = days[positions[in_range]]
+    return effective
+
+
+def _net_buy_ratio_by_signal_day(prices: pd.DataFrame, tx: pd.DataFrame) -> pd.Series:
+    """Open-market net-buy ratio per *effective* trading day for one symbol.
+
+    Only Form 4 open-market rows (code ``P`` purchase, ``S`` sale) are counted,
+    matching ``insider_net_buy_ratio``; the difference is the day each row is
+    attributed to (see :func:`_effective_signal_days`).  Several filings can map
+    to one trading day (a weekend batch), so the ratio is recomputed from the
+    pooled buy/sell counts rather than averaging daily ratios.
+
+    Returns:
+        A float Series indexed by effective trading day, ascending.  Empty when
+        no open-market row is actionable within the price window.
+    """
+    open_market = tx[tx["transaction_code"].isin(["P", "S"])].copy()
+    open_market["available_at"] = pd.to_datetime(open_market["available_at"])
+    open_market = open_market[open_market["available_at"].notna()]
+    if len(open_market) == 0:
+        return pd.Series(dtype=float)
+
+    open_market["effective_day"] = _effective_signal_days(prices, open_market["available_at"])
+    open_market = open_market[open_market["effective_day"].notna()]
+    if len(open_market) == 0:
+        return pd.Series(dtype=float)
+
+    grouped = open_market.groupby("effective_day")["transaction_code"].agg(
+        rows="size", buys=lambda codes: int((codes == "P").sum())
+    )
+    grouped = grouped.sort_index()
+    return grouped["buys"] / grouped["rows"]
+
+
+def _hysteresis(signal: pd.Series, entry_threshold: float, exit_threshold: float) -> pd.Series:
+    """Long-only hysteresis on a signal series: enter at/above entry, exit at/below exit."""
+    current_pos = 0.0
+    positions = pd.Series(0.0, index=signal.index)
+    for i, (date, value) in enumerate(signal.items()):
+        if current_pos == 0.0:
+            if value >= entry_threshold:
+                current_pos = 1.0
+        elif current_pos == 1.0:
+            if value <= exit_threshold:
+                current_pos = 0.0
+        positions.iloc[i] = current_pos
+    return positions
+
+
 def _compute_daily_signals(
     prices: pd.DataFrame,
     corpus: dict[str, pd.DataFrame],
     entry_threshold: float,
     exit_threshold: float,
 ) -> pd.DataFrame:
-    """Compute daily target weights from insider net-buy ratio."""
-    # Initialize signal frame
+    """Compute daily target weights from insider net-buy ratio.
+
+    A filing's net-buy ratio is attributed to the first trading day whose close
+    is at or after its EDGAR acceptance instant (see
+    :func:`_effective_signal_days`), then forward-filled until the next filing.
+    Days before a symbol's first actionable filing carry **no** ratio: the
+    hysteresis input is ``NaN``, which is treated as "no signal" and holds the
+    position flat.  Filling that warm-up with a neutral constant instead would
+    be a silent look-ahead for any entry threshold at or below the constant
+    (the pre-registered ``entry_threshold`` grid includes exactly 0.5).
+    """
     signal = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
 
-    # Compute net-buy ratio per symbol per available_at date
     for sym in prices.columns:
         if sym not in corpus:
             continue
-        tx = corpus[sym]
-        if len(tx) == 0:
+        ratios = _net_buy_ratio_by_signal_day(prices, corpus[sym])
+        if len(ratios) == 0:
             continue
 
-        nbr = insider_net_buy_ratio(tx)
-        if len(nbr) == 0:
-            continue
-
-        # nbr has columns: available_at, buys, sells, net_buy_ratio
-        # available_at is the date the filing was accepted (PIT)
-        # We need to align this to trading days
-        nbr = nbr.set_index("available_at")
-        nbr.index = pd.to_datetime(nbr.index)
-
-        # For each date with a signal, determine position
-        # Long when net_buy_ratio >= entry_threshold
-        # Flat when net_buy_ratio <= exit_threshold (hysteresis)
-        # Short not allowed per pre-registration (long-only)
-        pos_series = pd.Series(0.0, index=prices.index)
-
-        # Forward fill the net_buy_ratio to trading days (signal persists until next filing)
-        # Align to price index
-        aligned = nbr["net_buy_ratio"].reindex(prices.index).ffill().fillna(0.5)
-
-        # Hysteresis logic
-        current_pos = 0.0
-        for i, (date, ratio) in enumerate(aligned.items()):
-            if current_pos == 0.0:
-                if ratio >= entry_threshold:
-                    current_pos = 1.0
-            elif current_pos == 1.0:
-                if ratio <= exit_threshold:
-                    current_pos = 0.0
-            pos_series.iloc[i] = current_pos
-
-        signal[sym] = pos_series
+        # Forward-fill the ratio across trading days; the leading NaNs are the
+        # pre-first-filing warm-up and stay NaN on purpose.
+        aligned = ratios.reindex(prices.index).ffill()
+        signal[sym] = _hysteresis(aligned, entry_threshold, exit_threshold)
 
     return signal
 
@@ -486,33 +557,16 @@ def main(argv=None) -> int:
     if n_active > 0 and len(all_dates) > n_active:
         rand_dates = rng.choice(all_dates, size=n_active, replace=False)
         rand_sig = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
-        # Create random signal with same structure
+        # Randomize: same number of active days, random dates, then the same
+        # hysteresis. The random series is a synthetic control, so it is drawn
+        # directly on trading days (no filing timestamps to align).
+        rand_aligned = pd.Series(np.nan, index=prices.index)
+        rand_aligned.loc[rand_dates] = rng.uniform(0.0, 1.0, size=n_active)
+        rand_aligned = rand_aligned.ffill()
+        rand_pos = _hysteresis(rand_aligned, selected["entry_threshold"], selected["exit_threshold"])
         for sym in prices.columns:
             if sym in corpus:
-                nbr = insider_net_buy_ratio(corpus[sym])
-                if len(nbr) > 0:
-                    nbr = nbr.set_index("available_at")
-                    nbr.index = pd.to_datetime(nbr.index)
-                    aligned = nbr["net_buy_ratio"].reindex(prices.index).ffill().fillna(0.5)
-                    # Randomize: keep same number of active days but random dates
-                    rand_aligned = pd.Series(0.5, index=prices.index)
-                    rand_aligned.loc[rand_dates] = rng.uniform(0.0, 1.0, size=n_active)
-                    rand_aligned = rand_aligned.ffill().fillna(0.5)
-
-                    # Apply same hysteresis
-                    entry_z = selected["entry_threshold"]
-                    exit_z = selected["exit_threshold"]
-                    current_pos = 0.0
-                    pos_series = pd.Series(0.0, index=prices.index)
-                    for i, (date, ratio) in enumerate(rand_aligned.items()):
-                        if current_pos == 0.0:
-                            if ratio >= entry_z:
-                                current_pos = 1.0
-                        elif current_pos == 1.0:
-                            if ratio <= exit_z:
-                                current_pos = 0.0
-                        pos_series.iloc[i] = current_pos
-                    rand_sig[sym] = pos_series
+                rand_sig[sym] = rand_pos
 
         rand_sig = _apply_vol_targeting(
             rand_sig, prices, selected["vol_target"], VOL_WINDOW, selected["max_pos"]

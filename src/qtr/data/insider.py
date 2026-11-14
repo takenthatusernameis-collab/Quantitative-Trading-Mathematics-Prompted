@@ -629,6 +629,15 @@ def insider_net_buy_ratio(transactions: pd.DataFrame) -> pd.DataFrame:
     Rows are grouped on ``available_at`` (the filing acceptance date), never on
     ``transaction_date``: the latter is up to two business days earlier and
     using it would look ahead.
+
+    ``available_at`` here is a *calendar date*, so this frame is the right input
+    for daily aggregation but **not** a point-in-time trading signal on its own.
+    A filing accepted after the cash close, or on a weekend, still carries its
+    own calendar date here; a caller that turns this frame into positions must
+    first map each acceptance *instant* to the first session whose close is at
+    or after it, or the signal acts on a close that had already happened when
+    the filing became public.  See ``run_nf_20261110_08_insider_signal.py``
+    (``_effective_signal_days``) for a reference implementation.
     """
     if len(transactions) == 0:
         return pd.DataFrame(columns=["available_at", "buys", "sells", "net_buy_ratio"])
