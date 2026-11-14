@@ -1,6 +1,42 @@
 # NEXT_TASK.md
 
-## Latest session (2026-11-13T22:5xZ) — fixed caller-dict mutation in `log_dataframe`
+## Latest session (2026-11-14T04:50Z, Cycle 106) — sidecar-schema repair committed; full suite re-verified
+
+The previous "backfill the 140 missing sidecars" task is **complete** (done 2026-11-13,
+committed as `62df672` together with the schema-repair follow-up). This file's
+remaining numbered steps below are historical; the live next task is at the bottom.
+
+### What was verified this session (Cycle 106, own evidence)
+
+- Full suite at HEAD `62df672` (the sidecar-schema repair commit): **3,745 passed,
+  51 skipped, 7 failed** (430s). The 7 are exclusively
+  `tests/test_gates_workflow.py`, unchanged from Cycle 105. The +1 vs Cycle 105's
+  3,744 is `test_sidecar_schema_contract.py`, added in `62df672` — the suite had
+  never been re-run after that commit until now.
+- `src/qtr` coverage — **100%** (1211 stmts / 422 branches / 0 miss).
+- `tests/test_sidecar_schema_contract.py` — 1 passed. Re-derived all **528**
+  committed `.meta.json` sidecars: 424 parquet-schema + 104 json-keys; **0** other
+  shapes, **0** unparseable.
+- `tests/test_reproducibility_audit.py` — 7 passed (backlog 197 / 11 / 528 / 0 unchanged).
+- `scripts/backtest_perf_regression_gate.py` — green on this host (0.406s, limit 5s).
+- `ruff check`/`format --check` over `src tests run_*.py scripts` — clean, 327 files.
+- **Maintainer patch re-verified** in a clean checkout: `git apply --check` succeeds,
+  patched `gates.yml` satisfies all 7 contract assertions, `pytest
+  tests/test_gates_workflow.py` -> 7 passed. With it applied the full suite would be
+  **3,752 passed / 51 skipped / 0 failed**. Agent cannot land it (no `workflows`
+  token; `.github/scripts/kilo-controller.sh` restores `.github/workflows/**` from
+  `origin/main` after every session).
+
+### What changed (annotation only, no source/test/artifact change)
+
+- `patches/0001-gates-workflow-contract-fix.patch` — corrected the stale
+  "HEAD d542019" evidence line. That object does not exist in this repository
+  (full history is 6 empty-message commits). Patch content is byte-identical;
+  only the prose header was refreshed with the Cycle 106 re-verification.
+- `HANDOFF.md` — added the Cycle 106 re-verification banner and updated the
+  "one precise next task" section.
+
+## Prior session (2026-11-13T22:5xZ) — fixed caller-dict mutation in `log_dataframe`
 
 ### What changed (this session)
 
@@ -74,31 +110,28 @@ sidecar.
 
 ## One precise next task
 
-**Backfill the 140 missing artifact `.meta.json` sidecars, then lower the
-ratchet.** This is remediation item 5 in `REPRODUCIBILITY_AUDIT_REPORT.md` and
-is additive (no artifact or published number is overwritten).
+**Maintainer-only: apply `patches/0001-gates-workflow-contract-fix.patch` to
+turn the 7 red `tests/test_gates_workflow.py` failures green.** Re-verified
+this cycle (Cycle 106) in a clean checkout: the patch applies, the patched
+`gates.yml` satisfies all 7 contract assertions, and the new CI step
+`scripts/backtest_perf_regression_gate.py` passes on this host (0.406s, limit
+5s). Agent cannot land it (no `workflows` token permission;
+`.github/scripts/kilo-controller.sh` restores `.github/workflows/**` from
+`origin/main` after every session, and the staging filter excludes those
+paths).
 
-Evidence (recomputed this session): `missing_meta_files = 140`
-(118 `.json`, 22 `.parquet`; by basename: `summary.json` 93, `equity.parquet`
-21, `stats.json` 21, `metadata.json` 4, `h14_results.parquet` 1).
+If the maintainer applies it, the full suite goes green at **3,752 passed /
+51 skipped / 0 failed** and the CI `scripts/**` path filter, editable install,
+and perf-gate step become live. No agent-side follow-up is needed.
 
-Steps:
-1. For each referenced artifact that exists on disk but lacks
-   `.experiments/<artifact_name>.meta.json`, write a sidecar: JSON artifacts →
-   `{"keys": [<top-level keys>]}` (or the existing metadata if the runner
-   logged it); parquet artifacts → `{"shape": [...], "columns": [...],
-   "dtypes": {...}, "index_type": "..."}` matching `log_dataframe`'s schema.
-   Do **not** overwrite an existing sidecar.
-2. Re-run `pytest tests/test_reproducibility_audit.py -q`. It will fail with
-   `missing_meta_files backlog changed: <new> (recorded baseline 140)`.
-3. Lower `REPRODUCIBILITY_BASELINE["missing_meta_files"]` in
-   `tests/test_reproducibility_audit.py` to the new count and update
-   `REPRODUCIBILITY_AUDIT_REPORT.md` §4 + the summary table in the same change
-   (the ratchet requires the baseline and report to move together).
-4. Verify: `pytest tests/test_reproducibility_audit.py -q` green, focused
-   artifact suites green, `ruff check`/`format --check` clean, and the full
-   `pytest -q -W error --cov=qtr --cov-branch` gate (expect 3744 passed, 51
-   skipped, 7 failed = maintainer-gated `test_gates_workflow.py`).
+**Otherwise (agent path):** the only remaining open item is **H182 selection**:
+per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6 and
+`NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96, the free-data point-in-time
+strategy-family queue is exhausted (H1–H181 executed/rejected; commodity carry
+data-blocked; insider/earnings/options PIT unavailable without paid services).
+Selecting H182 requires resolving a data gap under explicit authorization.
+Absent that, conclude free-data family discovery is exhausted and shift to
+auditing/infrastructure rather than inventing candidates.
 
 **Constraints:** additive sidecars only; do not delete/move artifacts; do not
 touch published/frozen numbers, gates, or `src/qtr` unless an evidenced defect

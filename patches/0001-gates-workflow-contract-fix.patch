@@ -11,8 +11,25 @@ Apply (maintainer, with workflow scope):
   git commit -am "fix(ci): satisfy gates workflow contract"
   git push origin main
 
-Evidence (2026-11-13, HEAD d542019): with this patch applied,
+Evidence (2026-11-13, Cycle 104): with this patch applied,
 tests/test_gates_workflow.py -> 7 passed (was 7 failed).
+
+Re-verified (2026-11-14, Cycle 106) in a clean /tmp checkout of this tree:
+`git apply --check` succeeds, the patched `.github/workflows/gates.yml`
+contains every required change (`scripts/**` in both path filters, `python -m
+pip install -e . --no-deps` in both jobs, `python -m ruff ... scripts` in both
+ruff steps, `python scripts/backtest_perf_regression_gate.py` in
+research_gates), and `pytest tests/test_gates_workflow.py` -> 7 passed.
+`scripts/backtest_perf_regression_gate.py` also runs green on this host
+(PERF GATE: 100 symbols x 252 bars -> 0.406s, limit 5s, PASSED). The patch
+still cannot be landed by the autonomous agent: the repo-scoped GitHub App
+token has no `workflows` permission and
+`.github/scripts/kilo-controller.sh` restores `.github/workflows/**` from
+`origin/main` after every session, so an in-tree workflow edit does not
+persist. The commit-hash reference above (HEAD d542019) is stale: that
+object does not exist in this repository (full history is 6 empty-message
+commits). The patch content is unchanged; only the evidence annotation was
+refreshed.
 
 diff --git a/.github/workflows/gates.yml b/.github/workflows/gates.yml
 index a8126b8..1b72c9b 100644
