@@ -1,0 +1,116 @@
+{
+  "experiment": "nf_20261110_08_insider_signal",
+  "nf_id": "NF-20261110-08",
+  "hypothesis": "H182",
+  "timestamp_utc": "2026-11-14T11:39:30Z",
+  "runtime_sec": 9.977,
+  "data": {
+    "symbols": [
+      "AAPL",
+      "MSFT",
+      "GOOGL",
+      "AMZN",
+      "NVDA",
+      "META",
+      "JPM",
+      "XOM",
+      "JNJ",
+      "WMT"
+    ],
+    "start": "2024-06-01",
+    "end": "2026-11-14",
+    "rows": 616,
+    "train_end": "2025-02-28",
+    "val_end": "2025-10-31",
+    "corpus_rows": {
+      "AAPL": 325,
+      "MSFT": 402,
+      "GOOGL": 401,
+      "AMZN": 704,
+      "NVDA": 1381,
+      "META": 3653,
+      "JPM": 222,
+      "XOM": 114,
+      "JNJ": 503,
+      "WMT": 715
+    }
+  },
+  "grid_n": 36,
+  "selected": {
+    "entry_threshold": 0.5,
+    "exit_threshold": 0.4,
+    "vol_target": 0.1,
+    "max_pos": 1
+  },
+  "wf_train_sharpe": 0.9198124550184834,
+  "train_ref_sharpe": 0.9817260065637818,
+  "oos_val_test": {
+    "total_return": 0.06554617193519308,
+    "sharpe": 0.45841516788346554,
+    "sortino": 0.6046227176127313,
+    "max_drawdown": -0.0938207837263351,
+    "calmar": 0.40308624761333,
+    "profit_factor": 1.1146015612508642,
+    "trades": 257,
+    "volatility": 0.0899232287720714,
+    "cagr": 0.03781786766039019,
+    "equity_end": 1065546.171935193
+  },
+  "benchmark_equal_weight_oos": {
+    "total_return": 0.48268916108383886,
+    "sharpe": 1.41473893748237,
+    "sortino": 2.179096991139497,
+    "max_drawdown": -0.1719848235314819,
+    "calmar": 1.505694143444574,
+    "profit_factor": 1.3200461809527004,
+    "trades": 10,
+    "volatility": 0.17358372475201234,
+    "cagr": 0.25895654155270087,
+    "equity_end": 1482689.161083839
+  },
+  "ablations": {
+    "random_insider_oos": {
+      "total_return": 0.5422857831124845,
+      "sharpe": 1.6378392042208612,
+      "sortino": 2.5628341594213384,
+      "max_drawdown": -0.14995142323283583,
+      "calmar": 1.922632435827086,
+      "profit_factor": 1.3694307140400102,
+      "trades": 4053,
+      "volatility": 0.16295958933010038,
+      "cagr": 0.28830147010588547,
+      "equity_end": 1542285.7831124845
+    },
+    "inverse_signal_oos": {
+      "total_return": 0.008785522165577042,
+      "sharpe": 0.5031261436426732,
+      "sortino": 0.7641487711423777,
+      "max_drawdown": -0.007939363051095216,
+      "calmar": 0.6458258466787276,
+      "profit_factor": 1.6150727104249722,
+      "trades": 14,
+      "volatility": 0.010281980374113596,
+      "cagr": 0.005127445864563374,
+      "equity_end": 1008785.522165577
+    }
+  },
+  "information_ratio_vs_equal_weight": -1.3880660093912256,
+  "benchmark_pvalue_one_sided": 0.9650989843154898,
+  "worst_regime_rolling252_sharpe": -0.22449552673426,
+  "wf_stability_oos_over_train": 0.466948175782774,
+  "perturbation": {
+    "min_ratio": 1.098810549791272
+  },
+  "gates": {
+    "sharpe_ge_1": false,
+    "trades_ge_50": true,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": true,
+    "wf_stability_ge_0_7": false,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_and_ir_ge_0": false,
+    "perturbation_min_ratio_ge_0_5": true
+  },
+  "gates_passed": 3,
+  "verdict": "REJECT"
+}
