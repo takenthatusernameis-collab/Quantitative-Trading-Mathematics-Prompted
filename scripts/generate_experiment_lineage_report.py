@@ -32,7 +32,11 @@ def load_experiments(jsonl_path: Path) -> list[dict]:
 def extract_key_info(exp: dict) -> dict:
     """Extract standardized key information from an experiment record."""
     metadata = exp.get("metadata", {})
-    config = exp.get("config", {})
+    # ``config`` and ``data_sources`` live under ``metadata`` in the tracker's
+    # record format (``ExperimentTracker._save_experiment`` nests them inside
+    # ``metadata``). Fall back to the top level for older records that stored
+    # them there.
+    config = metadata.get("config", exp.get("config", {}))
     metrics = exp.get("metrics", {})
     status = exp.get("status", {})
     artifacts = exp.get("artifacts", {})
@@ -112,11 +116,14 @@ def extract_key_info(exp: dict) -> dict:
         if "interval" in config:
             config_summary["interval"] = config["interval"]
 
-    # Data sources
-    data_sources = exp.get("data_sources", {})
+    # Data sources (stored under ``metadata`` by the tracker; tolerate both the
+    # dict and list shapes used across the corpus).
+    data_sources = metadata.get("data_sources", exp.get("data_sources", {}))
     if isinstance(data_sources, dict):
         src = data_sources.get("source", data_sources.get("symbols", "unknown"))
         config_summary["data_source"] = src
+    elif isinstance(data_sources, list) and data_sources:
+        config_summary["data_source"] = data_sources
 
     return {
         "exp_id": exp_id,

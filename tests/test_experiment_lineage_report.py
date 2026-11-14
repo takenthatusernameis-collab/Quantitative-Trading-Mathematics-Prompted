@@ -99,6 +99,42 @@ def test_report_total_experiment_count():
     )
 
 
+def test_extract_key_info_reads_config_and_data_sources_from_metadata():
+    """``config`` and ``data_sources`` are nested under ``metadata``.
+
+    ``ExperimentTracker._save_experiment`` writes records as
+    ``{"metadata": {...}, "metrics": ..., ...}`` with ``config`` and
+    ``data_sources`` inside ``metadata``. A generator that reads them from the
+    top level silently renders every row as ``data_source=unknown`` with an
+    empty config column; this pins the correct extraction so the regression
+    cannot return.
+    """
+    if sys.path[0] != str(ROOT / "scripts"):
+        sys.path.insert(0, str(ROOT / "scripts"))
+    import generate_experiment_lineage_report as gen
+
+    experiments = gen.load_experiments(ROOT / ".experiments" / "experiments.jsonl")
+
+    checked_config = 0
+    checked_sources = 0
+    for exp in experiments:
+        metadata = exp.get("metadata", {})
+        info = gen.extract_key_info(exp)
+        if metadata.get("config"):
+            checked_config += 1
+            assert info["config"], (
+                f"{metadata.get('name')}: metadata.config not surfaced in report config"
+            )
+        if metadata.get("data_sources"):
+            checked_sources += 1
+            assert info["config"].get("data_source") != "unknown", (
+                f"{metadata.get('name')}: data_source not read from metadata.data_sources"
+            )
+
+    assert checked_config > 0, "no records with metadata.config found"
+    assert checked_sources > 0, "no records with metadata.data_sources found"
+
+
 def test_report_category_summary_matches_pinned_inventory():
     """The summary-by-category table matches the pinned inventory."""
     text = COMMITTED_REPORT.read_text()
