@@ -1,24 +1,36 @@
 # NEXT_TASK.md
 
-## Latest session (2026-11-14, Cycle 113) — re-verified agent-unreachable maintainer-gated block
+## Latest session (2026-11-14, Cycle 114) — re-verified maintainer-gated block; no code defect found
 
 ### What changed
 
-Nothing in `src/qtr`, tests, gates, artifacts, or frozen numbers. This session only re-verified the documented state; no source change.
+Nothing in `src/qtr`, tests, gates, artifacts, or frozen numbers. Re-verification only.
 
 ### What was actually verified (own evidence)
 
 - `python -m ruff check src tests run_*.py scripts` — all checks passed.
 - `python -m ruff format --check src tests run_*.py scripts` — 332 files already formatted.
-- `pytest tests/test_gates_workflow.py -q` — **7 failed**, exclusively the maintainer-gated contract block (assertions expect `scripts/**` path triggers, editable install step, ruff-on-scripts step, and perf-gate step that are missing from the committed `.github/workflows/gates.yml`).
-- `git apply --check patches/0001-gates-workflow-contract-fix.patch` — **applies cleanly**; patch content unchanged and correct.
-- `.github/workflows/**` is agent-unreachable (no `workflows` token; kilo-controller restores from origin/main each session). No commit/push attempted.
+- `pytest tests/test_gates_workflow.py -q` — **7 failed** (0.06s), exclusively the maintainer-gated workflow-contract block (missing `scripts/**` triggers, editable install steps, ruff-on-scripts, and `scripts/backtest_perf_regression_gate.py` step in committed `.github/workflows/gates.yml`).
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` — **APPLIES_CLEANLY**.
+- `python scripts/backtest_perf_regression_gate.py` — **PASSED** (0.414s, limit 5s).
+- `git status` clean; no untracked files; HEAD `dbf7420`.
+
+### What remains unresolved
+
+1. **Maintainer-only:** `tests/test_gates_workflow.py` is red on `origin/main` by design; fix is `patches/0001-gates-workflow-contract-fix.patch`. `.github/workflows/**` is agent-unreachable (no `workflows` token; `kilo-controller.sh` restores from `origin/main` each session and excludes from staging).
+2. **H182 selection blocked (agent path):** H1–H181 exhausted/rejected per `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96. Selecting H182 requires a resolved free PIT data gap (commodity roll/contango carry, or PIT insider/earnings/options) and explicit authorization; absent that, free-data family discovery is exhausted — do not invent an H182 candidate.
+
+### Approaches already tried and why they should not be repeated
+
+- Do not repeat re-verification-only cycles: suite state is stable; re-running does not constitute progress unless a real, evidenced defect is found.
+- Do not edit `.github/workflows/**` or weaken `tests/test_gates_workflow.py` to chase the 7 failures.
+- Do not invent/select H182 without a resolved data gap and authorization.
 
 ### One precise next task (maintainer-only)
 
-**Apply `patches/0001-gates-workflow-contract-fix.patch`** to turn the 7 red `tests/test_gates_workflow.py` failures green (re-verified applicable in this session; patched `gates.yml` satisfies all 7 assertions; `scripts/backtest_perf_regression_gate.py` passes on this host). Agent cannot land it (no `workflows` token; `.github/scripts/kilo-controller.sh` restores `.github/workflows/**` from `origin/main` each session). If applied, full suite goes green at **3,788 passed / 51 skipped / 0 failed**.
+**Apply `patches/0001-gates-workflow-contract-fix.patch`** with workflow scope, commit, and push to `origin/main`. Expect `tests/test_gates_workflow.py` 7/7 green and full suite **3,788 passed / 51 skipped / 0 failed** (per current suite size).
 
-**Agent path (blocked unless authorized):** resolve the H182 data gap (free PIT commodity roll/contango for carry, or PIT insider/earnings/options data) and select H182 per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §4/§6 and `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96. Absent authorization, conclude free-data family discovery is exhausted — do not invent an H182 candidate.
+**Agent path (only if newly authorized with data):** resolve H182 data gap and select H182 per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §4/§6 and `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96.
 
 **Constraints:** `src/qtr` unchanged unless an evidenced defect requires it; no gate weakening; no published/frozen artifact, verdict, threshold, or frozen number modified; no commit/push of `.github/workflows/**`.
 
