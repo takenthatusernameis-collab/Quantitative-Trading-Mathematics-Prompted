@@ -563,7 +563,9 @@ def main(argv=None) -> int:
         rand_aligned = pd.Series(np.nan, index=prices.index)
         rand_aligned.loc[rand_dates] = rng.uniform(0.0, 1.0, size=n_active)
         rand_aligned = rand_aligned.ffill()
-        rand_pos = _hysteresis(rand_aligned, selected["entry_threshold"], selected["exit_threshold"])
+        rand_pos = _hysteresis(
+            rand_aligned, selected["entry_threshold"], selected["exit_threshold"]
+        )
         for sym in prices.columns:
             if sym in corpus:
                 rand_sig[sym] = rand_pos
