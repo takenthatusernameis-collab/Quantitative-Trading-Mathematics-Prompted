@@ -1,6 +1,25 @@
 # HANDOFF.md
 
-> **Latest (2026-11-14, Cycle 115 — real defect fix: H182 corpus cache poisoning; H182 experiment REJECTED):**
+> **Latest (2026-11-14, Cycle 121 — documentation-only: corrected the false "H182 lineage gap" claim):**
+> The previous session's handoff asserted H182 was absent from the audit corpus
+> (173 records, 0 insider records). That claim was **false** and is corrected in
+> `REPRODUCIBILITY_AUDIT_REPORT.md` §H182 lineage reconciliation and here.
+> Independent evidence: `wc -l .experiments/experiments.jsonl` → **174** records;
+> H182 is record 174 (`exp_2026-11-14T11-39-15Z`,
+> `metadata.name = nf_20261110_08_insider_signal`, REJECT 3/8 gates) with 3
+> artifacts on disk under `.experiments/nf_runs/` whose SHA-256 prefixes match
+> their names exactly, plus 3 re-derivable `.meta.json` sidecars. `pytest -q
+> tests/test_sidecar_schema_contract.py tests/test_experiment_artifact_schema.py
+> tests/test_experiment_lineage_report.py tests/test_reproducibility_audit.py
+> tests/test_fetch_h182_insider_data.py` → **124 passed, 0 failed**;
+> `tests/test_reproducibility_audit.py` → **7 passed** (baseline unchanged:
+> 197 / 11 / 528 / 0); ruff clean. **No `src/qtr`, test, gate, artifact, sidecar,
+> hash, or frozen-number change.** The prior sweep erred by counting a stale
+> 173-record file and searching for the substring `insider` (which *does* match
+> the committed name `nf_20261110_08_insider_signal`). Do not re-derive a
+> "H182 is missing from the corpus" finding. See `HANDOFF_CURRENT_SESSION.md`.
+
+> **Prior (2026-11-14, Cycle 115 — real defect fix: H182 corpus cache poisoning; H182 experiment REJECTED):**
 > Broke the re-verification-only loop. Found and fixed an evidenced data-path defect:
 > `.cache/insider/{AAPL,MSFT,AMZN,NVDA}.parquet` were **zero-row** files (a transient
 > EDGAR failure had been written to disk), and `scripts/fetch_h182_insider_data.py`

@@ -326,6 +326,24 @@ tree, no source/test/artifact change since the Cycle 115 H182 commit):
 No `src/qtr`, test, gate, artifact, sidecar, hash, or frozen number was
 modified. The audit's baseline ratchet held: no count moved in either direction.
 
+**Re-verified again (2026-11-14, Cycle 121):** the Cycle 120 correction stands on
+independent evidence. `wc -l .experiments/experiments.jsonl` → **174** records; the
+H182 row (record 174, `exp_2026-11-14T11-39-15Z`,
+`metadata.name = nf_20261110_08_insider_signal`) carries populated
+`metadata.config` / `metadata.data_sources` and `status.verdict = REJECT` (3/8
+gates). Its 3 artifacts exist on disk under
+`.experiments/nf_runs/nf_20261110_08_insider_signal_20261114_113912/` and their
+SHA-256 16-char prefixes match the artifact names exactly
+(`summary_json_6b4eed5db62decae`, `corpus_info_json_d19f66a79f5b1f33`,
+`grid_csv_9141c6d1a1d43e5e`); all 3 `.meta.json` sidecars re-derive from their
+artifacts. `pytest -q tests/test_sidecar_schema_contract.py
+tests/test_experiment_artifact_schema.py tests/test_experiment_lineage_report.py
+tests/test_reproducibility_audit.py tests/test_fetch_h182_insider_data.py` →
+**124 passed, 0 failed**; `tests/test_reproducibility_audit.py` → **7 passed** with
+the four baseline counts unchanged (197 / 11 / 528 / 0). `ruff check`/`format
+--check` clean. Documentation-only: no artifact, sidecar, hash, gate, or frozen
+number was modified.
+
 ### H182 lineage reconciliation — CORRECTED 2026-11-14 (Cycle 120)
 
 The Cycle 119 finding below was **wrong** and is corrected here. It claimed the
