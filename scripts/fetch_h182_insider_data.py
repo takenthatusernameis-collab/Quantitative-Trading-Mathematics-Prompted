@@ -14,6 +14,7 @@ day t. The runner shifts signals by one bar on top of that.
 Run:
     python scripts/fetch_h182_insider_data.py [--symbols AAPL,MSFT ...]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -55,23 +56,40 @@ def main() -> None:
     cache = Path(args.cache_dir)
     cache.mkdir(parents=True, exist_ok=True)
 
-    manifest = {"start": args.start, "end": args.end, "symbols": {}, "fetched_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+    manifest = {
+        "start": args.start,
+        "end": args.end,
+        "symbols": {},
+        "fetched_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
     t0 = time.time()
     for sym in symbols:
         cik = UNIVERSE[sym]
         out = cache / f"{sym}.parquet"
         if out.exists():
             print(f"{sym}: cached, skipping")
-            manifest["symbols"][sym] = {"cik": cik, "rows": len(pd.read_parquet(out)), "cache": str(out), "source": "cache"}
+            manifest["symbols"][sym] = {
+                "cik": cik,
+                "rows": len(pd.read_parquet(out)),
+                "cache": str(out),
+                "source": "cache",
+            }
             continue
-        tx = insider.fetch_insider_transactions(cik, forms=("4",), start=args.start, end=args.end, delay=args.delay)
+        tx = insider.fetch_insider_transactions(
+            cik, forms=("4",), start=args.start, end=args.end, delay=args.delay
+        )
         tx.to_parquet(out)
-        manifest["symbols"][sym] = {"cik": cik, "rows": len(tx), "cache": str(out), "source": "edgar"}
-        print(f"{sym}: {len(tx)} rows in {round(time.time()-t0,1)}s -> {out}")
+        manifest["symbols"][sym] = {
+            "cik": cik,
+            "rows": len(tx),
+            "cache": str(out),
+            "source": "edgar",
+        }
+        print(f"{sym}: {len(tx)} rows in {round(time.time() - t0, 1)}s -> {out}")
 
     (cache / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     total = sum(v["rows"] for v in manifest["symbols"].values())
-    print(f"TOTAL: {total} rows for {len(symbols)} symbols in {round(time.time()-t0,1)}s")
+    print(f"TOTAL: {total} rows for {len(symbols)} symbols in {round(time.time() - t0, 1)}s")
 
 
 if __name__ == "__main__":
