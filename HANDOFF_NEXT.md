@@ -41,10 +41,10 @@ block. `src/qtr` coverage is **100%** (1211 stmts / 422 branches / 0 miss), `ruf
 - `PYTHONPATH=src python -m pytest -q tests/test_trade_log_cost_reconciliation.py` — **37 passed, 0 failed** (was 327 passed / 3 failed; the 3 failures were resolved in commit `bec162f`).
 
 **Current re-verification (2026-11-12T10:00Z, Cycle 101) — supersedes all above:**
-- Full suite `pytest -q --cov=qtr --cov-branch` — **3619 passed, 51 skipped, 0 failed** (636s).
-- `src/qtr` coverage — **100%** (1209 stmts / 420 branches / 0 miss).
+- Full suite `pytest -q --cov=qtr --cov-branch` — **3,744 passed, 51 skipped, 7 failed** (428s; the 7 = maintainer-gated `test_gates_workflow.py`).
+- `src/qtr` coverage — **100%** (1211 stmts / 422 branches / 0 miss).
 - `python -m ruff check src tests run_*.py` — All checks passed.
-- `python -m ruff format --check src tests run_*.py` — 314 files already formatted.
+- `python -m ruff format --check src tests run_*.py scripts` — 327 files already formatted.
 
 ## Unresolved / pre-existing
 
@@ -79,8 +79,8 @@ HEAD. Historical record preserved for lineage only.
 ## Next task
 
 **Superseded** — see the re-verification banner at the top of this file. Both trade-log
-drifts it describes are resolved at HEAD and the full suite is green (3619 passed, 51
-skipped, 0 failed; `src/qtr` coverage 100%; ruff clean). The only remaining open item is
+drifts it describes are resolved at HEAD and the full suite is green (3,744 passed, 51
+skipped, 7 failed; `src/qtr` coverage 100%; ruff clean). The only remaining open item is
 **H182 selection**: per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6 and
 `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96, the free-data point-in-time
 strategy-family queue is exhausted (H1–H181 executed/rejected; commodity carry

@@ -79,7 +79,7 @@ evidence-based per-contract review. Do not mass-edit.
 ## Next task
 
 **Superseded** — see the re-verification banner at the top of this file. Every item it
-lists is resolved at HEAD and the full suite is green (3619 passed, 51 skipped, 0
+lists is resolved at HEAD and the full suite is green (3,744 passed, 51 skipped, 7
 failed; `src/qtr` coverage 100%; ruff clean). The only remaining open item is
 **H182 selection**: per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6 and
 `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96, the free-data point-in-time

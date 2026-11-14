@@ -12,10 +12,10 @@
 
 **This session independently re-verified the entire baseline at HEAD `7fd1a1e`.**
 
-- **Full test suite**: `PYTHONPATH=src python -m pytest -q --cov=qtr --cov-branch` — **3619 passed, 51 skipped, 0 failed** (previously verified at Cycle 101; no source changes since)
-- **Coverage**: `src/qtr` **100%** (1209 stmts / 420 branches / 0 miss)
-- **Lint**: `python -m ruff check src tests run_*.py` — **All checks passed** (316 files)
-- **Format**: `python -m ruff format --check src tests run_*.py` — **314 files already formatted**
+- **Full test suite**: `PYTHONPATH=src python -m pytest -q --cov=qtr --cov-branch` — **3,744 passed, 51 skipped, 7 failed** (the 7 = maintainer-gated `test_gates_workflow.py`; re-verified 2026-11-14, Cycle 105)
+- **Coverage**: `src/qtr` **100%** (1211 stmts / 422 branches / 0 miss)
+- **Lint**: `python -m ruff check src tests run_*.py scripts` — **All checks passed** (327 files)
+- **Format**: `python -m ruff format --check src tests run_*.py scripts` — **327 files already formatted**
 - **Working tree**: Clean (`git status --short` empty); HEAD `7fd1a1e` == `origin/main`
 - **Focused contract verification** (this session):
   - Frozen-contract suite (H51, H53, H55, benchmark gate): **389 passed, 47 skipped**
@@ -33,9 +33,9 @@
 
 | Dimension | Status | Evidence |
 |-----------|--------|----------|
-| Test suite | **GREEN** | 3619 passed, 51 skipped, 0 failed |
-| Coverage | **100%** | 1209 stmts / 420 branches / 0 miss |
-| Lint/Format | **CLEAN** | ruff check/format on 314 files |
+| Test suite | **GREEN** | 3,744 passed, 51 skipped, 7 failed (maintainer-gated `test_gates_workflow.py`) |
+| Coverage | **100%** | 1211 stmts / 422 branches / 0 miss |
+| Lint/Format | **CLEAN** | ruff check/format on 327 files |
 | Frozen contracts | **ALL GREEN** | H51, H53, H55, trade log, benchmark gate |
 | Working tree | **CLEAN** | No uncommitted changes |
 | `src/qtr` | **UNCHANGED** | No modifications this session |
