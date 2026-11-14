@@ -1,119 +1,33 @@
-# HANDOFF — Experiment Lineage Documentation Complete
+# HANDOFF_SESSION_END.md — Cycle 119 (2026-11-14): verification of maintenance state complete
 
-## Session Summary (2026-11-12T20:48Z → 2026-11-12T21:00Z)
+## What changed
 
-**Task executed:** Document experiment lineage — automated report from `.experiments/experiments.jsonl` (fallback path per HANDOFF_CURRENT_SESSION.md § "Remaining Audit Work").
+- No source, test, artifact, workflow, or frozen number modifications. Read-only verification of Cycle 118 state.
 
-**Status:** Completed and verified.
+## Actually verified (this session, own evidence)
 
----
+- `python -m pytest -q tests/test_reproducibility_audit.py` — **7 passed** (0.23s). Baseline counts unchanged (`missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0`).
+- `python -m pytest -q tests/test_experiment_artifact_schema.py` — **105 passed** (0.28s combined with above).
+- `python -m pytest -q tests/test_gates_workflow.py` — **7 failed** (expected, maintainer-gated). Contract drift vs `.github/workflows/gates.yml`; fix is `patches/0001-gates-workflow-contract-fix.patch` (agent-unreachable per AGENTS.md/controller).
+- `python -m ruff check src tests run_*.py scripts` — **All checks passed**.
+- `python -m ruff format --check src tests run_*.py scripts` — **335 files already formatted**.
+- `python scripts/backtest_perf_regression_gate.py` — **PASSED** (`100 symbols x 252 bars -> 0.432s`, limit 5s).
+- `git status` — **clean**, branch up to date with `origin/main`.
 
-## What Changed
+## What remains unresolved
 
-### New Files Created
-1. `scripts/generate_experiment_lineage_report.py` — Re-runnable script to generate markdown lineage report from `experiments.jsonl`
-2. `EXPERIMENT_LINEAGE_REPORT.md` — Comprehensive report (333 lines) documenting all 173 experiment records
+1. **Maintainer-only:** apply/push `patches/0001-gates-workflow-contract-fix.patch` to satisfy `tests/test_gates_workflow.py` (workflow edits cannot be landed by agent; repo-scoped token lacks `workflows` permission; `kilo-controller.sh` restores `.github/workflows/**` from `origin/main`).
+2. **Research queue (blocked by data/authorization):** free-data point-in-time strategy-family queue exhausted (H1–H182 executed/rejected; Cycles 96/116/118). No H183 can be honestly pre-registered without explicit paid/PIT data-gap authorization.
 
-### No Modifications To
-- `src/qtr/` — **Unchanged** (0 modifications)
-- Test suite — Unchanged
-- Frozen contracts, gates, thresholds — Unchanged
-- Published artifacts, verdicts — Unchanged
-- `.experiments/experiments.jsonl` — Read-only source
+## Failed approaches / do not repeat
 
----
+- Do not repeat exhaustion-only discovery cycles without new data authorization or directive §6 shift (Cycles 96, 116, 118).
+- Do not edit `.github/workflows/**` or weaken workflow/coverage/frozen-contract gates.
+- Do not relabel spliced/delisted/unavailable free series as valid PIT inputs (OVX, VIX9D, ^RVX; spliced `=F`; no free crypto funding).
+- Do not mass-edit runners/tests/gates or frozen artifacts to chase green; the 528 orphans and other reproducibility backlog items are intentionally baseline-frozen where contract/citation/authority constraints apply (`REPRODUCIBILITY_AUDIT_REPORT.md`).
 
-## What Was Verified
+## One precise next task
 
-| Check | Command | Result |
-|-------|---------|--------|
-| Core unit tests (config, cost model, statistics, backtest engine, data fetcher) | `PYTHONPATH=src python -m pytest tests/test_config.py tests/test_cost_model.py tests/test_statistics.py tests/test_backtest_engine.py tests/test_data_fetcher.py -q -W error` | ✅ **359 passed** |
-| Lint (ruff) | `python -m ruff check src tests scripts` | ✅ **Clean** |
-| Format (ruff) | `python -m ruff format --check src tests scripts` | ✅ **Clean (182 files)** |
-| Lineage script execution | `python scripts/generate_experiment_lineage_report.py` | ✅ **Success** — 173 experiments processed, report generated |
+**Maintainer:** apply `patches/0001-gates-workflow-contract-fix.patch` with workflow scope and verify `python -m pytest -q tests/test_gates_workflow.py` passes (expect 7). **If research resumes:** obtain explicit authorization for one paid/PIT data gap (commodity futures per-contract roll/contango term structure, crypto perpetual funding rates, or historical options chain/GEX) and run the smallest decisive pre-registered test for that single mechanism. Do not invent a free-data H183 or run another exhaustion-only cycle.
 
----
-
-## Key Findings
-
-### Experiment Corpus Overview
-- **173 total experiments** tracked in `.experiments/experiments.jsonl`
-- Spanning **42 unique git commits** from 2026-10-10 to 2026-11-10
-- **10 experiment categories** with pass/fail/error breakdown
-
-### Category Summary
-| Category | Count | Passed | Failed | Errors |
-|----------|-------|--------|--------|--------|
-| Baseline / MA Crossover | 9 | 6 | 0 | 3 |
-| Time-Series Momentum | 60 | 41 | 0 | 16 |
-| Cross-Sectional Momentum | 2 | 2 | 0 | 0 |
-| Regime-Gated | 5 | 5 | 0 | 0 |
-| Volatility / VRP | 9 | 5 | 2 | 2 |
-| Volume Predictive | 6 | 3 | 0 | 3 |
-| Hypothesis H10-H29 | 23 | 16 | 0 | 7 |
-| New Family (NF) - Recent | 51 | 27 | 14 | 10 |
-| New Family (NF) - Factor/Other | 5 | 4 | 0 | 1 |
-| Other / Uncategorized | 3 | 2 | 0 | 1 |
-
-### Git Commit Timeline
-42 unique commits mapped to experiment batches, showing the evolution from baseline MA crossover (Oct 10) through TSMOM variants, H10-H29 audits, VRP, volume predictive, and the NF discovery cycles (Nov 4-10).
-
----
-
-## What Remains Unresolved
-
-### Primary Path (requires authorization)
-**Artifact restoration apply** — 321 hash-exact recoverable files ready to copy via `scripts/plan_artifact_restoration.py --apply`. Blocked on explicit human authorization.
-
-### Strategy Family Discovery
-**Queue exhausted at H181.** H182 unassigned. Cycle 96 blockers remain:
-- **Data-blocked (5):** Commodity carry (roll/contango), Insider Form 4/13F, Earnings revisions, Options GEX, Breakeven inflation
-- **Statistical power (3):** Russell 2000 reconstitution (~16 events), S&P 500 inclusion/deletion, Stock splits
-- **Mechanism adjacency (4):** 10Y-3M curve (H171/H11r), SPY jump asymmetry (H122/H128/H135), CS reversal (H119), RSP-SPY/USMV-SPY relmom (H97+)
-- **Calendar adjacency (held, 2):** Halloween, Holiday/pre-holiday drift
-
-No candidate clears the directive bar for a REAL execution without authorization.
-
-### Remaining Audit Work (Fallback Path)
-Per STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §6:
-1. ~~Document experiment lineage — automated report from `.experiments/experiments.jsonl`~~ ✅ **COMPLETED**
-2. **Stress-test frozen-contract gates** against edge cases (NaN prices, extreme leverage, zero-volume, look-ahead boundaries)
-3. **CI/CD hardening** — performance regression gate (e.g., fail if 100-symbol backtest > 5s)
-4. **Reproducibility audit** — verify all artifacts re-derivable from tracked metadata
-
----
-
-## Constraints (Unchanged)
-- `src/qtr` unchanged unless evidenced defect (then full gates: `pytest -q -W error`, ruff, 100% coverage)
-- No gate weakening; no frozen number modification without authorization; no commit/push unless requested
-- Free/public data only; no paid services without explicit authorization
-
----
-
-## Evidence for Next Session
-
-| File | Purpose |
-|------|---------|
-| `HANDOFF_FINAL.md` | Full baseline re-verification (Cycle 102) |
-| `NEW_FAMILY_RESEARCH_REGISTER.md` | Cycle 96 mechanism search with blockers |
-| `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` | §6 governing rule for queue exhaustion |
-| `BACKTEST_PERF_PROFILE_RESULTS.md` | Previous session's profiling results |
-| `EXPERIMENT_LINEAGE_REPORT.md` | **This session's lineage report** |
-| `.experiments/experiments.jsonl` | Source experiment log (173 records) |
-| `scripts/generate_experiment_lineage_report.py` | Re-runnable lineage generator |
-| `REPRODUCIBILITY_RESTORATION_PLAN.csv` | 321 hash-exact recoverable rows |
-| `scripts/plan_artifact_restoration.py` | Apply script with `--apply` flag |
-
----
-
-## Failed Approaches / Do Not Repeat
-- Do not run `--apply` without explicit human authorization.
-- Do not recycle H1–H181 as H182 without materially distinct mechanism + free PIT data.
-- Do not treat parameter/instrument/universe/timeframe variations as new families.
-- Do not weaken frozen-contract gates, coverage gates, or lint gates.
-- Do not modify published/certified artifacts, verdicts, or thresholds without authorization.
-- Do not claim tests/lint passed without running with evidence.
-- **Always re-run suite before acting on handoff "unresolved" sections** (Cycle 101 docs were stale).
-
----
-*Session complete. Experiment lineage documented. Infrastructure auditing continues with frozen-contract stress-testing as next fallback item.*
+**Constraints:** no gate weakening; no published/frozen artifact, verdict, threshold, or frozen number modified; no commit/push of `.github/workflows/**`; `src/qtr` changes require 100% coverage.
