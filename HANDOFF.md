@@ -1,6 +1,19 @@
 # HANDOFF.md
 
-> **Latest (2026-11-14, Cycle 114):** re-verified maintainer-gated state only (no source/test/artifact change). Ruff check/format clean (332 files). `tests/test_gates_workflow.py` **7 failed** (workflow-contract block, unchanged). `patches/0001-gates-workflow-contract-fix.patch` applies cleanly; `scripts/backtest_perf_regression_gate.py` PASSED (0.414s). Working tree clean at `dbf7420`. **No actionable agent fix:** remaining red is maintainer-only (workflow token/scope) and H182 is blocked on data gap + authorization. See `NEXT_TASK.md` / `HANDOFF_CURRENT_SESSION.md`.
+> **Latest (2026-11-14, Cycle 115 — real defect fix: H182 corpus cache poisoning):**
+> Broke the re-verification-only loop. Found and fixed an evidenced data-path defect:
+> `.cache/insider/{AAPL,MSFT,AMZN,NVDA}.parquet` were **zero-row** files (a transient
+> EDGAR failure had been written to disk), and `scripts/fetch_h182_insider_data.py`
+> skipped *any* existing file unconditionally, so those issuers were dropped forever.
+> Added `insider.load_cached_transactions` (missing/empty/corrupt cache = miss), made the
+> builder re-fetch empty caches, never write an empty parquet, isolate per-issuer errors,
+> and added `--force` + a `sys.path` bootstrap. Repaired the corpus on real EDGAR:
+> AAPL 325, MSFT 402, AMZN 704, NVDA 1381 rows (GOOGL already 401). Full pinned suite
+> **3,788 passed / 51 skipped / 7 failed** (the 7 are exclusively the maintainer-gated
+> `tests/test_gates_workflow.py`), `src/qtr` coverage **100%**, ruff clean. See
+> `NEXT_TASK.md` / `HANDOFF_CURRENT_SESSION.md`.
+
+> **Prior (2026-11-14, Cycle 114):** re-verified maintainer-gated state only (no source/test/artifact change). Ruff check/format clean (332 files). `tests/test_gates_workflow.py` **7 failed** (workflow-contract block, unchanged). `patches/0001-gates-workflow-contract-fix.patch` applies cleanly; `scripts/backtest_perf_regression_gate.py` PASSED (0.414s). Working tree clean at `dbf7420`. **No actionable agent fix:** remaining red is maintainer-only (workflow token/scope) and H182 is blocked on data gap + authorization. See `NEXT_TASK.md` / `HANDOFF_CURRENT_SESSION.md`.
 
 > **Prior (2026-11-14, Cycle 110):** full pinned gate re-verification confirms the Cycle 109 `log_dataframe` no-experiment guard fix integrates cleanly: **3,746 passed / 51 skipped / 7 failed** (exactly as expected; the 7 are exclusively the maintainer-gated `tests/test_gates_workflow.py`), `src/qtr` coverage **100%** (1213 stmts / 424 branches / 0 miss), ruff check/format clean. No source change this session — verification only. **No further agent action is needed on the code.** See `NEXT_TASK.md` for the remaining maintainer-only item and the blocked H182 path.
 

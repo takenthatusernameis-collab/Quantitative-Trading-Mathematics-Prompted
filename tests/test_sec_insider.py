@@ -607,3 +607,26 @@ def test_insider_net_buy_ratio_empty_inputs():
         {"transaction_code": ["A", "M"], "available_at": pd.to_datetime(["2026-01-02"] * 2)}
     )
     assert insider.insider_net_buy_ratio(no_open_market).columns.tolist() == empty_columns
+
+
+def test_load_cached_transactions_treats_missing_empty_and_corrupt_as_a_miss(tmp_path):
+    missing = insider.load_cached_transactions(tmp_path / "absent.parquet")
+    assert len(missing) == 0
+    assert list(missing.columns) == list(insider.TRANSACTION_COLUMNS)
+
+    empty = tmp_path / "empty.parquet"
+    pd.DataFrame(columns=list(insider.TRANSACTION_COLUMNS)).to_parquet(empty)
+    assert len(insider.load_cached_transactions(empty)) == 0
+
+    corrupt = tmp_path / "corrupt.parquet"
+    corrupt.write_bytes(b"not a parquet")
+    assert len(insider.load_cached_transactions(corrupt)) == 0
+
+
+def test_load_cached_transactions_returns_a_populated_cache(tmp_path):
+    frame = _transactions_fixture()
+    path = tmp_path / "AAPL.parquet"
+    frame.to_parquet(path)
+    loaded = insider.load_cached_transactions(path)
+    assert len(loaded) == len(frame)
+    assert list(loaded.columns) == list(insider.TRANSACTION_COLUMNS)

@@ -19,10 +19,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 import time
 from pathlib import Path
 
-import pandas as pd
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from qtr.data import insider
 
@@ -50,6 +51,11 @@ def main() -> None:
     ap.add_argument("--end", default=END)
     ap.add_argument("--delay", type=float, default=0.12)
     ap.add_argument("--cache-dir", default=str(CACHE_DIR))
+    ap.add_argument(
+        "--force",
+        action="store_true",
+        help="re-fetch even when a non-empty cache file already exists",
+    )
     args = ap.parse_args()
 
     symbols = [s.strip() for s in args.symbols.split(",") if s.strip()]
@@ -66,18 +72,48 @@ def main() -> None:
     for sym in symbols:
         cik = UNIVERSE[sym]
         out = cache / f"{sym}.parquet"
-        if out.exists():
-            print(f"{sym}: cached, skipping")
+        if out.exists() and not args.force:
+            cached = insider.load_cached_transactions(out)
+            if len(cached) > 0:
+                print(f"{sym}: cached ({len(cached)} rows), skipping")
+                manifest["symbols"][sym] = {
+                    "cik": cik,
+                    "rows": len(cached),
+                    "cache": str(out),
+                    "source": "cache",
+                }
+                continue
+            # A zero-row cache is a failed acquisition, not a valid one; fall
+            # through and re-fetch instead of skipping the issuer forever.
+            print(f"{sym}: cached file has no rows; re-fetching")
+
+        try:
+            tx = insider.fetch_insider_transactions(
+                cik, forms=("4",), start=args.start, end=args.end, delay=args.delay
+            )
+        except Exception as error:  # noqa: BLE001 -- one issuer must not abort the run
+            print(f"{sym}: fetch failed: {error}")
             manifest["symbols"][sym] = {
                 "cik": cik,
-                "rows": len(pd.read_parquet(out)),
-                "cache": str(out),
-                "source": "cache",
+                "rows": 0,
+                "cache": str(out) if out.exists() else None,
+                "source": "error",
+                "error": str(error),
             }
             continue
-        tx = insider.fetch_insider_transactions(
-            cik, forms=("4",), start=args.start, end=args.end, delay=args.delay
-        )
+
+        if len(tx) == 0:
+            # Never write an empty parquet: it would poison the cache and be
+            # skipped on every later run. Leave any existing file untouched.
+            print(f"{sym}: no transactions in window; not caching an empty result")
+            manifest["symbols"][sym] = {
+                "cik": cik,
+                "rows": 0,
+                "cache": str(out) if out.exists() else None,
+                "source": "empty",
+            }
+            continue
+
         tx.to_parquet(out)
         manifest["symbols"][sym] = {
             "cik": cik,

@@ -52,6 +52,7 @@ import os
 import time
 import urllib.request
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 import pandas as pd
 from loguru import logger
@@ -646,3 +647,33 @@ def insider_net_buy_ratio(transactions: pd.DataFrame) -> pd.DataFrame:
     grouped["net_buy_ratio"] = grouped["buys"] / grouped["rows"]
     grouped["available_at"] = pd.to_datetime(grouped["available_at"])
     return grouped[["available_at", "buys", "sells", "net_buy_ratio"]].sort_values("available_at")
+
+
+def load_cached_transactions(path: str | Path) -> pd.DataFrame:
+    """Load a cached transaction frame, treating an unusable cache as a miss.
+
+    A cache file that is absent, unreadable, or has no rows is returned as an
+    empty frame with :data:`TRANSACTION_COLUMNS`, so a caller re-fetches
+    instead of skipping a failed acquisition forever. This repairs the observed
+    failure in which a transient EDGAR outage wrote a zero-row parquet that the
+    corpus builder then treated as a valid cache and never refreshed, silently
+    dropping that issuer's history.
+
+    Args:
+        path: Parquet file written by the corpus builder.
+
+    Returns:
+        The cached frame, or an empty frame with :data:`TRANSACTION_COLUMNS`.
+    """
+    empty = pd.DataFrame(columns=list(TRANSACTION_COLUMNS))
+    cache_path = Path(path)
+    if not cache_path.exists():
+        return empty
+    try:
+        frame = pd.read_parquet(cache_path)
+    except Exception as error:  # noqa: BLE001 -- a corrupt cache is a miss, not fatal
+        logger.warning(f"{cache_path}: unreadable cache, treating as a miss: {error}")
+        return empty
+    if len(frame) == 0:
+        return empty
+    return frame
