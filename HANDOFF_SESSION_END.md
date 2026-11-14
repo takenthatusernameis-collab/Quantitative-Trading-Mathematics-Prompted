@@ -1,52 +1,46 @@
-# HANDOFF_SESSION_END.md
+# HANDOFF — session end (2026-11-14)
 
-## Session Summary (2026-11-14, Cycle 120)
+## What changed
+No code changes made this session. The repository state from the previous session (2026-11-14 Cycle 120) is preserved:
+- `scripts/generate_experiment_lineage_report.py`: fixed extraction of `config`/`data_sources` from `metadata`
+- `EXPERIMENT_LINEAGE_REPORT.md`: regenerated from 174-record corpus with correct Config/Data-source columns
+- `tests/test_experiment_lineage_report.py`: added regression test for metadata extraction; pinned totals updated
+- `src/qtr/tracking/__init__.py`: exported 7 public names from `qtr.tracking.experiment` (fixes pre-existing `test_public_api_contract.py` failure)
+- `.experiments/experiments.jsonl`: 174 records (H182 appended with proper tracker format + sidecars)
+- `REPRODUCIBILITY_AUDIT_REPORT.md`: corrected stale "H182 lineage gap" finding (corpus is 174 records, H182 present)
 
-### Repository State Verified
-- **All tests passing** (except 7 maintainer-gated `tests/test_gates_workflow.py`): 3822 passed, 51 skipped, 7 failed (CI contract only)
-- **Coverage**: 100.00% for `src/qtr` (branch coverage enforced)
-- **Linting**: `python -m ruff check src tests run_*.py scripts` — All checks passed
-- **Formatting**: `python -m ruff format --check src tests run_*.py scripts` — 335 files already formatted
-- **Performance gate**: `python scripts/backtest_perf_regression_gate.py` — PASSED (0.417s, limit 5s)
-- **Reproducibility audit**: `tests/test_reproducibility_audit.py` — 7 passed (backlog frozen: missing=197, hash_mismatches=11, orphans=528, missing_meta=0)
+## What was actually verified (own evidence)
+- `python -m pytest -q tests/test_experiment_lineage_report.py` → **6 passed**
+- `python -m pytest -q tests/test_reproducibility_audit.py` → **7 passed** (baseline unchanged: missing=197, hash_mismatches=11, orphans=528, missing_meta=0)
+- `python -m pytest -q tests/test_public_api_contract.py tests/test_experiment_tracker.py` → **62 passed**
+- `python -m pytest -q tests/test_experiment_artifact_schema.py` → **105 passed**
+- `python -m pytest -q tests/test_h28_causal_recertification.py` → **47 passed**
+- `python -m ruff check src tests run_*.py scripts` → **All checks passed**
+- `python -m ruff format --check src tests run_*.py scripts` → **335 files already formatted**
+- `python scripts/backtest_perf_regression_gate.py` → **PASSED** (0.418s, limit 5s)
+- **Full coverage suite**: `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` → coverage **100.00%** (3822 passed, 51 skipped; only 7 `test_gates_workflow.py` failures remain)
 
-### What Changed This Session
-- **`REPRODUCIBILITY_AUDIT_REPORT.md`: corrected a stale, factually wrong section.**
-  The "H182 lineage reconciliation" block (added Cycle 119) claimed
-  `experiments.jsonl` held **173** records with **0** `insider` records and that
-  the H182 experiment was a lineage-completeness gap. Verified false: the corpus
-  is **174** records and H182 is present (record 174,
-  `exp_2026-11-14T11-39-15Z`, `REJECT`, 3/8 gates, 3 artifacts on disk under
-  `.experiments/nf_runs/nf_20261110_08_insider_signal_20261114_113912/`). The
-  prior finding was drawn from a stale corpus count and a substring search that
-  does match the committed name `nf_20261110_08_insider_signal`. The section
-  was rewritten as a correction (original preserved as historical lineage), and
-  all "173 experiments" prose in the report was updated to 174 (Summary,
-  Findings table, Implications, and the re-verified banner).
-- **`NEXT_TASK.md`: updated** to record the correction and add a "do not
-  repeat" rule against re-deriving the false H182-absent finding.
-- Documentation-only change: no artifact, sidecar, hash, gate, or frozen number
-  was modified; the four baseline counts are unchanged.
+## What remains unresolved
+1. **Maintainer-only (CI contract):** `.github/workflows/gates.yml` not updated; 7 `tests/test_gates_workflow.py` tests red until maintainer applies `patches/0001-gates-workflow-contract-fix.patch` with workflow-scoped credentials. Agent cannot land `.github/workflows/**` (controller restores from `origin/main`; token lacks `workflows` permission).
+2. **Research queue exhausted under free/public PIT data:** H1–H182 executed/rejected (register Cycles 96/116/118). No honest free-data H183 pre-registrable per directive §4/§6.
+3. **Reproducibility backlog:** `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0` unchanged; baseline-frozen where contract/citation constraints apply (172 H28 contract-blocked, 25 unrecoverable).
 
-### What Remains Unresolved
-1. **Maintainer-only (CI contract)**: `.github/workflows/gates.yml` not updated; 7 `tests/test_gates_workflow.py` tests red until maintainer applies `patches/0001-gates-workflow-contract-fix.patch` with workflow-scoped credentials. Agent cannot land `.github/workflows/**`.
-2. **Research queue exhausted under free/public PIT data**: H1–H182 executed/rejected (register Cycles 96/116/118). Do not invent a free-data H183.
-3. **Reproducibility backlog**: `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0` unchanged; baseline-frozen where contract/citation constraints apply.
+## Approaches already failed / must not be repeated
+- Re-running exhaustion-only discovery without new data authorization or a directive §6 shift.
+- Editing `.github/workflows/**`, weakening `tests/test_gates_workflow.py`, or relaxing coverage/frozen-contract gates.
+- Treating delisted/spliced/unavailable free series as PIT-valid (OVX, VIX9D, ^RVX; spliced `=F`; no free crypto funding).
+- Mass edits to runners/tests/gates/frozen artifacts to force green; raising the reproducibility baseline instead of remediating drift.
+- Appending experiments to `experiments.jsonl` without sidecars + coordinated baseline/pinned-test updates (ratchet fails).
+- Speculative `src/qtr` changes absent an evidenced defect (the `tracking/__init__.py` fix was evidenced by `test_public_api_contract.py`).
+- **Do not re-derive "H182 is missing from corpus"**: it is false (174 records, H182 is record 174 `exp_2026-11-14T11-39-15Z`, REJECT, 3 artifacts on disk under `.experiments/nf_runs/`).
 
-### Approaches Already Tried (Do Not Repeat)
-- Do not re-run exhaustion-only discovery without new data authorization or a §6 shift.
-- Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or alter coverage/frozen-contract gates.
-- Do not treat delisted/spliced-continuous/unavailable free series as valid PIT inputs.
-- Do not mass-edit runners/tests/gates or frozen artifacts to chase green, or raise the reproducibility baseline instead of remediating.
-- Do not make speculative `src/qtr` changes absent an evidenced defect.
-- **Do not re-derive a "H182 is missing from the corpus" finding.** It is false: the corpus is 174 records and H182 is present. Always count the corpus directly before drawing lineage conclusions.
-
-### One Precise Next Task
+## One precise next task
 **Maintainer (preferred, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch` with workflow-scoped credentials, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed) on `origin/main`.
 
 **If research is explicitly authorized:** obtain one paid/PIT data gap (commodity futures per-contract roll/contango, crypto perpetual funding rates, or historical options chain/GEX) and run the smallest decisive pre-registered test for that single mechanism.
 
-### Constraints
-- No gate weakening; no modification of published/frozen artifacts, verdicts, thresholds, or frozen numbers except a deliberate authorized corpus/baseline update.
-- No commit/push of `.github/workflows/**`.
-- Any `src/qtr` change must preserve 100% coverage and pass ruff/suite.
+**Constraints:** no gate weakening; no modification of published/frozen artifacts, verdicts, thresholds, or frozen numbers except a deliberate authorized corpus/baseline update; no commit/push of `.github/workflows/**`; any `src/qtr` change must preserve 100% coverage and pass ruff/suite.
+
+---
+
+**Session status:** No agent-actionable work remains. All verifiable gates green. Awaiting maintainer CI patch or authorized paid-data research.
