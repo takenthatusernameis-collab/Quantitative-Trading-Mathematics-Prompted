@@ -210,14 +210,29 @@ class DataFetcher:
         return df[present + extras]
 
     @staticmethod
-    def _standardize_cached_index(df: pd.DataFrame, symbol: str) -> pd.DataFrame | None:
-        """Return a cache hit with the timestamp contract of a fresh quote panel."""
+    def _standardize_cached_index(df: pd.DataFrame, symbol: str) -> pd.DataFrame:
+        """Return a cache hit with the timestamp contract of a fresh quote panel.
+
+        The cache is a persistent, cross-version file store (committed under
+        ``.cache/data``), so a cache file written by an older or foreign writer
+        can carry a non-datetime index or a duplicated timestamp. The fresh
+        yahoo/ccxt paths both produce a tz-naive ``DatetimeIndex`` and the ccxt
+        path drops duplicates and sorts; a cache hit that skipped that step
+        would hand a runner an integer index (``prices.reindex`` / ``pd.concat``
+        then align on a mixed index) or a duplicated bar.
+
+        A non-datetime index is refused -- returned empty with its columns
+        intact -- rather than coerced: ``pd.to_datetime`` on a stale integer
+        index manufactures 1970 timestamps, which is a worse corruption than a
+        dropped symbol. A duplicated index keeps the first occurrence and is
+        sorted, matching the fresh ccxt path.
+        """
         if not isinstance(df.index, pd.DatetimeIndex):
             logger.warning(
                 f"Cached panel for {symbol} has a non-datetime index "
                 f"({df.index.dtype}); refusing it rather than manufacturing timestamps"
             )
-            return None
+            return df.iloc[:0]
         return df[~df.index.duplicated(keep="first")].sort_index()
 
     def _fetch_yahoo_panel(
@@ -238,15 +253,14 @@ class DataFetcher:
         """
         if use_cache:
             # ``DataCache.get`` canonicalizes the index to tz-naive on the way
-            # out (fetcher.py:92-96), but the *columns* come back exactly as
-            # the writer stored them.  A cache file written by an older/foreign
-            # writer can therefore carry capitalized vendor columns; normalize
-            # them on read so a cache hit matches a fresh fetch.
+            # out (fetcher.py:92-96), but the *columns* and the index dtype come
+            # back exactly as the writer stored them.  A cache file written by
+            # an older/foreign writer can therefore carry capitalized vendor
+            # columns, a non-datetime index, or a duplicated timestamp; normalize
+            # all three on read so a cache hit matches a fresh fetch.
             cached = self.cache.get(source, symbol, start, end, interval)
             if cached is not None:
                 cached = self._standardize_cached_index(cached, symbol)
-                if cached.empty:
-                    return cached
                 return self._standardize_columns(cached, symbol)
 
         try:
@@ -420,17 +434,19 @@ class DataFetcher:
             cache_symbol = symbol.replace("/", "_")
             if use_cache:
                 # ``DataCache.get`` canonicalizes the index to tz-naive on the
-                # way out (fetcher.py:92-96), but the *columns* come back
-                # exactly as the writer stored them; normalize them on read so
-                # a cache hit matches a fresh fetch.
+                # way out (fetcher.py:92-96), but the *columns* and the index
+                # dtype come back exactly as the writer stored them; normalize
+                # both on read so a cache hit matches a fresh fetch.
                 cached = self.cache.get(
                     "ccxt", f"{exchange_id}:{cache_symbol}", start, end, timeframe
                 )
                 if cached is not None:
-                    # The cache returns columns exactly as the writer stored
-                    # them; normalize on read so a cache hit matches a fresh
-                    # fetch (a stale capitalized frame would otherwise reach
-                    # ``df["close"]`` as ``KeyError``).
+                    # The cache returns columns and index exactly as the writer
+                    # stored them; normalize both on read so a cache hit matches
+                    # a fresh fetch (a stale capitalized frame would reach
+                    # ``df["close"]`` as ``KeyError``; a stale integer/duplicated
+                    # index would reach ``prices.reindex`` on a mixed index).
+                    cached = self._standardize_cached_index(cached, symbol)
                     cached = self._standardize_columns(cached, symbol)
                     self._reject_non_positive_prices(symbol, cached)
                     results[symbol] = cached

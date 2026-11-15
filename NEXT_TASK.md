@@ -1,6 +1,47 @@
 # NEXT_TASK.md
 
-## Latest session (2026-11-15, Cycle 143) — fixed the cached-read schema inconsistency: a cache hit now normalizes columns like a fresh fetch; 100% coverage preserved
+## Latest session (2026-11-15, Cycle 144) — corrected the cache-hit index standardization (the prior commit's `None` return crashed `fetch_yahoo`; ccxt cache hits were not standardized); 100% coverage preserved
+
+### What changed (substantive)
+- **Reproduced defect (the prior session's HEAD commit `73b38c3` was buggy, incomplete, and untested):**
+  - `_standardize_cached_index` returned `None` for a non-datetime index, and `_fetch_yahoo_panel` then did `cached.empty` on that `None` -> **`AttributeError: 'NoneType' object has no attribute 'empty'`** on a cache hit (a crash the pre-index code did not have). The new lines also had **no tests**, so they broke the 100% coverage gate.
+  - The **ccxt cache-hit path was not standardized at all**: it normalized only columns, so a stale integer index or a duplicated timestamp passed through, while `fetch_ccxt`'s fresh path dedups+sorts.
+  - Repro before the fix (own evidence, `/tmp/repro_cache_index.py`): a cache entry written by `DataCache.set` with an integer index made `fetch_yahoo(..., use_cache=True)` raise `AttributeError`; a ccxt cache hit with an integer index returned index `[0, 1]`; a ccxt cache hit with a duplicated timestamp returned **2 duplicate rows**.
+- **Fix:** `src/qtr/data/fetcher.py` — `_standardize_cached_index` now returns a **`pd.DataFrame` (never `None`)**: a non-datetime index is **refused** -> `df.iloc[:0]` (empty, columns intact), not coerced (coercing a stale integer index manufactures 1970 timestamps); a duplicated index keeps `keep="first"` and is sorted, matching the ccxt fresh path. `_fetch_yahoo_panel`'s cache-hit path always calls `_standardize_columns` after it (the `if cached.empty` on a possibly-`None` value is gone). `fetch_ccxt`'s cache-hit path now also calls `_standardize_cached_index` before `_standardize_columns`, so its cache hit matches its fresh path. No other source, gate, artifact, sidecar, hash, frozen-number, or workflow change.
+- **Tests:** `tests/test_data_fetcher.py` `TestCacheHitIndexStandardization` (7): yahoo integer-index cache hit refused (empty, `close` intact) + warns; yahoo duplicated index deduped+sorted; yahoo clean index unchanged; ccxt integer-index cache hit refused; ccxt duplicated index deduped+sorted; behavioural negative control reconstructing the pre-fix cache hit. **+7 tests.**
+
+### What was actually verified (own evidence)
+- **Negative control:** `git stash push -- src/qtr/data/fetcher.py` (reverts to the buggy HEAD) -> `TestCacheHitIndexStandardization` **5 failed, 2 passed**; `git stash pop`, **78 passed** on `tests/test_data_fetcher.py` (was 71).
+- **Committed-cache audit:** all **82** committed `.cache/data/*.parquet` files -> **0** capitalized-column, **0** non-datetime-index, **0** duplicated-index, **0** empty. The new normalization is a **no-op on the committed store** (no regression).
+- Full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (345.66s, second deterministic run 343.74s) -> **3922 passed, 48 skipped, 0 failed**, `src/qtr` coverage **100.00%** (1529 stmts / 542 branches / 0 miss; `fetcher.py` 229/82, all 100%).
+  - Count reconciliation vs Cycle 143 (3912 passed / 51 skipped): **+10 passed / -3 skipped** = +7 (these tests) + 3 conditional-skip tests that now run and pass (verified separately: `test_reproducibility_audit`, `test_trade_log_cost_reconciliation`, `test_generated_manifest_contract`, `test_h29_lookahead_sweep`, `test_h28_causal_recertification`, `test_coverage_gate_contract`, `test_public_api_contract` -> **189 passed, 0 skipped**). The 48 skips are deterministic artifact-content skips (`test_causality_invariant` 1, `test_h51_benchmark_container_invariance` 47).
+- `python -m pytest -q tests/test_gates_workflow.py` -> **7 failed** (unchanged, maintainer-gated; fix is `patches/0001-gates-workflow-contract-fix.patch`).
+- `python scripts/backtest_perf_regression_gate.py` -> **PASSED** (0.305s < 5s, 10.7MB peak, 13668 trades).
+- `python -m ruff check src tests run_*.py scripts` -> All checks passed. `python -m ruff format --check src tests run_*.py scripts` -> **336 files already formatted**.
+
+### What remains unresolved
+1. **Maintainer-only (CI contract, unblocks CI):** `.github/workflows/gates.yml` not updated; 7 `tests/test_gates_workflow.py` tests red until the maintainer applies `patches/0001-gates-workflow-contract-fix.patch` with workflow scope. Agent cannot land `.github/workflows/**`.
+2. **Research queue exhausted under free/public PIT data:** H1–H182 executed/rejected; H183 unassigned. Cycle 140 (FRED) confirmed corrected data does not yield a new family.
+3. **Reproducibility backlog:** `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0` unchanged; baseline-frozen.
+4. **Deliberate asymmetry (not a bug):** a cache hit with a duplicated index is now deduped+sorted, while the *fresh yahoo* path does not dedup (only the fresh ccxt path does). Dedup is strictly safer and matches ccxt; the difference only appears for a pathological duplicated vendor frame. A non-datetime cached index is refused, not coerced (coercion would fabricate 1970 timestamps).
+
+### Approaches already tried and why they should not be repeated
+- **Do not return `None` from `_standardize_cached_index` and then call `.empty` on it** — that is exactly the HEAD `73b38c3` bug and it crashes `fetch_yahoo`.
+- **Do not coerce a non-datetime cached index with `pd.to_datetime`** — it manufactures 1970 timestamps; refuse (empty) instead.
+- Do not make `_set_nested` write flat keys or otherwise change the config loader (closed Cycle 142).
+- Do not re-audit the duplicate index/column engine guards (Cycles 125/130), the statistics shape guards (Cycle 124), or the malformed-JSONL skip (Cycle 127) — all closed and pinned.
+- Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or alter coverage/frozen-contract gates.
+- Do not use `--cov=<dotted.module>` (aborts collection with `ImportError: cannot load module more than once per process`); use `--cov=qtr`.
+- Do not make speculative `src/qtr` changes absent a reproduced, reachable defect; the defect hunt is **not** exhausted (this cycle corrected a defect the prior commit introduced).
+
+### One precise next task
+**Maintainer (preferred, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch` with workflow scope, then `python -m pytest -q tests/test_gates_workflow.py` (expect **7 passed**) on `origin/main`.
+
+**Agent path:** the cache-hit schema (columns + index dtype + dedup) is now consistent for **both** yahoo and ccxt, and is a no-op on all 82 committed cache files. The next bounded, verifiable work is one more reproduced-defect cycle on a surface not yet probed at its boundary — e.g. probe the remaining `DataCache.get` consumers (the ccxt `cache_symbol` key path and the `DataCache` round-trip under a tz-aware/duplicated stored index) for any remaining fresh-vs-cache divergence. Any `src/qtr` change must preserve 100% coverage and pass `ruff`/the pinned suite.
+
+---
+
+## Prior session (2026-11-15, Cycle 143) — fixed the cached-read schema inconsistency: a cache hit now normalizes columns like a fresh fetch; 100% coverage preserved
 
 ### What changed (substantive)
 - **Reproduced defect (the previous handoff's open question, now resolved):** `DataCache` is a **persistent, cross-version file store** (committed under `.cache/data`, keyed by `source:symbol:start:end:interval`). `DataCache.get` returns the stored columns **verbatim** (it only strips a tz-aware index), while the fresh-fetch path lowercases vendor columns, reorders `present required + extras`, and warns on a missing required column. So a cache file written by an older/foreign writer carrying capitalized vendor columns (`Close`, `Volume`) was returned as-is on a cache hit, and every downstream runner that does `df["close"]` (grep: 30+ call sites across `run_*.py`) raised `KeyError: 'close'` — while the same frame fetched fresh would have been normalized and worked. This is the same "stale cache file from an older writer" premise `DataCache.get`'s tz handling already defends against, extended to the column axis.

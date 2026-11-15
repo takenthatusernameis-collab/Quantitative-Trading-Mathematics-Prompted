@@ -1430,3 +1430,149 @@ class TestCacheHitColumnNormalization:
         )["BTC/USDT"]
         assert list(res.columns) == ["open", "high", "low", "close", "volume"]
         assert res["close"].tolist() == [1.5, 2.5]
+
+
+# --------------------------------------------------------------------------- #
+# Cache-hit index standardization -- a cache hit must match a fresh fetch
+# --------------------------------------------------------------------------- #
+def _integer_index_panel() -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "open": [1.0, 2.0],
+            "high": [2.0, 3.0],
+            "low": [0.5, 1.0],
+            "close": [1.5, 2.5],
+            "volume": [100.0, 200.0],
+        },
+        index=[0, 1],
+    )
+
+
+def _duplicated_index_panel() -> pd.DataFrame:
+    # Out of order, with a duplicated 2020-01-02: keep="first" keeps the first
+    # 2020-01-02 (close 1.5) and drops the later one (close 2.5), then sorts.
+    return pd.DataFrame(
+        {
+            "open": [3.0, 1.0, 2.0],
+            "high": [4.0, 2.0, 3.0],
+            "low": [1.0, 0.5, 1.0],
+            "close": [3.5, 1.5, 2.5],
+            "volume": [300.0, 100.0, 200.0],
+        },
+        index=pd.to_datetime(["2020-01-03", "2020-01-02", "2020-01-02"]),
+    )
+
+
+def _fake_ccxt_module():
+    import types
+
+    fake = types.ModuleType("ccxt")
+    fake.binance = lambda cfg: object()
+    return fake
+
+
+class TestCacheHitIndexStandardization:
+    """A cache hit must carry the timestamp contract of a fresh quote panel.
+
+    ``DataCache`` is a persistent, cross-version file store, so a cache file
+    written by an older or foreign writer can carry a non-datetime index or a
+    duplicated timestamp. The fresh yahoo/ccxt paths produce a tz-naive
+    ``DatetimeIndex`` (and the ccxt path drops duplicates and sorts); a cache
+    hit that skipped that step would hand a runner an integer index
+    (``prices.reindex`` / ``pd.concat`` on a mixed index) or a duplicated bar.
+    """
+
+    def test_yahoo_cache_hit_with_integer_index_is_refused(self, tmp_path):
+        cache = DataCache(cache_dir=tmp_path)
+        cache.set("yahoo", "SPY", "2020-01-01", "2020-02-01", "1d", _integer_index_panel())
+
+        res = DataFetcher(cache=cache).fetch_yahoo(
+            ["SPY"], "2020-01-01", "2020-02-01", use_cache=True
+        )["SPY"]
+        assert res.empty
+        assert "close" in res.columns
+
+    def test_yahoo_cache_hit_with_integer_index_warns(self, tmp_path):
+        from loguru import logger
+
+        cache = DataCache(cache_dir=tmp_path)
+        cache.set("yahoo", "SPY", "2020-01-01", "2020-02-01", "1d", _integer_index_panel())
+
+        messages: list[str] = []
+        handler_id = logger.add(messages.append, level="WARNING")
+        try:
+            DataFetcher(cache=cache).fetch_yahoo(
+                ["SPY"], "2020-01-01", "2020-02-01", use_cache=True
+            )
+        finally:
+            logger.remove(handler_id)
+        assert any("non-datetime index" in m for m in messages)
+
+    def test_yahoo_cache_hit_deduplicates_and_sorts(self, tmp_path):
+        cache = DataCache(cache_dir=tmp_path)
+        cache.set("yahoo", "SPY", "2020-01-01", "2020-02-01", "1d", _duplicated_index_panel())
+
+        res = DataFetcher(cache=cache).fetch_yahoo(
+            ["SPY"], "2020-01-01", "2020-02-01", use_cache=True
+        )["SPY"]
+        assert list(res.index) == list(pd.to_datetime(["2020-01-02", "2020-01-03"]))
+        assert res["close"].tolist() == [1.5, 3.5]
+
+    def test_yahoo_cache_hit_clean_index_is_unchanged(self, tmp_path):
+        cache = DataCache(cache_dir=tmp_path)
+        cache.set("yahoo", "SPY", "2020-01-01", "2020-02-01", "1d", _capitalized_panel())
+
+        res = DataFetcher(cache=cache).fetch_yahoo(
+            ["SPY"], "2020-01-01", "2020-02-01", use_cache=True
+        )["SPY"]
+        assert isinstance(res.index, pd.DatetimeIndex)
+        assert res.index.is_monotonic_increasing
+        assert res["close"].tolist() == [1.5, 2.5]
+
+    def test_ccxt_cache_hit_with_integer_index_is_refused(self, tmp_path, monkeypatch):
+        import sys
+
+        monkeypatch.setitem(sys.modules, "ccxt", _fake_ccxt_module())
+        cache = DataCache(cache_dir=tmp_path)
+        cache.set(
+            "ccxt", "binance:BTC_USDT", "2020-01-01", "2020-02-01", "1d", _integer_index_panel()
+        )
+
+        res = DataFetcher(cache=cache).fetch_ccxt(
+            "binance", ["BTC/USDT"], "2020-01-01", "2020-02-01", timeframe="1d", use_cache=True
+        )["BTC/USDT"]
+        assert res.empty
+        assert "close" in res.columns
+
+    def test_ccxt_cache_hit_deduplicates_and_sorts(self, tmp_path, monkeypatch):
+        import sys
+
+        monkeypatch.setitem(sys.modules, "ccxt", _fake_ccxt_module())
+        cache = DataCache(cache_dir=tmp_path)
+        cache.set(
+            "ccxt", "binance:BTC_USDT", "2020-01-01", "2020-02-01", "1d", _duplicated_index_panel()
+        )
+
+        res = DataFetcher(cache=cache).fetch_ccxt(
+            "binance", ["BTC/USDT"], "2020-01-01", "2020-02-01", timeframe="1d", use_cache=True
+        )["BTC/USDT"]
+        assert list(res.index) == list(pd.to_datetime(["2020-01-02", "2020-01-03"]))
+        assert res["close"].tolist() == [1.5, 3.5]
+
+    def test_the_pre_fix_cache_hit_keeps_the_stale_index(self, tmp_path):
+        # Behavioural negative control: before index standardization the
+        # cache-hit path returned the stale integer index verbatim (only the
+        # columns were normalized), which is what reached ``prices.reindex``.
+        cache = DataCache(cache_dir=tmp_path)
+        cache.set("yahoo", "SPY", "2020-01-01", "2020-02-01", "1d", _integer_index_panel())
+        raw = cache.get("yahoo", "SPY", "2020-01-01", "2020-02-01", "1d")
+        assert raw is not None
+        pre_fix = DataFetcher._standardize_columns(raw, "SPY")
+        assert not isinstance(pre_fix.index, pd.DatetimeIndex)
+        assert list(pre_fix.index) == [0, 1]
+
+        # Post-fix: the fetch refuses the same frame.
+        got = DataFetcher(cache=cache).fetch_yahoo(
+            ["SPY"], "2020-01-01", "2020-02-01", use_cache=True
+        )["SPY"]
+        assert got.empty

@@ -1,6 +1,38 @@
 # HANDOFF.md
 
-> **Latest (2026-11-15, Cycle 143 — fixed the cached-read schema inconsistency: a cache hit now normalizes columns like a fresh fetch; 100% coverage preserved):**
+> **Latest (2026-11-15, Cycle 144 — corrected the cache-hit index standardization: the prior commit's `None` return crashed `fetch_yahoo` and ccxt cache hits were not standardized; 100% coverage preserved):**
+> `DataCache` is a **persistent, cross-version file store** (82 committed
+> `.cache/data/*.parquet` files). The prior session's HEAD `73b38c3` added
+> `_standardize_cached_index` but it was **buggy, incomplete, and untested**: it
+> returned `None` for a non-datetime index, and `_fetch_yahoo_panel` then did
+> `cached.empty` on that `None` -> **`AttributeError` on a cache hit**; and the
+> **ccxt cache-hit path was not standardized** (a stale integer index or a
+> duplicated timestamp passed through). Reproduced before the fix (own evidence):
+> a cache entry written by `DataCache.set` with an integer index made
+> `fetch_yahoo(..., use_cache=True)` raise `AttributeError`; a ccxt cache hit with
+> an integer index returned index `[0, 1]`; a duplicated timestamp returned 2 rows.
+> - **Fix:** `_standardize_cached_index` now returns a **`pd.DataFrame` (never
+>   `None`)** — a non-datetime index is refused -> `df.iloc[:0]` (empty, columns
+>   intact), not coerced (coercion fabricates 1970 timestamps); a duplicated index
+>   keeps `keep="first"` and is sorted. `_fetch_yahoo_panel` always calls
+>   `_standardize_columns` after it, and `fetch_ccxt`'s cache-hit path now calls
+>   `_standardize_cached_index` too. No gate/artifact/sidecar/hash/frozen-number/
+>   workflow change.
+> - **Tests:** `tests/test_data_fetcher.py` `TestCacheHitIndexStandardization`
+>   (7, incl. a behavioural negative control). **+7 tests.**
+> - **Verified:** negative control — `git stash push -- src/qtr/data/fetcher.py`
+>   makes 5 of the 7 new tests fail (2 yahoo dedup/clean cases pass even on HEAD);
+>   `git stash pop`, 78 passed on the file. Committed-cache audit: all 82
+>   `.cache/data/*.parquet` -> 0 capitalized-column / 0 non-datetime-index /
+>   0 duplicated-index / 0 empty (the fix is a no-op on the committed store).
+>   Full pinned suite (twice, 345.66s / 343.74s) -> **3922 passed, 48 skipped, 0
+>   failed**, `src/qtr` coverage **100.00%** (1529 stmts / 542 branches / 0 miss;
+>   `fetcher.py` 229/82). `tests/test_gates_workflow.py` -> **7 failed** (unchanged,
+>   maintainer-gated). `scripts/backtest_perf_regression_gate.py` -> **PASSED**
+>   (0.305s < 5s, 13668 trades). `ruff check`/`format --check` -> clean / 336 files.
+>   See `NEXT_TASK.md` Cycle 144.
+
+> **Prior (2026-11-15, Cycle 143 — fixed the cached-read schema inconsistency: a cache hit now normalizes columns like a fresh fetch; 100% coverage preserved):**
 > This session resolved the previous handoff's open question. `DataCache` is a
 > **persistent, cross-version file store** (committed under `.cache/data`), and
 > `DataCache.get` returns the stored columns **verbatim** — it only strips a
