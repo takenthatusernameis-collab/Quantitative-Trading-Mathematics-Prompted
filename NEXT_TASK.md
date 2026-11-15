@@ -1,6 +1,40 @@
 # NEXT_TASK.md
 
-## Latest session (2026-11-15, Cycle 138) — insider mixed-namespace / end-to-end probe came back clean; no agent-actionable defect remains in `src/qtr`
+## Latest session (2026-11-15, Cycle 139) — fixed a reproduced `run_backtest` defect on an infinite price; 100% coverage preserved
+
+### What changed
+- **Reproduced defect (public `run_backtest` API, reachable with no caller-side filtering):** an `inf` price made `run_backtest` emit `RuntimeWarning: invalid value encountered in accumulate` from `equity_curve = (1.0 + portfolio_ret).cumprod() * capital` (engine.py:463) — **fatal under the pinned `pytest -W error`** — and return an internally inconsistent result: `returns` carried `inf`, `equity_curve` carried `inf`/`nan`, while `_calculate_metrics` reported the all-zero no-evidence tuple. Root cause: `asset_ret = prices[columns].pct_change().fillna(0.0)` fails closed for a **NaN** price (`pct_change` → NaN → `fillna(0.0)`; pinned by `TestNaNPrices`) but **not** for an **infinite** price, which `pct_change` turns into an `inf` return (and a NaN on the next bar) that `fillna` does not touch. The engine's own tests assert non-finite returns reach it "only through this test" *because the fetcher refuses them* — but §H58 (`non_positive_prices`) screens only `<= 0`, so `+inf` is not refused (`-inf` is, because `-inf <= 0`).
+- **Fix:** `src/qtr/backtest/engine.py` — after the duplicate-label guards, map every non-finite price to NaN (`prices = prices.astype(float); prices = prices.where(np.isfinite(prices))`) so an infinite price follows the same tested fail-closed path as a missing one. A finite panel is bit-identical (`astype`/`isfinite` are no-ops).
+- **Tests:** `tests/test_engine_edge_stress.py` — new `TestNonFinitePrices` (5 tests): `test_positive_infinity_price_bar_fails_closed`, `test_positive_infinity_price_at_first_bar_does_not_crash`, `test_one_infinite_symbol_does_not_void_the_rest_of_the_book`, `test_finite_panel_is_bit_identical`, and `test_the_contract_rejects_the_pre_fix_non_finite_price_warning` (behavioural negative control reconstructing the pre-fix `cumprod` warning). +5 tests.
+
+### What was actually verified (own evidence)
+- Before-fix repro: `run_backtest(prices=[100, inf, 102], signals=1)` → `RuntimeWarning: invalid value encountered in accumulate`; after fix → `returns=[-0.0002, 0.0, 0.0]`, equity finite. `-inf` is refused by the non-positive screen (`ValueError`), as before.
+- **Negative control:** `git stash push -- src/qtr/backtest/engine.py` → 2 of the 5 new tests fail (one with the exact pre-fix `RuntimeWarning`, one with non-finite returns); `git stash pop`, 5 passed. Focused `python -m pytest -q tests/test_engine_edge_stress.py -W error` → **25 passed**.
+- Full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (635.11s) → **3869 passed, 51 skipped, 0 failed**, `src/qtr` coverage **100.00%** (1506 stmts / 534 branches / 0 miss; `engine.py` 239 stmts / 84 branches). (3864 → 3869 is exactly the +5 new tests.)
+- `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged, maintainer-gated; fix is `patches/0001-gates-workflow-contract-fix.patch`, still `git apply --check`-clean).
+- `python scripts/backtest_perf_regression_gate.py` → **PASSED** (0.794s < 5s, 10.7MB peak, 13668 trades).
+- `python -m ruff check src tests run_*.py scripts` → All checks passed; `ruff format --check` → 335 files already formatted.
+
+### What remains unresolved
+1. **Maintainer-only (CI contract):** `.github/workflows/gates.yml` not updated; 7 `tests/test_gates_workflow.py` tests red until the maintainer applies `patches/0001-gates-workflow-contract-fix.patch` with workflow scope. Agent cannot land `.github/workflows/**`.
+2. **Fetcher gap (not changed):** `_reject_non_positive_prices`/`non_positive_prices` refuse only `<= 0`, not `+inf`. The engine now fails closed on an infinite price, so this is no longer a crash path, but a fetch that returns `+inf` is still passed through (not refused) — a deliberate non-change (extending the screen would change the fetcher's documented non-positive contract and could break callers). Do not "fix" without a product decision.
+3. **Research queue exhausted under free/public PIT data:** H1–H182 executed/rejected; no honest free-data H183 is pre-registrable without new authorized data.
+4. **Reproducibility backlog:** `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0` unchanged; baseline-frozen.
+
+### Approaches already tried and why they should not be repeated
+- Do not make speculative `src/qtr` changes absent a reproduced, reachable defect — the infinite-price `cumprod` warning/inconsistency is reproduced, reachable from the public `run_backtest` API, and was closed here.
+- Do not re-probe the closed classes (duplicate index/column, NaN prices, statistics n=1/non-finite guards, insider namespace, fetcher exchange-id, tracking JSONL/`default=str`/`log_dataframe`); the defect hunt across `src/qtr` (cycles 125–139) is otherwise exhausted and every module is green at 100%.
+- Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or alter coverage/frozen-contract gates.
+- Do not extend `non_positive_prices` to `+inf` without an explicit product decision (see unresolved #2).
+
+### One precise next task
+**Maintainer (preferred, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch` with workflow scope, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed) on `origin/main`. The patch is verified apply-ready (`git apply --check` succeeds; patched tree passes the 7 workflow tests in a clean throwaway checkout; `scripts/backtest_perf_regression_gate.py` passes on this host).
+
+**Agent path (concluded):** the `src/qtr` defect hunt is exhausted — no further agent-actionable defect remains, so there is no code change to make. Do not keep re-probing the same modules; await either the maintainer workflow patch or new authorized data / an explicit product decision before selecting new work.
+
+---
+
+## Prior session (2026-11-15, Cycle 138) — insider mixed-namespace / end-to-end probe came back clean; no agent-actionable defect remains in `src/qtr`
 
 ### What changed
 - **No `src/qtr`, test, gate, artifact, sidecar, hash, frozen-number, or workflow change.** Working tree clean at HEAD `735f2cd` (Cycle 137 insider fix); matches `origin/main`.

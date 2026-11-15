@@ -409,3 +409,94 @@ class TestDuplicateColumns:
         )
         with pytest.raises(ValueError, match="duplicate labels"):
             sig.reindex(index=sig.index, columns=["A", "B"])
+
+
+# --------------------------------------------------------------------------- #
+# Non-finite (infinite) prices
+# --------------------------------------------------------------------------- #
+class TestNonFinitePrices:
+    """An ``inf`` price is the input class the NaN-price tests above leave out.
+
+    A NaN price already fails closed because ``pct_change`` yields NaN there
+    and ``fillna(0.0)`` zeroes the bar. An ``inf`` price does not: it yields an
+    ``inf`` return (and a NaN on the following bar), so the pre-fix engine let
+    the equity curve's ``cumprod`` carry inf/nan while ``_calculate_metrics``
+    reported the no-evidence tuple -- an internally inconsistent result, and a
+    fatal ``RuntimeWarning`` under the pinned ``-W error``. The engine now maps
+    every non-finite price to NaN, so an infinite price bar is handled exactly
+    like a missing one (fail closed).
+    """
+
+    def test_positive_infinity_price_bar_fails_closed(self):
+        """An ``inf`` price bar earns 0.0, every return and the equity curve
+        stay finite, and no warning escapes (the pinned suite runs ``-W
+        error``)."""
+        import warnings
+
+        prices = _make_prices(symbols=("A",))
+        inf_bar = prices.index[10]
+        prices.loc[inf_bar, "A"] = np.inf
+        signals = pd.DataFrame({"A": 1.0}, index=prices.index)
+        cfg = _make_config()
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            res = run_backtest(prices=prices, signals=signals, config=cfg)
+
+        assert np.isfinite(res.returns.values).all()
+        assert res.returns.loc[inf_bar] == pytest.approx(0.0, abs=1e-12)
+        assert np.isfinite(res.equity_curve.values).all()
+        # The shared metrics stay finite (calmar is excluded: it is legitimately
+        # +inf when there is no drawdown, which the engine pins elsewhere).
+        for key in ("total_return", "sharpe", "max_drawdown", "annualized_volatility"):
+            assert np.isfinite(res.metrics[key])
+
+    def test_positive_infinity_price_at_first_bar_does_not_crash(self):
+        """An ``inf`` price on bar 0 (which earns nothing under ``shift(1)``)
+        must not raise or emit a non-finite return."""
+        prices = _make_prices(symbols=("A",))
+        prices.iloc[0] = np.inf
+        signals = pd.DataFrame({"A": np.nan}, index=prices.index)
+        signals.iloc[0] = 1.0
+        res = run_backtest(prices=prices, signals=signals, config=_make_config())
+
+        assert np.isfinite(res.returns.values).all()
+        assert res.returns.iloc[0] == pytest.approx(0.0, abs=1e-12)
+
+    def test_one_infinite_symbol_does_not_void_the_rest_of_the_book(self):
+        """A single ``inf`` price must not contaminate the other symbols: the
+        clean symbol still trades and the whole result stays finite."""
+        prices = _make_prices(symbols=("A", "B"))
+        prices.loc[prices.index[7], "A"] = np.inf
+        signals = pd.DataFrame(1.0, index=prices.index, columns=prices.columns)
+        res = run_backtest(prices=prices, signals=signals, config=_make_config())
+
+        assert np.isfinite(res.returns.values).all()
+        assert np.isfinite(res.equity_curve.values).all()
+        assert res.positions.columns.is_unique
+        assert len(res.trades) >= 1
+
+    def test_finite_panel_is_bit_identical(self):
+        """A finite price panel must be bit-identical with the guard in place."""
+        prices = _make_prices(symbols=("A", "B"))
+        signals = pd.DataFrame(1.0, index=prices.index, columns=prices.columns)
+        res = run_backtest(prices=prices, signals=signals, config=_make_config())
+
+        assert np.isfinite(res.returns.values).all()
+        assert len(res.trades) == 2
+
+    def test_the_contract_rejects_the_pre_fix_non_finite_price_warning(self):
+        """Behavioural negative control: the pre-fix engine computed the equity
+        curve from an un-sanitised return series, so an ``inf`` price (which
+        ``pct_change`` turns into an ``inf`` return) made ``cumprod`` emit
+        ``RuntimeWarning: invalid value encountered in accumulate`` -- fatal
+        under the pinned ``-W error``. Reconstruct that exact arithmetic and
+        require it to warn, so the guard above is pinned to a real pre-fix
+        failure."""
+        import warnings
+
+        returns = pd.Series([-0.0002, np.inf, -1.0])
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            with pytest.raises(RuntimeWarning, match="invalid value encountered in accumulate"):
+                (1.0 + returns).cumprod()

@@ -375,6 +375,23 @@ def run_backtest(
     if signals.columns.has_duplicates:
         signals = signals.iloc[:, ~signals.columns.duplicated(keep="first")]
 
+    # A non-finite price (inf, -inf or nan) cannot be the base of a percentage
+    # return. A NaN price already fails closed: ``pct_change`` yields NaN on
+    # that bar and the ``fillna(0.0)`` below zeroes it, so a NaN price bar
+    # earns 0.0 (the contract pinned by ``TestNaNPrices``). An ``inf`` price
+    # does not: ``pct_change`` yields an ``inf`` return on that bar and a NaN
+    # on the next one, so the equity curve's cumulative product carries
+    # inf/nan while ``_calculate_metrics`` reports the no-evidence tuple --
+    # an internally inconsistent result, and under the pinned ``-W error`` a
+    # fatal ``RuntimeWarning: invalid value encountered in accumulate`` from
+    # ``(1.0 + portfolio_ret).cumprod()``. Map every non-finite price to NaN
+    # so an infinite price is handled exactly like a missing one (fail
+    # closed), and the whole result stays finite. A finite panel is
+    # bit-identical: ``astype(float)`` and the ``isfinite`` mask are no-ops
+    # on it.
+    prices = prices.astype(float)
+    prices = prices.where(np.isfinite(prices))
+
     # Align signals to the price panel (common index / columns), forward-fill
     # targets so a position holds until the next explicit target, then fill any
     # remaining NaN (e.g. a brand-new column) with zero exposure.

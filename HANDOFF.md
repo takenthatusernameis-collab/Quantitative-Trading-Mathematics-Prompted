@@ -1,5 +1,41 @@
 # HANDOFF.md
 
+> **Latest (2026-11-15, Cycle 139 — fixed a reproduced `run_backtest` silent/inconsistent result on an infinite price; 100% coverage preserved):**
+> The standing agent task was to find a reproduced public-API defect. Probing the
+> engine's non-finite-price boundary found one the NaN-price tests left out: an
+> `inf` price made `run_backtest` emit `RuntimeWarning: invalid value encountered
+> in accumulate` from `(1.0 + portfolio_ret).cumprod()` (engine.py:463) — fatal
+> under the pinned `pytest -W error` — and return an internally inconsistent
+> result (`returns` = inf, `equity_curve` = inf/nan, `metrics` = all-zero
+> no-evidence tuple). Root cause: `pct_change().fillna(0.0)` fails closed for a
+> **NaN** price (pinned by `TestNaNPrices`) but not for an **infinite** price,
+> which `pct_change` turns into an `inf` return (and a NaN on the next bar) that
+> `fillna` does not touch. The engine's own tests claim non-finite returns reach
+> it "only through this test" because the fetcher refuses them, but §H58
+> (`non_positive_prices`) screens only `<= 0`, so `+inf` slips through (`-inf` is
+> refused).
+> - **Fix:** `src/qtr/backtest/engine.py` — after the duplicate-label guards, map
+>   every non-finite price to NaN (`prices.astype(float).where(np.isfinite(...))`)
+>   so an infinite price follows the same tested fail-closed path as a missing
+>   one; a finite panel is bit-identical.
+> - **Tests:** `tests/test_engine_edge_stress.py` — new `TestNonFinitePrices`
+>   (5 tests: inf-bar fail-closed, inf-at-first-bar, one-inf-symbol book,
+>   finite-panel bit-identical, and a behavioural negative control reconstructing
+>   the pre-fix `cumprod` warning). +5 tests.
+> - **Verified:** negative control — `git stash push -- src/qtr/backtest/engine.py`
+>   makes 2 of the 5 fail (one with the exact pre-fix `RuntimeWarning`); restored
+>   via `git stash pop`, 25 passed. Full pinned suite `python -m pytest -q -W
+>   error --cov=qtr --cov-branch --cov-report=term-missing
+>   --ignore=tests/test_gates_workflow.py` (635.11s) → **3869 passed, 51 skipped,
+>   0 failed**, `src/qtr` coverage **100.00%** (1506 stmts / 534 branches / 0
+>   miss). `tests/test_gates_workflow.py` → **7 failed** (unchanged,
+>   maintainer-gated; fix is `patches/0001-gates-workflow-contract-fix.patch`,
+>   still apply-clean). `scripts/backtest_perf_regression_gate.py` → **PASSED**
+>   (0.794s < 5s, 13668 trades). `ruff check`/`format --check` over `src tests
+>   run_*.py scripts` → All checks passed / 335 files already formatted. No gate,
+>   artifact, sidecar, hash, frozen-number, or workflow change. See `NEXT_TASK.md`
+>   Cycle 139.
+
 > **Latest (2026-11-15, Cycle 137 — fixed a reproduced `parse_form4` silent-data-loss defect on namespaced Form 4 XML; 100% coverage preserved):**
 > The standing agent task was to find a reproduced public-API defect. Probing the
 > one public parser not yet exercised at its nested-`<value>` boundary found one
