@@ -1,6 +1,36 @@
 # NEXT_TASK.md
 
-## Latest session (2026-11-15, Cycle 145) — deduplicated normalized cache-hit columns; 100% coverage preserved
+## Latest session (2026-11-15, Cycle 146) — inspected every remaining `src/qtr` boundary; defect hunt exhausted, no agent-actionable defect; no source change
+
+### What changed
+- **No source, test, gate, artifact, sidecar, hash, frozen-number, or workflow change.** Working tree clean at HEAD `87cf8c2`, matches `origin/main`.
+
+### What was actually verified (own evidence, this session)
+- `python -m pytest -q tests/test_data_fetcher.py tests/test_engine_edge_stress.py -W error` → **105 passed**.
+- `python -m ruff check src tests run_*.py scripts` → **All checks passed.** `python -m ruff format --check src tests run_*.py scripts` → **336 files already formatted.**
+- Full pinned suite already green from Cycle 145 (tree unchanged since): `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` → **3924 passed, 48 skipped, 0 failed**, `src/qtr` coverage **100.00%** (1531 stmts / 544 branches / 0 miss).
+- `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged, maintainer-gated; fix is `patches/0001-gates-workflow-contract-fix.patch`).
+
+### What remains unresolved
+1. **Maintainer-only (CI contract, unblocks CI):** `.github/workflows/gates.yml` not updated; 7 `tests/test_gates_workflow.py` tests red until the maintainer applies `patches/0001-gates-workflow-contract-fix.patch` with workflow scope, then `git commit` + `git push origin main`. Agent cannot land `.github/workflows/**` (repo-scoped token has no `workflows` permission; `.github/scripts/kilo-controller.sh` restores those paths from `origin/main` after every session).
+2. **Research queue exhausted under free/public PIT data:** H1–H182 executed/rejected; H183 unassigned.
+3. **Reproducibility backlog:** `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0` unchanged; baseline-frozen.
+
+### Approaches already tried and why they should not be repeated
+- Every remaining `src/qtr` boundary has now been probed and closed: fetcher cache-hit column/index/dedup standardization + unknown exchange-id (Cycles 136, 143–145); engine duplicate index/column labels, NaN prices, infinite prices, n=1 volatility (Cycles 125, 126, 139); statistics shape/non-finite guards (Cycle 124); tracking malformed JSONL, `log_dataframe` duplicated columns/no-experiment guard/non-serializable metadata/caller-dict mutation (Cycles 127, 130, 131, 132); config nested `data.cache_dir`/`tracking.log_dir` (Cycle 142); insider namespaced `<value>` lookup (Cycle 137). All modules green at 100% coverage. **Do not re-probe these surfaces without new evidence.**
+- Do not make speculative `src/qtr` changes absent a reproduced, reachable defect; the defect hunt is exhausted.
+- Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or alter coverage/frozen-contract gates.
+- Do not invent a free-data H183 or treat parameter/timeframe/universe variations as new mechanism families.
+
+### One precise next task
+**Maintainer (preferred, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch` with workflow scope:
+  `git apply patches/0001-gates-workflow-contract-fix.patch && git commit -am "fix(ci): satisfy gates workflow contract" && git push origin main`
+then run `python -m pytest -q tests/test_gates_workflow.py` (expect **7 passed**) on `origin/main`. Patch verified apply-ready in prior cycles; patched tree passes the 7 tests in a clean throwaway checkout.
+
+**Agent alternative (only with new evidence):** none currently identified — the `src/qtr` defect hunt is exhausted. Await either the maintainer workflow patch or new authorized data / an explicit product decision before selecting new source work.
+
+---
+
 
 ### What changed
 - **Reproduced defect (reachable):** `DataCache` is a persistent, cross-version store; a cached panel whose vendor columns normalize to the same label (e.g. `Close` and `CLOSE` -> `close`) passed through `DataFetcher._standardize_columns` (used on fresh and cache-hit paths for yahoo/ccxt) with duplicated `close` columns. Repro (own evidence, before fix): `df.columns == ['open','high','low','close','close','volume']`, `df['close']` returned a `DataFrame`, `pct_change`/arithmetic operated on 2 columns — breaking cache-hit parity with fresh fetch and with the existing index-dedup (`keep="first"`).
