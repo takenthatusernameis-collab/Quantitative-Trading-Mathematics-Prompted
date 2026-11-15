@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from qtr.tracking import experiment
 
@@ -98,3 +99,42 @@ def test_context_manager(tmp_path):
 def test_create_experiment(tmp_path):
     exp = experiment.create_experiment("c1", base_dir=tmp_path)
     assert isinstance(exp, experiment.Experiment)
+
+
+def test_log_metadata_serializes_non_json_values(tmp_path):
+    """A non-JSON-serializable value (numpy array) must not crash the writer.
+
+    ``json.dump`` raises ``TypeError: Object of type ndarray is not JSON
+    serializable`` on the first such value, so a caller logging a numpy array
+    -- the natural shape for a parameter grid, a metric vector, or a result
+    array -- loses the whole experiment record and the metadata file it was
+    mid-write. The writer falls back to ``default=str`` (the same policy the
+    JSONL tracker uses in ``_save_experiment``), so the value is persisted as
+    its string representation rather than aborting the write.
+    """
+    import numpy as np
+
+    exp = experiment.Experiment("s1", base_dir=tmp_path)
+    exp.log_metadata(grid=np.array([0.1, 0.5, 1.0]), name="grid")
+    exp.log_params({"alpha": np.array([1.0, 2.0])})
+    exp.log_results({"series": np.array([1.0, 2.0, 3.0])})
+
+    data = json.loads(exp.metadata_path.read_text())
+    assert data["name"] == "grid"
+    assert data["grid"] == str(np.array([0.1, 0.5, 1.0]))
+    assert data["params"]["alpha"] == str(np.array([1.0, 2.0]))
+    assert data["results"]["series"] == str(np.array([1.0, 2.0, 3.0]))
+
+
+def test_log_metadata_pre_fix_form_crashes_on_non_json_value(tmp_path):
+    """Behavioural negative control: the bare ``json.dump`` form raises.
+
+    Reconstructs the pre-fix writer over a numpy-array value and requires it
+    to raise ``TypeError``, proving the corrected writer is what makes the
+    path safe rather than merely lucky.
+    """
+    import numpy as np
+
+    meta = {"grid": np.array([0.1, 0.5, 1.0])}
+    with pytest.raises(TypeError):
+        json.dumps(meta)

@@ -383,19 +383,19 @@ class Experiment:
         meta = self.load_metadata()
         meta.update(kwargs)
         with open(self.metadata_path, "w") as f:
-            json.dump(meta, f)
+            json.dump(meta, f, default=str)
 
     def log_params(self, params: dict[str, Any]) -> None:
         meta = self.load_metadata()
         meta["params"] = params
         with open(self.metadata_path, "w") as f:
-            json.dump(meta, f)
+            json.dump(meta, f, default=str)
 
     def log_results(self, results: dict[str, Any]) -> None:
         meta = self.load_metadata()
         meta["results"] = results
         with open(self.metadata_path, "w") as f:
-            json.dump(meta, f)
+            json.dump(meta, f, default=str)
 
     def load_metadata(self) -> dict[str, Any]:
         try:
