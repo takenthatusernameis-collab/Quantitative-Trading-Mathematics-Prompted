@@ -1,6 +1,39 @@
 # NEXT_TASK.md
 
-## Latest session (2026-11-15, Cycle 139) — fixed a reproduced `run_backtest` defect on an infinite price; 100% coverage preserved
+## Latest session (2026-11-15, Cycle 140) — searched FRED (a materially different free source per directive §6); corrected a false "data-blocked" claim; free-data queue still exhausted
+
+### What changed (substantive)
+- **New durable tool `scripts/probe_fred_availability.py`.** Read-only probe of free/public candidate observables against FRED CSV. Root cause it fixes: prior cycles (96, 116) classified candidates as "data-blocked" after checking **yfinance only**; a ticker missing from yfinance (e.g. `^T5YIE`/`^T10YIE`) is not proof the observable is unavailable. `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6 forbids that inference and requires searching a materially different source first. The tool downloads to memory, writes no cache, touches no artifact; exit non-zero if any FRED series is unreachable.
+- **`NEW_FAMILY_RESEARCH_REGISTER.md` — appended Cycle 140.** Documents the FRED search and corrects the false claim: breakeven inflation (NF-09-03) is **NOT data-blocked** (FRED serves T5YIE/T10YIE, 5971 obs, 2003-01→2026-11). Records the honest conclusion that the corrected data still does **not** create a new family — breakeven is a close substitute of the H175 (NF-20261109-03) observable class (directive §2), and financial-conditions/HY-OAS candidates are adjacent/underpowered/3-yr-window-limited.
+- `HANDOFF_CURRENT_SESSION.md` updated. **No `src/qtr`, test, gate, artifact, sidecar, hash, frozen-number, or workflow change.**
+
+### What was actually verified (own evidence)
+- `python scripts/probe_fred_availability.py` → exit 0, all 11 series reachable. Key: `T10YIE 5971 (2003-01-02→2026-11-13)`, `NFCI 2914 (weekly)`, `STLFSI 1368 (→2020-03)`, `UMCSENT 677 (monthly)`, `BAMLH0A0HYM2 785 (2023-11→2026-11 only — an apparent corr≈0.47 vs forward SPY is a 3-yr single-regime artifact, not a robust signal)`.
+- `python -m ruff check src tests run_*.py scripts` → **All checks passed.** `python -m ruff format --check src tests run_*.py scripts` → **336 files already formatted**.
+- Full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (645.68s) → **3869 passed, 51 skipped, 0 failed**, `src/qtr` coverage **100.00%** (1506 stmts / 534 branches / 0 miss). Independently confirms the Cycle 139 baseline.
+- `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged, maintainer-gated; fix is `patches/0001-gates-workflow-contract-fix.patch`, still `git apply --check`-clean).
+- `python -m pytest -q tests/test_probe_report_schema.py tests/test_runner_causality_inventory.py tests/test_artifact_restoration_plan.py` → **335 passed** (new `scripts/` file enters no test enumeration).
+
+### What remains unresolved
+1. **Maintainer-only (CI contract):** `.github/workflows/gates.yml` not updated; 7 `tests/test_gates_workflow.py` tests red until the maintainer applies `patches/0001-gates-workflow-contract-fix.patch` with workflow scope. Agent cannot land `.github/workflows/**`.
+2. **Research queue exhausted under free/public PIT data:** H1–H182 executed/rejected; H183 unassigned. Cycle 140's FRED search confirms the corrected data does not yield a new family.
+3. **Reproducibility backlog:** `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0` unchanged; baseline-frozen.
+
+### Approaches already tried and why they should not be repeated
+- **Do not repeat the yfinance-only "data-blocked" classification.** Cycles 96/116 wrongly called breakeven inflation data-blocked. Always run `scripts/probe_fred_availability.py` before any "data-blocked" claim.
+- Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or alter coverage/frozen-contract gates.
+- Do not make speculative `src/qtr` changes absent a reproduced, reachable defect (engine inf-price class fixed at 56a2c87; signals/futures prices re-probed — robust).
+- Do not treat breakeven/financial-conditions as new families (close substitutes of H175/NF-14).
+- Do not invent a free-data H183 or treat parameter/timeframe/universe variations as new mechanism families.
+
+### One precise next task
+**Maintainer (preferred, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch` with workflow scope, then `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed) on `origin/main`. Patch verified apply-ready this session.
+
+**Agent path (blocked unless new evidence/authorization appears):** free-data family discovery is exhausted on corrected FRED evidence. A new cycle needs either (a) explicit authorization for paid/PIT data (per-contract futures roll, crypto funding, historical options chain), or (b) a mechanism genuinely distinct from H175 (macro/inflation) and NF-14 (credit) that clears directive §2. Before any "data-blocked" conclusion, run `scripts/probe_fred_availability.py`. Otherwise the only remaining agent-actionable work is the maintainer-gated workflow patch.
+
+---
+
+## Prior session (2026-11-15, Cycle 139) — fixed a reproduced `run_backtest` defect on an infinite price; 100% coverage preserved
 
 ### What changed
 - **Reproduced defect (public `run_backtest` API, reachable with no caller-side filtering):** an `inf` price made `run_backtest` emit `RuntimeWarning: invalid value encountered in accumulate` from `equity_curve = (1.0 + portfolio_ret).cumprod() * capital` (engine.py:463) — **fatal under the pinned `pytest -W error`** — and return an internally inconsistent result: `returns` carried `inf`, `equity_curve` carried `inf`/`nan`, while `_calculate_metrics` reported the all-zero no-evidence tuple. Root cause: `asset_ret = prices[columns].pct_change().fillna(0.0)` fails closed for a **NaN** price (`pct_change` → NaN → `fillna(0.0)`; pinned by `TestNaNPrices`) but **not** for an **infinite** price, which `pct_change` turns into an `inf` return (and a NaN on the next bar) that `fillna` does not touch. The engine's own tests assert non-finite returns reach it "only through this test" *because the fetcher refuses them* — but §H58 (`non_positive_prices`) screens only `<= 0`, so `+inf` is not refused (`-inf` is, because `-inf <= 0`).

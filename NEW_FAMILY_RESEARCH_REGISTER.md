@@ -693,3 +693,40 @@ Candidates scored honestly (weights novelty 25 / plausibility 25 / data 20 / fal
 Per STRATEGY_FAMILY_EXPANSION_DIRECTIVE §6, the free-data point-in-time strategy-family queue is **exhausted**: H1–H182 all executed/rejected, and every remaining mechanism category is either data-blocked (commodity carry per-contract, crypto funding, options/GEX, breakeven inflation, analyst revisions), statistically underpowered (index reconstitution/inclusion, splits), or mechanism/calendar-adjacent to executed families. **No H183 is pre-registered and no runner is executed this cycle.** The next cycle must either (a) resolve a data gap under explicit authorization (futures roll/contango PIT data for carry; PIT crypto funding for basis; PIT options for GEX), or (b) shift to auditing/infrastructure/maintenance per directive §6 governing rule. No commit/push.
 
 **Cycle 116 complete.** H85–H182 all rejected/recorded; H183 unassigned. `src/qtr` unchanged.
+
+---
+
+## Cycle 140 (2026-11-15) — Directive §6 materially-different-source search (FRED): "data-blocked" claims corrected; queue still exhausted
+
+Lineage unchanged: H85–H182 all rejected/recorded; H183 unassigned. `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified. Selection/validation used no protected-test feedback. Free/public data only.
+
+### Why this cycle differs from Cycles 96 / 116 (approach change, not a repeat)
+Cycles 96 and 116 declared the free-data queue exhausted but based the "data-blocked" classifications **entirely on yfinance availability**. A ticker missing from yfinance (e.g. `^T5YIE`/`^T10YIE`) was treated as "the observable is unavailable on the free pipeline." `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6 explicitly forbids mistaking "an unavailable dataset" for proof that a mechanism is exhausted and requires searching **one materially different set of sources** before concluding no candidate is testable. This cycle does exactly that search against FRED (Federal Reserve Bank of St. Louis) — a free, key-less CSV source the repository had never queried — before accepting the prior exhaustion.
+
+### What the materially-different source actually unlocks (reproducible evidence)
+Tool: `scripts/probe_fred_availability.py` (read-only; downloads to memory, touches no artifact). `python scripts/probe_fred_availability.py` → exit 0, all 11 curated series reachable. Key rows:
+
+| Series | Obs | Coverage | Category | Prior classification | Corrected classification |
+|---|---:|---|---|---|
+| T10YIE / T5YIE | 5971 | 2003-01-02 → 2026-11-13 | Inflation expectations | "data-blocked; ^T5YIE/^T10YIE unavailable" | **AVAILABLE (free FRED)** |
+| DFII10 | 5970 | 2003-01-02 → 2026-11-12 | Real rates | (not separately tracked) | AVAILABLE (free FRED) |
+| NFCI | 2914 | 1971-01-08 → 2026-11-06 (weekly) | Financial conditions | (not tested) | AVAILABLE (free FRED) |
+| STLFSI | 1368 | 1993-12-31 → 2020-03-13 (weekly) | Financial stress | (not tested) | AVAILABLE (discontinued 2020) |
+| UMCSENT | 677 | 1952-11-01 → 2026-09-01 (monthly) | Household sentiment | (not tested) | AVAILABLE (monthly) |
+| BAMLH0A0HYM2 / BAMLC0A0CM | 785 / 784 | **2023-11-14 → 2026-11-12 only** | Credit conditions | (proxy via HYG/IEF in NF-14) | AVAILABLE but **3-yr window only** via this endpoint |
+| VIXCLS / DGS10 / T10Y2Y | 9316 / 16201 / 12610 | 1990 → / 1962 → / 1976 → | Vol / rates / slope | (covered by H-series) | AVAILABLE |
+
+**Correction:** the Cycle 96/116 claim that breakeven inflation (NF-09-03) is "data-blocked — ^T5YIE/^T10YIE unavailable on free pipeline" is **factually wrong**. FRED serves both free with 20+ years of history. The classification error propagated across Cycles 96 and 116 and must not be repeated.
+
+### But the corrected data does not create a new family (directive §2)
+The corrected availability does **not** clear any candidate for a REAL execution:
+
+- **Breakeven inflation (NF-09-03 / T5YIE / T10YIE):** mechanism is "inflation-expectations regime → equity risk premium," which is the *same observable class* H175 (NF-20261109-03) already tested with the TIP/IEF breakeven **proxy** and rejected. Using the direct FRED series is replacing a proxy with the direct observable — a close substitute, not a new mechanism (directive §2: "Replacing one indicator with a close substitute" does not create a new family). Exploratory screen (not a validation run): trailing T10YIE level vs forward 21d SPY return, 1993–2026, corr ≈ **−0.09**, sign stable across both halves; weak, and subsumed by H175. **No new family.**
+- **Financial conditions (NFCI/STLFSI):** composite of credit spreads, equity vol, FX, rates — the same mechanism class as the executed credit-regime (NF-14, HYG/IEF excess return) and macro-regime (H175) families. Exploratory: NFCI/STLFSI sign unstable across halves (corr +0.12/−0.12). **No new family.**
+- **Household sentiment (UMCSENT):** the one category absent from the executed record, but monthly (677 obs → OOS power far below any daily-trade gate) and exploratory corr ≈ **−0.01** (halves +0.09/−0.05, no signal). **Deferred — no signal + low power.**
+- **HY OAS/effective yield (BAMLH0A0HYM2/BAMLC0A0CM):** only 2023-11 → 2026-11 available via this endpoint (785 obs). An apparent corr ≈ 0.47 with forward SPY return is a **3-year single-regime artifact** (confirmed by the probe's date range), not a robust signal. **Deferred — insufficient history.**
+
+### Conclusion (Cycle 140)
+Per STRATEGY_FAMILY_EXPANSION_DIRECTIVE §6, this cycle searched a materially different, free source (FRED) before accepting exhaustion — the step prior cycles skipped. Result: (a) the "data-blocked" claim for breakeven inflation is corrected (FRED serves it free), but the mechanism is **subsumed by H175** (close substitute), not a new family; (b) financial-conditions and HY-OAS candidates are adjacent/underpowered or data-window-limited; (c) the free-data point-in-time strategy-family queue **remains exhausted** (H1–H182 all executed/rejected), now on *corrected data-availability evidence* rather than a yfinance-only premise. **No H183 is pre-registered and no runner is executed this cycle.** Future discovery cycles must run `scripts/probe_fred_availability.py` (and probe other free sources) before classifying any candidate as "data-blocked." `src/qtr` unchanged.
+
+**Cycle 140 complete.** H85–H182 all rejected/recorded; H183 unassigned. `src/qtr` unchanged. New durable artifact: `scripts/probe_fred_availability.py`.
