@@ -1,5 +1,8 @@
 # HANDOFF.md
 
+> **Latest (2026-11-15, Cycle 129 — re-verified the Cycle 128 baseline; green except the maintainer-gated block; no agent-actionable defect):**
+> Working tree clean at HEAD `8e96056`; **no `src/qtr`, test, gate, artifact, sidecar, hash, frozen-number, or workflow change**. Re-ran the pinned full suite `pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (439.89s) → **3852 passed / 51 skipped / 0 failed**, `src/qtr` coverage **100.00%** (1498 stmts / 530 branches / 0 miss). This corrects Cycle 128's stale count of 3854 passed / 48 skipped — the gate passes either way (0 failures, full coverage); always trust the re-run over handoff prose. `tests/test_gates_workflow.py` → **7 failed** (unchanged, maintainer-gated; fix is `patches/0001-gates-workflow-contract-fix.patch`). `ruff check`/`format --check` clean (335 files). No evidenced defect was found, so no speculative `src/qtr` change was made. See `NEXT_TASK.md` Cycle 129.
+
 > **Latest (2026-11-15, Cycle 128 — repaired a Cycle 127 coverage-gate regression; 100% coverage actually restored):**
 > Cycle 127 added the `if not line: continue` guard to `load_experiment` and
 > claimed "100.00% coverage", but its test never exercised that branch on the
