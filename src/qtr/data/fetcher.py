@@ -209,6 +209,17 @@ class DataFetcher:
         extras = [c for c in df.columns if c not in required]
         return df[present + extras]
 
+    @staticmethod
+    def _standardize_cached_index(df: pd.DataFrame, symbol: str) -> pd.DataFrame | None:
+        """Return a cache hit with the timestamp contract of a fresh quote panel."""
+        if not isinstance(df.index, pd.DatetimeIndex):
+            logger.warning(
+                f"Cached panel for {symbol} has a non-datetime index "
+                f"({df.index.dtype}); refusing it rather than manufacturing timestamps"
+            )
+            return None
+        return df[~df.index.duplicated(keep="first")].sort_index()
+
     def _fetch_yahoo_panel(
         self,
         source: str,
@@ -233,6 +244,9 @@ class DataFetcher:
             # them on read so a cache hit matches a fresh fetch.
             cached = self.cache.get(source, symbol, start, end, interval)
             if cached is not None:
+                cached = self._standardize_cached_index(cached, symbol)
+                if cached.empty:
+                    return cached
                 return self._standardize_columns(cached, symbol)
 
         try:
