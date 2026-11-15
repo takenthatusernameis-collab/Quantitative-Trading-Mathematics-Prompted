@@ -359,6 +359,22 @@ def run_backtest(
     if signals.index.has_duplicates:
         signals = signals[~signals.index.duplicated(keep="first")].sort_index()
 
+    # The same duplicate-label class exists on the column axis. A panel built
+    # with ``pd.concat(..., axis=1)`` from two frames that share a symbol name
+    # (a repeated ticker in a universe, or an overlapping benchmark/universe
+    # concatenation) carries a duplicated column, and ``signals.reindex(...,
+    # columns=columns)`` refuses to align against one
+    # (``ValueError: cannot reindex on an axis with duplicate labels``), while
+    # the trade log's ``float(prices.loc[ts, sym])`` returns a Series.  A
+    # duplicated label is also reachable through the cached/vendor read path,
+    # which the fetch layer does not dedup.  Canonicalize both panels' columns
+    # (keep first) so a repeated symbol cannot crash or silently double-count.
+    # A unique column set is a no-op, so the clean path is bit-identical.
+    if prices.columns.has_duplicates:
+        prices = prices.iloc[:, ~prices.columns.duplicated(keep="first")]
+    if signals.columns.has_duplicates:
+        signals = signals.iloc[:, ~signals.columns.duplicated(keep="first")]
+
     # Align signals to the price panel (common index / columns), forward-fill
     # targets so a position holds until the next explicit target, then fill any
     # remaining NaN (e.g. a brand-new column) with zero exposure.

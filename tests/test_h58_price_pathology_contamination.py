@@ -312,6 +312,72 @@ class TestTheScreen:
         assert len(non_positive_prices(poisoned.iloc[:1])) == 0
 
 
+class TestDuplicateColumnLabels:
+    """A repeated column label must not crash the screen.
+
+    ``panel[column]`` returns a *DataFrame* (not a Series) when ``column`` is a
+    duplicated label, and ``pd.to_numeric`` on a DataFrame raises ``TypeError:
+    arg must be a list, tuple, 1-d array, or Series``. A duplicated column is
+    reachable from the documented pipeline: a wide panel built with
+    ``pd.concat(..., axis=1)`` from two frames that share a symbol name, or a
+    cached/vendor frame written with a repeated column. The screen now iterates
+    by position, so every column is a Series regardless of how many labels
+    share its name; a clean panel is screened exactly as before.
+    """
+
+    def test_duplicate_price_column_label_does_not_crash(self):
+        panel = pd.DataFrame(
+            [[1.0, -1.0], [2.0, 3.0]],
+            index=pd.to_datetime(["2020-01-02", "2020-01-03"]),
+            columns=["close", "close"],
+        )
+        bad = non_positive_prices(panel)
+        assert list(bad.columns) == ["symbol", "timestamp", "price"]
+        assert len(bad) == 1
+        assert bad.iloc[0]["symbol"] == "close"
+        assert bad.iloc[0]["timestamp"] == pd.Timestamp("2020-01-02")
+        assert bad.iloc[0]["price"] == pytest.approx(-1.0)
+
+    def test_duplicate_wide_frame_label_does_not_crash(self):
+        panel = pd.DataFrame(
+            {"ES=F": [1.0, -2.0], "CL=F": [3.0, 4.0]},
+            index=pd.to_datetime(["2020-04-17", "2020-04-20"]),
+        )
+        panel.columns = ["CL=F", "CL=F"]
+        bad = non_positive_prices(panel)
+        assert len(bad) == 1
+        assert bad.iloc[0]["symbol"] == "CL=F"
+        assert bad.iloc[0]["price"] == pytest.approx(-2.0)
+
+    def test_a_clean_duplicate_label_panel_is_clean(self):
+        panel = pd.DataFrame(
+            [[1.0, 2.0], [3.0, 4.0]],
+            index=pd.to_datetime(["2020-01-02", "2020-01-03"]),
+            columns=["close", "close"],
+        )
+        assert len(non_positive_prices(panel)) == 0
+
+    def test_long_panel_offending_order_is_unchanged(self):
+        """The positional rewrite preserves ``PRICE_COLUMNS`` order, so the
+        offending-observation order (and the first row the fetcher names in its
+        error) is bit-identical to the pre-fix dict-comprehension form."""
+        panel = pd.DataFrame(
+            {"open": [1.0], "high": [2.0], "low": [0.0], "close": [-1.0]},
+            index=pd.to_datetime(["2020-01-02"]),
+        )
+        bad = non_positive_prices(panel)
+        assert list(bad["symbol"]) == ["low", "close"]
+        assert list(bad["price"]) == [0.0, -1.0]
+
+    def test_the_contract_rejects_the_pre_fix_duplicate_column_crash(self):
+        """Behavioural negative control: the pre-fix ``panel[column]`` read
+        returns a DataFrame on a duplicated label, and ``pd.to_numeric`` raises
+        on it -- exactly the crash the positional screen removes."""
+        panel = pd.DataFrame([[1.0, -1.0]], columns=["close", "close"])
+        with pytest.raises(TypeError):
+            pd.to_numeric(panel["close"], errors="coerce")
+
+
 class TestTheFetcherRefuses:
     """The root-cause fix: the data boundary refuses the panel."""
 

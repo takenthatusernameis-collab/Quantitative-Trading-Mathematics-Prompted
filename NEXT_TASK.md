@@ -1,6 +1,43 @@
 # NEXT_TASK.md
 
-## Latest session (2026-11-15, Cycle 125) — fixed an evidenced engine crash on a duplicated index label; 100% coverage preserved
+## Latest session (2026-11-15, Cycle 126) — closed the duplicate-**column** label crash class; 100% coverage preserved
+
+### What changed
+Cycle 125 closed the duplicate-**index** guard in `run_backtest` and pointed the next session at the remaining public surface for duplicate/degenerate shapes. I fuzzed the public API (engine, statistics, strategies, fetcher, tracking) with degenerate frames and found one reproduced crash class left: **duplicate column labels**.
+
+- **`non_positive_prices(panel)` — `TypeError: float()/pd.to_numeric() argument must be a list, tuple, 1-d array, or Series` on a duplicated column label.** The screen did `panel[column]` (fetcher.py:59/61); when `column` is duplicated that returns a *DataFrame*, and `pd.to_numeric(DataFrame)` raises. Reproduced two ways (duplicate `close` label in a long frame; duplicate symbol label in a wide frame). This is the *first* thing `run_backtest` calls, so the engine crashed before any of its own guards.
+- **Reachability (why it is a real defect, not a synthetic fixture):** the documented pipeline builds wide panels with `pd.concat(..., axis=1)` (e.g. `run_nf_*`: `pd.concat(prices_list/frames.values(), axis=1)`), so two frames that share a symbol name — a repeated ticker in a universe, or an overlapping benchmark/universe concatenation — produce a duplicated column. The cached/vendor read path also does not dedup columns. The screen's own contract is "Empty when the panel is clean", i.e. it is a screen, not a crash point.
+- **Fix 1 (`non_positive_prices`):** iterate columns **by position** (`panel.iloc[:, i]`) so every column is a `Series` regardless of how many labels share its name. `PRICE_COLUMNS` order is preserved, so the offending-observation order (and the first row the fetcher names in its error) is bit-identical on the clean path. `src/qtr/data/fetcher.py`.
+- **Fix 2 (`run_backtest`):** canonicalize duplicate **columns** once on entry (keep first), mirroring the existing duplicate-index guard, for both `prices` and `signals`. Without this the engine would still crash at `signals.reindex(..., columns=columns)` (`ValueError: cannot reindex on an axis with duplicate labels`) even after the screen was fixed. A unique column set is a no-op, so the clean path is bit-identical. `src/qtr/backtest/engine.py` (+16 lines).
+- **Tests:** `tests/test_h58_price_pathology_contamination.py::TestDuplicateColumnLabels` (+5: duplicate price label, duplicate wide label, clean duplicate panel, PRICE_COLUMNS order preserved, negative control reconstructing the pre-fix `pd.to_numeric(DataFrame)` TypeError). `tests/test_engine_edge_stress.py::TestDuplicateColumns` (+4: duplicate price columns, duplicate signal columns, unique columns untouched, negative control reconstructing the pre-fix `reindex` ValueError). +9 tests.
+
+### What was actually verified (own evidence)
+- `pytest -q tests/test_engine_edge_stress.py tests/test_h58_price_pathology_contamination.py tests/test_data_fetcher.py tests/test_backtest_engine.py` — **177 passed**.
+- Full pinned suite `pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (335.94s) — **3850 passed, 48 skipped, coverage 100.00%** (+9 vs. the 3841 baseline; the 48 skips are the pre-existing H51/H29/H28/causality skips). `src/qtr/data/fetcher.py` = 100% (219 stmts, 82 branches); `src/qtr/backtest/engine.py` = 100% (237 stmts, 84 branches).
+- **Negative control:** `git stash push src/qtr/data/fetcher.py src/qtr/backtest/engine.py` then re-running the two new classes → the 5 positive tests fail with the exact pre-fix errors (`TypeError: arg must be ... not 'Series'` ×4; `ValueError: cannot reindex on an axis with duplicate labels` ×1), the 4 negative-control/unique tests pass. Restored via `git stash pop`.
+- `pytest -q tests/test_gates_workflow.py` — **7 failed** (unchanged, exclusively the maintainer-gated block; fix is `patches/0001-gates-workflow-contract-fix.patch`).
+- `ruff check src tests run_*.py scripts` — All checks passed. `ruff format --check ...` — 335 files already formatted.
+
+### What remains unresolved
+Same three blocked items as Cycle 125: (1) maintainer-only `.github/workflows/gates.yml` patch; (2) H182/H183 research needs data authorization (free-data queue exhausted per register Cycle 116); (3) reproducibility backlog baseline-frozen at 197/11/528/0.
+
+### Approaches already tried and why they should not be repeated
+- Do not re-audit the duplicate-**index** guard or the duplicate-**column** guard — both are now closed and pinned with negative controls.
+- Do not re-fuzz the H182 runner's private helpers with malformed frames (`_net_buy_ratio_by_signal_day` / `_compute_daily_signals` raise `KeyError`/`TypeError` on frames missing `transaction_code`/`available_at`) — outside the runner's own contract; not an evidenced defect.
+- Do not re-fuzz `qtr.validation.statistics` — closed in Cycles 124/125; all public functions are guarded (only the intended `ValueError` on an unknown `multiple_testing_correction` method remains).
+- Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or alter coverage/frozen-contract gates.
+- Do not treat delisted/spliced-continuous/unavailable free series as valid PIT inputs.
+- Do not append H182/H183 to `experiments.jsonl` without sidecars + coordinated baseline/pinned-test updates.
+- Do not make speculative `src/qtr` changes absent an evidenced defect (this session's two guards are each evidenced by a reproduced crash).
+
+### One precise next task
+**Maintainer (preferred, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch`, then `pytest -q tests/test_gates_workflow.py` (expect 7 passed) on `origin/main`.
+
+**Agent alternative if another evidenced defect is wanted:** the duplicate-label class (index + columns) is now closed on both axes. The remaining public surface not yet exercised for degenerate shapes is `qtr.tracking.experiment` on malformed `experiments.jsonl` (a partial/interleaved append makes `load_experiment`/`list_experiments` raise `JSONDecodeError`/`KeyError` — reproduced, but reachability requires a mid-write crash and the fix is a behavior change, so treat it as a candidate only after confirming the partial-write scenario is real) and `qtr.utils.config.load_config` on malformed YAML (fail-fast is arguably correct). Do not manufacture a fix without a concrete reachability argument.
+
+---
+
+## Prior session (2026-11-15, Cycle 125) — fixed an evidenced engine crash on a duplicated index label; 100% coverage preserved
 
 ### What changed
 Cycle 124 closed the `qtr.validation.statistics` shape guards and suggested fuzzing the runner-side glue. I fuzzed the *engine* instead (the most-used public entry point, `run_backtest`, and the layer every runner funnels into) and found one genuine, reproduced, deterministic crash — not a malformed-frame curiosity:

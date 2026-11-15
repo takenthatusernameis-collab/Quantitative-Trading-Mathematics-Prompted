@@ -343,3 +343,69 @@ class TestDuplicateIndex:
         dup_ts = prices.index[0]
         with pytest.raises(TypeError):
             float(prices.loc[dup_ts, "A"])
+
+
+# --------------------------------------------------------------------------- #
+# Duplicate column labels
+# --------------------------------------------------------------------------- #
+class TestDuplicateColumns:
+    """A repeated column label must not crash the engine.
+
+    The duplicate-label class exists on the column axis as well as the index
+    axis. A panel built with ``pd.concat(..., axis=1)`` from two frames that
+    share a symbol name (a repeated ticker in a universe, or an overlapping
+    benchmark/universe concatenation) carries a duplicated column, and
+    ``signals.reindex(..., columns=columns)`` refuses to align against one
+    (``ValueError: cannot reindex on an axis with duplicate labels``), while
+    the trade log's ``float(prices.loc[ts, sym])`` returns a Series. The engine
+    now canonicalizes both panels' columns (keep first) once on entry, so a
+    repeated symbol is a no-op and the clean path is bit-identical.
+    """
+
+    def test_duplicate_price_columns_do_not_crash(self):
+        prices = pd.DataFrame(
+            [[101.0, 999.0, 10.0], [102.0, 102.0, 11.0], [103.0, 103.0, 12.0]],
+            index=pd.DatetimeIndex(["2020-01-02", "2020-01-03", "2020-01-04"]),
+            columns=["A", "A", "B"],
+        )
+        signals = pd.DataFrame({"A": [0.0, 1.0, 1.0], "B": [1.0, 1.0, 1.0]}, index=prices.index)
+        res = run_backtest(prices=prices, signals=signals, config=_make_config())
+
+        assert res.positions.columns.is_unique
+        assert list(res.positions.columns) == ["A", "B"]
+        assert res.returns.index.is_unique
+        assert np.isfinite(res.returns.values).all()
+        assert np.isfinite(res.equity_curve.values).all()
+
+    def test_duplicate_signal_columns_do_not_crash(self):
+        prices = _make_prices(symbols=("A", "B"))
+        base = pd.DataFrame({"A": 0.0, "B": 1.0}, index=prices.index)
+        base.iloc[5] = 1.0
+        duplicated = pd.concat([base, base[["A"]]], axis=1)  # columns A, B, A
+        res = run_backtest(prices=prices, signals=duplicated, config=_make_config())
+
+        assert res.positions.columns.is_unique
+        assert np.isfinite(res.returns.values).all()
+        assert len(res.trades) >= 1
+
+    def test_unique_columns_are_untouched_by_the_column_guard(self):
+        """A clean panel must be bit-identical with and without the guard."""
+        prices = _make_prices(symbols=("A", "B"))
+        signals = pd.DataFrame(1.0, index=prices.index, columns=prices.columns)
+        res = run_backtest(prices=prices, signals=signals, config=_make_config())
+
+        assert res.positions.columns.is_unique
+        assert np.isfinite(res.returns.values).all()
+        assert len(res.trades) == 2
+
+    def test_the_contract_rejects_the_pre_fix_duplicate_column_crash(self):
+        """Behavioural negative control: reindexing a duplicated-label source
+        against a unique target raises -- exactly the crash the column guard
+        removes."""
+        sig = pd.DataFrame(
+            np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]),
+            index=pd.DatetimeIndex(["2020-01-02", "2020-01-03"]),
+            columns=["A", "A", "B"],
+        )
+        with pytest.raises(ValueError, match="duplicate labels"):
+            sig.reindex(index=sig.index, columns=["A", "B"])

@@ -55,17 +55,32 @@ def non_positive_prices(panel: pd.DataFrame) -> pd.DataFrame:
         return pd.DataFrame(columns=["symbol", "timestamp", "price"])
 
     price_columns = [column for column in PRICE_COLUMNS if column in panel.columns]
-    if price_columns:
-        series = {str(column): panel[column] for column in price_columns}
-    else:
-        series = {str(col): panel[col] for col in panel.columns}
 
     rows = []
-    for name, column in series.items():
-        values = pd.to_numeric(column, errors="coerce")
-        bad = values[(values <= 0) & values.notna()]
-        for timestamp, price in bad.items():
-            rows.append((name, timestamp, float(price)))
+    if price_columns:
+        # ``panel[column]`` returns a DataFrame (not a Series) when ``column``
+        # is a duplicated label, and ``pd.to_numeric`` on a DataFrame raises
+        # ``TypeError: arg must be a list, tuple, 1-d array, or Series``.  A
+        # duplicated column label is reachable from the documented pipeline:
+        # a wide panel built with ``pd.concat(..., axis=1)`` from two frames
+        # that share a symbol name, or a cached/vendor frame written with a
+        # repeated column.  Screen by position so every column is a Series
+        # regardless of how many labels share its name; the ``PRICE_COLUMNS``
+        # order is preserved so the offending-observation order is unchanged.
+        for column in price_columns:
+            for position, label in enumerate(panel.columns):
+                if label != column:
+                    continue
+                values = pd.to_numeric(panel.iloc[:, position], errors="coerce")
+                bad = values[(values <= 0) & values.notna()]
+                for timestamp, price in bad.items():
+                    rows.append((str(column), timestamp, float(price)))
+    else:
+        for position, label in enumerate(panel.columns):
+            values = pd.to_numeric(panel.iloc[:, position], errors="coerce")
+            bad = values[(values <= 0) & values.notna()]
+            for timestamp, price in bad.items():
+                rows.append((str(label), timestamp, float(price)))
     if not rows:
         return pd.DataFrame(columns=["symbol", "timestamp", "price"])
     return pd.DataFrame(rows, columns=["symbol", "timestamp", "price"])

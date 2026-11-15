@@ -1,6 +1,28 @@
 # HANDOFF.md
 
-> **Latest (2026-11-15, Cycle 125 — real defect fix: `run_backtest` crashed on a duplicated index label):**
+> **Latest (2026-11-15, Cycle 126 — real defect fix: duplicate-`column` labels crashed the price screen and the engine):**
+> Cycle 125 closed the duplicate-`index` guard and pointed the next session at the
+> remaining public surface. I fuzzed the public API and found the duplicate-`column`
+> label class. `non_positive_prices` did `panel[column]`, which returns a *DataFrame*
+> when the label is duplicated, and `pd.to_numeric(DataFrame)` raises
+> `TypeError: arg must be ... not 'Series'` — the first call `run_backtest` makes, so
+> the engine crashed before its own guards. Reachable from the documented
+> `pd.concat(..., axis=1)` panel build (a repeated ticker or overlapping
+> benchmark/universe concat) and the un-deduped cached/vendor path. Fix: screen by
+> column **position** (`panel.iloc[:, i]`), preserving `PRICE_COLUMNS` order so the
+> clean path is bit-identical. And canonicalize duplicate **columns** once on entry to
+> `run_backtest` (keep first, mirroring the index guard) so `signals.reindex(...,
+> columns=...)` and `prices.loc[ts, sym]` cannot crash. Added
+> `TestDuplicateColumnLabels` (+5) and `TestDuplicateColumns` (+4), each with a
+> negative control reconstructing the pre-fix error. Full pinned suite **3850 passed /
+> 48 skipped / 0 failed**, `src/qtr` coverage **100%**; `fetcher.py` 100% (219 stmts /
+> 82 branches), `engine.py` 100% (237 stmts / 84 branches); ruff clean (335 files).
+> Negative control: stashing both source files makes the 5 positive tests fail with the
+> exact pre-fix `TypeError`/`ValueError`, the 4 negative controls pass. No gate,
+> artifact, sidecar, hash, frozen-number, or workflow change. See
+> `HANDOFF_CURRENT_SESSION.md` and `NEXT_TASK.md` Cycle 126.
+
+> **Prior (2026-11-15, Cycle 125 — real defect fix: `run_backtest` crashed on a duplicated index label):**
 > Cycle 124 closed the `qtr.validation.statistics` shape guards and pointed the next
 > session at the runner-side glue. I fuzzed the engine (`run_backtest`, the most-used
 > public entry point) instead and found one reproduced, deterministic crash: the trade
