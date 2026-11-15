@@ -271,44 +271,64 @@ class ExperimentTracker:
             return {}
 
     def load_experiment(self, experiment_id: str) -> ExperimentResult | None:
-        """Load a previous experiment by ID."""
+        """Load a previous experiment by ID.
+
+        Malformed or incomplete lines are skipped so a partial/interleaved append
+        (e.g. a mid-write crash) does not make the whole log unreadable.
+        """
         log_file = self.log_dir / "experiments.jsonl"
         if not log_file.exists():
             return None
 
         with open(log_file) as f:
-            for line in f:
-                record = json.loads(line)
-                if record["metadata"]["experiment_id"] == experiment_id:
-                    return ExperimentResult(
-                        metadata=ExperimentMetadata(**record["metadata"]),
-                        metrics=record["metrics"],
-                        artifacts=record["artifacts"],
-                        status=record["status"],
-                        error=record.get("error"),
-                    )
+            for raw in f:
+                line = raw.strip()
+                if not line:
+                    continue
+                try:
+                    record = json.loads(line)
+                    if record["metadata"]["experiment_id"] == experiment_id:
+                        return ExperimentResult(
+                            metadata=ExperimentMetadata(**record["metadata"]),
+                            metrics=record.get("metrics", {}),
+                            artifacts=record.get("artifacts", {}),
+                            status=record.get("status", "unknown"),
+                            error=record.get("error"),
+                        )
+                except Exception:  # noqa: BLE001 -- tolerate partial/corrupt lines
+                    continue
         return None
 
     def list_experiments(self, limit: int = 100) -> list[dict[str, Any]]:
-        """List recent experiments."""
+        """List recent experiments.
+
+        Malformed or incomplete lines are skipped so a partial/interleaved append
+        does not make the whole log unreadable.
+        """
         log_file = self.log_dir / "experiments.jsonl"
         if not log_file.exists():
             return []
 
         experiments = []
         with open(log_file) as f:
-            for line in f:
-                record = json.loads(line)
-                meta = record["metadata"]
-                experiments.append(
-                    {
-                        "experiment_id": meta["experiment_id"],
-                        "name": meta["name"],
-                        "timestamp": meta["timestamp"],
-                        "status": record["status"],
-                        "metrics": record["metrics"],
-                    }
-                )
+            for raw in f:
+                line = raw.strip()
+                if not line:
+                    continue
+                try:
+                    record = json.loads(line)
+                    meta = record["metadata"]
+                    experiments.append(
+                        {
+                            "experiment_id": meta["experiment_id"],
+                            "name": meta["name"],
+                            "timestamp": meta["timestamp"],
+                            "status": record.get("status", "unknown"),
+                            "metrics": record.get("metrics", {}),
+                        }
+                    )
+                except Exception:  # noqa: BLE001 -- tolerate partial/corrupt lines
+                    continue
 
         return sorted(experiments, key=lambda x: x["timestamp"], reverse=True)[:limit]
 

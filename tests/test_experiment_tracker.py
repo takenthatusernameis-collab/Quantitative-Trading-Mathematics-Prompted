@@ -187,6 +187,54 @@ def test_list_experiments_no_logfile(tmp_path):
     assert t.list_experiments() == []
 
 
+def _good_record(experiment_id="e1", ts="2020-01-01T00:00:00Z"):
+    return {
+        "metadata": {
+            "experiment_id": experiment_id,
+            "name": "n",
+            "description": "",
+            "timestamp": ts,
+            "git_commit": "",
+            "git_dirty": False,
+            "python_version": "3",
+            "dependencies": {},
+            "random_seeds": {},
+            "config": {},
+            "data_sources": {},
+            "compute_budget": {},
+        },
+        "metrics": {},
+        "artifacts": {},
+        "status": "completed",
+        "error": None,
+    }
+
+
+def test_load_and_list_skip_malformed_and_incomplete_lines(tmp_path):
+    """A partial/corrupt JSONL line must not prevent reading valid records."""
+    import json
+
+    t = ExperimentTracker(log_dir=tmp_path / "logs")
+    t.log_dir.mkdir(parents=True, exist_ok=True)
+    log = t.log_dir / "experiments.jsonl"
+    good1 = _good_record("e1", "2020-01-01T00:00:00Z")
+    good2 = _good_record("e2", "2020-01-02T00:00:00Z")
+    bad_incomplete = {"metadata": {"experiment_id": "bad"}}
+    log.write_text(
+        json.dumps(good1)
+        + "\n{bad json\n"
+        + json.dumps(bad_incomplete)
+        + "\n"
+        + json.dumps(good2)
+        + "\n\n"
+    )
+    loaded = t.load_experiment("e2")
+    assert loaded is not None
+    assert loaded.metadata.experiment_id == "e2"
+    listed = t.list_experiments()
+    assert [e["experiment_id"] for e in listed] == ["e2", "e1"]
+
+
 def test_record_artifact_fallback_unknown_type(tmp_path):
     # lines 335-337: record_artifact falls back to JSON-serializing unknown types
     from qtr.tracking.experiment import Experiment

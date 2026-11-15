@@ -1,5 +1,22 @@
 # HANDOFF.md
 
+> **Latest (2026-11-15, Cycle 127 — defect fix: malformed `experiments.jsonl` lines no longer break tracker reads):**
+> `experiments.jsonl` is append-only and a partial/interleaved append (mid-write crash,
+> truncation) is reachable. I reproduced that `ExperimentTracker.load_experiment` /
+> `list_experiments` crashed on the first bad/incomplete line (`JSONDecodeError`,
+> `TypeError` from missing `ExperimentMetadata` fields, or `KeyError` in listing), making
+> valid records before/after unreadable. Fixed by skipping empty/malformed/incomplete lines
+> and continuing to scan (defensive `get` defaults for result fields). Valid-path behavior
+> unchanged. Added regression `test_load_and_list_skip_malformed_and_incomplete_lines`.
+> Verified: repro before/after (isolated script) as expected; focused
+> `tests/test_experiment_tracker.py tests/test_experiment_artifact_schema.py tests/test_public_api_contract.py`
+> **168 passed**; full pinned suite `pytest -q -W error --cov=qtr --cov-branch
+> --cov-report=term-missing --ignore=tests/test_gates_workflow.py` **3825 passed / 48
+> skipped / 0 failed**, `src/qtr` coverage **100%**; ruff check/format clean on changed
+> files. `tests/test_gates_workflow.py` remains **7 failed** (maintainer-gated; fix is
+> `patches/0001-gates-workflow-contract-fix.patch`). No gate, artifact, sidecar, hash,
+> frozen-number, or workflow change. See `HANDOFF_CURRENT_SESSION.md` and `NEXT_TASK.md`.
+
 > **Latest (2026-11-15, Cycle 126 — real defect fix: duplicate-`column` labels crashed the price screen and the engine):**
 > Cycle 125 closed the duplicate-`index` guard and pointed the next session at the
 > remaining public surface. I fuzzed the public API and found the duplicate-`column`

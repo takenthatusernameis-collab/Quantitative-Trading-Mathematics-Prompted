@@ -1,39 +1,38 @@
 # NEXT_TASK.md
 
-## Latest session (2026-11-15, Cycle 126) — closed the duplicate-**column** label crash class; 100% coverage preserved
+## Latest session (2026-11-15, Cycle 127) — tolerate malformed/incomplete `experiments.jsonl` records; 100% coverage preserved
 
 ### What changed
-Cycle 125 closed the duplicate-**index** guard in `run_backtest` and pointed the next session at the remaining public surface for duplicate/degenerate shapes. I fuzzed the public API (engine, statistics, strategies, fetcher, tracking) with degenerate frames and found one reproduced crash class left: **duplicate column labels**.
-
-- **`non_positive_prices(panel)` — `TypeError: float()/pd.to_numeric() argument must be a list, tuple, 1-d array, or Series` on a duplicated column label.** The screen did `panel[column]` (fetcher.py:59/61); when `column` is duplicated that returns a *DataFrame*, and `pd.to_numeric(DataFrame)` raises. Reproduced two ways (duplicate `close` label in a long frame; duplicate symbol label in a wide frame). This is the *first* thing `run_backtest` calls, so the engine crashed before any of its own guards.
-- **Reachability (why it is a real defect, not a synthetic fixture):** the documented pipeline builds wide panels with `pd.concat(..., axis=1)` (e.g. `run_nf_*`: `pd.concat(prices_list/frames.values(), axis=1)`), so two frames that share a symbol name — a repeated ticker in a universe, or an overlapping benchmark/universe concatenation — produce a duplicated column. The cached/vendor read path also does not dedup columns. The screen's own contract is "Empty when the panel is clean", i.e. it is a screen, not a crash point.
-- **Fix 1 (`non_positive_prices`):** iterate columns **by position** (`panel.iloc[:, i]`) so every column is a `Series` regardless of how many labels share its name. `PRICE_COLUMNS` order is preserved, so the offending-observation order (and the first row the fetcher names in its error) is bit-identical on the clean path. `src/qtr/data/fetcher.py`.
-- **Fix 2 (`run_backtest`):** canonicalize duplicate **columns** once on entry (keep first), mirroring the existing duplicate-index guard, for both `prices` and `signals`. Without this the engine would still crash at `signals.reindex(..., columns=columns)` (`ValueError: cannot reindex on an axis with duplicate labels`) even after the screen was fixed. A unique column set is a no-op, so the clean path is bit-identical. `src/qtr/backtest/engine.py` (+16 lines).
-- **Tests:** `tests/test_h58_price_pathology_contamination.py::TestDuplicateColumnLabels` (+5: duplicate price label, duplicate wide label, clean duplicate panel, PRICE_COLUMNS order preserved, negative control reconstructing the pre-fix `pd.to_numeric(DataFrame)` TypeError). `tests/test_engine_edge_stress.py::TestDuplicateColumns` (+4: duplicate price columns, duplicate signal columns, unique columns untouched, negative control reconstructing the pre-fix `reindex` ValueError). +9 tests.
+- **Reproduced defect (reachable):** `experiments.jsonl` is append-only; a mid-write crash, concurrent append, or manual truncation can leave a partial/bad line. `ExperimentTracker.load_experiment`/`list_experiments` previously crashed on the first malformed (`JSONDecodeError`) or incomplete record (`TypeError`/`KeyError`), making valid records before/after it unreadable.
+- **Fix:** `src/qtr/tracking/experiment.py` — both methods skip empty/malformed/incomplete lines and continue scanning; `status`/`metrics`/`artifacts` default defensively when listing/loading partial-but-constructible records is not possible. Valid-path behavior unchanged.
+- **Tests:** `tests/test_experiment_tracker.py` — added `test_load_and_list_skip_malformed_and_incomplete_lines` (+1) pinning that bad JSON and an incomplete record do not block loading/listing valid surrounding records.
 
 ### What was actually verified (own evidence)
-- `pytest -q tests/test_engine_edge_stress.py tests/test_h58_price_pathology_contamination.py tests/test_data_fetcher.py tests/test_backtest_engine.py` — **177 passed**.
-- Full pinned suite `pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (335.94s) — **3850 passed, 48 skipped, coverage 100.00%** (+9 vs. the 3841 baseline; the 48 skips are the pre-existing H51/H29/H28/causality skips). `src/qtr/data/fetcher.py` = 100% (219 stmts, 82 branches); `src/qtr/backtest/engine.py` = 100% (237 stmts, 84 branches).
-- **Negative control:** `git stash push src/qtr/data/fetcher.py src/qtr/backtest/engine.py` then re-running the two new classes → the 5 positive tests fail with the exact pre-fix errors (`TypeError: arg must be ... not 'Series'` ×4; `ValueError: cannot reindex on an axis with duplicate labels` ×1), the 4 negative-control/unique tests pass. Restored via `git stash pop`.
-- `pytest -q tests/test_gates_workflow.py` — **7 failed** (unchanged, exclusively the maintainer-gated block; fix is `patches/0001-gates-workflow-contract-fix.patch`).
-- `ruff check src tests run_*.py scripts` — All checks passed. `ruff format --check ...` — 335 files already formatted.
+- Before-fix repro (isolated `PYTHONPATH=src` script): malformed/incomplete lines raised `JSONDecodeError` / `TypeError` / `KeyError`.
+- After-fix repro: `load_experiment('e2')` and `list_experiments()` returned valid records despite corruption around them.
+- `PYTHONPATH=src python -m pytest -q tests/test_experiment_tracker.py tests/test_experiment_artifact_schema.py tests/test_public_api_contract.py` → **168 passed**.
+- Full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (358.28s) → **3825 passed, 48 skipped, coverage 100.00%**. `src/qtr/tracking/experiment.py` 100%.
+- `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged, maintainer-gated only).
+- `python -m ruff check src/qtr/tracking/experiment.py tests/test_experiment_tracker.py` → All checks passed.
+- `python -m ruff format --check src/qtr/tracking/experiment.py tests/test_experiment_tracker.py` → 2 files already formatted.
 
 ### What remains unresolved
-Same three blocked items as Cycle 125: (1) maintainer-only `.github/workflows/gates.yml` patch; (2) H182/H183 research needs data authorization (free-data queue exhausted per register Cycle 116); (3) reproducibility backlog baseline-frozen at 197/11/528/0.
+1. **Maintainer-only (CI contract):** `.github/workflows/gates.yml` not updated; 7 `tests/test_gates_workflow.py` tests red until maintainer applies `patches/0001-gates-workflow-contract-fix.patch` with workflow-scoped credentials. Agent cannot land `.github/workflows/**`.
+2. **Research queue exhausted under free/public PIT data:** H1–H182 executed/rejected; no honest free-data H183 pre-registrable without new authorized data.
+3. **Reproducibility backlog:** `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0` unchanged; baseline-frozen.
 
 ### Approaches already tried and why they should not be repeated
-- Do not re-audit the duplicate-**index** guard or the duplicate-**column** guard — both are now closed and pinned with negative controls.
-- Do not re-fuzz the H182 runner's private helpers with malformed frames (`_net_buy_ratio_by_signal_day` / `_compute_daily_signals` raise `KeyError`/`TypeError` on frames missing `transaction_code`/`available_at`) — outside the runner's own contract; not an evidenced defect.
-- Do not re-fuzz `qtr.validation.statistics` — closed in Cycles 124/125; all public functions are guarded (only the intended `ValueError` on an unknown `multiple_testing_correction` method remains).
 - Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or alter coverage/frozen-contract gates.
-- Do not treat delisted/spliced-continuous/unavailable free series as valid PIT inputs.
-- Do not append H182/H183 to `experiments.jsonl` without sidecars + coordinated baseline/pinned-test updates.
-- Do not make speculative `src/qtr` changes absent an evidenced defect (this session's two guards are each evidenced by a reproduced crash).
+- Do not make speculative `src/qtr` changes absent reproduced/evidenced defect and reachability.
+- Do not re-open closed classes without new evidence (duplicate index/column, statistics shape guards, H182 fetch KeyError, malformed JSONL skip-now closed).
+- **`qtr.utils.config.load_config` on malformed YAML** currently fails fast with `yaml` parser error; do not silently swallow/normalize without explicit product decision and evidence.
 
 ### One precise next task
-**Maintainer (preferred, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch`, then `pytest -q tests/test_gates_workflow.py` (expect 7 passed) on `origin/main`.
+**Maintainer (preferred, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch` with workflow scope, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed) on `origin/main`.
 
-**Agent alternative if another evidenced defect is wanted:** the duplicate-label class (index + columns) is now closed on both axes. The remaining public surface not yet exercised for degenerate shapes is `qtr.tracking.experiment` on malformed `experiments.jsonl` (a partial/interleaved append makes `load_experiment`/`list_experiments` raise `JSONDecodeError`/`KeyError` — reproduced, but reachability requires a mid-write crash and the fix is a behavior change, so treat it as a candidate only after confirming the partial-write scenario is real) and `qtr.utils.config.load_config` on malformed YAML (fail-fast is arguably correct). Do not manufacture a fix without a concrete reachability argument.
+**Agent alternative (only with new evidence):** audit remaining `qtr.tracking`/`qtr.data` persistence paths for a *reproduced* crash on realistically corrupt/partial state (not hypothetical concurrent interleaving). `Experiment.load_metadata()` already degrades to `{}` on corrupt metadata JSON and writers overwrite whole files, so do not "fix" without a concrete failing case. Keep 100% `src/qtr` coverage and all gates/contracts intact.
+
+**Constraints:** no gate weakening; no modification of published/frozen artifacts, verdicts, thresholds, or frozen numbers except deliberate authorized corpus/baseline updates; no workflow commit from agent.
 
 ---
 
