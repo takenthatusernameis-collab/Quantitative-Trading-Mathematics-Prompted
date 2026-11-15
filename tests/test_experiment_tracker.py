@@ -267,6 +267,28 @@ def test_record_artifact_fallback_unknown_type(tmp_path):
     assert p.read_text() == "42"
 
 
+def test_record_artifact_non_serializable_data_degrades(tmp_path):
+    # Non-JSON-serializable objects must not crash record_artifact; they are
+    # coerced via str(), mirroring log_metadata/log_params/log_results.
+    from qtr.tracking.experiment import Experiment
+
+    exp = Experiment("nonserial", base_dir=tmp_path)
+
+    class Weird:
+        def __repr__(self):
+            return "<weird>"
+
+    p = exp.record_artifact("weird.json", Weird())
+    assert p.exists()
+    assert p.read_text() == '"<weird>"'
+
+    p = exp.record_artifact("set.json", {1, 2, 3})
+    assert p.exists()
+    import json as _json
+
+    assert _json.loads(p.read_text()) == str({1, 2, 3})
+
+
 def test_tracker_git_and_deps_exception(tmp_path, monkeypatch):
     # Simulate git failure. _get_git_info now shells out via
     # subprocess.check_output (rev-parse + status --porcelain), so the

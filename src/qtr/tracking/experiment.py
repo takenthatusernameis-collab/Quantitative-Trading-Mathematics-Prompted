@@ -365,7 +365,7 @@ class Experiment:
             return path
         if isinstance(data, (dict, list)):
             with open(path, "w") as f:
-                json.dump(data, f)
+                json.dump(data, f, default=str)
             return path
         if isinstance(data, str):
             with open(path, "w") as f:
@@ -376,7 +376,7 @@ class Experiment:
                 f.write(data)
             return path
         with open(path, "w") as f:
-            json.dump(data, f)
+            json.dump(data, f, default=str)
         return path
 
     def log_metadata(self, **kwargs) -> None:
