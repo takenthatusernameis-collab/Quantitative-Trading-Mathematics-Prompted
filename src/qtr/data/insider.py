@@ -299,10 +299,21 @@ def _value_text(element: ET.Element | None) -> str:
     leaf that carries its text directly
     (``<issuerName>Apple Inc.</issuerName>``). Both are read; a wrapper with
     an empty ``<value>`` returns ``""`` rather than the wrapper's whitespace.
+
+    The nested lookup is namespace-agnostic (``{*}value``): a document that
+    declares a default XML namespace gives every element -- including the
+    ``<value>`` child -- a ``{namespace}value`` tag, which a bare
+    ``element.find("value")`` never matches. The old lookup therefore returned
+    the wrapper's whitespace for every namespaced field, silently dropping the
+    transaction date, share count and price while the leaf fields (issuer name,
+    owner name, transaction code) still parsed. Every other traversal in this
+    module already matches by local name; this keeps ``_value_text`` consistent
+    with them. For a non-namespaced document ``{*}value`` resolves to exactly
+    the same child as ``find("value")``.
     """
     if element is None:
         return ""
-    value = element.find("value")
+    value = element.find("{*}value")
     if value is not None:
         return (value.text or "").strip()
     return (element.text or "").strip()

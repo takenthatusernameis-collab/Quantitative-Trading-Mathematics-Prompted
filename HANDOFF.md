@@ -1,5 +1,39 @@
 # HANDOFF.md
 
+> **Latest (2026-11-15, Cycle 137 — fixed a reproduced `parse_form4` silent-data-loss defect on namespaced Form 4 XML; 100% coverage preserved):**
+> The standing agent task was to find a reproduced public-API defect. Probing the
+> one public parser not yet exercised at its nested-`<value>` boundary found one
+> that the existing suite hid: `_value_text` read a wrapper's value with
+> `element.find("value")`, which `ElementTree` matches against the literal tag
+> `value`. A document that declares a default XML namespace gives the child the tag
+> `{namespace}value`, so the lookup returned `None` and `_value_text` returned the
+> wrapper's whitespace. Every namespaced `<value>`-wrapped field was silently
+> dropped — `transaction_date` → `NaT`, `shares`/`price_per_share` → `NaN`,
+> `security_title` → `""` — while leaf fields (`issuer_name`, `reporting_owner`,
+> `transaction_code`) still parsed, so nothing raised. Every other traversal in
+> `insider.py` already matches by local name.
+> - **Fix:** `src/qtr/data/insider.py` — `element.find("{*}value")`
+>   (namespace-agnostic wildcard); bit-identical on non-namespaced documents.
+> - **Tests:** `tests/test_sec_insider.py` — strengthened
+>   `test_parse_form4_handles_a_namespaced_document` to assert the wrapper fields
+>   (`transaction_date == 2026-03-04`, `shares == 10.0`), and added
+>   `test_the_pre_fix_namespace_blind_value_lookup_loses_the_value` (negative
+>   control: the pre-fix `find("value")` returns nothing on the same element).
+>   +1 test.
+> - **Verified:** negative control — `git stash push -- src/qtr/data/insider.py`
+>   makes the strengthened test fail with `AssertionError: assert 'NaT' ==
+>   '2026-03-04'`; restored via `git stash pop`, 38 passed. Full pinned suite
+>   `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing
+>   --ignore=tests/test_gates_workflow.py` (434.12s) → **3864 passed, 51 skipped,
+>   0 failed**, `src/qtr` coverage **100.00%** (1504 stmts / 534 branches / 0
+>   miss). `tests/test_gates_workflow.py` → **7 failed** (unchanged,
+>   maintainer-gated; fix is `patches/0001-gates-workflow-contract-fix.patch`).
+>   `ruff check`/`format --check` over `src tests run_*.py scripts` → All checks
+>   passed / 335 files already formatted.
+>   `scripts/backtest_perf_regression_gate.py` → **PASSED** (0.476s < 5s, 13668
+>   trades). No gate, artifact, sidecar, hash, frozen-number, or workflow change.
+>   See `NEXT_TASK.md` Cycle 137.
+
 > **Latest (2026-11-15, Cycle 136 — fixed a reproduced `fetch_ccxt` crash on an unknown `exchange_id`; 100% coverage preserved):**
 > No prior agent assignment existed, so I inspected the repo (clean tree at HEAD
 > `78f756c`, matches `origin/main`) and selected a bounded, high-value task from

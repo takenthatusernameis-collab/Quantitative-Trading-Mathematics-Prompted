@@ -1,82 +1,82 @@
-# HANDOFF — current session (2026-11-15, Cycle 136)
+# HANDOFF — current session (2026-11-15, Cycle 137)
 
 ## What changed
 
-**Fixed a reproduced `fetch_ccxt` crash on an unknown `exchange_id`; 100% coverage preserved.**
+**Fixed a reproduced silent-data-loss defect in `qtr.data.insider.parse_form4` for
+namespaced Form 4 XML; 100% coverage preserved.**
 
-No prior agent assignment existed, so I inspected the repo (clean tree at HEAD `78f756c`,
-matches `origin/main`) and selected a bounded, high-value task from the remaining
-public `src/qtr` surface. The defect hunts of Cycles 132/135 probed
-`qtr.data.insider` and `qtr.strategies.baselines` but not the fetcher's CCXT
-exchange initialization, so they missed this one.
+No new prior assignment existed beyond the standing "hunt a reproduced public-API
+defect" task, so I probed the one public parser not yet exercised at its nested
+`<value>` boundary. The existing suite claimed to handle a namespaced document but
+only asserted the *leaf* fields, so the bug was hidden.
 
-- **Reproduced defect (reachable via the public CCXT fetch path):**
-  `DataFetcher.fetch_ccxt` did `exchange_class = getattr(ccxt, exchange_id)`
-  (fetcher.py:348) **before** the per-symbol `try` block, so an `exchange_id`
-  that ccxt does not expose raised a bare
-  `AttributeError: module 'ccxt' has no attribute '<exchange_id>'` and aborted the
-  whole call instead of failing closed per-symbol like the network, column and
-  pagination paths. Reachable from the public API with no caller-side filtering:
-  every CCXT runner passes `exchange_id` in, and `run_h23_crypto_futures_tsmom.py:484`
-  hard-codes `"coinbase"`, so any other id (or a future ccxt version that drops
-  it) hits it. Reproduced in isolation:
-  `fetch_ccxt("not_a_real_exchange", ["BTC/USDT"], ...)` -> `AttributeError`.
-- **Fix:** `src/qtr/data/fetcher.py` - `getattr(ccxt, exchange_id, None)` then raise
-  a named `ValueError` ("unknown CCXT exchange ...") listing `ccxt.exchanges` when
-  the real module exposes it and falling back to the plain message for stubs
-  that do not. A valid id is a no-op, so the clean path is bit-identical.
-- **Tests:** `tests/test_data_fetcher.py` - new `TestUnknownExchangeId` with
-  `test_unknown_exchange_id_raises_value_error`,
-  `test_unknown_exchange_id_raises_before_any_symbol_fetch` (a `NeverCalled`
-  exchange proves the guard short-circuits before the symbol loop),
-  `test_known_exchange_id_is_untouched`, and
-  `test_the_contract_rejects_the_pre_fix_attribute_error` (behavioural negative
-  control reconstructing the pre-fix `AttributeError`). +4 tests.
+- **Reproduced defect (public `parse_form4` API):** `_value_text` read a wrapper's
+  nested value with `element.find("value")`. `ElementTree` matches that against the
+  literal tag `value`, so a document that declares a default XML namespace gives the
+  child the tag `{namespace}value` and the lookup returns `None`; `_value_text` then
+  returned the wrapper's whitespace. Every namespaced field that lives in a
+  `<value>` wrapper was silently dropped — `transaction_date` → `NaT`,
+  `shares`/`price_per_share` → `NaN`, `security_title` → `""` — while leaf fields
+  (`issuer_name`, `reporting_owner`, `transaction_code`) still parsed, so nothing
+  raised. Every other traversal in `insider.py` (`_child_text`, `_owner_rows`,
+  `_transaction_rows`) already matches by local name (`_local_name`).
+- **Fix:** `src/qtr/data/insider.py` — `element.find("{*}value")` (namespace-agnostic
+  wildcard). For a non-namespaced document `{*}value` resolves to exactly the same
+  child as `find("value")`, so the clean path is bit-identical.
+- **Tests:** `tests/test_sec_insider.py` — strengthened
+  `test_parse_form4_handles_a_namespaced_document` to assert the wrapper fields
+  (`transaction_date == 2026-03-04`, `shares == 10.0`), and added
+  `test_the_pre_fix_namespace_blind_value_lookup_loses_the_value` (behavioural
+  negative control reconstructing the pre-fix `find("value")` on the same element
+  and requiring it to return nothing). +1 test.
 
 ## What was actually verified (own evidence)
 
-- Before-fix repro (isolated `PYTHONPATH=src`):
-  `fetch_ccxt("not_a_real_exchange", ...)` -> `AttributeError: module 'ccxt' has
-  no attribute 'not_a_real_exchange'`.
-- After-fix: same call raises `ValueError: unknown CCXT exchange
-  'not_a_real_exchange'...`; `fetch_ccxt("binance", ...)` still fetches normally.
-- **Negative control:** `git stash` of only `fetcher.py` -> the 3 rejecting tests
-  fail with the exact pre-fix `AttributeError` (`'kraken'`, `'not_a_real_exchange'`);
-  restored via `git stash pop`, 4 passed.
+- Before-fix repro: `parse_form4(NAMESPACED_XML)` → `transaction_date = NaT`,
+  `shares = NaN`, `security_title = ""`. After fix: `2026-03-04`, `10.0`.
+- **Negative control:** `git stash push -- src/qtr/data/insider.py` → the
+  strengthened test fails with `AssertionError: assert 'NaT' == '2026-03-04'`;
+  restored via `git stash pop`, 38 passed.
 - Full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch
-  --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (434.77s) ->
-  **3863 passed, 51 skipped, 0 failed**, `src/qtr` coverage **100.00%** (1504
-  stmts / 534 branches / 0 miss; `fetcher.py` 223 stmts / 84 branches).
-- `python -m pytest -q tests/test_gates_workflow.py` -> **7 failed** (unchanged,
+  --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (434.12s) →
+  **3864 passed, 51 skipped, 0 failed**, `src/qtr` coverage **100.00%** (1504
+  stmts / 534 branches / 0 miss; `insider.py` 234 stmts / 84 branches).
+- `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged,
   maintainer-gated; fix is `patches/0001-gates-workflow-contract-fix.patch`).
-- `python scripts/backtest_perf_regression_gate.py` -> **PASSED** (0.481s, limit
+- `python -m ruff check src tests run_*.py scripts` → All checks passed;
+  `ruff format --check` → 335 files already formatted.
+- `python scripts/backtest_perf_regression_gate.py` → **PASSED** (0.476s, limit
   5s, 10.7MB peak, 13668 trades).
-- `python -m ruff check src tests run_*.py scripts` -> All checks passed; `ruff
-  format --check` -> 335 files already formatted.
+- Supplementary probes this session (all clean): cross-module engine/validate
+  agreement fuzz (3013 metric-surface series + 9 end-to-end boundary cases) → 0
+  mismatches; statistics boundary probe (bootstrap/walk-forward/purged/parameter/
+  regime/capacity/compare/validate) → only documented `ValueError`s; engine
+  boundary fuzz (leverage/capital/futures/crypto/impact/NaN/inf signals) → no
+  unexpected crash.
 
 ## What remains unresolved
 
 1. **Maintainer-only (CI contract):** `.github/workflows/gates.yml` not updated;
-   7 `tests/test_gates_workflow.py` tests red until the maintainer applies
-   `patches/0001-gates-workflow-contract-fix.patch` with workflow scope. Agent
-   cannot land `.github/workflows/**`.
+    7 `tests/test_gates_workflow.py` tests red until the maintainer applies
+    `patches/0001-gates-workflow-contract-fix.patch` with workflow scope. Agent
+    cannot land `.github/workflows/**`.
 2. **Research queue exhausted under free/public PIT data:** H1-H182
-   executed/rejected; no honest free-data H183 is pre-registrable without new
-   authorized data.
+    executed/rejected; no honest free-data H183 is pre-registrable without new
+    authorized data.
 3. **Reproducibility backlog:** `missing_files=197`, `hash_mismatches=11`,
-   `orphaned_files=528`, `missing_meta_files=0` unchanged; baseline-frozen.
+    `orphaned_files=528`, `missing_meta_files=0` unchanged; baseline-frozen.
 
 ## Approaches already failed / must not be repeated
 
 - Do not trust a handoff's pass/coverage claim without running the gate; this
-  session ran the full pinned suite + coverage (3863/0/100%).
-- Do not make speculative `src/qtr` changes absent a reproduced, reachable defect
-  -- the `fetch_ccxt` exchange-id crash is reproduced, reachable from every CCXT
-  runner, and was closed here.
+  session ran the full pinned suite + coverage (3864/0/100%).
+- Do not make speculative `src/qtr` changes absent a reproduced defect — the
+  namespaced `_value_text` data loss is reproduced, has a clear public-API
+  contract, and a bit-identical fix.
 - Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or
   alter coverage/frozen-contract gates.
-- Do not invent a free-data H183 or treat parameter/timeframe/universe variations
-  as new mechanism families.
+- Do not treat parameter/timeframe/indicator/market/universe variations as new
+  strategy families.
 
 ## One precise next task
 
@@ -85,11 +85,13 @@ exchange initialization, so they missed this one.
 `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed) on
 `origin/main`.
 
-**Agent alternative (only with new evidence):** continue hunting a *reproduced*,
-runner-reachable defect in `src/qtr` -- the productive method is executable
-fuzzing/property probes across module boundaries and at the smallest input
-boundaries (n = 0/1/2, empty, duplicate labels, non-finite), not re-running the
-same suite. If `src/qtr` changes, verify with the full pinned suite
+**Agent alternative (only with new evidence):** continue hunting a *reproduced*
+public-API defect in `src/qtr`. The productive method this cycle was probing a
+parser at its nested-value boundary with a namespaced fixture; the next probe
+should cover `_child_text`/`_owner_rows`/`_transaction_rows` with mixed-namespace
+and unusual-but-well-formed XML, and `fetch_insider_transactions` end-to-end with a
+stubbed EDGAR that returns a namespaced or otherwise non-canonical document. If
+`src/qtr` changes, verify with the full pinned suite
 `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing
 --ignore=tests/test_gates_workflow.py` and ruff check/format.
 

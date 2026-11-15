@@ -10,6 +10,7 @@ live Apple Form 4 on 2026-11-14.
 
 import io
 import json
+import xml.etree.ElementTree as ET
 
 import pandas as pd
 import pytest
@@ -397,8 +398,32 @@ def test_parse_form4_synthesizes_an_owner_row_when_absent():
 def test_parse_form4_handles_a_namespaced_document():
     frame = insider.parse_form4(NAMESPACED_XML)
     assert len(frame) == 1
-    assert frame["issuer_name"].tolist() == ["Namespaced Inc."]
-    assert frame["reporting_owner"].tolist() == ["NS OWNER"]
+    row = frame.iloc[0]
+    assert row["issuer_name"] == "Namespaced Inc."
+    assert row["reporting_owner"] == "NS OWNER"
+    # The nested ``<value>`` wrappers must be read through the default XML
+    # namespace too. A bare ``element.find("value")`` does not match the
+    # namespaced ``{ns}value`` child, so it returned the wrapper's whitespace
+    # and silently dropped the transaction date and share count while the leaf
+    # fields above still parsed. The pre-fix lookup is pinned by
+    # ``test_the_pre_fix_namespace_blind_value_lookup_loses_the_value``.
+    assert str(row["transaction_date"].date()) == "2026-03-04"
+    assert row["shares"] == 10.0
+
+
+def test_the_pre_fix_namespace_blind_value_lookup_loses_the_value():
+    """Negative control: the pre-fix ``element.find("value")`` cannot see a
+    namespaced ``<value>`` child, so the corrected lookup is load-bearing.
+
+    Reconstructs the exact pre-fix expression on the same fixture element and
+    requires it to return nothing, then requires the corrected ``_value_text``
+    to recover the value. Without the namespace-agnostic lookup this value was
+    lost for every namespaced document.
+    """
+    root = ET.fromstring(NAMESPACED_XML)
+    wrapper = next(node for node in root.iter() if node.tag.endswith("transactionDate"))
+    assert wrapper.find("value") is None  # the pre-fix, namespace-blind lookup
+    assert insider._value_text(wrapper) == "2026-03-04"
 
 
 def test_parse_form4_blank_numeric_fields_become_nan():
