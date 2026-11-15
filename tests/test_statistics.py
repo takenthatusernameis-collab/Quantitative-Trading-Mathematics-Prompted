@@ -1789,11 +1789,22 @@ class TestValidateStrategy:
         expected = returns.std(ddof=1) * np.sqrt(252)
         assert res["annualized_volatility"] == pytest.approx(expected)
 
-    def test_annualized_volatility_single_element_is_nan(self):
-        """With one observation the sample std (ddof=1) divides by n-1=0,
-        yielding NaN.  This matches the engine convention."""
+    def test_annualized_volatility_single_element_is_zero(self):
+        """With one observation the sample std (ddof=1) divides by n-1=0 and
+        pandas yields NaN, but the engine's convention for this shared metric is
+        ``0.0`` (engine.py:243-246: no measurable volatility -> no evidence), so
+        validate_strategy mirrors it.  This keeps the cross-module agreement
+        contract (tests/test_engine_metric_agreement.py) holding at the n == 1
+        boundary too: a NaN here would silently void every gate reading
+        ``annualized_volatility`` while ``sharpe_ratio`` reports 0.0 for the
+        same input.  The pre-fix behaviour (NaN) is the negative control."""
         res = st.validate_strategy(pd.Series([0.001]), self._trades(1), {})
-        assert np.isnan(res["annualized_volatility"])
+        assert res["annualized_volatility"] == 0.0
+
+    def test_annualized_volatility_single_element_pref_fix_is_nan(self):
+        """Negative control: bare ``Series([x]).std(ddof=1)`` is NaN, which is
+        what validate_strategy returned before it mirrored the engine's 0.0."""
+        assert np.isnan(pd.Series([0.001]).std())
 
 
 def test_purged_kfold_basic():

@@ -1398,7 +1398,18 @@ def validate_strategy(
     # See tests/test_engine_metric_agreement.py::TestSharedMetricAgreement.
     gross = 1.0 + total_return
     ann_return = (gross ** (252 / len(returns)) - 1) if gross > 0.0 else -1.0
-    ann_vol = returns.std() * np.sqrt(252)
+    # Sample volatility (ddof=1, pandas convention) matches the engine's
+    # ``VectorizedBacktester._calculate_metrics`` for every ``n >= 2`` (the
+    # cross-module agreement convention pinned by
+    # tests/test_engine_metric_agreement.py).  For a single observation the
+    # sample std (ddof=1) divides by ``n - 1 == 0`` and pandas yields ``NaN``,
+    # but the engine explicitly reports ``0.0`` there (engine.py:243-246: no
+    # measurable volatility -> no evidence).  The two implementations must agree
+    # at the ``n == 1`` boundary as well -- a ``NaN`` here would silently void
+    # every gate that reads ``annualized_volatility`` while ``sharpe_ratio``
+    # reports ``0.0`` for the same input.  Mirror the engine: ``0.0`` for
+    # ``n < 2``.  For every ``n >= 2`` the expression is unchanged.
+    ann_vol = returns.std() * np.sqrt(252) if len(returns) > 1 else 0.0
     sharpe = sharpe_ratio(returns.values)
 
     # Drawdown

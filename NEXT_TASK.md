@@ -1,5 +1,41 @@
 # NEXT_TASK.md
 
+## Latest session (2026-11-15, Cycle 134) — fixed a reproduced `annualized_volatility` cross-module disagreement at n = 1; 100% coverage preserved
+
+### What changed
+- **Reproduced defect (reachable via the public `run_backtest` path):** `validate_strategy` computed `ann_vol = returns.std() * np.sqrt(252)`. For a single observation the sample std (ddof=1) divides by `n - 1 == 0` and pandas returns `NaN`, while the engine's `VectorizedBacktester._calculate_metrics` explicitly reports `0.0` for `n < 2` (`engine.py:243-246`). `run_backtest` only guards `len(prices) == 0`, so a one-row price panel is a valid public input and yields a one-element return series — the two halves of the pipeline then disagreed on `annualized_volatility`. This is exactly the cross-module disagreement `tests/test_engine_metric_agreement.py` exists to prevent; its smallest tested case was `n = 2`.
+- **The existing test enshrined the bug:** `tests/test_statistics.py::test_annualized_volatility_single_element_is_nan` *asserted* the `NaN` with a docstring claiming it "matches the engine convention" — the engine returns `0.0`, not `NaN`.
+- **Fix:** `src/qtr/validation/statistics.py` — `validate_strategy` now mirrors the engine: `ann_vol = returns.std() * np.sqrt(252) if len(returns) > 1 else 0.0`. The `n >= 2` expression is unchanged (bit-identical); only the `n == 1` boundary moves from `NaN` to `0.0` (no measurable volatility → no evidence, consistent with `sharpe_ratio`).
+- **Tests:** `tests/test_statistics.py` — repurposed the test to `test_annualized_volatility_single_element_is_zero` (asserts `0.0`, corrected rationale) and added `test_annualized_volatility_single_element_pref_fix_is_nan` (negative control: bare `Series([x]).std()` is `NaN`). `tests/test_engine_metric_agreement.py` — added `test_agreement_holds_for_a_single_bar_series` (n = 1 via `run_backtest`, asserts both halves report `0.0`). Net +2 tests.
+
+### What was actually verified (own evidence)
+- Before-fix repro (`run_backtest` with a 1-row SPY panel): engine `annualized_volatility = 0.0`, `validate_strategy = NaN` → `AGREE=False`. After-fix: both `0.0` → `AGREE=True`.
+- Randomized cross-module fuzz (`/tmp/fuzz_agreement.py`, 20k trials × 6 shared metrics = 120k checks, n ∈ [2, 260], 8 return distributions incl. near-constant/heavy-tail/all-negative): **0 mismatches** — confirms the core agreement holds for realistic `n >= 2`.
+- Focused `python -m pytest -q tests/test_engine_metric_agreement.py tests/test_statistics.py -W error` → **273 passed**.
+- Full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (433.28s) → **3859 passed, 51 skipped, 0 failed**, `src/qtr` coverage **100.00%** (1500 stmts / 532 branches / 0 miss).
+- `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged, maintainer-gated; fix is `patches/0001-gates-workflow-contract-fix.patch`, which `git apply --check` still accepts).
+- `python -m ruff check src tests run_*.py scripts` → All checks passed; `ruff format --check` on the 3 changed files → already formatted.
+
+### What remains unresolved
+1. **Maintainer-only (CI contract):** `.github/workflows/gates.yml` not updated; 7 `tests/test_gates_workflow.py` tests red until maintainer applies `patches/0001-gates-workflow-contract-fix.patch` with workflow-scoped credentials. Agent cannot land `.github/workflows/**`.
+2. **Research queue exhausted under free/public PIT data:** H1–H182 executed/rejected; Cycle 116 confirmed no feasible free-data H183 (all remaining families data-blocked/underpowered/adjacent). Insider (H182, SEC EDGAR) was the last data-gap resolved.
+3. **Reproducibility backlog:** `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0` unchanged; baseline-frozen by `tests/test_reproducibility_audit.py` (historical, not a fixable defect).
+
+### Approaches already tried and why they should not be repeated
+- Do not repeat the prior 5+ "re-verify baseline / find no defect" cycles without a new method: this session used an executable cross-module fuzz (120k checks) and boundary analysis (n = 1), which surfaced the real defect the spot-checks missed.
+- Do not make speculative `src/qtr` changes absent a reproduced, reachable defect (the n = 1 case is reproduced and reachable via the public `run_backtest` path, so it was in scope).
+- Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or alter coverage/frozen-contract gates or published/frozen artifacts/verdicts/thresholds/frozen numbers.
+- Do not invent a free-data H183 or treat parameter/timeframe/universe variations as new mechanism families.
+
+### One precise next task
+**Maintainer (preferred, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch` with workflow scope, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed) on `origin/main`.
+
+**Agent alternative (only with new evidence):** continue hunting a *reproduced*, runner-reachable defect in `src/qtr` — the productive method this cycle was executable fuzzing/property probes across module boundaries and at the smallest input boundaries (n = 0/1/2, empty, duplicate labels, non-finite), not re-running the same suite. If `src/qtr` changes, verify with the full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` and ruff check/format.
+
+**Constraints:** no gate weakening; no modification of published/frozen artifacts, verdicts, thresholds, or frozen numbers except deliberate authorized corpus/baseline updates; no workflow commit from agent.
+
+---
+
 ## Latest session (2026-11-15, Cycle 133) — baseline independently re-verified; green except maintainer-gated block
 
 ### What changed

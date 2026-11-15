@@ -277,6 +277,24 @@ class TestSharedMetricAgreement:
         validation = validate_strategy(result.returns, result.trades, {})
         _assert_shared_metrics_agree(result.metrics, validation)
 
+    def test_agreement_holds_for_a_single_bar_series(self):
+        """The smallest series (n = 1).
+
+        ``run_backtest`` only guards ``len(prices) == 0``, so a single-row price
+        panel is a valid public-path input and yields a one-element return
+        series.  The sample std (ddof=1) is undefined there, but the engine
+        reports ``annualized_volatility = 0.0``; ``validate_strategy`` must
+        mirror that so the shared metric agrees at the ``n == 1`` boundary too
+        (before the fix it returned ``NaN``, which the two-bar test never
+        reached)."""
+        prices, signals = _engine_case(n=1, seed=3)
+        result = _run(prices, signals)
+        assert len(result.returns) == 1
+        validation = validate_strategy(result.returns, result.trades, {})
+        _assert_shared_metrics_agree(result.metrics, validation)
+        assert result.metrics["annualized_volatility"] == 0.0
+        assert validation["annualized_volatility"] == 0.0
+
     def test_agreement_holds_after_a_total_loss_bar(self):
         """A -100% bar drives the total return to -1 (gross == 0), the
         boundary of the annualization guard in both implementations.

@@ -1,6 +1,32 @@
 # HANDOFF.md
 
-> **Latest (2026-11-15, Cycle 132 — baseline re-verified; no agent-actionable defect found):**
+> **Latest (2026-11-15, Cycle 134 — fixed a reproduced cross-module `annualized_volatility` disagreement at n = 1; 100% coverage preserved):**
+> `validate_strategy` computed `ann_vol = returns.std() * sqrt(252)`. For a single
+> observation the sample std (ddof=1) divides by `n - 1 == 0` and pandas returns
+> `NaN`, but the engine's `VectorizedBacktester._calculate_metrics` explicitly
+> reports `0.0` for `n < 2` (engine.py:243-246). A one-row price panel is a valid
+> public-path input to `run_backtest` (only `len == 0` is guarded), so the two
+> halves of the pipeline disagreed on that input — exactly the cross-module
+> disagreement `tests/test_engine_metric_agreement.py` exists to prevent, and the
+> suite only tested `n >= 2` (its smallest case was `n = 2`). Repro (own
+> evidence, `run_backtest` with a 1-row SPY panel): engine `annualized_volatility
+> = 0.0`, `validate_strategy = NaN`. The existing
+> `test_annualized_volatility_single_element_is_nan` even *asserted* the NaN with a
+> docstring claiming it "matches the engine convention" — the engine does not.
+> Fix: `validate_strategy` now mirrors the engine (`ann_vol = ... if len(returns)
+> > 1 else 0.0`); the `n >= 2` expression is unchanged (bit-identical). Corrected
+> the mis-stated test to assert `0.0`, added a bare-`std()` negative control, and
+> added `test_agreement_holds_for_a_single_bar_series` (n = 1, via `run_backtest`)
+> to the agreement contract. Verified: full pinned suite `python -m pytest -q -W
+> error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py`
+> (433.28s) → **3859 passed / 51 skipped / 0 failed**, `src/qtr` coverage
+> **100.00%** (1500 stmts / 532 branches / 0 miss); `tests/test_gates_workflow.py`
+> **7 failed** (unchanged, maintainer-gated; fix is
+> `patches/0001-gates-workflow-contract-fix.patch`); ruff check/format clean.
+> No gate, artifact, sidecar, hash, frozen-number, or workflow change. See
+> `NEXT_TASK.md` Cycle 134.
+
+> **Prior (2026-11-15, Cycle 132 — baseline re-verified; no agent-actionable defect found):**
 > Working tree clean at HEAD `35d1bc3`; **no `src/qtr`, test, gate, artifact, sidecar, hash, frozen-number, or workflow change**. Verified (own evidence): focused `python -m pytest -q tests/test_experiment_tracker.py tests/test_experiment_tracking.py tests/test_experiment_artifact_schema.py tests/test_public_api_contract.py` → **190 passed**; `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged, maintainer-gated; fix is `patches/0001-gates-workflow-contract-fix.patch`); `python -m ruff check src tests run_*.py scripts` → All checks passed. Probed adjacent tracking paths (`PYTHONPATH=src`): `ExperimentTracker.log_dataframe` handles duplicated index; `Experiment.log_metadata`/`record_artifact` JSON paths persist non-serializable values via `default=str`; corrupt metadata load degrades to `{}`. `Experiment.record_artifact` on duplicated-column DataFrame still raises but is unreachable from runners/scripts (no concrete failing case) — not changed. No full pinned suite/coverage run this session (no `src/qtr` change); prior verified baseline remains Cycle 131 (**3857 passed / 51 skipped / 0 failed, 100.00%**, excluding maintainer-gated workflow tests). See `NEXT_TASK.md` Cycle 132.
 
 > **Prior (2026-11-15, Cycle 131 — hardened `log_artifact` sidecar JSON serialization; 100% coverage preserved):**
