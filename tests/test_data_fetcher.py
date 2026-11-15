@@ -988,7 +988,9 @@ def test_fetcher_is_exported_from_the_data_package():
 
 def test_fetch_yahoo_non_positive_price_raises(monkeypatch, tmp_path):
     # lines 150-151: _reject_non_positive_prices raises ValueError on a panel
-    # carrying a non-positive price (zero close here).
+    # carrying a non-positive price (zero close here). The durable cache must
+    # not be poisoned by the refused panel: a later run would otherwise serve a
+    # frame the fetcher is contractually required to reject.
     import sys
     import types
 
@@ -1005,9 +1007,65 @@ def test_fetch_yahoo_non_positive_price_raises(monkeypatch, tmp_path):
     fake_yf.Ticker = lambda s: FakeTicker()
     monkeypatch.setitem(sys.modules, "yfinance", fake_yf)
 
-    fetcher = DataFetcher(cache=DataCache(cache_dir=tmp_path))
+    cache = DataCache(cache_dir=tmp_path)
+    fetcher = DataFetcher(cache=cache)
     with pytest.raises(ValueError, match="non-positive price"):
-        fetcher.fetch_yahoo(["SPY"], "2020-01-01", "2020-02-01", use_cache=False)
+        fetcher.fetch_yahoo(["SPY"], "2020-01-01", "2020-02-01", use_cache=True)
+
+    assert list(tmp_path.glob("*.parquet")) == []
+
+
+def test_fetch_futures_non_positive_price_raises_and_does_not_cache(monkeypatch, tmp_path):
+    # Same contract as ``fetch_yahoo``: a refused panel must not be written to
+    # the durable cache (futures use the "yahoo_futures" cache source).
+    import sys
+    import types
+
+    df = pd.DataFrame(
+        {"Open": [1.0], "High": [2.0], "Low": 0.5, "Close": [-5.0], "Volume": [100]},
+        index=pd.to_datetime(["2020-01-02"]),
+    )
+
+    class FakeTicker:
+        def history(self, **kw):
+            return df
+
+    fake_yf = types.ModuleType("yfinance")
+    fake_yf.Ticker = lambda s: FakeTicker()
+    monkeypatch.setitem(sys.modules, "yfinance", fake_yf)
+
+    cache = DataCache(cache_dir=tmp_path)
+    fetcher = DataFetcher(cache=cache)
+    with pytest.raises(ValueError, match="non-positive price"):
+        fetcher.fetch_futures(["CL=F"], "2020-01-01", "2020-02-01", use_cache=True)
+
+    assert list(tmp_path.glob("*.parquet")) == []
+
+
+def test_fetch_ccxt_non_positive_price_raises_and_does_not_cache(monkeypatch, tmp_path):
+    # A freshly fetched CCXT panel carrying a non-positive price must be
+    # refused and must not be persisted: the cache is durable across runs, so
+    # caching before rejection would poison it even though the fetch raises.
+    import sys
+    import types
+
+    class FakeExchange:
+        def fetch_ohlcv(self, symbol, timeframe, since=None, limit=1000):
+            return [[1577923200000, 10.0, 10.0, 10.0, -5.0, 100.0]]
+
+    fake_ccxt = types.ModuleType("ccxt")
+    fake_ccxt.exchanges = ["binance"]
+    fake_ccxt.binance = lambda cfg: FakeExchange()
+    monkeypatch.setitem(sys.modules, "ccxt", fake_ccxt)
+
+    cache = DataCache(cache_dir=tmp_path)
+    fetcher = DataFetcher(cache=cache)
+    with pytest.raises(ValueError, match="non-positive price"):
+        fetcher.fetch_ccxt(
+            "binance", ["BTC/USDT"], "2020-01-01", "2020-02-01", "1h", use_cache=True
+        )
+
+    assert list(tmp_path.glob("*.parquet")) == []
 
 
 def test_fetch_ccxt_pagination_exactly_1000_rows(monkeypatch, tmp_path):

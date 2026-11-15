@@ -293,12 +293,23 @@ class DataFetcher:
             df = self._standardize_columns(df, symbol)
             df.index = pd.to_datetime(df.index).tz_localize(None)
 
+            # Refuse a non-positive panel *before* persisting it to the cache.
+            # ``fetch_yahoo``/``fetch_futures`` also reject after this helper
+            # returns, but the cache is a durable cross-run store: writing a
+            # refused panel first would poison the cache so a later read could
+            # serve a panel the fetcher is contractually required to reject.
+            # The check is idempotent (a clean panel passes twice, an empty one
+            # is a no-op), so the caller-side rejection remains correct.
+            self._reject_non_positive_prices(symbol, df)
+
             if use_cache:
                 self.cache.set(source, symbol, start, end, interval, df)
 
             return df
 
         except Exception as e:  # noqa: BLE001 -- per-symbol fetch failure is non-fatal; log and continue
+            if isinstance(e, ValueError) and "non-positive price" in str(e):
+                raise
             logger.error(f"Failed to fetch {symbol}: {e}")
             return pd.DataFrame()
 
@@ -511,6 +522,15 @@ class DataFetcher:
                 df = self._standardize_columns(df, symbol)
                 df.index = pd.to_datetime(df.index).tz_localize(None)
 
+                # Refuse a non-positive panel *before* caching or publishing it.
+                # The cache is durable across runs: persisting a refused panel
+                # would poison it even though this fetch raises, and a later
+                # cache hit would then need to re-reject a panel that should
+                # never have been stored. The tail rejection below is kept for
+                # the paths that reach it without caching (e.g. the per-symbol
+                # exception fallback sets an empty frame); it is idempotent on a
+                # clean panel.
+                self._reject_non_positive_prices(symbol, df)
                 results[symbol] = df
 
                 if use_cache:
@@ -524,6 +544,8 @@ class DataFetcher:
                     )
 
             except Exception as e:  # noqa: BLE001 -- per-symbol fetch failure is non-fatal; log and continue
+                if isinstance(e, ValueError) and "non-positive price" in str(e):
+                    raise
                 logger.error(f"Failed to fetch {symbol} from {exchange_id}: {e}")
                 results[symbol] = pd.DataFrame()
 
