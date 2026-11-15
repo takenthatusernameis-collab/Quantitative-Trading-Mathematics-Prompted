@@ -16,7 +16,7 @@ from typing import Any
 import pandas as pd
 from loguru import logger
 
-from qtr.utils.config import get_config
+from qtr.utils.config import config_path, get_config
 
 
 @dataclass
@@ -59,7 +59,11 @@ class ExperimentTracker:
     """
 
     def __init__(self, log_dir: Path | None = None):
-        self.log_dir = log_dir or Path(get_config().get("tracking.log_dir", ".experiments"))
+        # Same nested-vs-flat resolution as ``DataCache``: ``tracking.log_dir``
+        # is nested in the loaded config, so a literal ``"tracking.log_dir"``
+        # lookup never saw it and every run wrote to ``.experiments`` even
+        # when the operator had configured another directory.
+        self.log_dir = log_dir or config_path(get_config(), "tracking.log_dir", ".experiments")
         self.log_dir.mkdir(parents=True, exist_ok=True)
         self.current_experiment: ExperimentMetadata | None = None
         self.current_results: dict[str, Any] = {}

@@ -1260,3 +1260,63 @@ def test_fetch_ccxt_missing_required_column_warns_but_does_not_raise(tmp_path, m
         assert "close" in res["BTC/USDT"].columns
     finally:
         logger.remove(handler_id)
+
+
+class TestDataCacheConfiguredDirectory:
+    """``DataCache`` must honour the configured ``data.cache_dir``.
+
+    The config loader writes nested mappings (``_apply_env_overrides`` turns
+    ``QTR_CACHE_DIR`` into ``{"data": {"cache_dir": ...}}``), but ``DataCache``
+    read the literal flat key ``"data.cache_dir"``.  That key can only be
+    present in a hand-written flat document, so the nested setting the loader
+    itself produces was silently ignored and the cache always landed in
+    ``.cache/data`` -- reproduced before the fix: a config.yaml carrying
+    ``data: {cache_dir: /tmp/nested-cache}`` still yielded ``.cache/data``.
+    """
+
+    @staticmethod
+    def _load_config(monkeypatch, tmp_path, payload: str):
+        from qtr.utils import config
+
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "config.yaml").write_text(payload)
+        config.reset_config()
+        return config.load_config()
+
+    def teardown_method(self):
+        from qtr.utils import config
+
+        config.reset_config()
+
+    def test_nested_configured_directory_is_used(self, tmp_path, monkeypatch):
+        self._load_config(monkeypatch, tmp_path, "data:\n  cache_dir: /tmp/nested-cache\n")
+        assert DataCache().cache_dir == Path("/tmp/nested-cache")
+
+    def test_flat_configured_directory_is_still_used(self, tmp_path, monkeypatch):
+        self._load_config(monkeypatch, tmp_path, "data.cache_dir: /tmp/flat-cache\n")
+        assert DataCache().cache_dir == Path("/tmp/flat-cache")
+
+    def test_absent_setting_keeps_the_default(self, tmp_path, monkeypatch):
+        self._load_config(monkeypatch, tmp_path, "{}\n")
+        assert DataCache().cache_dir == Path(".cache/data")
+
+    def test_env_override_reaches_the_cache_directory(self, tmp_path, monkeypatch):
+        from qtr.utils import config
+
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "config.yaml").write_text("{}\n")
+        monkeypatch.setenv("QTR_CACHE_DIR", "/tmp/from-env")
+        config.reset_config()
+        config.load_config()
+        assert DataCache().cache_dir == Path("/tmp/from-env")
+
+    def test_the_pre_fix_flat_lookup_ignores_the_nested_setting(self, tmp_path, monkeypatch):
+        # Behavioural negative control: reconstruct the pre-fix lookup on the
+        # same loaded document. The nested value is present, the flat key is
+        # not, so the old expression returned its default.
+        from qtr.utils import config
+
+        cfg = self._load_config(monkeypatch, tmp_path, "data:\n  cache_dir: /tmp/nested-cache\n")
+        assert cfg["data"]["cache_dir"] == "/tmp/nested-cache"
+        assert cfg.get("data.cache_dir", ".cache/data") == ".cache/data"
+        assert config.config_value(cfg, "data.cache_dir") == "/tmp/nested-cache"

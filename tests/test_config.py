@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import yaml
 
 from qtr.utils import config
@@ -245,3 +247,119 @@ def test_reset_config_reachable_from_top_level(tmp_path, monkeypatch):
     qtr.reset_config()
     assert config._CONFIG is None
     _clear_config_state()
+
+
+# --------------------------------------------------------------------------- #
+# Dotted-key resolution: nested (loader) shape and flat (legacy) shape
+# --------------------------------------------------------------------------- #
+class TestConfigValue:
+    """``config_value`` resolves both the nested and the flat config shape.
+
+    The loader writes nested mappings (``_apply_env_overrides`` turns
+    ``QTR_CACHE_DIR`` into ``{"data": {"cache_dir": ...}}``), so a nested
+    document is canonical; the literal flat ``"data.cache_dir"`` key is the
+    older convention and is the fallback.
+    """
+
+    def test_nested_key_resolves(self):
+        cfg = {"data": {"cache_dir": "/nested"}}
+        assert config.config_value(cfg, "data.cache_dir") == "/nested"
+
+    def test_deeply_nested_key_resolves(self):
+        cfg = {"a": {"b": {"c": 7}}}
+        assert config.config_value(cfg, "a.b.c") == 7
+
+    def test_flat_key_is_the_fallback(self):
+        cfg = {"data.cache_dir": "/flat"}
+        assert config.config_value(cfg, "data.cache_dir") == "/flat"
+
+    def test_nested_wins_over_flat(self):
+        cfg = {"data": {"cache_dir": "/nested"}, "data.cache_dir": "/flat"}
+        assert config.config_value(cfg, "data.cache_dir") == "/nested"
+
+    def test_missing_key_returns_default(self):
+        assert config.config_value({}, "data.cache_dir", ".cache/data") == ".cache/data"
+
+    def test_missing_key_default_is_none(self):
+        assert config.config_value({}, "data.cache_dir") is None
+
+    def test_non_mapping_node_falls_back_to_the_flat_key(self):
+        # ``data: 5`` is a walk failure, not a value: the flat key must still
+        # be honoured instead of returning the scalar.
+        cfg = {"data": 5, "data.cache_dir": "/flat"}
+        assert config.config_value(cfg, "data.cache_dir") == "/flat"
+
+    def test_non_mapping_node_without_flat_key_returns_default(self):
+        cfg = {"data": 5}
+        assert config.config_value(cfg, "data.cache_dir", ".cache/data") == ".cache/data"
+
+    def test_present_none_is_a_value_not_a_miss(self):
+        # A key that exists with a ``None`` value resolves to ``None``; the
+        # caller decides what a null setting means (``config_path`` rejects it).
+        cfg = {"data": {"cache_dir": None}}
+        assert config.config_value(cfg, "data.cache_dir", ".cache/data") is None
+
+    def test_the_env_override_shape_resolves(self):
+        # The exact mapping the loader produces for QTR_CACHE_DIR.
+        cfg = {"data": {"cache_dir": "/data/cache"}}
+        assert config.config_value(cfg, "data.cache_dir") == "/data/cache"
+
+
+class TestConfigPath:
+    """``config_path`` coerces a dotted key to a path, fail-closed."""
+
+    def test_nested_string_value(self):
+        cfg = {"data": {"cache_dir": "/nested"}}
+        assert config.config_path(cfg, "data.cache_dir", ".cache/data") == Path("/nested")
+
+    def test_flat_string_value(self):
+        cfg = {"data.cache_dir": "/flat"}
+        assert config.config_path(cfg, "data.cache_dir", ".cache/data") == Path("/flat")
+
+    def test_missing_key_returns_the_default_path(self):
+        assert config.config_path({}, "data.cache_dir", ".cache/data") == Path(".cache/data")
+
+    def test_path_value_passes_through(self):
+        cfg = {"data": {"cache_dir": Path("/as-path")}}
+        assert config.config_path(cfg, "data.cache_dir", ".cache/data") == Path("/as-path")
+
+    def test_empty_string_falls_back_to_the_default(self):
+        cfg = {"data": {"cache_dir": ""}}
+        assert config.config_path(cfg, "data.cache_dir", ".cache/data") == Path(".cache/data")
+
+    def test_numeric_value_is_coerced_through_str(self):
+        # ``QTR_CACHE_DIR=10`` is parsed to the int ``10`` by
+        # ``_set_nested``; the caller's literal text is the intended path.
+        cfg = {"data": {"cache_dir": 10}}
+        assert config.config_path(cfg, "data.cache_dir", ".cache/data") == Path("10")
+
+    def test_float_value_is_coerced_through_str(self):
+        cfg = {"data": {"cache_dir": 1.5}}
+        assert config.config_path(cfg, "data.cache_dir", ".cache/data") == Path("1.5")
+
+    def test_boolean_value_falls_back_to_the_default(self):
+        # ``bool`` is an ``int`` subclass, but ``True`` is never a path.
+        cfg = {"data": {"cache_dir": True}}
+        assert config.config_path(cfg, "data.cache_dir", ".cache/data") == Path(".cache/data")
+
+    def test_null_value_falls_back_to_the_default(self):
+        cfg = {"data": {"cache_dir": None}}
+        assert config.config_path(cfg, "data.cache_dir", ".cache/data") == Path(".cache/data")
+
+    def test_sequence_value_falls_back_to_the_default(self):
+        cfg = {"data": {"cache_dir": ["/a", "/b"]}}
+        assert config.config_path(cfg, "data.cache_dir", ".cache/data") == Path(".cache/data")
+
+    def test_mapping_value_falls_back_to_the_default(self):
+        cfg = {"data": {"cache_dir": {"nested": "/a"}}}
+        assert config.config_path(cfg, "data.cache_dir", ".cache/data") == Path(".cache/data")
+
+    def test_non_mapping_node_falls_back_to_the_default(self):
+        cfg = {"data": 5}
+        assert config.config_path(cfg, "data.cache_dir", ".cache/data") == Path(".cache/data")
+
+    def test_the_env_override_shape_resolves_end_to_end(self):
+        _clear_config_state()
+        cfg = {"data": {"cache_dir": "/data/cache"}}
+        assert config.config_path(cfg, "data.cache_dir", ".cache/data") == Path("/data/cache")
+        _clear_config_state()

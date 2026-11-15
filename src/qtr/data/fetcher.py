@@ -14,7 +14,7 @@ from pathlib import Path
 import pandas as pd
 from loguru import logger
 
-from qtr.utils.config import get_config
+from qtr.utils.config import config_path, get_config
 
 PRICE_COLUMNS = ("open", "high", "low", "close")
 
@@ -90,7 +90,14 @@ class DataCache:
     """File-based cache for downloaded data with content hashing."""
 
     def __init__(self, cache_dir: Path | None = None):
-        self.cache_dir = cache_dir or Path(get_config().get("data.cache_dir", ".cache/data"))
+        # ``data.cache_dir`` is nested in the loaded config (the loader's
+        # canonical shape, written by ``_apply_env_overrides``); reading a
+        # literal flat ``"data.cache_dir"`` key could never see it, so the
+        # configured cache directory -- from config.yaml *or* from
+        # ``QTR_CACHE_DIR`` -- was silently replaced by the default and the
+        # cache landed in ``.cache/data`` regardless. ``config_path`` resolves
+        # both shapes and fails closed to the default.
+        self.cache_dir = cache_dir or config_path(get_config(), "data.cache_dir", ".cache/data")
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
     def _cache_key(self, source: str, symbol: str, start: str, end: str, interval: str) -> str:

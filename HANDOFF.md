@@ -1,6 +1,48 @@
 # HANDOFF.md
 
-> **Latest (2026-11-15, Cycle 139 — fixed a reproduced `run_backtest` silent/inconsistent result on an infinite price; 100% coverage preserved):**
+> **Latest (2026-11-15, Cycle 142 — fixed a reproduced config defect: the nested `data.cache_dir` / `tracking.log_dir` settings were silently ignored by both consumers; 100% coverage preserved):**
+> The prior agent's last commit (`287de3a`, CostModel negative-operand guard) had no
+> handoff entry, so this session first certified it and then selected a bounded,
+> reproduced defect from the remaining public surface. `_apply_env_overrides` writes
+> **nested** mappings (`QTR_CACHE_DIR` -> `{"data": {"cache_dir": ...}}`, pinned by
+> `tests/test_config.py::test_env_override_cache_dir_string`), but `DataCache.__init__`
+> read the literal flat key `get_config().get("data.cache_dir", ".cache/data")` and
+> `ExperimentTracker.__init__` read `"tracking.log_dir"` the same way. A flat key can
+> only match a hand-written `data.cache_dir:` line, so the nested document the loader
+> itself produces was silently dropped and the configured directory never took effect.
+> Reproduced before the fix: a `config.yaml` with `data: {cache_dir: /tmp/nested-cache}`
+> still yielded `cache_dir = .cache/data` and `log_dir = .experiments`.
+> - **Fix:** `src/qtr/utils/config.py` — new `config_value()` (nested walk, literal
+>   flat key as fallback, default otherwise) and `config_path()` (coerces to `Path`,
+>   fail-closed to the default for bool/null/sequence/mapping/empty values; numeric
+>   values go through `str` because `_set_nested` parses `QTR_CACHE_DIR=10` to `10`).
+>   `DataCache` and `ExperimentTracker` now resolve their directory through
+>   `config_path`. Exported from `qtr.utils.__all__` (the public-API contract test
+>   enforces exact equality). The default path is unchanged, so a config-less tree
+>   is bit-identical.
+> - **Tests:** `tests/test_config.py` (`TestConfigValue` 10 + `TestConfigPath` 13),
+>   `tests/test_data_fetcher.py` (`TestDataCacheConfiguredDirectory` 5),
+>   `tests/test_experiment_tracker.py` (`TestTrackerConfiguredLogDirectory` 4). +32.
+> - **Verified:** negative control — `git stash push -- src/qtr/data/fetcher.py
+>   src/qtr/tracking/experiment.py` makes exactly the 3 nested/env cases fail with
+>   `PosixPath('.cache/data')` / `PosixPath('.experiments')`; `git stash pop`, 150
+>   passed. The committed probe `python repro_cache_dir.py` now prints
+>   `cache_dir = 10` (was `.cache/data`). Full pinned suite `python -m pytest -q -W
+>   error --cov=qtr --cov-branch --cov-report=term-missing
+>   --ignore=tests/test_gates_workflow.py` (643.87s) -> **3907 passed, 51 skipped,
+>   0 failed**, `src/qtr` coverage **100.00%** (1523 stmts / 544 branches / 0 miss).
+>   `tests/test_gates_workflow.py` -> **7 failed** (unchanged, maintainer-gated; fix
+>   is `patches/0001-gates-workflow-contract-fix.patch`). `scripts/backtest_perf_
+>   regression_gate.py` -> **PASSED** (0.851s < 5s, 13668 trades). `ruff check` /
+>   `format --check` over `src tests run_*.py scripts` -> All checks passed / 336
+>   files already formatted. No gate, artifact, sidecar, hash, frozen-number, or
+>   workflow change. See `NEXT_TASK.md` Cycle 142.
+> - **Environment gotcha (not a repo defect):** `--cov=<dotted.module>` (e.g.
+>   `--cov=qtr.utils.config`) aborts collection with `ImportError: cannot load
+>   module more than once per process` (numpy re-import; python 3.14 / numpy 2.5.4 /
+>   coverage 7.17.3). Use `--cov=qtr` as `pyproject.toml` and every handoff specify.
+
+> **Prior (2026-11-15, Cycle 139 — fixed a reproduced `run_backtest` silent/inconsistent result on an infinite price; 100% coverage preserved):**
 > The standing agent task was to find a reproduced public-API defect. Probing the
 > engine's non-finite-price boundary found one the NaN-price tests left out: an
 > `inf` price made `run_backtest` emit `RuntimeWarning: invalid value encountered

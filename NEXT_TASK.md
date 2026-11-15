@@ -1,6 +1,47 @@
 # NEXT_TASK.md
 
-## Latest session (2026-11-15, Cycle 141) — verified the maintainer-gated workflow contract fix; no in-tree change possible
+## Latest session (2026-11-15, Cycle 142) — fixed a reproduced config defect (nested `data.cache_dir` / `tracking.log_dir` ignored); 100% coverage preserved
+
+### What changed (substantive)
+- **Reproduced defect (cross-module config disagreement, public-path reachable with no caller-side filtering):** `qtr.utils.config._apply_env_overrides` writes **nested** mappings — `QTR_CACHE_DIR` becomes `{"data": {"cache_dir": ...}}`, `QTR_CACHE_DIR`/`QTR_LOG_LEVEL`/`QTR_MAX_CPU_HOURS` are all documented as `data.cache_dir` / `logging.level` / `compute.max_cpu_hours` dotted paths, and `tests/test_config.py::test_env_override_cache_dir_string` pins the nested shape. But the two consumers read the *literal flat key*: `DataCache.__init__` used `get_config().get("data.cache_dir", ".cache/data")` (fetcher.py:93) and `ExperimentTracker.__init__` used `get_config().get("tracking.log_dir", ".experiments")` (experiment.py:62). A flat key can only match a hand-written `data.cache_dir:` line, so **the nested document the loader itself produces was silently discarded**: the configured directory (from `config.yaml` or from `QTR_CACHE_DIR`) never took effect and the cache/log always landed in `.cache/data` / `.experiments`.
+  - Repro before the fix (own evidence): a temp cwd with `config.yaml` = `data: {cache_dir: /tmp/nested-cache}` + `tracking: {log_dir: /tmp/nested-exp}` loads as `{'data': {'cache_dir': '/tmp/nested-cache'}, ...}`, yet `DataCache().cache_dir == .cache/data` and `ExperimentTracker().log_dir == .experiments`.
+- **Fix:** `src/qtr/utils/config.py` — new `config_value(config, dotted_key, default)` (nested walk first, literal flat key as fallback, `default` otherwise; a non-mapping intermediate node is a walk failure, a present `None` is a value) and `config_path(config, dotted_key, default)` (coerces to `Path`, fail-closed to the default for bool/null/sequence/mapping/empty-string; numeric values go through `str` because `_set_nested` parses `QTR_CACHE_DIR=10` to the int `10`). `DataCache` and `ExperimentTracker` now resolve their directory through `config_path`. Both names exported from `qtr.utils.__all__` (the public-API contract test enforces exact equality). **The default path is unchanged**, so a config-less tree is bit-identical.
+- **Tests:** `tests/test_config.py` `TestConfigValue` (10) + `TestConfigPath` (13); `tests/test_data_fetcher.py` `TestDataCacheConfiguredDirectory` (5, incl. a behavioural negative control); `tests/test_experiment_tracker.py` `TestTrackerConfiguredLogDirectory` (4, incl. a behavioural negative control). **+32 tests.**
+
+### What was actually verified (own evidence)
+- **Negative control:** `git stash push -- src/qtr/data/fetcher.py src/qtr/tracking/experiment.py` -> exactly the 3 nested/env cases fail with `AssertionError: assert PosixPath('.cache/data') == PosixPath('/tmp/nested-cache')` (and `.experiments` for the tracker); `git stash pop`, **150 passed** on the three touched suites.
+- The committed probe `python repro_cache_dir.py` (added at `1ede756`, which had observed the override being dropped) now prints `cfg data.cache_dir = 10` then **`cache_dir = 10`**; before this fix it printed `cache_dir = .cache/data`.
+- Full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (643.87s) -> **3907 passed, 51 skipped, 0 failed**, `src/qtr` coverage **100.00%** (1523 stmts / 544 branches / 0 miss; `config.py` 73 stmts / 32 branches, `experiment.py` 217/46, `fetcher.py` 223/84, all 100%).
+- `python -m pytest -q tests/test_gates_workflow.py` -> **7 failed** (unchanged, exclusively the maintainer-gated block; fix is `patches/0001-gates-workflow-contract-fix.patch`, still `git apply --check`-clean).
+- `python scripts/backtest_perf_regression_gate.py` -> **PASSED** (0.851s < 5s, 10.7MB peak, 13668 trades).
+- `python -m ruff check src tests run_*.py scripts` -> All checks passed. `python -m ruff format --check src tests run_*.py scripts` -> **336 files already formatted**.
+- No gate, artifact, sidecar, hash, frozen-number, or workflow change. Working tree: 4 source files + 3 test files modified; the harness commits at session end.
+- **Prior commit certified:** `287de3a` (CostModel negative-operand fail-closed, 6 new tests) had no handoff entry; the full pinned suite above covers it (3907 = 3869 + 6 + 32).
+
+### What remains unresolved
+1. **Maintainer-only (CI contract, unblocks CI):** `.github/workflows/gates.yml` not updated; 7 `tests/test_gates_workflow.py` tests red until the maintainer applies `patches/0001-gates-workflow-contract-fix.patch` with workflow scope. Agent cannot land `.github/workflows/**`.
+2. **Research queue exhausted under free/public PIT data:** H1–H182 executed/rejected; H183 unassigned. Cycle 140 (FRED) confirmed the corrected data does not yield a new family; no materially different free source has been searched since.
+3. **Reproducibility backlog:** `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0` unchanged; baseline-frozen.
+4. **Untouched config settings (deliberately not fixed):** `logging.level` and `compute.max_cpu_hours` are written by the env-override table but have **no reader anywhere** in `src/qtr`; wiring them is a behaviour change and out of scope for this fix.
+
+### Approaches already tried and why they should not be repeated
+- Do not edit `.github/workflows/**` — `.github/scripts/kilo-controller.sh` restores it from `origin/main` after every session and excludes it from staging.
+- Do not weaken `tests/test_gates_workflow.py` or lower its assertions.
+- Do not make speculative `src/qtr` changes absent a reproduced, reachable defect (the defect hunt across Cycles 125–142 is productive, not exhausted: `287de3a` and this cycle both landed after a "no defect" claim).
+- **Do not "fix" the flat-key lookups by changing `_set_nested` to write flat keys** — `tests/test_config.py` pins the nested env-override shape and the nested document is the loader's canonical output; the consumers were the outliers.
+- **Do not use `--cov=<dotted.module>`** (e.g. `--cov=qtr.utils.config`): it aborts collection with `ImportError: cannot load module more than once per process` in this environment (python 3.14 / numpy 2.5.4 / coverage 7.17.3). Use `--cov=qtr`, as `pyproject.toml` specifies.
+- Do not repeat the yfinance-only "data-blocked" classification — run `scripts/probe_fred_availability.py` (and probe other free sources) first.
+
+### One precise next task
+**Maintainer (preferred, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch` with workflow scope:
+  `git apply patches/0001-gates-workflow-contract-fix.patch && git commit -am "fix(ci): satisfy gates workflow contract" && git push origin main`
+then run `python -m pytest -q tests/test_gates_workflow.py` (expect **7 passed**) on `origin/main`. Patch verified apply-ready; patched tree passes the 7 tests in a clean throwaway checkout.
+
+**Agent path:** the free-data family queue is exhausted on corrected FRED evidence, so the next agent-actionable work is one more reproduced-defect cycle on a surface not yet probed at its boundary. One measured, undecided inconsistency (verify before acting): the **cached read path skips the schema checks the fresh path applies**. `DataCache.get` returns any stored parquet as-is and `_fetch_yahoo_panel` returns it without the "missing column -> degrade/empty" handling that `test_fetch_yahoo_missing_column` pins for a fresh fetch. Measured: a cache entry holding `open/high/low/volume` (no `close`) is returned by `fetch_yahoo` with those columns, `run_backtest` then produces a **zero-exposure 0.0 book** (no crash, because the engine uses whatever columns exist), and the runner-level guard `if "close" in df.columns` (`run_baseline.py:126`) silently drops the symbol. So it is a fail-soft *inconsistency* between layers, not a demonstrated crash; a fix (validate a cache hit's required columns the way the fresh path does) needs a decision that it is not a deliberate "any cached frame is usable" contract. Second candidate: `logging.level` / `compute.max_cpu_hours` are written by `_apply_env_overrides` and read by nobody in `src/qtr` — wiring them is a behaviour change, not a bug fix. Any `src/qtr` change must preserve 100% coverage and pass `ruff`/the pinned suite.
+
+---
+
+## Prior session (2026-11-15, Cycle 141) — verified the maintainer-gated workflow contract fix; no in-tree change possible
 
 ### What changed (substantive)
 - **No source, test, gate, artifact, sidecar, hash, frozen-number, or workflow change.** Working tree clean at HEAD; matches `origin/main`. `.github/workflows/**` is agent-unreachable (repo-scoped GitHub App token has no `workflows` permission; `.github/scripts/kilo-controller.sh` restores those paths from `origin/main` after every session and excludes them from staging), so the patch cannot be landed in-tree by this session.

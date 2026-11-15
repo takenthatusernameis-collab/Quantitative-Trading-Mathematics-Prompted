@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pandas as pd
 import pytest
@@ -878,3 +879,50 @@ def test_log_artifact_pre_fix_non_serializable_metadata_crashes():
 
     with pytest.raises(TypeError):
         json.dumps({"arr": np.array([1, 2])})
+
+
+class TestTrackerConfiguredLogDirectory:
+    """``ExperimentTracker`` must honour the configured ``tracking.log_dir``.
+
+    Same nested-vs-flat defect as ``DataCache``: the loader produces
+    ``{"tracking": {"log_dir": ...}}`` while the tracker read the literal flat
+    key ``"tracking.log_dir"``, so a configured log directory was silently
+    ignored and every experiment was written to ``.experiments``.
+    """
+
+    @staticmethod
+    def _load_config(monkeypatch, tmp_path, payload: str):
+        from qtr.utils import config
+
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "config.yaml").write_text(payload)
+        config.reset_config()
+        return config.load_config()
+
+    def teardown_method(self):
+        from qtr.utils import config
+
+        config.reset_config()
+
+    def test_nested_configured_directory_is_used(self, tmp_path, monkeypatch):
+        target = tmp_path / "nested-logs"
+        self._load_config(monkeypatch, tmp_path, f"tracking:\n  log_dir: {target}\n")
+        assert ExperimentTracker().log_dir == target
+        assert target.is_dir()
+
+    def test_flat_configured_directory_is_still_used(self, tmp_path, monkeypatch):
+        target = tmp_path / "flat-logs"
+        self._load_config(monkeypatch, tmp_path, f"tracking.log_dir: {target}\n")
+        assert ExperimentTracker().log_dir == target
+
+    def test_absent_setting_keeps_the_default(self, tmp_path, monkeypatch):
+        self._load_config(monkeypatch, tmp_path, "{}\n")
+        assert ExperimentTracker().log_dir == Path(".experiments")
+
+    def test_the_pre_fix_flat_lookup_ignores_the_nested_setting(self, tmp_path, monkeypatch):
+        # Behavioural negative control: the nested value is present and the
+        # flat key is not, so the pre-fix expression returned its default.
+        target = tmp_path / "nested-logs"
+        cfg = self._load_config(monkeypatch, tmp_path, f"tracking:\n  log_dir: {target}\n")
+        assert cfg["tracking"]["log_dir"] == str(target)
+        assert cfg.get("tracking.log_dir", ".experiments") == ".experiments"
