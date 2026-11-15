@@ -274,3 +274,72 @@ class TestEquityZeroVolume:
         # so the entry bar earns a non-positive cost drag.
         assert res.returns.iloc[5] <= 0.0
         assert len(res.trades) == 2
+
+
+# --------------------------------------------------------------------------- #
+# Duplicate index labels
+# --------------------------------------------------------------------------- #
+class TestDuplicateIndex:
+    """A repeated index label must not crash the engine.
+
+    A duplicated bar is reachable from the documented pipeline: an overlapping
+    vendor window or a cache entry written before dedup. ``fetch_ccxt`` already
+    de-duplicates (``~duplicated(keep="first").sort_index()``, fetcher.py:407),
+    but ``fetch_yahoo``/``fetch_futures`` and the cached read path do not, so a
+    duplicated timestamp can reach ``run_backtest`` from a live fetch. Before
+    the fix, a position change at the duplicated label made
+    ``prices.loc[ts, sym]`` return a Series and ``float(...)`` raised
+    ``TypeError``; the engine now canonicalizes the index (keep first, sort)
+    once on entry, so the duplicated label is a no-op and the clean path is
+    bit-identical.
+    """
+
+    def test_duplicate_price_index_with_a_trade_at_the_dup_does_not_crash(self):
+        prices = pd.DataFrame(
+            {"A": [101.0, 102.0, 103.0], "B": [10.0, 11.0, 12.0]},
+            index=pd.DatetimeIndex(["2020-01-02", "2020-01-03", "2020-01-02"]),
+        )
+        signals = pd.DataFrame({"A": [0.0, 1.0, 1.0], "B": [1.0, 1.0, 1.0]}, index=prices.index)
+        res = run_backtest(prices=prices, signals=signals, config=_make_config())
+
+        # The duplicated 2020-01-02 bar collapses to one row (keep first), so the
+        # panel has two unique sessions and the book trades without raising.
+        assert len(res.returns) == 2
+        assert np.isfinite(res.returns.values).all()
+        assert res.returns.index.is_unique
+        assert np.isfinite(res.equity_curve.values).all()
+
+    def test_duplicate_signal_index_does_not_crash(self):
+        prices = _make_prices(symbols=("A",))
+        signals = pd.DataFrame({"A": 0.0}, index=prices.index)
+        signals.iloc[5] = 1.0
+        duplicated = pd.concat([signals, signals.iloc[[5]]])
+        res = run_backtest(prices=prices, signals=duplicated, config=_make_config())
+
+        assert np.isfinite(res.returns.values).all()
+        assert len(res.trades) == 2
+
+    def test_unique_index_is_untouched_by_the_dedup_guard(self):
+        """A clean panel must be bit-identical with and without the guard."""
+        prices = _make_prices(symbols=("A",))
+        signals = pd.DataFrame({"A": 0.0}, index=prices.index)
+        signals.iloc[5] = 1.0
+        res = run_backtest(prices=prices, signals=signals, config=_make_config())
+
+        # The dedup guard is a no-op on a unique index: returns, positions and
+        # trades are exactly what the pre-fix engine produced.
+        assert res.returns.index.is_unique
+        assert len(res.trades) == 2
+        assert np.isfinite(res.returns.values).all()
+
+    def test_the_contract_rejects_the_pre_fix_duplicate_index_crash(self):
+        """Behavioural negative control: the raw ``prices.loc[ts, sym]`` read the
+        trade log performs raises on a duplicated label, which is exactly the
+        crash the entry guard removes."""
+        prices = pd.DataFrame(
+            {"A": [101.0, 102.0, 103.0]},
+            index=pd.DatetimeIndex(["2020-01-02", "2020-01-03", "2020-01-02"]),
+        )
+        dup_ts = prices.index[0]
+        with pytest.raises(TypeError):
+            float(prices.loc[dup_ts, "A"])

@@ -1,6 +1,44 @@
 # NEXT_TASK.md
 
-## Latest session (2026-11-15, Cycle 124) — fixed two crash-on-malformed-shape defects in the statistics core; 100% coverage preserved
+## Latest session (2026-11-15, Cycle 125) — fixed an evidenced engine crash on a duplicated index label; 100% coverage preserved
+
+### What changed
+Cycle 124 closed the `qtr.validation.statistics` shape guards and suggested fuzzing the runner-side glue. I fuzzed the *engine* instead (the most-used public entry point, `run_backtest`, and the layer every runner funnels into) and found one genuine, reproduced, deterministic crash — not a malformed-frame curiosity:
+
+- **`run_backtest` — `TypeError: float() argument must be a string or a real number, not 'Series'` on a duplicated index label.** The trade log does `price = float(prices.loc[ts, sym])` (engine.py:444). When `ts` is a *duplicated* index label, `.loc[ts, sym]` returns a Series and `float()` raises. `signals.reindex(index=prices.index, ...)` also raises `ValueError: cannot reindex on an axis with duplicate labels` before that, so a duplicated index crashes the engine two different ways depending on which panel carries it.
+
+  **Reachability (why this is a real defect, not a synthetic fixture):** the documented pipeline can produce a duplicated index. `fetch_ccxt` already guards with `~df.index.duplicated(keep="first").sort_index()` (fetcher.py:407), but `fetch_yahoo`/`fetch_futures` (`_fetch_yahoo_panel`, fetcher.py:215-216) and the cached read path (`DataCache.get`, fetcher.py:92-100) do **not** dedup, and a cache entry written before dedup / an overlapping vendor window carries the duplicate straight through. The runners then `pd.concat(..., axis=1).sort_index()` the per-symbol closes (`run_nf_*`, `run_h*`) and hand the panel to `run_backtest` with no dedup, so the duplicate reaches the engine.
+
+- **Fix:** canonicalize the index once at the top of `run_backtest` (keep first, then sort) for both `prices` and `signals`, mirroring the CCXT branch's existing policy. A unique index is a no-op, so the clean path is **bit-identical**. `src/qtr/backtest/engine.py` (+14 lines, one guard each for prices and signals).
+
+- **Tests:** `tests/test_engine_edge_stress.py` — new `TestDuplicateIndex` with `test_duplicate_price_index_with_a_trade_at_the_dup_does_not_crash`, `test_duplicate_signal_index_does_not_crash`, `test_unique_index_is_untouched_by_the_dedup_guard`, and `test_the_contract_rejects_the_pre_fix_duplicate_index_crash` (negative control reconstructing the pre-fix `float(Series)` TypeError). +4 tests.
+
+### What was actually verified (own evidence)
+- `pytest -q tests/test_engine_edge_stress.py` — **16 passed** (was 12).
+- `pytest -q tests/test_backtest_engine.py tests/test_engine_edge_stress.py tests/test_engine_metric_agreement.py tests/test_engine_total_return_consistency.py tests/test_frozen_contract_gates_edge_stress.py tests/test_gate_evaluation_edge_stress.py` — **253 passed**.
+- Full pinned suite `pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (332s) — **3841 passed, 48 skipped, coverage 100.00%** (+4 vs. the 3837 baseline; the 48 skips are the pre-existing H51/H29/H28/causality skips). `src/qtr/backtest/engine.py` = 100% (233 stmts, 80 branches).
+- **Negative control:** `git stash`-ing only `engine.py` and re-running `TestDuplicateIndex` → the two positive tests fail with the exact pre-fix errors (`TypeError: float() argument ... not 'Series'` and `ValueError: cannot reindex on an axis with duplicate labels`); the negative-control test passes. Restored via `git stash pop`.
+- `pytest -q tests/test_gates_workflow.py` — **7 failed** (unchanged, exclusively the maintainer-gated block; fix is `patches/0001-gates-workflow-contract-fix.patch`).
+- `ruff check src tests run_*.py scripts` — All checks passed. `ruff format --check ...` — 335 files already formatted (after formatting the new test).
+
+### What remains unresolved
+Same three blocked items as Cycle 124: (1) maintainer-only `.github/workflows/gates.yml` patch; (2) H182 research needs data authorization; (3) reproducibility backlog baseline-frozen at 197/11/528/0.
+
+### Approaches already tried and why they should not be repeated
+- Do not re-audit `regime_analysis` / `parameter_sensitivity` (closed in Cycle 124 with negative controls).
+- Do not re-fuzz the H182 runner's private helpers with malformed frames (`_net_buy_ratio_by_signal_day` / `_compute_daily_signals` raise `KeyError`/`TypeError` on frames missing `transaction_code`/`available_at`) — those are outside the runner's own contract (the corpus builder always supplies those columns), so they are not evidenced defects. Fix only a reproduced crash reachable from a real pipeline.
+- Do not re-audit the duplicate-index guard — it is now closed and pinned.
+- Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or alter coverage/frozen-contract gates.
+- Do not treat delisted/spliced-continuous/unavailable free series as valid PIT inputs.
+- Do not append H182 to `experiments.jsonl` without sidecars + coordinated baseline/pinned-test updates.
+- Do not make speculative `src/qtr` changes absent an evidenced defect (this session's guard is evidenced by a reproduced crash reachable from `fetch_yahoo`/`fetch_futures` + the runners' `pd.concat` panel build).
+
+### One precise next task
+**Maintainer (preferred, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch`, then `pytest -q tests/test_gates_workflow.py` (expect 7 passed) on `origin/main`. **No further agent-actionable engine crash is known this session.** If another evidenced defect is wanted, the next place to fuzz is the remaining public `src/qtr` surface not yet exercised for duplicate/degenerate shapes — e.g. `qtr.data.fetcher.fetch_ccxt` column-standardization on a short/odd vendor frame, or `qtr.tracking.experiment` methods on malformed artifact paths — and fix only a reproduced crash with a real-pipeline reachability argument.
+
+---
+
+## Prior session (2026-11-15, Cycle 124) — fixed two crash-on-malformed-shape defects in the statistics core; 100% coverage preserved
 
 ### What changed
 The prior handoff (Cycle 123) claimed "no agent-actionable work remains" and instructed the next session to only re-verify. Per the operating rules (make durable progress; do not passively re-verify), I independently reproduced the baseline (green: 3827 passed / 48 skipped, only the 7 maintainer-gated `tests/test_gates_workflow.py` red) and then fuzzed the public `qtr.validation.statistics` API for the same degenerate-input crash class this repo has been systematically closing (empty / non-finite / degenerate → fail closed, never crash). Two genuine, reproduced crashes remained:

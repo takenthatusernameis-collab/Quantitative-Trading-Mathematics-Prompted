@@ -1,6 +1,25 @@
 # HANDOFF.md
 
-> **Latest (2026-11-14, Cycle 123 — reconciled to `origin/main`; maintainer-patch evidence refreshed; no source/test/gate/artifact change):**
+> **Latest (2026-11-15, Cycle 125 — real defect fix: `run_backtest` crashed on a duplicated index label):**
+> Cycle 124 closed the `qtr.validation.statistics` shape guards and pointed the next
+> session at the runner-side glue. I fuzzed the engine (`run_backtest`, the most-used
+> public entry point) instead and found one reproduced, deterministic crash: the trade
+> log's `float(prices.loc[ts, sym])` (engine.py:444) raises `TypeError: float() argument
+> must be ... not 'Series'` when `ts` is a duplicated index label, and
+> `signals.reindex(...)` raises `ValueError: cannot reindex on an axis with duplicate
+> labels` before that. Reachable from the documented pipeline: `fetch_ccxt` dedups
+> (`~duplicated(keep="first").sort_index()`, fetcher.py:407) but `fetch_yahoo`/
+> `fetch_futures` and the cached read path do not, and the runners `pd.concat` per-symbol
+> closes into a panel handed straight to `run_backtest`. Fix: canonicalize the index once
+> at the top of `run_backtest` (keep first, sort) for prices and signals, mirroring the
+> CCXT policy; a unique index is a no-op so the clean path is bit-identical. Added
+> `TestDuplicateIndex` (4 tests, incl. a negative control reconstructing the pre-fix
+> `TypeError`). Full pinned suite **3841 passed / 48 skipped / 0 failed**, `src/qtr`
+> coverage **100%**, ruff clean (335 files). `src/qtr/backtest/engine.py` 100% (233 stmts
+> / 80 branches). No gate, artifact, sidecar, hash, frozen-number, or workflow change.
+> See `HANDOFF_CURRENT_SESSION.md` and `NEXT_TASK.md` Cycle 125.
+
+> **Prior (2026-11-14, Cycle 123 — reconciled to `origin/main`; maintainer-patch evidence refreshed; no source/test/gate/artifact change):**
 > The local branch was 3 commits behind `origin/main` (annotation-only handoff
 > commits 28a15a3 / 6dababb / 63813d7). Fast-forwarded (`git pull --ff-only`) so the
 > working tree is now at **63813d7** and matches `origin/main` exactly; nothing local

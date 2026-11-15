@@ -345,6 +345,20 @@ def run_backtest(
     ):
         return empty_result
 
+    # A duplicated index label makes every ``prices.loc[ts, sym]`` in the trade
+    # log return a Series (the crash) and makes ``signals.reindex`` refuse to
+    # align at all.  A duplicated bar is reachable from the documented pipeline:
+    # an overlapping vendor window or a cache entry written before dedup, which
+    # ``fetch_ccxt`` already guards with ``~duplicated(keep="first").sort_index()``
+    # (fetcher.py:407) but ``fetch_yahoo``/``fetch_futures`` and the cached read
+    # path do not.  Canonicalize once here (keep first, then sort) so a repeated
+    # timestamp cannot crash or silently double-count a bar.  A unique index is
+    # a no-op, so the clean path is bit-identical.
+    if prices.index.has_duplicates:
+        prices = prices[~prices.index.duplicated(keep="first")].sort_index()
+    if signals.index.has_duplicates:
+        signals = signals[~signals.index.duplicated(keep="first")].sort_index()
+
     # Align signals to the price panel (common index / columns), forward-fill
     # targets so a position holds until the next explicit target, then fill any
     # remaining NaN (e.g. a brand-new column) with zero exposure.
