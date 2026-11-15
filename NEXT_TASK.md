@@ -1,5 +1,40 @@
 # NEXT_TASK.md
 
+## Latest session (2026-11-15, Cycle 145) — deduplicated normalized cache-hit columns; 100% coverage preserved
+
+### What changed
+- **Reproduced defect (reachable):** `DataCache` is a persistent, cross-version store; a cached panel whose vendor columns normalize to the same label (e.g. `Close` and `CLOSE` -> `close`) passed through `DataFetcher._standardize_columns` (used on fresh and cache-hit paths for yahoo/ccxt) with duplicated `close` columns. Repro (own evidence, before fix): `df.columns == ['open','high','low','close','close','volume']`, `df['close']` returned a `DataFrame`, `pct_change`/arithmetic operated on 2 columns — breaking cache-hit parity with fresh fetch and with the existing index-dedup (`keep="first"`).
+- **Fix:** `src/qtr/data/fetcher.py` — `_standardize_columns` drops duplicated normalized column labels (`keep="first"`) before required-column selection; docstring updated. Canonical unique columns are bit-identical.
+- **Tests:** `tests/test_data_fetcher.py` — added `test_yahoo_cache_hit_deduplicates_columns_after_normalization` and `test_the_pre_fix_standardize_columns_keeps_duplicate_normalized_labels` (+2).
+
+### What was actually verified (own evidence)
+- Negative control: `git stash push -- src/qtr/data/fetcher.py` makes the new cache-hit column-dedup test fail (duplicated `close` retained); `git stash pop`, `python -m pytest -q tests/test_data_fetcher.py` → **80 passed**.
+- Full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (351.24s) → **3924 passed, 48 skipped, 0 failed**, `src/qtr` coverage **100.00%** (1531 stmts / 544 branches / 0 miss; `fetcher.py` 231/84).
+- `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged, maintainer-gated; fix is `patches/0001-gates-workflow-contract-fix.patch`).
+- `python scripts/backtest_perf_regression_gate.py` → **PASSED** (0.397s < 5s, 13668 trades).
+- `python -m ruff check src tests run_*.py scripts` → All checks passed; `python -m ruff format --check src tests run_*.py scripts` → 336 files already formatted.
+
+### What remains unresolved
+1. **Maintainer-only (CI contract):** `.github/workflows/gates.yml` not updated; 7 `tests/test_gates_workflow.py` tests red until maintainer applies `patches/0001-gates-workflow-contract-fix.patch` with workflow-scoped credentials. Agent cannot land `.github/workflows/**`.
+2. **Research queue exhausted under free/public PIT data:** H1–H182 executed/rejected; no honest free-data H183 pre-registrable without new authorized data (Cycle 140 FRED probe corrected availability claims but found no new family).
+3. **Reproducibility backlog:** `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0` unchanged; baseline-frozen.
+
+### Approaches already tried and why they should not be repeated
+- Do not trust handoff counts without re-running the gate; this session ran the full pinned suite (3924/48/0, 100%).
+- Do not make speculative `src/qtr` changes absent a reproduced, reachable defect.
+- Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or alter coverage/frozen-contract gates or published/frozen artifacts/verdicts/thresholds/frozen numbers.
+- Do not invent a free-data H183 or treat parameter/timeframe/universe/close-substitute variations as new mechanism families.
+- `DataCache.set`/read path, index standardization, cache-hit column normalization, and now normalized-column dedup are closed/pinned — do not re-audit without new evidence.
+
+### One precise next task
+**Maintainer (preferred, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch` with workflow scope, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed) on `origin/main`.
+
+**Agent alternative (only with new evidence):** continue hunting a *reproduced*, runner-reachable defect in `src/qtr` — productive method is executable fuzzing/property probes across module boundaries and at smallest input boundaries (n=0/1/2, empty, duplicate labels, non-finite, corrupt partial state) on public paths not yet closed, not re-running the same suite. If `src/qtr` changes, verify with `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py`, ruff check/format, and perf gate.
+
+**Constraints:** no gate weakening; no modification of published/frozen artifacts, verdicts, thresholds, or frozen numbers except deliberate authorized corpus/baseline updates; no workflow commit from agent.
+
+---
+
 ## Latest session (2026-11-15, Cycle 144) — corrected the cache-hit index standardization (the prior commit's `None` return crashed `fetch_yahoo`; ccxt cache hits were not standardized); 100% coverage preserved
 
 ### What changed (substantive)

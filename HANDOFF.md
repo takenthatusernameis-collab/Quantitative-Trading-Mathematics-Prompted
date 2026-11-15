@@ -1,5 +1,37 @@
 # HANDOFF.md
 
+> **Latest (2026-11-15, Cycle 145 — fixed a reproduced cache-hit column defect: duplicated normalized column labels (e.g. `Close`/`CLOSE`) survived standardization and broke `df["close"]`/downstream math; 100% coverage preserved):**
+> `DataCache` is a **persistent, cross-version file store** (82 committed
+> `.cache/data/*.parquet` files). A cache file written by an older/foreign writer
+> can carry several vendor names that normalize to the same label under
+> `DataFetcher._standardize_columns` (e.g. `Close` and `CLOSE` -> `close`).
+> `fetch_yahoo`/`fetch_ccxt` call `_standardize_columns` on both fresh and
+> cache-hit paths, but it only lowercased/reordered and did **not** deduplicate
+> columns. Result on a cache hit (reproduced before fix, own evidence): returned
+> columns `['open','high','low','close','close','volume']`, `df["close"]` was a
+> `DataFrame` (not a `Series`), and `pct_change`/arithmetic operated on 2 columns
+> — unlike the fresh path, and unlike `_standardize_cached_index` which already
+> keeps `keep="first"` for a duplicated timestamp. A clean/canonical cache hit
+> was bit-identically unchanged.
+> - **Fix:** `src/qtr/data/fetcher.py` — `_standardize_columns` now drops
+>   duplicated normalized column labels (keep first) before selecting the required
+>   columns, mirroring the index-dedup policy and the engine's column
+>   canonicalization. No gate/artifact/sidecar/hash/frozen-number/workflow change.
+> - **Tests:** `tests/test_data_fetcher.py` —
+>   `test_yahoo_cache_hit_deduplicates_columns_after_normalization` and
+>   `test_the_pre_fix_standardize_columns_keeps_duplicate_normalized_labels`
+>   (behavioural negative control reconstructing the pre-fix duplicate). **+2 tests.**
+> - **Verified (own evidence):** negative control — `git stash push -- src/qtr/data/fetcher.py`
+>   makes the positive cache-hit column-dedup test fail (returns duplicated `close`);
+>   `git stash pop`, `tests/test_data_fetcher.py` → **80 passed**. Full pinned suite
+>   `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py`
+>   (351.24s) → **3924 passed, 48 skipped, 0 failed**, `src/qtr` coverage
+>   **100.00%** (1531 stmts / 544 branches / 0 miss; `fetcher.py` 231/84).
+>   `tests/test_gates_workflow.py` → **7 failed** (unchanged, maintainer-gated; fix
+>   is `patches/0001-gates-workflow-contract-fix.patch`). `scripts/backtest_perf_regression_gate.py`
+>   → **PASSED** (0.397s < 5s, 13668 trades). `ruff check src tests run_*.py scripts`
+>   and `ruff format --check ...` → clean / 336 files already formatted.
+
 > **Latest (2026-11-15, Cycle 144 — corrected the cache-hit index standardization: the prior commit's `None` return crashed `fetch_yahoo` and ccxt cache hits were not standardized; 100% coverage preserved):**
 > `DataCache` is a **persistent, cross-version file store** (82 committed
 > `.cache/data/*.parquet` files). The prior session's HEAD `73b38c3` added

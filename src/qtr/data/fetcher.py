@@ -189,18 +189,25 @@ class DataFetcher:
         committed under ``.cache/data`` and survives code changes), so a cache
         hit must be *indistinguishable* from a fresh fetch.  A frame written by
         an older or foreign writer can carry capitalized vendor columns
-        (``Close``, ``Volume``) or a different column order; the fresh path
+        (``Close``, ``Volume``), a different column order, or -- across
+        writers/case conventions -- several names that normalize to the same
+        label (e.g. ``Close`` and ``CLOSE`` -> ``close``); the fresh path
         lowercases and reorders them, but a cache hit that returned the frame
-        verbatim would hand downstream runners ``df["close"]`` -> ``KeyError``.
-        A frame that already carries the canonical lowercase columns is
-        returned bit-identically.
+        verbatim would hand downstream runners ``df["close"]`` -> ``KeyError``
+        or, for a duplicated normalized label, a DataFrame instead of a Series
+        so ``pct_change``/arithmetic breaks.  A frame that already carries
+        canonical, unique lowercase columns is returned bit-identically.
 
         Column selection degrades over the columns that are present rather than
         indexing a missing name and raising ``KeyError``: a missing column is a
-        fact about the source, not a crash.
+        fact about the source, not a crash.  A duplicated normalized column
+        label keeps the first occurrence, mirroring ``_standardize_cached_index``
+        (which keeps ``keep="first"`` for a duplicated timestamp).
         """
         df = df.copy()
         df.columns = [str(c).lower().replace(" ", "_") for c in df.columns]
+        if df.columns.has_duplicates:
+            df = df.loc[:, ~df.columns.duplicated(keep="first")]
         required = ["open", "high", "low", "close", "volume"]
         present = [col for col in required if col in df.columns]
         for col in required:

@@ -1411,6 +1411,54 @@ class TestCacheHitColumnNormalization:
         with pytest.raises(KeyError):
             raw["close"]
 
+    def test_yahoo_cache_hit_deduplicates_columns_after_normalization(self, tmp_path):
+        # A persistent cross-version cache file can carry several vendor names
+        # that normalize to the same label (e.g. ``Close`` and ``CLOSE`` ->
+        # ``close``). Before the guard the cache-hit path returned a frame whose
+        # duplicated ``close`` column made ``df["close"]`` a DataFrame and broke
+        # downstream ``pct_change``/arithmetic; a cache hit must be
+        # indistinguishable from a fresh fetch, so keep the first occurrence.
+        cache = DataCache(cache_dir=tmp_path)
+        panel = pd.DataFrame(
+            {
+                "Open": [1.0, 2.0],
+                "High": [2.0, 3.0],
+                "Low": [0.5, 1.0],
+                "Close": [1.5, 2.5],
+                "CLOSE": [9.9, 9.9],
+                "Volume": [100.0, 200.0],
+            },
+            index=pd.to_datetime(["2020-01-01", "2020-01-02"]),
+        )
+        cache.set("yahoo", "SPY", "2020-01-01", "2020-02-01", "1d", panel)
+
+        res = DataFetcher(cache=cache).fetch_yahoo(
+            ["SPY"], "2020-01-01", "2020-02-01", use_cache=True
+        )["SPY"]
+        assert list(res.columns) == ["open", "high", "low", "close", "volume"]
+        assert isinstance(res["close"], pd.Series)
+        assert res["close"].tolist() == [1.5, 2.5]
+
+    def test_the_pre_fix_standardize_columns_keeps_duplicate_normalized_labels(self):
+        # Behavioural negative control: before the column-dedup guard,
+        # lowercasing alone left a duplicated ``close`` label, so selecting it
+        # returned a DataFrame instead of a Series.
+        panel = pd.DataFrame(
+            {
+                "Open": [1.0, 2.0],
+                "High": [2.0, 3.0],
+                "Low": [0.5, 1.0],
+                "Close": [1.5, 2.5],
+                "CLOSE": [9.9, 9.9],
+                "Volume": [100.0, 200.0],
+            },
+            index=pd.to_datetime(["2020-01-01", "2020-01-02"]),
+        )
+        lowered = panel.copy()
+        lowered.columns = [str(c).lower().replace(" ", "_") for c in lowered.columns]
+        assert lowered.columns.tolist().count("close") == 2
+        assert isinstance(lowered["close"], pd.DataFrame)
+
     def test_ccxt_cache_hit_normalizes_capitalized_columns(self, tmp_path, monkeypatch):
         import sys
         import types
