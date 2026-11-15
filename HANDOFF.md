@@ -1,5 +1,51 @@
 # HANDOFF.md
 
+> **Latest (2026-11-15, Cycle 136 — fixed a reproduced `fetch_ccxt` crash on an unknown `exchange_id`; 100% coverage preserved):**
+> No prior agent assignment existed, so I inspected the repo (clean tree at HEAD
+> `78f756c`, matches `origin/main`) and selected a bounded, high-value task from
+> the remaining public `src/qtr` surface. I found a reproduced, runner-reachable
+> defect that the defect hunts of Cycles 132/135 missed because they probed
+> `qtr.data.insider` and `qtr.strategies.baselines` but not the fetcher's CCXT
+> exchange initialization:
+>
+> - **`DataFetcher.fetch_ccxt` — `AttributeError: module 'ccxt' has no attribute
+>   <exchange_id>'` on an unknown exchange id.** `exchange_class = getattr(ccxt,
+>   exchange_id)` (fetcher.py:348) runs BEFORE the per-symbol `try` block, so a
+>   typo'd `exchange_id` (or a ccxt version that has not yet added the requested
+>   exchange) aborted the whole call with a bare `AttributeError` instead of
+>   failing closed per-symbol like the network, column and pagination paths.
+>   Reachable from the public API with no caller-side filtering: every CCXT
+>   runner passes `exchange_id` in, and `run_h23_crypto_futures_tsmom.py:484`
+>   hard-codes `"coinbase"`, so any other id (or a future ccxt that drops it)
+>   hits it. Reproduced in isolation (`fetch_ccxt("not_a_real_exchange", ...)` →
+>   `AttributeError`).
+> - **Fix:** `src/qtr/data/fetcher.py` — `getattr(ccxt, exchange_id, None)` then
+>   raise a named `ValueError` ("unknown CCXT exchange ...") when the attribute
+>   is absent, listing `ccxt.exchanges` when the real module exposes it and
+>   falling back to the plain message for stubs that do not. A valid id is a
+>   no-op, so the clean path is bit-identical.
+> - **Tests:** `tests/test_data_fetcher.py` — new `TestUnknownExchangeId` with
+>   `test_unknown_exchange_id_raises_value_error`,
+>   `test_unknown_exchange_id_raises_before_any_symbol_fetch` (a `NeverCalled`
+>   exchange proves the guard short-circuits before the symbol loop),
+>   `test_known_exchange_id_is_untouched`, and
+>   `test_the_contract_rejects_the_pre_fix_attribute_error` (behavioural
+>   negative control reconstructing the pre-fix `AttributeError`). +4 tests.
+> - **Verified:** negative control — `git stash` of only `fetcher.py` makes the
+>   3 rejecting tests fail with the exact pre-fix `AttributeError: module 'ccxt'
+>   has no attribute 'kraken'`/`'not_a_real_exchange'`; restored via `git stash
+>   pop`, 4 passed. Full pinned suite `python -m pytest -q -W error
+>   --cov=qtr --cov-branch --cov-report=term-missing
+>   --ignore=tests/test_gates_workflow.py` (434.77s) → **3863 passed, 51
+>   skipped, 0 failed**, `src/qtr` coverage **100.00%** (1504 stmts / 534
+>   branches / 0 miss; `fetcher.py` 223 stmts / 84 branches). `tests/test_gates_workflow.py`
+>   → **7 failed** (unchanged, maintainer-gated; fix is
+>   `patches/0001-gates-workflow-contract-fix.patch`). `scripts/backtest_perf_regression_gate.py`
+>   → **PASSED** (0.481s < 5s, 13668 trades). `ruff check`/`format --check` over
+>   `src tests run_*.py scripts` → All checks passed / 335 files already
+>   formatted. No gate, artifact, sidecar, hash, frozen-number, or workflow
+>   change. See `NEXT_TASK.md` Cycle 136.
+
 > **Latest (2026-11-15, Cycle 135 — no agent-actionable defect found; preferred maintainer task re-verified end-to-end; no source/test/gate/artifact/workflow change:**
 > Per the standing instruction, I did not wait passively for an assignment. I
 > inspected the repo (clean tree at HEAD `46dea23`, matches `origin/main`) and

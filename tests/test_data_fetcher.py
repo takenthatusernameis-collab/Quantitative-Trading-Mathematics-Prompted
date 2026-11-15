@@ -641,6 +641,104 @@ def test_fetch_ccxt_no_ohlcv(monkeypatch):
     assert res["BTC/USDT"].empty
 
 
+class TestUnknownExchangeId:
+    """``fetch_ccxt`` must reject an exchange id that ccxt does not expose.
+
+    ``getattr(ccxt, exchange_id)`` raises a bare ``AttributeError`` for an id
+    that is not a real CCXT exchange, and that lookup runs BEFORE the per-symbol
+    loop (fetcher.py:348), so the error escaped the ``try`` that wraps every
+    other fetch failure and aborted the whole call on the first unknown
+    exchange instead of failing closed per-symbol like the network, column and
+    pagination paths below. Reachable from the public API with no
+    caller-side filtering: ``run_h23_crypto_futures_tsmom.py`` hard-codes
+    ``exchange_id = "coinbase"`` and any other runner that passes a typo'd id
+    (or a ccxt version that has not yet added the requested exchange) hits it.
+    """
+
+    @staticmethod
+    def _stub_ccxt(monkeypatch, *, with_exchange=True):
+        import sys
+        import types
+
+        fake_ccxt = types.ModuleType("ccxt")
+
+        if with_exchange:
+
+            class FakeExchange:
+                def fetch_ohlcv(self, symbol, timeframe, since=None, limit=1000):
+                    return []
+
+            fake_ccxt.binance = lambda cfg: FakeExchange()
+
+        monkeypatch.setitem(sys.modules, "ccxt", fake_ccxt)
+
+    def test_unknown_exchange_id_raises_value_error(self, monkeypatch):
+        import tempfile
+
+        self._stub_ccxt(monkeypatch, with_exchange=True)
+        d = Path(tempfile.mkdtemp())
+        fetcher = DataFetcher(cache=DataCache(cache_dir=d))
+        with pytest.raises(ValueError, match="unknown CCXT exchange"):
+            fetcher.fetch_ccxt(
+                "not_a_real_exchange", ["BTC/USDT"], "2020-01-01", "2020-02-01", use_cache=False
+            )
+
+    def test_unknown_exchange_id_raises_before_any_symbol_fetch(self, monkeypatch):
+        # The guard runs before the symbol loop, so an unknown exchange must
+        # never reach ``exchange.fetch_ohlcv`` -- a stub exchange that asserts
+        # when called proves the guard short-circuits first.
+        import sys
+        import tempfile
+        import types
+
+        class NeverCalled:
+            def fetch_ohlcv(self, *a, **k):
+                raise AssertionError("fetch_ohlcv must not be called for an unknown exchange")
+
+        fake_ccxt = types.ModuleType("ccxt")
+        fake_ccxt.binance = lambda cfg: NeverCalled()
+        monkeypatch.setitem(sys.modules, "ccxt", fake_ccxt)
+
+        d = Path(tempfile.mkdtemp())
+        fetcher = DataFetcher(cache=DataCache(cache_dir=d))
+        with pytest.raises(ValueError, match="unknown CCXT exchange"):
+            fetcher.fetch_ccxt(
+                "not_a_real_exchange", ["BTC/USDT"], "2020-01-01", "2020-02-01", use_cache=False
+            )
+
+    def test_known_exchange_id_is_untouched(self, monkeypatch):
+        import tempfile
+
+        # A real exchange id still initializes and fetches normally; the guard
+        # must not reject valid ids.
+        self._stub_ccxt(monkeypatch, with_exchange=True)
+        d = Path(tempfile.mkdtemp())
+        fetcher = DataFetcher(cache=DataCache(cache_dir=d))
+        res = fetcher.fetch_ccxt(
+            "binance", ["BTC/USDT"], "2020-01-01", "2020-02-01", use_cache=False
+        )
+        assert "BTC/USDT" in res
+
+    def test_the_contract_rejects_the_pre_fix_attribute_error(self, monkeypatch):
+        # Behavioural negative control: the pre-fix construction raised a bare
+        # ``AttributeError`` from ``getattr(ccxt, exchange_id)``. This test
+        # reconstructs that path and asserts the corrected code rejects it as
+        # a ``ValueError`` instead of crashing on the module attribute.
+        import sys
+        import tempfile
+        import types
+
+        fake_ccxt = types.ModuleType("ccxt")
+        # Only ``binance`` exists; the requested id does not.
+        fake_ccxt.binance = lambda cfg: None
+        monkeypatch.setitem(sys.modules, "ccxt", fake_ccxt)
+
+        d = Path(tempfile.mkdtemp())
+        fetcher = DataFetcher(cache=DataCache(cache_dir=d))
+        with pytest.raises(ValueError, match="unknown CCXT exchange"):
+            fetcher.fetch_ccxt("kraken", ["BTC/USDT"], "2020-01-01", "2020-02-01", use_cache=False)
+
+
 def test_fetch_ccxt_keeps_required_column_order(tmp_path, monkeypatch):
     """A complete CCXT panel returns its columns in the required order.
 

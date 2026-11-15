@@ -345,7 +345,24 @@ class DataFetcher:
             except ImportError as e:
                 logger.error(f"ccxt not installed: {e}")
                 return results
-            exchange_class = getattr(ccxt, exchange_id)
+            # ``getattr(ccxt, exchange_id)`` raises a bare ``AttributeError`` for
+            # an exchange id that is not a real CCXT exchange, and that error
+            # escapes the per-symbol ``try`` below (it runs BEFORE the symbol
+            # loop), so the whole fetch aborts on the first unknown exchange
+            # rather than failing closed per-symbol like every other fetch
+            # failure here. Catch it and raise a named ``ValueError`` instead,
+            # mirroring the ``fetcher()`` dispatcher's explicit error for an
+            # unknown ``source``. ``ccxt.exchanges`` is the authoritative list
+            # when present; a stub without it falls back to ``getattr``'s
+            # behaviour, so the guard is honest against both.
+            exchange_class = getattr(ccxt, exchange_id, None)
+            if exchange_class is None:
+                known = getattr(ccxt, "exchanges", None)
+                listing = f" (ccxt supports {len(known)} exchanges)" if known else ""
+                raise ValueError(
+                    f"unknown CCXT exchange {exchange_id!r}{listing}. "
+                    "Pass an id that exists on the ccxt module."
+                )
             self._ccxt_exchanges[exchange_id] = exchange_class(
                 {
                     "enableRateLimit": True,
