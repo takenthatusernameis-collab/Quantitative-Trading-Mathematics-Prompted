@@ -1,5 +1,35 @@
 # NEXT_TASK.md
 
+## Latest session (2026-11-15, Cycle 133) — baseline independently re-verified; green except maintainer-gated block
+
+### What changed
+- **No source, test, gate, artifact, sidecar, hash, frozen-number, or workflow change.** Working tree clean at HEAD `f8b7a35`; matches `origin/main`.
+
+### What was actually verified (own evidence)
+- `python -m ruff check src tests run_*.py scripts` → All checks passed.
+- `python -m ruff format --check src tests run_*.py scripts` → 335 files already formatted.
+- Full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (440.38s) → **3857 passed, 51 skipped, 0 failed**, `src/qtr` coverage **100.00%** (1500 stmts / 532 branches / 0 miss). Independently confirms the Cycle 131/132 baseline.
+
+### What remains unresolved
+1. **Maintainer-only (CI contract):** `.github/workflows/gates.yml` not updated; 7 `tests/test_gates_workflow.py` tests red until maintainer applies `patches/0001-gates-workflow-contract-fix.patch` with workflow-scoped credentials. Agent cannot land `.github/workflows/**`.
+2. **Research queue exhausted under free/public PIT data:** H1–H182 executed/rejected; no honest free-data H183 is pre-registrable without new authorized data.
+3. **Reproducibility backlog:** `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0` unchanged; baseline-frozen.
+
+### Approaches already tried and why they should not be repeated
+- Do not trust a handoff's pass/coverage claim without running the gate (Cycle 133 ran the full pinned suite: 3857 passed / 51 skipped / 0 failed, 100% coverage).
+- Do not make speculative `src/qtr` changes absent a reproduced, reachable defect — none exists.
+- Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or alter coverage/frozen-contract gates.
+- Do not invent a free-data H183 or treat parameter/timeframe/universe variations as new mechanism families.
+
+### One precise next task
+**Maintainer (preferred, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch` with workflow scope, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed) on `origin/main`.
+
+**Agent alternative (only with new evidence):** find and fix a *reproduced*, runner-reachable defect in `src/qtr` (or a concrete failing case in a public path exercised by runners/scripts) that is not already closed. Keep 100% `src/qtr` coverage and all gates/contracts intact; if `src/qtr` changes, verify with the full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` and ruff check/format.
+
+**Constraints:** no gate weakening; no modification of published/frozen artifacts, verdicts, thresholds, or frozen numbers except deliberate authorized corpus/baseline updates; no workflow commit from agent.
+
+---
+
 ## Latest session (2026-11-15, Cycle 132) — baseline re-verified; no agent-actionable defect found
 
 ### What changed

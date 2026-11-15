@@ -469,13 +469,34 @@ in the repo is green.
 
 ## One precise next task
 
-**Maintainer-only: apply `patches/0001-gates-workflow-contract-fix.patch`** to turn the 7 red `tests/test_gates_workflow.py` failures green (re-verified Cycle 106: patch applies, patched `gates.yml` satisfies all 7 assertions, `scripts/backtest_perf_regression_gate.py` passes on this host). Agent cannot land it (no `workflows` token; kilo-controller restores `.github/workflows/**` from `origin/main` each session). If applied, full suite goes green at **3,752 passed / 51 skipped / 0 failed**.
+**Maintainer-only: apply `patches/0001-gates-workflow-contract-fix.patch`** to turn the 7 red `tests/test_gates_workflow.py` failures green (re-verified Cycle 132: patch applies, patched `gates.yml` satisfies all 7 assertions, `scripts/backtest_perf_regression_gate.py` passes on this host). Agent cannot land it (no `workflows` token; kilo-controller restores `.github/workflows/**` from `origin/main` each session). If applied, full suite goes green at **3,752 passed / 51 skipped / 0 failed**.
 
 **Agent path (blocked unless authorized):** resolve the H182 data gap (e.g. free point-in-time commodity roll/contango data for carry, or PIT insider/earnings/options data) and select H182 per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §4/§6 and `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96. Absent authorization, conclude free-data family discovery is exhausted — do not invent an H182 candidate.
 
 **Constraints:** `src/qtr` unchanged unless an evidenced defect requires it (then rerun pinned full gates); no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified; no commit/push of `.github/workflows/**`.
 
 ---
+
+## Session 2026-11-15, Cycle 133 — baseline independently re-verified; green except maintainer-gated block
+
+### What changed
+- **No source, test, gate, artifact, sidecar, hash, frozen-number, or workflow change.** Working tree clean at HEAD `f8b7a35` (annotation-only Cycle 132 commit on top of `35d1bc3`); matches `origin/main`.
+
+### What was actually verified (own evidence)
+- `python -m ruff check src tests run_*.py scripts` → All checks passed.
+- `python -m ruff format --check src tests run_*.py scripts` → 335 files already formatted.
+- Full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (440.38s) → **3857 passed, 51 skipped, 0 failed**, `src/qtr` coverage **100.00%** (1500 stmts / 532 branches / 0 miss). Independently confirms the Cycle 131/132 baseline.
+
+### What remains unresolved
+1. **7 `tests/test_gates_workflow.py` failures** — maintainer-gated; fix is `patches/0001-gates-workflow-contract-fix.patch` (verified applicable); agent cannot land `.github/workflows/**`.
+2. **H182 selection** — free-data point-in-time strategy-family queue exhausted (H1–H181 rejected/recorded, `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96); no honest free-data H183 pre-registrable without new authorized data.
+3. **Reproducibility backlog:** `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0` unchanged; baseline-frozen.
+
+### Approaches already tried and why they should not be repeated
+- Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or alter coverage/frozen-contract gates.
+- Do not make speculative `src/qtr` changes absent a reproduced, reachable defect — none exists; the suite is green.
+- Do not invent a free-data H183 or treat parameter/timeframe/universe variations as new mechanism families.
+
 
 ## Session 2026-11-14T05:52Z (Cycle 108): full-suite re-verification — green baseline confirmed, no agent-actionable work
 
