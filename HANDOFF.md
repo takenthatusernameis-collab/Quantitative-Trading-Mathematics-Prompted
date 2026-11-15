@@ -1,6 +1,42 @@
 # HANDOFF.md
 
-> **Latest (2026-11-15, Cycle 142 — fixed a reproduced config defect: the nested `data.cache_dir` / `tracking.log_dir` settings were silently ignored by both consumers; 100% coverage preserved):**
+> **Latest (2026-11-15, Cycle 143 — fixed the cached-read schema inconsistency: a cache hit now normalizes columns like a fresh fetch; 100% coverage preserved):**
+> This session resolved the previous handoff's open question. `DataCache` is a
+> **persistent, cross-version file store** (committed under `.cache/data`), and
+> `DataCache.get` returns the stored columns **verbatim** — it only strips a
+> tz-aware index — while the fresh-fetch path lowercases vendor columns,
+> reorders `present required + extras`, and warns on a missing required column.
+> A cache file written by an older/foreign writer carrying capitalized vendor
+> columns (`Close`, `Volume`) was therefore returned as-is on a cache hit, and
+> every downstream runner that does `df["close"]` (30+ call sites across
+> `run_*.py`) raised `KeyError: 'close'`, while the same frame fetched fresh was
+> normalized and worked. Reproduced before the fix (own evidence): seeded a cache
+> entry with `Open/High/Low/Close/Volume`; `fetch_yahoo(..., use_cache=True)` and
+> `fetch_ccxt(..., use_cache=True)` returned the capitalized columns and
+> `df["close"]` raised.
+> - **Fix:** `src/qtr/data/fetcher.py` — new `DataFetcher._standardize_columns(df,
+>   symbol)` (lowercase/normalize names, degrade over the required columns present,
+>   warn on each missing one, `present + extras` order). The fresh paths of
+>   `_fetch_yahoo_panel` and `fetch_ccxt` **and both cache-hit paths** now call it.
+>   A frame already carrying canonical lowercase columns is returned
+>   bit-identically, so a clean cache hit is unchanged.
+> - **Tests:** `tests/test_data_fetcher.py` `TestCacheHitColumnNormalization` (5,
+>   incl. a behavioural negative control and the ccxt path). **+5 tests.**
+> - **Verified:** negative control — `git stash push -- src/qtr/data/fetcher.py`
+>   makes exactly the 4 positive cases fail on capitalized `Close`/`Volume`
+>   (4 failed / 1 passed); `git stash pop`, 71 passed on the file. Full pinned
+>   suite `python -m pytest -q -W error --cov=qtr --cov-branch
+>   --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (343.30s) ->
+>   **3912 passed, 51 skipped, 0 failed**, `src/qtr` coverage **100.00%**
+>   (1521 stmts / 540 branches / 0 miss; `fetcher.py` 221/80). `tests/
+>   test_gates_workflow.py` -> **7 failed** (unchanged, maintainer-gated; fix is
+>   `patches/0001-gates-workflow-contract-fix.patch`). `scripts/backtest_perf_
+>   regression_gate.py` -> **PASSED** (0.307s < 5s, 13668 trades). `ruff check` /
+>   `format --check` over `src tests run_*.py scripts` -> All checks passed / 336
+>   files already formatted. No gate, artifact, sidecar, hash, frozen-number, or
+>   workflow change. See `NEXT_TASK.md` Cycle 143.
+
+> **Prior (2026-11-15, Cycle 142 — fixed a reproduced config defect: the nested `data.cache_dir` / `tracking.log_dir` settings were silently ignored by both consumers; 100% coverage preserved):**
 > The prior agent's last commit (`287de3a`, CostModel negative-operand guard) had no
 > handoff entry, so this session first certified it and then selected a bounded,
 > reproduced defect from the remaining public surface. `_apply_env_overrides` writes

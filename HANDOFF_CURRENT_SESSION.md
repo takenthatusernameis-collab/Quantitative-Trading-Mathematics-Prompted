@@ -1,123 +1,109 @@
-# HANDOFF — current session (2026-11-15, Cycle 142)
+# HANDOFF — current session (2026-11-15, Cycle 143)
 
 ## What changed (substantive, not annotation-only)
 
-1. **`src/qtr/utils/config.py` — new `config_value()` + `config_path()`.**
-   `_apply_env_overrides` writes **nested** mappings (`QTR_CACHE_DIR` ->
-   `{"data": {"cache_dir": ...}}`, pinned by
-   `tests/test_config.py::test_env_override_cache_dir_string`), but the two
-   consumers read the *literal flat key*:
-   `DataCache.__init__` used `get_config().get("data.cache_dir", ".cache/data")`
-   and `ExperimentTracker.__init__` used `get_config().get("tracking.log_dir",
-   ".experiments")`. A flat key can only match a hand-written `data.cache_dir:`
-   line, so the nested document the loader itself produces was silently
-   discarded: the configured directory (from `config.yaml` **or** from
-   `QTR_CACHE_DIR`) never took effect and the cache/log always landed in
-   `.cache/data` / `.experiments`.
-   - `config_value(config, dotted_key, default)`: nested walk first, literal flat
-     key as fallback, `default` otherwise. A non-mapping intermediate node is a
-     walk failure; a present `None` is a value (the caller decides).
-   - `config_path(config, dotted_key, default)`: coerces to `Path`; fails closed
-     to the default for bool / null / sequence / mapping / empty-string values;
-     numeric values go through `str` because `_set_nested` parses
-     `QTR_CACHE_DIR=10` to the int `10` (the caller's literal text is the
-     intended path component).
-2. **`src/qtr/data/fetcher.py` / `src/qtr/tracking/experiment.py`** — `DataCache`
-   and `ExperimentTracker` now resolve their directory through `config_path`.
-   **The default path is unchanged**, so a config-less tree is bit-identical.
-3. **`src/qtr/utils/__init__.py`** — both names exported (`qtr.utils.__all__`
-   must equal the module's public API; `tests/test_public_api_contract.py`
-   enforces it and passes).
-4. **Tests:** `tests/test_config.py` `TestConfigValue` (10) + `TestConfigPath`
-   (13); `tests/test_data_fetcher.py` `TestDataCacheConfiguredDirectory` (5,
-   incl. a behavioural negative control); `tests/test_experiment_tracker.py`
-   `TestTrackerConfiguredLogDirectory` (4, incl. a behavioural negative
-   control). **+32 tests.**
-5. **Docs:** `HANDOFF.md` banner, `NEXT_TASK.md` Cycle 142 section, this file.
+1. **`src/qtr/data/fetcher.py` — new `DataFetcher._standardize_columns(df, symbol)`.**
+   `DataCache` is a **persistent, cross-version file store** (committed under
+   `.cache/data`, keyed by `source:symbol:start:end:interval`). `DataCache.get`
+   returned the stored columns **verbatim** — it only strips a tz-aware index —
+   while the fresh-fetch path lowercased vendor columns, reordered
+   `present required + extras`, and warned on a missing required column. So a
+   cache file written by an older/foreign writer carrying capitalized vendor
+   columns (`Close`, `Volume`) was returned as-is on a cache hit, and every
+   downstream runner that does `df["close"]` (30+ call sites across `run_*.py`)
+   raised `KeyError: 'close'`, while the same frame fetched fresh was normalized
+   and worked. This is the same "stale cache file from an older writer" premise
+   `DataCache.get`'s tz handling already defends against, extended to the column
+   axis.
+   - `_standardize_columns` lowercases/normalizes column names, degrades over the
+     required columns that are present (warn on each missing one), and returns
+     `present + extras`.
+   - The fresh path of `_fetch_yahoo_panel`, the fresh path of `fetch_ccxt`, and
+     **both cache-hit paths** now call it. A frame already carrying canonical
+     lowercase columns is returned bit-identically, so a clean cache hit is
+     unchanged.
+2. **Tests:** `tests/test_data_fetcher.py` `TestCacheHitColumnNormalization` (5):
+   capitalized cache hit is normalized; capitalized cache hit equals a fresh
+   fetch; a cache hit warns on a missing required column; a behavioural negative
+   control reconstructs the pre-fix verbatim return; the ccxt cache-hit path
+   normalizes. **+5 tests.**
+3. **Docs:** `HANDOFF.md` banner, `NEXT_TASK.md` Cycle 143 section, this file.
 
 **No gate, artifact, sidecar, hash, frozen-number, or workflow change.**
 
 ## What was actually verified (own evidence, this session)
 
-- **Reproduced before fixing:** a temp cwd with `config.yaml` =
-  `data: {cache_dir: /tmp/nested-cache}` + `tracking: {log_dir:
-  /tmp/nested-exp}` loads as `{'data': {'cache_dir': '/tmp/nested-cache'}, ...}`,
-  yet `DataCache().cache_dir == .cache/data` and
-  `ExperimentTracker().log_dir == .experiments`.
-- **Negative control:** `git stash push -- src/qtr/data/fetcher.py
-  src/qtr/tracking/experiment.py` -> exactly the 3 nested/env cases fail with
-  `AssertionError: assert PosixPath('.cache/data') == PosixPath('/tmp/nested-cache')`
-  (and `.experiments` for the tracker); `git stash pop`, **150 passed** on the
-  three touched suites.
-- **Committed probe now passes:** `python repro_cache_dir.py` (added at
-  `1ede756`, when the override was silently dropped) prints
-  `cfg data.cache_dir = 10` then **`cache_dir = 10`**; before this fix it
-  printed `cache_dir = .cache/data`.
+- **Reproduced before fixing:** seeded a cache entry with
+  `Open/High/Low/Close/Volume`; `fetch_yahoo(..., use_cache=True)` returned
+  capitalized columns and `df["close"]` raised `KeyError`; the fresh path over
+  the same vendor frame returned `['open','high','low','close','volume']` and
+  `df["close"]` worked. Same for `fetch_ccxt` cache hits (its default
+  `timeframe="1h"` matters for the cache key).
+- **Negative control:** `git stash push -- src/qtr/data/fetcher.py` -> exactly
+  the 4 positive cases fail on capitalized `Close`/`Volume` (`4 failed, 1
+  passed`); the negative control passes by construction. `git stash pop`, **71
+  passed** on `tests/test_data_fetcher.py` (was 66).
 - Full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch
-  --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (643.87s) ->
-  **3907 passed, 51 skipped, 0 failed**, `src/qtr` coverage **100.00%**
-  (1523 stmts / 544 branches / 0 miss; `config.py` 73/32, `fetcher.py` 223/84,
-  `experiment.py` 217/46, all 100%). 3907 = 3869 (Cycle 139) + 6 (the prior
-  uncommitted-handoff commit `287de3a`) + 32 (this session).
+  --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (343.30s) ->
+  **3912 passed, 51 skipped, 0 failed**, `src/qtr` coverage **100.00%**
+  (1521 stmts / 540 branches / 0 miss; `fetcher.py` 221 stmts / 80 branches, all
+  100%). 3912 = 3907 (Cycle 142) + 5 (this session).
 - `python -m pytest -q tests/test_gates_workflow.py` -> **7 failed** (unchanged,
   exclusively the maintainer-gated block; fix is
-  `patches/0001-gates-workflow-contract-fix.patch`, still `git apply --check`-clean).
-- `python scripts/backtest_perf_regression_gate.py` -> **PASSED** (0.851s < 5s,
+  `patches/0001-gates-workflow-contract-fix.patch`).
+- `python scripts/backtest_perf_regression_gate.py` -> **PASSED** (0.307s < 5s,
   10.7MB peak, 13668 trades).
 - `python -m ruff check src tests run_*.py scripts` -> **All checks passed.**
   `python -m ruff format --check src tests run_*.py scripts` -> **336 files
   already formatted.**
-- **Prior commit certified:** `287de3a` (CostModel negative-operand fail-closed,
-  6 new tests) had landed without any handoff entry; the full pinned suite above
-  is the first run that covers it.
 
 ## What remains unresolved
 
 1. **Maintainer-only (CI contract):** `.github/workflows/gates.yml` not updated;
    7 `tests/test_gates_workflow.py` tests red until the maintainer applies
    `patches/0001-gates-workflow-contract-fix.patch` with workflow scope. Agent
-   cannot land `.github/workflows/**`. **Verified apply-ready.**
+   cannot land `.github/workflows/**`.
 2. **Research queue exhausted under free/public PIT data:** H1–H182
    executed/rejected; H183 unassigned. Cycle 140 (FRED) confirmed the corrected
-   data does not yield a new family. No materially different free source has
-   been searched since.
+   data does not yield a new family.
 3. **Reproducibility backlog:** `missing_files=197`, `hash_mismatches=11`,
    `orphaned_files=528`, `missing_meta_files=0` unchanged; baseline-frozen.
-4. **Deliberately not fixed:** `logging.level` and `compute.max_cpu_hours` are
-   written by the env-override table but read by nobody in `src/qtr`; wiring
-   them is a behaviour change, out of scope.
+4. **Deliberately not changed (needs a decision, not a bug fix):** the cache-hit
+   path still does **not** coerce a non-datetime index to datetime the way the
+   fresh path does (`pd.to_datetime(df.index)`). Coercing a stale integer index
+   would manufacture 1970 timestamps, which is arguably worse than leaving it;
+   the column-axis defect was the demonstrated one. Also unchanged: a cache frame
+   missing `close` is still returned without `close` on both paths (fail-soft;
+   both layers behave identically and `run_baseline.py:126` drops it).
 
 ## Approaches already tried / must not be repeated
 
-- **Do not "fix" this by making `_set_nested` write flat keys.** `tests/test_config.py`
-  pins the nested env-override shape, and the nested document is the loader's
-  canonical output; the two consumers were the outliers.
-- **Do not use `--cov=<dotted.module>`** (e.g. `--cov=qtr.utils.config`): it
-  aborts collection with `ImportError: cannot load module more than once per
-  process` in this environment (python 3.14 / numpy 2.5.4 / coverage 7.17.3,
-  independent of `-W error`). Use `--cov=qtr`, as `pyproject.toml` specifies.
+- Do not make `_set_nested` write flat keys or otherwise change the config loader
+  (closed in Cycle 142).
+- Do not re-audit the duplicate index/column engine guards (Cycles 125/130), the
+  statistics shape guards (Cycle 124), or the malformed-JSONL skip (Cycle 127) —
+  all closed and pinned.
 - Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or
   alter coverage/frozen-contract gates.
+- Do not use `--cov=<dotted.module>` (aborts collection with `ImportError:
+  cannot load module more than once per process`); use `--cov=qtr`.
 - Do not make speculative `src/qtr` changes absent a reproduced, reachable
-  defect. The defect hunt is **not** exhausted: `287de3a` and this cycle both
-  landed after a handoff claimed no agent-actionable defect remained.
-- Do not repeat the yfinance-only "data-blocked" classification — run
-  `scripts/probe_fred_availability.py` (and probe other free sources) first.
-- Do not invent a free-data H183 or treat parameter/timeframe/universe
-  variations as new mechanism families.
+  defect; the defect hunt is **not** exhausted (this cycle landed after the prior
+  handoff called the cached-read path "not a proven defect").
 
 ## One precise next task
 
 **Maintainer (preferred, unblocks CI):** apply and push
 `patches/0001-gates-workflow-contract-fix.patch` with workflow scope, then
 `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed) on
-`origin/main`. Patch verified apply-ready this session.
+`origin/main`.
 
-**Agent path:** run one more reproduced-defect cycle. First verify (do not
-assume) the cached-read schema inconsistency: `DataCache.get` returns any stored
-parquet as-is and `_fetch_yahoo_panel` skips the "missing column" handling the
-fresh path has; measured, a cache entry without `close` yields a zero-exposure
-0.0 book from `run_backtest` (no crash) and is silently dropped by
-`run_baseline.py:126`. That is a fail-soft inconsistency to decide on, not a
-proven defect. Any `src/qtr` change must preserve 100% coverage and pass
-`ruff`/the pinned suite.
+**Agent path:** run one more reproduced-defect cycle on a surface not yet probed
+at its boundary. One measured, undecided inconsistency remains (verify before
+acting): the cache-hit path does not coerce a **non-datetime index** to datetime
+the way the fresh path does, and does not dedup a duplicated index the way
+`fetch_ccxt`'s fresh path does. Decide whether a stale integer/duplicated index
+in a cached frame is a real defect (it would reach `prices.reindex(...)` /
+`pd.concat` in the runners) before changing it; do not "fix" it speculatively.
+Any `src/qtr` change must preserve 100% coverage and pass `ruff`/the pinned
+suite.

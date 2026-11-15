@@ -1320,3 +1320,113 @@ class TestDataCacheConfiguredDirectory:
         assert cfg["data"]["cache_dir"] == "/tmp/nested-cache"
         assert cfg.get("data.cache_dir", ".cache/data") == ".cache/data"
         assert config.config_value(cfg, "data.cache_dir") == "/tmp/nested-cache"
+
+
+# --------------------------------------------------------------------------- #
+# Cache-hit column normalization -- a cache hit must match a fresh fetch
+# --------------------------------------------------------------------------- #
+def _capitalized_panel() -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "Open": [1.0, 2.0],
+            "High": [2.0, 3.0],
+            "Low": [0.5, 1.0],
+            "Close": [1.5, 2.5],
+            "Volume": [100.0, 200.0],
+        },
+        index=pd.to_datetime(["2020-01-02", "2020-01-03"]),
+    )
+
+
+class TestCacheHitColumnNormalization:
+    """The cache is a persistent, cross-version store; a hit must normalize.
+
+    ``DataCache.set`` writes whatever frame it is handed and
+    ``DataCache.get`` returns the stored columns verbatim (it only strips a
+    tz-aware index). A cache file written by an older or foreign writer can
+    therefore carry capitalized vendor columns (``Close``, ``Volume``) or a
+    different column order. The fresh fetch path lowercases and reorders them;
+    a cache hit that skipped that step handed downstream runners
+    ``df["close"]`` -> ``KeyError``.
+    """
+
+    def test_capitalized_cache_hit_is_normalized(self, tmp_path):
+        cache = DataCache(cache_dir=tmp_path)
+        cache.set("yahoo", "SPY", "2020-01-01", "2020-02-01", "1d", _capitalized_panel())
+        fetcher = DataFetcher(cache=cache)
+
+        res = fetcher.fetch_yahoo(["SPY"], "2020-01-01", "2020-02-01", use_cache=True)["SPY"]
+        assert list(res.columns) == ["open", "high", "low", "close", "volume"]
+        assert res["close"].tolist() == [1.5, 2.5]
+
+    def test_capitalized_cache_hit_matches_a_fresh_fetch(self, tmp_path, monkeypatch):
+        _fake_yf_returning(_capitalized_panel())
+        fresh = DataFetcher(cache=DataCache(cache_dir=tmp_path / "fresh"))
+        expected = fresh.fetch_yahoo(["SPY"], "2020-01-01", "2020-02-01", use_cache=False)["SPY"]
+
+        cache = DataCache(cache_dir=tmp_path / "cached")
+        cache.set("yahoo", "SPY", "2020-01-01", "2020-02-01", "1d", _capitalized_panel())
+        got = DataFetcher(cache=cache).fetch_yahoo(
+            ["SPY"], "2020-01-01", "2020-02-01", use_cache=True
+        )["SPY"]
+        pd.testing.assert_frame_equal(got, expected, check_names=False)
+
+    def test_cache_hit_warns_on_missing_required_column(self, tmp_path):
+        from loguru import logger
+
+        cache = DataCache(cache_dir=tmp_path)
+        cache.set(
+            "yahoo",
+            "SPY",
+            "2020-01-01",
+            "2020-02-01",
+            "1d",
+            pd.DataFrame(
+                {"Open": [1.0], "High": [2.0], "Low": [0.5], "Close": [1.5]},
+                index=pd.to_datetime(["2020-01-02"]),
+            ),
+        )
+        fetcher = DataFetcher(cache=cache)
+
+        messages: list[str] = []
+        handler_id = logger.add(messages.append, level="WARNING")
+        try:
+            res = fetcher.fetch_yahoo(["SPY"], "2020-01-01", "2020-02-01", use_cache=True)["SPY"]
+        finally:
+            logger.remove(handler_id)
+
+        assert "close" in res.columns
+        assert "volume" not in res.columns
+        assert any("Missing column volume" in m for m in messages)
+
+    def test_the_pre_fix_cache_hit_returns_capitalized_columns(self, tmp_path):
+        # Behavioural negative control: reconstruct the pre-fix cache hit,
+        # which returned the cached frame verbatim. The capitalized columns
+        # survive and a downstream ``df["close"]`` raises.
+        cache = DataCache(cache_dir=tmp_path)
+        cache.set("yahoo", "SPY", "2020-01-01", "2020-02-01", "1d", _capitalized_panel())
+        raw = cache.get("yahoo", "SPY", "2020-01-01", "2020-02-01", "1d")
+        assert raw is not None
+        assert "Close" in raw.columns
+        with pytest.raises(KeyError):
+            raw["close"]
+
+    def test_ccxt_cache_hit_normalizes_capitalized_columns(self, tmp_path, monkeypatch):
+        import sys
+        import types
+
+        fake_ccxt = types.ModuleType("ccxt")
+        fake_ccxt.binance = lambda cfg: object()
+        monkeypatch.setitem(sys.modules, "ccxt", fake_ccxt)
+
+        cache = DataCache(cache_dir=tmp_path)
+        cache.set(
+            "ccxt", "binance:BTC_USDT", "2020-01-01", "2020-02-01", "1d", _capitalized_panel()
+        )
+        fetcher = DataFetcher(cache=cache)
+
+        res = fetcher.fetch_ccxt(
+            "binance", ["BTC/USDT"], "2020-01-01", "2020-02-01", timeframe="1d", use_cache=True
+        )["BTC/USDT"]
+        assert list(res.columns) == ["open", "high", "low", "close", "volume"]
+        assert res["close"].tolist() == [1.5, 2.5]

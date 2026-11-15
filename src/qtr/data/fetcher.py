@@ -180,6 +180,35 @@ class DataFetcher:
             "not cross zero, or handle the bar explicitly before retrying."
         )
 
+    @staticmethod
+    def _standardize_columns(df: pd.DataFrame, symbol: str) -> pd.DataFrame:
+        """Canonicalize a vendor panel's column names and column set.
+
+        Shared by the fresh-fetch path and the cache-hit path of every fetch
+        method.  The cache is a persistent, cross-version file store (it is
+        committed under ``.cache/data`` and survives code changes), so a cache
+        hit must be *indistinguishable* from a fresh fetch.  A frame written by
+        an older or foreign writer can carry capitalized vendor columns
+        (``Close``, ``Volume``) or a different column order; the fresh path
+        lowercases and reorders them, but a cache hit that returned the frame
+        verbatim would hand downstream runners ``df["close"]`` -> ``KeyError``.
+        A frame that already carries the canonical lowercase columns is
+        returned bit-identically.
+
+        Column selection degrades over the columns that are present rather than
+        indexing a missing name and raising ``KeyError``: a missing column is a
+        fact about the source, not a crash.
+        """
+        df = df.copy()
+        df.columns = [str(c).lower().replace(" ", "_") for c in df.columns]
+        required = ["open", "high", "low", "close", "volume"]
+        present = [col for col in required if col in df.columns]
+        for col in required:
+            if col not in df.columns:
+                logger.warning(f"Missing column {col} for {symbol}")
+        extras = [c for c in df.columns if c not in required]
+        return df[present + extras]
+
     def _fetch_yahoo_panel(
         self,
         source: str,
@@ -198,11 +227,13 @@ class DataFetcher:
         """
         if use_cache:
             # ``DataCache.get`` canonicalizes the index to tz-naive on the way
-            # out (fetcher.py:92-96), so a cached frame needs no per-fetch
-            # normalization here.
+            # out (fetcher.py:92-96), but the *columns* come back exactly as
+            # the writer stored them.  A cache file written by an older/foreign
+            # writer can therefore carry capitalized vendor columns; normalize
+            # them on read so a cache hit matches a fresh fetch.
             cached = self.cache.get(source, symbol, start, end, interval)
             if cached is not None:
-                return cached
+                return self._standardize_columns(cached, symbol)
 
         try:
             import yfinance as yf  # lazy import; data extras not required for core
@@ -220,21 +251,11 @@ class DataFetcher:
                 logger.warning(f"No data for {symbol} from {start} to {end}")
                 return pd.DataFrame()
 
-            # Standardize column names
-            df.columns = [c.lower().replace(" ", "_") for c in df.columns]
-
-            # Ensure required columns: degrade over the columns that are
+            # Standardize column names and degrade over the columns that are
             # present rather than indexing a missing name and raising
             # ``KeyError``. A missing column is a fact about the source, not
             # a crash.
-            required = ["open", "high", "low", "close", "volume"]
-            present = [col for col in required if col in df.columns]
-            for col in required:
-                if col not in df.columns:
-                    logger.warning(f"Missing column {col} for {symbol}")
-            extras = [c for c in df.columns if c not in required]
-
-            df = df[present + extras]
+            df = self._standardize_columns(df, symbol)
             df.index = pd.to_datetime(df.index).tz_localize(None)
 
             if use_cache:
@@ -385,14 +406,18 @@ class DataFetcher:
             cache_symbol = symbol.replace("/", "_")
             if use_cache:
                 # ``DataCache.get`` canonicalizes the index to tz-naive on the
-                # way out (fetcher.py:92-96), so a cached frame is already in
-                # the shape every caller expects and needs no per-fetch
-                # normalization here. The normalization lives in the cache
-                # layer, not in each fetch method's cache-hit path.
+                # way out (fetcher.py:92-96), but the *columns* come back
+                # exactly as the writer stored them; normalize them on read so
+                # a cache hit matches a fresh fetch.
                 cached = self.cache.get(
                     "ccxt", f"{exchange_id}:{cache_symbol}", start, end, timeframe
                 )
                 if cached is not None:
+                    # The cache returns columns exactly as the writer stored
+                    # them; normalize on read so a cache hit matches a fresh
+                    # fetch (a stale capitalized frame would otherwise reach
+                    # ``df["close"]`` as ``KeyError``).
+                    cached = self._standardize_columns(cached, symbol)
                     self._reject_non_positive_prices(symbol, cached)
                     results[symbol] = cached
                     continue
@@ -444,15 +469,9 @@ class DataFetcher:
                 df = df.set_index("timestamp")
                 df = df[(df.index >= start) & (df.index <= end)]
                 df = df[~df.index.duplicated(keep="first")].sort_index()
-                # Standardize column names defensively
-                df.columns = [str(c).lower().replace(" ", "_") for c in df.columns]
-                required = ["open", "high", "low", "close", "volume"]
-                present = [col for col in required if col in df.columns]
-                for col in required:
-                    if col not in df.columns:
-                        logger.warning(f"Missing column {col} for {symbol}")
-                extras = [c for c in df.columns if c not in required]
-                df = df[present + extras]
+                # Standardize column names defensively and degrade over the
+                # columns that are present.
+                df = self._standardize_columns(df, symbol)
                 df.index = pd.to_datetime(df.index).tz_localize(None)
 
                 results[symbol] = df
