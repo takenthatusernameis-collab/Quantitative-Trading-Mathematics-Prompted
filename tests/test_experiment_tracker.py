@@ -1,3 +1,5 @@
+import json
+
 import pandas as pd
 import pytest
 
@@ -70,6 +72,70 @@ def test_log_dataframe(tmp_path):
     h = t.log_dataframe("df", df)
     assert isinstance(h, str)
     t.finish_experiment()
+
+
+def test_log_dataframe_deduplicates_columns_before_writing(tmp_path):
+    """A repeated column label must not crash the tracking layer.
+
+    Every runner logs its price/volume/result panel through
+    ``log_dataframe`` *before* the engine sees it. The engine canonicalizes
+    both panels' columns (keep first) on entry to ``run_backtest`` and
+    ``non_positive_prices`` screens by position, both for exactly this class
+    (a repeated ticker in a universe, an overlapping benchmark/universe
+    concatenation, or a cached/vendor frame with a repeated column). Without
+    the same guard here ``DataFrame.to_parquet`` raises
+    ``ValueError: Duplicate column names found`` on a panel the engine would
+    otherwise have accepted. Pin the keep-first canonicalization, the written
+    frame, and the schema sidecar.
+    """
+    t = ExperimentTracker(log_dir=tmp_path / "logs")
+    t.start_experiment("exp")
+    df = pd.DataFrame([[1.0, 999.0, 2.0], [3.0, 4.0, 5.0]], columns=["A", "A", "B"])
+    h = t.log_dataframe("dup", df)
+
+    written = pd.read_parquet(
+        t.log_dir / "artifacts" / t.current_experiment.experiment_id / "dup.parquet"
+    )
+    assert list(written.columns) == ["A", "B"]
+    assert written["A"].tolist() == [1.0, 3.0]
+
+    meta_path = t.log_dir / f"dup_{h}.meta.json"
+
+    meta = json.loads(meta_path.read_text())
+    assert meta["columns"] == ["A", "B"]
+    assert meta["shape"] == [2, 2]
+    t.finish_experiment()
+
+
+def test_log_dataframe_unique_columns_are_untouched(tmp_path):
+    """The dedup guard is a no-op on a clean frame: bit-identical write."""
+    t = ExperimentTracker(log_dir=tmp_path / "logs")
+    t.start_experiment("exp")
+    df = pd.DataFrame({"A": [1.0, 2.0], "B": [3.0, 4.0]})
+    h = t.log_dataframe("clean", df)
+
+    written = pd.read_parquet(
+        t.log_dir / "artifacts" / t.current_experiment.experiment_id / "clean.parquet"
+    )
+    pd.testing.assert_frame_equal(written, df)
+    meta_path = t.log_dir / f"clean_{h}.meta.json"
+
+    meta = json.loads(meta_path.read_text())
+    assert meta["columns"] == ["A", "B"]
+    assert meta["shape"] == [2, 2]
+    t.finish_experiment()
+
+
+def test_log_dataframe_pre_fix_duplicate_columns_crash(tmp_path):
+    """Behavioural negative control: the bare parquet write raises.
+
+    Reconstructs the pre-fix ``df.to_parquet`` over a duplicated-label frame
+    and requires it to raise ``ValueError``, proving the dedup guard is what
+    makes the path safe rather than merely lucky.
+    """
+    df = pd.DataFrame([[1.0, 999.0, 2.0]], columns=["A", "A", "B"])
+    with pytest.raises(ValueError, match="Duplicate column names"):
+        df.to_parquet(tmp_path / "raw.parquet")
 
 
 def test_log_dataframe_does_not_mutate_caller_metadata(tmp_path):
@@ -212,7 +278,6 @@ def _good_record(experiment_id="e1", ts="2020-01-01T00:00:00Z"):
 
 def test_load_and_list_skip_malformed_and_incomplete_lines(tmp_path):
     """A partial/corrupt JSONL line must not prevent reading valid records."""
-    import json
 
     t = ExperimentTracker(log_dir=tmp_path / "logs")
     t.log_dir.mkdir(parents=True, exist_ok=True)
@@ -247,7 +312,6 @@ def test_load_experiment_skips_blank_lines(tmp_path):
     reaching a valid record, and a blank line on a no-match scan must still
     return ``None`` rather than raising.
     """
-    import json
 
     t = ExperimentTracker(log_dir=tmp_path / "logs")
     t.log_dir.mkdir(parents=True, exist_ok=True)
@@ -377,7 +441,6 @@ def test_git_dirty_detects_untracked_artifacts(tmp_path, monkeypatch):
 
 
 def test_load_experiment_missing_error(tmp_path):
-    import json
 
     from qtr.tracking.experiment import ExperimentTracker
 
@@ -433,7 +496,6 @@ def test_log_artifact_without_metadata(tmp_path):
 def test_experiment_existing_metadata_file(tmp_path):
     # branch 326->exit: metadata_path already exists, so the write block is
     # skipped.
-    import json
 
     from qtr.tracking.experiment import Experiment
 
@@ -616,7 +678,6 @@ def test_emit_summary_writes_valid_json(tmp_path):
     emit_summary(summary, out_path)
 
     assert out_path.exists()
-    import json
 
     with open(out_path) as f:
         loaded = json.load(f)

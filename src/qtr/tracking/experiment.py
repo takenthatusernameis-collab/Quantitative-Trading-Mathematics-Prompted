@@ -165,6 +165,21 @@ class ExperimentTracker:
         artifact_dir = self.log_dir / "artifacts" / self.current_experiment.experiment_id
         artifact_dir.mkdir(parents=True, exist_ok=True)
 
+        # A duplicated column label cannot be written to parquet: the engine
+        # already canonicalizes both panels' columns (keep first) on entry to
+        # ``run_backtest`` for exactly this class (a repeated ticker in a
+        # universe, an overlapping benchmark/universe concatenation, or a
+        # cached/vendor frame written with a repeated column), and
+        # ``non_positive_prices`` screens by position for the same reason.
+        # Every runner logs its price/volume/result panel through this method
+        # *before* the engine sees it, so without the same guard here the
+        # tracking layer crashes (``ValueError: Duplicate column names found``)
+        # on a panel the engine would otherwise have accepted. Canonicalize
+        # once (keep first) so a repeated label is a no-op and a clean frame is
+        # bit-identical.
+        if df.columns.has_duplicates:
+            df = df.iloc[:, ~df.columns.duplicated(keep="first")]
+
         file_path = artifact_dir / f"{name}.parquet"
         df.to_parquet(file_path)
 

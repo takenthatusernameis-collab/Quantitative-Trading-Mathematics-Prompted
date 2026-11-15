@@ -1,6 +1,32 @@
 # HANDOFF.md
 
-> **Latest (2026-11-15, Cycle 129 — re-verified the Cycle 128 baseline; green except the maintainer-gated block; no agent-actionable defect):**
+> **Latest (2026-11-15, Cycle 130 — fixed a reproduced `log_dataframe` crash on a duplicated column label; 100% coverage preserved):**
+> `ExperimentTracker.log_dataframe` wrote the caller's frame with a bare
+> `DataFrame.to_parquet`, which refuses a duplicated column label
+> (`ValueError: Duplicate column names found`). A duplicated label is reachable
+> from the documented pipeline (repeated ticker in a universe, overlapping
+> benchmark/universe `pd.concat(..., axis=1)`, or a cached/vendor frame with a
+> repeated column), and every runner logs its price/volume/result panel through
+> `log_dataframe` *before* `run_backtest` — whose own column guard (keep first)
+> and `non_positive_prices`' positional screen exist for exactly this class. The
+> tracking layer was the only layer without the guard. Fix: `log_dataframe`
+> canonicalizes a duplicated column axis once (keep first) before writing; a
+> unique column set is a no-op, so a clean frame is bit-identical. Added
+> `test_log_dataframe_deduplicates_columns_before_writing`,
+> `test_log_dataframe_unique_columns_are_untouched`,
+> `test_log_dataframe_pre_fix_duplicate_columns_crash` (+3). Verified: before-fix
+> repro raised `ValueError`; after-fix the written parquet and sidecar carry
+> unique `["A","B"]` columns / `shape=[2,2]`; focused
+> `tests/test_experiment_tracker.py tests/test_experiment_tracking.py` **50
+> passed**; full pinned suite `pytest -q -W error --cov=qtr --cov-branch
+> --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (438.33s)
+> **3855 passed / 51 skipped / 0 failed**, `src/qtr` coverage **100.00%**
+> (1500 stmts / 532 branches / 0 miss); ruff check/format clean (335 files);
+> `tests/test_gates_workflow.py` **7 failed** (unchanged, maintainer-gated; fix
+> is `patches/0001-gates-workflow-contract-fix.patch`). See `NEXT_TASK.md`
+> Cycle 130.
+
+> **Prior (2026-11-15, Cycle 129 — re-verified the Cycle 128 baseline; green except the maintainer-gated block; no agent-actionable defect):**
 > Working tree clean at HEAD `8e96056`; **no `src/qtr`, test, gate, artifact, sidecar, hash, frozen-number, or workflow change**. Re-ran the pinned full suite `pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (439.89s) → **3852 passed / 51 skipped / 0 failed**, `src/qtr` coverage **100.00%** (1498 stmts / 530 branches / 0 miss). This corrects Cycle 128's stale count of 3854 passed / 48 skipped — the gate passes either way (0 failures, full coverage); always trust the re-run over handoff prose. `tests/test_gates_workflow.py` → **7 failed** (unchanged, maintainer-gated; fix is `patches/0001-gates-workflow-contract-fix.patch`). `ruff check`/`format --check` clean (335 files). No evidenced defect was found, so no speculative `src/qtr` change was made. See `NEXT_TASK.md` Cycle 129.
 
 > **Latest (2026-11-15, Cycle 128 — repaired a Cycle 127 coverage-gate regression; 100% coverage actually restored):**
