@@ -1,6 +1,40 @@
 # NEXT_TASK.md
 
-## Latest session (2026-11-15, Cycle 140) — searched FRED (a materially different free source per directive §6); corrected a false "data-blocked" claim; free-data queue still exhausted
+## Latest session (2026-11-15, Cycle 141) — verified the maintainer-gated workflow contract fix; no in-tree change possible
+
+### What changed (substantive)
+- **No source, test, gate, artifact, sidecar, hash, frozen-number, or workflow change.** Working tree clean at HEAD; matches `origin/main`. `.github/workflows/**` is agent-unreachable (repo-scoped GitHub App token has no `workflows` permission; `.github/scripts/kilo-controller.sh` restores those paths from `origin/main` after every session and excludes them from staging), so the patch cannot be landed in-tree by this session.
+
+### What was actually verified (own evidence)
+- `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (exactly the documented maintainer-gated contract block; each failure is a missing workflow element: `scripts/**` path trigger for push/pull_request, `scripts` in both ruff targets, `pip install -e . --no-deps` in both jobs, `python scripts/backtest_perf_regression_gate.py` in `research_gates`).
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → **succeeds** on the live tree (patch is apply-ready).
+- Throwaway checkout (`git clone` of this tree to `/tmp/wfverify`, `git apply` the patch, no other changes): `python -m pytest -q tests/test_gates_workflow.py` → **7 passed** (was 7 failed). Nothing was weakened; patch content is byte-identical to the recorded file.
+- `python scripts/backtest_perf_regression_gate.py` → not re-run this session (no `src/qtr`/scripts change); prior verified baseline stands (PASSED, <5s, 13668 trades).
+- `python -m ruff check src tests run_*.py scripts` → **All checks passed.** `python -m ruff format --check src tests run_*.py scripts` → **336 files already formatted.**
+- Full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` → **3869 passed, 51 skipped, 0 failed**, `src/qtr` coverage **100.00%** (1506 stmts / 534 branches / 0 miss). Independently confirms the Cycle 139/140 baseline.
+
+### What remains unresolved
+1. **Maintainer-only (CI contract, unblocks CI):** `.github/workflows/gates.yml` not updated; 7 `tests/test_gates_workflow.py` tests red until the maintainer applies `patches/0001-gates-workflow-contract-fix.patch` with workflow scope, then `git commit` + `git push origin main`. Patch is verified apply-ready and fixes all 7 tests when applied.
+2. **Research queue exhausted under free/public PIT data:** H1–H182 executed/rejected; H183 unassigned. Cycle 140's FRED search confirmed corrected data does not yield a new family.
+3. **Reproducibility backlog:** `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0` unchanged; baseline-frozen.
+
+### Approaches already tried and why they should not be repeated
+- Do not edit `.github/workflows/**` in-tree — `.github/scripts/kilo-controller.sh` restores it from `origin/main` after every session and the staging filter excludes it; the edit does not persist and would be overwritten silently.
+- Do not weaken `tests/test_gates_workflow.py` or lower its assertions — it is a contract test pinning CI behaviour; the correct fix is the workflow file, which is maintainer-owned.
+- Do not repeat the yfinance-only "data-blocked" classification — always run `scripts/probe_fred_availability.py` before any "data-blocked" claim.
+- Do not make speculative `src/qtr` changes absent a reproduced, reachable defect (the `src/qtr` defect hunt across cycles 125–140 is exhausted; every module is green at 100% coverage).
+- Do not invent a free-data H183 or treat parameter/timeframe/universe variations as new mechanism families.
+
+### One precise next task
+**Maintainer (preferred, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch` with workflow scope:
+  `git apply patches/0001-gates-workflow-contract-fix.patch && git commit -am "fix(ci): satisfy gates workflow contract" && git push origin main`
+then run `python -m pytest -q tests/test_gates_workflow.py` (expect **7 passed**) on `origin/main`. Patch verified apply-ready this session; patched tree passes the 7 workflow tests in a clean throwaway checkout.
+
+**Agent path (blocked unless new evidence/authorization appears):** free-data family discovery is exhausted on corrected FRED evidence. A new cycle needs either (a) explicit authorization for paid/PIT data (per-contract futures roll, crypto funding, historical options chain), or (b) a mechanism genuinely distinct from H175 (macro/inflation) and NF-14 (credit) that clears directive §2. Before any "data-blocked" conclusion, run `scripts/probe_fred_availability.py`. Otherwise the only remaining agent-actionable work is the maintainer-gated workflow patch above.
+
+---
+
+## Prior session (2026-11-15, Cycle 140) — searched FRED (a materially different free source per directive §6); corrected a false "data-blocked" claim; free-data queue still exhausted
 
 ### What changed (substantive)
 - **New durable tool `scripts/probe_fred_availability.py`.** Read-only probe of free/public candidate observables against FRED CSV. Root cause it fixes: prior cycles (96, 116) classified candidates as "data-blocked" after checking **yfinance only**; a ticker missing from yfinance (e.g. `^T5YIE`/`^T10YIE`) is not proof the observable is unavailable. `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6 forbids that inference and requires searching a materially different source first. The tool downloads to memory, writes no cache, touches no artifact; exit non-zero if any FRED series is unreachable.
