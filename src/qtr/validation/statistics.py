@@ -404,6 +404,11 @@ def parameter_sensitivity(
     ci_lower = np.zeros(n_params)
     ci_upper = np.zeros(n_params)
 
+    # Reduce ``returns`` to a plain float ndarray once, here, so the shape
+    # guard below is well defined for any array-like the caller passes (a list
+    # of lists, a pandas frame) and the per-row loop indexes a real array.
+    returns = np.asarray(returns, dtype=float)
+
     # Degenerate-input guard. The result is a per-parameter dictionary, so it
     # is only defined when there is at least one parameter row to summarize:
     #
@@ -421,6 +426,16 @@ def parameter_sensitivity(
     #   own guard) -- but only if this function reaches the loop, so the
     #   empty-params crash above would mask it. Both degenerate classes are
     #   caught here, at the top, in one place.
+    # * a ``returns`` that is not 2-D violates the documented contract
+    #   ("2D: n_params x n_obs"). A 1-D array has ``shape[0]`` equal to its
+    #   length, so a long 1-D series slips past ``shape[0] < n_params`` and
+    #   the loop then scores a SCALAR per row: ``bootstrap_confidence_interval``
+    #   reduces that scalar to a 0-D array and ``len()`` of it raises
+    #   ``TypeError: len() of unsized object`` out of a function every caller
+    #   treats as returning a dict. A 0-D input fails even earlier, on
+    #   ``shape[0]``. A 3-D input would score 2-D slices and emit per-row
+    #   metrics of the wrong shape. All are the same malformed-shape class the
+    #   shape guard below closes.
     #
     # The fail-closed result is the empty-grid tuple: no parameters, no
     # metrics, no optimal parameter, a zero stability ratio and a zero metric
@@ -429,7 +444,7 @@ def parameter_sensitivity(
     #   sees an empty set rather than an exception. For every input in the
     #   valid domain the arithmetic is bit-identical to before. See
     #   tests/test_statistics.py.
-    if n_params == 0 or returns.shape[0] < n_params or n_bootstrap <= 0:
+    if n_params == 0 or returns.ndim != 2 or returns.shape[0] < n_params or n_bootstrap <= 0:
         return {
             "param_values": np.asarray(param_values, dtype=float),
             "metrics": np.array([], dtype=float),
@@ -510,14 +525,41 @@ def regime_analysis(
     #   finite input the arithmetic is bit-identical to before. See
     #   tests/test_statistics.py::TestRegimeAnalysis.
     returns = np.asarray(returns, dtype=float)
+    labels = np.asarray(regime_labels)
     if returns.size == 0 or not np.all(np.isfinite(returns)):
         return {}
 
-    unique_regimes = np.unique(regime_labels)
+    # Shape-alignment guard. A per-regime statistic pairs every return with the
+    # label at the same position, so the function is only defined when the two
+    # are 1-D and the same length:
+    #
+    # * a length mismatch (``len(labels) != len(returns)``) walks into
+    #   ``returns[labels == regime]`` and numpy raises ``IndexError: boolean
+    #   index did not match indexed array`` -- a crash out of a pure function
+    #   every caller treats as returning a dict, reachable from the public API
+    #   with no caller-side filtering (a runner that drops NaN rows from one
+    #   side but not the other, or slices them independently, hands exactly
+    #   this pair in);
+    # * a non-1-D ``returns`` (a 2-D panel, or a scalar) makes the boolean-mask
+    #   indexing raise or silently select rows rather than observations, so a
+    #   per-regime mean is not what is being computed;
+    # * a non-1-D ``labels`` (a scalar) compares to a scalar, not element-wise,
+    #   and ``np.unique`` of a 0-D array is not a per-observation label set.
+    #
+    # The fail-closed result is the empty dict -- the same one the empty and
+    # non-finite paths return, and the same one a regime with fewer than two
+    # observations yields. A caller iterating the keys sees no regime rather
+    # than a crash or a statistic computed from misaligned observations. For
+    # every aligned 1-D input the arithmetic is bit-identical to before. See
+    # tests/test_statistics.py::TestRegimeAnalysis.
+    if returns.ndim != 1 or labels.ndim != 1 or returns.shape[0] != labels.shape[0]:
+        return {}
+
+    unique_regimes = np.unique(labels)
     results = {}
 
     for regime in unique_regimes:
-        mask = regime_labels == regime
+        mask = labels == regime
         regime_returns = returns[mask]
         if len(regime_returns) > 1:
             results[f"regime_{regime}_sharpe"] = metric_func(regime_returns)

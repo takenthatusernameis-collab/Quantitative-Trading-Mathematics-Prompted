@@ -596,6 +596,47 @@ class TestParameterSensitivity:
         assert res["metrics"].shape == (2,)
         assert res["optimal_param"] in (1.0, 2.0)
 
+    def test_one_dimensional_returns_fail_closed(self):
+        """A 1-D ``returns`` violates the "2D: n_params x n_obs" contract.
+
+        A 1-D array's ``shape[0]`` is its length, so a long 1-D series slipped
+        past ``shape[0] < n_params`` and the per-row loop then scored a SCALAR:
+        ``bootstrap_confidence_interval`` reduced that scalar to a 0-D array and
+        ``len()`` of it raised ``TypeError: len() of unsized object`` out of a
+        function every caller treats as returning a dict. The fail-closed
+        result is the empty-grid tuple.
+        """
+        res = st.parameter_sensitivity(
+            np.random.default_rng(0).normal(size=50), np.array([1.0, 2.0, 3.0]), n_bootstrap=10
+        )
+        assert res["metrics"].shape == (0,)
+        assert res["stability_ratio"] == 0.0
+        assert np.isnan(res["optimal_param"])
+
+    def test_scalar_returns_fail_closed(self):
+        """A 0-D ``returns`` has no ``shape[0]`` to compare; it fails closed."""
+        res = st.parameter_sensitivity(np.float64(1.0), np.array([1.0, 2.0]), n_bootstrap=10)
+        assert res["metrics"].shape == (0,)
+        assert np.isnan(res["optimal_param"])
+
+    def test_three_dimensional_returns_fail_closed(self):
+        """A 3-D ``returns`` would score 2-D slices and emit the wrong shape."""
+        res = st.parameter_sensitivity(np.zeros((2, 3, 4)), np.array([1.0, 2.0]), n_bootstrap=10)
+        assert res["metrics"].shape == (0,)
+        assert np.isnan(res["optimal_param"])
+
+    def test_the_contract_rejects_the_pre_fix_one_dimensional_crash(self):
+        # Behavioural negative control: reconstruct the pre-fix per-row scoring
+        # of a 1-D ``returns`` and require it to raise the ``TypeError`` the
+        # shape guard now prevents, proving the guard is what makes the call
+        # safe rather than merely lucky.
+        returns = np.random.default_rng(0).normal(size=50)
+        with pytest.raises(TypeError):
+            _ = len(np.asarray(returns[0], dtype=float))
+
+        res = st.parameter_sensitivity(returns, np.array([1.0, 2.0, 3.0]), n_bootstrap=10)
+        assert res["metrics"].shape == (0,)
+
     def test_non_positive_bootstrap_returns_safe_tuple(self):
         """A non-positive ``n_bootstrap`` is forwarded to the bootstrap and
         must not crash here either: it is caught at the top, in one place,
@@ -706,6 +747,52 @@ class TestRegimeAnalysis:
                 pre_fix(returns, labels)
 
         # And the corrected function returns the empty dict on the same input.
+        assert st.regime_analysis(returns, labels) == {}
+
+    @pytest.mark.parametrize(
+        "returns,labels",
+        [
+            (np.array([0.001, 0.002, 0.003]), np.array(["up", "down"])),
+            (np.array([0.001, 0.002]), np.array(["up", "down", "up", "down"])),
+        ],
+    )
+    def test_length_mismatch_between_returns_and_labels_fails_closed(self, returns, labels):
+        # A per-regime statistic pairs every return with the label at the same
+        # position, so the two must be the same length. A mismatch used to walk
+        # into ``returns[labels == regime]`` and raise ``IndexError: boolean
+        # index did not match indexed array`` -- a crash out of a pure function
+        # every caller treats as returning a dict, reachable from the public API
+        # when a runner drops NaN rows from one side but not the other. The
+        # fail-closed result is the empty dict: no regime, no metric.
+        assert st.regime_analysis(returns, labels) == {}
+
+    @pytest.mark.parametrize(
+        "returns,labels",
+        [
+            (np.array(0.001), np.array(["up"])),
+            (np.array([0.001, 0.002]), np.array("up")),
+            (np.ones((2, 3)), np.array(["up", "down"])),
+        ],
+    )
+    def test_non_1d_inputs_fail_closed(self, returns, labels):
+        # A per-observation label set is 1-D. A scalar ``returns`` makes the
+        # boolean-mask indexing raise (``too many indices``); a scalar
+        # ``labels`` compares to a scalar rather than element-wise; a 2-D
+        # ``returns`` would select rows rather than observations. All are the
+        # same malformed-shape class and fail closed to the empty dict.
+        assert st.regime_analysis(returns, labels) == {}
+
+    def test_the_contract_rejects_the_pre_fix_length_mismatch_crash(self):
+        # Behavioural negative control: reconstruct the pre-fix masking on a
+        # length-mismatched pair and require it to raise the ``IndexError`` the
+        # shape guard now prevents, proving the guard is what makes the call
+        # safe rather than merely lucky.
+        returns = np.array([0.001, 0.002, 0.003])
+        labels = np.array(["up", "down"])
+
+        with pytest.raises(IndexError):
+            _ = returns[labels == "up"]
+
         assert st.regime_analysis(returns, labels) == {}
 
 

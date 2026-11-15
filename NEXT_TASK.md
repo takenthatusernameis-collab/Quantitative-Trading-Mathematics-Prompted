@@ -1,6 +1,43 @@
 # NEXT_TASK.md
 
-## Latest session (2026-11-14, Cycle 123) — baseline re-confirmed green; no agent-actionable work
+## Latest session (2026-11-15, Cycle 124) — fixed two crash-on-malformed-shape defects in the statistics core; 100% coverage preserved
+
+### What changed
+The prior handoff (Cycle 123) claimed "no agent-actionable work remains" and instructed the next session to only re-verify. Per the operating rules (make durable progress; do not passively re-verify), I independently reproduced the baseline (green: 3827 passed / 48 skipped, only the 7 maintainer-gated `tests/test_gates_workflow.py` red) and then fuzzed the public `qtr.validation.statistics` API for the same degenerate-input crash class this repo has been systematically closing (empty / non-finite / degenerate → fail closed, never crash). Two genuine, reproduced crashes remained:
+
+- **`regime_analysis(returns, regime_labels)` — `IndexError` on a length/shape mismatch.** A per-regime statistic pairs each return with the label at the same position, but the function never checked that `len(returns) == len(labels)` or that both are 1-D. A length mismatch walked into `returns[labels == regime]` → `IndexError: boolean index did not match indexed array`; a scalar `returns` raised `too many indices`; a 2-D `returns` silently selected rows instead of observations. Now normalizes both to arrays and fails closed to `{}` unless both are 1-D and equal length. `src/qtr/validation/statistics.py`.
+- **`parameter_sensitivity(returns, param_values)` — `TypeError` on a non-2-D `returns`.** The documented contract is `"2D: n_params x n_obs"`, but a long 1-D series has `shape[0] == len`, so it slipped past the existing `shape[0] < n_params` guard and the per-row loop then scored a *scalar*; `bootstrap_confidence_interval` reduced that to a 0-D array and `len()` of it raised `TypeError: len() of unsized object`. A 0-D input failed even earlier on `shape[0]`; a 3-D input scored 2-D slices. Now reduces `returns` to an ndarray once and fails closed to the empty-grid tuple unless it is 2-D with enough rows. `src/qtr/validation/statistics.py`.
+
+Both fixes are the exact pattern the module already uses for every other degenerate-input class (fail closed, no warning, no exception, bit-identical on the valid domain).
+
+- **Tests:** `tests/test_statistics.py` — added to `TestRegimeAnalysis`: `test_length_mismatch_between_returns_and_labels_fails_closed` (2 params), `test_non_1d_inputs_fail_closed` (3 params), `test_the_contract_rejects_the_pre_fix_length_mismatch_crash` (behavioural negative control that reconstructs the pre-fix `IndexError`). Added to `TestParameterSensitivity`: `test_one_dimensional_returns_fail_closed`, `test_scalar_returns_fail_closed`, `test_three_dimensional_returns_fail_closed`, `test_the_contract_rejects_the_pre_fix_one_dimensional_crash` (negative control). +10 tests.
+
+### What was actually verified (own evidence)
+- `pytest -q tests/test_statistics.py` — **199 passed** (was 189).
+- `pytest -q tests/test_statistics.py tests/test_engine_metric_agreement.py tests/test_parameter_sensitivity_reproducibility.py tests/test_engine_edge_stress.py` — **297 passed**.
+- Full pinned suite `pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (336s) — **3837 passed, 48 skipped, coverage 100.00%** (+10 vs. the 3827 baseline; the 48 skips are the pre-existing H51/H29/H28/causality skips). `src/qtr/validation/statistics.py` = 100% (337 stmts, 124 branches).
+- `pytest -q tests/test_gates_workflow.py` — **7 failed** (unchanged, exclusively the maintainer-gated block; the fix is `patches/0001-gates-workflow-contract-fix.patch`).
+- `ruff check src tests run_*.py scripts` — All checks passed. `ruff format --check ...` — 335 files already formatted.
+- Behavioural proof (direct calls): every previously-crashing malformed input now returns the empty/empty-grid result; valid inputs are bit-identical (spot-checked `regime_analysis` keys and `parameter_sensitivity` metrics/optimal_param).
+
+### What remains unresolved
+Same three blocked items as Cycle 123: (1) maintainer-only `.github/workflows/gates.yml` patch; (2) H182 research needs data authorization; (3) reproducibility backlog baseline-frozen at 197/11/528/0.
+
+### Approaches already tried and why they should not be repeated
+- Do not re-derive a "H182 is missing from the corpus" finding (false: 174 records; H182 is record 174).
+- Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or alter coverage/frozen-contract gates.
+- Do not treat delisted/spliced-continuous/unavailable free series as valid PIT inputs.
+- Do not mass-edit runners/tests/gates or frozen artifacts to chase green, or raise the reproducibility baseline instead of remediating.
+- Do not append H182 to `experiments.jsonl` without sidecars + coordinated baseline/pinned-test updates.
+- Do not make speculative `src/qtr` changes absent an evidenced defect (this session's two guards are each evidenced by a reproduced crash).
+- **Do not re-audit the `regime_analysis` / `parameter_sensitivity` shape guards** — they are now closed and pinned with negative controls. The remaining public-API functions in `statistics.py` (`sharpe_ratio`, `bootstrap_confidence_interval`, `compare_to_benchmark`, `stressed_cost_test`, `capacity_estimate`, `statistical_power_analysis`, `validate_strategy`, `benchmark_significance_gate`, `multiple_testing_correction`, the split generators) were fuzzed this session and are already guarded; the only remaining "crash" is the intended `ValueError` on an unknown `multiple_testing_correction` method.
+
+### One precise next task
+**Maintainer (preferred, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch`, then `pytest -q tests/test_gates_workflow.py` (expect 7 passed) on `origin/main`. **No further agent-actionable statistics-core crash is known this session.** If another evidenced defect is wanted, fuzz the runner-side glue (`run_*.py`) rather than the pure functions, and fix only a reproduced crash.
+
+---
+
+## Prior session (2026-11-14, Cycle 123) — baseline re-confirmed green; no agent-actionable work
 
 ### What changed
 None. Working tree clean at `origin/main` (63813d7); the prior session's KeyError fix in `scripts/fetch_h182_insider_data.py` is already committed. No `src/qtr`, test, gate, artifact, sidecar, hash, frozen-number, or workflow change.
