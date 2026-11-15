@@ -1,5 +1,41 @@
 # HANDOFF.md
 
+> **Latest (2026-11-15, Cycle 135 — no agent-actionable defect found; preferred maintainer task re-verified end-to-end; no source/test/gate/artifact/workflow change:**
+> Per the standing instruction, I did not wait passively for an assignment. I
+> inspected the repo (clean tree at HEAD `46dea23`, matches `origin/main`) and
+> selected the bounded, high-value, already-prepared task: the maintainer-gated
+> CI contract fix. I re-verified its prerequisites and its end-to-end outcome
+> rather than trusting the handoff prose:
+> - `git apply --check patches/0001-gates-workflow-contract-fix.patch` → succeeds
+>   on the live tree.
+> - Throwaway checkout (`/tmp/wfverify`, `git clone` of this tree, `git apply`
+>   the patch, no other changes): `python -m pytest -q tests/test_gates_workflow.py`
+>   → **7 passed** (was 7 failed). The patch content is the one recorded in the
+>   patch file; nothing was weakened.
+> - `python scripts/backtest_perf_regression_gate.py` on this host → **PASSED**
+>   (0.473s, limit 5s, 10.7MB peak, 13668 trades), so the step the patch wires
+>   into `research_gates` is green here.
+> - Defect hunt across the remaining public `src/qtr` surface not yet covered by
+>   the recent duplicate-label / statistics / tracking fixes — `qtr.data.insider`
+>   (all parse/cache helpers) and `qtr.strategies.baselines` (all signal
+>   generators, `get_strategy`/`run_strategy`, `_vol_scale`) — found **no
+>   reproduced, reachable crash**. Every degenerate input either fails closed to
+>   the no-evidence tuple or raises an intended `ValueError` (unknown strategy,
+>   malformed XML). See `NEXT_TASK.md` Cycle 135 for the probe inventory.
+> - Baseline re-run on the live tree (no `src/qtr` change): `python -m ruff
+>   check src tests run_*.py scripts` → All checks passed; `ruff format --check`
+>   → 335 files already formatted; focused `pytest` (workflow + statistics +
+>   baselines + fetcher + H182 fetch) → **306 passed, 7 failed** (all 7 are the
+>   maintainer-gated `tests/test_gates_workflow.py` cases). No full pinned
+>   suite/coverage run this session (no `src/qtr` change); prior verified
+>   baseline remains Cycle 134 (**3859 passed / 51 skipped / 0 failed, 100.00%**,
+>   excluding the maintainer-gated block).
+> The agent still cannot land `.github/workflows/**` (repo-scoped token has no
+>   `workflows` permission; `.github/scripts/kilo-controller.sh` restores those
+>   paths from `origin/main` after every session), so the patch remains
+>   apply-ready under `patches/` for the maintainer. No gate, artifact, sidecar,
+>   hash, frozen-number, or workflow change. See `NEXT_TASK.md` Cycle 135.
+
 > **Latest (2026-11-15, Cycle 134 — fixed a reproduced cross-module `annualized_volatility` disagreement at n = 1; 100% coverage preserved):**
 > `validate_strategy` computed `ann_vol = returns.std() * sqrt(252)`. For a single
 > observation the sample std (ddof=1) divides by `n - 1 == 0` and pandas returns

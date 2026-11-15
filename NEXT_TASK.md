@@ -1,6 +1,42 @@
 # NEXT_TASK.md
 
-## Latest session (2026-11-15, Cycle 134) — fixed a reproduced `annualized_volatility` cross-module disagreement at n = 1; 100% coverage preserved
+## Latest session (2026-11-15, Cycle 135) — no agent-actionable defect found; preferred maintainer task re-verified end-to-end; no source/test/gate/artifact/workflow change
+
+### What changed
+- **No source, test, gate, artifact, sidecar, hash, frozen-number, or workflow change.** Working tree clean at HEAD `46dea23`; matches `origin/main`.
+- Per the standing instruction ("do not wait passively for an assignment that does not exist"), I inspected the repo and selected the bounded, high-value, already-prepared task: the maintainer-gated CI contract fix. I re-verified its prerequisites and end-to-end outcome rather than trusting the handoff prose:
+  - `git apply --check patches/0001-gates-workflow-contract-fix.patch` → succeeds on the live tree.
+  - Throwaway checkout (`/tmp/wfverify`, `git clone` of this tree, `git apply` the patch, no other changes): `python -m pytest -q tests/test_gates_workflow.py` → **7 passed** (was 7 failed). Nothing was weakened; the patch content is the one recorded in `patches/0001-gates-workflow-contract-fix.patch`.
+  - `python scripts/backtest_perf_regression_gate.py` on this host → **PASSED** (0.473s, limit 5s, 10.7MB peak, 13668 trades), so the step the patch wires into `research_gates` is green here.
+- **Defect hunt across the remaining public `src/qtr` surface** not yet covered by the recent duplicate-label / statistics / tracking fixes — `qtr.data.insider` (all parse/cache helpers) and `qtr.strategies.baselines` (all signal generators, `get_strategy`/`run_strategy`, `_vol_scale`) — found **no reproduced, reachable crash**. Every degenerate input either fails closed to the no-evidence tuple or raises an intended `ValueError` (unknown strategy, malformed XML). Probe inventory in `/tmp/probe_insider2.py` and `/tmp/probe_stats_strategies.py`; the `bars_per_year(None)` / `bars_per_year(scalar)` `TypeError` is a pandas `DatetimeIndex` constructor guard, not a qtr defect (the function's documented input is a bar index).
+
+### What was actually verified (own evidence)
+- `python -m ruff check src tests run_*.py scripts` → All checks passed.
+- `python -m ruff format --check src tests run_*.py scripts` → 335 files already formatted.
+- Focused `python -m pytest -q tests/test_gates_workflow.py tests/test_statistics.py tests/test_baselines.py tests/test_data_fetcher.py tests/test_fetch_h182_insider_data.py` → **306 passed, 7 failed** (all 7 are exclusively the maintainer-gated `tests/test_gates_workflow.py` cases; fix is `patches/0001-gates-workflow-contract-fix.patch`, verified `7 passed` in `/tmp/wfverify`).
+- No full pinned suite/coverage run this session (no `src/qtr` change); prior verified baseline remains Cycle 134 (**3859 passed / 51 skipped / 0 failed, 100.00%**, excluding the maintainer-gated block).
+
+### What remains unresolved
+1. **Maintainer-only (CI contract):** `.github/workflows/gates.yml` not updated; 7 `tests/test_gates_workflow.py` tests red until the maintainer applies `patches/0001-gates-workflow-contract-fix.patch` with workflow scope. Agent cannot land `.github/workflows/**` (repo-scoped token has no `workflows` permission; `.github/scripts/kilo-controller.sh` restores those paths from `origin/main` after every session). **This is the one precise next task and it is verified apply-ready.**
+2. **Research queue exhausted under free/public PIT data:** H1–H182 executed/rejected; no honest free-data H183 is pre-registrable without new authorized data.
+3. **Reproducibility backlog:** `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0` unchanged; baseline-frozen.
+
+### Approaches already tried and why they should not be repeated
+- Do not trust a handoff's pass/claim without running the gate; this session re-ran ruff and a focused slice rather than the full pinned suite (no `src/qtr` change justified it).
+- Do not make speculative `src/qtr` changes absent a reproduced, reachable defect — the `qtr.data.insider` / `qtr.strategies.baselines` probe found none; the `bars_per_year(None)` `TypeError` is a pandas constructor guard, not a qtr defect.
+- Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or alter coverage/frozen-contract gates.
+- Do not invent a free-data H183 or treat parameter/timeframe/universe variations as new mechanism families.
+
+### One precise next task
+**Maintainer (preferred, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch` with workflow scope, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed) on `origin/main`. Verified this session: `git apply --check` succeeds on the live tree, the patched workflow contains every required change, `scripts/backtest_perf_regression_gate.py` runs green on this host (0.473s < 5s), and the patched tree passes `tests/test_gates_workflow.py` (7 passed) in a clean throwaway checkout.
+
+**Agent alternative (only with new evidence):** continue hunting a *reproduced*, runner-reachable defect in `src/qtr` — the productive method is executable fuzzing/property probes across module boundaries and at the smallest input boundaries (n = 0/1/2, empty, duplicate labels, non-finite), not re-running the same suite. If `src/qtr` changes, verify with the full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` and ruff check/format.
+
+**Constraints:** no gate weakening; no modification of published/frozen artifacts, verdicts, thresholds, or frozen numbers except deliberate authorized corpus/baseline updates; no workflow commit from agent.
+
+---
+
+## Prior session (2026-11-15, Cycle 134) — fixed a reproduced `annualized_volatility` cross-module disagreement at n = 1; 100% coverage preserved
 
 ### What changed
 - **Reproduced defect (reachable via the public `run_backtest` path):** `validate_strategy` computed `ann_vol = returns.std() * np.sqrt(252)`. For a single observation the sample std (ddof=1) divides by `n - 1 == 0` and pandas returns `NaN`, while the engine's `VectorizedBacktester._calculate_metrics` explicitly reports `0.0` for `n < 2` (`engine.py:243-246`). `run_backtest` only guards `len(prices) == 0`, so a one-row price panel is a valid public input and yields a one-element return series — the two halves of the pipeline then disagreed on `annualized_volatility`. This is exactly the cross-module disagreement `tests/test_engine_metric_agreement.py` exists to prevent; its smallest tested case was `n = 2`.
