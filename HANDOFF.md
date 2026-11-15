@@ -1,6 +1,25 @@
 # HANDOFF.md
 
-> **Latest (2026-11-15, Cycle 127 — defect fix: malformed `experiments.jsonl` lines no longer break tracker reads):**
+> **Latest (2026-11-15, Cycle 128 — repaired a Cycle 127 coverage-gate regression; 100% coverage actually restored):**
+> Cycle 127 added the `if not line: continue` guard to `load_experiment` and
+> claimed "100.00% coverage", but its test never exercised that branch on the
+> **load** path: `load_experiment` returns on first match, so the only blank line
+> (trailing) is reached only by `list_experiments`. HEAD (`b3702fd`) therefore
+> actually failed the gate at **99.90%** (`experiment.py` line 287 uncovered;
+> `Coverage failure`). Fix is **test-only**: added
+> `test_load_experiment_skips_blank_lines` (leading blank line, match + no-match),
+> which pins the load-path guard without deleting it. Verified: before → focused
+> `experiment.py ... 99% 287`, full suite **3853 passed / 48 skipped / 99.90%**
+> coverage failure; after → focused `experiment.py 100%`, **46 passed**; full
+> pinned suite `pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing
+> --ignore=tests/test_gates_workflow.py` (336.34s) **3854 passed / 48 skipped /
+> coverage 100.00%**; ruff check/format clean (335 files);
+> `tests/test_gates_workflow.py` **7 failed** (unchanged, maintainer-gated; fix is
+> `patches/0001-gates-workflow-contract-fix.patch`). No source, gate, artifact,
+> sidecar, hash, frozen-number, or workflow change. See `HANDOFF_CURRENT_SESSION.md`
+> and `NEXT_TASK.md` Cycle 128.
+
+> **Prior (2026-11-15, Cycle 127 — defect fix: malformed `experiments.jsonl` lines no longer break tracker reads):**
 > `experiments.jsonl` is append-only and a partial/interleaved append (mid-write crash,
 > truncation) is reachable. I reproduced that `ExperimentTracker.load_experiment` /
 > `list_experiments` crashed on the first bad/incomplete line (`JSONDecodeError`,

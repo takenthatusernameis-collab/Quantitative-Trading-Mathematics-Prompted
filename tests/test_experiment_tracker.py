@@ -235,6 +235,28 @@ def test_load_and_list_skip_malformed_and_incomplete_lines(tmp_path):
     assert [e["experiment_id"] for e in listed] == ["e2", "e1"]
 
 
+def test_load_experiment_skips_blank_lines(tmp_path):
+    """A blank line must not abort the ``load_experiment`` scan.
+
+    ``load_experiment`` returns as soon as it matches, so the trailing blank
+    line of a malformed/partial log is only reached by ``list_experiments``
+    (which scans the whole file). The ``if not line: continue`` guard on the
+    *load* path is therefore exercised only by a blank line that precedes the
+    match or by a scan that matches nothing. Pin both: a leading blank line
+    (a mid-write gap, or a hand-edited log) must not stop the scan from
+    reaching a valid record, and a blank line on a no-match scan must still
+    return ``None`` rather than raising.
+    """
+    import json
+
+    t = ExperimentTracker(log_dir=tmp_path / "logs")
+    t.log_dir.mkdir(parents=True, exist_ok=True)
+    log = t.log_dir / "experiments.jsonl"
+    log.write_text("\n" + json.dumps(_good_record("e1")) + "\n")
+    assert t.load_experiment("e1") is not None
+    assert t.load_experiment("missing") is None
+
+
 def test_record_artifact_fallback_unknown_type(tmp_path):
     # lines 335-337: record_artifact falls back to JSON-serializing unknown types
     from qtr.tracking.experiment import Experiment
