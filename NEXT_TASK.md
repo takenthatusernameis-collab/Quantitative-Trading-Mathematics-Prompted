@@ -1,6 +1,95 @@
 # NEXT_TASK.md
 
-## Latest session (2026-11-14, Cycle 123) — baseline re-confirmed green; no agent-actionable work
+## Latest session (2026-11-15, Cycle 124) — fixed a real cross-module `annualized_volatility` disagreement at n=1; baseline otherwise unchanged
+
+### What changed
+- `src/qtr/validation/statistics.py` (`validate_strategy`): `annualized_volatility`
+  now returns `0.0` for a single-observation return series (it returned `NaN`).
+  This matches the engine's `VectorizedBacktester._calculate_metrics` n<=1 guard
+  (`engine.py:243-246`, pinned by `test_backtest_engine.py:930`). The engine
+  reports `0.0`, `validate_strategy` reported `NaN` from `pandas.Series.std()`
+  (ddof=1 divides by n-1=0), so the two implementations disagreed on the same
+  one-bar return series — the exact class of defect the cross-module agreement
+  contract exists to catch. It also makes `validate_strategy` internally
+  consistent (its empty-series path already returns `0.0`). For `n > 1` the
+  arithmetic is bit-identical to before; no published artifact (n=2515) moves.
+- `tests/test_statistics.py`: renamed
+  `test_annualized_volatility_single_element_is_nan` →
+  `..._single_element_is_zero`; corrected its false "matches the engine
+  convention" docstring (it did not).
+- `tests/test_engine_metric_agreement.py`: new
+  `test_agreement_holds_for_a_single_bar_series` pins the n==1 agreement.
+- **Why this over "no work":** the prior two cycles concluded "no agent-actionable
+  work" without probing. A systematic edge-case probe of the public API
+  (statistics/engine/baselines/fetcher) found this one real divergence; all other
+  degenerate inputs were already guarded.
+
+### What was actually verified (own evidence)
+- Full canonical gate `pytest -q -W error --cov=qtr --cov-branch
+  --cov-report=term-missing` (621s) — **3825 passed, 51 skipped, 7 failed**,
+  coverage **100.00%** (`statistics.py` 100%). The +1 vs the prior 3824 is the new
+  agreement test; the 7 failures are exclusively the maintainer-gated
+  `tests/test_gates_workflow.py`.
+- Focused `pytest -q -W error tests/test_statistics.py
+  tests/test_engine_metric_agreement.py tests/test_backtest_engine.py
+  tests/test_engine_edge_stress.py tests/test_runner_metric_agreement.py
+  tests/test_h54_non_metrics_block_disclosure.py` — **405 passed**.
+- Reproduced before/after: `validate_strategy([0.0])` `annualized_volatility`
+  was `NaN`, now `0.0` == engine `0.0`.
+- `ruff check src tests run_*.py scripts` — All checks passed;
+  `ruff format --check ...` — 335 files formatted.
+- `python scripts/backtest_perf_regression_gate.py` — **PASSED** (0.812s, limit 5s).
+- `pytest -q tests/test_reproducibility_audit.py
+  tests/test_artifact_restoration_plan.py tests/test_sidecar_schema_contract.py`
+  — **16 passed**.
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` — applies cleanly.
+
+### What remains unresolved
+1. **Maintainer-only (CI contract):** `.github/workflows/gates.yml` not updated;
+   7 `tests/test_gates_workflow.py` tests red until the maintainer applies
+   `patches/0001-gates-workflow-contract-fix.patch` with workflow-scoped
+   credentials. Agent cannot land `.github/workflows/**`.
+2. **Research queue exhausted under free/public PIT data:** H1–H182
+   executed/rejected (register Cycles 96/116/118). Do not invent a free-data H183.
+3. **Reproducibility backlog:** `missing_files=197`, `hash_mismatches=11`,
+   `orphaned_files=528`, `missing_meta_files=0` unchanged; baseline-frozen where
+   contract/citation constraints apply.
+
+### Approaches already tried and why they should not be repeated
+- Do not re-derive a "H182 is missing from the corpus" finding (false: 174 records).
+- Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or
+  alter coverage/frozen-contract gates.
+- Do not treat delisted/spliced-continuous/unavailable free series as valid PIT inputs.
+- Do not mass-edit runners/tests/gates or frozen artifacts to chase green.
+- Do not make speculative `src/qtr` changes absent an evidenced defect.
+- **Do not re-open the n==1 `annualized_volatility` case as a deliberate
+  divergence.** The engine pins `0.0` (`test_backtest_engine.py:930`) and
+  `validate_strategy`'s empty path already returns `0.0`; the old `NaN` plus its
+  "matches the engine" docstring were the defect and are now fixed. Re-auditing it
+  is wasted work.
+- **Do not re-run the generic public-API edge-case probe.** It was completed this
+  cycle: statistics/engine/baselines/fetcher degenerate inputs are all guarded; the
+  only unguarded divergence found was the n==1 volatility above (now fixed).
+
+### One precise next task
+**Maintainer (preferred, unblocks CI):** apply and push
+`patches/0001-gates-workflow-contract-fix.patch` with workflow-scoped credentials,
+then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed) on
+`origin/main`.
+
+**If research is explicitly authorized:** obtain one paid/PIT data gap (commodity
+futures per-contract roll/contango, crypto perpetual funding rates, or historical
+options chain/GEX) and run the smallest decisive pre-registered test for that single
+mechanism.
+
+**Constraints:** no gate weakening; no modification of published/frozen artifacts,
+verdicts, thresholds, or frozen numbers except a deliberate authorized
+corpus/baseline update; no commit/push of `.github/workflows/**`; any `src/qtr`
+change must preserve 100% coverage and pass ruff/suite.
+
+---
+
+## Prior session (2026-11-14, Cycle 123) — baseline re-confirmed green; no agent-actionable work
 
 ### What changed
 None. Working tree clean at `origin/main` (63813d7); the prior session's KeyError fix in `scripts/fetch_h182_insider_data.py` is already committed. No `src/qtr`, test, gate, artifact, sidecar, hash, frozen-number, or workflow change.

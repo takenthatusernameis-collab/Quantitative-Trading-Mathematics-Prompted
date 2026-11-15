@@ -1702,11 +1702,21 @@ class TestValidateStrategy:
         expected = returns.std(ddof=1) * np.sqrt(252)
         assert res["annualized_volatility"] == pytest.approx(expected)
 
-    def test_annualized_volatility_single_element_is_nan(self):
-        """With one observation the sample std (ddof=1) divides by n-1=0,
-        yielding NaN.  This matches the engine convention."""
+    def test_annualized_volatility_single_element_is_zero(self):
+        """With one observation the sample std (ddof=1) divides by n-1=0, so
+        the value is undefined; both implementations fail closed to ``0.0``.
+
+        This matches the engine's ``VectorizedBacktester._calculate_metrics``
+        (pinned by ``test_backtest_engine.py`` ::
+        ``test_annualized_volatility_is_zero_for_single_bar``). It used to
+        return ``NaN`` here while the engine returned ``0.0``, a cross-module
+        disagreement on the same one-bar return series; ``NaN`` also disagreed
+        with this function's own empty-series path, which already returns
+        ``0.0``. See ``tests/test_engine_metric_agreement.py`` ::
+        ``test_agreement_holds_for_a_single_bar_series``.
+        """
         res = st.validate_strategy(pd.Series([0.001]), self._trades(1), {})
-        assert np.isnan(res["annualized_volatility"])
+        assert res["annualized_volatility"] == 0.0
 
 
 def test_purged_kfold_basic():

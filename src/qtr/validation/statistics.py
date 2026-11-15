@@ -1356,7 +1356,18 @@ def validate_strategy(
     # See tests/test_engine_metric_agreement.py::TestSharedMetricAgreement.
     gross = 1.0 + total_return
     ann_return = (gross ** (252 / len(returns)) - 1) if gross > 0.0 else -1.0
-    ann_vol = returns.std() * np.sqrt(252)
+    # Annualized volatility follows the engine's convention exactly
+    # (VectorizedBacktester._calculate_metrics, engine.py). The engine reports
+    # ``0.0`` when there are fewer than two bars because a sample standard
+    # deviation (ddof=1) divides by ``n - 1`` and is undefined at ``n == 1``.
+    # ``pandas.Series.std()`` returns ``NaN`` there instead, so the two
+    # implementations used to disagree on the same one-bar return series
+    # (engine ``0.0`` vs. ``validate_strategy`` ``NaN``) -- the exact
+    # cross-module disagreement ``tests/test_engine_metric_agreement.py``
+    # exists to catch. This branch also makes ``validate_strategy`` internally
+    # consistent: its empty-series path already returns ``0.0`` for the same
+    # metric. For ``n > 1`` the arithmetic is bit-identical to before.
+    ann_vol = returns.std() * np.sqrt(252) if len(returns) > 1 else 0.0
     sharpe = sharpe_ratio(returns.values)
 
     # Drawdown

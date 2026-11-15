@@ -277,6 +277,24 @@ class TestSharedMetricAgreement:
         validation = validate_strategy(result.returns, result.trades, {})
         _assert_shared_metrics_agree(result.metrics, validation)
 
+    def test_agreement_holds_for_a_single_bar_series(self):
+        """The smallest series (n = 1): one zero return, every metric a
+        boundary value.
+
+        ``annualized_volatility`` is the shared metric the two implementations
+        used to disagree on here: the engine's ``n <= 1`` guard reports ``0.0``
+        (a sample standard deviation is undefined at ``n == 1``), while
+        ``validate_strategy`` returned ``NaN`` from ``pandas.Series.std()``.
+        ``validate_strategy`` now matches the engine, and this pins the
+        agreement so the divergence cannot silently return.
+        """
+        prices, signals = _engine_case(n=1, seed=3)
+        result = _run(prices, signals)
+        validation = validate_strategy(result.returns, result.trades, {})
+        _assert_shared_metrics_agree(result.metrics, validation)
+        assert result.metrics["annualized_volatility"] == 0.0
+        assert validation["annualized_volatility"] == 0.0
+
     def test_agreement_holds_after_a_total_loss_bar(self):
         """A -100% bar drives the total return to -1 (gross == 0), the
         boundary of the annualization guard in both implementations.
