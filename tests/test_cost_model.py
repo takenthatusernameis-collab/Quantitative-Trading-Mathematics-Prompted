@@ -487,3 +487,124 @@ class TestCostModelDegenerateInput:
             # pre-guard path passes the caller's value through unchanged.
             assert (math.isnan(emitted) and math.isnan(bad)) or emitted == bad
             assert cm.get_future_contract_multiplier("ES") == 0.0  # the guarded path rejects it
+
+    def test_equity_cost_bps_rejects_negative_commission_and_impact(self):
+        # A negative commission or a negative impact coefficient is a sign
+        # error, not a rebate: the engine SUBTRACTS the cost from the return
+        # (engine.py:477), so a negative cost is ADDED and manufactures P&L.
+        # The docstring already promises negative -> 0.0.
+        assert CostModel(equity_commission_bps=-2.0).equity_cost_bps() == 0.0
+        assert (
+            CostModel(
+                equity_commission_bps=2.0, equity_impact_bps_per_pct_adv=-1.0
+            ).equity_cost_bps(adv_pct=10.0)
+            == 0.0
+        )
+        # A non-finite impact coefficient fails closed cleanly: the guarded
+        # path returns 0.0 without ever evaluating ``inf * 0`` (which numpy
+        # emits as a RuntimeWarning, fatal under ``-W error``).
+        assert CostModel(equity_impact_bps_per_pct_adv=float("inf")).equity_cost_bps() == 0.0
+        # A finite, non-negative configuration is unchanged (bit-identical).
+        assert CostModel(
+            equity_commission_bps=1.0, equity_spread_bps=1.0
+        ).equity_cost_bps() == pytest.approx(2.0)
+
+    def test_future_cost_per_contract_rejects_negative_default_operands(self):
+        # Negative tick value / spread / slippage are sign errors: the engine
+        # subtracts this cost, so a negative per-contract cost is added to the
+        # return. The sibling multiplier guard already fails closed on a
+        # negative operand; these must too.
+        for kw in (
+            {"future_tick_value": -12.5},
+            {"future_spread_ticks": -0.25},
+            {"future_slippage_ticks": -0.5},
+        ):
+            assert CostModel(**kw).future_cost_per_contract() == 0.0, kw
+        # A finite, non-negative configuration is unchanged.
+        cm = CostModel(
+            future_commission_per_contract=0.50,
+            future_spread_ticks=0.25,
+            future_slippage_ticks=0.5,
+            future_tick_value=12.50,
+        )
+        assert cm.future_cost_per_contract() == pytest.approx(9.875)
+
+    def test_future_cost_per_contract_rejects_negative_spec_operands(self):
+        for spec in ({"tick_value": -50.0}, {"spread_ticks": -1.0}, {"slippage_ticks": -1.0}):
+            assert CostModel(futures_specs={"ES": spec}).future_cost_per_contract("ES") == 0.0, spec
+        # A finite, non-negative spec is unchanged.
+        cm = CostModel(
+            futures_specs={
+                "ES": {
+                    "tick_value": 50.0,
+                    "spread_ticks": 1.0,
+                    "slippage_ticks": 0.5,
+                    "commission": 2.0,
+                }
+            }
+        )
+        assert cm.future_cost_per_contract("ES") == pytest.approx(77.0)
+
+    def test_crypto_cost_bps_rejects_negative_config_operands(self):
+        # A negative fee, spread or slippage coefficient is a sign error, not a
+        # rebate: the engine adds the (negative) cost back to the return.
+        assert CostModel(crypto_fee_bps=-5.0).crypto_cost_bps(1.0) == 0.0
+        assert CostModel(crypto_spread_bps=-2.0).crypto_cost_bps(1.0) == 0.0
+        assert CostModel(crypto_slippage_bps_per_pct_daily_vol=-1.0).crypto_cost_bps(1.0) == 0.0
+        # A finite, non-negative configuration is unchanged.
+        cm = CostModel(
+            crypto_fee_bps=5.0,
+            crypto_spread_bps=2.0,
+            crypto_slippage_bps_per_pct_daily_vol=1.0,
+        )
+        assert cm.crypto_cost_bps(daily_vol_pct=5.0) == pytest.approx(12.0)
+
+    def test_the_engine_futures_cost_fails_closed_on_negative_operands(self):
+        # End-to-end: a negative per-contract cost operand must not flip the
+        # sign of the published return. The guarded method fails closed to a
+        # zero per-contract cost, so the engine result equals an explicit
+        # zero-cost model rather than the fabricated sign-flipped one.
+        prices, signals = self._futures_panel()
+        base_cfg = dict(
+            initial_capital=1_000_000.0,
+            asset_class=AssetClass.FUTURE,
+            max_position_size=1.0,
+            max_leverage=1.0,
+            allow_short=False,
+        )
+        zero = CostModel(
+            future_commission_per_contract=0.0,
+            future_spread_ticks=0.0,
+            future_slippage_ticks=0.0,
+        )
+        zero_return = run_backtest(
+            prices=prices, signals=signals, config=BacktestConfig(cost_model=zero, **base_cfg)
+        ).metrics["total_return"]
+        for kw in (
+            {"future_tick_value": -12.5},
+            {"future_spread_ticks": -0.25},
+            {"future_slippage_ticks": -0.5},
+        ):
+            res = run_backtest(
+                prices=prices,
+                signals=signals,
+                config=BacktestConfig(cost_model=CostModel(**kw), **base_cfg),
+            )
+            assert res.metrics["total_return"] == pytest.approx(zero_return), kw
+
+    def test_the_contract_rejects_the_pre_guard_negative_cost(self):
+        # Behavioural negative control: reconstruct the pre-guard arithmetic,
+        # which returned the caller's negative operand unchanged and so
+        # manufactured a negative per-contract cost that the engine ADDED to the
+        # return. The guarded method must fail closed to 0.0 on the same input.
+        def pre_guard(cm, symbol):
+            specs = cm.futures_specs.get(symbol, {}) if symbol is not None else {}
+            commission = float(specs.get("commission", cm.future_commission_per_contract))
+            tick_value = float(specs.get("tick_value", cm.future_tick_value))
+            spread_ticks = float(specs.get("spread_ticks", cm.future_spread_ticks))
+            slippage_ticks = float(specs.get("slippage_ticks", cm.future_slippage_ticks))
+            return commission + (spread_ticks + slippage_ticks) * tick_value
+
+        cm = CostModel(future_tick_value=-12.5)
+        assert pre_guard(cm, None) < 0.0  # the pre-guard path emitted a negative cost
+        assert cm.future_cost_per_contract() == 0.0  # the guarded path fails closed

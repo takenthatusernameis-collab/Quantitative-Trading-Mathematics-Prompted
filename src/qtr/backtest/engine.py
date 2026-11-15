@@ -74,11 +74,23 @@ class CostModel:
         fails closed to ``0.0``.
         """
         commission = self.equity_commission_bps
+        impact_coef = self.equity_impact_bps_per_pct_adv
         spread = self.equity_spread_bps if spread_bps is None else float(spread_bps)
         adv_pct = 0.0 if adv_pct is None else float(adv_pct)
-        impact = self.equity_impact_bps_per_pct_adv * adv_pct
+        # A cost is a *charge*: a negative commission, a negative impact
+        # coefficient, a negative spread or a negative ADV participation is a
+        # sign error in the caller's intent, not a rebate. The engine SUBTRACTS
+        # this quantity from the portfolio return (engine.py:477), so a
+        # negative cost is *added* to the return and manufactures P&L out of a
+        # misconfiguration -- the same fail-open that
+        # ``get_future_contract_multiplier`` and the spread/ADV guards below
+        # close. Fail closed to 0.0 on every negative operand. For every
+        # finite, non-negative input the arithmetic is bit-identical to before.
         valid = (
             math.isfinite(commission)
+            and commission >= 0.0
+            and math.isfinite(impact_coef)
+            and impact_coef >= 0.0
             and math.isfinite(spread)
             and spread >= 0.0
             and math.isfinite(adv_pct)
@@ -86,6 +98,11 @@ class CostModel:
         )
         if not valid:
             return 0.0
+        # Computed only after the guard: an infinite impact coefficient times a
+        # zero ADV participation is ``inf * 0 = nan``, which numpy emits as a
+        # RuntimeWarning (fatal under ``-W error``) even though the input is
+        # rejected. Validated inputs cannot overflow here.
+        impact = impact_coef * adv_pct
         return commission + spread + impact
 
     # ---------------------------------------------------------- future costs
@@ -99,12 +116,24 @@ class CostModel:
         tick_value = float(specs.get("tick_value", self.future_tick_value))
         spread_ticks = float(specs.get("spread_ticks", self.future_spread_ticks))
         slippage_ticks = float(specs.get("slippage_ticks", self.future_slippage_ticks))
+        # A per-contract cost is a *charge*: a negative commission, tick value,
+        # spread or slippage is a sign error in the caller's intent, not a
+        # rebate. The engine SUBTRACTS the cost from the return
+        # (engine.py:473/477), so a negative per-contract cost is *added* to the
+        # return and manufactures P&L out of a misconfigured ``futures_specs``
+        # entry (or a negative default). The sibling
+        # ``get_future_contract_multiplier`` already fails closed on a negative
+        # operand; a negative tick value / spread / slippage must do the same.
+        # For every finite, non-negative input the arithmetic is bit-identical.
         valid = (
             math.isfinite(commission)
             and commission >= 0.0
             and math.isfinite(tick_value)
+            and tick_value >= 0.0
             and math.isfinite(spread_ticks)
+            and spread_ticks >= 0.0
             and math.isfinite(slippage_ticks)
+            and slippage_ticks >= 0.0
         )
         if not valid:
             return 0.0
@@ -142,7 +171,20 @@ class CostModel:
         fee = self.crypto_fee_bps
         spread = self.crypto_spread_bps
         slippage = self.crypto_slippage_bps_per_pct_daily_vol
-        if not (math.isfinite(fee) and math.isfinite(spread)):
+        # Same fail-closed contract as the equity/futures cost paths: a fee,
+        # spread or slippage coefficient that is non-finite or negative is not
+        # a cost, it is a sign error that the engine would ADD to the return
+        # (engine.py:477). Reject the whole cost before any arithmetic so a
+        # negative operand cannot manufacture P&L (and an infinite slippage
+        # coefficient cannot raise ``invalid value`` on the multiply below).
+        if not (
+            math.isfinite(fee)
+            and fee >= 0.0
+            and math.isfinite(spread)
+            and spread >= 0.0
+            and math.isfinite(slippage)
+            and slippage >= 0.0
+        ):
             return 0.0
         if daily_vol_pct is None:
             vol = 0.0
