@@ -150,7 +150,12 @@ class ExperimentTracker:
         if metadata:
             meta_path = self.log_dir / f"{artifact_name}.meta.json"
             with open(meta_path, "w") as f:
-                json.dump(metadata, f, indent=2)
+                # ``default=str`` mirrors ``_save_experiment`` and the
+                # ``Experiment`` metadata writers: sidecar metadata may carry
+                # non-JSON-serializable values (numpy scalars/arrays, datetimes,
+                # Paths) and must degrade to their string form rather than
+                # abort the write and lose the artifact record.
+                json.dump(metadata, f, indent=2, default=str)
 
         logger.debug(f"Logged artifact: {artifact_name}")
         return file_hash

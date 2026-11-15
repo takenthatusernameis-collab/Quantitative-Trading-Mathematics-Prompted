@@ -1,6 +1,26 @@
 # HANDOFF.md
 
-> **Latest (2026-11-15, Cycle 130 — fixed a reproduced `log_dataframe` crash on a duplicated column label; 100% coverage preserved):**
+> **Latest (2026-11-15, Cycle 131 — hardened `log_artifact` sidecar JSON serialization; 100% coverage preserved):**
+> `ExperimentTracker.log_artifact` wrote sidecar metadata with bare
+> `json.dump(metadata, f, indent=2)` (no `default=str`). Reproduced:
+> `log_artifact(..., metadata={"x": np.array([1,2])})` raised
+> `TypeError: Object of type ndarray is not JSON serializable`, aborting the
+> write and losing the artifact record. Other tracking/experiment metadata and
+> JSONL writers already degrade non-JSON values via `default=str`; this path was
+> the outlier. Fix: sidecar write now uses `json.dump(..., default=str)`.
+> Added `test_log_artifact_non_serializable_metadata_degrades` and
+> `test_log_artifact_pre_fix_non_serializable_metadata_crashes` (+2). Verified:
+> before-fix repro raised `TypeError`; after-fix sidecar persists array as
+> string. Focused `tests/test_experiment_tracker.py tests/test_experiment_tracking.py`
+> **52 passed**; full pinned suite `pytest -q -W error --cov=qtr --cov-branch
+> --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (433.38s)
+> **3857 passed / 51 skipped / 0 failed**, `src/qtr` coverage **100.00%**
+> (1500 stmts / 532 branches / 0 miss); ruff check/format clean.
+> `tests/test_gates_workflow.py` **7 failed** (unchanged, maintainer-gated; fix
+> is `patches/0001-gates-workflow-contract-fix.patch`). No gate, artifact,
+> sidecar, hash, frozen-number, or workflow change. See `NEXT_TASK.md` Cycle 131.
+
+> **Prior (2026-11-15, Cycle 130 — fixed a reproduced `log_dataframe` crash on a duplicated column label; 100% coverage preserved):**
 > `ExperimentTracker.log_dataframe` wrote the caller's frame with a bare
 > `DataFrame.to_parquet`, which refuses a duplicated column label
 > (`ValueError: Duplicate column names found`). A duplicated label is reachable

@@ -849,3 +849,32 @@ def test_emit_summary_creates_parent_directories(tmp_path):
     emit_summary(summary, out_path)
     assert out_path.exists()
     assert out_path.parent.exists()
+
+
+def test_log_artifact_non_serializable_metadata_degrades(tmp_path):
+    """Non-JSON-serializable sidecar metadata must not crash log_artifact.
+
+    Sidecar metadata may carry numpy scalars/arrays, datetimes, or Paths; the
+    writer falls back to ``default=str`` (mirroring ``_save_experiment`` and the
+    ``Experiment`` metadata writers) so the value is persisted as its string
+    representation rather than aborting the write and losing the artifact record.
+    """
+    import numpy as np
+
+    t = ExperimentTracker(log_dir=tmp_path / "logs")
+    t.start_experiment("exp")
+    p = tmp_path / "f.txt"
+    p.write_text("hi")
+    h = t.log_artifact("a", p, metadata={"arr": np.array([1, 2]), "tag": "x"})
+    meta = json.loads((t.log_dir / f"a_{h}.meta.json").read_text())
+    assert meta["tag"] == "x"
+    assert meta["arr"] == str(np.array([1, 2]))
+    t.finish_experiment()
+
+
+def test_log_artifact_pre_fix_non_serializable_metadata_crashes():
+    """Behavioural negative control: bare ``json.dumps`` rejects numpy arrays."""
+    import numpy as np
+
+    with pytest.raises(TypeError):
+        json.dumps({"arr": np.array([1, 2])})

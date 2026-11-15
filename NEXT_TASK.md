@@ -1,38 +1,67 @@
 # NEXT_TASK.md
 
-## Latest session (2026-11-15, Cycle 130) — fixed a reproduced `log_dataframe` crash on a duplicated column label; 100% coverage preserved
+## Latest session (2026-11-15, Cycle 131) — hardened `log_artifact` sidecar JSON serialization; 100% coverage preserved
 
 ### What changed
-- **Reproduced defect (reachable):** `ExperimentTracker.log_dataframe` called `DataFrame.to_parquet` directly on the caller's frame. A duplicated column label is reachable from the documented pipeline (a repeated ticker in a universe, an overlapping benchmark/universe `pd.concat(..., axis=1)`, or a cached/vendor frame written with a repeated column) and `to_parquet` refuses it: `ValueError: Duplicate column names found: ['A', 'A']`. Every runner logs its price/volume/result panel through `log_dataframe` *before* `run_backtest` sees it, and the engine already canonicalizes both panels' columns (keep first) on entry to `run_backtest` for exactly this class, as does `non_positive_prices` (screen by position). The tracking layer was the only layer without the guard, so a panel the engine would have accepted crashed the runner at the logging call first.
-- **Fix:** `src/qtr/tracking/experiment.py` — `log_dataframe` now canonicalizes a duplicated column axis once (keep first) before writing, mirroring the engine's existing policy. A unique column set is a no-op, so a clean frame is bit-identical; the written artifact and its schema sidecar both record the deduplicated frame.
-- **Tests:** `tests/test_experiment_tracker.py` — `test_log_dataframe_deduplicates_columns_before_writing` (keep-first, written parquet, and `columns`/`shape` sidecar), `test_log_dataframe_unique_columns_are_untouched` (no-op on a clean frame, bit-identical), `test_log_dataframe_pre_fix_duplicate_columns_crash` (negative control reconstructing the pre-fix `ValueError`). +3 tests. Also hoisted `import json` to module scope (removed 7 redundant local imports flagged by ruff `F811`).
+- **Reproduced defect (adjacent to prior handoff's noted gap):** `ExperimentTracker.log_artifact` wrote its metadata sidecar with `json.dump(metadata, f, indent=2)` (no `default=str`). Repro: `log_artifact(..., metadata={"x": np.array([1,2])})` raised `TypeError: Object of type ndarray is not JSON serializable`, aborting the write and losing the artifact record. `Experiment.record_artifact` and `Experiment`/tracker metadata writers already degrade non-JSON values via `default=str`; `_save_experiment` does as well — `log_artifact` sidecar was the outlier.
+- **Fix:** `src/qtr/tracking/experiment.py` — `log_artifact` sidecar write now uses `json.dump(metadata, f, indent=2, default=str)` with rationale mirroring existing writers.
+- **Tests:** `tests/test_experiment_tracker.py` — added `test_log_artifact_non_serializable_metadata_degrades` (numpy array persisted as string, file written) and `test_log_artifact_pre_fix_non_serializable_metadata_crashes` (negative control: bare `json.dumps` rejects ndarray). +2 tests.
 
 ### What was actually verified (own evidence)
-- Before-fix repro (isolated `PYTHONPATH=src` script): `t.log_dataframe("dup", pd.DataFrame([[1,2]], columns=["a","a"]))` raised `ValueError: Duplicate column names found` (via `to_parquet` → pyarrow).
-- After-fix repro: the same call returns a hash; the written parquet has unique columns `["A","B"]` and the sidecar records `shape=[2,2]`, `columns=["A","B"]`.
-- `python -m pytest -q tests/test_experiment_tracker.py tests/test_experiment_tracking.py` → **50 passed** (+3).
-- Full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (438.33s) → **3855 passed, 51 skipped, 0 failed, coverage 100.00%** (`src/qtr` 1500 stmts / 532 branches / 0 miss). This corrects Cycle 129's count of 3852 passed / 51 skipped; the +3 is this session's new tests.
+- Before-fix repro (isolated `PYTHONPATH=src`): `log_artifact(..., metadata={"x": np.array([1,2])})` → `TypeError: Object of type ndarray is not JSON serializable`.
+- After-fix: same call writes sidecar with `arr == str(np.array([1,2]))` and `tag` intact.
+- `python -m pytest -q tests/test_experiment_tracker.py tests/test_experiment_tracking.py` → **52 passed** (+2 over Cycle 130 state).
+- Full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (433.38s) → **3857 passed, 51 skipped, 0 failed, coverage 100.00%** (`src/qtr` 1500 stmts / 532 branches / 0 miss).
 - `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged, maintainer-gated; fix is `patches/0001-gates-workflow-contract-fix.patch`).
-- `python -m ruff check src tests run_*.py scripts` → All checks passed; `ruff format --check ...` → 335 files already formatted.
+- `python -m ruff check src tests run_*.py scripts` → All checks passed; `ruff format --check src/qtr/tracking/experiment.py tests/test_experiment_tracker.py` → 2 files already formatted.
 
 ### What remains unresolved
 1. **Maintainer-only (CI contract):** `.github/workflows/gates.yml` not updated; 7 `tests/test_gates_workflow.py` tests red until maintainer applies `patches/0001-gates-workflow-contract-fix.patch` with workflow-scoped credentials. Agent cannot land `.github/workflows/**`.
 2. **Research queue exhausted under free/public PIT data:** H1–H182 executed/rejected; no honest free-data H183 is pre-registrable without new authorized data.
 3. **Reproducibility backlog:** `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0` unchanged; baseline-frozen.
-4. **Adjacent (not fixed, out of scope this session):** `Experiment.record_artifact` has the same raw `to_parquet` call and would raise on a duplicated column label, but `Experiment` is not used by any runner (0 references in `run_*.py`/`scripts/`), so a fix would be speculative — do not change it without a concrete failing case.
+4. **Adjacent (not fixed, no concrete failing case):** `Experiment.record_artifact` still calls `DataFrame.to_parquet`/`to_csv` on duplicated column labels and would raise, but `Experiment` is not used by any runner (0 refs in `run_*.py`/`scripts/`). Do not change without a reproduced, reachable defect.
 
 ### Approaches already tried and why they should not be repeated
-- Do not trust a handoff's coverage/pass claim without running the gate (Cycle 129's 3852/51 count was stale; this session's re-run is 3855/51).
-- Do not make speculative `src/qtr` changes absent a reproduced, reachable defect — this session's guard is evidenced by a reproduced `ValueError` reachable from the documented `pd.concat` panel build that the engine's own comments confirm.
+- Do not trust a handoff's pass/coverage claim without running the gate.
+- Do not make speculative `src/qtr` changes absent a reproduced, reachable defect.
 - Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or alter coverage/frozen-contract gates.
 - Do not "fix" `Experiment.record_artifact` for duplicate columns without a concrete failing case (unreachable from runners).
 
 ### One precise next task
 **Maintainer (preferred, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch` with workflow scope, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed) on `origin/main`.
 
-**Agent alternative (only with new evidence):** the only remaining unguarded public persistence path is `Experiment.record_artifact` / `ExperimentTracker.log_artifact`'s metadata sidecar, both unreachable from any runner — do not change them without a concrete failing case. Keep 100% `src/qtr` coverage and all gates/contracts intact.
+**Agent alternative (only with new evidence):** audit remaining `qtr.tracking.Experiment` persistence paths for a *reproduced*, runner-reachable crash on realistic corrupt/partial/odd-shaped input (not hypothetical) — e.g. `log_params/log_results` path is already guarded; `record_artifact` duplicate-column case is documented-unreachable from runners and must not be "fixed" speculatively. Keep 100% `src/qtr` coverage and all gates/contracts intact.
 
 **Constraints:** no gate weakening; no modification of published/frozen artifacts, verdicts, thresholds, or frozen numbers except deliberate authorized corpus/baseline updates; no workflow commit from agent.
+
+---
+
+## Prior session (2026-11-15, Cycle 130) — fixed a reproduced `log_dataframe` crash on a duplicated column label; 100% coverage preserved
+
+### What changed
+- **Reproduced defect (reachable):** `ExperimentTracker.log_dataframe` called `DataFrame.to_parquet` directly on the caller's frame. A duplicated column label is reachable from the documented pipeline (a repeated ticker in a universe, an overlapping benchmark/universe `pd.concat(..., axis=1)`, or a cached/vendor frame written with a repeated column) and `to_parquet` refuses it: `ValueError: Duplicate column names found: ['A', 'A']`. Every runner logs its price/volume/result panel through `log_dataframe` *before* `run_backtest` sees it, and the engine already canonicalizes both panels' columns (keep first) on entry to `run_backtest` for exactly this class, as does `non_positive_prices` (screen by position). The tracking layer was the only layer without the guard, so a panel the engine would have accepted crashed the runner at the logging call first.
+- **Fix:** `src/qtr/tracking/experiment.py` — `log_dataframe` now canonicalizes a duplicated column axis once (keep first) before writing, mirroring the engine's existing policy. A unique column set is a no-op, so a clean frame is bit-identical; the written artifact and its schema sidecar both record the deduplicated frame.
+- **Tests:** `tests/test_experiment_tracker.py` — `test_log_dataframe_deduplicates_columns_before_writing`, `test_log_dataframe_unique_columns_are_untouched`, `test_log_dataframe_pre_fix_duplicate_columns_crash` (+3). Hoisted `import json` to module scope (ruff `F811`).
+
+### What was actually verified (own evidence)
+- Before-fix repro: `ValueError: Duplicate column names found`; after-fix: unique `["A","B"]` parquet + sidecar.
+- Focused: **50 passed** (then +2 this session → 52). Full pinned suite (excluding `tests/test_gates_workflow.py`): **3855 passed / 51 skipped** (Cycle 130) → **3857 passed / 51 skipped** (Cycle 131), `src/qtr` coverage **100.00%** (1500/532). `tests/test_gates_workflow.py` **7 failed** (maintainer-gated). Ruff clean.
+
+### What remains unresolved
+1. Maintainer-only: apply `patches/0001-gates-workflow-contract-fix.patch` (`.github/workflows/**` unreachable to agent).
+2. Research queue exhausted (H1–H182) under free/public PIT data.
+3. Reproducibility backlog baseline-frozen: missing=197, hash_mismatches=11, orphaned=528, missing_meta=0.
+4. `Experiment.record_artifact` duplicate-column parquet/csv unguarded but unreachable from runners — no speculative fix.
+
+### Approaches already tried and why they should not be repeated
+- Do not trust stale handoff counts without re-running the gate.
+- No speculative `src/qtr` changes without a reproduced, reachable defect.
+- No workflow edits, no gate weakening, no frozen-contract/artifact/verdict/threshold changes.
+
+### One precise next task
+See Cycle 131 "One precise next task" above.
+
+---
 
 ---
 
