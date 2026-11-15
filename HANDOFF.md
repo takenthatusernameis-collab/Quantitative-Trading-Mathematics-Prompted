@@ -1,6 +1,9 @@
 # HANDOFF.md
 
-> **Latest (2026-11-15, Cycle 131 — hardened `log_artifact` sidecar JSON serialization; 100% coverage preserved):**
+> **Latest (2026-11-15, Cycle 132 — baseline re-verified; no agent-actionable defect found):**
+> Working tree clean at HEAD `35d1bc3`; **no `src/qtr`, test, gate, artifact, sidecar, hash, frozen-number, or workflow change**. Verified (own evidence): focused `python -m pytest -q tests/test_experiment_tracker.py tests/test_experiment_tracking.py tests/test_experiment_artifact_schema.py tests/test_public_api_contract.py` → **190 passed**; `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged, maintainer-gated; fix is `patches/0001-gates-workflow-contract-fix.patch`); `python -m ruff check src tests run_*.py scripts` → All checks passed. Probed adjacent tracking paths (`PYTHONPATH=src`): `ExperimentTracker.log_dataframe` handles duplicated index; `Experiment.log_metadata`/`record_artifact` JSON paths persist non-serializable values via `default=str`; corrupt metadata load degrades to `{}`. `Experiment.record_artifact` on duplicated-column DataFrame still raises but is unreachable from runners/scripts (no concrete failing case) — not changed. No full pinned suite/coverage run this session (no `src/qtr` change); prior verified baseline remains Cycle 131 (**3857 passed / 51 skipped / 0 failed, 100.00%**, excluding maintainer-gated workflow tests). See `NEXT_TASK.md` Cycle 132.
+
+> **Prior (2026-11-15, Cycle 131 — hardened `log_artifact` sidecar JSON serialization; 100% coverage preserved):**
 > `ExperimentTracker.log_artifact` wrote sidecar metadata with bare
 > `json.dump(metadata, f, indent=2)` (no `default=str`). Reproduced:
 > `log_artifact(..., metadata={"x": np.array([1,2])})` raised

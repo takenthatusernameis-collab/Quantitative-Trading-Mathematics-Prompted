@@ -1,6 +1,38 @@
 # NEXT_TASK.md
 
-## Latest session (2026-11-15, Cycle 131) — hardened `log_artifact` sidecar JSON serialization; 100% coverage preserved
+## Latest session (2026-11-15, Cycle 132) — baseline re-verified; no agent-actionable defect found
+
+### What changed
+- **No source, test, gate, artifact, sidecar, hash, frozen-number, or workflow change.** Working tree clean at HEAD `35d1bc3` before this handoff edit.
+
+### What was actually verified (own evidence)
+- Focused tracking/public-contract slice `python -m pytest -q tests/test_experiment_tracker.py tests/test_experiment_tracking.py tests/test_experiment_artifact_schema.py tests/test_public_api_contract.py` → **190 passed**.
+- `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged, maintainer-gated; fix is `patches/0001-gates-workflow-contract-fix.patch`).
+- `python -m ruff check src tests run_*.py scripts` → All checks passed.
+- Probed adjacent `qtr.tracking` persistence paths (`PYTHONPATH=src`, isolated temp dirs): `ExperimentTracker.log_dataframe` with a duplicated index writes successfully (no crash); `Experiment.log_metadata` / `Experiment.record_artifact(..., {'arr': np.array(...)})` persist via `default=str`; `Experiment.load_metadata` on corrupt JSON degrades to `{}`. `Experiment.record_artifact` on a duplicated-column DataFrame raises `ValueError` from parquet, but `class Experiment` has no runner usage outside `src/qtr/tracking/experiment.py`/`__init__` (no refs in `run_*.py`/`scripts/`), so changing it would be speculative/unreachable without new evidence.
+
+### What remains unresolved
+1. **Maintainer-only (CI contract):** `.github/workflows/gates.yml` not updated; 7 `tests/test_gates_workflow.py` tests red until maintainer applies `patches/0001-gates-workflow-contract-fix.patch` with workflow-scoped credentials. Agent cannot land `.github/workflows/**`.
+2. **Research queue exhausted under free/public PIT data:** H1–H182 executed/rejected; no honest free-data H183 is pre-registrable without new authorized data.
+3. **Reproducibility backlog:** `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0` unchanged; baseline-frozen.
+4. **Unreachable/speculative (not fixed):** `Experiment.record_artifact` duplicate-column parquet/csv path would raise, but there is no concrete runner-reachable failing case. Do not "fix" without reproduced evidence.
+
+### Approaches already tried and why they should not be repeated
+- Do not trust a handoff's pass/coverage claim without running the gate; this session ran focused checks, not the full pinned suite, and makes no full-suite/coverage claim.
+- Do not make speculative `src/qtr` changes absent a reproduced, reachable defect (duplicate-column `Experiment.record_artifact` is unreachable from runners).
+- Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or alter coverage/frozen-contract gates.
+- Do not invent a free-data H183 or treat parameter/timeframe/universe variations as new mechanism families.
+
+### One precise next task
+**Maintainer (preferred, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch` with workflow scope, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed) on `origin/main`.
+
+**Agent alternative (only with new evidence):** find and fix a *reproduced*, runner-reachable defect in `src/qtr` (or a concrete failing case in a public path exercised by runners/scripts) that is not already closed. Keep 100% `src/qtr` coverage and all gates/contracts intact; if `src/qtr` changes, verify with the full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` and ruff check/format.
+
+**Constraints:** no gate weakening; no modification of published/frozen artifacts, verdicts, thresholds, or frozen numbers except deliberate authorized corpus/baseline updates; no workflow commit from agent.
+
+---
+
+## Prior session (2026-11-15, Cycle 131) — hardened `log_artifact` sidecar JSON serialization; 100% coverage preserved
 
 ### What changed
 - **Reproduced defect (adjacent to prior handoff's noted gap):** `ExperimentTracker.log_artifact` wrote its metadata sidecar with `json.dump(metadata, f, indent=2)` (no `default=str`). Repro: `log_artifact(..., metadata={"x": np.array([1,2])})` raised `TypeError: Object of type ndarray is not JSON serializable`, aborting the write and losing the artifact record. `Experiment.record_artifact` and `Experiment`/tracker metadata writers already degrade non-JSON values via `default=str`; `_save_experiment` does as well — `log_artifact` sidecar was the outlier.
