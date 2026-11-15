@@ -1,6 +1,34 @@
 # NEXT_TASK.md
 
-## Latest session (2026-11-15, Cycle 137) — fixed a reproduced `parse_form4` silent-data-loss defect on namespaced Form 4 XML; 100% coverage preserved
+## Latest session (2026-11-15, Cycle 138) — insider mixed-namespace / end-to-end probe came back clean; no agent-actionable defect remains in `src/qtr`
+
+### What changed
+- **No `src/qtr`, test, gate, artifact, sidecar, hash, frozen-number, or workflow change.** Working tree clean at HEAD `735f2cd` (Cycle 137 insider fix); matches `origin/main`.
+
+### What was actually verified (own evidence)
+- Executed the Cycle 137 agent-alternative probe: `_child_text`/`_owner_rows`/`_transaction_rows` with mixed-namespace and unusual-but-well-formed Form 4 XML, plus `fetch_insider_transactions` end-to-end with a stubbed EDGAR returning a namespaced document (`/tmp/probe_insider_mixed_ns.py`). **All 6 probe cases passed** — mixed namespaces, default-namespace-only, empty `<value>` wrappers (no whitespace leak), namespaced derivative table, multiple namespaced owners, and the namespaced end-to-end fetch all parse correctly. The insider hunt is closed: `_value_text`, `_child_text`, `_owner_rows`, `_transaction_rows` are all namespace-agnostic; `fetch_insider_transactions` degrades per-filing on parse failure.
+- `python -m pytest -q tests/test_sec_insider.py -W error` → **38 passed**.
+- Baseline from Cycle 137 stands: full pinned suite **3864 passed, 51 skipped, 0 failed**, `src/qtr` coverage **100.00%** (1504 stmts / 534 branches / 0 miss); `ruff check`/`format --check` clean; `scripts/backtest_perf_regression_gate.py` PASSED (0.476s < 5s).
+- All previously probed modules remain green (engine duplicate index/column, tracking JSONL/log_dataframe/log_artifact/load_experiment, statistics n=1 + non-finite guards, fetcher unknown exchange_id, baselines). No reproduced, reachable defect remains in `src/qtr`.
+
+### What remains unresolved
+1. **Maintainer-only (CI contract):** `.github/workflows/gates.yml` not updated; 7 `tests/test_gates_workflow.py` tests red until the maintainer applies `patches/0001-gates-workflow-contract-fix.patch` with workflow scope. Agent cannot land `.github/workflows/**`.
+2. **Research queue exhausted under free/public PIT data:** H1–H182 executed/rejected; no honest free-data H183 is pre-registrable without new authorized data.
+3. **Reproducibility backlog:** `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0` unchanged; baseline-frozen.
+
+### Approaches already tried and why they should not be repeated
+- Do not make speculative `src/qtr` changes absent a reproduced, reachable defect — the defect hunt across all of `src/qtr` (cycles 125–138) is exhausted and every module is green at 100% coverage.
+- Do not re-probe the same insider surface; the mixed-namespace probe came back clean.
+- Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or alter coverage/frozen-contract gates.
+- Do not touch `qtr.utils.config.load_config` on malformed YAML without an explicit product decision.
+
+### One precise next task
+**Maintainer (preferred, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch` with workflow scope, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed) on `origin/main`. The patch is verified apply-ready (`git apply --check` succeeds; patched tree passes the 7 workflow tests in a clean throwaway checkout; `scripts/backtest_perf_regression_gate.py` passes on this host).
+
+**Agent path (concluded):** the `src/qtr` defect hunt is exhausted — no agent-actionable defect remains, so there is no code change to make. Do not keep re-probing the same modules; await either the maintainer workflow patch or new authorized data / an explicit product decision before selecting new work.
+
+---
+
 
 ### What changed
 - **Reproduced defect (public `parse_form4` API):** `_value_text` read a wrapper's nested value with `element.find("value")`. `ElementTree` matches that against the literal tag `value`, so a document that declares a default XML namespace gives the child the tag `{namespace}value` and the lookup returns `None`; `_value_text` then returned the wrapper's whitespace. Every namespaced field that lives in a `<value>` wrapper was silently dropped — `transaction_date` → `NaT`, `shares`/`price_per_share` → `NaN`, `security_title` → `""` — while leaf fields (`issuer_name`, `reporting_owner`, `transaction_code`) still parsed, so nothing raised. Every other traversal in `insider.py` (`_child_text`, `_owner_rows`, `_transaction_rows`) already matches by local name (`_local_name`).
