@@ -1,6 +1,36 @@
 # HANDOFF.md
 
-> **Latest (2026-11-15, Cycle 145 — fixed a reproduced cache-hit column defect: duplicated normalized column labels (e.g. `Close`/`CLOSE`) survived standardization and broke `df["close"]`/downstream math; 100% coverage preserved):**
+> **Latest (2026-11-15, Cycle 147 — fixed a reproduced `BacktestConfig` sign inversion: negative/non-finite `max_leverage` silently turned a long-only book short; 100% coverage preserved):**
+> Cycle 146 reported the defect hunt exhausted. Probing the remaining
+> `BacktestConfig` numeric boundaries with correctly aligned signals found new
+> evidence: `run_backtest` converted `cfg.max_leverage` directly inside the
+> gross-exposure normalization. With `max_leverage=-1`, a long-only target of
+> `+1` was multiplied by `-1 / gross`, producing positions of `-1`, `sell`
+> trades, and negative returns on a rising price panel. `NaN`/`+inf` bypassed
+> the cap instead. The zero-leverage fail-closed contract was already pinned;
+> negative and non-finite values were not.
+> - **Fix:** `src/qtr/backtest/engine.py` normalizes a negative or non-finite
+>   `max_leverage` to `0.0` before leverage scaling. Invalid values now produce
+>   the same flat, no-trade, zero-return book as the intentional `max_leverage=0`
+>   boundary. Every finite non-negative value is unchanged.
+> - **Tests:** `tests/test_engine_edge_stress.py::TestInvalidLeverage` covers
+>   `-1`, `-inf`, `NaN`, and `+inf`, plus a behavioural negative control that
+>   reconstructs the pre-fix sign flip. **+5 tests.**
+> - **Verified (own evidence):** before the fix, the aligned one-symbol repro
+>   returned positions `[-1, -1, -1]`, returns `[0, -0.01, -0.00990099]`, and a
+>   `sell` trade; after the fix it returns all-zero positions/returns and no
+>   trades. Focused engine tests → **98 passed**. Full pinned suite
+>   `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py`
+>   (356.90s) → **3929 passed, 48 skipped, 0 failed**, `src/qtr` coverage
+>   **100.00%** (1534 stmts / 546 branches / 0 miss; `engine.py` 243/86).
+>   `tests/test_gates_workflow.py` → **7 failed** (unchanged, maintainer-gated;
+>   fix is `patches/0001-gates-workflow-contract-fix.patch`).
+>   `scripts/backtest_perf_regression_gate.py` → **PASSED** (0.326s < 5s,
+>   13668 trades). Full `ruff check` and `ruff format --check` over
+>   `src tests run_*.py scripts` → clean / **336 files already formatted**.
+>   No gate, artifact, sidecar, hash, frozen-number, or workflow change.
+
+> **Prior (2026-11-15, Cycle 145 — fixed a reproduced cache-hit column defect: duplicated normalized column labels (e.g. `Close`/`CLOSE`) survived standardization and broke `df["close"]`/downstream math; 100% coverage preserved):**
 > `DataCache` is a **persistent, cross-version file store** (82 committed
 > `.cache/data/*.parquet` files). A cache file written by an older/foreign writer
 > can carry several vendor names that normalize to the same label under

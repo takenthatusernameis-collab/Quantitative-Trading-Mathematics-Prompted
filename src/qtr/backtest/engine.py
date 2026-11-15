@@ -460,12 +460,20 @@ def run_backtest(
             if not (math.isfinite(multiplier) and multiplier > 0.0):
                 positions[sym] = 0.0
 
+    max_leverage = float(cfg.max_leverage)
+    if not math.isfinite(max_leverage) or max_leverage < 0.0:
+        max_leverage = 0.0
+
     # Gross-leverage normalization: scale every position down when gross
     # exposure exceeds max_leverage.
     gross = positions.abs().sum(axis=1)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)
-        scale = np.where(gross > float(cfg.max_leverage), float(cfg.max_leverage) / gross, 1.0)
+        scale = np.where(
+            gross > max_leverage,
+            max_leverage / gross,
+            1.0,
+        )
     scale = np.where(np.isfinite(scale) & (gross > 0.0), scale, 1.0)
     positions = positions.multiply(scale, axis=0)
 

@@ -1,6 +1,41 @@
 # NEXT_TASK.md
 
-## Latest session (2026-11-15, Cycle 146) — inspected every remaining `src/qtr` boundary; defect hunt exhausted, no agent-actionable defect; no source change
+## Latest session (2026-11-15, Cycle 147) — fixed a reproduced negative/non-finite `max_leverage` sign inversion; 100% coverage preserved
+
+### What changed
+- **New reproduced defect despite Cycle 146's "exhausted" claim:** `run_backtest` used `cfg.max_leverage` directly in gross-exposure scaling. With aligned signals and `max_leverage=-1`, a long-only `+1` target became `-1`, emitted a `sell`, and lost money on rising prices. `NaN`/`+inf` bypassed leverage capping. Zero leverage was already an intentional flat-book boundary; invalid values were unguarded.
+- **Fix:** `src/qtr/backtest/engine.py` converts negative/non-finite `max_leverage` to `0.0` before scaling, reusing the existing zero-leverage fail-closed behaviour. Finite non-negative values are bit-identical.
+- **Tests:** `tests/test_engine_edge_stress.py::TestInvalidLeverage` adds four parametrized invalid-value cases and one behavioural pre-fix sign-flip control (**+5 tests**).
+
+### What was actually verified (own evidence)
+- Pre-fix repro: `positions=[-1,-1,-1]`, rising-price returns `[0,-0.01,-0.00990099]`, one `sell` trade. Post-fix: zero positions/returns and no trades.
+- Focused `python -m pytest -q tests/test_engine_edge_stress.py tests/test_backtest_engine.py -W error` → **98 passed**.
+- Full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (356.90s) → **3929 passed, 48 skipped, 0 failed**, `src/qtr` coverage **100.00%** (1534 stmts / 546 branches / 0 miss; `engine.py` 243/86).
+- `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged, maintainer-gated).
+- `python scripts/backtest_perf_regression_gate.py` → **PASSED** (0.326s < 5s, 13668 trades).
+- Full `ruff check` and `ruff format --check` over `src tests run_*.py scripts` → clean / **336 files already formatted**.
+
+### What remains unresolved
+1. **Next bounded source defect (new evidence):** `BacktestConfig.initial_capital` remains unguarded. A probe with a valid long-only book produced `equity=[0,0,0]` for zero capital, negative equity for `-1000`, and `NaN`/infinite equity for `NaN`/`inf` capital, while still reporting positions and return-based metrics. Decide and implement the fail-closed no-evidence result for non-finite or non-positive capital; do not bundle `max_position_size` into the same change.
+2. **Additional boundary evidence for a later cycle:** `max_position_size=-1` and `NaN` left the probed long-only positions unchanged rather than enforcing a cap. This needs its own contract decision after the capital fix.
+3. **Maintainer-only CI contract:** `.github/workflows/gates.yml` remains stale; 7 `tests/test_gates_workflow.py` tests stay red until the maintainer applies `patches/0001-gates-workflow-contract-fix.patch` with workflow scope. Agent workflow commits cannot persist.
+4. **Research/reproducibility baselines unchanged:** H1–H182 executed/rejected, H183 unassigned; reproducibility backlog remains `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0`.
+
+### Approaches already tried and why they should not be repeated
+- Do not repeat the claim that the `src/qtr` defect hunt is exhausted; Cycle 147 found a new reproduced public-API defect after that claim.
+- Do not re-probe negative/non-finite `max_leverage`; it is now closed and pinned. Preserve the intentional `max_leverage=0` flat-book contract.
+- Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or alter coverage/frozen-contract gates.
+- Do not alter published/frozen artifacts, verdicts, thresholds, or frozen numbers.
+- Do not use `--cov=<dotted.module>`; use `--cov=qtr` as pinned.
+
+### One precise next task
+**Agent:** implement Cycle 148 as one bounded `BacktestConfig.initial_capital` fail-closed fix. Reproduce with aligned prices/signals and `initial_capital ∈ {0, -1000, NaN, +inf}`; require non-finite or non-positive capital to return the existing no-evidence `empty_result` (empty curves/trades and boundary metrics) before exposure or return-based metrics are computed, and require a finite positive-capital control to remain bit-identical. Add positive, invalid-value, and behavioural negative-control tests; run focused tests, the full pinned coverage suite, Ruff, and the performance gate. Leave `max_position_size` for the following cycle.
+
+**Maintainer (parallel, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch` with workflow scope, then run `python -m pytest -q tests/test_gates_workflow.py` (expect **7 passed**) on `origin/main`.
+
+---
+
+## Prior session (2026-11-15, Cycle 146) — inspected every remaining `src/qtr` boundary; defect hunt exhausted, no agent-actionable defect; no source change
 
 ### What changed
 - **No source, test, gate, artifact, sidecar, hash, frozen-number, or workflow change.** Working tree clean at HEAD `87cf8c2`, matches `origin/main`.

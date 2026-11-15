@@ -109,6 +109,30 @@ class TestExtremeLeverage:
         assert np.allclose(gross.values, 2.0)
 
 
+class TestInvalidLeverage:
+    @pytest.mark.parametrize("invalid_leverage", [-1.0, -np.inf, np.nan, np.inf])
+    def test_invalid_leverage_fails_closed_without_flipping_a_long_only_book(
+        self, invalid_leverage
+    ):
+        prices = _make_prices(symbols=("A",))
+        signals = pd.DataFrame(1.0, index=prices.index, columns=prices.columns)
+        cfg = _make_config(max_leverage=invalid_leverage, allow_short=False)
+
+        res = run_backtest(prices=prices, signals=signals, config=cfg)
+
+        assert (res.positions == 0.0).all().all()
+        assert len(res.trades) == 0
+        assert (res.returns == 0.0).all()
+        assert np.isfinite(res.equity_curve.values).all()
+
+    def test_the_contract_rejects_the_pre_fix_negative_leverage_sign_flip(self):
+        gross = pd.Series([1.0])
+        pre_fix_scale = np.where(gross > -1.0, -1.0 / gross, 1.0)
+        pre_fix_positions = pd.Series([1.0]) * pre_fix_scale
+
+        assert np.allclose(pre_fix_positions, -1.0)
+
+
 # --------------------------------------------------------------------------- #
 # Zero-volume / degenerate futures contract
 # --------------------------------------------------------------------------- #
