@@ -37,10 +37,15 @@ def script():
 
 
 def _transactions(rows: int = 1) -> pd.DataFrame:
-    return pd.DataFrame(
-        [{"transaction_code": "S", "available_at": pd.Timestamp("2026-11-12")}] * rows,
-        columns=["transaction_code", "available_at"],
-    )
+    # The cache contract pins the full ``TRANSACTION_COLUMNS`` schema; a
+    # fixture with only ``transaction_code``/``available_at`` is a schema-
+    # mismatched cache that the reader must treat as a miss (see
+    # ``load_cached_transactions`` and TestCachedTransactionSchema).
+    base = {
+        "transaction_code": "S",
+        "available_at": pd.Timestamp("2026-11-12"),
+    }
+    return pd.DataFrame([base] * rows, columns=list(insider.TRANSACTION_COLUMNS))
 
 
 def _write_cache(path: Path, rows: int) -> None:

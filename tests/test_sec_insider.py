@@ -657,6 +657,87 @@ def test_load_cached_transactions_returns_a_populated_cache(tmp_path):
     assert list(loaded.columns) == list(insider.TRANSACTION_COLUMNS)
 
 
+class TestCachedTransactionSchema:
+    """A non-empty parquet whose columns are not ``TRANSACTION_COLUMNS`` is not
+    a transaction cache.
+
+    ``load_cached_transactions`` is the only reader of the cached corpus, and
+    every consumer indexes it by name (``transaction_code`` and
+    ``available_at`` in ``insider_net_buy_ratio``; ``available_at`` and
+    ``accepted_at`` in ``run_nf_20261110_08_insider_signal.py``). The function
+    used to pass a frame through on a row-count check alone, so a cache written
+    by something other than ``parse_form4`` -- a corrupt/truncated write, a
+    different schema, or a fixture dropped into the cache dir -- was returned
+    as a populated cache and the first ``frame["transaction_code"]`` raised
+    ``KeyError`` out of a path every Form 4 runner treats as returning a frame
+    (reproduced: a 3-row ``{"foo","bar"}`` parquet was returned verbatim).
+
+    A schema-mismatched cache is treated as a miss: the caller re-fetches
+    instead of poisoning the corpus. A frame whose column *set* matches is
+    returned unchanged; column order is not part of the contract, since the
+    consumers index by name.
+    """
+
+    WRONG_COLUMNS = ["foo", "bar"]
+
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            {"foo": [1, 2, 3], "bar": ["x", "y", "z"]},
+            {"cik": [1], "shares": [100]},  # partial overlap, not the full set
+            {"transaction_code": ["P"], "available_at": ["2026-01-01"]},
+        ],
+    )
+    def test_schema_mismatch_treated_as_a_miss(self, tmp_path, payload):
+        path = tmp_path / "AAPL.parquet"
+        pd.DataFrame(payload).to_parquet(path)
+        loaded = insider.load_cached_transactions(path)
+        assert len(loaded) == 0
+        assert list(loaded.columns) == list(insider.TRANSACTION_COLUMNS)
+
+    def test_schema_mismatch_logs_a_warning(self, tmp_path):
+        # loguru does not propagate to the stdlib logging module, so the
+        # warning is captured through loguru's own sink rather than caplog.
+        from loguru import logger
+
+        path = tmp_path / "AAPL.parquet"
+        pd.DataFrame({"foo": [1, 2]}).to_parquet(path)
+        messages: list[str] = []
+        handler_id = logger.add(messages.append, level="WARNING")
+        try:
+            loaded = insider.load_cached_transactions(path)
+        finally:
+            logger.remove(handler_id)
+        assert len(loaded) == 0
+        assert any("schema mismatch" in m for m in messages)
+
+    def test_column_reorder_is_not_a_mismatch(self, tmp_path):
+        # The consumers index by name, so a frame with the right column *set*
+        # in a different order is still a valid cache.
+        frame = _transactions_fixture()
+        reordered = frame.iloc[:, ::-1]
+        path = tmp_path / "AAPL.parquet"
+        reordered.to_parquet(path)
+        loaded = insider.load_cached_transactions(path)
+        assert len(loaded) == len(frame)
+        assert set(loaded.columns) == set(insider.TRANSACTION_COLUMNS)
+
+    def test_pre_fix_wrong_schema_was_returned_verbatim(self, tmp_path):
+        # Behavioural negative control: reconstruct the pre-fix body (row-count
+        # check only) and require it to hand back the wrong-schema frame; the
+        # real function must not.
+        def pre_fix(path):
+            frame = pd.read_parquet(path)
+            if len(frame) == 0:
+                return pd.DataFrame(columns=list(insider.TRANSACTION_COLUMNS))
+            return frame
+
+        path = tmp_path / "AAPL.parquet"
+        pd.DataFrame({"foo": [1, 2, 3]}).to_parquet(path)
+        assert len(pre_fix(path)) == 3
+        assert len(insider.load_cached_transactions(path)) == 0
+
+
 # --------------------------------------------------------------------------- #
 # Non-mapping EDGAR JSON documents: the submissions/filing-index layer
 # --------------------------------------------------------------------------- #

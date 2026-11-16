@@ -718,4 +718,28 @@ def load_cached_transactions(path: str | Path) -> pd.DataFrame:
         return empty
     if len(frame) == 0:
         return empty
+    # A non-empty parquet is not automatically a valid transaction cache. The
+    # only writer of this file is ``parse_form4``, whose frame carries exactly
+    # ``TRANSACTION_COLUMNS``; a frame with any other column set is a cache that
+    # was written by something else -- a corrupt/truncated write, a different
+    # schema, or a fixture dropped into the cache dir -- and every downstream
+    # consumer indexes it by name (``transaction_code``, ``available_at``,
+    # ``accepted_at`` in ``insider_net_buy_ratio``; ``available_at`` in
+    # ``run_nf_20261110_08_insider_signal.py::_load_insider_corpus``). A
+    # schema-mismatched frame used to be returned as a populated cache: the
+    # row-count guard below it passed, the caller stored it in the corpus, and
+    # the first ``frame["transaction_code"]`` raised ``KeyError`` out of a path
+    # every Form 4 runner treats as returning a frame -- reproduced:
+    # ``load_cached_transactions`` on a 3-row ``{"foo","bar"}`` parquet returned
+    # that frame verbatim. Treat it as a miss instead, so a bad cache is
+    # re-fetched rather than poisoning the corpus. A frame whose column *set*
+    # matches is returned unchanged (order is not part of the contract: the
+    # consumers index by name). See
+    # tests/test_sec_insider.py::TestCachedTransactionSchema.
+    if set(frame.columns) != set(TRANSACTION_COLUMNS):
+        logger.warning(
+            f"{cache_path}: schema mismatch (columns {sorted(map(str, frame.columns))} "
+            f"!= {sorted(TRANSACTION_COLUMNS)}), treating as a miss"
+        )
+        return empty
     return frame
