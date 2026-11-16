@@ -1576,6 +1576,68 @@ def validate_strategy(
     return results
 
 
+def _purged_cv_operands_valid(
+    n_samples: Any,
+    n_splits: Any,
+    purge: Any,
+    embargo: Any,
+    n_test_splits: Any | None = None,
+) -> bool:
+    """Whether the shared purged/CV operands are finite, non-negative integers.
+
+    ``purged_kfold_splits`` and ``combinatorial_purged_cv`` share the same
+    boundary arithmetic -- ``n_samples // n_splits`` for the fold size and
+    ``mask[lo:hi]`` slices for the purge/embargo windows -- so they share the
+    same guard. Both used to walk straight into that arithmetic on
+    config-degenerate scalars:
+
+    * a non-finite operand (the H58/H61/H62 input class -- an ``inf``, a
+      ``-inf`` or a ``nan`` reaching a pure function that has no caller to
+      filter for it) is not a sample count, a split count, a purge width or an
+      embargo width. ``n_samples=nan`` makes ``np.arange(nan)`` raise
+      ``ValueError: arange: cannot compute length``; ``purge=inf`` makes
+      ``mask[lo:hi]`` with ``hi=inf`` raise ``IndexError``; ``embargo=inf``
+      makes the same slice raise. All are crashes out of a function every
+      caller treats as returning a list.
+    * a non-integer operand (a ``float`` such as ``1.5``) is not a positional
+      width either: ``mask[lo:hi]`` with a float slice index raises
+      ``TypeError: slice indices must be integers or None or have an
+      __index__ method``, and ``n_samples // n_splits`` with a float dividend
+      returns a float that then feeds ``range()`` and raises ``TypeError:
+      'float' object cannot be interpreted as an integer``.
+    * a negative operand is a sign error in the caller's intent. A negative
+      ``n_samples`` or ``n_splits`` is already rejected by the existing
+      ``<= 0`` test, but a negative ``purge`` or ``embargo`` inverts the
+      window (``lo = max(0, test_start - purge)`` with ``purge=-1`` yields
+      ``lo = test_start + 1``, so the purge masks the *wrong* side and
+      training data leaks across the test fold) -- a silent wrong answer
+      rather than a rejection.
+
+    The valid domain keeps ``0`` for ``purge``/``embargo``/``n_test_splits``
+    (the documented degenerate boundary: no purge, no embargo, and for the
+    combinatorial scheme ``n_test_splits == 0`` is the empty-combination case
+    the existing ``test_combinatorial_purged_cv_invalid`` pins) and ``1`` for
+    ``n_splits`` (the smallest fold count that produces a window). A
+    ``purge``/``embargo`` wider than the series is NOT degenerate here: it is
+    the mechanism that leaves no admissible training set, and the existing
+    contract (``test_purged_kfold_drops_a_fold_with_no_training_data``:
+    ``purged_kfold_splits(4, n_splits=2, purge=10) == []``) requires the fold
+    to be *dropped*, returning ``[]`` -- so those large-but-finite values
+    pass through to the existing logic. For every input in the valid domain
+    the arithmetic is bit-identical to before: this guard only short-circuits
+    the degenerate cases. See tests/test_statistics.py.
+    """
+    operands = (n_samples, n_splits, purge, embargo)
+    if n_test_splits is not None:
+        operands = operands + (n_test_splits,)
+    return all(
+        isinstance(op, (int, np.integer))
+        and not isinstance(op, bool)
+        and op >= 0
+        for op in operands
+    )
+
+
 def purged_kfold_splits(
     n_samples: int,
     n_splits: int = 5,
@@ -1583,7 +1645,9 @@ def purged_kfold_splits(
     embargo: int = 0,
 ) -> list[tuple[np.ndarray, np.ndarray]]:
     """Generate purged k-fold train/test splits with optional embargo."""
-    if n_samples <= 0 or n_splits <= 0:
+    if not _purged_cv_operands_valid(n_samples, n_splits, purge, embargo):
+        return []
+    if n_samples == 0 or n_splits == 0:
         return []
     fold_size = n_samples // n_splits
     if fold_size == 0:
@@ -1615,7 +1679,13 @@ def combinatorial_purged_cv(
     embargo: int = 0,
 ) -> list[tuple[np.ndarray, np.ndarray]]:
     """Generate combinatorial purged cross-validation splits."""
-    if n_samples <= 0 or n_splits <= 0 or n_test_splits <= 0 or n_test_splits >= n_splits:
+    if not _purged_cv_operands_valid(
+        n_samples, n_splits, purge, embargo, n_test_splits
+    ):
+        return []
+    if n_samples == 0 or n_splits == 0 or n_test_splits == 0:
+        return []
+    if n_test_splits >= n_splits:
         return []
     fold_size = n_samples // n_splits
     if fold_size == 0:

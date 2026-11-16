@@ -2072,6 +2072,184 @@ class TestPurgedKfoldEmptySplit:
 
 
 # ===========================================================================
+# Degenerate-operand guard: purged k-fold / combinatorial CV
+# ===========================================================================
+class TestPurgedCvDegenerateOperands:
+    """A purge/embargo/sample/split width that is not a finite non-negative
+    integer is not a positional width. Both schemes share the boundary
+    arithmetic (``n_samples // n_splits`` and ``mask[lo:hi]`` slices), so they
+    share the guard and the same parametrized coverage."""
+
+    DEGENERATE_PURGE = [
+        dict(purge=float("nan")),
+        dict(purge=float("inf")),
+        dict(purge=float("-inf")),
+        dict(purge=1.5),
+        dict(purge=-1.0),
+        dict(purge=-1.5),
+        dict(embargo=float("nan")),
+        dict(embargo=float("inf")),
+        dict(embargo=float("-inf")),
+        dict(embargo=1.5),
+        dict(embargo=-1.0),
+        dict(embargo=-1.5),
+    ]
+
+    @pytest.mark.parametrize("kwargs", DEGENERATE_PURGE)
+    def test_purged_kfold_fails_closed(self, kwargs):
+        assert st.purged_kfold_splits(100, n_splits=5, **kwargs) == []
+
+    @pytest.mark.parametrize("kwargs", DEGENERATE_PURGE)
+    def test_combinatorial_cv_fails_closed(self, kwargs):
+        assert st.combinatorial_purged_cv(
+            100, n_splits=5, n_test_splits=2, **kwargs
+        ) == []
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            dict(n_samples=float("nan")),
+            dict(n_samples=float("inf")),
+            dict(n_samples=float("-inf")),
+            dict(n_samples=100.0),
+            dict(n_samples=-100),
+            dict(n_splits=float("nan")),
+            dict(n_splits=float("inf")),
+            dict(n_splits=1.5),
+            dict(n_splits=-5),
+            dict(n_splits=True),
+        ],
+    )
+    def test_purged_kfold_bad_sample_or_split_count(self, kwargs):
+        assert st.purged_kfold_splits(**kwargs) == []
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            dict(n_samples=float("nan")),
+            dict(n_samples=float("inf")),
+            dict(n_samples=100.0),
+            dict(n_samples=-100),
+            dict(n_splits=float("nan")),
+            dict(n_splits=1.5),
+            dict(n_splits=-5),
+            dict(n_test_splits=float("nan")),
+            dict(n_test_splits=float("inf")),
+            dict(n_test_splits=1.5),
+            dict(n_test_splits=-2),
+            dict(n_test_splits=True),
+        ],
+    )
+    def test_combinatorial_cv_bad_sample_split_or_test_count(self, kwargs):
+        kwargs = {"n_splits": 5, **kwargs}
+        assert st.combinatorial_purged_cv(**kwargs) == []
+
+    def test_purged_kfold_negative_purge_inverts_window(self):
+        # Negative control: ``purge=-1`` used to yield ``lo = test_start + 1``,
+        # masking the *wrong* side and leaking training data across the test
+        # fold. The guard now rejects it before any split is built.
+        assert st.purged_kfold_splits(100, n_splits=5, purge=-1) == []
+
+    def test_combinatorial_cv_negative_embargo_inverts_window(self):
+        # Same class for the combinatorial scheme.
+        assert st.combinatorial_purged_cv(
+            100, n_splits=5, n_test_splits=2, embargo=-1
+        ) == []
+
+    def test_purged_kfold_valid_domain_unchanged(self):
+        # The guard only short-circuits degenerate inputs. A finite,
+        # non-negative, integer purge/embargo is bit-identical to before:
+        # the existing contracts still hold.
+        assert len(st.purged_kfold_splits(100, n_splits=5, purge=2, embargo=2)) == 5
+        assert st.purged_kfold_splits(4, n_splits=2, purge=10) == []
+        assert len(st.combinatorial_purged_cv(100, n_splits=5, n_test_splits=2)) == 10
+        assert st.combinatorial_purged_cv(4, n_splits=2, n_test_splits=1, purge=10) == []
+        assert st.combinatorial_purged_cv(100, n_splits=5, n_test_splits=0) == []
+
+    def test_purged_kfold_pre_fix_arange_crash_rejected(self):
+        # Behavioural negative control: the pre-fix guard was absent, so the
+        # function walked straight into ``np.arange(n_samples)`` with a
+        # non-finite count and raised ``ValueError: arange: cannot compute
+        # length`` out of a function every caller treats as returning a list.
+        # Reconstruct that pre-fix body here and require it to raise; the real
+        # function must not.
+        def pre_fix(n_samples, n_splits=5, purge=0, embargo=0):
+            if n_samples <= 0 or n_splits <= 0:
+                return []
+            fold_size = n_samples // n_splits
+            splits = []
+            for i in range(n_splits):
+                start = i * fold_size
+                end = n_samples if i == n_splits - 1 else (i + 1) * fold_size
+                test_idx = np.arange(start, end)
+                mask = np.ones(n_samples, dtype=bool)
+                mask[start:end] = False
+                lo = max(0, start - purge)
+                hi = min(n_samples, end + purge)
+                mask[lo:hi] = False
+                emb_start = end
+                emb_end = min(n_samples, end + embargo)
+                mask[emb_start:emb_end] = False
+                train_idx = np.where(mask)[0]
+                if len(train_idx) > 0 and len(test_idx) > 0:
+                    splits.append((train_idx, test_idx))
+            return splits
+
+        with pytest.raises(ValueError):
+            pre_fix(float("nan"), n_splits=5)
+        assert st.purged_kfold_splits(float("nan"), n_splits=5) == []
+
+    def test_combinatorial_cv_pre_fix_slice_crash_rejected(self):
+        # Behavioural negative control: the pre-fix guard was absent, so a
+        # float ``purge`` walked into ``mask[lo:hi]`` and raised
+        # ``TypeError: slice indices must be integers or None or have an
+        # __index__ method`` out of a function every caller treats as
+        # returning a list. Reconstruct that pre-fix body here and require it
+        # to raise; the real function must not.
+        from itertools import combinations as _combinations
+
+        def pre_fix(
+            n_samples, n_splits=5, n_test_splits=2, purge=0, embargo=0
+        ):
+            if (
+                n_samples <= 0
+                or n_splits <= 0
+                or n_test_splits <= 0
+                or n_test_splits >= n_splits
+            ):
+                return []
+            fold_size = n_samples // n_splits
+            groups = []
+            for i in range(n_splits):
+                s = i * fold_size
+                e = n_samples if i == n_splits - 1 else (i + 1) * fold_size
+                groups.append((s, e))
+            splits = []
+            for test_groups in _combinations(range(n_splits), n_test_splits):
+                test_idx = np.concatenate(
+                    [np.arange(groups[g][0], groups[g][1]) for g in test_groups]
+                )
+                mask = np.ones(n_samples, dtype=bool)
+                for g in test_groups:
+                    s, e = groups[g]
+                    mask[s:e] = False
+                    lo = max(0, s - purge)
+                    hi = min(n_samples, e + purge)
+                    mask[lo:hi] = False
+                    emb_start = e
+                    emb_end = min(n_samples, e + embargo)
+                    mask[emb_start:emb_end] = False
+                train_idx = np.where(mask)[0]
+                if len(train_idx) > 0 and len(test_idx) > 0:
+                    splits.append((train_idx, test_idx))
+            return splits
+
+        with pytest.raises(TypeError):
+            pre_fix(100, n_splits=5, n_test_splits=2, purge=1.5)
+        assert st.combinatorial_purged_cv(100, n_splits=5, n_test_splits=2, purge=1.5) == []
+
+
+# ===========================================================================
 # Numeric-index annualization guard
 # ===========================================================================
 class TestBarsPerYearNumericIndex:
