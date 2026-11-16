@@ -173,8 +173,26 @@ def _recent_column(recent: dict, key: str, count: int) -> list:
     EDGAR occasionally returns a shorter array than ``accessionNumber``; a
     positional read past the end would raise, so the missing tail is padded
     with blanks instead of dropping the whole CIK.
+
+    The ``filings.recent`` block is untrusted external JSON. EDGAR serves it
+    columnar (parallel arrays), but a malformed or foreign document can put a
+    scalar, a string or a bool where an array is expected -- ``accessionNumber``
+    is the one key this function is only reached after (``_recent_filings``
+    gates on ``recent.get("accessionNumber")`` being truthy), so every other
+    key in ``RECENT_FILING_KEYS`` is read here verbatim. ``list(scalar)``
+    raises ``TypeError: 'int' object is not iterable`` (and ``list(True)``
+    raises ``TypeError: object of type 'bool' has no len()``), so a single bad
+    cell aborted the whole CIK out of ``fetch_filings`` -- a function every
+    runner treats as returning a frame, reachable from the public API with no
+    caller-side filtering (reproduced: ``fetch_filings`` on a submissions
+    document holding ``filings.recent.form: 4`` raises). A non-list value is
+    treated as an absent column: it degrades to an all-blank column, the same
+    tuple the short-array path already pads to, so a malformed cell drops that
+    one column instead of the whole CIK. A list is iterated unchanged; a clean
+    columnar document is bit-identical.
     """
-    values = list(recent.get(key) or [])
+    raw = recent.get(key)
+    values = list(raw) if isinstance(raw, list) else []
     return values[:count] + [""] * (count - len(values))
 
 
@@ -203,10 +221,18 @@ def _as_mapping(value: object) -> dict:
 def _recent_filings(submissions: dict) -> pd.DataFrame:
     """The columnar ``filings.recent`` block as a frame (empty when absent)."""
     recent = _as_mapping(_as_mapping(submissions).get("filings")).get("recent") or {}
-    if not isinstance(recent, dict) or not recent.get("accessionNumber"):
+    accession = recent.get("accessionNumber") if isinstance(recent, dict) else None
+    # ``accessionNumber`` is the columnar axis: the block is only meaningful as
+    # a parallel array, so a non-list value (a scalar, a string, a bool) is not
+    # a row count -- it is a malformed cell, and the whole block is treated as
+    # absent rather than handed to ``_recent_column`` (which would read
+    # ``len(scalar)`` and raise). This is the same degrade-to-empty tuple the
+    # absent-block path returns, so a malformed document is indistinguishable
+    # from an empty one.
+    if not isinstance(accession, list) or not accession:
         return pd.DataFrame(columns=list(FILING_COLUMNS))
 
-    count = len(recent["accessionNumber"])
+    count = len(accession)
     frame = pd.DataFrame(
         {target: _recent_column(recent, key, count) for key, target in RECENT_FILING_KEYS.items()}
     )

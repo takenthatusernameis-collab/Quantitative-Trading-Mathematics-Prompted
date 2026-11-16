@@ -278,6 +278,105 @@ def test_recent_filings_absent_block():
     assert len(insider._recent_filings({"filings": {"recent": []}})) == 0
 
 
+def _alias(key: str) -> str:
+    """The ``filings.recent`` JSON key's column name in ``FILING_COLUMNS``."""
+    return insider.RECENT_FILING_KEYS.get(key, key)
+
+
+class TestRecentFilingsNonListValue:
+    """``filings.recent`` non-list cells must not abort the CIK.
+
+    EDGAR serves the block columnar (parallel arrays), but a malformed or
+    foreign document can put a scalar, a string or a bool where an array is
+    expected. ``accessionNumber`` is the columnar axis: the block is only
+    meaningful as a parallel array, so a non-list value there is not a row
+    count and the whole block is treated as absent (the same tuple the
+    absent-block path returns). Every other key in ``RECENT_FILING_KEYS`` is
+    read verbatim by ``_recent_column``; the old ``list(recent.get(key) or
+    [])`` raised ``TypeError: 'int' object is not iterable`` on a scalar and
+    ``TypeError: object of type 'bool' has no len()`` on a bool, so a single
+    bad cell aborted the whole CIK out of ``fetch_filings`` -- a function
+    every runner treats as returning a frame, reachable from the public API
+    with no caller-side filtering. A non-list value on a non-axis column
+    degrades to an all-blank column (the same tuple the short-array path pads
+    to), so a malformed cell drops that one column instead of the whole CIK;
+    a list is iterated unchanged and a clean columnar document is
+    bit-identical.
+    """
+
+    @pytest.mark.parametrize(
+        "key,value",
+        [
+            ("form", 4),
+            ("form", 4.5),
+            ("form", True),
+            ("form", "4"),
+            ("filingDate", 5),
+            ("acceptanceDateTime", 5),
+            ("reportDate", None),
+            ("primaryDocument", 3.14),
+        ],
+    )
+    def test_non_list_value_yields_blank_column(self, key, value):
+        # A non-list value on any column *other* than ``accessionNumber`` is a
+        # single malformed cell: it degrades to an all-blank column (the same
+        # tuple the short-array path pads to), so the CIK survives with that
+        # one column blanked rather than being dropped entirely.
+        recent = {"accessionNumber": ["a", "b"], key: value}
+        frame = insider._recent_filings({"filings": {"recent": recent}})
+        assert list(frame.columns) == list(insider.FILING_COLUMNS)
+        assert frame[_alias(key)].tolist() == ["", ""]
+
+    @pytest.mark.parametrize("value", [5, True, 4.5, "single-string", None])
+    def test_non_list_accession_number_drops_the_block(self, value):
+        # ``accessionNumber`` is the columnar axis: a non-list value there is
+        # not a row count, so the whole block is treated as absent (the same
+        # tuple the absent-block path returns) rather than handed to
+        # ``_recent_column``.
+        recent = {"accessionNumber": value, "form": "4"}
+        frame = insider._recent_filings({"filings": {"recent": recent}})
+        assert len(frame) == 0
+        assert list(frame.columns) == list(insider.FILING_COLUMNS)
+
+    def test_fetch_filings_does_not_abort_on_scalar_cell(self, monkeypatch):
+        payload = {"filings": {"recent": {"accessionNumber": ["a", "b"], "form": 4}}}
+        monkeypatch.setattr(insider, "fetch_json", lambda *a, **k: payload)
+        frame = insider.fetch_filings(320193)
+        assert list(frame.columns) == list(insider.FILING_COLUMNS)
+        assert frame["form"].tolist() == ["", ""]
+        assert frame["accession_number"].tolist() == ["a", "b"]
+
+    def test_fetch_filings_drops_block_on_scalar_accession_number(self, monkeypatch):
+        payload = {"filings": {"recent": {"accessionNumber": 5, "form": "4"}}}
+        monkeypatch.setattr(insider, "fetch_json", lambda *a, **k: payload)
+        frame = insider.fetch_filings(320193)
+        assert len(frame) == 0
+        assert list(frame.columns) == list(insider.FILING_COLUMNS)
+
+    def test_valid_columnar_document_unchanged(self):
+        payload = {
+            "filings": {
+                "recent": {
+                    "accessionNumber": ["a", "b"],
+                    "form": ["4", "4"],
+                    "filingDate": ["2026-11-01", "2026-11-02"],
+                }
+            }
+        }
+        frame = insider._recent_filings(payload)
+        assert frame["accession_number"].tolist() == ["a", "b"]
+        assert frame["form"].tolist() == ["4", "4"]
+        assert frame["filing_date"].tolist() == ["2026-11-01", "2026-11-02"]
+
+    def test_pre_fix_list_coercion_raised(self):
+        # Behavioural negative control: the pre-fix ``list(recent.get(key)
+        # or [])`` expression is reconstructed here and must raise, so the
+        # guard is pinned against a silent revert.
+        recent = {"accessionNumber": ["a", "b"], "form": 4}
+        with pytest.raises(TypeError):
+            list(recent.get("form") or [])
+
+
 def test_fetch_filings_filters_forms_and_window(monkeypatch):
     _submissions(monkeypatch, SUBMISSIONS)
     frame = insider.fetch_filings(320193, forms=("4",), start="2026-11-01", end="2026-11-30")
