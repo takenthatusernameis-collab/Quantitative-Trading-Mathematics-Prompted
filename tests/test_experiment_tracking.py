@@ -81,6 +81,36 @@ def test_record_artifact_pre_fix_duplicate_parquet_crash(tmp_path):
         df.to_parquet(tmp_path / "raw.parquet")
 
 
+def test_record_artifact_rejects_path_traversal(tmp_path):
+    """Artifact writes must stay inside ``artifact_dir``.
+
+    ``filename`` is an artifact name supplied by a caller (often derived from
+    external data). A value like ``../evil.txt`` or an absolute path must not
+    resolve outside the experiment's artifact directory and overwrite arbitrary
+    locations the process can write. The write is refused instead.
+    """
+    exp = experiment.Experiment("trav", base_dir=tmp_path)
+    with pytest.raises(ValueError, match="escapes the artifact directory"):
+        exp.record_artifact("../evil.txt", "hi")
+    assert not (tmp_path / "evil.txt").exists()
+    with pytest.raises(ValueError, match="escapes the artifact directory"):
+        exp.record_artifact(str(tmp_path / "abs.txt"), "hi")
+    assert not (tmp_path / "abs.txt").exists()
+
+
+def test_record_artifact_path_traversal_pre_fix_wrote_outside(tmp_path):
+    """Behavioural negative control: the bare join escapes ``artifact_dir``.
+
+    Reconstructs the pre-fix write target (``artifact_dir / filename`` with no
+    containment check) and shows it resolves outside the artifact directory, so
+    the corrected guard is what makes the boundary safe rather than merely
+    lucky.
+    """
+    exp = experiment.Experiment("travpre", base_dir=tmp_path)
+    escaped = (exp.artifact_dir / "../evil.txt").resolve()
+    assert not escaped.is_relative_to(exp.artifact_dir.resolve())
+
+
 def test_record_artifact_json(tmp_path):
     exp = experiment.Experiment("a2", base_dir=tmp_path)
     meta = {"k": 1}

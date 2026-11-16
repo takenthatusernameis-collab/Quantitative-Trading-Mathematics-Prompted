@@ -380,7 +380,20 @@ class Experiment:
                 json.dump({}, f)
 
     def record_artifact(self, filename: str, data: Any) -> Path:
-        path = self.artifact_dir / filename
+        # ``filename`` is a caller-supplied artifact name, not a path: writing
+        # it verbatim allowed ``../evil.txt`` (or an absolute path) to resolve
+        # outside ``artifact_dir`` and overwrite arbitrary locations the process
+        # can write. That is a path-traversal defect at the artifact boundary,
+        # reachable from any runner that forwards an untrusted name. Constrain
+        # the write to ``artifact_dir`` by refusing a name that escapes it after
+        # resolution; a plain filename (the only supported shape) is unchanged.
+        artifact_dir = self.artifact_dir.resolve()
+        path = (self.artifact_dir / filename).resolve()
+        if not path.is_relative_to(artifact_dir):
+            raise ValueError(
+                f"artifact filename {filename!r} escapes the artifact directory; "
+                "pass a plain filename, not a path"
+            )
         if isinstance(data, pd.DataFrame):
             # Mirror ``ExperimentTracker.log_dataframe`` / engine policy:
             # duplicated column labels are reachable from real panels (repeated
