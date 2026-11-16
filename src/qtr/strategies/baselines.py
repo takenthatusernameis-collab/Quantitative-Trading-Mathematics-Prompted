@@ -4,6 +4,40 @@ import numpy as np
 import pandas as pd
 
 
+def _is_int(value: object) -> bool:
+    """Whether ``value`` is a real integer window/span/lookback parameter.
+
+    A window, span, lookback or skip count is used as an ``int`` by
+    ``pandas.rolling``/``ewm``/``pct_change``/``shift``/``nlargest``. A
+    ``bool`` (``True``/``False``), a non-integral ``float`` (``20.5``) or a
+    non-finite float (``nan``/``inf``) is not a window: the current guards only
+    test ``<= 0``, so such a value slips past and the pandas call raises an
+    opaque ``ValueError``/``TypeError``/``OverflowError`` from deep inside the
+    library instead of degrading to the no-exposure signal the surrounding
+    degenerate guards already return. ``bool`` is excluded because it is an
+    ``int`` subclass but ``True`` is not a meaningful window. For every real
+    integer this returns ``True`` and the caller's arithmetic is unchanged.
+    """
+    return isinstance(value, (int, np.integer)) and not isinstance(value, bool)
+
+
+def _is_finite_non_negative(value: object) -> bool:
+    """Whether ``value`` is a finite, non-negative real cap/scale parameter.
+
+    The per-asset cap ``max_position_size`` is used directly as the bounds of
+    ``Series.clip(lower=-cap, upper=cap)``. A negative cap inverts the two
+    bounds and a ``nan``/``inf`` cap silently disables clipping altogether, so
+    an out-of-range signal reaches the book uncapped -- the same fail-open the
+    engine closes for its own ``max_position_size``/``max_leverage``
+    (engine.py: ``if not math.isfinite(...) or ... < 0.0``). A non-numeric or
+    boolean value is not a cap either. For every finite, non-negative number
+    this returns ``True`` and the caller's arithmetic is unchanged.
+    """
+    if isinstance(value, bool) or not isinstance(value, (int, float, np.integer, np.floating)):
+        return False
+    return bool(np.isfinite(value)) and value >= 0.0
+
+
 def moving_average_crossover_signals(
     prices: pd.DataFrame,
     fast_window: int = 20,
@@ -24,7 +58,13 @@ def moving_average_crossover_signals(
     """
     signals = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
 
-    if fast_window <= 0 or slow_window <= 0 or fast_window >= slow_window:
+    if (
+        not _is_int(fast_window)
+        or not _is_int(slow_window)
+        or fast_window <= 0
+        or slow_window <= 0
+        or fast_window >= slow_window
+    ):
         return signals
 
     for symbol in prices.columns:
@@ -88,7 +128,13 @@ def ewma_crossover_signals(
     """
     signals = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
 
-    if fast_span <= 0 or slow_span <= 0 or fast_span >= slow_span:
+    if (
+        not _is_int(fast_span)
+        or not _is_int(slow_span)
+        or fast_span <= 0
+        or slow_span <= 0
+        or fast_span >= slow_span
+    ):
         return signals
 
     for symbol in prices.columns:
@@ -131,7 +177,9 @@ def momentum_signals(
     """
     signals = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
 
-    if lookback <= 0 or skip < 0:
+    if not _is_int(lookback) or not _is_int(skip) or lookback <= 0 or skip < 0:
+        return signals
+    if n_top is not None and not _is_int(n_top):
         return signals
 
     # Calculate momentum
@@ -214,7 +262,7 @@ def mean_reversion_signals(
     """
     signals = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
 
-    if window <= 0 or num_std < 0:
+    if not _is_int(window) or window <= 0 or not _is_finite_non_negative(num_std):
         return signals
 
     for symbol in prices.columns:
@@ -318,7 +366,13 @@ def time_series_momentum_signals(
     """
     signals = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
 
-    if lookback <= 0 or skip < 0:
+    if (
+        not _is_int(lookback)
+        or not _is_int(skip)
+        or lookback <= 0
+        or skip < 0
+        or not _is_finite_non_negative(max_position_size)
+    ):
         return signals
 
     # Calculate momentum: past return over lookback, shifted by skip
@@ -393,7 +447,15 @@ def vol_scaled_tsmom_signals(
 
     All scaling uses only data available at time t (rolling windows, shift).
     """
-    if lookback <= 0 or vol_window <= 0 or skip < 0:
+    if (
+        not _is_int(lookback)
+        or not _is_int(vol_window)
+        or not _is_int(skip)
+        or lookback <= 0
+        or vol_window <= 0
+        or skip < 0
+        or not _is_finite_non_negative(max_position_size)
+    ):
         return pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
     pct = prices.pct_change()
     # Momentum = lookback return, shifted by skip to avoid short-horizon
@@ -457,7 +519,7 @@ def carry_signals(
     """
     signals = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
 
-    if lookback <= 0:
+    if not _is_int(lookback) or lookback <= 0:
         return signals
 
     # Simple carry proxy: 12-month return minus 1-month return
