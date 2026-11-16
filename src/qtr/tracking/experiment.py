@@ -382,6 +382,14 @@ class Experiment:
     def record_artifact(self, filename: str, data: Any) -> Path:
         path = self.artifact_dir / filename
         if isinstance(data, pd.DataFrame):
+            # Mirror ``ExperimentTracker.log_dataframe`` / engine policy:
+            # duplicated column labels are reachable from real panels (repeated
+            # ticker, overlapping concatenation, cached/vendor frame) and parquet
+            # refuses them. Canonicalize once (keep first) so a clean/unique frame
+            # is bit-identical and a duplicated-label frame degrades instead of
+            # crashing the runner at the artifact-write boundary.
+            if data.columns.has_duplicates:
+                data = data.iloc[:, ~data.columns.duplicated(keep="first")]
             if filename.endswith(".csv"):
                 data.to_csv(path, index=False)
             else:

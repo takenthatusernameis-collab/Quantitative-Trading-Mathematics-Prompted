@@ -1,6 +1,39 @@
 # HANDOFF.md
 
-> **Latest (2026-11-15, Cycle 148 — fixed a reproduced `BacktestConfig.initial_capital` boundary defect: non-finite/non-positive capital manufactured equity/positions/trades/metrics; 100% coverage preserved):**
+> **Latest (2026-11-16, Cycle 149 — fixed a reproduced `Experiment.record_artifact` DataFrame duplicate-column defect; parquet crashed and CSV mangled schema; 100% coverage preserved):**
+> `Experiment.record_artifact` wrote caller DataFrames directly to parquet/csv.
+> A duplicated column label is reachable from real panels (repeated ticker,
+> overlapping concatenation, cached/vendor frame). Parquet refused it with
+> `ValueError: Duplicate column names found`, and CSV round-tripped with a
+> mangled schema (`A`, `A.1`) instead of preserving the first column.
+> - **Fix:** `src/qtr/tracking/experiment.py` canonicalizes duplicated
+>   DataFrame columns once (keep first) before parquet/csv write, mirroring
+>   `ExperimentTracker.log_dataframe` and engine panel policy. Clean/unique
+>   frames are bit-identically unchanged.
+> - **Tests:** `tests/test_experiment_tracking.py` (+4) —
+>   `test_record_artifact_parquet_deduplicates_columns_before_writing`,
+>   `test_record_artifact_csv_deduplicates_columns_before_writing`,
+>   `test_record_artifact_dataframe_unique_columns_untouched`, and
+>   `test_record_artifact_pre_fix_duplicate_parquet_crash` (behavioural
+>   negative control). No gate/artifact/sidecar/hash/frozen-number/workflow
+>   change.
+> - **Verified (own evidence):** before fix parquet raised
+>   `ValueError: Duplicate column names found` and CSV read back as
+>   `['A','A.1']`; after fix both write/read back as `['A']` (first kept).
+>   Focused tracking/contract slice
+>   `python -m pytest -q tests/test_experiment_tracking.py tests/test_experiment_tracker.py tests/test_experiment_artifact_schema.py tests/test_public_api_contract.py`
+>   → **198 passed**. `python -m ruff check src tests run_*.py scripts` and
+>   `python -m ruff format --check src tests run_*.py scripts` clean
+>   (**336 files already formatted**). Full pinned suite
+>   `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py`
+>   (339.28s) → **3941 passed, 48 skipped, 0 failed**, `src/qtr` coverage
+>   **100.00%** (1544 stmts / 554 branches / 0 miss; `tracking/experiment.py`
+>   219/48). `python scripts/backtest_perf_regression_gate.py` → **PASSED**
+>   (0.288s < 5s, 13668 trades). `python -m pytest -q tests/test_gates_workflow.py`
+>   → **7 failed** (unchanged, maintainer-gated; fix is
+>   `patches/0001-gates-workflow-contract-fix.patch`).
+
+> **Prior (2026-11-15, Cycle 148 — fixed a reproduced `BacktestConfig.initial_capital` boundary defect: non-finite/non-positive capital manufactured equity/positions/trades/metrics; 100% coverage preserved):**
 > Cycle 147's probe reported `initial_capital ∈ {0, -1000, NaN, +inf}` left
 > the book running: zero capital produced `equity=[0,0,0]` with active
 > positions/trades and positive return metrics, negative capital produced

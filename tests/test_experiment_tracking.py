@@ -32,6 +32,55 @@ def test_record_artifact_csv(tmp_path):
     assert path.name == "data.csv"
 
 
+def test_record_artifact_parquet_deduplicates_columns_before_writing(tmp_path):
+    """A duplicated column label must not crash parquet artifact writing.
+
+    ``Experiment.record_artifact`` is the sibling DataFrame-write path to
+    ``ExperimentTracker.log_dataframe``. Real panels can carry a repeated
+    label (repeated ticker, overlapping concat, cached/vendor frame) and
+    parquet refuses it; canonicalize once (keep first) so a clean/unique
+    frame is bit-identical and a duplicated-label frame degrades instead of
+    crashing at the artifact boundary.
+    """
+    exp = experiment.Experiment("a1d", base_dir=tmp_path)
+    df = pd.DataFrame([[1.0, 999.0, 2.0], [3.0, 4.0, 5.0]], columns=["A", "A", "B"])
+    path = exp.record_artifact("dup.parquet", df)
+    written = pd.read_parquet(path)
+    assert list(written.columns) == ["A", "B"]
+    assert written["A"].tolist() == [1.0, 3.0]
+
+
+def test_record_artifact_csv_deduplicates_columns_before_writing(tmp_path):
+    """CSV writing must canonicalize duplicated labels instead of mangling.
+
+    Without the keep-first guard pandas auto-renames duplicates on readback
+    (``A``, ``A.1``), silently changing the recorded schema. Canonicalize so
+    the artifact preserves the intended first column.
+    """
+    exp = experiment.Experiment("a1dc", base_dir=tmp_path)
+    df = pd.DataFrame([[1.0, 999.0, 2.0], [3.0, 4.0, 5.0]], columns=["A", "A", "B"])
+    path = exp.record_artifact("dup.csv", df)
+    written = pd.read_csv(path)
+    assert list(written.columns) == ["A", "B"]
+    assert written["A"].tolist() == [1.0, 3.0]
+
+
+def test_record_artifact_dataframe_unique_columns_untouched(tmp_path):
+    """The dedup guard is a no-op on a clean frame: bit-identical write."""
+    exp = experiment.Experiment("a1u", base_dir=tmp_path)
+    df = pd.DataFrame({"A": [1.0, 2.0], "B": [3.0, 4.0]})
+    path = exp.record_artifact("clean.parquet", df)
+    written = pd.read_parquet(path)
+    pd.testing.assert_frame_equal(written, df)
+
+
+def test_record_artifact_pre_fix_duplicate_parquet_crash(tmp_path):
+    """Behavioural negative control: bare parquet write rejects duplicates."""
+    df = pd.DataFrame([[1.0, 999.0, 2.0]], columns=["A", "A", "B"])
+    with pytest.raises(ValueError, match="Duplicate column names"):
+        df.to_parquet(tmp_path / "raw.parquet")
+
+
 def test_record_artifact_json(tmp_path):
     exp = experiment.Experiment("a2", base_dir=tmp_path)
     meta = {"k": 1}
