@@ -292,6 +292,20 @@ class DataFetcher:
             # a crash.
             df = self._standardize_columns(df, symbol)
             df.index = pd.to_datetime(df.index).tz_localize(None)
+            # Canonicalize the timestamp axis exactly as the fresh ccxt path
+            # (``fetch_ccxt``) and every cache hit (``_standardize_cached_index``)
+            # already do: keep the first duplicate and sort. A yfinance panel is
+            # the vendor's frame verbatim -- an overlapping request window can
+            # repeat a bar and some intervals return an unsorted index -- so the
+            # fresh path can hand back an unsorted or duplicated index while the
+            # cache-hit path of the *same* frame returns a sorted, unique one.
+            # That divergence is not cosmetic: the engine only sorts a panel when
+            # ``index.has_duplicates``, so a unique-but-unsorted fresh panel is
+            # left in storage order and ``pct_change`` compounds returns in the
+            # wrong order (measured: 0.0998 vs 0.2098 total return on the same
+            # three bars). Keep-first + sort makes a fresh fetch indistinguishable
+            # from a cache hit; a clean (sorted, unique) frame is a no-op.
+            df = df[~df.index.duplicated(keep="first")].sort_index()
 
             # Refuse a non-positive panel *before* persisting it to the cache.
             # ``fetch_yahoo``/``fetch_futures`` also reject after this helper

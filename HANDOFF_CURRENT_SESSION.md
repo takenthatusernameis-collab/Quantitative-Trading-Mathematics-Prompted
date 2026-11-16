@@ -1,29 +1,142 @@
-# Handoff — Current Session (Cycle 152, 2026-11-16)
+# HANDOFF — current session (2026-11-16, Cycle 153)
 
-## What changed
-- **`src/qtr/backtest/engine.py`** — `run_backtest` now normalizes a negative or non-finite `BacktestConfig.max_position_size` to `0.0` before the position-size `clip`. Reproduced before fix: a `max_position_size` of `-1.0`, `NaN`, `+inf` or `-inf` silently *disabled* the cap — pandas `clip(lower=-max_pos, upper=max_pos)` is a no-op for `NaN`/infinite bounds and inverts for a negative bound — so an oversized signal (e.g. a vol-scaled TSMOM weight of `3.0`) reached the book at full size with `max_leverage=5.0`. After fix the book is flat (no exposure, no trades, zero returns). Every finite non-negative value is unchanged, so the clean path is bit-identical. This mirrors the accepted `max_leverage` (Cycle 147) and `initial_capital` (Cycle 148) fail-closed boundaries; `max_position_size` was the last unguarded numeric `BacktestConfig` field.
-- **`tests/test_engine_edge_stress.py`** — added `TestInvalidPositionSize` (+6): parametrized `-1.0 / -inf / NaN / +inf` fail-closed, a finite-positive `0.5` control (still caps), and a behavioural negative control reconstructing the pre-fix NaN `clip` no-op.
-- **`src/qtr/tracking/experiment.py`, `tests/test_experiment_tracker.py`** — `ruff format` only (line-wrap of the two Cycle-151 `log_artifact`/`log_dataframe` path-guard conditions + one blank line). These two files were left unformatted by the previous session's commit, so the required `ruff format --check` gate was red on `origin/main`; no semantic change.
+## Reconciliation note (read first)
 
-## What was actually verified (own evidence)
-- Repro before fix: `run_backtest` with `max_position_size=nan` (or `inf`) and a `3.0` signal returned positions `3.0` (cap disabled); `-1.0` returned `1.0` (negated bound). After fix all four invalid values return all-zero positions/returns and no trades; `max_position_size=0.5` still caps to `0.5`.
-- Negative control: `git stash push -- src/qtr/backtest/engine.py` → `TestInvalidPositionSize` gives **4 failed, 2 passed** (the 4 parametrized invalid sizes fail; the 2 controls pass); `git stash pop` → all pass.
-- `python -m pytest -q tests/test_engine_edge_stress.py tests/test_backtest_engine.py tests/test_engine_metric_agreement.py tests/test_engine_total_return_consistency.py tests/test_cost_model.py -W error` → **230 passed**.
-- `python -m ruff check src tests run_*.py scripts` → clean. `python -m ruff format --check src tests run_*.py scripts` → **336 files already formatted**.
-- `python scripts/backtest_perf_regression_gate.py` → **PERF GATE PASSED** (0.291s < 5s, 10.7MB, 13668 trades).
-- `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (346.26s) → **3960 passed, 48 skipped, 0 failed**, `src/qtr` coverage **100.00%** (1562 stmts / 564 branches / 0 miss; `backtest/engine.py` 247/90).
-- `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged, maintainer-gated; fix `patches/0001-gates-workflow-contract-fix.patch`, `git apply --check` still clean).
+The checkout this session started from (`dce28d4`) was **8 commits behind
+`origin/main`**. The real prior handoff is **Cycle 152** on `origin/main`
+(`HANDOFF_CURRENT_SESSION.md` / `HANDOFF.md` / `NEXT_TASK.md` there), not the
+Cycle 144 doc that was present at `dce28d4`. This session **fast-forwarded to
+`origin/main` (`f97b6a8`, Cycle 152)** and re-applied + re-verified the change on
+that base. Every number below is from the `origin/main` base.
+
+## What changed (substantive, not annotation-only)
+
+1. **`src/qtr/data/fetcher.py` — the fresh yahoo/futures path now canonicalizes its
+   index (keep-first dedup + sort), matching the ccxt fresh path and every cache
+   hit.** The fresh path did ``_standardize_columns`` + ``pd.to_datetime(...).tz_localize(None)``
+   and returned the vendor index verbatim. yfinance returns the frame verbatim, so
+   an overlapping request window can repeat a bar and some intervals return an
+   unsorted index. The **cache-hit path already dedups+sorts**
+   (`_standardize_cached_index`, Cycle 144) and the **ccxt fresh path already
+   dedups+sorts** (`fetch_ccxt`), so the fresh yahoo path was the only path that
+   did not. This is a **fresh-vs-cache divergence with a material effect**: the
+   engine only sorts a panel when ``prices.index.has_duplicates``
+   (`engine.py:402`), so a **unique-but-unsorted** fresh panel is left in storage
+   order and ``pct_change`` compounds returns in the wrong order.
+   - **Reproduced before fix** (3 bars, all-1 signal, `close=[110,100,121]`
+     unsorted vs `[100,110,121]` sorted): sorted → `total_return=0.2098` (correct
+     `1.1*1.1-1`); unsorted → `total_return=0.0998` (wrong). The same vendor frame
+     fetched twice also diverged: fresh returned `[2020-01-03, 2020-01-02,
+     2020-01-04]`, the cache hit returned the sorted index.
+   - **Fix:** one line after the tz normalization:
+     ``df = df[~df.index.duplicated(keep="first")].sort_index()``. A clean
+     (sorted, unique) frame is a no-op, so the clean path is bit-identical; this
+     matches the ccxt fresh path (`fetch_ccxt`) exactly.
+
+2. **`src/qtr/backtest/engine.py` — corrected the now-stale comment** at the
+   duplicate-index guard (`engine.py:393-401`). It claimed
+   ``fetch_yahoo``/``fetch_futures`` and the cached read path "do not" dedup; as of
+   Cycle 144 (cache path) and this change (fresh yahoo/futures) **every fetch path
+   does**, so the guard is now pure defense in depth. Comment-only; no behavior
+   change.
+
+3. **Tests:** `tests/test_data_fetcher.py::TestFreshYahooIndexCanonicalization`
+   (+5): fresh yahoo unsorted index is sorted; fresh yahoo duplicated index is
+   deduplicated (keep first); fresh yahoo == cache hit for an unsorted frame (the
+   indistinguishable invariant); fresh futures unsorted index is sorted; and a
+   behavioural negative control that reconstructs the pre-fix fresh path and shows
+   the unsorted index survives.
+
+## What was actually verified (own evidence, this session)
+
+- **Repro before fix** (`/tmp/probe_cache.py`, `/tmp/fuzz_cache.py`; fake
+  `yfinance`/`ccxt`): fresh yahoo unsorted index returned
+  `[2020-01-03, 2020-01-02, 2020-01-04]` while the cache hit returned the sorted
+  index; fresh duplicated index returned 3 rows while the cache hit returned 2.
+  After the fix all fresh-vs-cache cases (clean / unsorted / duplicated /
+  capitalized) are `equal=True`, and every foreign-writer cache case
+  (integer index refused; duplicated/unsorted deduped+sorted; tz-aware dup
+  tz-stripped; capitalized columns normalized) is canonical.
+- **Engine impact:** unsorted unique 3-bar panel → `total_return=0.0998`; sorted →
+  `0.2098`. (The fetcher now sorts, so the fetched panel is the sorted one.)
+- **Negative control:** `git stash push -- src/qtr/data/fetcher.py` →
+  `TestFreshYahooIndexCanonicalization` **4 failed, 1 passed** (the 5th is the
+  intentional pre-fix reconstruction); `git stash pop` → **87 passed** on
+  `tests/test_data_fetcher.py` (was 82 on `origin/main`; +5).
+- **Focused:** `python -m pytest -q tests/test_data_fetcher.py
+  tests/test_backtest_engine.py tests/test_engine_edge_stress.py
+  tests/test_h58_price_pathology_contamination.py
+  tests/test_h59_contamination_gate_blast_radius.py` → **284 passed**.
+- **Full pinned suite** `python -m pytest -q -W error --cov=qtr --cov-branch
+  --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (451.73s) →
+  **3962 passed, 51 skipped, 0 failed**, `src/qtr` coverage **100.00%**
+  (1563 stmts / 564 branches / 0 miss; `fetcher.py` 238 stmts / 88 branches, all
+  100%).
+  - Count reconciliation vs the Cycle 152 baseline (3960 passed / 48 skipped):
+    this environment does not have `qtr` installed as a distribution and has no
+    generated manifest, so the 3 `test_generated_manifest_contract` tests **skip**
+    here instead of passing → 3960 − 3 + 5 (new tests) = **3962 passed**, and
+    48 + 3 = **51 skipped**. No other delta.
+- `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged,
+  exclusively the maintainer-gated block; fix is
+  `patches/0001-gates-workflow-contract-fix.patch`).
+- `python scripts/backtest_perf_regression_gate.py` → **PERF GATE PASSED**
+  (0.424s < 5s, 10.7MB peak, 13668 trades).
+- `python -m ruff check src tests run_*.py scripts` → **All checks passed.**
+  `python -m ruff format --check src tests run_*.py scripts` → **336 files
+  already formatted.**
 
 ## What remains unresolved
-- Maintainer-only: apply/push `patches/0001-gates-workflow-contract-fix.patch` to fix `.github/workflows/gates.yml` and make `tests/test_gates_workflow.py` pass on `origin/main`.
-- Research: H1–H182 exhausted under free/public PIT data; no honest H183 without new authorized data.
-- Reproducibility backlog baseline-frozen: `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0`.
 
-## Approaches already failed / do not repeat
-- Do not re-audit pinned defects (cache index/column normalization+dedup, `max_leverage`/`initial_capital`/`max_position_size` boundaries, engine/fetcher/tracker duplicate handling, `record_artifact` DataFrame dedupe, `load_metadata` non-dict, `record_artifact`/`log_artifact` path traversal).
-- Do not edit `.github/workflows/**`, weaken tests/gates/frozen contracts, or invent H183 / parameter-only "new families".
-- Do not trust handoff counts without re-running the gate; this session re-ran the full pinned suite with own evidence.
+1. **Maintainer-only (CI contract):** `.github/workflows/gates.yml` not updated;
+   7 `tests/test_gates_workflow.py` tests red until the maintainer applies
+   `patches/0001-gates-workflow-contract-fix.patch` with workflow scope. Agent
+   cannot land `.github/workflows/**`.
+2. **Research queue exhausted under free/public PIT data:** H1–H182
+   executed/rejected; no honest H183 without new authorized data.
+3. **Reproducibility backlog:** `missing_files=197`, `hash_mismatches=11`,
+   `orphaned_files=528`, `missing_meta_files=0` unchanged; baseline-frozen.
+4. **Residual (out of scope this cycle):** the engine still only sorts a panel
+   when `prices.index.has_duplicates` (`engine.py:402`); a caller that assembles a
+   **unique-but-unsorted** panel *outside* the fetcher and calls `run_backtest`
+   directly still gets storage-order returns. Cycle 152 explicitly lists
+   "duplicate index/column handling in engine/fetcher/tracker paths" as a pinned
+   defect not to re-audit, so this was left untouched; the fetcher-side fix
+   removes the reachable path (all three fetch methods now sort+dedup).
+
+## Approaches already tried / must not be repeated
+
+- **Do not return `None` from `_standardize_cached_index` and then call `.empty`
+  on it** — that is the historical `73b38c3` bug and crashes `fetch_yahoo`.
+- **Do not coerce a non-datetime cached index with `pd.to_datetime`** — it
+  manufactures 1970 timestamps; refuse (empty) instead.
+- Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or
+  alter coverage/frozen-contract gates.
+- Do not re-audit the already-pinned families without new evidence: cache
+  hit index/column normalization+dedup, `max_leverage`/`initial_capital`/
+  `max_position_size` boundaries, `record_artifact` DataFrame dedupe,
+  `load_metadata` non-dict, path traversal. **This cycle's finding is distinct
+  from the pinned "cache hit normalization+dedup":** the pinned work normalized
+  the *cache-hit* path (Cycle 144) and thereby left the *fresh* path as the only
+  un-normalized one; the unsorted-**unique** case was never considered (Cycle 144
+  discussed only the *duplicated* case and called dedup "strictly safer"), and it
+  is the one that silently corrupts engine returns because the engine's guard keys
+  on `has_duplicates`.
+- Do not use `--cov=<dotted.module>` (aborts collection); use `--cov=qtr`.
 
 ## One precise next task
-- **Maintainer:** apply/push `patches/0001-gates-workflow-contract-fix.patch`; run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed).
-- **Agent (new evidence only):** hunt a reproduced, runner-reachable `src/qtr` defect on public paths not yet closed (fuzz/boundary probes: n=0/1/2, empty, duplicate labels, non-finite, corrupt/partial state, untrusted names, type-mismatched operands). If code changes, verify full pinned suite (excluding maintainer-gated workflow tests), ruff check/format, and perf gate.
+
+**Maintainer (preferred, unblocks CI):** apply and push
+`patches/0001-gates-workflow-contract-fix.patch` with workflow scope, then
+`python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed) on
+`origin/main`.
+
+**Agent path (new evidence only):** hunt a *reproduced, runner-reachable*
+`src/qtr` defect on a public path **not yet closed** — fuzz/boundary probes at
+smallest inputs (n=0/1/2, empty, duplicate labels, non-finite, corrupt/partial
+state, untrusted names/paths, type-mismatched operands). If `src/qtr` changes,
+re-run the full pinned suite (excluding the maintainer-gated workflow file),
+`ruff check`/`ruff format --check`, and
+`python scripts/backtest_perf_regression_gate.py`, with own evidence. Do **not**
+re-audit the pinned families listed above, and do **not** invent a free-data H183
+or treat parameter/timeframe/universe variations as new families.

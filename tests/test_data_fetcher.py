@@ -1682,3 +1682,101 @@ class TestCacheHitIndexStandardization:
             ["SPY"], "2020-01-01", "2020-02-01", use_cache=True
         )["SPY"]
         assert got.empty
+
+
+def _install_yahoo(monkeypatch, frame):
+    import sys
+    import types
+
+    class FakeTicker:
+        def history(self, **kw):
+            return frame.copy()
+
+    fake_yf = types.ModuleType("yfinance")
+    fake_yf.Ticker = lambda s: FakeTicker()
+    monkeypatch.setitem(sys.modules, "yfinance", fake_yf)
+
+
+def _unsorted_panel() -> pd.DataFrame:
+    # A unique but unsorted index: the vendor returned the bars out of order.
+    return pd.DataFrame(
+        {
+            "open": [3.0, 1.0, 2.0],
+            "high": [4.0, 2.0, 3.0],
+            "low": [1.0, 0.5, 1.0],
+            "close": [3.0, 1.0, 2.0],
+            "volume": [300.0, 100.0, 200.0],
+        },
+        index=pd.to_datetime(["2020-01-03", "2020-01-02", "2020-01-04"]),
+    )
+
+
+class TestFreshYahooIndexCanonicalization:
+    """A fresh yahoo/futures panel must carry the same timestamp contract as a cache hit.
+
+    The ccxt fresh path (``fetch_ccxt``) already does ``~duplicated(keep="first
+    ").sort_index()`` and every cache hit does too (``_standardize_cached_index``),
+    but the fresh yahoo path historically returned the vendor frame's index
+    verbatim. yfinance returns an unsorted index for some intervals and an
+    overlapping request window can repeat a bar, so a fresh fetch could return an
+    unsorted/duplicated index while a cache hit of the *same* frame returned a
+    sorted, unique one -- a fresh-vs-cache divergence with a material effect: the
+    engine only sorts a panel when ``index.has_duplicates``, so a unique-but-
+    unsorted fresh panel is compounded in storage order by ``pct_change``.
+    """
+
+    def test_fresh_yahoo_unsorted_index_is_sorted(self, tmp_path, monkeypatch):
+        _install_yahoo(monkeypatch, _unsorted_panel())
+        res = DataFetcher(cache=DataCache(cache_dir=tmp_path)).fetch_yahoo(
+            ["SPY"], "2020-01-01", "2020-02-01", use_cache=False
+        )["SPY"]
+        assert res.index.is_monotonic_increasing
+        assert list(res.index) == list(pd.to_datetime(["2020-01-02", "2020-01-03", "2020-01-04"]))
+        assert res["close"].tolist() == [1.0, 3.0, 2.0]
+
+    def test_fresh_yahoo_duplicated_index_is_deduplicated(self, tmp_path, monkeypatch):
+        dup = pd.DataFrame(
+            {
+                "open": [1.0, 9.0, 2.0],
+                "high": [2.0, 9.0, 3.0],
+                "low": [0.5, 9.0, 1.0],
+                "close": [1.0, 9.0, 2.0],
+                "volume": [100.0, 900.0, 200.0],
+            },
+            index=pd.to_datetime(["2020-01-02", "2020-01-02", "2020-01-03"]),
+        )
+        _install_yahoo(monkeypatch, dup)
+        res = DataFetcher(cache=DataCache(cache_dir=tmp_path)).fetch_yahoo(
+            ["SPY"], "2020-01-01", "2020-02-01", use_cache=False
+        )["SPY"]
+        assert list(res.index) == list(pd.to_datetime(["2020-01-02", "2020-01-03"]))
+        assert res["close"].tolist() == [1.0, 2.0]  # keep="first"
+
+    def test_fresh_yahoo_matches_cache_hit_for_unsorted_frame(self, tmp_path, monkeypatch):
+        # The invariant: a fresh fetch and a cache hit of the same vendor frame
+        # must be indistinguishable. The cache file is written by the fresh path.
+        _install_yahoo(monkeypatch, _unsorted_panel())
+        fetcher = DataFetcher(cache=DataCache(cache_dir=tmp_path))
+        fresh = fetcher.fetch_yahoo(["SPY"], "2020-01-01", "2020-02-01", use_cache=True)["SPY"]
+        cached = fetcher.fetch_yahoo(["SPY"], "2020-01-01", "2020-02-01", use_cache=True)["SPY"]
+        assert fresh.index.is_monotonic_increasing
+        pd.testing.assert_frame_equal(cached, fresh, check_names=False)
+
+    def test_fresh_futures_unsorted_index_is_sorted(self, tmp_path, monkeypatch):
+        _install_yahoo(monkeypatch, _unsorted_panel())
+        res = DataFetcher(cache=DataCache(cache_dir=tmp_path)).fetch_futures(
+            ["ES=F"], "2020-01-01", "2020-02-01", use_cache=False
+        )["ES=F"]
+        assert res.index.is_monotonic_increasing
+        assert res["close"].tolist() == [1.0, 3.0, 2.0]
+
+    def test_the_pre_fix_fresh_path_keeps_the_unsorted_index(self):
+        # Behavioural negative control: the pre-fix fresh path normalized only
+        # the columns and the tz, so an unsorted unique index survived verbatim
+        # and reached the engine's ``pct_change`` in storage order.
+        pre_fix = DataFetcher._standardize_columns(_unsorted_panel(), "SPY")
+        pre_fix.index = pd.to_datetime(pre_fix.index).tz_localize(None)
+        assert not pre_fix.index.is_monotonic_increasing
+        assert list(pre_fix.index) == list(
+            pd.to_datetime(["2020-01-03", "2020-01-02", "2020-01-04"])
+        )

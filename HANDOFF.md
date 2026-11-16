@@ -1,5 +1,54 @@
 # HANDOFF.md
 
+> **Latest (2026-11-16, Cycle 153 — fixed a reproduced fresh-vs-cache divergence: the fresh yahoo/futures path returned the vendor index unsorted/un-deduped while the cache hit (and the ccxt fresh path) sorted+deduped; a unique-but-unsorted fresh panel silently produced wrong engine returns; 100% coverage preserved):**
+> `DataFetcher._fetch_yahoo_panel` normalized columns and tz but returned the
+> vendor index verbatim. yfinance returns the frame verbatim (an overlapping
+> request window can repeat a bar; some intervals return an unsorted index), so a
+> fresh fetch could hand back an unsorted or duplicated index while a cache hit of
+> the *same* frame returned a sorted, unique one. This is not cosmetic: the engine
+> only sorts a panel when ``prices.index.has_duplicates``, so a **unique-but-
+> unsorted** fresh panel is compounded in storage order by ``pct_change``
+> (reproduced: `total_return=0.2098` sorted vs `0.0998` unsorted on the same three
+> bars). The ccxt fresh path (`fetch_ccxt`) and every cache hit
+> (`_standardize_cached_index`, Cycle 144) already deduped+sorted; the fresh yahoo
+> path was the only one that did not.
+> - **Fix:** `src/qtr/data/fetcher.py` adds
+>   ``df = df[~df.index.duplicated(keep="first")].sort_index()`` after the tz
+>   normalization in `_fetch_yahoo_panel` (shared by `fetch_yahoo`/`fetch_futures`),
+>   matching `fetch_ccxt`. A clean (sorted, unique) frame is a no-op, so the clean
+>   path is bit-identical.
+> - **Comment correction:** `src/qtr/backtest/engine.py`'s duplicate-index guard
+>   comment claimed yahoo/futures and the cached read path "do not" dedup; every
+>   fetch path now does, so the guard is defense in depth. Comment-only.
+> - **Tests:** `tests/test_data_fetcher.py::TestFreshYahooIndexCanonicalization`
+>   (+5) — fresh yahoo unsorted index sorted; fresh yahoo duplicated index
+>   deduplicated; fresh yahoo == cache hit for an unsorted frame; fresh futures
+>   unsorted index sorted; behavioural negative control reconstructing the pre-fix
+>   fresh path.
+> - **Reconciliation:** the checkout started 8 commits behind `origin/main`
+>   (Cycle 144-era `dce28d4`); fast-forwarded to `origin/main` (`f97b6a8`,
+>   Cycle 152) and re-applied + re-verified on that base.
+> - **Verified (own evidence):** before fix, fresh unsorted index returned
+>   `[2020-01-03, 2020-01-02, 2020-01-04]` while the cache hit returned the sorted
+>   index, and the engine gave `0.0998` vs `0.2098`. After the fix all
+>   fresh-vs-cache cases (clean/unsorted/duplicated/capitalized) are equal and all
+>   foreign-writer cache cases are canonical. Negative control
+>   (`git stash push -- src/qtr/data/fetcher.py`) → **4 failed / 1 passed**;
+>   restored → **87 passed** on `tests/test_data_fetcher.py`. Focused slice
+>   (fetcher + engine + edge-stress + H58 + H59) → **284 passed**. Full pinned suite
+>   `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py`
+>   (451.73s) → **3962 passed, 51 skipped, 0 failed**, `src/qtr` coverage
+>   **100.00%** (1563 stmts / 564 branches / 0 miss; `fetcher.py` 238/88).
+>   Count vs the Cycle 152 baseline (3960/48): this env lacks an installed `qtr`
+>   distribution and a generated manifest, so the 3 `test_generated_manifest_contract`
+>   tests skip here → 3960 − 3 + 5 = 3962 passed, 48 + 3 = 51 skipped.
+>   `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged,
+>   maintainer-gated; fix `patches/0001-gates-workflow-contract-fix.patch`).
+>   `python scripts/backtest_perf_regression_gate.py` → **PERF GATE PASSED**
+>   (0.424s < 5s, 10.7MB, 13668 trades). `ruff check` and `ruff format --check`
+>   over `src tests run_*.py scripts` → clean / **336 files already formatted**.
+>   No gate, artifact, sidecar, hash, frozen-number, or workflow change.
+
 > **Latest (2026-11-16, Cycle 152 — fixed a reproduced `BacktestConfig.max_position_size` fail-open defect: a negative/`NaN`/infinite per-asset cap silently disabled the position cap; 100% coverage preserved):**
 > `BacktestConfig.max_position_size` was the last unguarded numeric config boundary
 > (after `max_leverage` in Cycle 147 and `initial_capital` in Cycle 148).
