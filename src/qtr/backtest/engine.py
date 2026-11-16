@@ -345,16 +345,6 @@ def run_backtest(
     cfg: BacktestConfig = config
     capital = float(cfg.initial_capital)
 
-    if screen_non_positive_prices:
-        bad = non_positive_prices(prices)
-        if len(bad) > 0:
-            first = bad.iloc[0]
-            raise ValueError(
-                f"non-positive price {first['price']!r} for {first['symbol']} "
-                f"on {first['timestamp']}; a percentage return from a "
-                "non-positive price base is undefined"
-            )
-
     empty_result = BacktestResult(
         config=cfg,
         equity_curve=pd.Series(dtype=float),
@@ -377,6 +367,19 @@ def run_backtest(
             "calmar": float("inf"),
         },
     )
+
+    if not math.isfinite(capital) or capital <= 0.0:
+        return empty_result
+
+    if screen_non_positive_prices:
+        bad = non_positive_prices(prices)
+        if len(bad) > 0:
+            first = bad.iloc[0]
+            raise ValueError(
+                f"non-positive price {first['price']!r} for {first['symbol']} "
+                f"on {first['timestamp']}; a percentage return from a "
+                "non-positive price base is undefined"
+            )
 
     if (
         prices is None

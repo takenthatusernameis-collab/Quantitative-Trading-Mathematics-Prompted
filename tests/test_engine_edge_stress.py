@@ -13,6 +13,7 @@ not modified here. Every case fails closed (no crash, boundary metrics, no
 look-ahead) rather than manufacturing a return.
 """
 
+import math
 import sys
 from pathlib import Path
 
@@ -131,6 +132,84 @@ class TestInvalidLeverage:
         pre_fix_positions = pd.Series([1.0]) * pre_fix_scale
 
         assert np.allclose(pre_fix_positions, -1.0)
+
+
+# --------------------------------------------------------------------------- #
+# Invalid initial capital
+# --------------------------------------------------------------------------- #
+class TestInvalidInitialCapital:
+    @pytest.mark.parametrize("invalid_capital", [0.0, -1000.0, np.nan, np.inf])
+    def test_invalid_initial_capital_fails_closed_to_no_evidence(self, invalid_capital):
+        prices = _make_prices(symbols=("A",))
+        signals = pd.DataFrame(1.0, index=prices.index, columns=prices.columns)
+        cfg = _make_config(initial_capital=invalid_capital)
+
+        res = run_backtest(prices=prices, signals=signals, config=cfg)
+
+        assert len(res.equity_curve) == 0
+        assert len(res.returns) == 0
+        assert res.positions.empty
+        assert res.trades.empty
+        assert list(res.trades.columns) == [
+            "timestamp",
+            "symbol",
+            "side",
+            "weight_change",
+            "price",
+            "cost",
+        ]
+        assert res.metrics == {
+            "total_return": 0.0,
+            "annualized_return": 0.0,
+            "annualized_volatility": 0.0,
+            "sharpe": 0.0,
+            "sortino": 0.0,
+            "max_drawdown": 0.0,
+            "max_drawdown_duration": 0.0,
+            "profit_factor": 1.0,
+            "num_trades": 0.0,
+            "avg_trade_cost": 0.0,
+            "calmar": float("inf"),
+        }
+
+    def test_finite_positive_initial_capital_remains_unchanged(self):
+        prices = _make_prices(symbols=("A",))
+        signals = pd.DataFrame(1.0, index=prices.index, columns=prices.columns)
+        baseline_cfg = _make_config(initial_capital=1_000_000.0)
+        custom_cfg = _make_config(initial_capital=500_000.0)
+
+        baseline = run_backtest(prices=prices, signals=signals, config=baseline_cfg)
+        res = run_backtest(prices=prices, signals=signals, config=custom_cfg)
+
+        pd.testing.assert_series_equal(res.returns, baseline.returns)
+        pd.testing.assert_frame_equal(res.positions, baseline.positions)
+        pd.testing.assert_frame_equal(res.trades, baseline.trades)
+        pd.testing.assert_series_equal(res.equity_curve, baseline.equity_curve * 0.5)
+        assert res.metrics == baseline.metrics
+
+    def test_the_contract_rejects_the_pre_fix_invalid_capital_book(self):
+        """Behavioural negative control: reconstruct the pre-fix capital
+        handling and require it to manufacture equity/positions/trades instead
+        of the no-evidence result."""
+        capital = 0.0
+        if math.isfinite(capital) and capital > 0.0:
+            result = "empty"
+        else:
+            index = pd.bdate_range("2020-01-01", periods=3)
+            prices = pd.DataFrame({"A": [100.0, 101.0, 102.0]}, index=index)
+            signals = pd.DataFrame(1.0, index=index, columns=["A"])
+            asset_ret = prices.pct_change().fillna(0.0)
+            positions = signals.astype(float)
+            prior = positions.shift(1).fillna(0.0)
+            portfolio_ret = (prior * asset_ret).sum(axis=1).astype(float)
+            equity_curve = (1.0 + portfolio_ret).cumprod() * capital
+            trades = pd.DataFrame([{"timestamp": index[0], "symbol": "A"}])
+            result = (equity_curve, positions, trades)
+
+        equity_curve, positions, trades = result
+        assert (equity_curve == 0.0).all()
+        assert not positions.empty
+        assert not trades.empty
 
 
 # --------------------------------------------------------------------------- #

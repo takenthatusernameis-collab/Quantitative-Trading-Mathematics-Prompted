@@ -1,6 +1,34 @@
 # HANDOFF.md
 
-> **Latest (2026-11-15, Cycle 147 — fixed a reproduced `BacktestConfig` sign inversion: negative/non-finite `max_leverage` silently turned a long-only book short; 100% coverage preserved):**
+> **Latest (2026-11-15, Cycle 148 — fixed a reproduced `BacktestConfig.initial_capital` boundary defect: non-finite/non-positive capital manufactured equity/positions/trades/metrics; 100% coverage preserved):**
+> Cycle 147's probe reported `initial_capital ∈ {0, -1000, NaN, +inf}` left
+> the book running: zero capital produced `equity=[0,0,0]` with active
+> positions/trades and positive return metrics, negative capital produced
+> negative equity, and NaN/+inf produced NaN/infinite equity — all inconsistent
+> with the existing no-evidence boundary contract.
+> - **Fix:** `src/qtr/backtest/engine.py` now builds `empty_result` before
+>   price screening and returns it immediately when `initial_capital` is
+>   non-finite or `<= 0.0`. Finite positive-capital paths (including equity
+>   scaling and price-screening) are unchanged.
+> - **Tests:** `tests/test_engine_edge_stress.py::TestInvalidInitialCapital`
+>   covers `{0, -1000, NaN, +inf}`, a finite-positive control (returns/
+>   positions/trades/metrics bit-identical, equity scaled linearly), and a
+>   behavioural negative control reconstructing the pre-fix handling.
+>   **+6 tests.**
+> - **Verified (own evidence):** pre-fix probe showed active book/results for
+>   invalid capital. Focused `tests/test_engine_edge_stress.py
+>   tests/test_backtest_engine.py -W error` → **104 passed**. Full pinned suite
+>   `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py`
+>   (360.43s) → **3937 passed, 48 skipped, 0 failed**, `src/qtr` coverage
+>   **100.00%** (1542 stmts / 552 branches / 0 miss; `engine.py` 247/88).
+>   `tests/test_gates_workflow.py` → **7 failed** (unchanged, maintainer-gated;
+>   fix is `patches/0001-gates-workflow-contract-fix.patch`).
+>   `scripts/backtest_perf_regression_gate.py` → **PASSED** (0.296s < 5s,
+>   13668 trades). `ruff check` and `ruff format --check` over
+>   `src tests run_*.py scripts` → clean / **336 files already formatted**.
+>   No gate, artifact, sidecar, hash, frozen-number, or workflow change.
+
+> **Prior (2026-11-15, Cycle 147 — fixed a reproduced `BacktestConfig` sign inversion: negative/non-finite `max_leverage` silently turned a long-only book short; 100% coverage preserved):**
 > Cycle 146 reported the defect hunt exhausted. Probing the remaining
 > `BacktestConfig` numeric boundaries with correctly aligned signals found new
 > evidence: `run_backtest` converted `cfg.max_leverage` directly inside the
