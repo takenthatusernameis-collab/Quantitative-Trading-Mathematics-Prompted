@@ -138,6 +138,22 @@ class ExperimentTracker:
         if self.current_experiment is None:
             raise RuntimeError("No active experiment. Call start_experiment() first.")
 
+        # ``name`` is a caller-supplied artifact label, not a path: it is
+        # embedded in the in-memory artifact key and in the sidecar metadata
+        # filename (``{name}_{hash}.meta.json``) under ``log_dir``. Writing it
+        # verbatim allowed traversal/absolute names to escape ``log_dir`` when a
+        # sidecar was written (and to pollute the log namespace otherwise) — the
+        # same path-traversal class already pinned on ``Experiment``. Constrain
+        # the derived sidecar target to ``log_dir``; a plain name is unchanged.
+        log_dir = self.log_dir.resolve()
+        artifact_dir = (log_dir / "artifacts" / self.current_experiment.experiment_id).resolve()
+        sidecar_probe = (log_dir / f"{name}_probe.meta.json").resolve()
+        if not sidecar_probe.is_relative_to(log_dir) or not (artifact_dir / f"{name}.parquet").is_relative_to(artifact_dir):
+            raise ValueError(
+                f"artifact name {name!r} escapes the log directory; "
+                "pass a plain name, not a path"
+            )
+
         file_path = Path(file_path)
         if not file_path.exists():
             raise FileNotFoundError(f"Artifact not found: {file_path}")
@@ -152,7 +168,7 @@ class ExperimentTracker:
 
         # Save metadata if provided
         if metadata:
-            meta_path = self.log_dir / f"{artifact_name}.meta.json"
+            meta_path = (self.log_dir / f"{artifact_name}.meta.json").resolve()
             with open(meta_path, "w") as f:
                 # ``default=str`` mirrors ``_save_experiment`` and the
                 # ``Experiment`` metadata writers: sidecar metadata may carry
@@ -174,6 +190,21 @@ class ExperimentTracker:
         artifact_dir = self.log_dir / "artifacts" / self.current_experiment.experiment_id
         artifact_dir.mkdir(parents=True, exist_ok=True)
 
+        # ``name`` is a caller-supplied label: the parquet file is written under
+        # ``artifact_dir`` and ``log_artifact`` writes a metadata sidecar under
+        # ``log_dir``. Refuse a name that would resolve either target outside its
+        # containing directory (traversal/absolute), the same class pinned on
+        # ``Experiment.record_artifact``. A plain name is unchanged.
+        artifact_dir_resolved = artifact_dir.resolve()
+        file_path = (artifact_dir / f"{name}.parquet").resolve()
+        log_dir_resolved = self.log_dir.resolve()
+        sidecar_probe = (self.log_dir / f"{name}_probe.meta.json").resolve()
+        if not file_path.is_relative_to(artifact_dir_resolved) or not sidecar_probe.is_relative_to(log_dir_resolved):
+            raise ValueError(
+                f"artifact name {name!r} escapes the log directory; "
+                "pass a plain name, not a path"
+            )
+
         # A duplicated column label cannot be written to parquet: the engine
         # already canonicalizes both panels' columns (keep first) on entry to
         # ``run_backtest`` for exactly this class (a repeated ticker in a
@@ -189,7 +220,6 @@ class ExperimentTracker:
         if df.columns.has_duplicates:
             df = df.iloc[:, ~df.columns.duplicated(keep="first")]
 
-        file_path = artifact_dir / f"{name}.parquet"
         df.to_parquet(file_path)
 
         # Copy the caller's dict rather than mutating it in place. The schema

@@ -181,16 +181,7 @@ def test_create_experiment(tmp_path):
 
 
 def test_log_metadata_serializes_non_json_values(tmp_path):
-    """A non-JSON-serializable value (numpy array) must not crash the writer.
-
-    ``json.dump`` raises ``TypeError: Object of type ndarray is not JSON
-    serializable`` on the first such value, so a caller logging a numpy array
-    -- the natural shape for a parameter grid, a metric vector, or a result
-    array -- loses the whole experiment record and the metadata file it was
-    mid-write. The writer falls back to ``default=str`` (the same policy the
-    JSONL tracker uses in ``_save_experiment``), so the value is persisted as
-    its string representation rather than aborting the write.
-    """
+    """A non-JSON-serializable value (numpy array) must not crash the writer."""
     import numpy as np
 
     exp = experiment.Experiment("s1", base_dir=tmp_path)

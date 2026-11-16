@@ -926,3 +926,29 @@ class TestTrackerConfiguredLogDirectory:
         cfg = self._load_config(monkeypatch, tmp_path, f"tracking:\n  log_dir: {target}\n")
         assert cfg["tracking"]["log_dir"] == str(target)
         assert cfg.get("tracking.log_dir", ".experiments") == ".experiments"
+
+def test_log_dataframe_rejects_path_traversal_name(tmp_path):
+    t = ExperimentTracker(log_dir=tmp_path / "logs")
+    t.start_experiment("exp")
+    df = pd.DataFrame({"x": [1, 2]})
+    with pytest.raises(ValueError, match="escapes the log directory"):
+        t.log_dataframe("../evil", df)
+    assert not (tmp_path / "logs" / "evil.parquet").exists()
+    # clean name still works
+    h = t.log_dataframe("good", df)
+    assert isinstance(h, str)
+    t.finish_experiment()
+
+
+def test_log_artifact_rejects_path_traversal_name(tmp_path):
+    t = ExperimentTracker(log_dir=tmp_path / "logs")
+    t.start_experiment("exp")
+    src = tmp_path / "src.txt"
+    src.write_text("hi")
+    with pytest.raises(ValueError, match="escapes the log directory"):
+        t.log_artifact("../metaevil", src, metadata={"a": 1})
+    assert not any("metaevil" in p.name for p in (tmp_path / "logs").rglob("*") if p.is_file())
+    h = t.log_artifact("good", src, metadata={"a": 1})
+    assert isinstance(h, str)
+    assert (tmp_path / "logs" / f"good_{h}.meta.json").exists()
+    t.finish_experiment()
