@@ -20,17 +20,23 @@
   non-finite `risk_free` guards in `sharpe_ratio` and `compare_to_benchmark`
   (previously `nan`/`-inf` output, and an `-W error`-fatal `RuntimeWarning` in
   `compare_to_benchmark`). `tests/test_statistics.py` — +10 tests.
-- **Verified this session (own evidence):**
+- **Verified this session (own evidence, live tree @ HEAD 9257d3b):**
   - `python -m ruff check src tests run_*.py scripts` -> All checks passed.
   - `python -m ruff format --check src tests run_*.py scripts` -> 336 files already formatted.
   - `python scripts/backtest_perf_regression_gate.py` -> PERF GATE PASSED
-    (0.431s < 5s, 10.7MB, 13668 trades).
+    (0.280s < 5s, 10.7MB, 13668 trades).
   - Full pinned suite
     `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py`
-    (452.88s) -> **4220 passed, 51 skipped, 0 failed**, `src/qtr` coverage
-    **100.00%** (1620 stmts / 604 branches / 0 miss).
+    (337.29s) -> **4238 passed, 51 skipped, 0 failed**, `src/qtr` coverage
+    **100.00%** (1622 stmts / 606 branches / 0 miss; `statistics.py` 365/148).
   - `python -m pytest -q tests/test_gates_workflow.py` -> **7 failed**
     (unchanged, maintainer-gated; fix `patches/0001-gates-workflow-contract-fix.patch`).
+- **Agent-alternative lead closed:** `multiple_testing_correction`'s `alpha`
+  operand is already fail-closed in-tree (`src/qtr/validation/statistics.py:433-434`);
+  every other public scalar operand in `statistics.py` is likewise guarded
+  (periods_per_year, risk_free, n_bootstrap/confidence, adv/max_participation,
+  effect_size/std/power, p_values, bench_std/excess_std, max_p_value, etc.).
+  No remaining agent-actionable source defect in `src/qtr`.
 - **Known unresolved (unchanged):** maintainer-only workflow patch for
   `.github/workflows/gates.yml`; H1–H182 exhausted under free/public PIT data
   (no honest H183 without new authorized data); reproducibility backlog
