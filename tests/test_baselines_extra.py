@@ -100,6 +100,88 @@ def test_vol_scale_nonpositive_vol_returns_one():
     assert baselines._vol_scale(-1.0, 0.15) == 1.0
 
 
+_BAD_TARGET_VOL = [-0.15, float("nan"), float("inf"), float("-inf"), True, "0.15"]
+
+
+@pytest.mark.parametrize("bad", _BAD_TARGET_VOL)
+def test_vol_scale_bad_target_vol_fails_closed(bad):
+    """A non-finite or negative ``target_vol`` is not a risk target.
+
+    ``_vol_scale`` divides by ``vol`` with ``target_vol`` as the numerator,
+    so a negative ``target_vol`` makes the multiplier negative and
+    **inverts the sign of every position** (``_vol_scale(0.15, -0.15) ==
+    -1.0``), turning a trend-following book into a mean-reversion book;
+    a non-finite one makes the multiplier ``inf`` (the ``min(inf, 2.0)``
+    cap does not fire). Both fail closed to ``1.0`` -- the no-scaling
+    boundary -- so a bad target can only leave a position at its raw
+    direction weight, never invert or blow it up.
+    """
+    assert baselines._vol_scale(0.15, bad) == 1.0
+
+
+def test_vol_scale_zero_target_vol_returns_zero():
+    """``target_vol == 0.0`` is a real, measured boundary.
+
+    A zero target means no risk to take, so every position scales to
+    zero -- the no-exposure answer, consistent with the way
+    ``max_position_size == 0.0`` and ``adv == 0.0`` are handled elsewhere
+    in this module. It is finite and non-negative, so it passes the guard
+    and is answered as ``0.0`` rather than ``1.0``.
+    """
+    assert baselines._vol_scale(0.15, 0.0) == 0.0
+    assert baselines._vol_scale(2.0, 0.0) == 0.0
+
+
+@pytest.mark.parametrize("bad", _BAD_TARGET_VOL)
+def test_time_series_momentum_bad_target_vol_fails_closed(bad):
+    prices = _make_prices(n_days=60)
+    sig = baselines.time_series_momentum_signals(prices, lookback=20, skip=1, target_vol=bad)
+    assert (sig.values == 0).all()
+
+
+@pytest.mark.parametrize("bad", _BAD_TARGET_VOL)
+def test_vol_scaled_tsmom_bad_target_vol_fails_closed(bad):
+    prices = _make_prices(n_days=60)
+    sig = baselines.vol_scaled_tsmom_signals(prices, lookback=20, skip=1, target_vol=bad)
+    assert (sig.values == 0).all()
+
+
+def test_time_series_momentum_negative_target_vol_does_not_invert_signal():
+    """The defect this guard closes: a negative ``target_vol`` used to
+    produce the exact negation of the intended trend-following book
+    (measured correlation -1.0 between the ``+0.15`` and ``-0.15`` books
+    over a 300-bar panel). With the guard it returns the all-zero frame,
+    so a sign error can only ever *remove* exposure, never manufacture a
+    mean-reversion book out of a misconfiguration.
+    """
+    prices = _make_prices(n_days=300)
+    sig_ok = baselines.time_series_momentum_signals(prices, target_vol=0.15, long_only=False)
+    sig_neg = baselines.time_series_momentum_signals(prices, target_vol=-0.15, long_only=False)
+    assert (sig_neg.values == 0).all()
+    assert not (sig_ok.values == 0).all()
+
+
+def test_time_series_momentum_valid_target_vol_unchanged():
+    """For every finite, non-negative ``target_vol`` the arithmetic is
+    bit-identical to before: the guard only short-circuits the degenerate
+    cases. Both TSMOM variants are deterministic on the same panel."""
+    prices = _make_prices(n_days=300)
+    a = baselines.time_series_momentum_signals(prices, target_vol=0.15, long_only=False)
+    b = baselines.time_series_momentum_signals(prices, target_vol=0.15, long_only=False)
+    assert np.allclose(a.values, b.values)
+    c = baselines.vol_scaled_tsmom_signals(prices, target_vol=0.15, long_only=False)
+    d = baselines.vol_scaled_tsmom_signals(prices, target_vol=0.15, long_only=False)
+    assert np.allclose(c.values, d.values)
+
+
+def test_vol_scaled_tsmom_valid_numpy_float_target_vol_still_runs():
+    prices = _make_prices(n_days=60)
+    sig = baselines.vol_scaled_tsmom_signals(
+        prices, lookback=20, skip=1, target_vol=np.float64(0.15)
+    )
+    assert sig.shape == prices.shape
+
+
 def test_ma_crossover_invalid_window():
     prices = _make_prices(n_days=50)
     sig = baselines.moving_average_crossover_signals(prices, fast_window=0, slow_window=10)

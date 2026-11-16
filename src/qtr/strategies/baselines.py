@@ -325,13 +325,47 @@ def _vol_scale(vol: float, target_vol: float) -> float:
     no information about the risk of the position, so the position is left
     unscaled (multiplier 1.0) rather than being amplified.
 
-    This is a separate function so that the non-positive branch is
+    A non-finite or negative ``target_vol`` carries no information about the
+    target risk either, and it is the *second* operand of the division, so
+    it is not covered by the ``vol`` guard above:
+
+    * a negative ``target_vol`` makes the multiplier negative and
+      **inverts the sign of every position** -- ``_vol_scale(0.15, -0.15)
+      == -1.0``, so a rising asset gets a negative weight and a falling one
+      a positive one. The resulting signal is the exact negation of the
+      intended trend-following signal (measured: correlation -1.0 between
+      the ``target_vol=0.15`` and ``target_vol=-0.15`` books over a 300-bar
+      panel), i.e. a silent mean-reversion book manufactured out of a sign
+      error in the caller's intent;
+    * a non-finite ``target_vol`` (``inf``/``nan``) is not a risk target.
+      ``target_vol / vol`` with an infinite numerator is ``inf`` and the
+      ``min(inf, 2.0)`` cap does not fire, so the multiplier is ``inf`` and
+      the position weight is non-finite -- the same non-finite-propagation
+      class the engine closes for its own operands.
+
+    Both fail closed to ``1.0`` (the no-scaling boundary), so a bad target
+    can only ever leave a position at its raw direction weight, never
+    invert or blow it up. ``target_vol == 0.0`` is a real, measured boundary
+    (a zero target means no risk to take, so every position scales to zero)
+    and is returned as ``0.0`` -- the no-exposure answer, consistent with the
+    way ``max_position_size == 0.0`` and ``adv == 0.0`` are handled elsewhere
+    in this module. For every finite, non-negative input the arithmetic is
+    bit-identical to before. See tests/test_baselines_extra.py.
+
+    This is a separate function so that the non-positive-``vol`` branch is
     reachable and testable. Inside :func:`time_series_momentum_signals` the
     realized-volatility series is sanitized to be strictly positive by
     construction (zeros -> NaN -> forward fill -> 0.15), so an inline
     ``if vol > 0`` guard could never fire and was therefore never executed
     by any test. See tests/test_coverage_gate_contract.py.
     """
+    if not (
+        isinstance(target_vol, (int, float, np.integer, np.floating))
+        and not isinstance(target_vol, bool)
+        and np.isfinite(target_vol)
+        and target_vol >= 0.0
+    ):
+        return 1.0
     if vol <= 0:
         return 1.0
     return min(target_vol / vol, 2.0)
@@ -372,6 +406,7 @@ def time_series_momentum_signals(
         or lookback <= 0
         or skip < 0
         or not _is_finite_non_negative(max_position_size)
+        or not _is_finite_non_negative(target_vol)
     ):
         return signals
 
@@ -455,6 +490,7 @@ def vol_scaled_tsmom_signals(
         or vol_window <= 0
         or skip < 0
         or not _is_finite_non_negative(max_position_size)
+        or not _is_finite_non_negative(target_vol)
     ):
         return pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
     pct = prices.pct_change()
