@@ -1124,6 +1124,26 @@ in the repo is green.
 
 **Maintainer-only: apply `patches/0001-gates-workflow-contract-fix.patch`** to turn the 7 red `tests/test_gates_workflow.py` failures green (re-verified Cycle 108: patch applies, patched `gates.yml` satisfies all 7 assertions, `scripts/backtest_perf_regression_gate.py` passes on this host). Agent cannot land it (no `workflows` token; kilo-controller restores `.github/workflows/**` from `origin/main` each session). If applied, full suite goes green at **3,752 passed / 51 skipped / 0 failed**.
 
-**Agent path (blocked unless authorized):** resolve the H182 data gap (e.g. free point-in-time commodity roll/contango data for carry, or PIT insider/earnings/options data) and select H182 per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §4/§6 and `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96. Absent authorization, conclude free-data family discovery is exhausted — do not invent an H182 candidate.
 
-**Constraints:** `src/qtr` unchanged unless an evidenced defect requires it (then rerun pinned full gates); no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified; no commit/push of `.github/workflows/**`.
+## Session 2026-11-16, Cycle 159 — handoff verification; green except maintainer-gated block
+
+### What changed
+- **No source, test, gate, artifact, sidecar, hash, frozen-number, or workflow change.** Working tree clean at HEAD `1ed91a4`; matches `origin/main`.
+
+### What was actually verified (own evidence)
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly on the live tree.
+- `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged, maintainer-gated).
+- Baseline otherwise per Cycle 158: full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` → **4097 passed, 51 skipped, 0 failed**, `src/qtr` coverage **100.00%** (1599 stmts / 590 branches / 0 miss). `python scripts/backtest_perf_regression_gate.py` → **PERF GATE PASSED** (0.419s < 5s, 10.7MB, 13668 trades). `python -m ruff check src tests run_*.py scripts` → clean; `python -m ruff format --check src tests run_*.py scripts` → **336 files already formatted**.
+
+### What remains unresolved
+1. **7 `tests/test_gates_workflow.py` failures** — maintainer-gated; fix is `patches/0001-gates-workflow-contract-fix.patch` (verified applicable); agent cannot land `.github/workflows/**`.
+2. **H182 selection** — free-data point-in-time strategy-family queue exhausted (H1–H181 rejected/recorded, `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96); no honest free-data H183 without new authorized data.
+3. **Reproducibility backlog:** frozen at `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0`.
+
+### Approaches already tried and why they should not be repeated
+- All prior cycle entries stand; do not re-audit pinned defects without new evidence (cache/fetcher normalization+dedup Cycles 143–144/153, `max_leverage`/`initial_capital`/`max_position_size` Cycles 147/148/152, duplicate index/column handling Cycles 136–153, `Experiment.load_metadata`/record_artifact Cycles 149/150, `load_config`/`_set_nested` Cycle 154, EDGAR insider Cycle 155, `bars_per_year` Cycle 156, `sharpe_ratio` Cycle 157, purged CV operands Cycle 158).
+- Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or commit/push workflow changes (no `workflows` token; `.github/workflows/**` restored from `origin/main` each session).
+- Do not invent a free-data H183 or treat parameter/timeframe/universe variations as new mechanism families.
+
+### One precise next task
+**Maintainer-only:** apply and push `patches/0001-gates-workflow-contract-fix.patch` with workflow-scoped credentials, then `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed) on `origin/main`. Agent alternative: only if a new reproduced runner-reachable defect appears in `src/qtr`/runners/corpus metadata — then rerun the full pinned suite, ruff check/format, and `python scripts/backtest_perf_regression_gate.py` with own evidence.
