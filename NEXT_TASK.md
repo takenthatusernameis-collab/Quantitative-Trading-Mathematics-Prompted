@@ -14,29 +14,8 @@
   ruff check/format, and `python scripts/backtest_perf_regression_gate.py` with
   own evidence.
 
-## Current state (Cycle 164 verification, 2026-11-16)
-- **This session verified (own evidence):**
-  `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py`
-  -> **4210 passed, 51 skipped**, `src/qtr` coverage **100.00%** (1616 stmts,
-  600 branches, 0 missing). `python -m pytest -q tests/test_gates_workflow.py`
-  -> **7 failed** (unchanged, maintainer-gated). `ruff check`/`ruff format
-  --check` clean over `src tests run_*.py scripts`.
-  `python scripts/backtest_perf_regression_gate.py` -> **PERF GATE PASSED**
-  (0.440s, limit 5s).
-- **Code/test change this session (H184):** closed a reproduced defect in the
-  baseline signal layer. `_vol_scale(vol, target_vol)` used to divide by
-  `target_vol` with no operand guard, so a **negative** `target_vol` made the
-  multiplier negative and inverted the sign of every position
-  (`_vol_scale(0.15, -0.15) == -1.0`; measured correlation -1.0 between the
-  `+0.15` and `-0.15` books over a 300-bar panel -- a silent mean-reversion
-  book manufactured out of a sign error), and a **non-finite** `target_vol`
-  made the multiplier `inf` (the `min(inf, 2.0)` cap does not fire). Both now
-  fail closed to `1.0` (the no-scaling boundary); `target_vol == 0.0` is a real
-  measured boundary and returns `0.0`. Added `_is_finite_non_negative(target_vol)`
-  guards to `time_series_momentum_signals` and `vol_scaled_tsmom_signals` so the
-  two call sites agree on this input class (previously one inverted, the other
-  returned zero). +10 tests in `tests/test_baselines_extra.py` (78 -> 88).
-  Coverage remains 100%.
+## Current state (Cycle 165 verification, 2026-11-16)
+- **This session verified (own evidence):** working tree clean (H184 baselines fix already present in `src/qtr/strategies/baselines.py`, committed in prior control-marker commits). `python -m ruff check src tests run_*.py scripts` -> **All checks passed**. `python -m ruff format --check src tests run_*.py scripts` -> **336 files already formatted**. `python scripts/backtest_perf_regression_gate.py` -> **PERF GATE PASSED** (0.450s, limit 5s, 10.7MB, 13668 trades). `python -m pytest -q tests/test_gates_workflow.py` -> **7 failed** (unchanged, maintainer-gated; fix `patches/0001-gates-workflow-contract-fix.patch`). Full pinned suite last verified at Cycle 164: **4210 passed, 51 skipped**, `src/qtr` coverage **100.00%** (1616 stmts, 600 branches, 0 missing).
 - **Known unresolved (unchanged):** maintainer-only workflow patch for
   `.github/workflows/gates.yml`; H1-H182 exhausted under free/public PIT data
   (no honest H183 without new authorized data); reproducibility backlog
