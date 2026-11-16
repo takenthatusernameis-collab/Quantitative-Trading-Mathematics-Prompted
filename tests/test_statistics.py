@@ -1928,6 +1928,92 @@ class TestCompareToBenchmarkDegenerate:
         assert res["alpha_p_value"] == 1.0
 
 
+class TestCompareToBenchmarkDegeneratePeriodsPerYear:
+    """A non-positive or non-finite ``periods_per_year`` is config-degenerate.
+
+    ``compare_to_benchmark`` divides the risk-free rate by
+    ``periods_per_year`` (inside the CAPM alpha), scales the excess
+    volatility by ``sqrt(periods_per_year)`` and multiplies the mean excess
+    by ``periods_per_year``. A zero count raised ``ZeroDivisionError``; a
+    negative count multiplied by the square root of a negative number and
+    emitted ``nan`` (plus a ``RuntimeWarning``); a ``nan``/``inf`` count
+    likewise poisoned the result. All are inputs a caller has no way to
+    filter on its own (the default is a bare int, and all 30+ in-tree
+    callers use it), so they must fail closed to ``_no_comparison()`` --
+    the same no-evidence tuple the empty-series and the too-few-
+    observations paths return -- rather than raising or returning ``nan``.
+    """
+
+    @pytest.mark.parametrize(
+        "ppy",
+        [0, -1, -252, 0.0, -0.5, float("nan"), float("inf"), float("-inf")],
+    )
+    def test_degenerate_periods_per_year_returns_no_evidence(self, ppy):
+        rng = np.random.default_rng(21)
+        strat = rng.normal(0.001, 0.01, 252)
+        bench = rng.normal(0.0005, 0.01, 252)
+        res = st.compare_to_benchmark(strat, bench, risk_free=0.05, periods_per_year=ppy)
+        assert res == st._no_comparison()
+        assert np.isfinite(res["information_ratio"])
+        assert np.isfinite(res["alpha_annualized"])
+        assert np.isfinite(res["excess_return_annual"])
+        assert res["alpha_p_value"] == 1.0
+
+    def test_zero_period_short_circuits_before_risk_free_division(self):
+        # The zero-period path must short-circuit before ``risk_free / 0``.
+        res = st.compare_to_benchmark(
+            np.array([0.01, -0.005, 0.02]),
+            np.array([0.005, -0.002, 0.01]),
+            risk_free=0.05,
+            periods_per_year=0,
+        )
+        assert res == st._no_comparison()
+
+    def test_valid_period_is_unchanged(self):
+        rng = np.random.default_rng(21)
+        strat = rng.normal(0.001, 0.01, 252)
+        bench = rng.normal(0.0005, 0.01, 252)
+        # A finite positive period count computes the standard arithmetic and
+        # matches an equivalent float period exactly.
+        assert st.compare_to_benchmark(strat, bench, periods_per_year=252) == (
+            st.compare_to_benchmark(strat, bench, periods_per_year=252.0)
+        )
+
+    def test_the_contract_rejects_the_pre_fix_zero_period_behaviour(self):
+        """Negative control: the pre-fix body raised ``ZeroDivisionError`` for
+        ``periods_per_year=0`` and emitted ``nan`` for a negative count. The
+        contract "a degenerate period count yields the no-evidence tuple"
+        must reject both pre-fix paths.
+        """
+        strat = np.array([0.01, -0.005, 0.02])
+        bench = np.array([0.005, -0.002, 0.01])
+        risk_free = 0.05
+
+        # Pre-fix arithmetic, reconstructed exactly: the CAPM alpha used
+        # ``risk_free / periods_per_year``.
+        with pytest.raises(ZeroDivisionError):
+            _ = risk_free / 0
+
+        # Pre-fix arithmetic, reconstructed exactly: the annualized excess
+        # volatility was ``excess.std(ddof=0) * sqrt(periods_per_year)``,
+        # and ``sqrt`` of a negative number emits ``nan`` (plus a
+        # ``RuntimeWarning``).
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            pre_fix_negative = float((strat - bench).std(ddof=0) * np.sqrt(-1))
+        assert np.isnan(pre_fix_negative), (
+            "the pre-fix negative-period path must emit nan"
+        )
+
+        # The corrected implementation returns the no-evidence tuple for both.
+        assert st.compare_to_benchmark(
+            strat, bench, risk_free=risk_free, periods_per_year=0
+        ) == st._no_comparison()
+        assert st.compare_to_benchmark(
+            strat, bench, risk_free=risk_free, periods_per_year=-1
+        ) == st._no_comparison()
+
+
 # ===========================================================================
 # Coverage-gap closure: purged / combinatorial CV empty splits
 # ===========================================================================

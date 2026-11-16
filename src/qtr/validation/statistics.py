@@ -1013,6 +1013,40 @@ def compare_to_benchmark(
         )
     risk_free = float(risk_free)
 
+    # Scalar-operand guard on the annualization factor. ``periods_per_year``
+    # appears in THREE places below -- it divides the risk-free rate inside
+    # the CAPM alpha (``risk_free / periods_per_year``), scales the excess
+    # volatility by ``sqrt(periods_per_year)`` and multiplies the mean excess
+    # by ``periods_per_year`` -- so a degenerate count is not a single
+    # division but a set of independent failures, and the same input class
+    # Cycle 157 closed one guard over in ``sharpe_ratio`` (which this
+    # function calls for nothing, but whose sibling term it shares):
+    #
+    # * ``periods_per_year == 0`` made ``risk_free / 0`` raise
+    #   ``ZeroDivisionError`` out of a function every caller treats as
+    #   returning a dict (measured: ``compare_to_benchmark(..., 0)`` ->
+    #   ``ZeroDivisionError: division by zero``);
+    # * a negative count made ``sqrt(negative)`` emit ``nan`` (plus a
+    #   ``RuntimeWarning: invalid value encountered in sqrt``), which then
+    #   propagated through the annualized excess return and volatility, so
+    #   the function returned a dict carrying ``nan`` alongside finite
+    #   fields -- an internally inconsistent result that silently voided
+    #   every gate reading those keys;
+    # * a ``nan``/``inf`` count likewise poisoned the result, and under
+    #   ``pytest -W error`` the sqrt warning became an error.
+    #
+    # ``periods_per_year`` is a bare ``int`` parameter no caller can filter
+    # on its own (the default ``252`` is the only value any in-tree runner
+    # passes -- 30+ call sites across the ``run_*.py`` corpus all use the
+    # default), so it fails closed to ``_no_comparison()`` -- the same
+    # no-evidence tuple the empty-series and the too-few-observations paths
+    # return -- rather than raising or returning ``nan``. For every finite
+    # positive count the arithmetic is bit-identical to before: this guard
+    # only short-circuits the degenerate cases. See
+    # tests/test_statistics.py::TestCompareToBenchmarkDegeneratePeriodsPerYear.
+    if not np.isfinite(periods_per_year) or periods_per_year <= 0:
+        return _no_comparison()
+
     # A multi-symbol benchmark (e.g. a DataFrame slice of a futures
     # universe) is reduced to a single series by averaging across symbols,
     # so the comparison is against the equal-weighted benchmark return.
