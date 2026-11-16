@@ -1,5 +1,47 @@
 # HANDOFF.md
 
+> **Latest (2026-11-16, Cycle 152 — fixed a reproduced `BacktestConfig.max_position_size` fail-open defect: a negative/`NaN`/infinite per-asset cap silently disabled the position cap; 100% coverage preserved):**
+> `BacktestConfig.max_position_size` was the last unguarded numeric config boundary
+> (after `max_leverage` in Cycle 147 and `initial_capital` in Cycle 148).
+> `run_backtest` passed it straight to `positions.clip(lower=-max_pos,
+> upper=max_pos)`. With a negative `max_pos` the two bounds invert (pandas then
+> applies neither as intended — measured `clip(1.0, -1.0)` leaves an oversized
+> signal at the negated bound), and with `NaN`/`+inf`/`-inf` the clip is a
+> no-op, so the cap is **silently disabled**: a vol-scaled TSMOM signal of `3.0`
+> reached the book at full size with `max_leverage=5.0` (reproduced before fix:
+> positions `3.0`, `total_return` inflated). A per-asset cap that fails open is
+> the opposite of a risk limit.
+> - **Fix:** `src/qtr/backtest/engine.py` normalizes a negative or non-finite
+>   `max_position_size` to `0.0` (the no-exposure boundary, the same fail-closed
+>   choice as `max_leverage`/`initial_capital`) before the clip. A bad cap can
+>   now only *remove* exposure; every finite non-negative value is unchanged, so
+>   the clean path is bit-identical.
+> - **Tests:** `tests/test_engine_edge_stress.py::TestInvalidPositionSize` (+6) —
+>   parametrized `-1.0 / -inf / NaN / +inf` fail-closed, a finite-positive `0.5`
+>   control (still caps), and a behavioural negative control reconstructing the
+>   pre-fix `NaN` clip no-op.
+> - **Formatting-only fix:** `src/qtr/tracking/experiment.py` and
+>   `tests/test_experiment_tracker.py` were left unformatted by the Cycle 151
+>   commit, so the required `ruff format --check` gate was red on `origin/main`;
+>   `ruff format` on those two files (line-wrap + one blank line; no semantic
+>   change).
+> - **Verified (own evidence):** before fix, `max_position_size=nan`/`inf` gave
+>   positions `3.0` (cap disabled); after the fix all four invalid values give
+>   all-zero positions/returns and no trades, `0.5` still caps to `0.5`.
+>   Negative control (`git stash push -- src/qtr/backtest/engine.py`) → 4 failed /
+>   2 passed; restored → all pass. Focused engine slice
+>   `python -m pytest -q tests/test_engine_edge_stress.py tests/test_backtest_engine.py tests/test_engine_metric_agreement.py tests/test_engine_total_return_consistency.py tests/test_cost_model.py -W error`
+>   → **230 passed**. Full pinned suite
+>   `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py`
+>   (346.26s) → **3960 passed, 48 skipped, 0 failed**, `src/qtr` coverage
+>   **100.00%** (1562 stmts / 564 branches / 0 miss; `engine.py` 247/90).
+>   `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged,
+>   maintainer-gated; fix is `patches/0001-gates-workflow-contract-fix.patch`).
+>   `python scripts/backtest_perf_regression_gate.py` → **PERF GATE PASSED**
+>   (0.291s < 5s, 13668 trades). `ruff check` and `ruff format --check` over
+>   `src tests run_*.py scripts` → clean / **336 files already formatted**. No
+>   gate, artifact, sidecar, hash, frozen-number, or workflow change.
+
 > **Latest (2026-11-16, Cycle 150 — fixed a reproduced `Experiment.load_metadata` non-dict-file defect; writers crashed on a list/string/number metadata file):**
 > `Experiment.load_metadata` only caught a `json.load` *parse* failure, so a metadata
 > file that parsed as valid JSON but was not a mapping (a list, a string, a number, a

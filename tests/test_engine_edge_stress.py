@@ -213,6 +213,49 @@ class TestInvalidInitialCapital:
 
 
 # --------------------------------------------------------------------------- #
+# Invalid position size
+# --------------------------------------------------------------------------- #
+class TestInvalidPositionSize:
+    @pytest.mark.parametrize("invalid_position_size", [-1.0, -np.inf, np.nan, np.inf])
+    def test_invalid_position_size_fails_closed_to_no_exposure(self, invalid_position_size):
+        """A negative or non-finite per-asset cap is not a cap. The engine must
+        fail closed (flatten the book) rather than silently disable the cap and
+        let an oversized signal reach the book at full size."""
+        prices = _make_prices(symbols=("A",))
+        signals = pd.DataFrame({"A": 3.0}, index=prices.index)
+        cfg = _make_config(max_position_size=invalid_position_size, max_leverage=5.0)
+
+        res = run_backtest(prices=prices, signals=signals, config=cfg)
+
+        assert (res.positions == 0.0).all().all()
+        assert len(res.trades) == 0
+        assert (res.returns == 0.0).all()
+        assert np.isfinite(res.equity_curve.values).all()
+
+    def test_finite_positive_position_size_still_caps(self):
+        """Control: a finite non-negative cap is applied exactly as before."""
+        prices = _make_prices(symbols=("A",))
+        signals = pd.DataFrame({"A": 3.0}, index=prices.index)
+        cfg = _make_config(max_position_size=0.5, max_leverage=5.0)
+
+        res = run_backtest(prices=prices, signals=signals, config=cfg)
+
+        assert np.allclose(res.positions["A"].values, 0.5)
+        asset_ret = prices["A"].pct_change().fillna(0.0)
+        assert res.returns.iloc[1] == pytest.approx(0.5 * asset_ret.iloc[1], abs=1e-12)
+
+    def test_the_contract_rejects_the_pre_fix_position_size_bypass(self):
+        """Behavioural negative control: the pre-fix engine passed the raw cap
+        to ``clip``. With a NaN cap, ``clip(lower=nan, upper=nan)`` is a no-op,
+        so an oversized signal reaches the book at full size -- the cap silently
+        disabled, exactly the bypass the guard above closes."""
+        signal = pd.Series([3.0, 3.0, 3.0])
+        pre_fix_positions = signal.clip(lower=-np.nan, upper=np.nan)
+
+        assert np.allclose(pre_fix_positions.values, 3.0)
+
+
+# --------------------------------------------------------------------------- #
 # Zero-volume / degenerate futures contract
 # --------------------------------------------------------------------------- #
 class TestDegenerateFuturesContract:

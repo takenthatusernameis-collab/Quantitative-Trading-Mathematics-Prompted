@@ -927,6 +927,7 @@ class TestTrackerConfiguredLogDirectory:
         assert cfg["tracking"]["log_dir"] == str(target)
         assert cfg.get("tracking.log_dir", ".experiments") == ".experiments"
 
+
 def test_log_dataframe_rejects_path_traversal_name(tmp_path):
     t = ExperimentTracker(log_dir=tmp_path / "logs")
     t.start_experiment("exp")

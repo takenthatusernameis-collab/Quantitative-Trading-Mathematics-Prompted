@@ -450,6 +450,19 @@ def run_backtest(
 
     # Position-size cap, then short-sale clipping.
     max_pos = float(cfg.max_position_size)
+    # A negative or non-finite per-asset cap is a sign error or an impossible
+    # bound, not a cap. ``positions.clip(lower=-max_pos, upper=max_pos)`` with a
+    # negative ``max_pos`` inverts the two bounds (pandas then applies neither
+    # as intended -- measured: ``clip(1.0, -1.0)`` leaves an oversized signal
+    # at the negated bound), and with ``nan``/``inf`` it silently disables the
+    # cap entirely, so a vol-scaled TSMOM signal of ``3.0`` reaches the book at
+    # full size instead of being capped. Normalize to ``0.0`` -- the no-exposure
+    # boundary, the same fail-closed choice already made for a negative or
+    # non-finite ``max_leverage`` -- so a bad cap can only ever *remove*
+    # exposure, never manufacture it. Every finite non-negative value is
+    # unchanged, so the clean path is bit-identical.
+    if not math.isfinite(max_pos) or max_pos < 0.0:
+        max_pos = 0.0
     positions = positions.clip(lower=-max_pos, upper=max_pos)
     if not bool(cfg.allow_short):
         positions = positions.clip(lower=0.0)

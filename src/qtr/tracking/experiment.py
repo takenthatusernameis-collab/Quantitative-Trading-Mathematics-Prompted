@@ -148,10 +148,11 @@ class ExperimentTracker:
         log_dir = self.log_dir.resolve()
         artifact_dir = (log_dir / "artifacts" / self.current_experiment.experiment_id).resolve()
         sidecar_probe = (log_dir / f"{name}_probe.meta.json").resolve()
-        if not sidecar_probe.is_relative_to(log_dir) or not (artifact_dir / f"{name}.parquet").is_relative_to(artifact_dir):
+        if not sidecar_probe.is_relative_to(log_dir) or not (
+            artifact_dir / f"{name}.parquet"
+        ).is_relative_to(artifact_dir):
             raise ValueError(
-                f"artifact name {name!r} escapes the log directory; "
-                "pass a plain name, not a path"
+                f"artifact name {name!r} escapes the log directory; pass a plain name, not a path"
             )
 
         file_path = Path(file_path)
@@ -199,10 +200,11 @@ class ExperimentTracker:
         file_path = (artifact_dir / f"{name}.parquet").resolve()
         log_dir_resolved = self.log_dir.resolve()
         sidecar_probe = (self.log_dir / f"{name}_probe.meta.json").resolve()
-        if not file_path.is_relative_to(artifact_dir_resolved) or not sidecar_probe.is_relative_to(log_dir_resolved):
+        if not file_path.is_relative_to(artifact_dir_resolved) or not sidecar_probe.is_relative_to(
+            log_dir_resolved
+        ):
             raise ValueError(
-                f"artifact name {name!r} escapes the log directory; "
-                "pass a plain name, not a path"
+                f"artifact name {name!r} escapes the log directory; pass a plain name, not a path"
             )
 
         # A duplicated column label cannot be written to parquet: the engine
