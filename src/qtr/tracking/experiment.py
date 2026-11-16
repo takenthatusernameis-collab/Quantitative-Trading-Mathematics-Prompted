@@ -432,9 +432,28 @@ class Experiment:
     def load_metadata(self) -> dict[str, Any]:
         try:
             with open(self.metadata_path) as f:
-                return json.load(f)
-        except Exception:  # noqa: BLE001
+                record = json.load(f)
+        except Exception:  # noqa: BLE001 -- corrupt/absent metadata is a miss
             return {}
+
+        # A metadata file that parses as valid JSON but is not a mapping is just
+        # as unusable as one that does not parse: ``log_metadata`` / ``log_params``
+        # / ``log_results`` all do ``meta.update(...)`` or ``meta["..."] = ...``,
+        # so a list, a string or a number left on disk by an older writer, a
+        # hand-edited file, or a concurrent process raises out of every method
+        # that treats this constructor as infallible. The previous handler only
+        # caught the parse failure, so a file holding ``[1, 2, 3]`` returned the
+        # list verbatim and the next ``log_metadata`` call crashed with
+        # ``AttributeError: 'list' object has no attribute 'update'`` -- a
+        # reproduced, runner-reachable defect (the metadata directory is created
+        # by this class itself and is writable by anything that can write the
+        # base directory). Fail closed to the empty dict, the same tuple the
+        # parse-failure path returns, so a caller reading the metadata sees "no
+        # recorded metadata" rather than a non-dict or an exception. A file that
+        # is already a mapping is returned bit-identically.
+        if not isinstance(record, dict):
+            return {}
+        return record
 
     def __enter__(self):
         return self

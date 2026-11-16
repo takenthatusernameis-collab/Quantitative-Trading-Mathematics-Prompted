@@ -1,78 +1,98 @@
-# HANDOFF — current session (2026-11-15, Cycle 147)
+# HANDOFF — current session (2026-11-16, Cycle 150)
 
 ## What changed
 
-1. **`src/qtr/backtest/engine.py` — invalid leverage now fails closed.**
-   Cycle 146 reported no remaining defect. This session probed the remaining
-   `BacktestConfig` numeric boundaries using correctly aligned signals and found
-   new evidence: a negative `max_leverage` inverted a long-only book. With a
-   `+1` target and `max_leverage=-1`, the normalization multiplied positions by
-   `-1 / gross`; `NaN` and positive infinity bypassed the cap. The intentional
-   `max_leverage=0` boundary already produced a flat book, so the fix maps every
-   negative or non-finite value to that same zero-leverage path. Every finite
-   non-negative value remains unchanged.
+1. **`src/qtr/tracking/experiment.py` — `Experiment.load_metadata` now fails closed on a non-dict metadata file.**
+   The previous handler only caught a `json.load` *parse* failure, so a metadata file
+   that parsed as valid JSON but was not a mapping (a list, a string, a number, a
+   boolean, or `null` — written by an older writer, a hand-edited file, or a
+   concurrent process) was returned verbatim. Every writer then mutated it in place
+   (`meta.update(...)`, `meta["params"] = ...`, `meta["results"] = ...`) and crashed
+   out of a constructor every caller treats as infallible:
+   - `log_metadata` after a `[1, 2, 3]` file → `AttributeError: 'list' object has no
+     attribute 'update'`
+   - `log_params` / `log_results` after a `"just a string"` / `5` file →
+     `TypeError: 'str'/'int' object does not support item assignment`
+   The fix adds an `isinstance(record, dict)` guard and returns the empty dict — the
+   same tuple the parse-failure path returns — so a corrupted metadata directory is
+   recoverable without deleting it. A file that is already a mapping is returned
+   bit-identically.
 
-2. **Tests:** `tests/test_engine_edge_stress.py::TestInvalidLeverage` adds
-   parametrized `-1`, `-inf`, `NaN`, and `+inf` cases plus a behavioural
-   negative control reconstructing the pre-fix sign flip (**+5 tests**).
+2. **Tests:** `tests/test_experiment_tracking.py` (+6):
+   - `test_load_metadata_non_dict_json_fails_closed` (parametrized over array, string,
+     integer, float, boolean, null)
+   - `test_log_metadata_recovers_from_a_non_dict_metadata_file`
+   - `test_log_params_and_log_results_also_recover_from_non_dict_files`
+   - `test_load_metadata_pre_fix_non_dict_load_propagates` (behavioural negative
+     control)
 
-3. **Docs:** `HANDOFF.md`, `NEXT_TASK.md`, and this file record the evidence,
-   validation, unresolved capital/position-size boundaries, and the next task.
-   No gate, artifact, sidecar, hash, frozen-number, or workflow change.
+No gate, artifact, sidecar, hash, frozen-number, or workflow change.
 
 ## What was actually verified (own evidence)
 
-- **Before-fix repro:** aligned prices `[100, 101, 102]`, long-only signals
-  `[1, 1, 1]`, and `max_leverage=-1` produced positions `[-1, -1, -1]`, returns
-  `[0, -0.01, -0.00990099]`, and a `sell` trade. After the fix the same call
-  produces zero positions/returns and no trades.
-- `python -m pytest -q tests/test_engine_edge_stress.py tests/test_backtest_engine.py -W error`
-  → **98 passed**.
-- Full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py`
-  (356.90s) → **3929 passed, 48 skipped, 0 failed**, `src/qtr` coverage
-  **100.00%** (1534 stmts / 546 branches / 0 miss; `engine.py` 243 stmts /
-  86 branches, all covered).
-- `python -m pytest -q tests/test_gates_workflow.py` → **7 failed**, unchanged
-  and exclusively the documented maintainer-gated workflow contract.
-- `python scripts/backtest_perf_regression_gate.py` → **PASSED** (0.326s < 5s,
-  10.7MB peak, 13668 trades).
-- Full `python -m ruff check src tests run_*.py scripts` → **All checks passed**;
-  `python -m ruff format --check src tests run_*.py scripts` → **336 files
-  already formatted**.
+- **Before-fix repro:** a metadata file holding `json.dumps([1, 2, 3])` returned the
+  list from `load_metadata()` and the next `log_metadata` call raised
+  `AttributeError: 'list' object has no attribute 'update'`; a file holding
+  `json.dumps("just a string")` crashed `log_params` with `TypeError: 'str' object
+  does not support item assignment`; a file holding `json.dumps(5)` crashed
+  `log_results` with `TypeError: 'int' object does not support item assignment`.
+  After the fix all three writers succeed and the file reads back as a valid
+  mapping.
+- Focused `python -m pytest -q tests/test_experiment_tracking.py -W error` →
+  **28 passed**.
+- Full pinned suite
+  `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py`
+  (350.87s) → **3950 passed, 48 skipped, 0 failed**, `src/qtr` coverage
+  **100.00%** (1547 stmts / 556 branches / 0 miss; `tracking/experiment.py` 222/49).
+- `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged,
+  maintainer-gated; fix is `patches/0001-gates-workflow-contract-fix.patch`).
+- `python scripts/backtest_perf_regression_gate.py` → **PASSED** (0.304s < 5s, 13668
+  trades).
+- `python -m ruff check src tests run_*.py scripts` → **All checks passed**;
+  `python -m ruff format --check src tests run_*.py scripts` → **336 files already
+  formatted**.
 
 ## What remains unresolved
 
-1. **`BacktestConfig.initial_capital` is the next reproduced boundary.** With a
-   valid long-only book, zero capital returns an all-zero equity curve,
-   `-1000` returns negative equity, and `NaN`/`inf` return non-finite equity,
-   while positions and return-based metrics are still produced. The next agent
-   should make non-finite or non-positive capital return the existing
-   no-evidence `empty_result` before exposure is computed.
-2. **`max_position_size` needs a separate contract decision.** Preliminary
-   probes with `-1` and `NaN` left positions unchanged rather than enforcing a
-   cap; do not bundle that change with initial-capital validation.
-3. **Maintainer-only CI contract:** apply
-   `patches/0001-gates-workflow-contract-fix.patch` with workflow scope; the
-   agent cannot persist `.github/workflows/**` changes.
-4. **Frozen research/reproducibility baselines:** H1–H182 executed/rejected,
-   H183 unassigned; reproducibility counts remain `197 / 11 / 528 / 0`.
+1. **Maintainer-only CI contract:** apply
+   `patches/0001-gates-workflow-contract-fix.patch` with workflow scope; the agent
+   cannot persist `.github/workflows/**` changes.
+2. **Frozen research/reproducibility baselines:** H1–H182 exhausted/rejected under
+   free/public PIT data, H183 unassigned; reproducibility counts remain
+   `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`,
+   `missing_meta_files=0`.
+3. **No new free-data H183** without genuinely new authorized data; do not treat
+   parameter/timeframe/universe/close-substitute variations as new mechanism
+   families.
 
-## Approaches already tried / must not be repeated
+## Approaches already tried / must not be repeat
 
-- Do not repeat the claim that the `src/qtr` defect hunt is exhausted; this
-  session reproduced a new public-API defect after that claim.
-- Do not re-probe negative/non-finite `max_leverage`; it is closed and pinned.
-  Preserve the existing zero-leverage flat-book behaviour.
-- Do not edit workflows, weaken workflow/coverage gates, or change frozen
-  artifacts, verdicts, thresholds, or numbers.
-- Do not use dotted `--cov` module arguments; use `--cov=qtr`.
+- Do not re-probe the `Experiment` metadata writers for a non-dict file; it is now
+  closed and pinned.
+- Do not re-run the same suite as "work": this session ran focused tests and the
+  full pinned suite with own evidence.
+- Do not make speculative `src/qtr` changes absent a reproduced, runner-reachable
+  defect.
+- Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or alter
+  coverage/frozen-contract gates or published/frozen artifacts/verdicts/thresholds/
+  frozen numbers.
 
 ## One precise next task
 
-Implement Cycle 148 as one bounded `BacktestConfig.initial_capital` fix:
-reproduce the invalid-capital outputs above, return the existing no-evidence
-result for non-finite or non-positive capital before exposure is computed, keep
-a finite positive-capital control bit-identical, and add positive/invalid/
-negative-control tests. Verify with focused tests, the full pinned coverage
-suite, Ruff, and the performance gate. Leave `max_position_size` for the next
-cycle.
+**Maintainer (preferred, unblocks CI):** apply and push
+`patches/0001-gates-workflow-contract-fix.patch` with workflow scope, then run
+`python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed) on `origin/main`.
+
+**Agent alternative (only with new evidence):** continue hunting a *reproduced*,
+runner-reachable defect in `src/qtr` — use executable fuzzing/property probes across
+module boundaries and smallest input boundaries (n=0/1/2, empty, duplicate labels,
+non-finite, corrupt/partial state) on public paths not yet closed. Do not re-run the
+same suite as "work". If `src/qtr` changes, verify with
+`python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py`,
+`python -m ruff check src tests run_*.py scripts`,
+`python -m ruff format --check src tests run_*.py scripts`, and
+`python scripts/backtest_perf_regression_gate.py`.
+
+**Constraints:** no gate weakening; no modification of published/frozen artifacts,
+verdicts, thresholds, or frozen numbers except deliberate authorized corpus/baseline
+updates; no workflow commit from agent.

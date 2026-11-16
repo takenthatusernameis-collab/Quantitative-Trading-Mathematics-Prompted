@@ -187,3 +187,82 @@ def test_log_metadata_pre_fix_form_crashes_on_non_json_value(tmp_path):
     meta = {"grid": np.array([0.1, 0.5, 1.0])}
     with pytest.raises(TypeError):
         json.dumps(meta)
+
+
+NON_DICT_METADATA = [
+    ("array", json.dumps([1, 2, 3])),
+    ("string", json.dumps("just a string")),
+    ("integer", json.dumps(5)),
+    ("float", json.dumps(4.2)),
+    ("boolean", json.dumps(True)),
+    ("null", json.dumps(None)),
+]
+
+
+@pytest.mark.parametrize("name,payload", NON_DICT_METADATA)
+def test_load_metadata_non_dict_json_fails_closed(tmp_path, name, payload):
+    """A metadata file that parses as valid JSON but is not a mapping is a miss.
+
+    ``log_metadata`` / ``log_params`` / ``log_results`` all mutate the loaded
+    record in place (``meta.update(...)`` / ``meta["..."] = ...``), so a file
+    holding a list, a string, a number, a boolean or ``null`` -- written by an
+    older writer, a hand-edited file, or a concurrent process -- must not be
+    returned verbatim: it would crash the next writer with an
+    ``AttributeError`` / ``TypeError`` out of a constructor every caller
+    treats as infallible. Fail closed to the empty dict, the same tuple the
+    parse-failure path returns.
+    """
+    exp = experiment.Experiment(name, base_dir=tmp_path)
+    exp.metadata_path.write_text(payload)
+    assert exp.load_metadata() == {}
+
+
+def test_log_metadata_recovers_from_a_non_dict_metadata_file(tmp_path):
+    """The writer must be able to repair a non-dict metadata file.
+
+    Reproduces the defect: a metadata file holding ``[1, 2, 3]`` returned the
+    list verbatim from ``load_metadata`` and the very next ``log_metadata``
+    call crashed with ``AttributeError: 'list' object has no attribute
+    'update'``. After the fix the load fails closed and the subsequent write
+    succeeds, so a corrupted metadata directory is recoverable without
+    deleting it.
+    """
+    exp = experiment.Experiment("recover", base_dir=tmp_path)
+    exp.metadata_path.write_text(json.dumps([1, 2, 3]))
+    exp.log_metadata(foo="bar", num=5)
+    data = json.loads(exp.metadata_path.read_text())
+    assert data["foo"] == "bar"
+    assert data["num"] == 5
+
+
+def test_log_params_and_log_results_also_recover_from_non_dict_files(tmp_path):
+    """``log_params`` / ``log_results`` share the same ``load_metadata`` path.
+
+    Both assign into the loaded record (``meta["params"] = ...``), so a file
+    holding a string or an integer crashes them the same way ``log_metadata``
+    crashes on a list. All three writers must fail closed on load and then
+    write a valid mapping.
+    """
+    for method, value in (("log_params", {"alpha": 0.1}), ("log_results", {"sr": 1.0})):
+        exp = experiment.Experiment(method, base_dir=tmp_path)
+        exp.metadata_path.write_text(json.dumps("just a string"))
+        getattr(exp, method)(value)
+        data = json.loads(exp.metadata_path.read_text())
+        assert isinstance(data, dict)
+
+
+def test_load_metadata_pre_fix_form_returns_non_dict(tmp_path):
+    """Behavioural negative control: the bare ``json.load`` form returns it.
+
+    Reconstructs the pre-fix ``load_metadata`` body (``json.load`` with no
+    type check) over a non-dict file and requires it to return the non-dict,
+    proving the corrected loader is what makes the path safe rather than
+    merely lucky: without the ``isinstance(record, dict)`` guard the next
+    writer crashes on exactly this input.
+    """
+    exp = experiment.Experiment("negctrl", base_dir=tmp_path)
+    exp.metadata_path.write_text(json.dumps([1, 2, 3]))
+    record = json.loads(exp.metadata_path.read_text())
+    assert record == [1, 2, 3]
+    with pytest.raises(AttributeError):
+        record.update({"foo": "bar"})

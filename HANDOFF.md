@@ -1,5 +1,37 @@
 # HANDOFF.md
 
+> **Latest (2026-11-16, Cycle 150 — fixed a reproduced `Experiment.load_metadata` non-dict-file defect; writers crashed on a list/string/number metadata file):**
+> `Experiment.load_metadata` only caught a `json.load` *parse* failure, so a metadata
+> file that parsed as valid JSON but was not a mapping (a list, a string, a number, a
+> boolean, or `null` — written by an older writer, a hand-edited file, or a concurrent
+> process) was returned verbatim. Every writer then mutated it in place
+> (`meta.update(...)`, `meta["params"] = ...`, `meta["results"] = ...`) and crashed
+> out of a constructor every caller treats as infallible: `log_metadata` after a
+> `[1, 2, 3]` file raised `AttributeError: 'list' object has no attribute 'update'`;
+> `log_params` / `log_results` after a `"just a string"` / `5` file raised
+> `TypeError: 'str'/'int' object does not support item assignment`.
+> - **Fix:** `src/qtr/tracking/experiment.py` adds an `isinstance(record, dict)` guard
+>   to `load_metadata` and returns the empty dict — the same tuple the parse-failure
+>   path returns — so a corrupted metadata directory is recoverable without deleting
+>   it. A file that is already a mapping is returned bit-identically.
+> - **Tests:** `tests/test_experiment_tracking.py` (+6) — parametrized non-dict
+>   coverage (array, string, integer, float, boolean, null), a recovery test for
+>   `log_metadata`, a shared recovery test for `log_params`/`log_results`, and a
+>   behavioural negative control reconstructing the bare `json.load` form.
+> - **Verified (own evidence):** before-fix repro showed all three crashes above;
+>   after the fix all three writers succeed and the file reads back as a valid
+>   mapping. Focused `tests/test_experiment_tracking.py -W error` → **28 passed**.
+>   Full pinned suite
+>   `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py`
+>   (350.87s) → **3950 passed, 48 skipped, 0 failed**, `src/qtr` coverage
+>   **100.00%** (1547 stmts / 556 branches / 0 miss; `tracking/experiment.py` 222/49).
+>   `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged,
+>   maintainer-gated; fix is `patches/0001-gates-workflow-contract-fix.patch`).
+>   `python scripts/backtest_perf_regression_gate.py` → **PASSED** (0.304s < 5s,
+>   13668 trades). `ruff check` and `ruff format --check` over
+>   `src tests run_*.py scripts` → clean / **336 files already formatted**. No gate,
+>   artifact, sidecar, hash, frozen-number, or workflow change.
+
 > **Latest (2026-11-16, Cycle 149 — fixed a reproduced `Experiment.record_artifact` DataFrame duplicate-column defect; parquet crashed and CSV mangled schema; 100% coverage preserved):**
 > `Experiment.record_artifact` wrote caller DataFrames directly to parquet/csv.
 > A duplicated column label is reachable from real panels (repeated ticker,
