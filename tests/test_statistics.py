@@ -429,6 +429,37 @@ class TestWalkForwardSplits:
         assert st.walk_forward_splits(100, train_ratio=float("nan")) == []
         assert st.walk_forward_splits(100, gap=float("nan")) == []
 
+    def test_walk_forward_splits_rejects_non_integer_operands(self):
+        """n_samples, n_splits and gap are bare count scalars; a non-integer
+        (float or bool) must fail closed to ``[]`` rather than crash on the
+        ``range(n_splits)``/window arithmetic, matching the purged/CV operand
+        contract in _purged_cv_operands_valid."""
+        for bad_splits in (5.0, 2.5, 0.5, True, False, np.float64(3.0)):
+            assert st.walk_forward_splits(100, n_splits=bad_splits) == []
+        for bad_n in (10.0, 10.5, True, False, np.float64(50.0)):
+            assert st.walk_forward_splits(bad_n, n_splits=5) == []
+        for bad_gap in (1.5, 2.0, True, False, np.float64(1.0)):
+            assert st.walk_forward_splits(100, n_splits=5, gap=bad_gap) == []
+
+    def test_walk_forward_splits_accepts_integer_and_np_integer(self):
+        """Finite integer and np.integer operands are unaffected: the clean
+        path is bit-identical to before the guard."""
+        assert len(st.walk_forward_splits(100, n_splits=5)) == 5
+        assert len(st.walk_forward_splits(100, n_splits=np.int64(5), gap=np.int64(2))) == 5
+        a = st.walk_forward_splits(100, n_splits=5, gap=0)
+        b = st.walk_forward_splits(100, n_splits=np.int64(5), gap=np.int64(0))
+        assert len(a) == len(b)
+        for (ta, tb), (ua, ub) in zip(a, b):
+            assert np.array_equal(ta, ua)
+            assert np.array_equal(tb, ub)
+
+    def test_walk_forward_splits_non_integer_contract_rejects_pre_fix(self):
+        """Behavioural negative control: the pre-fix ``range(n_splits)`` must
+        raise on a float split count, so the fail-closed contract is required."""
+        with pytest.raises(TypeError):
+            _ = list(range(float("nan")))
+        assert st.walk_forward_splits(100, n_splits=float("nan")) == []
+
 
 # ===========================================================================
 # multiple_testing_correction

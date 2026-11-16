@@ -1,5 +1,43 @@
 # HANDOFF.md
 
+> **Latest (2026-11-16, Cycle 173 — fixed a reproduced `walk_forward_splits` non-integer operand crash; 100% coverage preserved):**
+> `src/qtr/validation/statistics.py::walk_forward_splits` guarded finiteness of
+> `n_samples`, `n_splits`, `train_ratio`, `gap` but not **integrality**. A
+> non-integer `n_splits` (e.g. `5.0`) reached `range(n_splits)` and crashed
+> with `TypeError: 'float' object cannot be interpreted as an integer` out of
+> a function every caller treats as returning a list; non-integer `gap`/`n_samples`
+> reached `np.arange`/window arithmetic the same way. This was the inconsistent
+> sibling site: `purged_kfold_splits`/`combinatorial_purged_cv` already reject
+> non-integer operands via `_purged_cv_operands_valid` (Cycle 142/§H79 class).
+> - **Fix:** added an `isinstance(v, (int, np.integer)) and not isinstance(v, bool)`
+>   guard for `(n_samples, n_splits, gap)` failing closed to `[]` (the module's
+>   no-evidence result for an empty/degenerate window). `train_ratio` (a
+>   fraction) is untouched; every finite integral input is bit-identical to
+>   before. Reproduced before fix (own evidence):
+>   `walk_forward_splits(10, n_splits=5.0)` → `TypeError` at `statistics.py:331`;
+>   after fix → `[]`; bool/np.float64 variants also `[]`; `walk_forward_splits(100,
+>   n_splits=5)` → 5 splits unchanged.
+> - **Tests:** `tests/test_statistics.py::TestWalkForwardSplits` —
+>   `test_walk_forward_splits_rejects_non_integer_operands` (parametrized floats/
+>   bools/np.float64 for `n_samples`, `n_splits`, `gap` all `[]`),
+>   `test_walk_forward_splits_accepts_integer_and_np_integer` (int/np.integer
+>   clean path bit-identical), and
+>   `test_walk_forward_splits_non_integer_contract_rejects_pre_fix` (negative
+>   control: pre-fix `range(float("nan"))` raises `TypeError`; fixed function
+>   returns `[]`). +3 tests.
+> - **Verified (own evidence):** focused `tests/test_statistics.py -W error` →
+>   **320 passed** (16 walk-forward). Full pinned suite
+>   `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing
+>   --ignore=tests/test_gates_workflow.py` (334.98s) → **4241 passed, 51
+>   skipped, 0 failed**, `src/qtr` coverage **100.00%** (1624 stmts / 608
+>   branches / 0 miss). `python -m ruff check src tests run_*.py scripts` →
+>   clean. `python -m ruff format --check src tests run_*.py scripts` →
+>   **336 files already formatted**. `python scripts/backtest_perf_regression_gate.py`
+>   → **PERF GATE PASSED** (0.322s < 5s, 10.7MB, 13668 trades). No gate,
+>   artifact, sidecar, hash, frozen-number, or workflow change. `git apply --check
+>   patches/0001-gates-workflow-contract-fix.patch` → still applies cleanly
+>   (maintainer-gated, unchanged).
+
 > **Latest (2026-11-16, Cycle 157 — fixed a reproduced config-degenerate annualization defect: `sharpe_ratio(periods_per_year=0)` raised `ZeroDivisionError` and a negative/`nan`/`inf` period count emitted `nan`/`-inf` instead of failing closed; 100% coverage preserved):**
 > `src/qtr/validation/statistics.py::sharpe_ratio` divided the risk-free rate by `periods_per_year` (`excess = returns - risk_free / periods_per_year`) and multiplied the ratio by `sqrt(periods_per_year)`, with no guard on the period count. A **zero** period count raised `ZeroDivisionError`; a **negative** count multiplied by `sqrt(negative)` and emitted `nan` (with a `RuntimeWarning: invalid value encountered in sqrt`); a `nan`/`inf` count poisoned the result. `periods_per_year` is a bare `int` parameter a caller cannot filter on its own, and the default (`252`) is the only value any in-tree runner passes — every caller (`engine.py:290`, `run_baseline.py`, the CS-momentum runners, `annualized_sharpe`, `sharpe_ratio_ci`) uses the default or a value already validated finite-positive by `annualized_sharpe`'s own `bpy` guard. Same scalar-operand class the Cycle 156 handoff flagged as the next lead (`compare_to_benchmark`/`walk_forward_splits` are the sibling sites, left for a future evidenced cycle).
 > - **Fix:** `sharpe_ratio` returns `0.0` (the module's no-evidence result, already used for an empty or zero-variance series) when `periods_per_year` is not finite or is `<= 0`, before the `risk_free / periods_per_year` division. The empty-series guard still runs first; for every finite positive period count the arithmetic is bit-identical to before.

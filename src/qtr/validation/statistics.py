@@ -321,6 +321,11 @@ def walk_forward_splits(
     # before.
     if not all(np.isfinite(v) for v in (n_samples, n_splits, train_ratio, gap)):
         return []
+    if not all(
+        isinstance(v, (int, np.integer)) and not isinstance(v, bool)
+        for v in (n_samples, n_splits, gap)
+    ):
+        return []
     if n_samples < 0 or gap < 0 or n_splits <= 0:
         return []
     window_size = n_samples // n_splits
