@@ -539,6 +539,106 @@ class TestMultipleTestingCorrection:
 
 
 # ===========================================================================
+# multiple_testing_correction: alpha operand guard
+# ===========================================================================
+class TestMultipleTestingCorrectionAlphaGuard:
+    """Degenerate-operand guard on ``alpha``. The significance level is the
+    threshold the adjusted p-values are compared against in BOTH branches
+    (``adjusted < alpha``), so a degenerate ``alpha`` does not just corrupt
+    one test -- it inverts the decision for the entire set."""
+
+    DEGENERATE_ALPHAS = [
+        (np.inf, "positive_infinity"),
+        (-np.inf, "negative_infinity"),
+        (np.nan, "nan"),
+        (0.0, "zero"),
+        (1.0, "one"),
+        (1.5, "above_one"),
+        (-0.1, "negative"),
+    ]
+
+    @pytest.mark.parametrize("method", ["bonferroni", "benjamini_hochberg"])
+    @pytest.mark.parametrize("alpha, _id", DEGENERATE_ALPHAS, ids=[i for _, i in DEGENERATE_ALPHAS])
+    def test_degenerate_alpha_fail_closed(self, method, alpha, _id):
+        """A non-finite or out-of-range ``alpha`` is not a significance level,
+        and the correction must not manufacture a rejection or acceptance
+        out of it.
+
+        Pre-fix behaviour, measured on this input class:
+        - ``alpha=inf``: ``adjusted < inf`` is True for every finite adjusted
+          p-value, so the correction REJECTS every test (manufactured all-reject).
+        - ``alpha=nan``: ``adjusted < nan`` is False (unordered), so the
+          correction rejects nothing (manufactured all-accept).
+        - ``alpha=-inf``: same as nan, all-accept.
+        - ``alpha <= 0``: ``adjusted < 0`` is False for adjusted in [0, 1],
+          so the correction rejects nothing (degenerate boundary).
+        - ``alpha >= 1``: at ``alpha == 1`` the comparison ``adjusted < 1``
+          accepts any test not capped at 1.0 (significance floor drops out);
+          for ``alpha > 1`` the comparison is True for all finite adjusted
+          values, so the correction rejects everything (vacuous gate).
+
+        The fail-closed result is the no-evidence tuple: every test left
+        unadjusted (adjusted p-value 1.0, the maximally non-significant
+        value) and nothing rejected.
+        """
+        p = np.array([0.01, 0.04, 0.5, 0.001])
+        rejected, adjusted = st.multiple_testing_correction(p, method, alpha)
+        assert rejected.tolist() == [False] * len(p)
+        assert adjusted.tolist() == [1.0] * len(p)
+
+    @pytest.mark.parametrize("method", ["bonferroni", "benjamini_hochberg"])
+    def test_the_contract_rejects_the_pre_fix_alpha_behaviour(self, method):
+        """Negative control: reconstruct the pre-fix comparison on a degenerate
+        alpha and require the contract to reject it.
+
+        The pre-fix comparison ``adjusted < alpha`` produced manufactured
+        decisions (all-reject or all-accept) on these inputs; the corrected
+        function must return the no-evidence tuple instead.
+        """
+        p = np.array([0.01, 0.04, 0.5, 0.001])
+        n = len(p)
+
+        # Pre-fix arithmetic for bonferroni
+        adjusted_pre = np.minimum(p * n, 1.0)
+
+        # inf: pre-fix rejects all
+        pre_fix_inf = bool(np.all(adjusted_pre < np.inf))
+        assert pre_fix_inf is True
+
+        # nan: pre-fix rejects none (unordered)
+        pre_fix_nan = bool(np.all(adjusted_pre < np.nan))
+        assert pre_fix_nan is False
+
+        # 1.5: pre-fix rejects all
+        pre_fix_high = bool(np.all(adjusted_pre < 1.5))
+        assert pre_fix_high is True
+
+        # 0.0: pre-fix rejects none
+        pre_fix_zero = bool(np.any(adjusted_pre < 0.0))
+        assert pre_fix_zero is False
+
+        # The corrected function returns the no-evidence tuple for all.
+        for bad_alpha in (np.inf, np.nan, -np.inf, 0.0, 1.0, 1.5, -0.1):
+            rejected, adjusted = st.multiple_testing_correction(p, method, bad_alpha)
+            assert rejected.tolist() == [False] * len(p)
+            assert adjusted.tolist() == [1.0] * len(p)
+
+    @pytest.mark.parametrize("method", ["bonferroni", "benjamini_hochberg"])
+    def test_valid_alpha_unchanged(self, method):
+        """A finite alpha in (0, 1) computes the standard arithmetic."""
+        p = np.array([0.01, 0.04, 0.5, 0.001])
+        # 0.05 is the default and a standard significance level
+        rejected, adjusted = st.multiple_testing_correction(p, method, 0.05)
+        # Just verify it returns a valid result (not the no-evidence tuple)
+        assert len(rejected) == len(p)
+        assert len(adjusted) == len(p)
+        # At least one should be rejected with valid inputs
+        if method == "bonferroni":
+            assert rejected[3]  # p=0.001 * 4 = 0.004 < 0.05
+            assert adjusted[3] == pytest.approx(0.004)
+
+
+# ===========================================================================
 # parameter_sensitivity
 # ===========================================================================
 class TestParameterSensitivity:

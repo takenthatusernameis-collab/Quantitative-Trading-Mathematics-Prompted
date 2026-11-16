@@ -399,6 +399,40 @@ def multiple_testing_correction(
     ):
         return np.zeros(n, dtype=bool), np.ones(n, dtype=float)
 
+    # Scalar-operand guard on ``alpha``. The significance level is the
+    # threshold the adjusted p-values are compared against in BOTH branches
+    # (``adjusted < alpha``), so a degenerate ``alpha`` does not just corrupt
+    # one test -- it inverts the decision for the entire set:
+    #
+    # * a non-finite ``alpha`` (the H58/H61/H62 input class -- an ``inf``, a
+    #   ``-inf`` or a ``nan`` reaching a pure function that has no caller to
+    #   filter for it) is not a significance level. ``adjusted < inf`` is
+    #   True for every finite adjusted p-value, so an ``inf`` alpha
+    #   manufactures a REJECTION for every test -- a fabricated all-reject.
+    #   ``adjusted < nan`` is False (unordered), so a ``nan`` alpha rejects
+    #   nothing; ``adjusted < -inf`` is also False. Both manufacture an
+    #   all-accept.
+    # * ``alpha <= 0`` is not a significance level. ``adjusted < 0`` is
+    #   False for every adjusted p-value in [0, 1], so the correction
+    #   rejects nothing -- harmless in itself, but it is the degenerate
+    #   boundary.
+    # * ``alpha >= 1`` is not a valid significance level either. At
+    #   ``alpha == 1`` the comparison is ``adjusted < 1``, which accepts any
+    #   test with adjusted < 1.0 (i.e. every test that was not already
+    #   capped at 1.0), so the significance floor drops out. For ``alpha > 1``
+    #   the comparison is True for ALL finite adjusted p-values, so the
+    #   correction rejects everything -- a vacuous gate that certifies noise.
+    #
+    # The valid domain keeps ``alpha`` strictly inside (0, 1): a probability
+    # that is neither zero nor certainty. The fail-closed result is the
+    # same no-evidence tuple as the degenerate p-values path: every test
+    # left unadjusted (adjusted p-value 1.0) and nothing rejected. A caller
+    # gating on ``rejected`` fails closed, and a caller reading ``adjusted``
+    # sees 1.0 rather than a manufactured decision. For every finite
+    # ``alpha`` in (0, 1) the arithmetic is bit-identical to before.
+    if not (np.isfinite(alpha) and 0.0 < alpha < 1.0):
+        return np.zeros(n, dtype=bool), np.ones(n, dtype=float)
+
     if method == "bonferroni":
         adjusted = np.minimum(p_values * n, 1.0)
         rejected = adjusted < alpha
