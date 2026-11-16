@@ -9,6 +9,7 @@ is caught as a hard failure rather than a silent drift in the
 certified H10-H14 numbers.
 """
 
+import datetime
 import warnings
 
 import numpy as np
@@ -1943,3 +1944,82 @@ class TestPurgedKfoldEmptySplit:
         # index, and purge/embargo can mask it out.
         splits = st.combinatorial_purged_cv(5, n_splits=3, n_test_splits=2, purge=4, embargo=4)
         assert splits == []
+
+
+# ===========================================================================
+# Numeric-index annualization guard
+# ===========================================================================
+class TestBarsPerYearNumericIndex:
+    """A positional/numeric index is not a timestamp axis.
+
+    ``pd.DatetimeIndex`` coerces integers as nanoseconds since the epoch, so a
+    ``RangeIndex`` (the default index of ``pd.Series(list)`` and of
+    ``reset_index(drop=True)``) became a 1970 index spanning a few nanoseconds
+    and produced a bars-per-year of ~4.7e16. ``annualized_sharpe`` then scaled
+    the Sharpe by ``sqrt(4.7e16)`` ~= 2.2e8 -- a silent nine-orders-of-magnitude
+    corruption. The function must refuse a numeric index (NaN, the same
+    fail-closed value as a single-bar or zero-span index) rather than coerce it.
+    """
+
+    @pytest.mark.parametrize(
+        "index",
+        [
+            pd.RangeIndex(3),
+            pd.Index([1, 2, 3]),
+            pd.Index([1.0, 2.0, 3.0]),
+            pd.Index([1, 2, 3], dtype="int64"),
+            np.array([1, 2, 3]),
+            [1, 2, 3],
+        ],
+    )
+    def test_numeric_index_returns_nan(self, index):
+        assert np.isnan(st.bars_per_year(index))
+
+    def test_numeric_range_index_is_not_coerced_to_1970_nanoseconds(self):
+        # The pre-fix ``pd.DatetimeIndex(index)`` coercion is the defect: it
+        # turns RangeIndex(3) into a two-nanosecond span, i.e. ~4.7e16 bars/yr.
+        coerced = pd.DatetimeIndex(pd.RangeIndex(3))
+        span_ns = (coerced[-1] - coerced[0]).total_seconds() * 1e9
+        assert span_ns == pytest.approx(2.0)
+        pre_fix_bpy = len(coerced) / ((span_ns / 1e9) / 86400.0 / 365.25)
+        assert pre_fix_bpy > 1e10
+        # The guarded function refuses it instead.
+        assert np.isnan(st.bars_per_year(pd.RangeIndex(3)))
+
+    @pytest.mark.parametrize(
+        "index",
+        [
+            ["2020-01-01", "2020-01-02", "2020-01-03"],
+            [pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02"), pd.Timestamp("2020-01-03")],
+            [datetime.date(2020, 1, 1), datetime.date(2020, 1, 2), datetime.date(2020, 1, 3)],
+        ],
+    )
+    def test_datetime_like_non_datetime_index_still_converts(self, index):
+        # Only a *numeric* index is refused; a datetime-like list is still a
+        # valid timestamp axis and converts as before.
+        idx = pd.DatetimeIndex(index)
+        span_days = (idx[-1] - idx[0]).total_seconds() / 86400.0
+        expected = len(idx) / (span_days / 365.25)
+        assert st.bars_per_year(index) == pytest.approx(expected)
+
+    def test_annualized_sharpe_returns_zero_for_positional_index(self):
+        rets = np.array([0.01, -0.005, 0.02])
+        # A plain Series carries a RangeIndex: the most common way a caller
+        # hands a positional axis to the annualizer.
+        series = pd.Series(rets)
+        assert st.annualized_sharpe(series, series.index) == 0.0
+        assert st.annualized_sharpe(rets, pd.RangeIndex(3)) == 0.0
+
+    def test_annualized_sharpe_matches_daily_for_string_index(self):
+        rets = np.array([0.01, -0.005, 0.02])
+        daily = pd.DatetimeIndex(["2020-01-01", "2020-01-02", "2020-01-03"])
+        as_strings = ["2020-01-01", "2020-01-02", "2020-01-03"]
+        assert st.annualized_sharpe(rets, as_strings) == pytest.approx(
+            st.annualized_sharpe(rets, daily)
+        )
+
+    def test_daily_datetime_index_is_unchanged(self):
+        idx = pd.bdate_range("2020-01-01", periods=300)
+        span_days = (idx[-1] - idx[0]).total_seconds() / 86400.0
+        expected = len(idx) / (span_days / 365.25)
+        assert st.bars_per_year(idx) == pytest.approx(expected)

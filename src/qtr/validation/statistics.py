@@ -178,10 +178,34 @@ def bars_per_year(index: pd.DatetimeIndex) -> float:
         index: Bar timestamps (DatetimeIndex, or anything convertible to one)
 
     Returns:
-        Bars per calendar year. NaN when the index has fewer than two bars
-        or spans no measurable time.
+        Bars per calendar year. NaN when the index has fewer than two bars,
+        spans no measurable time, or is not a timestamp axis (a numeric /
+        positional index such as a ``RangeIndex``).
     """
-    idx = pd.DatetimeIndex(index)
+    if isinstance(index, pd.DatetimeIndex):
+        idx = index
+    else:
+        # A numeric index is a *positional* axis, not a timestamp axis.
+        # ``pd.DatetimeIndex`` coerces it by interpreting the integers as
+        # nanoseconds since the Unix epoch, so a ``RangeIndex(3)`` becomes
+        # 1970-01-01T00:00:00.000000001 .. .000000003 and the span is two
+        # nanoseconds -- a bars-per-year of ~4.7e16. That garbage factor then
+        # scales ``annualized_sharpe`` by ``sqrt(4.7e16)`` ~= 2.2e8 (measured:
+        # 1.76e8 for three returns whose daily-annualized Sharpe is 18.99), a
+        # silent nine-orders-of-magnitude corruption rather than an error. A
+        # ``RangeIndex`` is the *default* index of ``pd.Series(list)`` and of
+        # ``frame.reset_index(drop=True)``, so this is reachable from the public
+        # API with no caller-side filtering. Refuse it (NaN -> the no-evidence
+        # result, which ``annualized_sharpe`` maps to 0.0) rather than coerce
+        # it: this is the same "refuse a non-datetime index rather than
+        # manufacture 1970 timestamps" contract as
+        # ``DataFetcher._standardize_cached_index`` (fetcher.py:237). A
+        # datetime-like non-DatetimeIndex (a list of date strings or
+        # ``datetime``/``date`` objects) still converts.
+        raw = pd.Index(index)
+        if pd.api.types.is_numeric_dtype(raw):
+            return float("nan")
+        idx = pd.DatetimeIndex(raw)
     if len(idx) < 2:
         return float("nan")
     span_days = (idx[-1] - idx[0]).total_seconds() / 86400.0
