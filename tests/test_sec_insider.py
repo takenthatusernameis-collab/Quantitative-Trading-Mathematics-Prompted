@@ -655,3 +655,90 @@ def test_load_cached_transactions_returns_a_populated_cache(tmp_path):
     loaded = insider.load_cached_transactions(path)
     assert len(loaded) == len(frame)
     assert list(loaded.columns) == list(insider.TRANSACTION_COLUMNS)
+
+
+# --------------------------------------------------------------------------- #
+# Non-mapping EDGAR JSON documents: the submissions/filing-index layer
+# --------------------------------------------------------------------------- #
+class TestNonMappingEdgarJsonDocument:
+    """A submissions or filing-index document that is valid JSON but not a
+    mapping must not crash the EDGAR layer.
+
+    ``fetch_filings`` walks ``submissions["filings"]["recent"]`` and
+    ``filing_documents`` walks ``index["directory"]["item"]``. A document that
+    parses as valid JSON but holds a list, a scalar or a string where a
+    mapping is expected is the same class of unusable file the config layer
+    already fails closed on (Cycle 154): the first consumer to index it
+    raises ``AttributeError: 'list' object has no attribute 'get'``. EDGAR
+    serves untrusted external input, so a malformed submissions document is
+    reachable from the public API with no caller-side filtering
+    (``fetch_filings`` and ``filing_documents`` are the entry points of the
+    insider pipeline and are called by every runner that touches Form 4 data).
+
+    A mapping is returned unchanged; a non-mapping degrades to ``{}``, the
+    same tuple the absent-block path already returns, so a malformed document
+    is indistinguishable from an empty one.
+    """
+
+    @pytest.mark.parametrize("payload", [[1, 2, 3], "hello", 5, 3.14, True, None])
+    def test_recent_filings_returns_empty_for_non_mapping_filings(self, payload):
+        assert len(insider._recent_filings({"filings": payload})) == 0
+        assert list(insider._recent_filings({"filings": payload}).columns) == list(
+            insider.FILING_COLUMNS
+        )
+
+    @pytest.mark.parametrize("payload", [[1, 2, 3], "hello", 5, True, None])
+    def test_recent_filings_returns_empty_for_non_mapping_top_level(self, payload):
+        assert len(insider._recent_filings(payload)) == 0
+
+    @pytest.mark.parametrize("payload", [[1, 2, 3], "hello", 5, True, None])
+    def test_recent_filings_returns_empty_for_non_mapping_recent(self, payload):
+        assert len(insider._recent_filings({"filings": {"recent": payload}})) == 0
+
+    @pytest.mark.parametrize("payload", [[1, 2, 3], "hello", 5, True, None])
+    def test_fetch_filings_does_not_crash_on_non_mapping_filings(self, monkeypatch, payload):
+        monkeypatch.setattr(insider, "fetch_json", lambda *a, **k: {"filings": payload})
+        frame = insider.fetch_filings(320193)
+        assert len(frame) == 0
+        assert list(frame.columns) == list(insider.FILING_COLUMNS)
+
+    @pytest.mark.parametrize("payload", [[1, 2, 3], "hello", 5, True, None])
+    def test_filing_documents_does_not_crash_on_non_mapping_directory(self, monkeypatch, payload):
+        monkeypatch.setattr(insider, "fetch_json", lambda *a, **k: {"directory": payload})
+        assert insider.filing_documents(320193, "0001140361-26-043484") == {}
+
+    @pytest.mark.parametrize("payload", [[1, 2, 3], "hello", 5, True, None])
+    def test_filing_documents_does_not_crash_on_non_mapping_top_level(self, monkeypatch, payload):
+        monkeypatch.setattr(insider, "fetch_json", lambda *a, **k: payload)
+        assert insider.filing_documents(320193, "0001140361-26-043484") == {}
+
+    def test_filing_documents_skips_non_mapping_items_in_a_mapping_directory(self, monkeypatch):
+        # ``directory`` is a mapping (so it is descended into) but ``item`` is
+        # a list of mixed shapes; the non-mapping entries are skipped and the
+        # mapping ones are kept, exactly as the existing non-mapping-item
+        # test pins.
+        payload = {"directory": {"item": [{"name": ""}, "not-a-mapping", {"name": "form4.xml"}]}}
+        monkeypatch.setattr(insider, "fetch_json", lambda *a, **k: payload)
+        assert insider.filing_documents(320193, "0001140361-26-043484") == {
+            "form4.xml": "https://www.sec.gov/Archives/edgar/data/320193/000114036126043484/form4.xml"
+        }
+
+    def test_the_pre_fix_lookup_crashes_on_a_non_mapping_filings_block(self):
+        """Behavioural negative control: the pre-fix
+        ``(submissions.get("filings") or {}).get("recent")`` expression raises
+        ``AttributeError`` on a list document, so the corrected lookup is
+        load-bearing. Reconstructs the exact pre-fix expression on the same
+        fixture and requires it to raise, then requires the corrected
+        ``_recent_filings`` to return an empty frame.
+        """
+        payload = {"filings": [1, 2, 3]}
+        with pytest.raises(AttributeError):
+            (payload.get("filings") or {}).get("recent")
+        assert len(insider._recent_filings(payload)) == 0
+
+    def test_the_pre_fix_lookup_crashes_on_a_non_mapping_directory(self):
+        """Behavioural negative control for ``filing_documents``."""
+        payload = {"directory": [1, 2, 3]}
+        with pytest.raises(AttributeError):
+            (payload.get("directory") or {}).get("item")
+        assert insider._as_mapping(insider._as_mapping(payload).get("directory")) == {}

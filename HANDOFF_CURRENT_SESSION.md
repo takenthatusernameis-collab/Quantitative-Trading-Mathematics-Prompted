@@ -1,72 +1,58 @@
-# HANDOFF — current session (2026-11-16, Cycle 154)
+# HANDOFF — current session (2026-11-16, Cycle 155)
 
 ## What changed (substantive, not annotation-only)
 
-1. **`src/qtr/utils/config.py` — `load_config` now fails closed on a non-mapping
-   YAML document.** The loader did `_CONFIG = yaml.safe_load(f) or {}`. That
-   `or {}` only degrades the *falsy* documents (`null`, blank, `[]`, `0`, `""`)
-   to `{}`; a **truthy non-mapping** document (a YAML list `[1, 2, 3]`, a scalar
-   `5`, a string `hello`) was returned verbatim. `config.py` is the startup
-   config layer every runner touches — `DataCache`, `ExperimentTracker`,
-   `get_data_fetcher`, `get_tracker` all call `get_config()` -> `config_path` —
-   and every consumer indexes the config by key (`config["validation"]`,
-   `config.get(...)`), so the first construction raised
-   `AttributeError: 'list' object has no attribute 'get'`. This is the same
-   class as Cycle 150's `Experiment.load_metadata` non-dict-file defect, one
-   layer over.
-   - **Fix:** accept only a mapping document; otherwise fail closed to `{}` and
-     log a `loguru` warning naming the file and the offending type. A `null`/
-     blank document still yields `{}` silently (it is not a "wrong shape" the
-     way a list is). Every valid mapping config is bit-identical.
+1. **`src/qtr/data/insider.py` — added `_as_mapping()` and threaded it through the
+   EDGAR JSON parsing layer.** `_recent_filings` did
+   `(submissions.get("filings") or {}).get("recent")`, which only degrades a
+   *falsy* `filings` (`null`/blank) to `{}`; a **truthy non-mapping** document
+   (a list `[1, 2, 3]`, a scalar, a string) was indexed verbatim and the first
+   `.get("recent")` raised `AttributeError: 'list' object has no attribute
+   'get'`. `filing_documents` had the same shape one layer over
+   (`(index.get("directory") or {}).get("item")`). EDGAR serves untrusted external
+   JSON, so this is reachable from the public API with no caller-side filtering
+   -- a reproduced, runner-reachable defect.
+   - **Fix:** `_as_mapping(value)` returns the value when it is a dict, otherwise
+     `{}`. `_recent_filings` now does
+     `_as_mapping(_as_mapping(submissions).get("filings")).get("recent")` and
+     `filing_documents` does
+     `_as_mapping(_as_mapping(index).get("directory")).get("item")`. A mapping is
+     returned unchanged; a non-mapping degrades to `{}`, the same tuple the
+     absent-block path already returns, so a malformed document is
+     indistinguishable from an empty one. The non-mapping-item handling inside a
+     *mapping* `directory` (the existing
+     `test_filing_documents_skips_nameless_or_non_mapping_items`) is untouched.
+     This is the same class as Cycle 154's config fix, one layer over in the EDGAR
+     path rather than the startup config path.
 
-2. **`src/qtr/utils/config.py` — `_set_nested` tolerates a non-mapping node on
-   the path.** It did `d = d.setdefault(key, {})`, so a document like
-   `data: 5` plus any `QTR_*` env override (`QTR_CACHE_DIR`, `QTR_LOG_LEVEL`,
-   `QTR_MAX_CPU_HOURS`) returned the scalar and the next assignment raised
-   `TypeError: 'int' object does not support item assignment`. `_set_nested` now
-   replaces a non-mapping intermediate with a fresh dict (so the override still
-   lands, matching `config_value`'s "a non-mapping node is a walk failure, not a
-   value" contract) and ignores the override when the document itself is not a
-   mapping (there is nowhere to attach it). A valid nested mapping is descended
-   unchanged and the int/float/bool value parsing is untouched.
-
-3. **Tests:** `tests/test_config.py` (+12) —
-   `TestNonMappingConfigDocument`: parametrized list/int/str/bool/blank/null
-   documents load as `{}`; a non-mapping document plus `QTR_CACHE_DIR` still
-   applies the override; `DataCache()` constructs against a non-mapping
-   `config.yaml`. `TestSetNestedNonMapping`: a non-mapping intermediate is
-   replaced; a non-mapping document is ignored; an existing mapping is descended;
-   an end-to-end env override over a `data: 5` document lands.
+2. **Tests:** `tests/test_sec_insider.py::TestNonMappingEdgarJsonDocument` (+15) --
+   parametrized non-mapping `filings`/top-level/`recent` for `_recent_filings`,
+   parametrized non-mapping `filings`/`directory`/top-level for the public
+   `fetch_filings`/`filing_documents`, a mapping-`directory`-with-non-mapping-items
+   control, and two behavioural negative controls reconstructing the pre-fix
+   `(x or {}).get(...)` expressions and requiring them to raise.
 
 ## What was actually verified (own evidence, this session)
 
-- **Repro before fix** (`/tmp/probe6.py`, temp cwd + `config.yaml`): with
-  `config.yaml` = `[1, 2, 3]`, `DataCache()` raised
-  `AttributeError: 'list' object has no attribute 'get'`; with `data: 5` +
-  `QTR_CACHE_DIR`, `load_config()` raised
-  `TypeError: 'int' object does not support item assignment`. After the fix both
-  return an empty/override-applied config and `DataCache()` constructs.
-- **Negative control:** `git stash push -- src/qtr/utils/config.py` →
-  `TestNonMappingConfigDocument` + `TestSetNestedNonMapping` **9 failed, 3
-  passed** (the 3 are the two already-`{}` cases `""`/`null` and the
-  existing-mapping descent); `git stash pop` → **55 passed** on
-  `tests/test_config.py` (was 43 on `origin/main`; +12).
-- **Focused:** `python -m pytest -q tests/test_config.py tests/test_data_fetcher.py tests/test_experiment_tracker.py tests/test_experiment_tracking.py tests/test_experiment_artifact_schema.py -W error` → **318 passed**.
-- **`config.py` coverage from the config tests alone:** `--cov=qtr --cov-branch`
-  → `config.py` **85 stmts / 40 branches / 0 miss (100%)**.
+- **Repro before fix** (`/tmp/probe_insider.py`, `/tmp/repro2.py`): `fetch_filings`
+  on `{"filings": [1, 2, 3]}` raised `AttributeError`; `filing_documents` on
+  `{"directory": [1, 2, 3]}` raised `AttributeError`. After the fix both return an
+  empty frame / empty dict.
+- **Negative control:** `git stash push -- src/qtr/data/insider.py` ->
+  `TestNonMappingEdgarJsonDocument` **25 failed, 9 passed** (the 9 are the
+  already-`{}` cases and the mapping-directory control); `git stash pop` -> **72
+  passed** on `tests/test_sec_insider.py`.
 - **Full pinned suite** `python -m pytest -q -W error --cov=qtr --cov-branch
-  --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (448.24s) →
-  **3974 passed, 51 skipped, 0 failed**, `src/qtr` coverage **100.00%**
-  (1575 stmts / 572 branches / 0 miss; `config.py` 85/40).
-  - Count reconciliation vs the Cycle 153 baseline (3962 passed / 51 skipped):
-    +12 new tests = **3974 passed**, skipped unchanged. No other delta.
-- `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged,
+  --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (441.48s) ->
+  **4008 passed, 51 skipped, 0 failed**, `src/qtr` coverage **100.00%**
+  (1577 stmts / 572 branches / 0 miss; `insider.py` 236/84).
+- `python -m pytest -q tests/test_gates_workflow.py` -> **7 failed** (unchanged,
   exclusively the maintainer-gated block; fix is
   `patches/0001-gates-workflow-contract-fix.patch`).
-- `python scripts/backtest_perf_regression_gate.py` → **PERF GATE PASSED**
-  (0.431s < 5s, 10.7MB peak, 13668 trades).
-- `python -m ruff check src tests run_*.py scripts` → **All checks passed.**
-  `python -m ruff format --check src tests run_*.py scripts` → **336 files
+- `python scripts/backtest_perf_regression_gate.py` -> **PERF GATE PASSED**
+  (0.418s < 5s, 10.7MB peak, 13668 trades).
+- `python -m ruff check src tests run_*.py scripts` -> **All checks passed.**
+  `python -m ruff format --check src tests run_*.py scripts` -> **336 files
   already formatted.**
 
 ## What remains unresolved
@@ -87,8 +73,10 @@
   `max_leverage`/`initial_capital`/`max_position_size` boundaries (Cycles
   147/148/152), duplicate index/column handling in engine/fetcher/tracker paths,
   `Experiment.record_artifact` DataFrame dedupe, `Experiment.load_metadata`
-  non-dict-file handling (Cycle 150), artifact/log path traversal, and now the
-  `load_config`/`_set_nested` non-mapping-document handling (Cycle 154).
+  non-dict-file handling (Cycle 150), artifact/log path traversal, the
+  `load_config`/`_set_nested` non-mapping-document handling (Cycle 154), and now
+  the EDGAR `_recent_filings`/`filing_documents` non-mapping-document handling
+  (Cycle 155).
 - Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or
   alter coverage/frozen-contract gates.
 - Do not make speculative `src/qtr` changes absent a reproduced, reachable
@@ -105,7 +93,7 @@
 `origin/main`.
 
 **Agent path (new evidence only):** hunt a *reproduced, runner-reachable*
-`src/qtr` defect on a public path **not yet closed** — fuzz/boundary probes at
+`src/qtr` defect on a public path **not yet closed** -- fuzz/boundary probes at
 smallest inputs (n=0/1/2, empty, duplicate labels, non-finite, corrupt/partial
 state, untrusted names/paths, type-mismatched operands). If `src/qtr` changes,
 re-run the full pinned suite (excluding the maintainer-gated workflow file),

@@ -178,9 +178,31 @@ def _recent_column(recent: dict, key: str, count: int) -> list:
     return values[:count] + [""] * (count - len(values))
 
 
+def _as_mapping(value: object) -> dict:
+    """Return ``value`` when it is a mapping, otherwise an empty dict.
+
+    EDGAR's submissions JSON is untrusted external input. A document that
+    parses as valid JSON but holds a list, a scalar or a string where a
+    mapping is expected is the same class of unusable file the config layer
+    already fails closed on (Cycle 154): the first consumer to index it
+    crashes. Here the consumers are ``_recent_filings`` (which does
+    ``submissions.get("filings").get("recent")``) and ``filing_documents``
+    (which does ``index.get("directory").get("item")``), so a non-mapping
+    ``filings`` or ``directory`` block raises ``AttributeError`` out of a
+    function every caller treats as returning a frame or a dict -- a
+    reproduced, runner-reachable defect (``fetch_filings`` on a document
+    holding ``filings: [1, 2, 3]`` and ``filing_documents`` on one holding
+    ``directory: [1, 2, 3]`` both raise). A mapping is returned unchanged; a
+    non-mapping degrades to ``{}``, the same tuple the absent-block path
+    already returns, so a malformed document is indistinguishable from an
+    empty one.
+    """
+    return value if isinstance(value, dict) else {}
+
+
 def _recent_filings(submissions: dict) -> pd.DataFrame:
     """The columnar ``filings.recent`` block as a frame (empty when absent)."""
-    recent = (submissions.get("filings") or {}).get("recent") or {}
+    recent = _as_mapping(_as_mapping(submissions).get("filings")).get("recent") or {}
     if not isinstance(recent, dict) or not recent.get("accessionNumber"):
         return pd.DataFrame(columns=list(FILING_COLUMNS))
 
@@ -256,7 +278,7 @@ def filing_documents(
     index = fetch_json(
         filing_index_url(cik, accession_number), user_agent=user_agent, timeout=timeout
     )
-    items = ((index.get("directory") or {}).get("item")) or []
+    items = (_as_mapping(_as_mapping(index).get("directory")).get("item")) or []
     documents = {}
     for item in items:
         name = item.get("name") if isinstance(item, dict) else None
