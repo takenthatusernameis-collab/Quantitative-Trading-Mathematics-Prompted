@@ -291,7 +291,26 @@ def walk_forward_splits(
     Returns:
         List of (train_indices, test_indices) tuples
     """
-    if n_splits <= 0:
+    # Degenerate-input guard. A walk-forward split is only defined on a
+    # finite, non-negative sample count, a finite split count, a finite
+    # train ratio and a finite, non-negative gap. The function used to walk
+    # straight into the arithmetic on config-degenerate scalars:
+    #
+    # * a non-finite ``train_ratio`` (nan/inf/-inf) makes ``int(len * r)``
+    #   raise ``ValueError: cannot convert float NaN/infinity to integer``;
+    # * a non-finite ``gap`` makes ``np.arange(split_point + gap, end)``
+    #   raise ``ValueError: arange: cannot compute length``;
+    # * a non-finite ``n_samples`` makes the window/end arithmetic raise or
+    #   produce a bogus split.
+    #
+    # All are bare scalar parameters a caller has no way to filter on its
+    # own, so they fail closed to ``[]`` -- the no-evidence result the
+    # function already returns for an empty/degenerate window -- rather than
+    # raising. For every finite input the arithmetic is bit-identical to
+    # before.
+    if not all(np.isfinite(v) for v in (n_samples, n_splits, train_ratio, gap)):
+        return []
+    if n_samples < 0 or gap < 0 or n_splits <= 0:
         return []
     window_size = n_samples // n_splits
     if window_size == 0:

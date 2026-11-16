@@ -390,6 +390,45 @@ class TestWalkForwardSplits:
         hi = st.walk_forward_splits(100, n_splits=1, train_ratio=0.9, gap=0)[0]
         assert len(hi[0]) > len(lo[0])
 
+    def test_walk_forward_splits_fail_closed_on_degenerate_scalars(self):
+        """Config-degenerate scalar parameters must not raise.
+
+        ``train_ratio``/``gap``/``n_samples`` are bare scalars a caller
+        cannot filter on its own. A non-finite ``train_ratio`` used to
+        raise ``ValueError: cannot convert float NaN to integer`` at
+        ``int(len * train_ratio)``; a non-finite ``gap`` or ``n_samples``
+        raised ``ValueError`` from ``np.arange``/window arithmetic. All
+        must fail closed to ``[]`` -- the same no-evidence result as an
+        empty or degenerate window.
+        """
+        import warnings
+
+        for bad_ratio in (float("nan"), float("inf"), float("-inf")):
+            with warnings.catch_warnings():
+                warnings.simplefilter("error", RuntimeWarning)
+                assert st.walk_forward_splits(100, train_ratio=bad_ratio) == []
+        for bad_gap in (float("nan"), float("inf"), float("-inf"), -1):
+            assert st.walk_forward_splits(100, gap=bad_gap) == []
+        for bad_n in (float("nan"), float("inf"), float("-inf"), -5):
+            assert st.walk_forward_splits(bad_n) == []
+        for bad_splits in (float("nan"), float("inf"), float("-inf")):
+            assert st.walk_forward_splits(100, n_splits=bad_splits) == []
+
+    def test_walk_forward_splits_degenerate_contract_rejects_pre_fix(self):
+        """Behavioural negative control: the pre-fix arithmetic must raise.
+
+        Reconstructs the pre-fix ``int(len(window_indices) * train_ratio)``
+        and ``np.arange(split_point + gap, end)`` paths on a degenerate
+        scalar and requires both to be rejected by the fail-closed contract.
+        """
+        window = np.arange(0, 20)
+        with pytest.raises(ValueError):
+            _ = int(len(window) * float("nan"))
+        with pytest.raises(ValueError):
+            _ = np.arange(14 + float("nan"), 20)
+        assert st.walk_forward_splits(100, train_ratio=float("nan")) == []
+        assert st.walk_forward_splits(100, gap=float("nan")) == []
+
 
 # ===========================================================================
 # multiple_testing_correction
@@ -2001,17 +2040,17 @@ class TestCompareToBenchmarkDegeneratePeriodsPerYear:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", RuntimeWarning)
             pre_fix_negative = float((strat - bench).std(ddof=0) * np.sqrt(-1))
-        assert np.isnan(pre_fix_negative), (
-            "the pre-fix negative-period path must emit nan"
-        )
+        assert np.isnan(pre_fix_negative), "the pre-fix negative-period path must emit nan"
 
         # The corrected implementation returns the no-evidence tuple for both.
-        assert st.compare_to_benchmark(
-            strat, bench, risk_free=risk_free, periods_per_year=0
-        ) == st._no_comparison()
-        assert st.compare_to_benchmark(
-            strat, bench, risk_free=risk_free, periods_per_year=-1
-        ) == st._no_comparison()
+        assert (
+            st.compare_to_benchmark(strat, bench, risk_free=risk_free, periods_per_year=0)
+            == st._no_comparison()
+        )
+        assert (
+            st.compare_to_benchmark(strat, bench, risk_free=risk_free, periods_per_year=-1)
+            == st._no_comparison()
+        )
 
 
 # ===========================================================================
