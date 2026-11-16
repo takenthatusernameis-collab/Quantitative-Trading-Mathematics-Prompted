@@ -342,9 +342,11 @@ class TestRecentFilingsNonListValue:
         payload = {"filings": {"recent": {"accessionNumber": ["a", "b"], "form": 4}}}
         monkeypatch.setattr(insider, "fetch_json", lambda *a, **k: payload)
         frame = insider.fetch_filings(320193)
+        # A non-list form cell degrades to blank in _recent_filings, so it does
+        # not match the requested form filter and fetch_filings drops the rows
+        # rather than aborting the CIK.
         assert list(frame.columns) == list(insider.FILING_COLUMNS)
-        assert frame["form"].tolist() == ["", ""]
-        assert frame["accession_number"].tolist() == ["a", "b"]
+        assert len(frame) == 0
 
     def test_fetch_filings_drops_block_on_scalar_accession_number(self, monkeypatch):
         payload = {"filings": {"recent": {"accessionNumber": 5, "form": "4"}}}
