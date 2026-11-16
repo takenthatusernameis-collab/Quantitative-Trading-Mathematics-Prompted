@@ -1,6 +1,6 @@
 # Experiment Lineage Report
 
-**Generated:** 2026-11-14 20:31:21 UTC
+**Generated:** 2026-11-16 12:43:31 UTC
 **Source:** `.experiments/experiments.jsonl`
 **Total Experiments:** 174
 
