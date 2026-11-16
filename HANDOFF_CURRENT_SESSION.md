@@ -1,4 +1,4 @@
-# Handoff — Current Session: baseline re-verification (Cycle 167, no new runner-reachable defect found)
+# Handoff — Current Session: baseline re-verification (Cycle 168, no new runner-reachable defect found)
 
 ## What changed
 - No source, test, or artifact changes. Session focused on re-verifying the current baseline and hunting for a new bounded, high-value task.
@@ -7,10 +7,9 @@
 - `git status --short --untracked-files=all`: clean working tree, up to date with `origin/main`.
 - `python -m ruff check src tests run_*.py scripts` -> All checks passed.
 - `python -m ruff format --check src tests run_*.py scripts` -> 336 files already formatted.
-- `python scripts/backtest_perf_regression_gate.py` -> PERF GATE PASSED (0.429s < 5s, 10.7MB, 13668 trades).
-- Full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (450.31s) -> **4210 passed, 51 skipped, 0 failed**, `src/qtr` coverage **100.00%** (1616 stmts / 600 branches / 0 miss).
+- `python scripts/backtest_perf_regression_gate.py` -> PERF GATE PASSED (0.426s < 5s, 10.7MB, 13668 trades).
+- Full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (452.14s) -> **4210 passed, 51 skipped, 0 failed**, `src/qtr` coverage **100.00%** (1616 stmts / 600 branches / 0 miss).
 - `python -m pytest -q tests/test_gates_workflow.py` -> **7 failed** (unchanged, maintainer-gated; fix in `patches/0001-gates-workflow-contract-fix.patch`, agent cannot edit `.github/workflows/**`).
-- Reproducibility backlog re-measured: `python scripts/repair_sidecar_schemas.py` -> "checked 1199 hash-exact sidecars, repaired 0" (sidecar schema contract already fully satisfied); `python scripts/plan_artifact_restoration.py` -> Recoverable 0 / Excluded 172 / Unrecoverable 25 (unchanged); `tests/test_reproducibility_audit.py` + `tests/test_sidecar_schema_contract.py` + `tests/test_experiment_artifact_schema.py` -> 113 passed.
 
 ## Hunted this session (no new defect evidenced)
 - **Flagged sibling sites in `src/qtr/validation/statistics.py`** (`compare_to_benchmark`, `walk_forward_splits`, `multiple_testing_correction`, `sharpe_ratio_ci`, `regime_analysis`, `stressed_cost_test`, `capacity_estimate`, `statistical_power_analysis`, `validate_strategy`, `purged_kfold_splits`, `combinatorial_purged_cv`, `_purged_cv_operands_valid`): all already carry fail-closed degenerate-input guards; no reproduced, runner-reachable defect. The Cycle 157 handoff's "next lead" is already closed.
