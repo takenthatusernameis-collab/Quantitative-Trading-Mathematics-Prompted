@@ -1,42 +1,80 @@
-# Handoff — Current Session: baseline re-verification (Cycle 168, no new runner-reachable defect found)
+# Handoff — Current Session: fail-closed non-finite `risk_free` guard (Cycle 169, 2026-11-16)
 
 ## What changed
-- No source, test, or artifact changes. Session focused on re-verifying the current baseline and hunting for a new bounded, high-value task.
+- `src/qtr/validation/statistics.py`:
+  - `sharpe_ratio`: added a fail-closed guard so a non-finite `risk_free`
+    (`nan`/`inf`/`-inf`) returns `0.0` instead of `nan`/`-inf`.
+  - `compare_to_benchmark`: added the same guard so a non-finite `risk_free`
+    returns `_no_comparison()` instead of a `nan` `alpha_annualized` alongside
+    finite `beta`/IR/p-value (and instead of an `-W error`-fatal
+    `RuntimeWarning: invalid value encountered in scalar subtract`).
+  - Both docstrings updated to state the new invariant.
+- `tests/test_statistics.py`: +10 tests
+  (`TestSharpeRatioRiskFreeGuard`, plus two `compare_to_benchmark` cases),
+  covering both outcomes of each new branch and a pre-fix negative control.
+
+## Why this was a real defect (own reproduction, before the fix)
+- `sharpe_ratio(rets, risk_free=nan)` -> `nan`; `risk_free=inf` -> `-inf`.
+- `compare_to_benchmark(strat, bench, risk_free=inf)` raised
+  `RuntimeWarning: invalid value encountered in scalar subtract` under
+  `python -W error` (fatal in the pinned suite), and with `nan` returned
+  `alpha_annualized=nan` while `information_ratio`/`alpha_p_value` stayed finite
+  — the same internally-inconsistent, fail-open class the module already guards
+  for `periods_per_year`, `max_p_value`, `adv`, `max_participation`, etc.
+- No in-tree runner passes a non-default `risk_free` (all use `0.0`), so no
+  published/frozen number changes; the full suite confirms this.
 
 ## Actually verified (this session, own evidence)
-- `git status --short --untracked-files=all`: clean working tree, up to date with `origin/main`.
 - `python -m ruff check src tests run_*.py scripts` -> All checks passed.
 - `python -m ruff format --check src tests run_*.py scripts` -> 336 files already formatted.
-- `python scripts/backtest_perf_regression_gate.py` -> PERF GATE PASSED (0.426s < 5s, 10.7MB, 13668 trades).
-- Full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (452.14s) -> **4210 passed, 51 skipped, 0 failed**, `src/qtr` coverage **100.00%** (1616 stmts / 600 branches / 0 miss).
-- `python -m pytest -q tests/test_gates_workflow.py` -> **7 failed** (unchanged, maintainer-gated; fix in `patches/0001-gates-workflow-contract-fix.patch`, agent cannot edit `.github/workflows/**`).
+- `python scripts/backtest_perf_regression_gate.py` -> PERF GATE PASSED
+  (0.431s < 5s, 10.7MB peak, 13668 trades).
+- Full pinned suite
+  `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py`
+  (452.88s) -> **4220 passed, 51 skipped, 0 failed**, `src/qtr` coverage
+  **100.00%** (1620 stmts / 604 branches / 0 miss).
+- `python -m pytest -q tests/test_gates_workflow.py` -> **7 failed** (unchanged,
+  maintainer-gated; fix is `patches/0001-gates-workflow-contract-fix.patch`).
 
-## Hunted this session (no new defect evidenced)
-- **Flagged sibling sites in `src/qtr/validation/statistics.py`** (`compare_to_benchmark`, `walk_forward_splits`, `multiple_testing_correction`, `sharpe_ratio_ci`, `regime_analysis`, `stressed_cost_test`, `capacity_estimate`, `statistical_power_analysis`, `validate_strategy`, `purged_kfold_splits`, `combinatorial_purged_cv`, `_purged_cv_operands_valid`): all already carry fail-closed degenerate-input guards; no reproduced, runner-reachable defect. The Cycle 157 handoff's "next lead" is already closed.
-- **H182 runner + fetch script** (`run_nf_20261110_08_insider_signal.py`, `scripts/fetch_h182_insider_data.py`): 29 contract tests pass; runner is pre-registered and already executed/rejected (Cycle 115), not a new task.
-- **Reproducibility backlog** (`missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0`): frozen at its recorded baseline; no recoverable rows; no hash-exact source for the 25 unrecoverable rows.
-- **New-family discovery (H183)**: free-data point-in-time strategy-family queue remains exhausted (H1–H182 executed/rejected); no feasible repo-new candidate under free/public PIT data. Not invented.
+## Approaches already tried / do not repeat
+- Do not re-audit the already-pinned statistics guards without new evidence
+  (empty/non-finite data, `periods_per_year`, split/CV operands, `max_p_value`,
+  `adv`/`max_participation`, `power`/`alpha`/`effect_size`, etc. are closed).
+- Do not edit `.github/workflows/**`, weaken `tests/test_gates_workflow.py`, or
+  alter coverage/frozen-contract gates or published/frozen artifacts/verdicts/
+  thresholds/numbers.
+- Do not invent a free-data H183 or treat parameter/timeframe/universe/close-
+  substitute variations as new mechanism families.
+- Do not use `--cov=<dotted.module>` (aborts collection); use `--cov=qtr`.
 
 ## Unresolved / pre-existing (unchanged)
-- Maintainer-only workflow patch for `.github/workflows/gates.yml` required to make `tests/test_gates_workflow.py` green on `origin/main` (see `patches/0001-gates-workflow-contract-fix.patch`).
-- H1–H182 exhausted under free/public PIT data; no honest H183 without new authorized data (see `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 140, `AGENTS.md` stale H-range note).
-- Reproducibility backlog baseline-frozen at `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0`.
-
-## Approaches tried / checked this session (no new defect evidenced)
-- Re-read `HANDOFF.md`, `HANDOFF_CURRENT.md`, `NEXT_TASK.md`, `HANDOFF_CURRENT_SESSION.md`, `patches/`, `git log`, and `git status`; confirmed no pending local source diffs.
-- Spot-checked every public pure function in `src/qtr/validation/statistics.py` and `src/qtr/strategies/baselines.py` for additional degenerate-scalar/config guard gaps. None found that warrants a minimal reversible fix without speculation.
-- Re-measured the reproducibility backlog and sidecar schema contract directly rather than trusting handoff counts.
-- Did not edit `.github/workflows/**`, did not weaken `tests/test_gates_workflow.py` or any gate/frozen contract/artifact, and did not invent an H183.
+- Maintainer-only workflow patch for `.github/workflows/gates.yml` required to
+  make `tests/test_gates_workflow.py` green on `origin/main`
+  (`patches/0001-gates-workflow-contract-fix.patch`); the agent token has no
+  `workflows` permission and the controller restores `.github/workflows/**`.
+- H1–H182 exhausted/rejected under free/public PIT data; no honest H183 without
+  new authorized data (see `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 140/116).
+- Reproducibility backlog baseline-frozen: Recoverable 0 / Excluded 172 /
+  Unrecoverable 25.
 
 ## One precise next task
-**Maintainer (preferred, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch` with workflow-scoped credentials, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed) on `origin/main`.
+**Maintainer (preferred, unblocks CI):** apply and push
+`patches/0001-gates-workflow-contract-fix.patch` with workflow scope, then
+`python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed) on
+`origin/main`.
 
-**Agent alternative (only with new evidence):** if a new concrete, reproduced, runner-reachable defect appears in `src/qtr`, runners, or corpus metadata, implement the smallest reversible fix, add/adjust tests preserving 100% `src/qtr` coverage, and verify with:
-- `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py`
-- `python -m ruff check src tests run_*.py scripts`
-- `python -m ruff format --check src tests run_*.py scripts`
-- `python scripts/backtest_perf_regression_gate.py`
+**Agent alternative (only with new evidence):** audit the remaining public
+scalar operands for the same non-finite fail-open class. Concrete lead:
+`multiple_testing_correction(p_values, alpha=...)` does not validate `alpha`; a
+non-finite `alpha` (e.g. `inf`) makes `rejected = adjusted < alpha` reject every
+hypothesis (a manufactured rejection), and `alpha=nan` rejects none. Reproduce
+first, then apply the smallest fail-closed guard + tests, preserving 100%
+`src/qtr` coverage, and verify with the full pinned suite, ruff, and the perf
+gate.
 
-**Constraints:** no gate weakening; no modification of published/frozen artifacts, verdicts, thresholds, or frozen numbers except deliberate authorized corpus/baseline updates; no workflow commit from agent.
-
-(End of file - total 44 lines)
+## Evidence / constraints
+- Changes are in the working tree (not committed; no commit was requested).
+- `git diff --stat`: `src/qtr/validation/statistics.py` (+27/-1),
+  `tests/test_statistics.py` (+63).
+- Do not modify published/frozen artifacts, verdicts, thresholds, or frozen
+  numbers; do not weaken gates; no workflow commit from the agent.

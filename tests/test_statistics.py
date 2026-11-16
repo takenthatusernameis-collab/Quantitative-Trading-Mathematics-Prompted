@@ -1966,6 +1966,30 @@ class TestCompareToBenchmarkDegenerate:
         assert res["information_ratio"] == 0.0
         assert res["alpha_p_value"] == 1.0
 
+    @pytest.mark.parametrize("rf", [float("nan"), float("inf"), float("-inf")])
+    def test_non_finite_risk_free_returns_no_evidence(self, rf):
+        # A non-finite risk-free rate is config-degenerate. The pre-fix body
+        # emitted a nan alpha alongside finite beta/IR/p-value (and raised an
+        # -W error-fatal RuntimeWarning for an infinite rate); it must fail
+        # closed to the no-evidence tuple instead.
+        rng = np.random.default_rng(21)
+        strat = rng.normal(0.001, 0.01, 252)
+        bench = rng.normal(0.0005, 0.01, 252)
+        res = st.compare_to_benchmark(strat, bench, risk_free=rf)
+        assert res == st._no_comparison()
+        assert np.isfinite(res["alpha_annualized"])
+        assert res["alpha_p_value"] == 1.0
+
+    def test_the_contract_rejects_the_pre_fix_non_finite_risk_free(self):
+        """Negative control: the pre-fix CAPM alpha used ``risk_free / periods``
+        directly, so a non-finite rate produced a non-finite alpha.
+        """
+        strat = np.array([0.01, -0.005, 0.02])
+        bench = np.array([0.005, -0.002, 0.01])
+        pre_fix_alpha = float(strat.mean() - float("nan") / 252)
+        assert not np.isfinite(pre_fix_alpha)
+        assert st.compare_to_benchmark(strat, bench, risk_free=float("nan")) == st._no_comparison()
+
 
 class TestCompareToBenchmarkDegeneratePeriodsPerYear:
     """A non-positive or non-finite ``periods_per_year`` is config-degenerate.
@@ -2386,3 +2410,42 @@ class TestSharpeRatioPeriodGuard:
         # The corrected implementation is finite 0.0 for both.
         assert st.sharpe_ratio(rets, periods_per_year=0) == 0.0
         assert st.sharpe_ratio(rets, periods_per_year=-1) == 0.0
+
+
+class TestSharpeRatioRiskFreeGuard:
+    """A non-finite ``risk_free`` is config-degenerate and fails closed.
+
+    ``risk_free`` is subtracted from the mean return, so an ``inf``/``-inf``/
+    ``nan`` rate makes ``excess`` non-finite and the ratio ``nan``/``-inf`` --
+    a non-finite result that silently voids every gate reading it. It must
+    fail closed to ``0.0`` exactly like the ``periods_per_year`` guard above.
+    """
+
+    @pytest.mark.parametrize("rf", [float("nan"), float("inf"), float("-inf")])
+    def test_non_finite_risk_free_returns_zero(self, rf):
+        rng = np.random.default_rng(21)
+        rets = rng.normal(0.001, 0.01, 252)
+        result = st.sharpe_ratio(rets, risk_free=rf)
+        assert result == 0.0
+        assert np.isfinite(result)
+
+    def test_finite_risk_free_is_unchanged(self):
+        rng = np.random.default_rng(21)
+        rets = rng.normal(0.001, 0.01, 252)
+        assert st.sharpe_ratio(rets, risk_free=0.05) == pytest.approx(
+            st.sharpe_ratio(rets, risk_free=0.0) - 0.05 / (rets.std() * np.sqrt(252))
+        )
+
+    def test_annualized_sharpe_inherits_the_guard(self):
+        idx = pd.bdate_range("2020-01-01", periods=8)
+        rets = np.array([0.01, -0.005, 0.02, 0.015, -0.01, 0.005, 0.0, 0.003])
+        assert st.annualized_sharpe(rets, idx, risk_free=float("nan")) == 0.0
+
+    def test_the_contract_rejects_the_pre_fix_non_finite_risk_free(self):
+        """Negative control: the pre-fix Sharpe emitted a non-finite value."""
+        rets = np.array([0.01, -0.005, 0.02, 0.015, -0.01])
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            pre_fix = float((rets - float("inf") / 252).mean() / rets.std() * np.sqrt(252))
+        assert not np.isfinite(pre_fix)
+        assert st.sharpe_ratio(rets, risk_free=float("inf")) == 0.0

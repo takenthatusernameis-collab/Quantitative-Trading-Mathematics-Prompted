@@ -134,12 +134,23 @@ def sharpe_ratio(
     config-degenerate inputs a caller has no way to filter on its own (the
     default is a bare int), so they fail closed to ``0.0`` -- the no-evidence
     result the module already uses for an empty series and a zero-variance
-    series -- rather than raising or returning ``nan``.
+    series.
+
+    The annual risk-free rate ``risk_free`` is the other scalar operand and is
+    guarded the same way. It is subtracted from the mean return, so a
+    non-finite value (an ``inf``/``-inf``/``nan`` reaching a pure function that
+    has no caller to filter for it) makes ``excess`` non-finite and the ratio
+    ``nan``/``-inf`` -- a non-finite result that silently voids every gate
+    reading it, and the same input class the ``periods_per_year`` guard above
+    closes. It fails closed to ``0.0`` like every other degenerate scalar; for
+    every finite ``risk_free`` the arithmetic is bit-identical.
     """
     returns = np.asarray(returns, dtype=float)
     if returns.size == 0:
         return 0.0
     if not np.isfinite(periods_per_year) or periods_per_year <= 0:
+        return 0.0
+    if not np.isfinite(risk_free):
         return 0.0
     excess = returns - risk_free / periods_per_year
     # Tolerance guard: a constant return series has std ~1e-19 from float
@@ -1031,6 +1042,20 @@ def compare_to_benchmark(
             "Pass it as the keyword argument `risk_free=`."
         )
     risk_free = float(risk_free)
+
+    # Finite-scalar guard on ``risk_free``. It is the subtrahend in the CAPM
+    # alpha (``risk_free / periods_per_year``), so a non-finite rate (an
+    # ``inf``/``-inf``/``nan`` reaching a pure function that has no caller to
+    # filter for it) makes ``alpha_annualized`` ``nan`` while ``beta``,
+    # ``information_ratio``, ``alpha_p_value`` and ``win_rate`` stay finite --
+    # an internally inconsistent result that silently voids every gate reading
+    # ``alpha_annualized``, and under ``pytest -W error`` the ``inf`` case
+    # raises ``RuntimeWarning: invalid value encountered in scalar subtract``.
+    # This is the same fail-closed class as the ``periods_per_year`` guard
+    # below. It fails closed to ``_no_comparison()``; for every finite
+    # ``risk_free`` the arithmetic is bit-identical to before.
+    if not np.isfinite(risk_free):
+        return _no_comparison()
 
     # Scalar-operand guard on the annualization factor. ``periods_per_year``
     # appears in THREE places below -- it divides the risk-free rate inside
