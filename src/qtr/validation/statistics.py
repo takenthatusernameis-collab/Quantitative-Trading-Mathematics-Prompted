@@ -123,9 +123,23 @@ def sharpe_ratio(
     risk_free: float = 0.0,
     periods_per_year: int = 252,
 ) -> float:
-    """Compute annualized Sharpe ratio."""
+    """Compute annualized Sharpe ratio.
+
+    The annualization factor ``periods_per_year`` must be finite and strictly
+    positive: it multiplies the ratio by ``sqrt(periods_per_year)`` and
+    divides the risk-free rate by itself. A zero period count divided the
+    risk-free term by zero and raised ``ZeroDivisionError``; a negative one
+    multiplied by the square root of a negative number and emitted ``nan``;
+    a ``nan``/``inf`` period count likewise poisoned the result. All are
+    config-degenerate inputs a caller has no way to filter on its own (the
+    default is a bare int), so they fail closed to ``0.0`` -- the no-evidence
+    result the module already uses for an empty series and a zero-variance
+    series -- rather than raising or returning ``nan``.
+    """
     returns = np.asarray(returns, dtype=float)
     if returns.size == 0:
+        return 0.0
+    if not np.isfinite(periods_per_year) or periods_per_year <= 0:
         return 0.0
     excess = returns - risk_free / periods_per_year
     # Tolerance guard: a constant return series has std ~1e-19 from float

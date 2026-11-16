@@ -2023,3 +2023,73 @@ class TestBarsPerYearNumericIndex:
         span_days = (idx[-1] - idx[0]).total_seconds() / 86400.0
         expected = len(idx) / (span_days / 365.25)
         assert st.bars_per_year(idx) == pytest.approx(expected)
+
+
+# ===========================================================================
+# Sharpe-period annualization guard
+# ===========================================================================
+class TestSharpeRatioPeriodGuard:
+    """A non-positive or non-finite ``periods_per_year`` is config-degenerate.
+
+    ``sharpe_ratio`` divides the risk-free rate by ``periods_per_year`` and
+    multiplies the ratio by ``sqrt(periods_per_year)``. A zero period count
+    raised ``ZeroDivisionError``; a negative count multiplied by ``sqrt`` of a
+    negative number and emitted ``nan``; a ``nan``/``inf`` count poisoned the
+    result. All are inputs a caller has no way to filter on its own (the
+    default is a bare int), so they must fail closed to the same ``0.0``
+    no-evidence result used for an empty or zero-variance series.
+    """
+
+    @pytest.mark.parametrize(
+        "ppy",
+        [0, -1, -252, 0.0, -0.5, float("nan"), float("inf"), float("-inf")],
+    )
+    def test_degenerate_periods_per_year_returns_zero(self, ppy):
+        rng = np.random.default_rng(21)
+        rets = rng.normal(0.001, 0.01, 252)
+        result = st.sharpe_ratio(rets, periods_per_year=ppy)
+        assert result == 0.0
+        assert np.isfinite(result)
+
+    def test_empty_series_still_returns_zero_before_period_guard(self):
+        # The empty-series guard runs first and is independent of the period.
+        assert st.sharpe_ratio(np.array([]), periods_per_year=0) == 0.0
+
+    def test_valid_period_is_unchanged(self):
+        rng = np.random.default_rng(21)
+        rets = rng.normal(0.001, 0.01, 252)
+        # A finite positive period count computes the standard arithmetic and
+        # matches an equivalent float period exactly.
+        assert st.sharpe_ratio(rets, periods_per_year=252) == pytest.approx(
+            st.sharpe_ratio(rets, periods_per_year=252.0)
+        )
+        assert np.isfinite(st.sharpe_ratio(rets, periods_per_year=252))
+
+    def test_risk_free_term_is_not_divided_by_zero(self):
+        # The zero-period path must short-circuit before ``risk_free / 0``.
+        rets = np.array([0.01, -0.005, 0.02, 0.015, -0.01])
+        assert st.sharpe_ratio(rets, risk_free=0.05, periods_per_year=0) == 0.0
+
+    def test_the_contract_rejects_the_pre_fix_zero_period_behaviour(self):
+        """Negative control: the pre-fix body raised ``ZeroDivisionError`` for
+        ``periods_per_year=0`` and emitted ``nan`` for a negative count. The
+        contract "a degenerate period count yields a finite 0.0" must reject
+        both pre-fix paths.
+        """
+        rets = np.array([0.01, -0.005, 0.02])
+
+        # Pre-fix arithmetic, reconstructed exactly: ``excess = returns -
+        # risk_free / periods_per_year`` then ``excess.mean() / std *
+        # sqrt(periods_per_year)`` with no period guard.
+        risk_free = 0.0
+        with pytest.raises(ZeroDivisionError):
+            _ = rets - risk_free / 0
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            pre_fix_negative = float(rets.mean() / rets.std() * np.sqrt(-1))
+        assert np.isnan(pre_fix_negative), "the pre-fix negative-period path must emit nan"
+
+        # The corrected implementation is finite 0.0 for both.
+        assert st.sharpe_ratio(rets, periods_per_year=0) == 0.0
+        assert st.sharpe_ratio(rets, periods_per_year=-1) == 0.0
