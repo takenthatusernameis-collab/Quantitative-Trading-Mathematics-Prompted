@@ -2101,9 +2101,7 @@ class TestPurgedCvDegenerateOperands:
 
     @pytest.mark.parametrize("kwargs", DEGENERATE_PURGE)
     def test_combinatorial_cv_fails_closed(self, kwargs):
-        assert st.combinatorial_purged_cv(
-            100, n_splits=5, n_test_splits=2, **kwargs
-        ) == []
+        assert st.combinatorial_purged_cv(100, n_splits=5, n_test_splits=2, **kwargs) == []
 
     @pytest.mark.parametrize(
         "kwargs",
@@ -2113,11 +2111,11 @@ class TestPurgedCvDegenerateOperands:
             dict(n_samples=float("-inf")),
             dict(n_samples=100.0),
             dict(n_samples=-100),
-            dict(n_splits=float("nan")),
-            dict(n_splits=float("inf")),
-            dict(n_splits=1.5),
-            dict(n_splits=-5),
-            dict(n_splits=True),
+            dict(n_samples=100, n_splits=float("nan")),
+            dict(n_samples=100, n_splits=float("inf")),
+            dict(n_samples=100, n_splits=1.5),
+            dict(n_samples=100, n_splits=-5),
+            dict(n_samples=100, n_splits=True),
         ],
     )
     def test_purged_kfold_bad_sample_or_split_count(self, kwargs):
@@ -2141,8 +2139,9 @@ class TestPurgedCvDegenerateOperands:
         ],
     )
     def test_combinatorial_cv_bad_sample_split_or_test_count(self, kwargs):
-        kwargs = {"n_splits": 5, **kwargs}
-        assert st.combinatorial_purged_cv(**kwargs) == []
+        call_kwargs = {"n_samples": 100, **kwargs}
+        call_kwargs.setdefault("n_splits", 5)
+        assert st.combinatorial_purged_cv(**call_kwargs) == []
 
     def test_purged_kfold_negative_purge_inverts_window(self):
         # Negative control: ``purge=-1`` used to yield ``lo = test_start + 1``,
@@ -2152,9 +2151,7 @@ class TestPurgedCvDegenerateOperands:
 
     def test_combinatorial_cv_negative_embargo_inverts_window(self):
         # Same class for the combinatorial scheme.
-        assert st.combinatorial_purged_cv(
-            100, n_splits=5, n_test_splits=2, embargo=-1
-        ) == []
+        assert st.combinatorial_purged_cv(100, n_splits=5, n_test_splits=2, embargo=-1) == []
 
     def test_purged_kfold_valid_domain_unchanged(self):
         # The guard only short-circuits degenerate inputs. A finite,
@@ -2208,15 +2205,8 @@ class TestPurgedCvDegenerateOperands:
         # to raise; the real function must not.
         from itertools import combinations as _combinations
 
-        def pre_fix(
-            n_samples, n_splits=5, n_test_splits=2, purge=0, embargo=0
-        ):
-            if (
-                n_samples <= 0
-                or n_splits <= 0
-                or n_test_splits <= 0
-                or n_test_splits >= n_splits
-            ):
+        def pre_fix(n_samples, n_splits=5, n_test_splits=2, purge=0, embargo=0):
+            if n_samples <= 0 or n_splits <= 0 or n_test_splits <= 0 or n_test_splits >= n_splits:
                 return []
             fold_size = n_samples // n_splits
             groups = []

@@ -1631,9 +1631,7 @@ def _purged_cv_operands_valid(
     if n_test_splits is not None:
         operands = operands + (n_test_splits,)
     return all(
-        isinstance(op, (int, np.integer))
-        and not isinstance(op, bool)
-        and op >= 0
+        isinstance(op, (int, np.integer)) and not isinstance(op, bool) and op >= 0
         for op in operands
     )
 
@@ -1679,9 +1677,7 @@ def combinatorial_purged_cv(
     embargo: int = 0,
 ) -> list[tuple[np.ndarray, np.ndarray]]:
     """Generate combinatorial purged cross-validation splits."""
-    if not _purged_cv_operands_valid(
-        n_samples, n_splits, purge, embargo, n_test_splits
-    ):
+    if not _purged_cv_operands_valid(n_samples, n_splits, purge, embargo, n_test_splits):
         return []
     if n_samples == 0 or n_splits == 0 or n_test_splits == 0:
         return []
