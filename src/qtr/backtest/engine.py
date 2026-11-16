@@ -165,8 +165,8 @@ class CostModel:
         ``fee + spread + slippage * daily_vol_pct``.  A scalar input that is
         non-finite or negative fails closed to ``0.0``.  A Series input is
         processed element-wise: negative rows zero the slippage term (fee and
-        spread still apply); a non-finite fee or spread fails closed to
-        ``0.0``.
+        spread still apply); any non-finite vol entry fails the whole charge
+        closed to ``0.0``; a non-finite fee or spread fails closed to ``0.0``.
         """
         fee = self.crypto_fee_bps
         spread = self.crypto_spread_bps
@@ -191,6 +191,12 @@ class CostModel:
         else:
             vol = daily_vol_pct
         if isinstance(vol, pd.Series):
+            # Non-finite vol (nan, inf, -inf) in any element fails the entire
+            # charge closed to 0.0, matching the scalar path and the
+            # equity/futures cost contracts. This prevents non-finite costs
+            # from propagating into the engine's return series.
+            if not np.all(np.isfinite(vol)):
+                return pd.Series(0.0, index=vol.index)
             out = fee + spread + slippage * vol.clip(lower=0.0)
             return out
         vol = float(vol)

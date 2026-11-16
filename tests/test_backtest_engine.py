@@ -876,6 +876,37 @@ class TestFailClosedCostGuards:
         assert cm.crypto_cost_bps(-1.0) == 0.0
         assert cm.crypto_cost_bps(2.0) == 9.0  # 5 + 2 + 2 * 1.0
 
+    def test_crypto_cost_series_non_finite_vol_fails_closed_to_zero(self):
+        """A non-finite vol in a Series fails the entire charge closed to 0.0,
+        matching the scalar path and the equity/futures cost contracts.
+        Previously, non-finite elements propagated through the slippage term."""
+        cm = CostModel(
+            crypto_fee_bps=5.0, crypto_spread_bps=2.0, crypto_slippage_bps_per_pct_daily_vol=1.0
+        )
+        import numpy as np
+        import pandas as pd
+
+        # nan in any element -> all zeros
+        s = pd.Series([1.0, np.nan, 2.0])
+        result = cm.crypto_cost_bps(s)
+        assert (result == 0.0).all()
+
+        # inf in any element -> all zeros
+        s = pd.Series([1.0, np.inf, 2.0])
+        result = cm.crypto_cost_bps(s)
+        assert (result == 0.0).all()
+
+        # -inf in any element -> all zeros
+        s = pd.Series([1.0, -np.inf, 2.0])
+        result = cm.crypto_cost_bps(s)
+        assert (result == 0.0).all()
+
+        # All finite -> normal calculation (negatives clipped for slippage)
+        s = pd.Series([1.0, -1.0, 2.0])
+        result = cm.crypto_cost_bps(s)
+        expected = pd.Series([8.0, 7.0, 9.0])  # 5+2+1*1, 5+2+1*0, 5+2+1*2
+        assert (result == expected).all()
+
     # ------------------------------------------------- future_cost (198)
     def test_future_cost_fails_closed_on_invalid_components(self):
         """Non-finite commission/tick/spread/slippage -> 0.0. Negative values
