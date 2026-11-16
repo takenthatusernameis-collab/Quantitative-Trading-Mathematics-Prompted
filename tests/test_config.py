@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 import yaml
 
 from qtr.utils import config
@@ -362,4 +363,74 @@ class TestConfigPath:
         _clear_config_state()
         cfg = {"data": {"cache_dir": "/data/cache"}}
         assert config.config_path(cfg, "data.cache_dir", ".cache/data") == Path("/data/cache")
+        _clear_config_state()
+
+
+# --------------------------------------------------------------------------- #
+# Non-mapping config documents and non-mapping intermediate nodes
+# --------------------------------------------------------------------------- #
+class TestNonMappingConfigDocument:
+    """A config file that is valid YAML but not a mapping must not crash.
+
+    ``config.yaml`` is user-editable. A document that parses to a list, a
+    scalar or a string is not a usable config -- every consumer indexes it by
+    key (``config["validation"]``, ``config.get(...)``) -- so it is the same
+    class as the empty document and must fail closed to ``{}``. Returned
+    verbatim it crashed the first ``DataCache``/``ExperimentTracker``
+    construction with ``AttributeError: 'list' object has no attribute 'get'``.
+    """
+
+    @pytest.mark.parametrize("text", ["[1, 2, 3]", "5", "hello", "true", "", "null"])
+    def test_non_mapping_document_loads_as_empty(self, tmp_path, text):
+        _clear_config_state()
+        cfg_path = tmp_path / "config.yaml"
+        cfg_path.write_text(text)
+        assert config.load_config(cfg_path) == {}
+        _clear_config_state()
+
+    def test_non_mapping_document_with_env_override_still_applies(self, tmp_path, monkeypatch):
+        _clear_config_state()
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "config.yaml").write_text("[1, 2, 3]")
+        monkeypatch.setenv("QTR_CACHE_DIR", "/data/cache")
+        # The malformed document is dropped; the env override then lands on the
+        # empty dict instead of crashing in ``_set_nested``.
+        assert config.load_config() == {"data": {"cache_dir": "/data/cache"}}
+        _clear_config_state()
+
+    def test_data_cache_constructs_with_non_mapping_config(self, tmp_path, monkeypatch):
+        _clear_config_state()
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "config.yaml").write_text("[1, 2, 3]")
+        from qtr.data.fetcher import DataCache
+
+        cache = DataCache()
+        assert cache.cache_dir == Path(".cache/data")
+        _clear_config_state()
+
+
+class TestSetNestedNonMapping:
+    """``_set_nested`` tolerates a non-mapping node anywhere on the path."""
+
+    def test_non_mapping_intermediate_is_replaced(self):
+        d = {"data": 5}
+        config._set_nested(d, ["data", "cache_dir"], "/x")
+        assert d == {"data": {"cache_dir": "/x"}}
+
+    def test_non_mapping_document_is_ignored(self):
+        d = [1, 2, 3]
+        config._set_nested(d, ["data", "cache_dir"], "/x")
+        assert d == [1, 2, 3]
+
+    def test_existing_mapping_is_descended(self):
+        d = {"data": {"cache_dir": "/old", "other": 1}}
+        config._set_nested(d, ["data", "cache_dir"], "/new")
+        assert d == {"data": {"cache_dir": "/new", "other": 1}}
+
+    def test_env_override_replaces_non_mapping_intermediate_end_to_end(self, tmp_path, monkeypatch):
+        _clear_config_state()
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "config.yaml").write_text(yaml.dump({"data": 5}))
+        monkeypatch.setenv("QTR_CACHE_DIR", "/data/cache")
+        assert config.load_config() == {"data": {"cache_dir": "/data/cache"}}
         _clear_config_state()

@@ -8,13 +8,24 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from loguru import logger
 
 _CONFIG: dict[str, Any] | None = None
 _CONFIG_PATH: Path | None = None
 
 
 def load_config(config_path: Path | None = None) -> dict[str, Any]:
-    """Load configuration from YAML file."""
+    """Load configuration from YAML file.
+
+    A configuration document must be a mapping: every consumer indexes it by
+    key (``config["validation"]``, ``config.get("data.cache_dir")``), so a file
+    that parses as valid YAML but holds a list, a scalar or a string is not a
+    usable config.  The empty-document path (``null``/blank) already degrades to
+    ``{}``; a non-mapping document is the same class of unusable file and is
+    treated the same way here (fail closed to ``{}``) rather than returned
+    verbatim, where it would crash the first ``DataCache``/``ExperimentTracker``
+    construction with ``AttributeError: 'list' object has no attribute 'get'``.
+    """
     global _CONFIG, _CONFIG_PATH
 
     if _CONFIG is not None and config_path is None:
@@ -35,7 +46,16 @@ def load_config(config_path: Path | None = None) -> dict[str, Any]:
 
     if config_path and config_path.exists():
         with open(config_path) as f:
-            _CONFIG = yaml.safe_load(f) or {}
+            loaded = yaml.safe_load(f)
+        if isinstance(loaded, dict):
+            _CONFIG = loaded
+        else:
+            if loaded is not None:
+                logger.warning(
+                    f"{config_path}: config document is {type(loaded).__name__}, "
+                    "not a mapping; ignoring it and using an empty config"
+                )
+            _CONFIG = {}
         _CONFIG_PATH = config_path
     else:
         _CONFIG = {}
@@ -141,9 +161,24 @@ def config_path(config: dict[str, Any], dotted_key: str, default: str) -> Path:
 
 
 def _set_nested(d: dict[str, Any], keys: list, value: str) -> None:
-    """Set nested dictionary value, creating intermediate dicts as needed."""
+    """Set nested dictionary value, creating intermediate dicts as needed.
+
+    A node that exists but is not a mapping (``data: 5``) is a malformed
+    document, not a value to descend into: ``d.setdefault(key, {})`` returns
+    the scalar and the next assignment raises ``TypeError: 'int' object does
+    not support item assignment``.  Replace a non-mapping intermediate with a
+    fresh dict so the override still lands, and ignore the override entirely
+    when the document itself is not a mapping (there is nowhere to attach it).
+    A valid nested mapping is descended unchanged.
+    """
+    if not isinstance(d, dict):
+        return
     for key in keys[:-1]:
-        d = d.setdefault(key, {})
+        child = d.get(key)
+        if not isinstance(child, dict):
+            child = {}
+            d[key] = child
+        d = child
     # Try to parse as int/float/bool
     try:
         value = int(value)

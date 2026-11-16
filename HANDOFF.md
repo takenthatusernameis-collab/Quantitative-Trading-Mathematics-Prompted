@@ -1,5 +1,54 @@
 # HANDOFF.md
 
+> **Latest (2026-11-16, Cycle 154 — fixed a reproduced non-mapping config-document defect: `load_config` returned a YAML list/scalar/string verbatim, so the first `DataCache`/`ExperimentTracker` construction crashed with `AttributeError: 'list' object has no attribute 'get'`; a non-mapping intermediate node (`data: 5`) plus any `QTR_*` env override crashed `_set_nested`; 100% coverage preserved):**
+> `src/qtr/utils/config.py` is the configuration layer every runner touches at
+> startup (`DataCache`, `ExperimentTracker`, `get_data_fetcher`, `get_tracker`
+> all call `get_config()` -> `config_path`). `load_config` did
+> `_CONFIG = yaml.safe_load(f) or {}`, which only degrades the *falsy*
+> documents (`null`, blank, `[]`, `0`, `""`) to `{}`; a **truthy non-mapping**
+> document (a YAML list `[1, 2, 3]`, a scalar `5`, a string `hello`) was
+> returned verbatim. Every consumer indexes the config by key
+> (`config["validation"]`, `config.get(...)`), so the first construction raised
+> `AttributeError: 'list' object has no attribute 'get'` / `'str' object has no
+> attribute 'get'`. This is the same class as Cycle 150's `Experiment.load_metadata`
+> non-dict-file defect, one layer over.
+> - **Root cause 1 (top-level non-mapping):** `load_config` now accepts only a
+>   mapping document and fails closed to `{}` (with a `loguru` warning) for any
+>   other shape, so a malformed config cannot reach a consumer.
+> - **Root cause 2 (non-mapping intermediate):** `_set_nested` did
+>   `d = d.setdefault(key, {})`, so a document like `data: 5` plus an env
+>   override (`QTR_CACHE_DIR`/`QTR_LOG_LEVEL`/`QTR_MAX_CPU_HOURS`) returned the
+>   scalar and the next assignment raised `TypeError: 'int' object does not
+>   support item assignment`. `_set_nested` now replaces a non-mapping
+>   intermediate with a fresh dict (so the override still lands) and ignores the
+>   override when the document itself is not a mapping. A valid nested mapping
+>   is descended unchanged, and the int/float/bool value parsing is untouched.
+> - **Reproduced before fix (own evidence):** in a temp cwd with
+>   `config.yaml` = `[1, 2, 3]`, `DataCache()` raised
+>   `AttributeError: 'list' object has no attribute 'get'`; with `data: 5` +
+>   `QTR_CACHE_DIR` set, `load_config()` raised
+>   `TypeError: 'int' object does not support item assignment`. After the fix
+>   both return an empty/override-applied config and `DataCache()` constructs.
+> - **Tests:** `tests/test_config.py` (+12) — `TestNonMappingConfigDocument`
+>   (parametrized list/int/str/bool/blank/null -> `{}`; non-mapping document +
+>   env override still applies; `DataCache` constructs) and
+>   `TestSetNestedNonMapping` (non-mapping intermediate replaced; non-mapping
+>   document ignored; existing mapping descended; end-to-end env override over a
+>   non-mapping intermediate).
+> - **Verified (own evidence):** negative control (`git stash push --
+>   src/qtr/utils/config.py`) -> **9 failed / 3 passed**; restored -> **55
+>   passed** on `tests/test_config.py` (`config.py` **100%** stmts/branches from
+>   that file alone). Full pinned suite
+>   `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py`
+>   (448.24s) -> **3974 passed, 51 skipped, 0 failed**, `src/qtr` coverage
+>   **100.00%** (1575 stmts / 572 branches / 0 miss; `config.py` 85/40).
+>   `python -m pytest -q tests/test_gates_workflow.py` -> **7 failed** (unchanged,
+>   maintainer-gated; fix `patches/0001-gates-workflow-contract-fix.patch`).
+>   `python scripts/backtest_perf_regression_gate.py` -> **PERF GATE PASSED**
+>   (0.431s < 5s, 10.7MB, 13668 trades). `ruff check` and `ruff format --check`
+>   over `src tests run_*.py scripts` -> clean / **336 files already formatted**.
+>   No gate, artifact, sidecar, hash, frozen-number, or workflow change.
+
 > **Latest (2026-11-16, Cycle 153 — fixed a reproduced fresh-vs-cache divergence: the fresh yahoo/futures path returned the vendor index unsorted/un-deduped while the cache hit (and the ccxt fresh path) sorted+deduped; a unique-but-unsorted fresh panel silently produced wrong engine returns; 100% coverage preserved):**
 > `DataFetcher._fetch_yahoo_panel` normalized columns and tz but returned the
 > vendor index verbatim. yfinance returns the frame verbatim (an overlapping
