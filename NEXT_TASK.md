@@ -6,13 +6,13 @@
 - Files: `src/qtr/utils/config.py`, `tests/test_config.py`, `HANDOFF.md`, `NEXT_TASK.md`.
 
 ## What was actually verified (own evidence, 2026-11-17)
-- Repro before fix: load `old.yaml` (`x: 1`) → `load_config(missing.yaml)` returned `{}` with `_CONFIG_PATH==old.yaml`; `save_config({'y': 2})` overwrote `old.yaml`. After fix: `load_config(missing.yaml)` sets `_CONFIG_PATH==missing.yaml`, `save_config({'z': 3})` writes `new.yaml` and preserves prior config.
-- `python -m pytest -q tests/test_config.py` → **56 passed**.
-- `python -m ruff check src/qtr/utils/config.py tests/test_config.py` → **All checks passed**.
-- No gate, artifact, frozen-number, or workflow change.
+- `tests/test_gates_workflow.py` red on `origin/main`: **7 failed** (lint ruff targets missing `scripts`, path filters missing `scripts/**`, `research_gates` missing editable install + perf regression gate).
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → **clean**.
+- Applied patch temporarily → `tests/test_gates_workflow.py` **7 passed**; reverted `.github/workflows/gates.yml` afterwards so working tree is clean (no durable workflow change possible by agent).
+- (Config fix from prior session preserved: `tests/test_config.py` → 56 passed; `ruff check` on config files clean.)
 
 ## What remains unresolved
-- **Maintainer-gated (agent-unreachable):** 7 `tests/test_gates_workflow.py` failures; fix is `patches/0001-gates-workflow-contract-fix.patch` (`git apply --check` clean). Agent cannot land — no `workflows` token and `.github/scripts/kilo-controller.sh` restores `.github/workflows/**` from `origin/main` each session. Maintainer action: apply and push the patch, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed).
+- **Maintainer-gated (agent-unreachable):** `patches/0001-gates-workflow-contract-fix.patch` must be applied and pushed to `origin/main` by a maintainer with `workflows` scope (no agent token; `.github/scripts/kilo-controller.sh` restores `.github/workflows/**` from `origin/main` each session, so in-tree workflow edits do not persist). After push, run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed).
 - **H182 selection:** free-data point-in-time strategy-family queue exhausted (H1–H181 rejected/recorded, `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96). No honest free-data H182 pre-registrable without new authorized data; do not invent candidates or treat parameter/timeframe/universe variations as new mechanism families.
 - No other new reproduced defect found in `src/qtr`/runners/corpus metadata this session.
 
