@@ -762,6 +762,39 @@ def stressed_cost_test(
             | {"stressed_combined_sharpe": 0.0, "stressed_combined_return": 0.0}
         )
 
+    # Scalar-operand guard on the stress multipliers. A stress test is only
+    # defined when every multiplier is a finite, non-negative real number:
+    # ``stressed_costs = base_costs * mult`` and ``stressed_returns =
+    # base_returns - stressed_costs``, so a NEGATIVE multiplier is a sign error
+    # that subtracts a negative cost -- it ADDS to the return and manufactures
+    # P&L, the exact fail-open the equity/futures/crypto cost paths already
+    # close ("a cost is a charge"). Measured: ``{"commission": -1.0}`` turned a
+    # 0.693 stressed return into 1.197, and the combined stressor with a
+    # negative average multiplier inflated the book the same way. A ``nan``/
+    # ``inf`` multiplier makes the stressed series non-finite; it happens to
+    # reach the no-evidence tuple only by accident of propagation, so it is
+    # guarded explicitly here for the same reason and to keep the contract
+    # independent of downstream arithmetic. A ``bool`` or a non-numeric value
+    # is not a multiplier at all. The fail-closed result is the no-evidence
+    # tuple keyed by the supplied multipliers -- identical to the non-finite
+    # input path above -- so a caller gating on any stressed metric fails
+    # closed. For every finite, non-negative multiplier the arithmetic is
+    # bit-identical to before: this guard only short-circuits the degenerate
+    # cases. See tests/test_statistics.py::TestStressedCostTest.
+    for mult in stress_multipliers.values():
+        valid_mult = (
+            not isinstance(mult, bool)
+            and isinstance(mult, (int, float, np.integer, np.floating))
+            and bool(np.isfinite(mult))
+            and mult >= 0.0
+        )
+        if not valid_mult:
+            return (
+                {f"stressed_{k}_sharpe": 0.0 for k in stress_multipliers}
+                | {f"stressed_{k}_return": 0.0 for k in stress_multipliers}
+                | {"stressed_combined_sharpe": 0.0, "stressed_combined_return": 0.0}
+            )
+
     results = {}
     for name, mult in stress_multipliers.items():
         stressed_costs = base_costs * mult

@@ -1173,6 +1173,89 @@ class TestStressedCostTest:
             "stressed_combined_return": 0.0,
         }
 
+    # ------------------------------------------------------------------
+    # Degenerate stress multipliers: fail closed, no warning, no exception.
+    # A stress multiplier scales the cost that is SUBTRACTED from the return,
+    # so a negative multiplier is a sign error that ADDS to the return and
+    # manufactures P&L -- the same "a cost is a charge" fail-open the module
+    # closes on every other cost operand.
+    # ------------------------------------------------------------------
+    def _zero_for(self, *names):
+        return {f"stressed_{k}_sharpe": 0.0 for k in names} | {
+            f"stressed_{k}_return": 0.0 for k in names
+        } | {"stressed_combined_sharpe": 0.0, "stressed_combined_return": 0.0}
+
+    @pytest.mark.parametrize("bad", [-1.0, -2.0, -0.001, -100.0])
+    def test_negative_multiplier_fails_closed(self, bad):
+        # A negative multiplier used to inflate the "stressed" return above the
+        # honest (positive-multiplier) one; it must fail closed to the
+        # no-evidence tuple instead.
+        res = st.stressed_cost_test(
+            np.array([0.001, 0.002, 0.0015, 0.001]), np.array([0.0005, 0.0005, 0.0005, 0.0005]),
+            {"commission": bad},
+        )
+        assert res == self._zero_for("commission")
+
+    @pytest.mark.parametrize("bad", [np.inf, -np.inf, np.nan])
+    def test_non_finite_multiplier_fails_closed(self, bad):
+        res = st.stressed_cost_test(
+            np.array([0.001, 0.002, 0.0015, 0.001]), np.array([0.0005, 0.0005, 0.0005, 0.0005]),
+            {"impact": bad},
+        )
+        assert res == self._zero_for("impact")
+
+    @pytest.mark.parametrize("bad", ["2.0", None, [1.0, 2.0], {"x": 1.0}, True, False])
+    def test_non_numeric_multiplier_fails_closed(self, bad):
+        res = st.stressed_cost_test(
+            np.array([0.001, 0.002]), np.array([0.0005, 0.0005]), {"spread": bad}
+        )
+        assert res == self._zero_for("spread")
+
+    def test_negative_multiplier_never_inflates_return(self):
+        base_returns = np.array([0.001] * 10)
+        base_costs = np.array([0.0005] * 10)
+        honest = st.stressed_cost_test(base_returns, base_costs, {"commission": 1.0})
+        negative = st.stressed_cost_test(base_returns, base_costs, {"commission": -1.0})
+        # The fail-closed result is 0.0, which can never exceed the honest
+        # positive-multiplier stress (nor the zero-cost compound return).
+        zero_cost = float(base_returns.mean() * 252)
+        assert negative["stressed_commission_return"] == 0.0
+        assert negative["stressed_commission_return"] <= honest["stressed_commission_return"]
+        assert negative["stressed_commission_return"] <= zero_cost
+
+    @pytest.mark.parametrize(
+        "mult", [2.0, 2, np.float64(2.0), np.int64(2), 0.0, 0]
+    )
+    def test_valid_multiplier_unchanged(self, mult):
+        # Every finite, non-negative multiplier is bit-identical to the
+        # pre-guard arithmetic.
+        base_returns = np.array([0.001, -0.0005, 0.002, 0.0])
+        base_costs = np.array([0.0004, 0.0004, 0.0004, 0.0004])
+        res = st.stressed_cost_test(base_returns, base_costs, {"impact": mult})
+        stressed_returns = base_returns - base_costs * float(mult)
+        assert res["stressed_impact_return"] == pytest.approx(float(stressed_returns.mean() * 252))
+        assert res["stressed_impact_sharpe"] == pytest.approx(
+            float(st.sharpe_ratio(stressed_returns))
+        )
+
+    def test_the_contract_rejects_the_pre_fix_negative_multiplier(self):
+        """Negative control: the pre-fix body subtracted ``base_costs * mult``,
+        so a negative multiplier ADDED to the return and inflated it above the
+        honest positive-multiplier stress. The corrected function fails closed
+        to the no-evidence tuple instead."""
+
+        def pre_fix(base_returns, base_costs, mult):
+            stressed_returns = base_returns - base_costs * mult
+            return float(stressed_returns.mean() * 252)
+
+        base_returns = np.array([0.001] * 10)
+        base_costs = np.array([0.0005] * 10)
+        honest = pre_fix(base_returns, base_costs, 1.0)   # 0.126
+        inflated = pre_fix(base_returns, base_costs, -1.0)  # 0.378, manufactured P&L
+        assert inflated > honest
+        res = st.stressed_cost_test(base_returns, base_costs, {"commission": -1.0})
+        assert res == self._zero_for("commission")
+
 
 # ===========================================================================
 # capacity_estimate
