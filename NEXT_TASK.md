@@ -1,4 +1,4 @@
-# Next task (Cycle 189, 2026-11-17)
+# Next task (Cycle 190, 2026-11-17)
 
 ## What changed this session
 - No source, test, gate, artifact, sidecar, hash, frozen-number, or workflow change. Working tree clean at start (HEAD `eb88fca`); only handoff docs updated with own verification.
@@ -6,7 +6,7 @@
 ## What was actually verified (own evidence, 2026-11-17)
 - `python -m ruff check src tests run_*.py scripts` → All checks passed.
 - `python -m ruff format --check src tests run_*.py scripts` → **336 files already formatted**.
-- `python scripts/backtest_perf_regression_gate.py` → **PERF GATE PASSED** (0.295s < 5s, 10.7MB, 13668 trades).
+- `python scripts/backtest_perf_regression_gate.py` → **PERF GATE PASSED** (0.299s < 5s, 10.7MB, 13668 trades).
 - `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged, maintainer-gated; covered by `patches/0001-gates-workflow-contract-fix.patch`).
 - `git apply --check patches/0001-gates-workflow-contract-fix.patch` → exit 0 (applies cleanly).
 - `grep -rn "TODO|FIXME|XXX|HACK" src/qtr` → no matches.
@@ -19,11 +19,10 @@
 
 ## One precise next task
 **Maintainer:** apply and push `patches/0001-gates-workflow-contract-fix.patch`, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed).
-**Agent (next session):** no agent-assigned code change. Only if a NEW reproduced, runner-reachable defect appears in `src/qtr`/runners/corpus metadata — fix with the smallest verifiable change and rerun focused tests, `ruff check`, `ruff format --check`, and `python scripts/backtest_perf_regression_gate.py` with own evidence; otherwise re-verify baseline and make no code change.
+**Agent (next session):** no agent-assigned code change. Only if a NEW reproduced, runner-reachable defect appears in `src/qtr`/runners/corpus metadata — fix with the smallest verifiable change and rerun focused tests, `python -m ruff check src tests run_*.py scripts`, `python -m ruff format --check src tests run_*.py scripts`, and `python scripts/backtest_perf_regression_gate.py` with own evidence; otherwise re-verify baseline and make no code change.
 
 ## Approaches already tried and why they should not be repeated
-- Do not re-review the seven `src/qtr` modules for pinned defect classes (config boundaries, cache dedup, EDGAR/insider parsing, annualization/`sharpe_ratio`/`bars_per_year` guards, purged-CV operands, engine cost/metric/position/impact guards, `CostModel`/`_adv_for_symbol`, `Experiment` path containment, `load_config`/`_set_nested`, duplicate index/column handling, `max_leverage`/`initial_capital`/`max_position_size`) without NEW evidence — repeatedly reviewed through Cycle 186 with no new defect.
+- Do not re-review the seven `src/qtr` modules for pinned defect classes without NEW evidence (exhaustively reviewed through Cycle 186; no new defect).
 - Do not edit `.github/workflows/**` or weaken `tests/test_gates_workflow.py` — maintainer-gated contract; fix is the workflow patch.
-- Do not use `--cov=<dotted.module>` for coverage collection (collection `ImportError`); use the full pinned suite with `--cov=qtr`.
 - Do not invent a free-data H182 or treat parameter/timeframe/universe variants as new mechanism families.
 - Do not trust handoff pass/fail/coverage counts — re-run gates.
