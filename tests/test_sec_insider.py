@@ -905,6 +905,40 @@ class TestNonMappingEdgarJsonDocument:
             "form4.xml": "https://www.sec.gov/Archives/edgar/data/320193/000114036126043484/form4.xml"
         }
 
+    @pytest.mark.parametrize(
+        "payload",
+        [5, 5.5, True, "not-a-list", None, {"name": "form4.xml"}],
+    )
+    def test_filing_documents_returns_empty_for_non_list_item(self, monkeypatch, payload):
+        # ``directory.item`` is documented as an array. A scalar/bool/string
+        # or a single mapping is malformed external input: iterating it either
+        # raises ``TypeError`` (scalar/bool) or yields the wrong thing (a
+        # string's characters, a mapping's keys). All degrade to no documents.
+        monkeypatch.setattr(insider, "fetch_json", lambda *a, **k: {"directory": {"item": payload}})
+        assert insider.filing_documents(320193, "0001140361-26-043484") == {}
+
+    def test_filing_documents_skips_non_string_document_names(self, monkeypatch):
+        # A document name is a string by contract. An ``int`` would become a
+        # non-string key that later crashes ``_form4_document``'s
+        # ``name.endswith``; a ``list``/``dict`` is unhashable and raises
+        # while building the result. Only the real string name is kept.
+        payload = {
+            "directory": {
+                "item": [
+                    {"name": 5},
+                    {"name": ["form4.xml"]},
+                    {"name": {"name": "form4.xml"}},
+                    {"name": "form4.xml"},
+                ]
+            }
+        }
+        monkeypatch.setattr(insider, "fetch_json", lambda *a, **k: payload)
+        documents = insider.filing_documents(320193, "0001140361-26-043484")
+        assert documents == {
+            "form4.xml": "https://www.sec.gov/Archives/edgar/data/320193/000114036126043484/form4.xml"
+        }
+        assert all(isinstance(name, str) for name in documents)
+
     def test_the_pre_fix_lookup_crashes_on_a_non_mapping_filings_block(self):
         """Behavioural negative control: the pre-fix
         ``(submissions.get("filings") or {}).get("recent")`` expression raises
@@ -924,3 +958,43 @@ class TestNonMappingEdgarJsonDocument:
         with pytest.raises(AttributeError):
             (payload.get("directory") or {}).get("item")
         assert insider._as_mapping(insider._as_mapping(payload).get("directory")) == {}
+
+    def test_the_pre_fix_item_iteration_crashes_on_a_non_list_item(self, monkeypatch):
+        """Behavioural negative control for the ``directory.item`` shape.
+
+        The pre-fix body iterated ``index["directory"]["item"]`` directly, so
+        a scalar item raises ``TypeError`` before the loop body runs. The
+        fixed function returns no documents for the same payload.
+        """
+        payload = {"directory": {"item": 5}}
+        with pytest.raises(TypeError):
+            for _ in payload["directory"]["item"]:
+                pass
+        monkeypatch.setattr(insider, "fetch_json", lambda *a, **k: payload)
+        assert insider.filing_documents(320193, "0001140361-26-043484") == {}
+
+    def test_the_pre_fix_non_string_name_survives_as_a_non_string_key(self, monkeypatch):
+        """Behavioural negative control for the document-name type.
+
+        The pre-fix body accepted any truthy ``name``: an ``int`` became a
+        non-string key (which later crashes ``_form4_document``) and a list
+        raised ``TypeError`` while being inserted. The fixed function keeps
+        only string names, so both malformed shapes degrade to no documents.
+        """
+
+        def pre_fix(index):
+            items = (index.get("directory") or {}).get("item") or []
+            documents = {}
+            for item in items:
+                name = item.get("name") if isinstance(item, dict) else None
+                if not name:
+                    continue
+                documents[name] = "https://example.test/document"
+            return documents
+
+        payload = {"directory": {"item": [{"name": 5}]}}
+        assert pre_fix(payload) == {5: "https://example.test/document"}
+        with pytest.raises(TypeError):
+            pre_fix({"directory": {"item": [{"name": ["form4.xml"]}]}})
+        monkeypatch.setattr(insider, "fetch_json", lambda *a, **k: payload)
+        assert insider.filing_documents(320193, "0001140361-26-043484") == {}

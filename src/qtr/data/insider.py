@@ -304,11 +304,28 @@ def filing_documents(
     index = fetch_json(
         filing_index_url(cik, accession_number), user_agent=user_agent, timeout=timeout
     )
-    items = (_as_mapping(_as_mapping(index).get("directory")).get("item")) or []
+    items = _as_mapping(_as_mapping(index).get("directory")).get("item")
+    # ``directory.item`` is untrusted external JSON and is documented as an
+    # array of document objects. A non-list value (a scalar, a string, a bool
+    # or a single mapping left by a malformed/foreign writer) is not a
+    # document list: iterating a scalar raises ``TypeError: 'int' object is
+    # not iterable`` out of a public function every caller treats as returning
+    # a dict, while iterating a single mapping yields its *keys* and silently
+    # returns no documents. Degrade to the same empty tuple the absent-block
+    # path already returns, so a malformed index is indistinguishable from an
+    # empty one. A list is iterated unchanged.
+    if not isinstance(items, list):
+        items = []
     documents = {}
     for item in items:
         name = item.get("name") if isinstance(item, dict) else None
-        if not name:
+        # A document name is a string by contract (it is embedded in the
+        # archive URL and returned as a ``dict[str, str]`` key). A non-string
+        # name is malformed external input: an ``int`` becomes a non-string
+        # key that later crashes ``_form4_document``'s ``name.endswith`` and a
+        # ``list``/``dict`` is unhashable and raises here. Skip it rather than
+        # returning a frame that violates the function's return type.
+        if not isinstance(name, str) or not name:
             continue
         documents[name] = filing_document_url(cik, accession_number, name)
     return documents

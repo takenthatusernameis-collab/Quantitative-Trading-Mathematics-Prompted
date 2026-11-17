@@ -1,5 +1,53 @@
 # HANDOFF.md
 
+> **Latest (2026-11-17, Cycle 178 — fixed a reproduced malformed-EDGAR filing-index defect in `filing_documents`: a non-list `directory.item` crashed the public parser and a non-string document name produced a non-string key / `TypeError`; 100% coverage preserved):**
+> `src/qtr/data/insider.py::filing_documents` reads the untrusted EDGAR
+> filing-index JSON at ``index["directory"]["item"]`` and iterated whatever it
+> found, accepting any truthy ``name`` as a document label. Two malformed but
+> valid-JSON shapes were not handled:
+> - **non-list `item`** — ``item: 5`` / ``5.5`` / ``true`` reached
+>   ``for item in items`` and raised ``TypeError: 'int' object is not
+>   iterable`` out of a public function every caller treats as returning a
+>   ``dict``; a single mapping ``item: {"name": ...}`` iterated its *keys* and
+>   silently returned no documents. Reproduced (own evidence):
+>   ``filing_documents`` on ``{"directory": {"item": 5}}`` raised ``TypeError``.
+> - **non-string `name`** — ``{"name": 5}`` became a non-string dict key that
+>   later crashed ``_form4_document`` at ``name.endswith``
+>   (``AttributeError: 'int' object has no attribute 'endswith'``), while
+>   ``{"name": ["form4.xml"]}`` / ``{"name": {...}}`` raised ``TypeError:
+>   unhashable type`` during result construction. Both violate the documented
+>   ``dict[str, str]`` return type and are reachable from the public
+>   ``qtr.data.filing_documents`` API with no caller-side filtering.
+> - **Fix:** `src/qtr/data/insider.py` degrades a non-list ``item`` to ``[]``
+>   (the same empty tuple the absent-block path already returns) and skips any
+>   ``name`` that is not a non-empty ``str``. A list is iterated unchanged and
+>   a valid string name is kept, so the clean path is bit-identical; a
+>   malformed document is now indistinguishable from an empty one.
+> - **Tests:** `tests/test_sec_insider.py::TestNonMappingEdgarJsonDocument`
+>   (+9) — parametrized non-list ``item`` payloads
+>   (``5``/``5.5``/``True``/``"not-a-list"``/``None``/single mapping) all
+>   return ``{}``; a mixed non-string-name item list keeps only the real
+>   ``form4.xml`` entry; and two behavioural negative controls reconstruct the
+>   pre-fix direct iteration (raises ``TypeError``) and the pre-fix
+>   ``if not name`` acceptance of an ``int`` name (returns ``{5: url}``).
+> - **Verified (own evidence):** before fix, ``filing_documents`` on
+>   ``{"directory": {"item": 5}}`` raised ``TypeError`` and on
+>   ``{"directory": {"item": [{"name": 5}]}}`` returned ``{5: url}`` (then
+>   crashed ``_form4_document``); after the fix both return ``{}``. Focused
+>   `tests/test_sec_insider.py -W error` → **104 passed**, `insider.py`
+>   **100%** statements/branches from that file alone. Full pinned suite
+>   `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py`
+>   (342.78s) → **4262 passed, 51 skipped, 0 failed**, `src/qtr` coverage
+>   **100.00%** (1652 stmts / 624 branches / 0 miss; `insider.py` 243/88).
+>   `python -m ruff check src tests run_*.py scripts` → clean;
+>   `python -m ruff format --check src tests run_*.py scripts` → **336 files
+>   already formatted**. `python scripts/backtest_perf_regression_gate.py` →
+>   **PERF GATE PASSED** (0.287s < 5s, 10.7MB, 13668 trades).
+>   `python -m pytest -q tests/test_gates_workflow.py` → **7 failed**
+>   (unchanged, maintainer-gated); `git apply --check
+>   patches/0001-gates-workflow-contract-fix.patch` → still applies cleanly.
+>   No gate, artifact, sidecar, hash, frozen-number, or workflow change.
+
 > **Latest (2026-11-17, Cycle 174 — fixed a reproduced negative/non-finite `equity_impact_bps_per_pct_adv` fail-open in `run_backtest`: a negative coefficient manufactured P&L and an infinite one emitted a non-finite return; 100% coverage preserved):**
 > `src/qtr/backtest/engine.py::run_backtest` charges market impact in a
 > *separate* loop from `CostModel.equity_cost_bps`:
