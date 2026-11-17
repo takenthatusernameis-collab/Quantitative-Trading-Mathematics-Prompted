@@ -1,4 +1,4 @@
-# Next task (Cycle 188, 2026-11-17)
+# Next task (Cycle 189, 2026-11-17)
 
 ## What changed this session
 - No source, test, gate, artifact, sidecar, hash, frozen-number, or workflow change. Working tree clean at start (HEAD `eb88fca`); only handoff docs updated with own verification.
@@ -6,7 +6,7 @@
 ## What was actually verified (own evidence, 2026-11-17)
 - `python -m ruff check src tests run_*.py scripts` → All checks passed.
 - `python -m ruff format --check src tests run_*.py scripts` → **336 files already formatted**.
-- `python scripts/backtest_perf_regression_gate.py` → **PERF GATE PASSED** (0.303s < 5s, 10.7MB, 13668 trades).
+- `python scripts/backtest_perf_regression_gate.py` → **PERF GATE PASSED** (0.295s < 5s, 10.7MB, 13668 trades).
 - `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged, maintainer-gated; covered by `patches/0001-gates-workflow-contract-fix.patch`).
 - `git apply --check patches/0001-gates-workflow-contract-fix.patch` → exit 0 (applies cleanly).
 - `grep -rn "TODO|FIXME|XXX|HACK" src/qtr` → no matches.
