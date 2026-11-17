@@ -337,3 +337,50 @@ def test_carry_non_integer_lookback_fails_closed(bad):
     prices = _make_prices(n_days=60)
     sig = baselines.carry_signals(prices, lookback=bad)
     assert (sig.values == 0).all()
+
+
+_DUPLICATE_COLUMN_CASES = [
+    ("buy_and_hold_signals", {}),
+    ("moving_average_crossover_signals", {"fast_window": 5, "slow_window": 10}),
+    ("ewma_crossover_signals", {"fast_span": 5, "slow_span": 10}),
+    ("momentum_signals", {"lookback": 60, "skip": 5, "n_top": 1}),
+    ("mean_reversion_signals", {"window": 20}),
+    ("time_series_momentum_signals", {"lookback": 60, "skip": 5}),
+    ("vol_scaled_tsmom_signals", {"lookback": 60, "skip": 5, "vol_window": 30}),
+    ("carry_signals", {"lookback": 60}),
+]
+
+
+def _duplicate_price_panel() -> pd.DataFrame:
+    index = pd.date_range("2020-01-01", periods=300, freq="D")
+    rng = np.random.default_rng(20261117)
+    first_a = 100.0 + np.cumsum(rng.normal(0.0, 0.02, len(index)))
+    second_a = 200.0 - first_a
+    other = 100.0 + np.cumsum(rng.normal(0.0, 0.02, len(index)))
+    return pd.DataFrame(
+        np.column_stack([first_a, second_a, other]),
+        index=index,
+        columns=["A", "A", "B"],
+    )
+
+
+@pytest.mark.parametrize(("name", "kwargs"), _DUPLICATE_COLUMN_CASES)
+def test_duplicate_price_columns_are_canonized_keep_first(name, kwargs):
+    prices = _duplicate_price_panel()
+    deduplicated = prices.iloc[:, [0, 2]].copy()
+    strategy = getattr(baselines, name)
+
+    signals = strategy(prices, **kwargs)
+    expected = strategy(deduplicated, **kwargs)
+
+    assert signals.columns.tolist() == ["A", "B"]
+    pd.testing.assert_frame_equal(signals, expected)
+
+
+def test_unique_price_columns_remain_unchanged_by_duplicate_guard():
+    prices = _make_prices(n_days=300, n_syms=3)
+    duplicated = _duplicate_price_panel()
+
+    assert baselines._drop_duplicate_price_columns(prices) is prices
+    canonical = baselines._drop_duplicate_price_columns(duplicated)
+    pd.testing.assert_frame_equal(canonical, duplicated.iloc[:, [0, 2]].copy())
