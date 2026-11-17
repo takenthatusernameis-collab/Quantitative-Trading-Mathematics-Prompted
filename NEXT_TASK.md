@@ -98,3 +98,13 @@ Next agent: if the maintainer has landed the patch, re-run `python -m pytest -q 
 - `python -m pytest -q tests/test_gates_workflow.py` -> **7 failed** (maintainer-gated, unchanged).
 
 Conclusion: baseline identical. No new reproduced, runner-reachable defect. No agent code change warranted. Maintainer-gated patch remains the only concrete item.
+
+## Cycle 198 re-verification (2026-11-17, own evidence)
+
+- `python -m ruff check src tests run_*.py scripts` -> **All checks passed.**
+- `python -m ruff format --check src tests run_*.py scripts` -> **336 files already formatted.**
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` -> exit 0.
+- `python scripts/backtest_perf_regression_gate.py` -> **PERF GATE PASSED** (0.303s < 5s, 10.7MB peak, 13668 trades).
+- `python -m pytest -q tests/test_gates_workflow.py` -> **7 failed** (maintainer-gated, unchanged).
+
+Conclusion: baseline identical. No new reproduced, runner-reachable defect. No agent code change warranted. Maintainer-gated patch remains the only concrete item.
