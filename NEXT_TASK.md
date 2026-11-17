@@ -77,3 +77,15 @@ re-verify this baseline and make no code change.
 - Do not invent a free-data H183 or treat parameter/timeframe/universe
   variants as new mechanism families.
 - Do not trust handoff pass/fail/coverage counts -- re-run gates.
+
+## Cycle 196 re-verification (2026-11-17, own evidence)
+
+- `python -m ruff check src tests run_*.py scripts` -> **All checks passed.**
+- `python -m ruff format --check src tests run_*.py scripts` -> **336 files already formatted.**
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` -> exit 0 (patch still applies cleanly).
+- `python -m pytest -q tests/test_gates_workflow.py` -> **7 failed** (maintainer-gated: failures are the missing `pip install -e . --no-deps` job step, missing `scripts/**` in both push path filters, and the missing `python scripts/backtest_perf_regression_gate.py` step in `research_gates` — exactly what the patch fixes).
+- `python scripts/backtest_perf_regression_gate.py` -> **PERF GATE PASSED** (0.323s < 5s, 10.7MB peak, 13668 trades).
+
+Conclusion: baseline confirmed identical to Cycle 195. No new reproduced, runner-reachable defect in `src/qtr`/runners/corpus metadata. **No agent code change is warranted.** The only concrete item remains the maintainer-gated apply/push of `patches/0001-gates-workflow-contract-fix.patch`.
+
+Next agent: if the maintainer has landed the patch, re-run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed) and report. Otherwise, re-verify the baseline above and make no code change unless a NEW reproduced defect appears (then fix with the smallest verifiable change, rerun focused tests, `python -m ruff check src tests run_*.py scripts`, `python -m ruff format --check src tests run_*.py scripts`, and `python scripts/backtest_perf_regression_gate.py`, with own evidence).
