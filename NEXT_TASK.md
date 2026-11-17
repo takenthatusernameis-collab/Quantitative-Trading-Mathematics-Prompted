@@ -1,22 +1,20 @@
-# Next task (Cycle 184, 2026-11-17)
+# Next task (Cycle 185, 2026-11-17)
 
 ## What changed this session
-- None. No prior unexecuted agent assignment existed beyond the maintainer-gated workflow patch. No source, test, gate, artifact, frozen-number, or workflow changes were made.
-- Inspected repo state: clean working tree at HEAD `770fb22` (baseline; only this handoff update pending).
+- Fixed a reproduced `qtr.utils.config.load_config` save-target clobber: loading an explicit but missing config path returned `{}` but left `_CONFIG_PATH` pointing at the previously loaded config, so a later `save_config()` (no path) overwrote that prior config file. `load_config` now records the explicit missing path as the save target and clears `_CONFIG_PATH` only when search-and-not-found.
+- Added `tests/test_config.py::TestNonMappingConfigDocument::test_load_config_explicit_missing_path_sets_save_target`.
+- Files: `src/qtr/utils/config.py`, `tests/test_config.py`, `HANDOFF.md`, `NEXT_TASK.md`.
 
-## What was actually verified (own evidence, live tree, 2026-11-17T05:32:53Z)
-- `python -m pytest -q tests/test_experiment_tracking.py -W error` → **37 passed** (0.59s).
-- `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (expected/unchanged): missing `scripts/**` triggers, editable install, scripts in ruff targets, and perf-gate step; matches `patches/0001-gates-workflow-contract-fix.patch`.
-- `python -m ruff check src tests run_*.py scripts` → **All checks passed**.
-- `python -m ruff format --check src tests run_*.py scripts` → **336 files already formatted**.
-- `python scripts/backtest_perf_regression_gate.py` → **PERF GATE PASSED** (0.285s < 5s, 10.7MB peak, 13668 trades).
-- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → **applies cleanly**.
-- `grep -rn "TODO|FIXME|XXX|HACK" src/qtr` → no matches.
+## What was actually verified (own evidence, 2026-11-17)
+- Repro before fix: load `old.yaml` (`x: 1`) → `load_config(missing.yaml)` returned `{}` with `_CONFIG_PATH==old.yaml`; `save_config({'y': 2})` overwrote `old.yaml`. After fix: `load_config(missing.yaml)` sets `_CONFIG_PATH==missing.yaml`, `save_config({'z': 3})` writes `new.yaml` and preserves prior config.
+- `python -m pytest -q tests/test_config.py` → **56 passed**.
+- `python -m ruff check src/qtr/utils/config.py tests/test_config.py` → **All checks passed**.
+- No gate, artifact, frozen-number, or workflow change.
 
 ## What remains unresolved
-- **Maintainer-gated (agent-unreachable):** 7 `tests/test_gates_workflow.py` failures; fix is `patches/0001-gates-workflow-contract-fix.patch`. Agent cannot land it — no `workflows` token and `.github/scripts/kilo-controller.sh` restores `.github/workflows/**` from `origin/main` each session. Maintainer action: apply and push the patch, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed).
+- **Maintainer-gated (agent-unreachable):** 7 `tests/test_gates_workflow.py` failures; fix is `patches/0001-gates-workflow-contract-fix.patch` (`git apply --check` clean). Agent cannot land — no `workflows` token and `.github/scripts/kilo-controller.sh` restores `.github/workflows/**` from `origin/main` each session. Maintainer action: apply and push the patch, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed).
 - **H182 selection:** free-data point-in-time strategy-family queue exhausted (H1–H181 rejected/recorded, `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96). No honest free-data H182 pre-registrable without new authorized data; do not invent candidates or treat parameter/timeframe/universe variations as new mechanism families.
-- No new reproduced defect found in `src/qtr`/runners/corpus metadata this session.
+- No other new reproduced defect found in `src/qtr`/runners/corpus metadata this session.
 
 ## One precise next task
 **Maintainer:** apply and push `patches/0001-gates-workflow-contract-fix.patch` on `origin/main`, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed).
@@ -25,5 +23,5 @@
 ## Approaches already tried and why they should not be repeated
 - Do not edit `.github/workflows/**` or weaken `tests/test_gates_workflow.py` — failures are the maintainer-gated contract block; the fix is the workflow patch.
 - Do not re-audit already-pinned defect classes without new evidence (cache normalization/dedup, config boundaries, EDGAR handling, annualization/`bars_per_year`/`periods_per_year`/`sharpe_ratio` guards, split/CV/purged-CV operand guards, engine cost/metric/position/impact guards, `CostModel`/`_adv_for_symbol`/`equity_impact_bps_per_pct_adv` degenerate-input guards, `statistics.multiple_testing_correction(alpha=...)` guard, `Experiment.__init__`/`record_artifact`/`load_metadata` path containment, `load_config`/`_set_nested`, duplicate index/column handling, `max_leverage`/`initial_capital`/`max_position_size`, `filing_documents` malformed-EDGAR item/name handling, etc.).
-- Do not use `--cov=<dotted.module>` (causes collection `ImportError`); use `--cov=qtr`.
+- Do not use `--cov=<dotted.module>` for coverage collection (causes collection `ImportError`); rely on focused tests or the full pinned suite with `--cov=qtr`.
 - Do not trust handoff pass/fail/coverage counts — re-run gates.

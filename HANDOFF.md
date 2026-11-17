@@ -1,5 +1,13 @@
 # HANDOFF.md
 
+> **Latest (2026-11-17, Cycle 185 — fixed reproduced `load_config` missing-explicit-path save-target clobber; 100% config coverage preserved on touched path):**
+> - **Defect:** `qtr.utils.config.load_config(explicit_path)` for a non-existent explicit path returned `{}` but left `_CONFIG_PATH` unchanged, so a subsequent `save_config()` with no path fell back to the previously loaded config file and overwrote it. Reproduced: load `old.yaml` (`x: 1`), `load_config(missing.yaml)` → `{}` with `_CONFIG_PATH` still `old.yaml`, `save_config({'y': 2})` overwrote `old.yaml`.
+> - **Fix:** `src/qtr/utils/config.py` records an explicit missing path as `_CONFIG_PATH` (save target) and clears `_CONFIG_PATH` only on the search-and-not-found path. Returned config remains `{}`.
+> - **Tests:** `tests/test_config.py::TestNonMappingConfigDocument::test_load_config_explicit_missing_path_sets_save_target` (+1) — old config preserved, `new.yaml` written.
+> - **Verified (own evidence, 2026-11-17):** `python -m pytest -q tests/test_config.py` → **56 passed**. `python -m ruff check src/qtr/utils/config.py tests/test_config.py` → clean. Pre/post repro shows missing path now saves to requested path (`z: 3` written to `new.yaml`) without clobbering prior config. No gate/artifact/frozen-number/workflow change.
+> - **Unresolved:** maintainer-gated `tests/test_gates_workflow.py` (7 failures, `patches/0001-gates-workflow-contract-fix.patch`, agent-unreachable). H182 selection blocked (H1–H181 exhausted/rejected, no honest free-data pre-registrable family). No other new reproduced defect found.
+>
+
 > **Latest (2026-11-17, Cycle 184 — no prior agent assignment; re-verified maintainer-gated workflow block and baseline gates; no source/test changes):**
 > - No unexecuted agent-assigned work existed beyond the maintainer-gated CI workflow patch; no code, test, artifact, gate, frozen-number, or workflow change was made.
 > - **Verified (own evidence, 2026-11-17T05:32:53Z, HEAD `770fb22`):** `python -m pytest -q tests/test_experiment_tracking.py -W error` → **37 passed** (0.59s). `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged, maintainer-gated contract in `patches/0001-gates-workflow-contract-fix.patch`: missing `scripts/**` triggers, editable install, scripts in ruff targets, perf-gate step). `python -m ruff check src tests run_*.py scripts` → clean. `python -m ruff format --check src tests run_*.py scripts` → **336 files already formatted**. `python scripts/backtest_perf_regression_gate.py` → **PERF GATE PASSED** (0.285s < 5s, 10.7MB, 13668 trades). `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly. `grep -rn "TODO|FIXME|XXX|HACK" src/qtr` → no matches.

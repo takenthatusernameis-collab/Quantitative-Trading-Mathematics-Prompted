@@ -434,3 +434,25 @@ class TestSetNestedNonMapping:
         monkeypatch.setenv("QTR_CACHE_DIR", "/data/cache")
         assert config.load_config() == {"data": {"cache_dir": "/data/cache"}}
         _clear_config_state()
+
+
+    def test_load_config_explicit_missing_path_sets_save_target(self, tmp_path):
+        """An explicit but missing config path must not overwrite a prior config.
+
+        ``save_config()`` falls back to ``_CONFIG_PATH`` when no path is given.
+        Loading a missing explicit path returns an empty config; it must record
+        that explicit path as the save target so a later save writes there rather
+        than clobbering a previously loaded config file.
+        """
+        _clear_config_state()
+        old_path = tmp_path / "old.yaml"
+        old_path.write_text("x: 1\n")
+        config.load_config(old_path)
+
+        missing = tmp_path / "new.yaml"
+        assert config.load_config(missing) == {}
+        assert config._CONFIG_PATH == missing
+        config.save_config({"y": 2})
+        assert old_path.read_text() == "x: 1\n"
+        assert missing.read_text().strip() == "y: 2"
+        _clear_config_state()

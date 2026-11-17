@@ -59,6 +59,12 @@ def load_config(config_path: Path | None = None) -> dict[str, Any]:
         _CONFIG_PATH = config_path
     else:
         _CONFIG = {}
+        # When an explicit path was requested, keep it as the save target so a
+        # later save_config() does not overwrite a previously loaded config file.
+        if config_path is not None:
+            _CONFIG_PATH = config_path
+        else:
+            _CONFIG_PATH = None
 
     # Apply environment variable overrides
     _apply_env_overrides(_CONFIG)
