@@ -423,6 +423,78 @@ class TestEquityZeroVolume:
 
 
 # --------------------------------------------------------------------------- #
+# Invalid equity market-impact coefficient
+# --------------------------------------------------------------------------- #
+class TestInvalidEquityImpactCoefficient:
+    """A negative or non-finite ``equity_impact_bps_per_pct_adv`` must fail closed.
+
+    The coefficient scales the market-impact cost the engine SUBTRACTS from the
+    return, so a negative coefficient is a *negative* cost that
+    ``portfolio_ret = ... - costs`` ADDS -- it manufactures P&L. A non-finite
+    coefficient is the same class: ``inf`` makes the cost sum ``inf`` and the
+    return ``-inf`` (a non-finite series the metrics then silently void), while
+    ``nan`` is truthy and poisons the cost sum so the charge is silently
+    dropped. ``CostModel.equity_cost_bps`` already fails closed on the same
+    operand (returns ``0.0``), but the engine's separate impact loop read the
+    raw attribute and bypassed that guard. The coefficient now normalizes to
+    ``0.0`` (the no-impact boundary) at the point of use, so a bad value can
+    only ever REMOVE the impact charge, never invert or blow it up.
+    """
+
+    @staticmethod
+    def _run(impact):
+        prices = pd.DataFrame(
+            {"A": [100.0, 101.0, 102.0, 103.0, 104.0]},
+            index=pd.date_range("2020-01-01", periods=5, freq="D"),
+        )
+        signals = pd.DataFrame({"A": 1.0}, index=prices.index)
+        adv = pd.Series({"A": 1_000_000.0})
+        cm = CostModel(equity_commission_bps=2.0, equity_impact_bps_per_pct_adv=impact)
+        cfg = BacktestConfig(initial_capital=1_000_000.0, cost_model=cm, max_leverage=1.0)
+        return run_backtest(prices, signals, cfg, adv=adv)
+
+    @pytest.mark.parametrize("bad", [-10.0, -0.001, float("inf"), float("-inf"), float("nan")])
+    def test_invalid_impact_fails_closed_without_inflating_the_return(self, bad):
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            res = self._run(bad)
+
+        # No non-finite value escapes and no negative cost is ever booked.
+        assert np.isfinite(res.returns.values).all()
+        assert np.isfinite(res.equity_curve.values).all()
+        assert (res.trades["cost"] >= 0.0).all()
+        # The pre-fix negative coefficient turned the entry-bar return (which
+        # earns no prior position) into a positive credit; the guarded engine
+        # books no such credit.
+        assert res.returns.iloc[0] <= 0.0
+
+    def test_finite_positive_impact_is_unchanged(self):
+        res = self._run(10.0)
+        assert np.isfinite(res.returns.values).all()
+        # The entry bar carries the commission + impact drag (a cost, not a
+        # credit), so the positive path is bit-identical to before.
+        assert res.returns.iloc[0] < 0.0
+        assert (res.trades["cost"] > 0.0).all()
+
+    def test_the_contract_rejects_the_pre_fix_negative_cost(self):
+        """Behavioural negative control: the pre-fix impact loop read the raw
+        coefficient, so a negative one produced a negative cost that
+        ``portfolio_ret = ... - costs`` ADDED. Reconstruct that arithmetic and
+        require it to be a credit (cost < 0), which the guarded engine never
+        books."""
+        position_change = 1.0
+        participation = 1.0  # 1% of ADV
+        impact_coef = -10.0
+        pre_fix_cost = position_change * (impact_coef * participation / 10_000.0)
+        assert pre_fix_cost < 0.0  # a credit -> manufactured P&L
+
+        res = self._run(-10.0)
+        assert (res.trades["cost"] >= 0.0).all()
+
+
+# --------------------------------------------------------------------------- #
 # Duplicate index labels
 # --------------------------------------------------------------------------- #
 class TestDuplicateIndex:

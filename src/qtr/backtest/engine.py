@@ -514,7 +514,27 @@ def run_backtest(
         base_rate = cost_model.equity_cost_bps() / 10_000.0
         rates = pd.Series(base_rate, index=columns)
         impact_cost = pd.DataFrame(0.0, index=index, columns=columns)
-        if cost_model.equity_impact_bps_per_pct_adv and adv is not None:
+        # The market-impact coefficient is a *charge*: it scales the impact cost
+        # the engine SUBTRACTS from the portfolio return (engine.py:550), so a
+        # negative coefficient is a sign error that MANUFACTURES P&L --
+        # ``position_change.abs() * (negative * participation)`` is a negative
+        # cost and ``portfolio_ret = ... - costs`` then ADDS it (measured: a
+        # -10 bps/pct coefficient turned a -0.0012 entry-bar return into
+        # +0.0010). A non-finite coefficient is the same class: ``inf`` makes
+        # the impact cost ``inf`` so the cost sum is ``inf`` and the return
+        # ``-inf`` (a non-finite series the metrics then silently void), while
+        # ``nan`` is truthy and poisons the cost sum (skipped by ``sum``) so the
+        # impact charge is silently dropped. The sibling
+        # ``CostModel.equity_cost_bps`` already fails closed on the same operand
+        # (returns 0.0), but this separate impact loop read the raw attribute
+        # and bypassed that guard. Normalize to ``0.0`` -- the no-impact
+        # boundary -- so a bad coefficient can only ever REMOVE the impact
+        # charge, never invert or blow it up. Every finite non-negative
+        # coefficient is unchanged, so the clean path is bit-identical.
+        impact_coef = cost_model.equity_impact_bps_per_pct_adv
+        if not math.isfinite(impact_coef) or impact_coef < 0.0:
+            impact_coef = 0.0
+        if impact_coef and adv is not None:
             for sym in columns:
                 adv_sym = adv.get(sym) if hasattr(adv, "get") else None
                 if adv_sym is None or not math.isfinite(adv_sym) or adv_sym <= 0.0:
@@ -524,7 +544,7 @@ def run_backtest(
                     position_change[sym].abs() * capital / (price_sym * float(adv_sym)) * 100.0
                 )
                 impact_cost[sym] = position_change[sym].abs() * (
-                    cost_model.equity_impact_bps_per_pct_adv * participation / 10_000.0
+                    impact_coef * participation / 10_000.0
                 )
     elif asset_class == AssetClass.CRYPTO:
         rate = cost_model.crypto_cost_bps() / 10_000.0

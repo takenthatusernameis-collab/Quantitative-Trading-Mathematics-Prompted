@@ -1,5 +1,51 @@
 # HANDOFF.md
 
+> **Latest (2026-11-17, Cycle 174 — fixed a reproduced negative/non-finite `equity_impact_bps_per_pct_adv` fail-open in `run_backtest`: a negative coefficient manufactured P&L and an infinite one emitted a non-finite return; 100% coverage preserved):**
+> `src/qtr/backtest/engine.py::run_backtest` charges market impact in a
+> *separate* loop from `CostModel.equity_cost_bps`:
+> `impact_cost[sym] = position_change[sym].abs() * (equity_impact_bps_per_pct_adv
+> * participation / 1e4)`. The sibling `CostModel.equity_cost_bps` already
+> fails closed (returns `0.0`) on a negative or non-finite
+> `equity_impact_bps_per_pct_adv` (Cycle 84 class: a cost is a *charge*), but
+> this loop read the raw attribute and bypassed that guard:
+> - **negative coefficient** → a *negative* impact cost, and
+>   `portfolio_ret = ... - costs` (engine.py:550) then **adds** it. Reproduced
+>   (own evidence): a `-10` bps/pct coefficient turned the entry-bar return
+>   `-0.0012` into **`+0.0010`** and booked a trade cost of **`-0.001`** —
+>   P&L manufactured out of a sign error.
+> - **`inf`/`-inf`** → the impact cost (and the whole return) becomes
+>   `inf`/`-inf`; `_calculate_metrics` then silently returns the no-evidence
+>   tuple while `returns`/`equity_curve` stay non-finite (measured:
+>   `returns[0] == ±inf`).
+> - **`nan`** → truthy, so the loop runs and poisons the cost sum; `sum(axis=1)`
+>   skips it, so the impact charge is silently **dropped** (fail-open).
+> - **Fix:** `src/qtr/backtest/engine.py` normalizes
+>   `equity_impact_bps_per_pct_adv` to `0.0` (the no-impact boundary) when it
+>   is non-finite or negative, *before* the impact loop. A bad coefficient can
+>   now only ever **remove** the impact charge, never invert or blow it up;
+>   every finite non-negative value is unchanged, so the clean path is
+>   bit-identical. No gate, artifact, sidecar, hash, frozen-number, or workflow
+>   change.
+> - **Tests:** `tests/test_engine_edge_stress.py::TestInvalidEquityImpactCoefficient`
+>   (+7) — parametrized `-10.0 / -0.001 / ±inf / nan` all finite, no negative
+>   cost, non-positive entry-bar return; a finite-positive `10.0` control
+>   (unchanged, cost drag); and a behavioural negative control reconstructing
+>   the pre-fix negative-cost arithmetic.
+> - **Verified (own evidence):** negative control (`git stash push --
+>   src/qtr/backtest/engine.py`) → **6 failed / 1 passed** on the new class;
+>   restored → **7 passed**. Focused
+>   `tests/test_engine_edge_stress.py tests/test_cost_model.py tests/test_backtest_engine.py -W error`
+>   → **149 passed**. Full pinned suite
+>   `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py`
+>   (335.50s) → **4248 passed, 51 skipped, 0 failed**, `src/qtr` coverage
+>   **100.00%** (1627 stmts / 610 branches / 0 miss; `engine.py` 252/94).
+>   `python -m ruff check src tests run_*.py scripts` → clean;
+>   `python -m ruff format --check src tests run_*.py scripts` → **336 files
+>   already formatted**. `python scripts/backtest_perf_regression_gate.py` →
+>   **PERF GATE PASSED** (0.280s < 5s, 10.7MB, 13668 trades).
+>   `git apply --check patches/0001-gates-workflow-contract-fix.patch` → still
+>   applies cleanly (maintainer-gated, unchanged).
+
 > **Latest (2026-11-16, Cycle 173 — fixed a reproduced `walk_forward_splits` non-integer operand crash; 100% coverage preserved):**
 > `src/qtr/validation/statistics.py::walk_forward_splits` guarded finiteness of
 > `n_samples`, `n_splits`, `train_ratio`, `gap` but not **integrality**. A
