@@ -435,7 +435,6 @@ class TestSetNestedNonMapping:
         assert config.load_config() == {"data": {"cache_dir": "/data/cache"}}
         _clear_config_state()
 
-
     def test_load_config_explicit_missing_path_sets_save_target(self, tmp_path):
         """An explicit but missing config path must not overwrite a prior config.
 
