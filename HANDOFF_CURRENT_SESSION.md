@@ -1,16 +1,22 @@
-# HANDOFF — Current Session (Cycle 197, 2026-11-17)
+# HANDOFF — Current Session (Cycle 198, 2026-11-17)
 
 ## What changed
 - **No source, test, gate, artifact, sidecar, hash, frozen-number, or workflow change.**
   Working tree clean at start (HEAD `0ebc0f1`, up to date with `origin/main`);
   only handoff files updated. Handoff update, not project progress.
 
-## What was actually verified (own evidence, 2026-11-17, Cycle 197)
+## What was actually verified (own evidence, 2026-11-17, Cycle 198)
 - `python -m ruff check src tests run_*.py scripts` -> **All checks passed.**
 - `python -m ruff format --check src tests run_*.py scripts` -> **336 files already formatted.**
-- `python scripts/backtest_perf_regression_gate.py` -> **PERF GATE PASSED** (0.316s < 5s, 10.7MB peak, 13668 trades).
+- `python scripts/backtest_perf_regression_gate.py` -> **PERF GATE PASSED** (0.295s < 5s, 10.7MB peak, 13668 trades).
 - `git apply --check patches/0001-gates-workflow-contract-fix.patch` -> exit 0 (patch still applies cleanly).
 - `python -m pytest -q tests/test_gates_workflow.py` -> **7 failed** (maintainer-gated contract: missing editable install, missing `scripts/**` in ruff targets/triggers, missing perf-regression-gate step; fixed by patch).
+- Key runner tests green:
+  - `test_reproducibility_audit.py` -> 7 passed
+  - `test_runner_metric_agreement.py` / `test_runner_causality_inventory.py` / `test_causality_invariant.py` / `test_h51_benchmark_container_invariance.py` -> 718 passed, 48 skipped
+  - `test_parameter_sensitivity_reproducibility.py` / `test_cs_momentum_signal.py` -> 17 passed
+  - `test_h29_lookahead_sweep.py` -> 36 passed
+  - `test_h28_causal_recertification.py` -> 47 passed
 - No new reproduced, runner-reachable defect found in `src/qtr`/runners/corpus metadata. No code change made.
 
 ## What remains unresolved

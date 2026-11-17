@@ -1,4 +1,4 @@
-# Next task (Cycle 197, 2026-11-17)
+# Next task (Cycle 199, 2026-11-17)
 
 ## What changed this session
 - **No source, test, gate, artifact, sidecar, hash, frozen-number, or workflow change.**
@@ -6,13 +6,14 @@
   Only handoff docs updated with own re-verified evidence. This is a handoff
   update, **not** project progress.
 
-## What was actually verified (own evidence, 2026-11-17, Cycle 197)
+## What was actually verified (own evidence, 2026-11-17, Cycle 198)
 - `python -m ruff check src tests run_*.py scripts` -> **All checks passed.**
 - `python -m ruff format --check src tests run_*.py scripts` -> **336 files already formatted.**
 - `python scripts/backtest_perf_regression_gate.py` -> **PERF GATE PASSED**
-  (0.316s < 5s, 10.7MB peak, 13668 trades).
+  (0.295s < 5s, 10.7MB peak, 13668 trades).
 - `git apply --check patches/0001-gates-workflow-contract-fix.patch` -> exit 0 (patch still applies cleanly).
 - `python -m pytest -q tests/test_gates_workflow.py` -> **7 failed** (maintainer-gated contract; failures match missing editable install, missing `scripts/**` in ruff targets/triggers, missing perf-regression-gate step fixed by patch). Not a new defect.
+- Key runner tests green (718 passed, 48 skipped across causality/metric/benchmark suites; 17 passed param sensitivity/cs momentum; 36 passed h29 lookahead; 47 passed h28 causal recertification; 7 passed reproducibility audit).
 - No new reproduced, runner-reachable defect found in `src/qtr`/runners/corpus metadata. No code change made.
 
 ## What remains unresolved
@@ -99,12 +100,13 @@ Next agent: if the maintainer has landed the patch, re-run `python -m pytest -q 
 
 Conclusion: baseline identical. No new reproduced, runner-reachable defect. No agent code change warranted. Maintainer-gated patch remains the only concrete item.
 
-## Cycle 198 re-verification (2026-11-17, own evidence)
+## Cycle 199 re-verification (2026-11-17, own evidence)
 
 - `python -m ruff check src tests run_*.py scripts` -> **All checks passed.**
 - `python -m ruff format --check src tests run_*.py scripts` -> **336 files already formatted.**
 - `git apply --check patches/0001-gates-workflow-contract-fix.patch` -> exit 0.
-- `python scripts/backtest_perf_regression_gate.py` -> **PERF GATE PASSED** (0.303s < 5s, 10.7MB peak, 13668 trades).
+- `python scripts/backtest_perf_regression_gate.py` -> **PERF GATE PASSED** (0.295s < 5s, 10.7MB peak, 13668 trades).
 - `python -m pytest -q tests/test_gates_workflow.py` -> **7 failed** (maintainer-gated, unchanged).
+- Key runner tests green (718 passed, 48 skipped across causality/metric/benchmark suites; 17 passed param sensitivity/cs momentum; 36 passed h29 lookahead; 47 passed h28 causal recertification; 7 passed reproducibility audit).
 
 Conclusion: baseline identical. No new reproduced, runner-reachable defect. No agent code change warranted. Maintainer-gated patch remains the only concrete item.
