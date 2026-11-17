@@ -1,3 +1,9 @@
+> **Latest (2026-11-17, Cycle 196 — no prior agent assignment; baseline re-verified with own evidence; no new defect; no source/test/gate/artifact/workflow change):**
+> - **What changed:** nothing in `src/qtr`, `tests`, `run_*.py`, `scripts`, gates, artifacts, sidecars, hashes, frozen numbers, or `.github/workflows/**`. Working tree clean at start (HEAD `f0d95d2`, up to date with `origin/main`); only handoff files updated. This is a handoff update, not project progress.
+> - **Verified (own evidence, 2026-11-17):** ruff check → All checks passed. ruff format --check → 336 files already formatted. perf gate → PERF GATE PASSED (0.318s < 5s, 10.7MB peak, 13668 trades). tests/test_gates_workflow.py → 7 failed (unchanged, maintainer-gated; patch applies cleanly). git apply --check patch → exit 0. grep TODO/FIXME/XXX/HACK src/qtr → no matches. No new reproduced, runner-reachable defect found; no code change made.
+> - **Unresolved:** (1) maintainer-gated `tests/test_gates_workflow.py` 7 failures — apply/push `patches/0001-gates-workflow-contract-fix.patch`. (2) H1–H182 exhausted/rejected; H183 data-blocked. (3) Reproducibility backlog frozen: missing_files=197, hash_mismatches=11, orphaned_files=528, missing_meta_files=0.
+> - **One precise next task:** Maintainer: apply/push the workflow patch, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed). Agent: only fix a NEW reproduced runner-reachable defect in `src/qtr`/runners/corpus metadata with smallest verifiable change + focused tests, ruff check/format, perf gate; otherwise no code change and re-verify this baseline.
+
 # HANDOFF.md
 
 > **Latest (2026-11-17, Cycle 195 — no prior agent assignment; baseline re-verified with own evidence; no new defect; no source/test/gate/artifact/workflow change):**
