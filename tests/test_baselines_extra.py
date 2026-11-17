@@ -438,8 +438,12 @@ def test_mean_reversion_e2e_duplicate_columns_keep_first():
     cfg = _make_backtest_config()
 
     # Run strategy on both panels
-    sig_dup = baselines.run_strategy(prices_dup, "mean_reversion", window=20, num_std=2.0, long_only=True)
-    sig_dedup = baselines.run_strategy(prices_dedup, "mean_reversion", window=20, num_std=2.0, long_only=True)
+    sig_dup = baselines.run_strategy(
+        prices_dup, "mean_reversion", window=20, num_std=2.0, long_only=True
+    )
+    sig_dedup = baselines.run_strategy(
+        prices_dedup, "mean_reversion", window=20, num_std=2.0, long_only=True
+    )
 
     # Signals should have canonical columns and match
     assert sig_dup.columns.tolist() == ["A", "B"]
