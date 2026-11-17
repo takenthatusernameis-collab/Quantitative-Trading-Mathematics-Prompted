@@ -89,3 +89,13 @@ re-verify this baseline and make no code change.
 Conclusion: baseline confirmed identical to Cycle 195. No new reproduced, runner-reachable defect in `src/qtr`/runners/corpus metadata. **No agent code change is warranted.** The only concrete item remains the maintainer-gated apply/push of `patches/0001-gates-workflow-contract-fix.patch`.
 
 Next agent: if the maintainer has landed the patch, re-run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed) and report. Otherwise, re-verify the baseline above and make no code change unless a NEW reproduced defect appears (then fix with the smallest verifiable change, rerun focused tests, `python -m ruff check src tests run_*.py scripts`, `python -m ruff format --check src tests run_*.py scripts`, and `python scripts/backtest_perf_regression_gate.py`, with own evidence).
+
+## Cycle 197 re-verification (2026-11-17, own evidence)
+
+- `python -m ruff check src tests run_*.py scripts` -> **All checks passed.**
+- `python -m ruff format --check src tests run_*.py scripts` -> **336 files already formatted.**
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` -> exit 0.
+- `python scripts/backtest_perf_regression_gate.py` -> **PERF GATE PASSED** (0.319s < 5s, 10.7MB peak, 13668 trades).
+- `python -m pytest -q tests/test_gates_workflow.py` -> **7 failed** (maintainer-gated, unchanged).
+
+Conclusion: baseline identical. No new reproduced, runner-reachable defect. No agent code change warranted. Maintainer-gated patch remains the only concrete item.
