@@ -1,35 +1,41 @@
-# HANDOFF — Current Session (Cycle 191, 2026-11-17)
+# HANDOFF — Current Session (Cycle 192, 2026-11-17)
 
 ## What changed
 - **No source, test, gate, artifact, sidecar, hash, frozen-number, or workflow
-  change.** Working tree clean at start (HEAD `4d17465`); only handoff files
+  change.** Working tree clean at start (HEAD `69f7385`); only handoff files
   updated this session. This is a handoff update, not project progress.
 
-## What was actually verified (own evidence, 2026-11-17, Cycle 191)
+## What was actually verified (own evidence, 2026-11-17, Cycle 192)
 - `python -m ruff check src tests run_*.py scripts` -> **All checks passed.**
 - `python -m ruff format --check src tests run_*.py scripts` -> **336 files already formatted.**
 - `python scripts/backtest_perf_regression_gate.py` -> **PERF GATE PASSED**
-  (0.291s < 5s, 10.7MB peak, 13668 trades).
-- `python -m pytest -q` -> **4270 passed, 51 skipped, 7 failed**. The 7 failures
-  are all maintainer-gated `tests/test_gates_workflow.py`; fix is
-  `patches/0001-gates-workflow-contract-fix.patch` (applies cleanly).
-- **Exhaustive review (new this cycle):** read in full all 7 `src/qtr` modules and
-  all 6 `scripts/*.py`. No new reproduced, runner-reachable defect found; every
-  fail-closed / path-traversal / non-finite / container-invariance guard is
-  present and matches its pinned test.
-- `scripts/generate_experiment_lineage_report.py` output matches the committed
-  report except the `**Generated:**` timestamp (no data drift).
+  (0.310s < 5s, 10.7MB peak, 13668 trades).
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` -> exit 0 (patch still applies cleanly).
+- `python -m pytest -q tests/test_gates_workflow.py` -> **7 failed** (maintainer-gated; fix is `patches/0001-gates-workflow-contract-fix.patch`).
+- Focused test runs on core gates:
+  - `test_backtest_perf_regression_gate.py` -> **5 passed**
+  - `test_reproducibility_audit.py` -> **7 passed**
+  - `test_h54_non_metrics_block_disclosure.py` -> **21 passed**
+  - `test_runner_metric_agreement.py`, `test_runner_causality_inventory.py`, `test_causality_invariant.py` -> **402 passed, 1 skipped**
+  - `test_parameter_sensitivity_reproducibility.py`, `test_cs_momentum_signal.py` -> **17 passed**
+  - `test_h29_lookahead_sweep.py`, `test_h51_benchmark_container_invariance.py` -> **352 passed, 47 skipped**
+- No new reproduced, runner-reachable defect found from baseline re-verification and existing evidence.
 
 ## What remains unresolved
 - **Maintainer-gated (agent-unreachable):** apply/push
   `patches/0001-gates-workflow-contract-fix.patch` with `workflows`-scoped
-  credentials. After push: `python -m pytest -q tests/test_gates_workflow.py`
-  (expect 7 passed).
-- **Strategy-family discovery exhausted:** H1-H182 executed/rejected; H183
-  data-blocked. Do not invent candidates.
+  credentials (`.github/scripts/kilo-controller.sh` restores `.github/workflows/**`
+  from `origin/main`; no agent `workflows` token). After push:
+  `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed).
+- **Strategy-family discovery exhausted:** H1-H182 executed/rejected
+  (`NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96; `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md`
+  §6). H183 is data-blocked (futures roll/contango, crypto funding, or options
+  point-in-time data). Do not invent candidates or treat
+  parameter/timeframe/universe variants as new mechanism families.
 - **Reproducibility backlog (frozen, authorization-gated):**
-  `missing_files=197`, `hash_mismatches=11`, `orphaned_files=528`,
-  `missing_meta_files=0`.
+  `missing_files=197` (172 H28 contract-blocked + 25 unrecoverable),
+  `hash_mismatches=11`, `orphaned_files=528`, `missing_meta_files=0`
+  (`REPRODUCIBILITY_AUDIT_REPORT.md`; `tests/test_reproducibility_audit.py` green).
 - **Single concrete code item (maintainer authorization required):** the momentum
   runners log `param_grid_results` more than once per run
   (`run_ts_momentum_experiment.py:440/473/708`,
