@@ -407,19 +407,16 @@ class TestCostModelDegenerateInput:
             cm = CostModel(futures_specs={"ES": bad_entry})
             assert cm.future_cost_per_contract("ES") == 0.0, bad_entry
         # A valid per-symbol mapping is unchanged.
-        assert (
-            CostModel(
-                futures_specs={
-                    "ES": {
-                        "commission": 2.0,
-                        "tick_value": 50.0,
-                        "spread_ticks": 1.0,
-                        "slippage_ticks": 0.5,
-                    }
+        assert CostModel(
+            futures_specs={
+                "ES": {
+                    "commission": 2.0,
+                    "tick_value": 50.0,
+                    "spread_ticks": 1.0,
+                    "slippage_ticks": 0.5,
                 }
-            ).future_cost_per_contract("ES")
-            == pytest.approx(77.0)
-        )
+            }
+        ).future_cost_per_contract("ES") == pytest.approx(77.0)
 
     def test_get_future_contract_multiplier_drops_a_non_mapping_spec_entry(self):
         # The sibling crash: ``get_future_contract_multiplier("ES")`` on
@@ -433,14 +430,17 @@ class TestCostModelDegenerateInput:
         # inputs).
         cm = CostModel(future_contract_multiplier=50.0)
         for bad_entry in ([1, 2, 3], 5, "abc", 3.14):
-            cm_bad = CostModel(futures_specs={"ES": bad_entry})
+            cm_bad = CostModel(future_contract_multiplier=50.0, futures_specs={"ES": bad_entry})
             assert cm_bad.get_future_contract_multiplier("ES") == 50.0, bad_entry
         # A missing key in a real mapping still falls back to the default.
         assert cm.get_future_contract_multiplier("ES") == 50.0
         # A valid mapping is unchanged.
-        assert CostModel(futures_specs={"ES": {"multiplier": 50.0}}).get_future_contract_multiplier(
-            "ES"
-        ) == 50.0
+        assert (
+            CostModel(futures_specs={"ES": {"multiplier": 50.0}}).get_future_contract_multiplier(
+                "ES"
+            )
+            == 50.0
+        )
 
     def test_the_contract_rejects_the_pre_guard_non_mapping_spec(self):
         # Behavioural negative control: the pre-guard consumers indexed the
@@ -451,11 +451,7 @@ class TestCostModelDegenerateInput:
         for bad_entry in ([1, 2, 3], 5, "abc", 3.14):
             with pytest.raises((AttributeError, TypeError)):
                 bad_entry.get("commission")
-            with pytest.raises((AttributeError, TypeError)):
-                "multiplier" in bad_entry
-            assert (
-                CostModel(futures_specs={"ES": bad_entry}).future_cost_per_contract("ES") == 0.0
-            )
+            assert CostModel(futures_specs={"ES": bad_entry}).future_cost_per_contract("ES") == 0.0
             assert (
                 CostModel(futures_specs={"ES": bad_entry}).get_future_contract_multiplier("ES")
                 == 1.0
@@ -490,7 +486,9 @@ class TestCostModelDegenerateInput:
         base = run_backtest(
             prices=prices,
             signals=signals,
-            config=BacktestConfig(cost_model=CostModel(), **base_cfg),
+            config=BacktestConfig(
+                cost_model=CostModel(future_contract_multiplier=50.0), **base_cfg
+            ),
         )
         assert (
             run_backtest(

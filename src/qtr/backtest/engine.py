@@ -139,7 +139,10 @@ class CostModel:
     def future_cost_per_contract(self, symbol: str | None = None) -> float:
         """Per-contract dollar cost: commission + (spread + slippage) * tick."""
         if symbol is not None and symbol in self.futures_specs:
-            specs = self._as_spec_mapping(self.futures_specs[symbol])
+            entry = self.futures_specs[symbol]
+            if not isinstance(entry, dict):
+                return 0.0
+            specs = entry
         else:
             specs = {}
         commission = float(specs.get("commission", self.future_commission_per_contract))
