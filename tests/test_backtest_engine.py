@@ -852,7 +852,9 @@ class TestFailClosedCostGuards:
     """The cost model fails closed to ``0.0`` for every invalid input class.
     Five defensive branches in ``engine.py`` (146, 198, 230, 246, 401) had
     no test, so the 100% coverage gate measured them uncovered. Each guard is
-    pinned here with the exact input that takes its branch.
+    pinned here with the exact input that takes its branch. The ADV resolver
+    ``_adv_for_symbol`` (engine.py:417-438) is the same fail-closed class on
+    the market-impact operand and is pinned at the end of this class.
     """
 
     # ------------------------------------------------- crypto_cost_bps (146)
@@ -990,3 +992,41 @@ class TestFailClosedCostGuards:
         # engine.py:401). Cost is non-positive and finite.
         assert res.returns.iloc[5] <= 0.0
         assert np.isfinite(res.returns.iloc[5])
+
+    # ------------------------------------------------- _adv_for_symbol (417)
+    def test_adv_for_symbol_fails_closed_on_degenerate_adv(self):
+        """``_adv_for_symbol`` (engine.py:417-438) is the sibling fail-closed
+        guard to the market-impact coefficient: every degenerate ``adv`` shape
+        degrades to ``None`` (the symbol's impact charge is skipped) instead
+        of crashing out of ``run_backtest`` or charging a bogus impact. The
+        happy path returns the finite positive scalar unchanged. Each branch
+        is pinned with the exact input that takes it; the non-finite /
+        non-positive branch (engine.py:436) is already covered by
+        ``test_adv_zero_skips_impact`` and
+        ``test_equity_impact_skips_symbol_with_invalid_adv``.
+        """
+        # Happy path: a per-symbol scalar map returns the float unchanged.
+        assert _adv_for_symbol(pd.Series({"A": 2_000_000.0}), "A") == 2_000_000.0
+        assert _adv_for_symbol({"A": 1_500_000.0}, "A") == 1_500_000.0
+
+        # adv is None -> None (engine.py:417-418).
+        assert _adv_for_symbol(None, "A") is None
+
+        # A DataFrame is a per-symbol panel, not a scalar map -> None
+        # (engine.py:419-426). This is the runner-reachable shape: a caller
+        # that forgets ``.iloc[-1]`` on the rolling-mean ADV.
+        assert _adv_for_symbol(pd.DataFrame({"A": [1e6]}), "A") is None
+
+        # A non-mapping operand (list / scalar / str) has no ``.get`` -> None
+        # (engine.py:427-428).
+        assert _adv_for_symbol([1e6], "A") is None
+        assert _adv_for_symbol(1e6, "A") is None
+        assert _adv_for_symbol("1000000", "A") is None
+
+        # The symbol is absent from the map -> None (engine.py:430-431).
+        assert _adv_for_symbol(pd.Series({"B": 1e6}), "A") is None
+        assert _adv_for_symbol({"B": 1e6}, "A") is None
+
+        # A raw value ``float()`` cannot parse -> None (engine.py:432-435).
+        assert _adv_for_symbol({"A": "not-a-number"}, "A") is None
+        assert _adv_for_symbol({"A": [1.0, 2.0]}, "A") is None

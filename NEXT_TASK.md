@@ -1,29 +1,32 @@
-# Next task (Cycle 175, 2026-11-17)
+# Next task (Cycle 176, 2026-11-17)
 
 ## What changed this session
-Completed the incomplete HEAD commit (`ae394d6`) on `CostModel` non-mapping `futures_specs` entries — a reproduced runner-reachable defect class (same non-mapping class as Cycles 154 config / 155 EDGAR), reachable through the engine futures path (`engine.py:593` divides by `get_future_contract_multiplier` and charges `future_cost_per_contract`):
+The working tree arrived **red on two enforced gates** even though the Cycle-175 handoff claimed green. Both were consequences of the same incomplete `_adv_for_symbol` commit that landed in the squashed import; both are now fixed with the smallest change and verified.
 
-- `src/qtr/backtest/engine.py::CostModel.future_cost_per_contract` — a non-mapping `futures_specs[symbol]` entry (list/scalar/str/float) now returns `0.0` (fail-closed: no charge) instead of falling back to the non-zero-cost defaults, which manufactured a silent per-contract cost (measured `9.375` with the class defaults). Dict entries and absent symbols are bit-identical. `get_future_contract_multiplier` already fell back to the instance default via `_as_spec_mapping`; engine.py:513-514 zeroes exposure when the multiplier is not finite-positive, so the end-to-end path stays finite.
-- `tests/test_cost_model.py::TestCostModelDegenerateInput` — fixed three slips in the tests committed at `ae394d6`: (1) `cm_bad` now passes `future_contract_multiplier=50.0` (it asserted `50.0` with a default of `1.0`, inconsistent with its own docstring and with the sibling negative control, which expects the instance default `1.0`); (2) removed the `"multiplier" in bad_entry` negative-control block (`in` on `list`/`str` is valid and does not raise; `bad_entry.get("commission")` already raises `AttributeError` for all four non-mapping inputs); (3) the engine-path test's `base` now uses `future_contract_multiplier=50.0` so the valid-spec comparison is bit-identical as its docstring requires.
+- `tests/test_backtest_engine.py` — added `TestFailClosedCostGuards::test_adv_for_symbol_fails_closed_on_degenerate_adv`. `src/qtr/backtest/engine.py::_adv_for_symbol` (engine.py:376-438) is the sibling fail-closed guard on the market-impact operand (`capital / (price * adv)`). Its degenerate-input branches (adv `None`; a `pd.DataFrame` panel; a non-mapping list/scalar/str; an absent symbol; a raw value `float()` cannot parse) had **no test**, so the enforced 100% coverage gate measured them uncovered (engine.py 97%, total 99.56%, `FAIL Required test coverage of 100.0%`). The new test pins every branch with the exact input that takes it; the non-finite/non-positive branch (engine.py:436) was already covered by `test_adv_zero_skips_impact` and `test_equity_impact_skips_symbol_with_invalid_adv`. Docstring of `TestFailClosedCostGuards` extended to name the helper.
+- `src/qtr/backtest/engine.py` — `ruff format` collapsed the redundant 3-line parenthesization of the impact `participation` expression (engine.py:640-642) to one line. This was a **pre-existing** `ruff format --check` violation committed with `_adv_for_symbol` (the Cycle-175 handoff's "336 files already formatted" was stale). The change is AST-preserving (identical expression; only redundant parens removed) — no behaviour change.
 
 ## What was actually verified (own evidence, live tree, changes uncommitted)
-- `python -m pytest -q tests/test_cost_model.py -W error` → **35 passed**
-- `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (337.68s) → **4252 passed, 51 skipped, 0 failed** (was 4 failed before this session), `src/qtr` coverage **100.00%** (1633 stmts / 612 branches / 0 miss)
-- `python -m ruff check src tests run_*.py scripts` → **All checks passed**
-- `python -m ruff format --check src tests run_*.py scripts` → **336 files already formatted**
-- `python scripts/backtest_perf_regression_gate.py` → **PERF GATE PASSED** (0.305s < 5s, 10.7MB, 13668 trades)
-- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → still **applies cleanly** (unchanged)
-- `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged, maintainer-gated)
+- `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` (343.25s) -> **4253 passed, 51 skipped, 0 failed**; `src/qtr` coverage **100.00%** (1650 stmts / 622 branches / 0 miss; engine.py 100%). Was **4252 passed, 99.56%** before this session.
+- `python -m pytest -q tests/test_backtest_engine.py -W error` -> **70 passed** (was 69; +1 new test).
+- `python -m ruff check src tests run_*.py scripts` -> **All checks passed**.
+- `python -m ruff format --check src tests run_*.py scripts` -> **336 files already formatted** (was 1 would-reformat).
+- `python scripts/backtest_perf_regression_gate.py` -> **PERF GATE PASSED** (0.286s < 5s, 10.7MB, 13668 trades).
+- `python -m pytest -q tests/test_gates_workflow.py` -> **7 failed** (unchanged, maintainer-gated; fix is `patches/0001-gates-workflow-contract-fix.patch`).
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` -> still **applies cleanly**.
 
 ## What remains unresolved
-- The 7 `tests/test_gates_workflow.py` failures: fix is `patches/0001-gates-workflow-contract-fix.patch`; the agent cannot land it (repo-scoped token has no `workflows` permission; `.github/scripts/kilo-controller.sh` restores `.github/workflows/**` from `origin/main` after every session).
-- The changes above (`src/qtr/backtest/engine.py`, `tests/test_cost_model.py`) are **uncommitted** in the working tree — no commit unless explicitly requested.
+- The 7 `tests/test_gates_workflow.py` failures: fix is `patches/0001-gates-workflow-contract-fix.patch`; the agent cannot land it (repo-scoped token has no `workflows` permission; `.github/scripts/kilo-controller.sh` restores `.github/workflows/**` from `origin/main` after every session). With it applied: **4253 passed, 51 skipped, 0 failed**.
+- The changes above (`src/qtr/backtest/engine.py`, `tests/test_backtest_engine.py`) are **uncommitted** in the working tree — no commit unless explicitly requested (prior-session convention).
+- The repository git history is a **single squashed import commit** `14de981` (empty message, 3168 files). There is no per-cycle history to diff against; the Cycle-175 handoff's counts (1633 stmts / 612 branches, 100%) do not match the imported tree (1650 stmts / 622 branches, 99.56% before this session) — treat handoff counts as approximate and re-measure.
 
 ## One precise next task
-**Maintainer (unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch` on `origin/main`, then `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed). With it applied: **4252 passed, 51 skipped, 0 failed**.
-**Agent:** none — `src/qtr` is green at 100% coverage with no evidenced defect remaining; do not make speculative `src/qtr` changes. Act only on a new reproduced, runner-reachable defect (smallest reversible fail-closed fix, tests preserving 100% coverage, then the pinned suite + ruff + perf gate verification).
+**Maintainer (preferred, unblocks CI):** apply and push `patches/0001-gates-workflow-contract-fix.patch` on `origin/main`, then `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed). With it applied the whole pinned suite is **4253 passed, 51 skipped, 0 failed** at 100% coverage.
+
+**Agent:** none — `src/qtr` is now green at 100% coverage, ruff check + format clean, perf gate green, with no evidenced defect remaining. Do **not** make speculative `src/qtr` changes. Act only on a new **reproduced, runner-reachable** defect (smallest reversible fail-closed fix, tests preserving 100% coverage, then the pinned suite + ruff + perf gate verification). If you find a red gate on arrival, re-measure before trusting any handoff's pass/fail counts.
 
 ## Approaches already tried and why they should not be repeated
 - Do not edit `.github/workflows/**` or weaken `tests/test_gates_workflow.py` — the failures are the maintainer-gated contract block; the fix is the workflow patch.
-- Do not re-audit already-pinned defect classes without new evidence (cache normalization/dedup, config boundaries, EDGAR non-mapping, annualization/`bars_per_year`/`periods_per_year` guards, split/CV operand guards, engine cost/metric/position/impact guards, `CostModel` degenerate-input guards just closed this session).
-- Do not use `--cov=<dotted.module>` (aborts collection); use `--cov=qtr`.
+- Do not re-audit already-pinned defect classes without new evidence (cache normalization/dedup, config boundaries, EDGAR non-mapping, annualization/`bars_per_year`/`periods_per_year` guards, split/CV operand guards, engine cost/metric/position/impact guards, `CostModel` degenerate-input guards, `statistics.multiple_testing_correction(alpha=...)` guard — already implemented at statistics.py:407-438, `_adv_for_symbol` degenerate-input guards — closed this session).
+- Do not use `--cov=<dotted.module>` (aborts collection with `ImportError: cannot load module more than once per process`); use `--cov=qtr`.
+- Do not trust a handoff's pass/fail/coverage counts — the Cycle-175 handoff claimed 100% / 336-formatted while the imported tree was 99.56% / 335-formatted. Re-run the gates.

@@ -638,9 +638,7 @@ def run_backtest(
                 if adv_sym is None:
                     continue
                 price_sym = prices[sym].astype(float)
-                participation = (
-                    position_change[sym].abs() * capital / (price_sym * adv_sym) * 100.0
-                )
+                participation = position_change[sym].abs() * capital / (price_sym * adv_sym) * 100.0
                 impact_cost[sym] = position_change[sym].abs() * (
                     impact_coef * participation / 10_000.0
                 )
