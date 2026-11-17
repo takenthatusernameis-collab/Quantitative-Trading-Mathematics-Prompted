@@ -8,8 +8,9 @@
 ## What was actually verified (own evidence, 2026-11-17)
 - `python -m ruff check src tests run_*.py scripts` → All checks passed.
 - `python -m ruff format --check src tests run_*.py scripts` → 336 files already formatted.
-- `python scripts/backtest_perf_regression_gate.py` → PERF GATE PASSED (0.312s < 5s, 10.7MB peak, 13668 trades).
+- `python scripts/backtest_perf_regression_gate.py` → PERF GATE PASSED (0.322s < 5s, 10.7MB peak, 13668 trades).
 - `git apply --check patches/0001-gates-workflow-contract-fix.patch` → exit 0 (applies cleanly).
+- `python -m pytest -q tests/test_backtest_perf_regression_gate.py` → 5 passed.
 
 ## What remains unresolved
 - **Maintainer-gated (agent-unreachable):** apply/push `patches/0001-gates-workflow-contract-fix.patch` with `workflows`-scoped credentials (`.github/scripts/kilo-controller.sh` restores `.github/workflows/**`; no agent `workflows` token). After push: `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed).
@@ -26,3 +27,5 @@
 - Do not edit momentum runners' `param_grid_results` logging without maintainer authorization.
 - Do not invent H183 or treat parameter/timeframe/universe variants as new mechanism families.
 - Do not trust handoff counts without own re-run.
+
+(End of file - total 28 lines)
