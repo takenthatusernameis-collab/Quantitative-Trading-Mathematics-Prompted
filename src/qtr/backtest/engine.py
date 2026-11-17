@@ -106,10 +106,40 @@ class CostModel:
         return commission + spread + impact
 
     # ---------------------------------------------------------- future costs
+    @staticmethod
+    def _as_spec_mapping(value: object) -> dict:
+        """Return ``value`` when it is a mapping, otherwise an empty dict.
+
+        ``futures_specs`` is typed ``dict[str, dict[str, float]]``, but a spec
+        entry assembled from untrusted config (a YAML document loaded into a
+        ``CostModel``) can hold a list, a scalar or a string where a
+        per-symbol parameter mapping is expected. Both consumers index it:
+        ``future_cost_per_contract`` does ``specs.get("commission", ...)``
+        and ``get_future_contract_multiplier`` does
+        ``"multiplier" in self.futures_specs[symbol]``. A non-mapping entry
+        therefore raises ``AttributeError``/``TypeError`` out of methods every
+        caller treats as returning a float -- a reproduced, runner-reachable
+        defect: ``future_cost_per_contract("ES")`` on
+        ``futures_specs={"ES": [1, 2, 3]}`` raises
+        ``AttributeError: 'list' object has no attribute 'get'`` and
+        ``get_future_contract_multiplier("ES")`` on
+        ``futures_specs={"ES": 5}`` raises
+        ``TypeError: argument of type 'int' is not a container or iterable``
+        (and the engine's futures path crashes on both, since it divides by
+        this method's return value). This is the same non-mapping class the
+        config layer (Cycle 154) and the EDGAR layer (Cycle 155,
+        ``insider._as_mapping``) already fail closed on. A mapping is returned
+        unchanged; a non-mapping degrades to ``{}``, the same tuple the
+        absent-spec path already returns, so a malformed spec falls back to
+        the per-symbol defaults rather than aborting the book. For every real
+        per-symbol mapping the arithmetic is bit-identical to before.
+        """
+        return value if isinstance(value, dict) else {}
+
     def future_cost_per_contract(self, symbol: str | None = None) -> float:
         """Per-contract dollar cost: commission + (spread + slippage) * tick."""
         if symbol is not None and symbol in self.futures_specs:
-            specs = self.futures_specs[symbol]
+            specs = self._as_spec_mapping(self.futures_specs[symbol])
         else:
             specs = {}
         commission = float(specs.get("commission", self.future_commission_per_contract))
@@ -149,9 +179,9 @@ class CostModel:
         if (
             symbol is not None
             and symbol in self.futures_specs
-            and "multiplier" in self.futures_specs[symbol]
+            and "multiplier" in self._as_spec_mapping(self.futures_specs[symbol])
         ):
-            raw = float(self.futures_specs[symbol]["multiplier"])
+            raw = float(self._as_spec_mapping(self.futures_specs[symbol])["multiplier"])
         else:
             raw = float(self.future_contract_multiplier)
         if math.isfinite(raw) and raw >= 0.0:

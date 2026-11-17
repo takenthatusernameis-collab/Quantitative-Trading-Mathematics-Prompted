@@ -391,6 +391,119 @@ class TestCostModelDegenerateInput:
             == 0.0
         )
 
+    def test_future_cost_per_contract_drops_a_non_mapping_spec_entry(self):
+        # ``futures_specs`` is typed ``dict[str, dict[str, float]]``, but a spec
+        # entry assembled from untrusted config (a YAML document loaded into a
+        # CostModel) can hold a list, a scalar or a string where a per-symbol
+        # parameter mapping is expected. Both consumers index it, so a
+        # non-mapping entry used to crash: ``future_cost_per_contract("ES")``
+        # on ``futures_specs={"ES": [1, 2, 3]}`` raised
+        # ``AttributeError: 'list' object has no attribute 'get'``. A non-mapping
+        # entry degrades to ``{}``, so the malformed spec falls back to the
+        # per-symbol defaults (the same tuple the absent-spec path returns)
+        # rather than aborting the book. The defaults here are the zero-cost
+        # model, so every non-mapping entry yields the same 0.0 cost.
+        for bad_entry in ([1, 2, 3], 5, "abc", 3.14):
+            cm = CostModel(futures_specs={"ES": bad_entry})
+            assert cm.future_cost_per_contract("ES") == 0.0, bad_entry
+        # A valid per-symbol mapping is unchanged.
+        assert (
+            CostModel(
+                futures_specs={
+                    "ES": {
+                        "commission": 2.0,
+                        "tick_value": 50.0,
+                        "spread_ticks": 1.0,
+                        "slippage_ticks": 0.5,
+                    }
+                }
+            ).future_cost_per_contract("ES")
+            == pytest.approx(77.0)
+        )
+
+    def test_get_future_contract_multiplier_drops_a_non_mapping_spec_entry(self):
+        # The sibling crash: ``get_future_contract_multiplier("ES")`` on
+        # ``futures_specs={"ES": 5}`` raised
+        # ``TypeError: argument of type 'int' is not a container or iterable``
+        # out of ``"multiplier" in self.futures_specs[symbol]``. A non-mapping
+        # entry degrades to ``{}``, so the malformed spec falls back to the
+        # (valid) default rather than crashing; the engine's futures path
+        # divides by this method's return value, so the crash was
+        # runner-reachable (reproduced: the engine raised on the same four
+        # inputs).
+        cm = CostModel(future_contract_multiplier=50.0)
+        for bad_entry in ([1, 2, 3], 5, "abc", 3.14):
+            cm_bad = CostModel(futures_specs={"ES": bad_entry})
+            assert cm_bad.get_future_contract_multiplier("ES") == 50.0, bad_entry
+        # A missing key in a real mapping still falls back to the default.
+        assert cm.get_future_contract_multiplier("ES") == 50.0
+        # A valid mapping is unchanged.
+        assert CostModel(futures_specs={"ES": {"multiplier": 50.0}}).get_future_contract_multiplier(
+            "ES"
+        ) == 50.0
+
+    def test_the_contract_rejects_the_pre_guard_non_mapping_spec(self):
+        # Behavioural negative control: the pre-guard consumers indexed the
+        # spec entry verbatim, so a non-mapping entry reached the method body
+        # and crashed. Reconstruct that arithmetic and require it to raise,
+        # while the guarded method fails closed to the default on the same
+        # input.
+        for bad_entry in ([1, 2, 3], 5, "abc", 3.14):
+            with pytest.raises((AttributeError, TypeError)):
+                bad_entry.get("commission")
+            with pytest.raises((AttributeError, TypeError)):
+                "multiplier" in bad_entry
+            assert (
+                CostModel(futures_specs={"ES": bad_entry}).future_cost_per_contract("ES") == 0.0
+            )
+            assert (
+                CostModel(futures_specs={"ES": bad_entry}).get_future_contract_multiplier("ES")
+                == 1.0
+            )
+
+    def test_the_engine_futures_path_does_not_crash_on_a_non_mapping_spec_entry(self):
+        # End-to-end: the engine's futures path calls both methods and divides
+        # by the multiplier, so a non-mapping spec entry used to crash the whole
+        # run_backtest. The guarded methods degrade to the defaults, so the
+        # symbol trades at the default multiplier with zero per-contract cost
+        # and the result is finite. For every finite, non-negative default the
+        # arithmetic is bit-identical to before: this guard only short-circuits
+        # the malformed-entry cases.
+        prices, signals = self._futures_panel()
+        base_cfg = dict(
+            initial_capital=1_000_000.0,
+            asset_class=AssetClass.FUTURE,
+            max_position_size=1.0,
+            max_leverage=1.0,
+            allow_short=False,
+        )
+        for bad_entry in ([1, 2, 3], 5, "abc", 3.14):
+            res = run_backtest(
+                prices=prices,
+                signals=signals,
+                config=BacktestConfig(
+                    cost_model=CostModel(futures_specs={"ES=F": bad_entry}), **base_cfg
+                ),
+            )
+            assert np.isfinite(res.metrics["total_return"]), bad_entry
+        # A valid spec is unchanged.
+        base = run_backtest(
+            prices=prices,
+            signals=signals,
+            config=BacktestConfig(cost_model=CostModel(), **base_cfg),
+        )
+        assert (
+            run_backtest(
+                prices=prices,
+                signals=signals,
+                config=BacktestConfig(
+                    cost_model=CostModel(futures_specs={"ES=F": {"multiplier": 50.0}}),
+                    **base_cfg,
+                ),
+            ).metrics["total_return"]
+            == base.metrics["total_return"]
+        )
+
     @staticmethod
     def _futures_panel(price: float = 100.0, n: int = 6) -> tuple[pd.DataFrame, pd.DataFrame]:
         rng = np.random.default_rng(7)
