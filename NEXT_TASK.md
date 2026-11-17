@@ -12,6 +12,14 @@
 - `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (expected/unchanged): workflow missing `scripts/**` triggers, editable install, scripts in ruff targets, and perf-gate step; matches maintainer-gated contract in `patches/0001-gates-workflow-contract-fix.patch`.
 - `grep -rn "TODO|FIXME|XXX|HACK" src/qtr` → no matches.
 
+## Defect hunt this session (remaining unprobed public surface)
+Probed the surfaces not yet named in a pinned defect class, all with degenerate inputs (non-finite/negative/zero/non-integer scalars, duplicated labels/indexes, non-mapping containers, empty panels):
+- `src/qtr/data/fetcher.py` — `non_positive_prices`, `DataCache.get`/`set`, `_standardize_columns`, `_standardize_cached_index`, `_fetch_yahoo_panel`.
+- `src/qtr/data/insider.py` — `load_cached_transactions` (schema-mismatch → miss path).
+- `src/qtr/backtest/engine.py` — `CostModel` (equity/future/crypto cost paths), `_adv_for_symbol`, `run_backtest` (price screen, impact loop, leverage/position caps, empty/single-bar panels).
+- `src/qtr/validation/statistics.py` — remaining guards (`multiple_testing_correction`, `compare_to_benchmark`, `validate_strategy`, `sharpe_ratio`, `bars_per_year`, `walk_forward_splits`, CV operands).
+Result: **no reproducible defect found.** Every boundary already fails closed to the documented no-evidence tuple; no source change is warranted. Do not repeat this hunt without new evidence — see "Approaches already tried."
+
 ## What remains unresolved
 - **Maintainer-gated:** 7 `tests/test_gates_workflow.py` failures; fix is `patches/0001-gates-workflow-contract-fix.patch`. Agent **cannot** land it — no `workflows` token and `.github/scripts/kilo-controller.sh` restores `.github/workflows/**` from `origin/main` each session. Maintainer action: apply and push the patch, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed).
 - **H182 selection:** free-data point-in-time strategy-family queue exhausted (H1–H181 rejected/recorded, `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96). No honest free-data H182 pre-registrable without new authorized data; do not invent candidates or treat parameter/timeframe/universe variations as new mechanism families.
