@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from qtr.backtest.engine import BacktestConfig, CostModel, run_backtest
 from qtr.strategies import baselines
 
 
@@ -384,3 +385,139 @@ def test_unique_price_columns_remain_unchanged_by_duplicate_guard():
     assert baselines._drop_duplicate_price_columns(prices) is prices
     canonical = baselines._drop_duplicate_price_columns(duplicated)
     pd.testing.assert_frame_equal(canonical, duplicated.iloc[:, [0, 2]].copy())
+
+
+# ============================================================
+# End-to-end duplicate-column contract: run_strategy -> run_backtest
+# ============================================================
+def _make_backtest_config() -> BacktestConfig:
+    """Zero-cost, long-only config for deterministic E2E tests."""
+    return BacktestConfig(
+        initial_capital=1_000_000.0,
+        cost_model=CostModel(
+            equity_commission_bps=0.0,
+            equity_spread_bps=0.0,
+            equity_impact_bps_per_pct_adv=0.0,
+        ),
+        max_position_size=1.0,
+        max_leverage=1.0,
+        allow_short=False,
+    )
+
+
+def _duplicate_price_panel() -> pd.DataFrame:
+    index = pd.date_range("2020-01-01", periods=300, freq="D")
+    rng = np.random.default_rng(20261117)
+    first_a = 100.0 + np.cumsum(rng.normal(0.0, 0.02, len(index)))
+    second_a = 200.0 - first_a  # Anti-correlated duplicate
+    other = 100.0 + np.cumsum(rng.normal(0.0, 0.02, len(index)))
+    return pd.DataFrame(
+        np.column_stack([first_a, second_a, other]),
+        index=index,
+        columns=["A", "A", "B"],
+    )
+
+
+def _deduplicated_price_panel() -> pd.DataFrame:
+    """Same as _duplicate_price_panel but with keep-first canonical columns."""
+    index = pd.date_range("2020-01-01", periods=300, freq="D")
+    rng = np.random.default_rng(20261117)
+    first_a = 100.0 + np.cumsum(rng.normal(0.0, 0.02, len(index)))
+    other = 100.0 + np.cumsum(rng.normal(0.0, 0.02, len(index)))
+    return pd.DataFrame(
+        np.column_stack([first_a, other]),
+        index=index,
+        columns=["A", "B"],
+    )
+
+
+def test_mean_reversion_e2e_duplicate_columns_keep_first():
+    """E2E: mean_reversion strategy + backtest on duplicated panel matches deduplicated."""
+    prices_dup = _duplicate_price_panel()
+    prices_dedup = _deduplicated_price_panel()
+    cfg = _make_backtest_config()
+
+    # Run strategy on both panels
+    sig_dup = baselines.run_strategy(prices_dup, "mean_reversion", window=20, num_std=2.0, long_only=True)
+    sig_dedup = baselines.run_strategy(prices_dedup, "mean_reversion", window=20, num_std=2.0, long_only=True)
+
+    # Signals should have canonical columns and match
+    assert sig_dup.columns.tolist() == ["A", "B"]
+    pd.testing.assert_frame_equal(sig_dup, sig_dedup)
+
+    # Run backtest on both signal panels
+    res_dup = run_backtest(prices=prices_dup, signals=sig_dup, config=cfg)
+    res_dedup = run_backtest(prices=prices_dedup, signals=sig_dedup, config=cfg)
+
+    # Results must be identical (keep-first behavior)
+    pd.testing.assert_frame_equal(res_dup.positions, res_dedup.positions)
+    pd.testing.assert_series_equal(res_dup.returns, res_dedup.returns)
+    pd.testing.assert_series_equal(res_dup.equity_curve, res_dedup.equity_curve)
+
+    # All outputs must be finite
+    assert np.all(np.isfinite(res_dup.returns))
+    assert np.all(np.isfinite(res_dup.equity_curve))
+    assert np.all(np.isfinite(res_dup.positions.values))
+    assert np.all(np.isfinite(res_dedup.returns))
+    assert np.all(np.isfinite(res_dedup.equity_curve))
+    assert np.all(np.isfinite(res_dedup.positions.values))
+
+    # Metrics must be identical and finite
+    for k in res_dup.metrics:
+        assert res_dup.metrics[k] == res_dedup.metrics[k]
+        assert np.isfinite(res_dup.metrics[k]) or np.isinf(res_dup.metrics[k])
+
+
+def test_time_series_momentum_e2e_duplicate_columns_keep_first():
+    """E2E: time_series_momentum strategy + backtest on duplicated panel matches deduplicated."""
+    prices_dup = _duplicate_price_panel()
+    prices_dedup = _deduplicated_price_panel()
+    cfg = _make_backtest_config()
+
+    # Run strategy on both panels
+    sig_dup = baselines.run_strategy(
+        prices_dup,
+        "time_series_momentum",
+        lookback=60,
+        skip=5,
+        long_only=True,
+        volatility_scale=True,
+        target_vol=0.15,
+        max_position_size=1.0,
+    )
+    sig_dedup = baselines.run_strategy(
+        prices_dedup,
+        "time_series_momentum",
+        lookback=60,
+        skip=5,
+        long_only=True,
+        volatility_scale=True,
+        target_vol=0.15,
+        max_position_size=1.0,
+    )
+
+    # Signals should have canonical columns and match
+    assert sig_dup.columns.tolist() == ["A", "B"]
+    pd.testing.assert_frame_equal(sig_dup, sig_dedup)
+
+    # Run backtest on both signal panels
+    res_dup = run_backtest(prices=prices_dup, signals=sig_dup, config=cfg)
+    res_dedup = run_backtest(prices=prices_dedup, signals=sig_dedup, config=cfg)
+
+    # Results must be identical (keep-first behavior)
+    pd.testing.assert_frame_equal(res_dup.positions, res_dedup.positions)
+    pd.testing.assert_series_equal(res_dup.returns, res_dedup.returns)
+    pd.testing.assert_series_equal(res_dup.equity_curve, res_dedup.equity_curve)
+
+    # All outputs must be finite
+    assert np.all(np.isfinite(res_dup.returns))
+    assert np.all(np.isfinite(res_dup.equity_curve))
+    assert np.all(np.isfinite(res_dup.positions.values))
+    assert np.all(np.isfinite(res_dedup.returns))
+    assert np.all(np.isfinite(res_dedup.equity_curve))
+    assert np.all(np.isfinite(res_dedup.positions.values))
+
+    # Metrics must be identical and finite
+    for k in res_dup.metrics:
+        assert res_dup.metrics[k] == res_dedup.metrics[k]
+        assert np.isfinite(res_dup.metrics[k]) or np.isinf(res_dup.metrics[k])
