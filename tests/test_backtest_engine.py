@@ -24,6 +24,7 @@ from qtr.backtest.engine import (
     BacktestResult,
     CostModel,
     VectorizedBacktester,
+    _adv_for_symbol,
     run_backtest,
 )
 

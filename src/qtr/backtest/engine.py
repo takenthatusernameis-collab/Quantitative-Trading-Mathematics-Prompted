@@ -373,12 +373,77 @@ class VectorizedBacktester:
 # ---------------------------------------------------------------------------
 # entry point
 # ---------------------------------------------------------------------------
+def _adv_for_symbol(adv: Any, symbol: str) -> float | None:
+    """The ADV (average daily volume) for ``symbol``, as a finite positive scalar.
+
+    ``adv`` is the *second* operand of the market-impact division in
+    :func:`run_backtest` (``capital / (price * adv)``), so it is the sibling
+    of the coefficient that function already normalizes to ``0.0`` -- and
+    the two guards were inconsistent: the coefficient was normalized while
+    ``adv`` was read raw through ``adv.get(sym)`` and handed to ``float()``.
+    A caller that passes a **DataFrame** (the documented shape of a
+    per-symbol volume panel, and the shape every in-tree runner derives its
+    ADV from -- ``volumes.rolling(20).mean().iloc[-1]`` is a Series, but a
+    caller that forgets ``.iloc[-1]`` or that builds the ADV by indexing a
+    frame by label gets a DataFrame) reaches ``float(adv_sym)`` with a
+    one-row, one-column Series and crashes out of a function every caller
+    treats as returning a result:
+
+    * ``adv = pd.DataFrame({"AAPL": [1e6]})`` -> ``adv.get("AAPL")`` is the
+      Series ``1    1e6\nName: AAPL`` and ``float(series)`` raises
+      ``TypeError: must be real number, not Series`` (reproduced);
+    * a scalar ``adv`` (an ``int``/``float``) has no ``.get`` and is
+      already rejected by the ``hasattr(adv, "get")`` test the impact loop
+      used to carry, which silently skipped the impact loop for every
+      symbol -- the same fail-open as a missing symbol, but reached through
+      a different shape;
+    * a non-finite or non-positive ADV is a fact about the symbol (no
+      volume, an impossible volume), and the existing per-symbol guard
+      already skips it, so it is left to that guard rather than
+      re-implemented here.
+
+    The valid input is a mapping of symbol -> finite positive scalar (a
+    ``pd.Series`` indexed by symbol, or a plain ``dict``). A DataFrame is
+    the degenerate shape this guard exists for: it is *not* a per-symbol
+    scalar map, it is a per-symbol *panel*, and reading one symbol off it
+    returns a Series rather than a number. A list, a scalar or a string is
+    the same non-mapping class the CostModel / EDGAR / config layers
+    already fail closed on. All degrade to ``None`` (the symbol's impact
+    charge is skipped), so a bad operand can only ever *remove* the impact
+    charge for that symbol, never invert or blow it up. For every valid
+    per-symbol scalar the value is returned unchanged and the arithmetic
+    is bit-identical to before. See tests/test_backtest_engine.py.
+    """
+    if adv is None:
+        return None
+    if isinstance(adv, pd.DataFrame):
+        # A frame is not a per-symbol scalar map. ``adv.get(sym)`` on a
+        # one-column frame returns a Series, and ``float(series)`` raises;
+        # a multi-column frame returns a Series of one row per column.
+        # Either way the operand is not a number. Degrade to the
+        # absent-symbol tuple rather than crashing or, worse, indexing
+        # ``adv[sym]`` (a column) and treating that column as a scalar.
+        return None
+    if not hasattr(adv, "get"):
+        return None
+    raw = adv.get(symbol)
+    if raw is None:
+        return None
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(value) or value <= 0.0:
+        return None
+    return value
+
+
 def run_backtest(
     prices: pd.DataFrame,
     signals: pd.DataFrame,
     config: BacktestConfig,
     volumes: pd.DataFrame | None = None,
-    adv: pd.Series | None = None,
+    adv: pd.Series | pd.DataFrame | dict[str, float] | None = None,
     screen_non_positive_prices: bool = True,
 ) -> BacktestResult:
     cfg: BacktestConfig = config
@@ -569,12 +634,12 @@ def run_backtest(
             impact_coef = 0.0
         if impact_coef and adv is not None:
             for sym in columns:
-                adv_sym = adv.get(sym) if hasattr(adv, "get") else None
-                if adv_sym is None or not math.isfinite(adv_sym) or adv_sym <= 0.0:
+                adv_sym = _adv_for_symbol(adv, sym)
+                if adv_sym is None:
                     continue
                 price_sym = prices[sym].astype(float)
                 participation = (
-                    position_change[sym].abs() * capital / (price_sym * float(adv_sym)) * 100.0
+                    position_change[sym].abs() * capital / (price_sym * adv_sym) * 100.0
                 )
                 impact_cost[sym] = position_change[sym].abs() * (
                     impact_coef * participation / 10_000.0
