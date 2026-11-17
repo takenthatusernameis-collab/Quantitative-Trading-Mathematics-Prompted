@@ -1,26 +1,17 @@
-# HANDOFF — Current Session (Cycle 195, 2026-11-17)
+# HANDOFF — Current Session (Cycle 197, 2026-11-17)
 
 ## What changed
-- **No source, test, gate, artifact, sidecar, hash, frozen-number, or workflow
-  change.** Working tree clean at start (HEAD `36dad35`, up to date with
-  `origin/main`); only handoff files updated this session. This is a handoff
-  update, not project progress.
+- **No source, test, gate, artifact, sidecar, hash, frozen-number, or workflow change.**
+  Working tree clean at start (HEAD `0ebc0f1`, up to date with `origin/main`);
+  only handoff files updated. Handoff update, not project progress.
 
-## What was actually verified (own evidence, 2026-11-17, Cycle 195)
+## What was actually verified (own evidence, 2026-11-17, Cycle 197)
 - `python -m ruff check src tests run_*.py scripts` -> **All checks passed.**
 - `python -m ruff format --check src tests run_*.py scripts` -> **336 files already formatted.**
-- `python scripts/backtest_perf_regression_gate.py` -> **PERF GATE PASSED**
-  (0.331s < 5s, 10.7MB peak, 13668 trades).
-- `python -m pytest -q tests/test_gates_workflow.py` -> **7 failed**
-  (maintainer-gated; fix is `patches/0001-gates-workflow-contract-fix.patch`).
-  All 7 failures assert on `.github/workflows/gates.yml` contents (editable
-  install, `scripts/**` in ruff targets, `scripts/**` path triggers,
-  performance-regression-gate step).
-- `git apply --check patches/0001-gates-workflow-contract-fix.patch` -> exit 0
-  (patch still applies cleanly).
-- `grep -rn "TODO|FIXME|XXX|HACK" src/qtr` -> no matches.
-- No new reproduced, runner-reachable defect found after re-reading all seven
-  `src/qtr` modules end-to-end. No code change made.
+- `python scripts/backtest_perf_regression_gate.py` -> **PERF GATE PASSED** (0.316s < 5s, 10.7MB peak, 13668 trades).
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` -> exit 0 (patch still applies cleanly).
+- `python -m pytest -q tests/test_gates_workflow.py` -> **7 failed** (maintainer-gated contract: missing editable install, missing `scripts/**` in ruff targets/triggers, missing perf-regression-gate step; fixed by patch).
+- No new reproduced, runner-reachable defect found in `src/qtr`/runners/corpus metadata. No code change made.
 
 ## What remains unresolved
 - **Maintainer-gated (agent-unreachable):** apply/push

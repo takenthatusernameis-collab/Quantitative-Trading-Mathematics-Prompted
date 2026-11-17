@@ -1,20 +1,19 @@
-# Next task (Cycle 195, 2026-11-17)
+# Next task (Cycle 197, 2026-11-17)
 
 ## What changed this session
 - **No source, test, gate, artifact, sidecar, hash, frozen-number, or workflow change.**
-  Working tree was clean at start (HEAD `36dad35`, up to date with `origin/main`).
-  Only handoff docs updated, with own re-verified evidence. This is a handoff
+  Working tree clean at start (HEAD `0ebc0f1`, up to date with `origin/main`).
+  Only handoff docs updated with own re-verified evidence. This is a handoff
   update, **not** project progress.
 
-## What was actually verified (own evidence, 2026-11-17, Cycle 195)
+## What was actually verified (own evidence, 2026-11-17, Cycle 197)
 - `python -m ruff check src tests run_*.py scripts` -> **All checks passed.**
 - `python -m ruff format --check src tests run_*.py scripts` -> **336 files already formatted.**
 - `python scripts/backtest_perf_regression_gate.py` -> **PERF GATE PASSED**
-  (0.331s < 5s, 10.7MB peak, 13668 trades).
+  (0.316s < 5s, 10.7MB peak, 13668 trades).
 - `git apply --check patches/0001-gates-workflow-contract-fix.patch` -> exit 0 (patch still applies cleanly).
-- `python -m pytest -q tests/test_gates_workflow.py` -> **7 failed** (known maintainer-gated 7 failures per prior cycles/patch).
-- `grep -rn "TODO|FIXME|XXX|HACK" src/qtr` -> no matches.
-- Re-read all seven `src/qtr` modules end-to-end; no new reproduced, runner-reachable defect found. No code change made.
+- `python -m pytest -q tests/test_gates_workflow.py` -> **7 failed** (maintainer-gated contract; failures match missing editable install, missing `scripts/**` in ruff targets/triggers, missing perf-regression-gate step fixed by patch). Not a new defect.
+- No new reproduced, runner-reachable defect found in `src/qtr`/runners/corpus metadata. No code change made.
 
 ## What remains unresolved
 - **Maintainer-gated (agent-unreachable):** apply/push
