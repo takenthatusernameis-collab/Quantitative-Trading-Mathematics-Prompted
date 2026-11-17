@@ -24,6 +24,59 @@ def test_experiment_init_with_default_base_dir(tmp_path, monkeypatch):
     assert exp.base_dir == Path.cwd() / "experiments"
 
 
+ESCAPING_EXPERIMENT_NAMES = [
+    "../escaped",
+    "../../escaped",
+    "/abs/escaped",
+    "a/../../../escaped",
+    "..",
+]
+
+
+@pytest.mark.parametrize("name", ESCAPING_EXPERIMENT_NAMES)
+def test_experiment_init_rejects_escaping_name(tmp_path, name):
+    """An experiment name that resolves outside ``base_dir`` must be refused.
+
+    ``name`` is caller-supplied (and may be derived from external data). A value
+    like ``../escaped`` or an absolute path must not make the constructor create
+    ``base_dir / name / {artifacts,metadata}`` outside the base directory -- the
+    same path-traversal class already pinned on ``Experiment.record_artifact``
+    and ``ExperimentTracker.log_dataframe``. The constructor raises instead, so
+    nothing is written outside ``base_dir``.
+    """
+    base_dir = tmp_path / "base"
+    with pytest.raises(ValueError, match="escapes the base directory"):
+        experiment.Experiment(name, base_dir=base_dir)
+    assert not (base_dir.parent / "escaped").exists()
+    assert not (base_dir / "escaped").exists()
+
+
+def test_experiment_init_plain_name_creates_dirs_inside_base(tmp_path):
+    """A plain experiment name is unchanged: dirs are created inside base_dir."""
+    exp = experiment.Experiment("clean_exp", base_dir=tmp_path)
+    assert exp.artifact_dir == (tmp_path / "clean_exp" / "artifacts").resolve()
+    assert exp.metadata_dir == (tmp_path / "clean_exp" / "metadata").resolve()
+    assert exp.artifact_dir.is_relative_to(tmp_path.resolve())
+    assert exp.metadata_dir.is_relative_to(tmp_path.resolve())
+    assert exp.artifact_dir.exists()
+    assert exp.metadata_dir.exists()
+    assert exp.metadata_path.exists()
+
+
+def test_experiment_init_pre_fix_join_escapes_base_dir(tmp_path):
+    """Behavioural negative control: the bare join escapes ``base_dir``.
+
+    Reconstructs the pre-fix constructor target (``base_dir / name /
+    artifacts`` with no containment check) and shows it resolves outside the
+    base directory, so the corrected guard is what makes the boundary safe
+    rather than merely lucky.
+    """
+    base_dir = (tmp_path / "base").resolve()
+    escaped = (base_dir / "../escaped" / "artifacts").resolve()
+    assert not escaped.is_relative_to(base_dir)
+    assert (base_dir / "../escaped").resolve() == base_dir.parent / "escaped"
+
+
 def test_record_artifact_csv(tmp_path):
     exp = experiment.Experiment("a1", base_dir=tmp_path)
     df = pd.DataFrame({"x": [1, 2, 3]})

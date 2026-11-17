@@ -402,8 +402,18 @@ class Experiment:
     def __init__(self, name: str, base_dir: Path | None = None):
         self.name = name
         self.base_dir = Path(base_dir) if base_dir else Path.cwd() / "experiments"
-        self.artifact_dir = self.base_dir / name / "artifacts"
-        self.metadata_dir = self.base_dir / name / "metadata"
+        base_dir_resolved = self.base_dir.resolve()
+        artifact_dir = (self.base_dir / name / "artifacts").resolve()
+        metadata_dir = (self.base_dir / name / "metadata").resolve()
+        if not artifact_dir.is_relative_to(base_dir_resolved) or not metadata_dir.is_relative_to(
+            base_dir_resolved
+        ):
+            raise ValueError(
+                f"experiment name {name!r} escapes the base directory; "
+                "pass a plain name, not a path"
+            )
+        self.artifact_dir = artifact_dir
+        self.metadata_dir = metadata_dir
         self.artifact_dir.mkdir(parents=True, exist_ok=True)
         self.metadata_dir.mkdir(parents=True, exist_ok=True)
         self.metadata_path = self.metadata_dir / "metadata.json"
