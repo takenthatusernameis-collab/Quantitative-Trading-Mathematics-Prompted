@@ -1181,9 +1181,11 @@ class TestStressedCostTest:
     # closes on every other cost operand.
     # ------------------------------------------------------------------
     def _zero_for(self, *names):
-        return {f"stressed_{k}_sharpe": 0.0 for k in names} | {
-            f"stressed_{k}_return": 0.0 for k in names
-        } | {"stressed_combined_sharpe": 0.0, "stressed_combined_return": 0.0}
+        return (
+            {f"stressed_{k}_sharpe": 0.0 for k in names}
+            | {f"stressed_{k}_return": 0.0 for k in names}
+            | {"stressed_combined_sharpe": 0.0, "stressed_combined_return": 0.0}
+        )
 
     @pytest.mark.parametrize("bad", [-1.0, -2.0, -0.001, -100.0])
     def test_negative_multiplier_fails_closed(self, bad):
@@ -1191,7 +1193,8 @@ class TestStressedCostTest:
         # honest (positive-multiplier) one; it must fail closed to the
         # no-evidence tuple instead.
         res = st.stressed_cost_test(
-            np.array([0.001, 0.002, 0.0015, 0.001]), np.array([0.0005, 0.0005, 0.0005, 0.0005]),
+            np.array([0.001, 0.002, 0.0015, 0.001]),
+            np.array([0.0005, 0.0005, 0.0005, 0.0005]),
             {"commission": bad},
         )
         assert res == self._zero_for("commission")
@@ -1199,7 +1202,8 @@ class TestStressedCostTest:
     @pytest.mark.parametrize("bad", [np.inf, -np.inf, np.nan])
     def test_non_finite_multiplier_fails_closed(self, bad):
         res = st.stressed_cost_test(
-            np.array([0.001, 0.002, 0.0015, 0.001]), np.array([0.0005, 0.0005, 0.0005, 0.0005]),
+            np.array([0.001, 0.002, 0.0015, 0.001]),
+            np.array([0.0005, 0.0005, 0.0005, 0.0005]),
             {"impact": bad},
         )
         assert res == self._zero_for("impact")
@@ -1223,9 +1227,7 @@ class TestStressedCostTest:
         assert negative["stressed_commission_return"] <= honest["stressed_commission_return"]
         assert negative["stressed_commission_return"] <= zero_cost
 
-    @pytest.mark.parametrize(
-        "mult", [2.0, 2, np.float64(2.0), np.int64(2), 0.0, 0]
-    )
+    @pytest.mark.parametrize("mult", [2.0, 2, np.float64(2.0), np.int64(2), 0.0, 0])
     def test_valid_multiplier_unchanged(self, mult):
         # Every finite, non-negative multiplier is bit-identical to the
         # pre-guard arithmetic.
@@ -1250,7 +1252,7 @@ class TestStressedCostTest:
 
         base_returns = np.array([0.001] * 10)
         base_costs = np.array([0.0005] * 10)
-        honest = pre_fix(base_returns, base_costs, 1.0)   # 0.126
+        honest = pre_fix(base_returns, base_costs, 1.0)  # 0.126
         inflated = pre_fix(base_returns, base_costs, -1.0)  # 0.378, manufactured P&L
         assert inflated > honest
         res = st.stressed_cost_test(base_returns, base_costs, {"commission": -1.0})
