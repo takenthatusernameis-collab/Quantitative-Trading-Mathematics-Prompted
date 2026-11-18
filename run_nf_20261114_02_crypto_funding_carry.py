@@ -71,6 +71,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from qtr.validation.statistics import benchmark_significance_gate
+
 EXPERIMENT = "nf_20261114_02_crypto_funding_carry"
 NF_ID = "NF-20261114-02"
 HYPOTHESIS = "H183"
@@ -244,14 +246,10 @@ def _download_symbol(symbol: str, months: list[str], cache_dir: Path = CACHE_DIR
         if payloads[("funding", month)]
     ]
     perp_parts = [
-        parse_kline_zip(payloads[("perp", month)])
-        for month in months
-        if payloads[("perp", month)]
+        parse_kline_zip(payloads[("perp", month)]) for month in months if payloads[("perp", month)]
     ]
     spot_parts = [
-        parse_kline_zip(payloads[("spot", month)])
-        for month in months
-        if payloads[("spot", month)]
+        parse_kline_zip(payloads[("spot", month)]) for month in months if payloads[("spot", month)]
     ]
     if not funding_parts or not perp_parts or not spot_parts:
         raise RuntimeError(f"incomplete public archive data for {symbol}")
@@ -269,7 +267,9 @@ def _download_symbol(symbol: str, months: list[str], cache_dir: Path = CACHE_DIR
     }
 
 
-def _build_panel(spot: pd.Series, perp: pd.Series, funding: pd.Series, start: str, end: str) -> pd.DataFrame:
+def _build_panel(
+    spot: pd.Series, perp: pd.Series, funding: pd.Series, start: str, end: str
+) -> pd.DataFrame:
     """Align spot/perp closes and daily funding onto common dates (funding=0 if none)."""
     index = spot.index.intersection(perp.index)
     index = index[(index >= pd.Timestamp(start)) & (index <= pd.Timestamp(end))].sort_values()
@@ -570,10 +570,10 @@ def main(out: str | None = None, symbols: list[str] | None = None) -> dict:
             panels, params["funding_window"], params["entry_bps"], params["exit_bps"]
         )
         train_ret, _, _ = _run_bt(panels, weights.reindex(train).fillna(0.0))
-        rows.append({**params, "wf_train_sharpe": wf, "train_sharpe": _annualized_sharpe(train_ret)})
-    grid = pd.DataFrame(rows).sort_values(
-        ["wf_train_sharpe", "train_sharpe"], ascending=False
-    )
+        rows.append(
+            {**params, "wf_train_sharpe": wf, "train_sharpe": _annualized_sharpe(train_ret)}
+        )
+    grid = pd.DataFrame(rows).sort_values(["wf_train_sharpe", "train_sharpe"], ascending=False)
     grid.to_csv(artifact / "grid.csv", index=False)
     valid = grid[np.isfinite(grid["wf_train_sharpe"])]
     if valid.empty:
@@ -608,9 +608,7 @@ def main(out: str | None = None, symbols: list[str] | None = None) -> dict:
             selected["exit_bps"] / 1e4,
             1.0 / N_ASSETS,
         )
-    inv_ret, inv_equity, inv_trades = _run_bt(
-        panels, inverse_w.reindex(oos).fillna(0.0)
-    )
+    inv_ret, inv_equity, inv_trades = _run_bt(panels, inverse_w.reindex(oos).fillna(0.0))
     inverse_metrics = _metrics(inv_ret, inv_equity, inv_trades)
 
     train_ret, _, _ = _run_bt(panels, weights.reindex(train).fillna(0.0))
@@ -649,11 +647,8 @@ def main(out: str | None = None, symbols: list[str] | None = None) -> dict:
             np.isfinite(oos_metrics["worst_regime_rolling252_sharpe"])
             and oos_metrics["worst_regime_rolling252_sharpe"] >= GATES["min_worst_regime_sharpe"]
         ),
-        "benchmark_p_le_0_05_and_ir_ge_0": bool(
-            np.isfinite(p_value)
-            and p_value <= GATES["max_p_value"]
-            and np.isfinite(ir)
-            and ir >= GATES["min_information_ratio"]
+        "benchmark_p_le_0_05_and_ir_ge_0": benchmark_significance_gate(
+            p_value, ir, GATES["max_p_value"]
         ),
         "perturbation_min_ratio_ge_0_5": bool(
             np.isfinite(min_ratio) and min_ratio >= GATES["min_perturbed_sharpe_ratio"]

@@ -156,9 +156,7 @@ def probe_symbol(symbol: str, last_month: str, fetch=fetch_archive) -> dict[str,
     mean_daily = 0.0
     if not funding.empty:
         daily = (
-            funding.set_index("calc_time")["last_funding_rate"]
-            .groupby(lambda ts: ts.date())
-            .sum()
+            funding.set_index("calc_time")["last_funding_rate"].groupby(lambda ts: ts.date()).sum()
         )
         mean_daily = float(daily.mean()) * 1e4
     return {

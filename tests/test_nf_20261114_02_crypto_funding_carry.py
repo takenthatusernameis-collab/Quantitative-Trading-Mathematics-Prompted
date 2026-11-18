@@ -94,7 +94,9 @@ def test_parse_kline_zip_handles_both_formats(header: bool):
 
 
 def test_build_panel_aligns_and_zero_fills_missing_funding():
-    spot = pd.Series([1.0, 2.0, 3.0], index=pd.to_datetime(["2020-01-01", "2020-01-02", "2020-01-03"]))
+    spot = pd.Series(
+        [1.0, 2.0, 3.0], index=pd.to_datetime(["2020-01-01", "2020-01-02", "2020-01-03"])
+    )
     perp = spot.copy()
     funding = pd.Series([0.001], index=pd.to_datetime(["2020-01-02"]))
     panel = mod._build_panel(spot, perp, funding, "2020-01-01", "2020-01-03")
@@ -169,7 +171,9 @@ def test_metrics_keys_and_grid_bounds():
 
 def test_wf_score_finite_and_always_on_bounded():
     panels = {"BTCUSDT": _panel(n=600, funding=0.0001), "ETHUSDT": _panel(n=600, seed=9)}
-    score = mod._wf_score(panels, {"funding_window": 7, "entry_bps": 0.0, "exit_bps": 0.0}, panels["BTCUSDT"].index)
+    score = mod._wf_score(
+        panels, {"funding_window": 7, "entry_bps": 0.0, "exit_bps": 0.0}, panels["BTCUSDT"].index
+    )
     assert np.isfinite(score)
     always_on = mod._always_on_weights(panels, panels["BTCUSDT"].index)
     assert always_on.sum(axis=1).max() <= 1.0 + 1e-12

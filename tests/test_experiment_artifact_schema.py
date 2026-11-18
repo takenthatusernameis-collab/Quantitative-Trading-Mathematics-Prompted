@@ -100,10 +100,10 @@ def test_incomplete_runs_match_audit_inventory():
 # artifacts. The Cycle 115 H182 run (5 new summaries) added
 # `information_ratio_vs_equal_weight` (1 distinct key) and pushed
 # `oos_val_test` over the 50% threshold while `selected_params` fell below it.
-EXPECTED_TOTAL_DIRS = 108
-EXPECTED_SUMMARY_COUNT = 100
+EXPECTED_TOTAL_DIRS = 109
+EXPECTED_SUMMARY_COUNT = 101
 EXPECTED_CACHE_ONLY_DIRS = 11
-EXPECTED_DISTINCT_KEYS = 131
+EXPECTED_DISTINCT_KEYS = 134
 EXPECTED_KEYS_GE_50_PCT = frozenset(
     {
         "ablations",

@@ -100,8 +100,7 @@ def test_main_exit_codes(capsys):
         if "fundingRate" in url:
             return _zip_csv(
                 "f.csv",
-                "calc_time,funding_interval_hours,last_funding_rate\n"
-                "1577836800000,8,0.0001\n",
+                "calc_time,funding_interval_hours,last_funding_rate\n1577836800000,8,0.0001\n",
             )
         return _zip_csv(
             "k.csv",
