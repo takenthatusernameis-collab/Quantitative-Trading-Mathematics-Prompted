@@ -1,0 +1,175 @@
+{
+  "experiment": "nf_20261114_02_crypto_funding_carry",
+  "nf_id": "NF-20261114-02",
+  "hypothesis": "H183",
+  "timestamp_utc": "2026-11-18T16:35:51Z",
+  "runtime_sec": 74.369,
+  "data": {
+    "source": "Binance public archives (data.binance.vision), free/key-less/PIT",
+    "symbols": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "BNBUSDT",
+      "XRPUSDT",
+      "ADAUSDT",
+      "SOLUSDT",
+      "DOGEUSDT"
+    ],
+    "rows": 1827,
+    "start": "2020-01-01",
+    "end": "2024-12-31",
+    "train_end": "2023-06-30",
+    "val_end": "2024-12-31",
+    "train_rows": 1277,
+    "val_rows": 550,
+    "test_rows": 0,
+    "oos_rows": 550
+  },
+  "provenance": [
+    {
+      "symbol": "BTCUSDT",
+      "first_funding_date": "2020-01-01",
+      "rows": 1827,
+      "start": "2020-01-01",
+      "end": "2024-12-31",
+      "mean_funding_bps_per_day": 3.9318917350848386,
+      "share_negative_funding_days": 0.1116584564860427,
+      "source": "https://data.binance.vision/data/futures/um/monthly/fundingRate/BTCUSDT"
+    },
+    {
+      "symbol": "ETHUSDT",
+      "first_funding_date": "2020-01-01",
+      "rows": 1827,
+      "start": "2020-01-01",
+      "end": "2024-12-31",
+      "mean_funding_bps_per_day": 4.765785112205801,
+      "share_negative_funding_days": 0.09469074986316366,
+      "source": "https://data.binance.vision/data/futures/um/monthly/fundingRate/ETHUSDT"
+    },
+    {
+      "symbol": "BNBUSDT",
+      "first_funding_date": "2020-02-10",
+      "rows": 1787,
+      "start": "2020-02-10",
+      "end": "2024-12-31",
+      "mean_funding_bps_per_day": -0.018300671516508358,
+      "share_negative_funding_days": 0.39003917179630665,
+      "source": "https://data.binance.vision/data/futures/um/monthly/fundingRate/BNBUSDT"
+    },
+    {
+      "symbol": "XRPUSDT",
+      "first_funding_date": "2020-01-06",
+      "rows": 1817,
+      "start": "2020-01-06",
+      "end": "2024-12-31",
+      "mean_funding_bps_per_day": 5.21436884975234,
+      "share_negative_funding_days": 0.1337369290038525,
+      "source": "https://data.binance.vision/data/futures/um/monthly/fundingRate/XRPUSDT"
+    },
+    {
+      "symbol": "ADAUSDT",
+      "first_funding_date": "2020-01-19",
+      "rows": 1797,
+      "start": "2020-01-31",
+      "end": "2024-12-31",
+      "mean_funding_bps_per_day": 4.716521257651642,
+      "share_negative_funding_days": 0.15915414579855314,
+      "source": "https://data.binance.vision/data/futures/um/monthly/fundingRate/ADAUSDT"
+    },
+    {
+      "symbol": "SOLUSDT",
+      "first_funding_date": "2020-09-13",
+      "rows": 1565,
+      "start": "2020-09-14",
+      "end": "2024-12-31",
+      "mean_funding_bps_per_day": 0.11197137380191685,
+      "share_negative_funding_days": 0.22747603833865815,
+      "source": "https://data.binance.vision/data/futures/um/monthly/fundingRate/SOLUSDT"
+    },
+    {
+      "symbol": "DOGEUSDT",
+      "first_funding_date": "2020-07-10",
+      "rows": 1636,
+      "start": "2020-07-10",
+      "end": "2024-12-31",
+      "mean_funding_bps_per_day": 4.308504828850856,
+      "share_negative_funding_days": 0.132640586797066,
+      "source": "https://data.binance.vision/data/futures/um/monthly/fundingRate/DOGEUSDT"
+    }
+  ],
+  "grid_size": 20,
+  "selected": {
+    "funding_window": 14,
+    "entry_bps": 0.5,
+    "exit_bps": 0.25
+  },
+  "wf_train_sharpe": 7.33002259388738,
+  "train_selected_sharpe": 6.929185457213459,
+  "oos_val_test": {
+    "sharpe": 10.921669050310761,
+    "profit_factor": 10.727643129381734,
+    "max_drawdown": -0.0012400500126324987,
+    "trades": 41,
+    "periods": 550,
+    "total_return": 0.16667509958504056,
+    "worst_regime_rolling252_sharpe": 10.069226062023715
+  },
+  "benchmark_always_on_carry_oos": {
+    "sharpe": 9.583449945608582,
+    "profit_factor": 7.305631267253908,
+    "max_drawdown": -0.0016980611588383043,
+    "trades": 0,
+    "periods": 550,
+    "total_return": 0.15629069412730479,
+    "worst_regime_rolling252_sharpe": 8.168880234260838
+  },
+  "ablations": {
+    "random_gating_oos": {
+      "sharpe": 0.9523866856520403,
+      "profit_factor": 1.1861269905213518,
+      "max_drawdown": -0.021385385229378273,
+      "trades": 652,
+      "periods": 550,
+      "total_return": 0.014840774772439502,
+      "worst_regime_rolling252_sharpe": -2.249611427912245
+    },
+    "inverse_funding_oos": {
+      "sharpe": -5.5066933748295686,
+      "profit_factor": 0.22851702716350059,
+      "max_drawdown": -0.021132730070595795,
+      "trades": 25,
+      "periods": 550,
+      "total_return": -0.021097261551972002,
+      "worst_regime_rolling252_sharpe": -6.833129900735538
+    }
+  },
+  "wf_stability_oos_over_train": 1.5761836824472675,
+  "benchmark_pvalue_one_sided": 0.0009995002498750624,
+  "information_ratio_vs_always_on": 2.0483647489710353,
+  "perturbation": {
+    "min_ratio": 0.9681851149566182,
+    "n_points": 27,
+    "min_sharpe": 10.574197404993264
+  },
+  "gates": {
+    "sharpe_ge_1": true,
+    "trades_ge_50": false,
+    "pf_ge_1_3": true,
+    "maxdd_le_15pct": true,
+    "wf_stability_ge_0_7": true,
+    "worst_regime_ge_0_3": true,
+    "benchmark_p_le_0_05_and_ir_ge_0": true,
+    "perturbation_min_ratio_ge_0_5": true
+  },
+  "gates_passed": 7,
+  "gates_total": 8,
+  "verdict": "REJECT",
+  "integrity": {
+    "src_qtr_unchanged": true,
+    "gate_weakening": false,
+    "published_artifacts_modified": false,
+    "selection_holdout_feedback": false,
+    "real_data": true,
+    "cost_bps_per_turnover": 14.0
+  }
+}
