@@ -27,6 +27,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from loguru import logger
 
 from qtr.data import non_positive_prices
 
@@ -558,6 +559,20 @@ def run_backtest(
     # on it.
     prices = prices.astype(float)
     prices = prices.where(np.isfinite(prices))
+
+    # A column that is entirely NaN has no price data at all. Keeping it would
+    # make ``pct_change`` produce all-NaN, ``fillna(0.0)`` turn it to 0.0 returns,
+    # and ``signals.reindex`` create a zero-weight position -- a silent data-loss
+    # where the runner thinks it is trading the symbol but contributes nothing.
+    # Drop such columns from both prices and signals with a warning so the
+    # failure is visible. A fully-finite panel is unchanged.
+    all_nan_cols = prices.columns[prices.isna().all()].tolist()
+    if all_nan_cols:
+        logger.warning(
+            f"Dropping {len(all_nan_cols)} symbol(s) with no valid price data: {all_nan_cols}"
+        )
+        prices = prices.drop(columns=all_nan_cols)
+        signals = signals.drop(columns=all_nan_cols, errors="ignore")
 
     # Align signals to the price panel (common index / columns), forward-fill
     # targets so a position holds until the next explicit target, then fill any

@@ -570,8 +570,58 @@ class TestEmptyPanelHandling:
                 f"validate_strategy={validation[metric]!r}"
             )
 
+    def test_all_nan_column_dropped_with_warning(self):
+        """A symbol with no valid price data must be dropped, not silently zeroed.
 
-# ============================================================
+        Previously an all-NaN column produced 0.0 returns (via fillna) and a
+        zero-weight position (via ffill), silently losing the runner's intent to
+        trade that symbol. The fix drops the column from both prices and signals
+        and emits a warning so the failure is visible.
+        """
+        from io import StringIO
+
+        from loguru import logger
+
+        idx = pd.bdate_range("2020-01-01", periods=10)
+        prices = pd.DataFrame(
+            {
+                "GOOD": np.arange(100, 110, dtype=float),
+                "BAD": np.nan,
+            },
+            index=idx,
+        )
+        signals = pd.DataFrame(
+            {
+                "GOOD": 1.0,
+                "BAD": 1.0,
+            },
+            index=idx,
+        )
+
+        # Capture the warning log
+        log_stream = StringIO()
+        handler_id = logger.add(log_stream, level="WARNING", format="{message}")
+
+        try:
+            res = run_backtest(prices=prices, signals=signals, config=_make_config())
+        finally:
+            logger.remove(handler_id)
+
+        # The BAD column should be dropped, leaving only GOOD
+        assert "BAD" not in res.trades["symbol"].values
+        assert "GOOD" in res.trades["symbol"].values
+
+        # Warning should be emitted
+        log_output = log_stream.getvalue()
+        assert "Dropping 1 symbol(s) with no valid price data" in log_output
+        assert "BAD" in log_output
+
+        # Returns should reflect only GOOD (full weight, not 0.5)
+        # Initial weight on GOOD was 1.0, not 0.5 (since BAD is dropped)
+        assert res.trades.iloc[0]["weight_change"] == 1.0
+        assert res.trades.iloc[0]["symbol"] == "GOOD"
+
+
 # _total_costs (engine-level cost summation)
 # ============================================================
 class TestTotalCosts:
