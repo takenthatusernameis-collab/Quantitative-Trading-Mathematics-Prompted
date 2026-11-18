@@ -8750,3 +8750,45 @@ Probe: `scripts/probe_commodity_termstructure_availability.py` → **4/4 sources
 **Consequence for H184 (pre-registration requirements, not yet executed).** Any H184 run must pre-register: (a) a venue/product universe with each product's first available date; (b) the roll-yield signal from front/second (and optionally third) settlement slope, known at the settlement timestamp of day t, traded no earlier than t+1; (c) explicit CNY cost model (commission + slippage + roll crossing), daily price limits and T+1 constraints; (d) a passive front-month long benchmark plus random and inverse-slope ablations; (e) the standard 8 fail-closed gates on OOS Val+Test; (f) a resumable on-disk cache with a bounded date range (full SHFE history is ~4,000 one-file-per-day requests).
 
 **Cycle 214 complete.** H85–H183 rejected; H184 unassigned but now executable. `src/qtr` unchanged.
+
+## H184 (NF-20261114-01): Commodity Term-Structure Carry (Cycle 214 pre-registration)
+
+**Status:** PRE-REGISTERED — not executed. No forward return, validation, or test outcome has been inspected; no artifact exists. `src/qtr` unchanged. No published/certified artifact, verdict, threshold, or frozen number modified; no gate weakening. Free/public real data only (SHFE/INE/CZCE/CFFEX public settlement cross-sections).
+
+**NF-ID:** NF-20261114-01 (H184). **Broad mechanism category:** carry / commodity term structure (roll yield on physically delivered futures). Repo-new root family vs executed H1–H183: no executed H-ID trades the per-contract roll-yield slope; H23 tested *directional* crypto TSMOM on perps (rejected) and H183 tested delta-neutral funding carry (rejected) — different instrument, signal, and return source. Parameter/timeframe/universe/market variations are explicitly not new families; this is roll-yield capture on physically delivered commodity futures, not perpetual funding accrual.
+
+**Data-availability correction (Cycle 214, durable).**
+
+NF-20261114-01 was classified data-blocked on a US/EU retail premise (yfinance `=F` spliced-continuous; single-contract tickers HTTP 404/429). Cycle 214 probed a materially different free source set — the Chinese futures exchanges — and closed the gap: SHFE/INE/CZCE/CFFEX all serve official, key-less per-contract settlement cross-sections (`scripts/probe_commodity_termstructure_availability.py`, exit 0, 4/4 sources usable, own run 2026-11-18). **Do not re-declare commodity per-contract roll/contango as data-blocked.** Usable coverage: SHFE 2010-01-04 → 2026-11-17; INE from 2018-03-26 (crude launch); CZCE from 2015-12-01; CFFEX 2016 → 2026 (index futures listed 2010-04). CNY-denominated, T+1, daily price limits; no US/EU cost or transferability assumptions. Still blocked (probed, named): Nasdaq/Quandl CHRIS 403+key-gated, CME 403 IP block, Yahoo single-contract 429, stooq JS challenge, LME 403, DCE 412.
+
+**Pre-registration (Cycle 214, before any forward-return inspection).**
+
+**Mechanism / causal chain.** Physically delivered futures embed inventory carry: a curve sloping down (front above deferred, backwardation) pays a long position positive roll yield as contracts age toward delivery; hedgers pay speculators to warehouse. Null (H0): the front/second settlement slope known at day t's settle has no predictive power for next-period roll-adjusted returns after CNY costs — timing adds nothing over a passive front-month long book.
+
+**PIT timing.** Each cross-section file is the official settlement record for trade date t and is knowable at t's settle. The signal is computed from day-t settlements only; positions are formed no earlier than t+1 via an explicit `shift(1)` in the engine. A lookahead/causality test asserts no settlement dated t+ or later enters the day-t signal, and that day-t positions depend only on settlements known at t.
+
+**Universe (declare first-available dates).** SHFE: RB, CU, AL, ZN, AU, AG (each from its first SHFE listing date, bounded from 2016-01-04 in the first scope). INE: SC from 2018-03-26. Optional breadth: CZCE TA, MA, SR from 2015-12-01; CFFEX IC/TF/T from listing dates. Exclude any contract whose delivery month equals the current month (delivery-window pricing). Each product is eligible only from its venue's first available date for that product; first dates are recorded by the runner, not assumed.
+
+**Signal.** Annualized slope `ln(F1 / F2) * 12 / months_between(F1, F2)` from the two nearest contracts with settlement > 0 and open interest at or above a declared floor, using day-t settlements. Cross-sectional rank: long top-k / short bottom-k (k declared), equal weight. Hysteresis entry/exit thresholds selected on train-only walk-forward Sharpe from a bounded grid.
+
+**Sample.** Bounded first scope 2016-01-04 → 2026-11-17 (SHFE history to 2010 only if the download budget allows). Train →2023-06-30; Val 2023-07-01 → 2024-12-31; Test protected 2025-01-01 → 2026-11-17. Test never enters selection.
+
+**Costs (CNY, explicit).** Commission 2 bps + slippage 3 bps per one-way side per leg (5 bps round-trip per contract traded), roll crossing 1 bps when the front contract changes; no US/EU cost assumptions. T+1 settlement and daily price limits are modeled constraints.
+
+**Grid (bounded).** `entry_z {0.5, 1.0, 1.5} × exit_z {0.0, 0.5} × k {1, 3, 5} × vol_target {0.10, 0.15}` = 24 combos; train-only 4-fold walk-forward Sharpe selection; Test protected.
+
+**Gates (OOS Val+Test, fail-closed, standard 8).** Sharpe ≥ 1.0; trades ≥ 50; PF ≥ 1.3; maxDD ≤ 15%; WF stability ≥ 0.7; worst-regime rolling-252 Sharpe ≥ 0.3; benchmark p ≤ 0.05 with IR ≥ 0 vs the passive front-month long book; perturbation min ratio ≥ 0.5.
+
+**Ablations / falsifiers.** Passive front-month long book; random ranking (same active contract-days, seed 42); inverse-slope signal; OAT ±20% perturbation.
+
+**Implementation constraints.** Resumable on-disk cache under `.cache/commodity_settlements/` (skip existing files); one request per trade date per venue; tolerate 404 holidays; record per-product first available dates; bounded date range mandatory (~4,000 dates for full SHFE). Reuse the parsers/URL builders from `scripts/probe_commodity_termstructure_availability.py` (import them, do not fork a second copy). Artifact under `.experiments/nf_runs/nf_20261114_01_commodity_termstructure_carry_<timestamp>/summary.json` + `grid.csv`; update `tests/test_experiment_artifact_schema.py` inventory pins only if a new artifact directory is committed (Cycle 213 precedent: 109→110 / 101→102).
+
+**Runner / tests.** `run_nf_20261114_01_commodity_termstructure_carry.py` (to be implemented); `tests/test_nf_20261114_01_commodity_termstructure_carry.py` (to be implemented, incl. lookahead/causality and parser fixtures).
+
+**Lineage map (H184 PRE-REGISTERED):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known risks |
+|---|---|---|---|---|---|
+| Carry / commodity term structure (roll yield) | H184 (NF-20261114-01) | Cross-sectional roll-yield slope (front/second settlement) on physically delivered futures; long top-k / short bottom-k by slope, hysteresis entry/exit, CNY costs, explicit `shift(1)` delay | SHFE/INE/CZCE/CFFEX public settlement cross-sections, per product from first available date | **PRE-REGISTERED** | CNY/T+1/daily-limit cost model; ~4,000 one-file-per-day requests (resumable cache mandatory); delivery-month exclusion; venue-specific settlement times; no US/EU transferability |
+
+**Cycle 214 (continued).** H85–H183 rejected; H184 **pre-registered, not executed**. Next unused H-ID **H185**. `src/qtr` unchanged. No commit/push.
