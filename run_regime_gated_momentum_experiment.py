@@ -224,9 +224,9 @@ def vol_scaled_tsmom_signals(
     pct = prices.pct_change()
     mom = prices.pct_change(lookback).shift(skip)
     if long_only:
-        direction = (mom > 0).astype(float)
+        direction = np.sign(mom)
     else:
-        direction = (mom > 0).astype(float) * 2.0 - 1.0
+        direction = np.sign(mom)
         direction = direction.where(mom.notna(), 0.0)
 
     sigma = pct.rolling(vol_window).std() * np.sqrt(252)
