@@ -1,18 +1,16 @@
-# Current session handoff (2026-11-18, Cycle 209)
+# Current session handoff (2026-11-18, Cycle 210)
 
 ## What changed
-- **No source change.** Bounded evidence-first search for a NEW reproduced, runner-reachable defect in `src/qtr` or runners/corpus metadata found none; per the task rules, no code change was made.
-  - Re-read all seven `src/qtr` modules end-to-end — every public function carries fail-closed guards; no reachable defect found.
-  - Spot-checked runners: `shift(-N)` lookahead = 0 matches across `run_*.py`; long-only direction branches use `(mom > 0).astype(float)`, long/short branches use `np.sign(mom)` with NaN mapping (consistent with H67). No new defect reproduced.
+- **No source change.** Confirmed the Cycle 209 bounded evidence-first search found no NEW reproduced, runner-reachable defect; per the task rules, no code change was made (no search re-run — prior full re-read of all seven `src/qtr` modules and runner spot-checks stand).
 - No runner, gate, test, artifact, sidecar, hash, frozen-number, or workflow change.
 
 ## What was actually verified (own evidence, 2026-11-18)
-- Full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` → **4335 passed, 51 skipped, 0 failed**, `src/qtr` coverage **100.00%** (1692 stmts / 642 branches / 0 miss).
+- Full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` → **4335 passed, 51 skipped, 0 failed** (646.10s), `src/qtr` coverage **100.00%** (1692 stmts / 642 branches / 0 miss). `Required test coverage of 100.0% reached.`
 - `python -m ruff check src tests run_*.py scripts` → All checks passed.
 - `python -m ruff format --check src tests run_*.py scripts` → **337 files already formatted**.
-- `python scripts/backtest_perf_regression_gate.py` → PERF GATE PASSED (0.798s < 5s, 10.7MB peak, 13668 trades).
+- `python scripts/backtest_perf_regression_gate.py` → **PERF GATE PASSED** (0.831s < 5s, 10.7MB peak, 13668 trades).
 - `git apply --check patches/0001-gates-workflow-contract-fix.patch` → exit 0.
-- `python -m pytest -q tests/test_gates_workflow.py` → NOT rerun (unchanged maintainer-gated contract; expected 7 failed until patch applied).
+- `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (confirmed red on `origin/main`: lint job missing `scripts/**` ruff targets, missing editable install, missing perf gate in `research_gates`, path triggers missing `scripts/**`).
 
 ## What remains unresolved
 - **Maintainer-gated (agent-unreachable):** apply/push `patches/0001-gates-workflow-contract-fix.patch` with `workflows`-scoped credentials, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed).
