@@ -93,15 +93,19 @@ def test_incomplete_runs_match_audit_inventory():
 
 
 # Summary statistics pinned from EXPERIMENT_ARTIFACT_AUDIT.md (re-verified
-# 2026-11-14 by recomputing from the corpus). The audit doc previously stated
+# 2026-11-18 by recomputing from the corpus). The audit doc previously stated
 # 87 distinct keys / 6 keys >=50% / 1 key >=80% / 19 cache-only directories;
 # the corpus actually has 131 / 9 / 3 / 11 as of Cycle 115. These pins make
 # the summary recomputable so a future audit cannot silently drift from the
 # artifacts. The Cycle 115 H182 run (5 new summaries) added
 # `information_ratio_vs_equal_weight` (1 distinct key) and pushed
 # `oos_val_test` over the 50% threshold while `selected_params` fell below it.
-EXPECTED_TOTAL_DIRS = 109
-EXPECTED_SUMMARY_COUNT = 101
+# Cycle 213 added one summary (+1 directory): the full-window H183 crypto
+# funding-carry re-run `nf_20261114_02_crypto_funding_carry_20261118_194621`
+# (the earlier truncated `…_20261118_163437` artifact is preserved). Key
+# statistics are unchanged: 134 distinct keys, the same >=50% / >=80% sets.
+EXPECTED_TOTAL_DIRS = 110
+EXPECTED_SUMMARY_COUNT = 102
 EXPECTED_CACHE_ONLY_DIRS = 11
 EXPECTED_DISTINCT_KEYS = 134
 EXPECTED_KEYS_GE_50_PCT = frozenset(

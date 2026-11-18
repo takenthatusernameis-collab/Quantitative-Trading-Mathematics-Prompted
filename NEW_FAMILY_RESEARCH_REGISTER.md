@@ -730,3 +730,59 @@ The corrected availability does **not** clear any candidate for a REAL execution
 Per STRATEGY_FAMILY_EXPANSION_DIRECTIVE §6, this cycle searched a materially different, free source (FRED) before accepting exhaustion — the step prior cycles skipped. Result: (a) the "data-blocked" claim for breakeven inflation is corrected (FRED serves it free), but the mechanism is **subsumed by H175** (close substitute), not a new family; (b) financial-conditions and HY-OAS candidates are adjacent/underpowered or data-window-limited; (c) the free-data point-in-time strategy-family queue **remains exhausted** (H1–H182 all executed/rejected), now on *corrected data-availability evidence* rather than a yfinance-only premise. **No H183 is pre-registered and no runner is executed this cycle.** Future discovery cycles must run `scripts/probe_fred_availability.py` (and probe other free sources) before classifying any candidate as "data-blocked." `src/qtr` unchanged.
 
 **Cycle 140 complete.** H85–H182 all rejected/recorded; H183 unassigned. `src/qtr` unchanged. New durable artifact: `scripts/probe_fred_availability.py`.
+
+---
+
+## Cycle 213 (2026-11-18) — H183 (NF-20261114-02) crypto perpetual funding carry: REAL executed, REJECT (6/8)
+
+Lineage: H85–H182 rejected/recorded; **H183 now executed/rejected**; next unused H-ID **H184**. `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified; no gate weakening; free/public data only.
+
+### Why this cycle differs from Cycles 96 / 116 (approach change, not a repeat)
+Cycles 96 and 116 classified crypto perpetual funding/basis (NF-20261114-02) as **data-blocked**, on a *REST-API/yfinance-only* premise: yfinance serves `-USD` spot only, and the Binance REST endpoint is geo-blocked from this host. That premise is wrong for the same reason Cycle 140's yfinance-only premise was wrong for FRED: **`data.binance.vision` publishes monthly public ZIP archives** of perpetual `fundingRate` prints and daily spot/perp `klines` — free, key-less, and reachable from this host (probe: `scripts/probe_binance_funding_availability.py`). Because the mechanism (funding-basis cash-and-carry) is not a parameter/timeframe/universe variant of any executed H-ID, the corrected data availability makes it *executable*, so it was pre-registered and run instead of being re-deferred.
+
+### Data-availability correction (durable)
+- `https://data.binance.vision/data/futures/um/monthly/fundingRate/{SYMBOL}/{SYMBOL}-fundingRate-{YYYY-MM}.zip` → HTTP 200 for every month 2020-01 … 2026-10 in the sample.
+- Spot/perp daily klines: `https://data.binance.vision/data/{spot|futures/um}/monthly/klines/{SYMBOL}/1d/{SYMBOL}-1d-{YYYY-MM}.zip`.
+- **Do not re-classify crypto funding data as blocked.** Future discovery cycles must probe the public archive (script above) before using "data-blocked" for a Binance-observable mechanism — same standing rule Cycle 140 established for FRED.
+
+### Pre-registration (Cycle 213, before any validation/test outcome was examined)
+- **Mechanism.** Perps anchor to spot with periodic funding: premium (leveraged long demand) → longs pay shorts. A delta-neutral long-spot/short-perp book receives funding with no directional crypto exposure; premium persists because leveraged demand is structural and arbitrage capital is constrained by borrow/custody/margin. Null (H0): trailing funding has no predictive power for next-day funding/basis returns after costs, i.e. timing adds nothing over a **passive always-on carry** book.
+- **Observable / PIT timing.** Daily sum of the three funding prints (00:00/08:00/16:00 UTC) known at close t; signal = trailing mean of *past* daily funding; position at close t earns day t+1 funding plus `spot_ret − perp_ret`. No same-bar/future information.
+- **Sample.** 2020-01-01 → 2026-10-31 (first/last complete public archive months). Train 2020-01-01→2023-06-30; Val 2023-07-01→2024-12-31; Test protected 2025-01-01→2026-10-31. Universe BTC/ETH/BNB/XRP/ADA/SOL/DOGE (USDT perps), 1/7 fixed weight per active symbol. Costs 14 bps per unit turnover (10 bps spot taker + 4 bps perp taker).
+- **Grid (bounded, 20).** `funding_window {7,14,28,56} × entry_bps {0.0,0.25,0.5} × exit_bps {0.0,0.25}` with `exit ≤ entry`; train-only 4-fold walk-forward Sharpe selection.
+- **Gates (OOS Val+Test, fail-closed).** Sharpe ≥1.0; trades ≥50; PF ≥1.3; maxDD ≤15%; WF stability ≥0.7; worst-regime rolling-252 Sharpe ≥0.3; benchmark p ≤0.05 with IR ≥0 against the **passive always-on carry** book; perturbation min ratio ≥0.5.
+- **Ablations/falsifiers.** Passive always-on carry; random gating (same active asset-days, seed 42); inverse-funding signal; OAT ±20% perturbation.
+
+### Execution outcome (REAL)
+- **Runner:** `run_nf_20261114_02_crypto_funding_carry.py` (`PYTHONPATH=src python run_nf_20261114_02_crypto_funding_carry.py`).
+- **Tests:** `tests/test_nf_20261114_02_crypto_funding_carry.py` + `tests/test_probe_binance_funding_availability.py` → **27 passed** (includes `test_epoch_timestamps_detects_microsecond_archives`, `test_spot_archive_until_2026_present_after_unit_fix`, `test_fetch_cache_key_distinguishes_spot_and_perp`).
+- **Artifact (authoritative, full window):** `.experiments/nf_runs/nf_20261114_02_crypto_funding_carry_20261118_194621/summary.json` (+`grid.csv`), runtime 73.4 s. Data: 2496 rows 2020-01-01→2026-10-31, train 1277 / val 550 / **test 669** / OOS Val+Test 1219; all 7 symbols reach 2026-10-31.
+- **Superseded run:** `.experiments/nf_runs/nf_20261114_02_crypto_funding_carry_20261118_163437` (same day, earlier code) reported `test_rows=0` and end 2024-12-31 because 2025+ spot kline archives switch from millisecond to **microsecond** epoch stamps. With the unit-detection fix in `_epoch_timestamps`, the full-window re-run is the record of record; the truncated artifact is preserved, not deleted.
+- **Selected (train-only WF 7.330, train 6.929):** `funding_window=14, entry_bps=0.5, exit_bps=0.25`.
+- **OOS Val+Test (1219 periods, 133 trades):** Sharpe **7.676** (pass), PF **5.637** (pass), maxDD **−0.384%** (pass), trades **133** (pass), WF stability **1.108** (pass), worst-regime rolling-252 **−0.356** (**fail**), benchmark p **0.329** / IR **0.197** vs always-on carry (**fail**), perturbation min ratio **0.899** (pass). Total return **+20.84%**.
+- **Passive always-on carry benchmark (same OOS):** Sharpe **6.971**, PF **4.202**, maxDD **−0.644%**, total return **+20.62%**, worst-regime rolling-252 **0.247**, trades 0.
+- **Ablations.** Random gating: Sharpe **−14.72** / PF 0.099 (2835 trades); inverse-funding: Sharpe **−5.72** / PF 0.216 (88 trades). Both confirm the sign of the funding signal; neither rescues the timing null.
+
+**Result — REJECT (6/8 gates).**
+
+**Verdict rationale (honest reading).** The delta-neutral funding harvest is *not* a tradable timing edge at this construction:
+1. **No incremental value from the signal.** The passive always-on carry book earns Sharpe 6.971 vs the timed book's 7.676 (IR 0.197, one-sided p 0.329): trailing funding does not significantly predict next-day funding/basis returns, so the pre-registered null is not rejected.
+2. **Regime fragility of the carry itself.** The timed book's worst rolling-252 Sharpe is **−0.356**, i.e. there is at least one year-long window in which the "riskless" carry lost on a risk-adjusted basis (funding flips negative — mean funding for BNBUSDT over the sample is ≈0 bps/day with 33% negative days, SOLUSDT ≈0.07 bps/day with 29% negative days).
+3. **Implausibly high headline Sharpe is a property of the modeled book, not evidence of alpha.** Both books report Sharpe ≈7 because PnL is dominated by a near-deterministic funding accrual on 1× notional; the model excludes borrow costs, custody, margin drag and liquidation/venue risk, so the headline number must not be read as a live Sharpe. It does not affect the verdict, which is carried by gates 1–2 above.
+
+**Lineage map (H183 REJECT):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Carry / institutional funding basis (perp premium harvest) | H183 (NF-20261114-02) | Delta-neutral long-spot/short-perp book gated on trailing mean funding (hysteresis), 1-bar delay, 14 bps/turnover | Binance public archives (data.binance.vision) fundingRate + daily spot/perp klines, 7 USDT perps, 2020-01→2026-10 | **REJECT** (6/8; `.experiments/nf_runs/nf_20261114_02_crypto_funding_carry_20261118_194621/summary.json`) | Timing null not rejected (p 0.329, IR 0.197 vs always-on carry 6.971); worst rolling-252 Sharpe −0.356 (negative-funding regimes); headline Sharpe is modeled funding accrual with no borrow/margin/liquidation costs |
+
+### Deferred pool reassessment (no silent drops)
+- **NF-20261114-01 commodity futures term-structure carry:** still **BLOCKED** (no free per-contract/deferred series; yfinance `=F` is spliced-continuous). Unchanged by this cycle; the crypto carry result does not transfer to commodity roll yield without roll data.
+- **NF-20261114-04 VIX/OVX term structure:** still **DATA-BLOCKED** (OVX/VIX9D/^RVX delisted from the free feed; FRED has VIXCLS only).
+- **NF-20261109-18 / -20 (index reconstitution, splits), NF-20261109-19 (options GEX), NF-20261109-02 (analyst revisions):** unchanged — underpowered or data-blocked.
+- **Cycle 140 FRED corrections (breakeven inflation, NFCI, UMCSENT, HY OAS):** unchanged — subsumed by H175, adjacent, or window-limited.
+
+### Conclusion (Cycle 213)
+The free-data point-in-time strategy-family queue remains exhausted on *evidence that is now one family stronger*: H1–H183 all executed/rejected. The crypto funding-carry family is closed on a REAL full-window run with a pre-registered passive-carry benchmark, and the "crypto funding is data-blocked" claim from Cycles 96/116 is retired. **No H184 is pre-registered and no new runner is created this cycle.** Next cycle must either (a) resolve a remaining data gap under explicit authorization (per-contract futures roll/contango for commodity carry; PIT options for GEX; PIT analyst revisions), or (b) continue auditing/infrastructure work — do not re-declare crypto funding blocked and do not re-run H183 as a parameter variant.
+
+**Cycle 213 complete.** H85–H183 all rejected/recorded; H184 unassigned. `src/qtr` unchanged.
