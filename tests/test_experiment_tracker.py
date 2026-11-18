@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -105,6 +106,71 @@ def test_log_dataframe_deduplicates_columns_before_writing(tmp_path):
     meta = json.loads(meta_path.read_text())
     assert meta["columns"] == ["A", "B"]
     assert meta["shape"] == [2, 2]
+    t.finish_experiment()
+
+
+def test_log_dataframe_deduplicates_index_before_writing(tmp_path):
+    """A duplicated index label must not diverge from the engine's canonicalization.
+
+    Every runner logs its price/volume/result panel through ``log_dataframe``
+    *before* the engine sees it. The engine canonicalizes both prices and
+    signals (keep-first, sorted) on entry to ``run_backtest`` for exactly this
+    class (an overlapping vendor window, a cache entry written before dedup, or
+    a manually concatenated panel). Without the same guard here the logged
+    artifact would carry the duplicate index while the engine operates on the
+    deduplicated panel, creating an inconsistency between the artifact and the
+    actual backtest input. Pin the keep-first + sort canonicalization so the
+    logged artifact matches the engine's view exactly. A unique index is a
+    no-op.
+    """
+    t = ExperimentTracker(log_dir=tmp_path / "logs")
+    t.start_experiment("exp")
+    # Create a DataFrame with a duplicated timestamp (reachable from overlapping
+    # vendor windows or manual concat)
+    index = pd.date_range("2020-01-01", periods=10, freq="D")
+    index = index.insert(5, index[5])  # duplicate one bar
+    df = pd.DataFrame(
+        {"A": np.arange(11, dtype=float), "B": np.arange(11, dtype=float) * 2},
+        index=index,
+    )
+    assert df.index.has_duplicates
+    h = t.log_dataframe("dup_idx", df)
+
+    written = pd.read_parquet(
+        t.log_dir / "artifacts" / t.current_experiment.experiment_id / "dup_idx.parquet"
+    )
+    # Index should be deduplicated (keep-first) and sorted
+    assert not written.index.has_duplicates
+    assert written.index.is_monotonic_increasing
+    # Should match engine's canonicalization exactly
+    expected = df[~df.index.duplicated(keep="first")].sort_index()
+    pd.testing.assert_frame_equal(written, expected, check_freq=False)
+
+    meta_path = t.log_dir / f"dup_idx_{h}.meta.json"
+    meta = json.loads(meta_path.read_text())
+    assert meta["shape"] == [10, 2]
+    assert meta["index_type"].startswith("datetime64")
+    t.finish_experiment()
+
+
+def test_log_dataframe_unique_index_untouched(tmp_path):
+    """The index dedup guard is a no-op on a clean frame: bit-identical write."""
+    t = ExperimentTracker(log_dir=tmp_path / "logs")
+    t.start_experiment("exp")
+    df = pd.DataFrame(
+        {"A": [1.0, 2.0, 3.0], "B": [4.0, 5.0, 6.0]},
+        index=pd.date_range("2020-01-01", periods=3, freq="D"),
+    )
+    h = t.log_dataframe("clean_idx", df)
+
+    written = pd.read_parquet(
+        t.log_dir / "artifacts" / t.current_experiment.experiment_id / "clean_idx.parquet"
+    )
+    pd.testing.assert_frame_equal(written, df, check_freq=False)
+    meta_path = t.log_dir / f"clean_idx_{h}.meta.json"
+    meta = json.loads(meta_path.read_text())
+    assert meta["shape"] == [3, 2]
+    assert meta["index_type"].startswith("datetime64")
     t.finish_experiment()
 
 

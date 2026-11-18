@@ -222,6 +222,15 @@ class ExperimentTracker:
         if df.columns.has_duplicates:
             df = df.iloc[:, ~df.columns.duplicated(keep="first")]
 
+        # A duplicated index label (reachable from overlapping vendor/cache
+        # windows or manual panel construction) makes the logged artifact
+        # diverge from what the engine sees: ``run_backtest`` canonicalizes
+        # both prices and signals (keep-first, sorted) on entry. Canonicalize
+        # here so the logged artifact matches the engine's input exactly. A
+        # unique index is a no-op.
+        if df.index.has_duplicates:
+            df = df[~df.index.duplicated(keep="first")].sort_index()
+
         df.to_parquet(file_path)
 
         # Copy the caller's dict rather than mutating it in place. The schema
