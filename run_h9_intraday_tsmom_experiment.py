@@ -162,9 +162,9 @@ def vol_scaled_tsmom_hourly(
     inv_vol_long = 1.0 / sigma_long
     inv_vol_short = 1.0 / sigma_short
 
-    dir_slow = np.sign(mom_slow)
+    dir_slow = (mom_slow > 0).astype(float) * 2.0 - 1.0
     dir_slow = dir_slow.where(mom_slow.notna(), 0.0)
-    dir_fast = np.sign(mom_fast)
+    dir_fast = (mom_fast > 0).astype(float) * 2.0 - 1.0
     dir_fast = dir_fast.where(mom_fast.notna(), 0.0)
 
     w_slow = dir_slow * inv_vol_long
