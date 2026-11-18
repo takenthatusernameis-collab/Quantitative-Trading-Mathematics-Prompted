@@ -140,16 +140,20 @@ def _build_exit_inputs(prices):
     return atr, vol_exit
 
 
-def _build_per_contract_base_signals(prices):
+def _build_per_contract_base_signals(prices, lookback=None, fast_lookback=None):
     """Build the H10 base signal per contract (same vol window for all)."""
     base_signals = {}
     for sym in prices.columns:
         px = prices[[sym]]
-        base_signals[sym] = vol_scaled_tsmom_hourly(
-            px,
-            vol_window_long=SEL["vol_window_long"],
-            vol_window_short=SEL["vol_window_long"] // VOL_WINDOW_SHORT_RATIO,
-        )
+        kwargs = {
+            "vol_window_long": SEL["vol_window_long"],
+            "vol_window_short": SEL["vol_window_long"] // VOL_WINDOW_SHORT_RATIO,
+        }
+        if lookback is not None:
+            kwargs["lookback"] = lookback
+        if fast_lookback is not None:
+            kwargs["fast_lookback"] = fast_lookback
+        base_signals[sym] = vol_scaled_tsmom_hourly(px, **kwargs)
     return base_signals
 
 

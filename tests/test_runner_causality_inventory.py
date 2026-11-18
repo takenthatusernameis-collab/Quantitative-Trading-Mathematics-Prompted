@@ -1620,7 +1620,7 @@ CASES: dict[str, Case] = {
         "runner": "run_h21_futures_tsmom_multicontract.py",
         "func": "_build_per_contract_base_signals",
         "market": "hourly",
-        "dense": lambda m: ((m["prices"],), {}),
+        "dense": lambda m: ((m["prices"],), {"lookback": 20, "fast_lookback": 10}),
         "sparse": lambda m: ((m["prices"],), {}),
         "patch": {
             "module": "run_h21_futures_tsmom_multicontract.py",
@@ -1634,7 +1634,7 @@ CASES: dict[str, Case] = {
         "runner": "run_h22_futures_tsmom_voltarget.py",
         "func": "_build_per_contract_base_signals",
         "market": "hourly",
-        "dense": lambda m: ((m["prices"],), {}),
+        "dense": lambda m: ((m["prices"],), {"lookback": 20, "fast_lookback": 10}),
         "sparse": lambda m: ((m["prices"],), {}),
         "patch": {
             "module": "run_h22_futures_tsmom_voltarget.py",
@@ -1648,7 +1648,7 @@ CASES: dict[str, Case] = {
         "runner": "run_h25_futures_tsmom_pfmargin.py",
         "func": "_build_per_contract_base_signals",
         "market": "hourly",
-        "dense": lambda m: ((m["prices"],), {}),
+        "dense": lambda m: ((m["prices"],), {"lookback": 20, "fast_lookback": 10}),
         "sparse": lambda m: ((m["prices"],), {}),
         "patch": {
             "module": "run_h25_futures_tsmom_pfmargin.py",
