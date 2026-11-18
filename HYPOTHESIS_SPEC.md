@@ -8731,3 +8731,22 @@ Cycles 96/116 classified this candidate **data-blocked** on a REST/yfinance-only
 | Carry / institutional funding basis (perp premium harvest) | H183 (NF-20261114-02) | Delta-neutral long-spot/short-perp gated on trailing mean funding (hysteresis), 1-bar delay, 14 bps/turnover | Binance public archives (fundingRate + daily spot/perp klines), 7 USDT perps, 2020-01→2026-10 | **REJECT** (6/8; `.experiments/nf_runs/nf_20261114_02_crypto_funding_carry_20261118_194621/summary.json`) | Timing null not rejected (p 0.329, IR 0.197); worst rolling-252 −0.356 (negative-funding regimes); headline Sharpe is modeled funding accrual without borrow/margin/liquidation costs |
 
 **Cycle 213 complete.** H85–H183 all rejected/recorded. `src/qtr` unchanged. No commit/push. Next unused H-ID **H184** (blocked on remaining data authorization — per-contract commodity roll/contango, PIT options/GEX, PIT analyst revisions — or a directive §6 shift to auditing/infrastructure). Do not re-declare crypto funding data as blocked and do not re-run H183 as a parameter variant.
+
+## Cycle 214 (2026-11-18) — data-availability probe only (no H-ID executed)
+
+**Status.** H184 remains unassigned. This section records a **data-availability reclassification**, not a hypothesis test: no signal was evaluated, no validation/test outcome was inspected, and no artifact was produced.
+
+**Correction.** The long-standing "commodity per-contract roll/contango is data-blocked" classification (NF-20261114-01) rested on US/EU retail feeds (yfinance `=F` spliced-continuous; single-contract tickers HTTP 404/429). It is wrong for the same reason the Cycle 140/213 corrections were: a materially different free source exists. The Chinese futures exchanges publish official, key-less, daily **per-contract settlement cross-sections**:
+
+- SHFE `https://www.shfe.com.cn/data/tradedata/future/dailydata/kx{YYYYMMDD}.dat` — verified 2010-01-04 → 2026-11-17 (93→301 contracts; 8→25 products).
+- INE `https://www.ine.cn/data/tradedata/future/dailydata/kx{YYYYMMDD}.dat` — verified from 2018-03-26 (crude launch); 63 contracts / 5 products on 2026-11-17.
+- CZCE `http://www.czce.com.cn/cn/DFSStaticFiles/Future/{YYYY}/{YYYYMMDD}/FutureDataDaily.txt` — verified from 2015-12-01; 247 contracts / 27 products on 2026-11-17 (legacy files GBK, current UTF-8; 3-digit `YMM` contract codes).
+- CFFEX `http://www.cffex.com.cn/sj/hqsj/rtj/{YYYYMM}/{DD}/{YYYYMMDD}_1.csv` — verified 2016→2026 (GBK; futures rows only, options must be filtered); pre-2010-04 is empty by listing date.
+
+Probe: `scripts/probe_commodity_termstructure_availability.py` → **4/4 sources usable**, exit 0; front/second settlement spreads computed for the most liquid product (e.g. SHFE RB 2401/2402 **+212.7 bps** on 2024-01-02; CZCE TA 202401/202402 **−57.3 bps**).
+
+**Still blocked (probed 2026-11-18, do not re-litigate as "maybe free"):** Nasdaq Data Link/Quandl CHRIS deferred contracts → HTTP 403 (Incapsula; free tier key-gated); CME settlement APIs → HTTP 403 IP block; Yahoo single-contract tickers → HTTP 429 from this host; stooq → JS challenge; LME daily API → Cloudflare 403; DCE POST → HTTP 412 WAF.
+
+**Consequence for H184 (pre-registration requirements, not yet executed).** Any H184 run must pre-register: (a) a venue/product universe with each product's first available date; (b) the roll-yield signal from front/second (and optionally third) settlement slope, known at the settlement timestamp of day t, traded no earlier than t+1; (c) explicit CNY cost model (commission + slippage + roll crossing), daily price limits and T+1 constraints; (d) a passive front-month long benchmark plus random and inverse-slope ablations; (e) the standard 8 fail-closed gates on OOS Val+Test; (f) a resumable on-disk cache with a bounded date range (full SHFE history is ~4,000 one-file-per-day requests).
+
+**Cycle 214 complete.** H85–H183 rejected; H184 unassigned but now executable. `src/qtr` unchanged.

@@ -786,3 +786,47 @@ Cycles 96 and 116 classified crypto perpetual funding/basis (NF-20261114-02) as 
 The free-data point-in-time strategy-family queue remains exhausted on *evidence that is now one family stronger*: H1–H183 all executed/rejected. The crypto funding-carry family is closed on a REAL full-window run with a pre-registered passive-carry benchmark, and the "crypto funding is data-blocked" claim from Cycles 96/116 is retired. **No H184 is pre-registered and no new runner is created this cycle.** Next cycle must either (a) resolve a remaining data gap under explicit authorization (per-contract futures roll/contango for commodity carry; PIT options for GEX; PIT analyst revisions), or (b) continue auditing/infrastructure work — do not re-declare crypto funding blocked and do not re-run H183 as a parameter variant.
 
 **Cycle 213 complete.** H85–H183 all rejected/recorded; H184 unassigned. `src/qtr` unchanged.
+
+---
+
+## Cycle 214 (2026-11-18) — data-availability probe only: commodity per-contract term structure is AVAILABLE free (Chinese exchanges); no H-ID executed
+
+Lineage: H85–H183 rejected/recorded; **H184 remains unassigned** (the *data* blocker is now resolved, the hypothesis is not yet pre-registered). `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or frozen number modified; no gate weakening; free/public data only.
+
+### Why this cycle differs from the prior "blocked" classification (directive §6)
+`NF-20261114-01` (commodity futures term-structure carry / roll yield) was classified **data-blocked** on a US/EU retail premise only: yfinance `=F` is spliced-continuous and single-contract tickers (`CLF26.NYM`) are unavailable. This cycle probed a materially different set of sources — the **Chinese futures exchanges**, which publish free, key-less, daily *cross-sections of every listed contract month* as static files. Result: the data gap is **closed**; a genuine point-in-time per-contract term structure is retrievable.
+
+### What is now proven available (reproducible evidence)
+Tool: `scripts/probe_commodity_termstructure_availability.py` (read-only, downloads to memory, touches no artifact). `python scripts/probe_commodity_termstructure_availability.py` → exit 0, **4/4 sources usable**. Probe dates: 2010-01-04, 2016-01-04, 2020-01-02, 2024-01-02, 2026-11-17.
+
+| Source | URL pattern (key-less) | Probe result | Contracts / products / curves (2024-01-02) | Sample front vs next (spread bps) |
+|---|---|---|---|---|
+| **SHFE** | `https://www.shfe.com.cn/data/tradedata/future/dailydata/kx{YYYYMMDD}.dat` (JSON) | **5/5 dates OK, 2010-01-04 → 2026-11-17** | 275 / 23 / 23 | RB 2401 vs 2402: **+212.7** |
+| **INE** | `https://www.ine.cn/data/tradedata/future/dailydata/kx{YYYYMMDD}.dat` (JSON) | OK 2020, 2024, 2026; **HTTP 200 on 2018-03-26 (crude launch)** | 61 / 5 / 5 | LU 2402 vs 2403: +52.9 |
+| **CZCE** | `http://www.czce.com.cn/cn/DFSStaticFiles/Future/{YYYY}/{YYYYMMDD}/FutureDataDaily.txt` (pipe text, UTF-8 new / GBK legacy) | OK 2016, 2020, 2024, 2026; **earliest probed 200 = 2015-12-01** (2015-06-01 → 404) | 214 / 25 / 25 | TA 202401 vs 202402: −57.3 |
+| **CFFEX** | `http://www.cffex.com.cn/sj/hqsj/rtj/{YYYYMM}/{DD}/{YYYYMMDD}_1.csv` (GBK CSV) | OK 2016, 2020, 2024, 2026; 2010-01-04 EMPTY (index futures listed 2010-04) | 28 / 8 / 8 | IC 2401 vs 2402: +20.0 |
+
+Each file is the official settlement record for that trade date and lists every contract month, so **roll yield / term-structure slope is directly computable PIT** (front–second spread and full curve). The probe reports per-date contracts, products, curves and the front/second spread for the most liquid product, so a silent empty parse cannot pass (exit 1 if nothing parses).
+
+### Sources probed and still blocked (recorded so they are not re-litigated)
+- `data.nasdaq.com` / `quandl.com` CHRIS deferred contracts → **HTTP 403** (Incapsula bot wall) and the current free tier requires an API key.
+- `www.cmegroup.com` settlement APIs → **HTTP 403** ("IP address is blocked due to suspected web scraping").
+- Yahoo single-contract tickers (`CLZ25.NYM`, plus `CL=F`) via `query1/query2.finance.yahoo.com` → **HTTP 429** from this host (persisted across a 20 s backoff); `=F` remains spliced-continuous anyway.
+- `stooq.com` CSV → JavaScript bot challenge, no key-less CSV.
+- `www.lme.com` daily data API → Cloudflare **HTTP 403**.
+- DCE (Dalian) daily-quotes POST → **HTTP 412** WAF block.
+
+### Reclassification (durable)
+`NF-20261114-01 commodity futures term-structure carry` moves from **DATA-BLOCKED (US-only premise)** to **AVAILABLE free PIT (SHFE/INE/CZCE/CFFEX)**. Do **not** re-declare commodity per-contract roll/contango as data-blocked without naming the probed source. This is not a parameter/universe variant of H183: the mechanism is roll-yield/term-structure slope on physically delivered futures, not perpetual funding accrual.
+
+### Honest limits carried into H184
+- Data are CNY-denominated, T+1, with daily price limits and exchange-specific margin/fees; cost and roll modelling must be explicit and no US/EU transferability may be claimed.
+- Coverage differs by venue (SHFE 2010→, CZCE 2015-12→, INE 2018-03→, CFFEX 2010-04→), so any universe must record each product's first available date.
+- Download is one file per trade date per venue; a full SHFE 2010→2026 history is ~4,000 requests. H184 must use a resumable on-disk cache (`skip existing`) and a bounded date range.
+
+### Conclusion (Cycle 214)
+The last named free-data blocker on the research queue is closed with reproducible evidence. **No H-ID is executed this cycle and H184 is not yet pre-registered** — pre-registration must precede any outcome inspection. The next cycle can pre-register and run H184 with the source list and limits above.
+
+**Cycle 214 complete.** H85–H183 all rejected/recorded; H184 unassigned but now *executable*. `src/qtr` unchanged. New durable artifact: `scripts/probe_commodity_termstructure_availability.py` + `tests/test_probe_commodity_termstructure_availability.py` (20 tests). Repeated rapid
+probes can transiently report `UNREACHABLE` on the exchange sites; `fetch` has one bounded
+retry and distinguishes transport failure from a genuine 404 (`MISSING`).
