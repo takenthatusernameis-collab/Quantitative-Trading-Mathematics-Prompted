@@ -504,7 +504,24 @@ def run_backtest(
     # a caller that assembles a panel outside the fetcher still cannot crash or
     # silently double-count a bar.  A unique index is a no-op, so the clean path
     # is bit-identical.
-    if prices.index.has_duplicates:
+    #
+    # A unique-but-UNSORTED ``DatetimeIndex`` is the same index-canonicalization
+    # class and is just as reachable: the fetch paths sort, but a caller that
+    # assembles a panel outside the fetcher (a reversed slice, an out-of-order
+    # concatenation, a frame built from an unsorted source) hands the engine a
+    # frame whose rows are not in chronological order. ``prices.pct_change()``
+    # compounds returns in *storage* order, so a descending panel silently
+    # produces the time-reversed return series (measured: a 6-bar ascending
+    # panel returned +4.98% while the same bars in descending order returned
+    # -4.78%) and the trade log is emitted newest-first -- a wrong answer, not a
+    # crash, which is exactly the silent-corruption class this block exists to
+    # close. Canonicalize a non-monotonic DatetimeIndex (keep-first on a
+    # duplicated label, then sort) so the engine always compounds returns
+    # chronologically. A sorted (or non-datetime) index is a no-op, so the clean
+    # path is bit-identical.
+    if prices.index.has_duplicates or (
+        isinstance(prices.index, pd.DatetimeIndex) and not prices.index.is_monotonic_increasing
+    ):
         prices = prices[~prices.index.duplicated(keep="first")].sort_index()
     if signals.index.has_duplicates:
         signals = signals[~signals.index.duplicated(keep="first")].sort_index()
