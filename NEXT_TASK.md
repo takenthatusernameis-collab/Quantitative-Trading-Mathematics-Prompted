@@ -1,37 +1,34 @@
-# Next task (2026-11-18, Cycle 208)
+# Next task (2026-11-18, Cycle 209)
 
 ## What changed this session
-- **Reverted a reproduced regression in the two hourly-TSMOM runners** (`run_h7_intraday_tsmom_experiment.py::multi_horizon_blend_signals`, `run_h9_intraday_tsmom_experiment.py::vol_scaled_tsmom_hourly`): the direction formula was changed by the previous commit (`0dbc01b`, empty message) from `(mom > 0).astype(float) * 2.0 - 1.0` to `np.sign(mom)`. Because `np.sign(0) == 0` while `(0 > 0) * 2 - 1 == -1`, **every exactly-zero-momentum bar flipped from a `-1` short to a `0` flat**. That set is non-empty and reachable: `vol_scaled_tsmom_hourly` does `prices.pct_change(lookback).fillna(0)` (so every warm-up bar is exactly `0.0`), and any lookback window over an unchanged price is also exactly `0.0`.
-- `run_h9.vol_scaled_tsmom_hourly` is the **core signal dependency of the frozen H10/H11/H12/H13 pipeline** (`run_h10`/`run_h11`/`run_h12`/`run_h13` all import it) and of the H55 nested-metrics re-derivation. Changing it silently changed the returns/profit-factors of the committed frozen artifacts, breaking 6 frozen-contract tests. Restored the pre-`0dbc01b` formula on both runners so the committed artifacts reproduce bit-exactly again.
-- No `src/qtr`, gate, artifact, sidecar, hash, frozen-number, or workflow change. The `run_h21`/`run_h22`/`run_h25` `_build_per_contract_base_signals` lookback/fast_lookback kwargs (also from `0dbc01b`) are behaviour-preserving (default `None`) and are required by the updated `test_runner_causality_inventory` dense cases; they are left intact.
+- **No source change.** Executed the agent's bounded, evidence-first search for a NEW reproduced, runner-reachable defect in `src/qtr` or runners/corpus metadata (excluding the already-pinned scalar/degenerate, duplicate-price-column, duplicate-index, long-only-sign, and direction-formula-at-zero classes).
+  - Re-read all seven `src/qtr` modules end-to-end (`utils/config.py`, `validation/statistics.py`, `strategies/baselines.py`, `backtest/engine.py`, `data/fetcher.py`, `data/insider.py`, `tracking/experiment.py`) — every public function carries fail-closed guards; no reachable defect found.
+  - Spot-checked runners for lookahead (`shift(-N)`: 0 matches across `run_*.py`) and sign/direction usage (`run_h7`, `run_h9`, `run_h20`, `run_h21`, `run_h22`, `run_h25`, `run_h27`, `run_cs_momentum`, `run_ts_momentum`): long-only branches use `(mom > 0).astype(float)`, long/short branches use `np.sign(mom)` with NaN mapping — consistent with the H67 "sign of zero is not a direction" invariant. No new defect reproduced.
+- No `src/qtr`, runner, test, gate, artifact, sidecar, hash, frozen-number, or workflow change.
 
 ## What was actually verified (own evidence, 2026-11-18)
-- **Baseline BEFORE the fix (HEAD `0dbc01b`):** `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` → **6 failed, 4328 passed, 51 skipped**; `src/qtr` coverage 100%. Failures: 4× `test_h13_oos_deflation_pf.py::TestFrozenPipelineReproduction` (`test_engine_returns_reproduce_h10_artifact`, `test_pooled_pf_matches_selected_config`, `test_shifted_splits_reproduce_h11_e4a`, `test_leave_one_out_pfs_match_h13_artifact`) and 2× `test_h55_nested_metrics_disclosure.py::TestReDerivation` (`test_the_rederivable_and_disclosed_counts_are_pinned` 611 vs 631, `test_the_top_level_perturbation_blocks_re_derive`).
-- **Root-cause isolation:** with the pre-`0dbc01b` `run_h9`/`run_h7` restored (only those two files swapped), `python -m pytest -q tests/test_h13_oos_deflation_pf.py tests/test_h55_nested_metrics_disclosure.py` → **54 passed** (27 + 27). This proves the 6 failures were caused solely by the `0dbc01b` h7/h9 direction-formula change, not by `src/qtr`.
-- **After the fix (this session):** `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` → **4334 passed, 51 skipped, 0 failed**, `src/qtr` coverage **100.00%** (1686 stmts / 640 branches / 0 miss).
-- Focused dependent-runner run (h10/h11/h13/h21/h22/h23/h25/h27/h28/h29 + runner causality/metric/import + tsmom signal + long-only) → **959 passed** (3 `test_runner_import_contract` cases fail only when that file is run *in isolation* under `-W error` due to a pre-existing `datetime.utcfromtimestamp()` deprecation in `run_nf_20261105_19_pead.py` / `run_nf_20261107_29_avg_beta_regime.py` / `run_nf_20261109_30_tip_ief_inflation_spy.py`; this reproduces at HEAD without my change and does NOT occur in the full-suite ordering).
+- Full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py` → **4335 passed, 51 skipped, 0 failed** (648.99s), `src/qtr` coverage **100.00%** (1692 stmts / 642 branches / 0 miss). `Required test coverage of 100.0% reached.`
 - `python -m ruff check src tests run_*.py scripts` → All checks passed.
 - `python -m ruff format --check src tests run_*.py scripts` → **337 files already formatted**.
-- `python scripts/backtest_perf_regression_gate.py` → **PERF GATE PASSED** (0.783s < 5s, 10.7MB peak, 13668 trades).
+- `python scripts/backtest_perf_regression_gate.py` → **PERF GATE PASSED** (0.798s < 5s, 10.7MB peak, 13668 trades).
 - `git apply --check patches/0001-gates-workflow-contract-fix.patch` → exit 0.
 - `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged maintainer-gated contract; expected until the patch is applied).
 
-## Provenance warning about the previous handoff
-- The previous `NEXT_TASK.md` (Cycle 207) claimed a fix to `run_ts_momentum_experiment.py` / `run_regime_gated_momentum_experiment.py` (commit `a645a48`) and "0 failed". **Neither matches this repository:** `a645a48` does not exist here (`git cat-file` fails), HEAD is `0dbc01b` (h7/h9/h21/h22/h25 + causality test), and HEAD had **6 failing tests**. Do not trust prior handoff counts — re-run the gates.
-
 ## What remains unresolved
 - **Maintainer-gated (agent-unreachable):** apply/push `patches/0001-gates-workflow-contract-fix.patch` with `workflows`-scoped credentials, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed).
-- **Design decision for the maintainer (np.sign direction formula):** `np.sign(mom)` (zero momentum -> flat) is arguably more correct than `(mom > 0) * 2 - 1` (zero momentum -> short), consistent with the H67 "sign of zero is not a direction" principle already applied in `qtr.strategies.baselines.vol_scaled_tsmom_signals`. But applying it to `run_h9`/`run_h7` **requires regenerating all downstream frozen artifacts** (H10/H11/H12/H13 summaries, H55 nested metrics) and updating the pinned numbers in `test_h13_oos_deflation_pf.py` / `test_h55_nested_metrics_disclosure.py`. That is maintainer-authorized work; do **not** apply it piecemeal.
 - **Strategy-family discovery exhausted:** H1–H182 executed/rejected (`NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96). H183 data-blocked (futures roll/contango, crypto funding, or options PIT data).
 - **Reproducibility backlog (frozen, authorization-gated):** missing_files=197, hash_mismatches=11, orphaned_files=528, missing_meta_files=0.
 
 ## One precise next task
-- **Maintainer:** (1) apply and push `patches/0001-gates-workflow-contract-fix.patch`, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed); (2) decide the np.sign direction-formula question above and, if adopted, regenerate the frozen H10/H11/H12/H13/H55 artifacts and update the pinned numbers in the same change.
-- **Agent:** perform a bounded, evidence-first search for a NEW reproduced, runner-reachable defect in `src/qtr` or runners/corpus metadata (not the already-pinned scalar/degenerate-input, duplicate-price-column, duplicate-index, long-only-sign, or direction-formula-at-zero classes). If found, implement the smallest fix + focused regression, then rerun the focused tests, `python -m ruff check src tests run_*.py scripts`, `python -m ruff format --check src tests run_*.py scripts`, full pinned coverage (`--ignore=tests/test_gates_workflow.py`), and `python scripts/backtest_perf_regression_gate.py`. If none is found after concrete repro attempts, make no source change and re-verify the baseline with own evidence.
+- **Maintainer:** (1) apply and push `patches/0001-gates-workflow-contract-fix.patch`, then run `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed).
+- **Agent:** perform a bounded, evidence-first search for a NEW reproduced, runner-reachable defect in `src/qtr` or runners/corpus metadata (not previously pinned scalar/degenerate/duplicate-column/duplicate-index/long-only-sign/direction-formula-at-zero classes). If found, implement the smallest fix + focused regression, then rerun focused tests, `python -m ruff check src tests run_*.py scripts`, `python -m ruff format --check src tests run_*.py scripts`, full pinned coverage (`--ignore=tests/test_gates_workflow.py`), and `python scripts/backtest_perf_regression_gate.py`. If none found after concrete repro attempts, make no source change and re-verify the baseline with own evidence.
 
 ## Approaches already tried and why they should not be repeated
-- **Do NOT change `run_h7`/`run_h9` direction formula to `np.sign(mom)` without regenerating the frozen H10/H11/H12/H13 artifacts and updating the pinned numbers.** That is exactly what `0dbc01b` did, and it broke `test_h13` (4) + `test_h55` (2). The frozen artifacts encode the `(mom > 0) * 2 - 1` convention.
-- Do not edit frozen artifacts / pinned numbers to force the suite green — maintainer authorization required.
-- Do not edit `.github/workflows/**` or weaken `tests/test_gates_workflow.py` — maintainer-gated; the fix is the workflow patch.
-- Do not treat parameter/timeframe/universe variants as new mechanism families, and do not invent H183.
-- Do not trust handoff pass/fail/coverage counts — re-run the gates (the prior handoff was wrong on both the changed files and the failure count).
+- Do not re-audit `src/qtr`/runners for the pinned defect classes without NEW evidence (exhaustively reviewed through Cycle 195+, plus this session's full re-read of all seven modules and runner spot-checks).
+- Do not edit `.github/workflows/**` or weaken `tests/test_gates_workflow.py` (maintainer-gated; patch exists).
+- Do not edit momentum runners' `param_grid_results` logging without maintainer authorization (frozen/test-covered).
+- Do not invent H183 or treat parameter/timeframe/universe variants as new mechanism families.
+- Do not trust handoff pass/fail/coverage counts — re-run the gates.
+
+## HEAD
+- `657923a` (adds all-NaN column drop to `run_backtest` + test; working tree clean, up to date with `origin/main`). Commit `7373188` beneath it reverted the `run_h7`/`run_h9` zero-momentum direction change.
