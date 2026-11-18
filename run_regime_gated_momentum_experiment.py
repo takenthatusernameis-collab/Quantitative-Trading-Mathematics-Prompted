@@ -224,7 +224,12 @@ def vol_scaled_tsmom_signals(
     pct = prices.pct_change()
     mom = prices.pct_change(lookback).shift(skip)
     if long_only:
-        direction = np.sign(mom)
+        # Long-only: no short leg. A negative-momentum asset is held flat (0),
+        # never booked short. This must match the canonical
+        # qtr.strategies.baselines.vol_scaled_tsmom_signals long-only branch;
+        # using sign(mom) here would emit -1 for negative momentum and both
+        # book a phantom short and corrupt the portfolio-vol targeting scale.
+        direction = (mom > 0).astype(float)
     else:
         direction = np.sign(mom)
         direction = direction.where(mom.notna(), 0.0)
