@@ -44,6 +44,23 @@ def _drop_duplicate_price_columns(prices: pd.DataFrame) -> pd.DataFrame:
     return prices.iloc[:, ~prices.columns.duplicated(keep="first")]
 
 
+def _canonicalize_price_panel(prices: pd.DataFrame) -> pd.DataFrame:
+    """Canonicalize a price panel for signal construction.
+
+    Keep-first duplicate columns and duplicate index labels. A duplicated
+    symbol/column or bar is reachable from vendor/cache/concatenation paths;
+    pandas rolling/ewm/reindex operations can fail or misalign on duplicate
+    labels, so builders fail closed by canonicalizing defensively (symmetric
+    with ``qtr.backtest.engine.run_backtest``). Unique panels are returned
+    unchanged.
+    """
+    if prices.columns.has_duplicates:
+        prices = prices.iloc[:, ~prices.columns.duplicated(keep="first")]
+    if prices.index.has_duplicates:
+        prices = prices[~prices.index.duplicated(keep="first")].sort_index()
+    return prices
+
+
 def moving_average_crossover_signals(
     prices: pd.DataFrame,
     fast_window: int = 20,
@@ -62,7 +79,7 @@ def moving_average_crossover_signals(
     Returns:
         DataFrame of position weights (-1 to 1 or 0 to 1)
     """
-    prices = _drop_duplicate_price_columns(prices)
+    prices = _canonicalize_price_panel(prices)
     signals = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
 
     if (
@@ -108,7 +125,7 @@ def buy_and_hold_signals(
     Returns:
         DataFrame of constant position weights
     """
-    prices = _drop_duplicate_price_columns(prices)
+    prices = _canonicalize_price_panel(prices)
     return pd.DataFrame(
         weight,
         index=prices.index,
@@ -134,7 +151,7 @@ def ewma_crossover_signals(
     Returns:
         DataFrame of position weights
     """
-    prices = _drop_duplicate_price_columns(prices)
+    prices = _canonicalize_price_panel(prices)
     signals = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
 
     if (
@@ -184,7 +201,7 @@ def momentum_signals(
     Returns:
         DataFrame of position weights
     """
-    prices = _drop_duplicate_price_columns(prices)
+    prices = _canonicalize_price_panel(prices)
     signals = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
 
     if not _is_int(lookback) or not _is_int(skip) or lookback <= 0 or skip < 0:
@@ -270,7 +287,7 @@ def mean_reversion_signals(
     Returns:
         DataFrame of position weights
     """
-    prices = _drop_duplicate_price_columns(prices)
+    prices = _canonicalize_price_panel(prices)
     signals = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
 
     if not _is_int(window) or window <= 0 or not _is_finite_non_negative(num_std):
@@ -409,7 +426,7 @@ def time_series_momentum_signals(
     Returns:
         DataFrame of position weights
     """
-    prices = _drop_duplicate_price_columns(prices)
+    prices = _canonicalize_price_panel(prices)
     signals = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
 
     if (
@@ -494,7 +511,7 @@ def vol_scaled_tsmom_signals(
 
     All scaling uses only data available at time t (rolling windows, shift).
     """
-    prices = _drop_duplicate_price_columns(prices)
+    prices = _canonicalize_price_panel(prices)
     if (
         not _is_int(lookback)
         or not _is_int(vol_window)
@@ -566,7 +583,7 @@ def carry_signals(
     Returns:
         DataFrame of position weights
     """
-    prices = _drop_duplicate_price_columns(prices)
+    prices = _canonicalize_price_panel(prices)
     signals = pd.DataFrame(0.0, index=prices.index, columns=prices.columns)
 
     if not _is_int(lookback) or lookback <= 0:

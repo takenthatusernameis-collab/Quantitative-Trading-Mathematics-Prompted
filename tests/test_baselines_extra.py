@@ -525,3 +525,48 @@ def test_time_series_momentum_e2e_duplicate_columns_keep_first():
     for k in res_dup.metrics:
         assert res_dup.metrics[k] == res_dedup.metrics[k]
         assert np.isfinite(res_dup.metrics[k]) or np.isinf(res_dup.metrics[k])
+
+
+# ---------------------------------------------------------------------------
+# Duplicate-index (bar) canonicalization contract (Cycle 206)
+# ---------------------------------------------------------------------------
+
+
+def _duplicate_index_price_panel() -> pd.DataFrame:
+    index = pd.date_range("2020-01-01", periods=300, freq="D")
+    # duplicate one bar in-place (reachable from overlapping vendor/cache windows)
+    index = index.insert(50, index[50])
+    rng = np.random.default_rng(20261117)
+    a = 100.0 + np.cumsum(rng.normal(0.0, 0.02, len(index)))
+    b = 50.0 + np.cumsum(rng.normal(0.0, 0.015, len(index)))
+    return pd.DataFrame({"A": a, "B": b}, index=index)
+
+
+def _deduplicated_index_price_panel() -> pd.DataFrame:
+    prices = _duplicate_index_price_panel()
+    return prices[~prices.index.duplicated(keep="first")].sort_index()
+
+
+@pytest.mark.parametrize(
+    "name, kwargs",
+    [
+        ("ma_crossover", {"fast_window": 5, "slow_window": 20}),
+        ("buy_and_hold", {}),
+        ("ewma_crossover", {"fast_span": 5, "slow_span": 20}),
+        ("momentum", {"lookback": 30, "skip": 5, "n_top": 1}),
+        ("mean_reversion", {"window": 20, "num_std": 2.0}),
+        ("time_series_momentum", {"lookback": 60, "skip": 5}),
+        ("vol_scaled_tsmom", {"lookback": 60, "skip": 5, "vol_window": 30}),
+        ("carry", {"lookback": 60}),
+    ],
+)
+def test_duplicate_index_is_canonized_keep_first(name, kwargs):
+    prices = _duplicate_index_price_panel()
+    deduplicated = _deduplicated_index_price_panel()
+    strategy = baselines.get_strategy(name)
+    actual = strategy(prices, **kwargs)
+    expected = strategy(deduplicated, **kwargs)
+    assert actual.index.is_unique
+    pd.testing.assert_index_equal(actual.index, expected.index)
+    pd.testing.assert_frame_equal(actual, expected)
+    assert np.all(np.isfinite(actual.values))
