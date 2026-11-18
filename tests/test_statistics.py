@@ -1283,9 +1283,37 @@ class TestCapacityEstimate:
         res = st.capacity_estimate(rng.normal(0.001, 0.01, 400), adv=0.0)
         assert res["estimated_max_aum"] == pytest.approx(0.0)
 
+    @pytest.mark.parametrize(
+        "bad", [True, False, "1000000", None, [1_000_000.0], {"adv": 1_000_000.0}]
+    )
+    def test_non_numeric_or_bool_adv_fail_closed(self, rng, bad):
+        # A bool is not a volume (it would be coerced to 0/1 and fabricate
+        # capacity) and a non-numeric scalar cannot be a finite volume; both
+        # must fail closed to the no-capacity tuple rather than raising or
+        # returning a fabricated AUM.
+        res = st.capacity_estimate(rng.normal(0.001, 0.01, 400), adv=bad)
+        assert res == {
+            "current_sharpe": 0.0,
+            "max_participation_rate": 0.0,
+            "estimated_max_aum": 0.0,
+            "sharpe_at_max_aum": 0.0,
+        }
+
     @pytest.mark.parametrize("bad", [np.inf, -np.inf, np.nan, -1.0])
     def test_degenerate_adv_fail_closed(self, rng, bad):
         res = st.capacity_estimate(rng.normal(0.001, 0.01, 400), adv=bad)
+        assert res == {
+            "current_sharpe": 0.0,
+            "max_participation_rate": 0.0,
+            "estimated_max_aum": 0.0,
+            "sharpe_at_max_aum": 0.0,
+        }
+
+    @pytest.mark.parametrize("bad", [True, False, "0.1", None, [0.1], {"max_participation": 0.1}])
+    def test_non_numeric_or_bool_max_participation_fail_closed(self, rng, bad):
+        res = st.capacity_estimate(
+            rng.normal(0.001, 0.01, 400), adv=1_000_000.0, max_participation=bad
+        )
         assert res == {
             "current_sharpe": 0.0,
             "max_participation_rate": 0.0,

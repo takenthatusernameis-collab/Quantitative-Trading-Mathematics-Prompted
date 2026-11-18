@@ -908,12 +908,15 @@ def capacity_estimate(
     # the arithmetic is bit-identical to before: this guard only
     # short-circuits the degenerate cases. See
     # tests/test_statistics.py::TestCapacityEstimate.
-    if not (
-        np.isfinite(adv)
-        and adv >= 0.0
-        and np.isfinite(max_participation)
-        and max_participation >= 0.0
-    ):
+    def _finite_non_negative_scalar(value: object) -> bool:
+        return (
+            not isinstance(value, bool)
+            and isinstance(value, (int, float, np.integer, np.floating))
+            and bool(np.isfinite(value))
+            and value >= 0.0
+        )
+
+    if not (_finite_non_negative_scalar(adv) and _finite_non_negative_scalar(max_participation)):
         return {
             "current_sharpe": 0.0,
             "max_participation_rate": 0.0,
