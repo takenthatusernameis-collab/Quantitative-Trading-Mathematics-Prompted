@@ -14,6 +14,20 @@ No artifact, sidecar, hash, gate, or frozen number was modified this cycle.
 **174** records (H182 present, see the corrected §H182 lineage reconciliation
 below); the four baseline counts remain unchanged and the audit is still
 green. Documentation-only change.
+**Strengthened (2026-11-19, Cycle 223):** the two count-only backlogs are now
+identity-pinned, matching the existing `PINNED_HASH_MISMATCHES` treatment. A bare
+count could not distinguish "same 197 stale rows" from "one row fixed, a different
+row regressed". `tests/test_reproducibility_audit.py` now also pins
+`PINNED_MISSING_FILES_DIGEST` (SHA-256 over sorted
+`experiment_id|name|artifact_name|path` rows) and
+`PINNED_ORPHANED_FILES_DIGEST` (SHA-256 over sorted orphan paths), plus a
+non-vacuity test proving the digest discriminates substituted/removed rows.
+Current values:
+
+- `missing_files` = 197 → `7e7f4db4df1f8e8bb47bcee382177b3565de163bba72b20207e523a0e8c76251`
+- `orphaned_files` = 528 → `9f601bfe43839514cec97d7327922bed4db9003920e099152aa0aa98e837603a`
+
+No artifact, sidecar, hash, gate, or frozen count was modified.
 **Task:** Verify all experiment artifacts can be re-derived from tracked metadata (STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §6 fallback path)
 
 ---
@@ -195,7 +209,9 @@ price frames, and the 15 shared-dir artifacts are *actively cited* by tests at
 their orphan path (moving them would break those tests). The remaining 130 are
 unappended experiment records with no on-disk twin. Deletion remains out of
 scope (committed data). The orphan count is frozen at 528 by
-`REPRODUCIBILITY_BASELINE["orphaned_files"]`.
+`REPRODUCIBILITY_BASELINE["orphaned_files"]`, and the exact orphan row set is
+pinned by `PINNED_ORPHANED_FILES_DIGEST` (Cycle 223), so a swap or substitution
+inside the backlog fails the audit even when the count is unchanged.
 
 ### 4. Missing `.meta.json` Sidecars (140 → 0, remediated 2026-11-13)
 

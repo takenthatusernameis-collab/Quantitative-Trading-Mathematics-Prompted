@@ -142,7 +142,22 @@ PINNED_HASH_MISMATCHES = [
     ),
 ]
 
+# Pinned identity digests for the two count-only backlogs (2026-11-19, Cycle 223).
+# A bare count cannot distinguish "still 197 stale rows" from "one row fixed and a
+# different row regressed". These SHA-256 digests pin the exact row set:
+#   missing  -> sorted "<experiment_id>|<experiment_name>|<artifact_name>|<path>" lines
+#   orphaned -> sorted artifact paths (relative, POSIX)
+# Update deliberately (together with REPRODUCIBILITY_AUDIT_REPORT.md) only after a
+# remediation or a reviewed corpus change, exactly like PINNED_HASH_MISMATCHES.
+PINNED_MISSING_FILES_DIGEST = "7e7f4db4df1f8e8bb47bcee382177b3565de163bba72b20207e523a0e8c76251"
+PINNED_ORPHANED_FILES_DIGEST = "9f601bfe43839514cec97d7327922bed4db9003920e099152aa0aa98e837603a"
+
 assert len(PINNED_HASH_MISMATCHES) == REPRODUCIBILITY_BASELINE["hash_mismatches"]
+
+
+def _digest_lines(lines: list[str]) -> str:
+    """SHA-256 digest over sorted, newline-joined identity lines."""
+    return hashlib.sha256("\n".join(sorted(lines)).encode()).hexdigest()
 
 
 def _compute_file_hash(filepath: Path, length: int = 16) -> str:
@@ -185,6 +200,19 @@ def _assert_backlog_matches_baseline(check: str, count: int, details: str) -> No
 class TestReproducibilityAudit:
     """Audit all experiment artifacts for reproducibility."""
 
+    def test_backlog_identity_digests_are_not_vacuous(self):
+        """The identity digests must discriminate substituted and removed rows.
+
+        Guards against the pinned digest silently becoming a constant that any
+        backlog composition satisfies.
+        """
+        base = ["exp_a|name_a|art_a|.experiments/artifacts/exp_a/art.parquet"]
+        substituted = ["exp_a|name_a|art_a|.experiments/artifacts/exp_a/other.parquet"]
+        assert _digest_lines(base) != _digest_lines(substituted)
+        assert _digest_lines(base) != _digest_lines(base + substituted)
+        assert _digest_lines(base) != _digest_lines([])
+        assert PINNED_MISSING_FILES_DIGEST != PINNED_ORPHANED_FILES_DIGEST
+
     def test_experiments_log_exists_and_nonempty(self):
         """Experiments log must exist and contain records."""
         assert EXPERIMENTS_JSONL.exists(), f"Missing: {EXPERIMENTS_JSONL}"
@@ -218,6 +246,27 @@ class TestReproducibilityAudit:
         if len(missing_artifacts) > 20:
             details += f"\n  ... and {len(missing_artifacts) - 20} more"
         _assert_backlog_matches_baseline("missing_files", len(missing_artifacts), details)
+
+        # Verify exact identity matches the pinned digest (order-insensitive)
+        identity_lines = [
+            "|".join(
+                (
+                    m["experiment_id"],
+                    m["experiment_name"],
+                    m["artifact_name"],
+                    Path(m["expected_path"]).as_posix(),
+                )
+            )
+            for m in missing_artifacts
+        ]
+        assert _digest_lines(identity_lines) == PINNED_MISSING_FILES_DIGEST, (
+            "Missing-artifact identity changed: a pinned row was fixed or a new row went missing.\n"
+            f"Expected digest: {PINNED_MISSING_FILES_DIGEST}\n"
+            f"Actual digest:   {_digest_lines(identity_lines)}\n"
+            "If this is a deliberate remediation, update PINNED_MISSING_FILES_DIGEST and "
+            "REPRODUCIBILITY_BASELINE['missing_files'] together with "
+            "REPRODUCIBILITY_AUDIT_REPORT.md."
+        )
 
     def test_artifact_hashes_match_recorded_backlog(self):
         """Artifact hash drift must equal the recorded backlog."""
@@ -305,6 +354,17 @@ class TestReproducibilityAudit:
         if len(orphaned) > 20:
             details += f"\n  ... and {len(orphaned) - 20} more"
         _assert_backlog_matches_baseline("orphaned_files", len(orphaned), details)
+
+        # Verify exact identity matches the pinned digest (order-insensitive)
+        identity_lines = [Path(p).as_posix() for p in orphaned]
+        assert _digest_lines(identity_lines) == PINNED_ORPHANED_FILES_DIGEST, (
+            "Orphaned-artifact identity changed: a pinned row was removed or a new orphan appeared.\n"
+            f"Expected digest: {PINNED_ORPHANED_FILES_DIGEST}\n"
+            f"Actual digest:   {_digest_lines(identity_lines)}\n"
+            "If this is a deliberate catalog change, update PINNED_ORPHANED_FILES_DIGEST and "
+            "REPRODUCIBILITY_BASELINE['orphaned_files'] together with "
+            "REPRODUCIBILITY_AUDIT_REPORT.md."
+        )
 
     def test_experiment_metadata_completeness(self):
         """Every experiment must have required metadata fields."""
