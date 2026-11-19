@@ -9009,3 +9009,74 @@ adjacency-recycled with no free PIT history. Do not re-run H185 as a parameter/u
 variant, do not add OI windows/k thresholds as a "new family", and do not re-declare
 commodity per-contract data blocked. Free-data family discovery is concluded; no further
 H-ID should be pre-registered without a newly authorized data source.
+
+---
+
+## H186 — Commodity futures commercial hedging pressure cross-section (NF-20261119-02)
+
+**Status:** PRE-REGISTERED (Cycle 219, 2026-11-19) — written and committed to the repository
+before any forward-return outcome was computed or inspected. **NF-ID (execution key):**
+NF-20261119-02. **Hypothesis ID:** H186 (next unused after H185). `src/qtr` unchanged intended;
+no published/certified artifact, verdict, threshold, or frozen number modified.
+
+**Broad mechanism category:** hedging pressure / risk-transfer premium, measured by the
+*trader-category* net position of commercial hedgers in the CFTC Legacy futures-only report, used
+cross-sectionally as a commodity return predictor. Repo-new root family relative to executed
+H1–H185: no executed H trades the CFTC commercial-vs-non-commercial breakdown as a cross-sectional
+predictor. Distinct from H150 (which used CFTC *TFF leveraged-money* net positioning as a
+*time-series de-risking overlay on SPY* — a different report, a different trader category, a
+different market, and a timing not a cross-section); distinct from H185 (total *open interest*
+growth and front-contract share from Chinese exchange cross-sections — a quantity/crowding
+observable with no trader-category information, long-only universe of SHFE/INE contracts); distinct
+from H184 (relative *price* slope of two contracts, i.e. inventory carry). The H186 observable is
+`(comm_short − comm_long) / open_interest` — *who* holds the book, not how big it is or what it
+costs to roll.
+
+**Mechanism / causal chain.** Commodity producers, processors and merchants are natural short
+hedgers; they must pay speculators a risk premium to absorb that exposure (Keynes normal
+backwardation; Hicks; Bessembinder 1992; de Roon, Nijman & Veld 2000). The CFTC Legacy report
+measures exactly this transfer: when commercial traders are unusually net short relative to open
+interest, the compensation offered to the long side is high and the cross-section should earn a
+positive forward return; unusually net long commercials (heavy hedging demand on the buy side)
+should earn less. Prediction (directional, pre-registered): **long the top-k ETFs whose underlying
+future has the highest commercial net-short share of open interest, short the bottom-k**, weekly.
+Null (H0): the commercial hedging-pressure cross-section has no predictive power for next-week
+ETF returns after costs — a positioning overlay adds nothing over a passive equal-weight long
+commodity-ETF book.
+
+**PIT timing.** Legacy COT reports are as-of Tuesday and released by CFTC on Friday ~15:30 ET.
+The runner assigns each report a publication date of `report_date + 3 calendar days` (the earliest
+Friday release; holiday delays only make the true release later, so the construction is
+conservative) and forward-fills only reports whose publication date is `<= t`. Positions are then
+delayed one further trading day by the engine's `shift(1)`, i.e. a report as-of Tuesday t is first
+tradeable at the next session after the Friday release. No same-week outcome is used.
+
+**Pre-registered construction.**
+- Universe (ETF ↔ CFTC contract market code, all free/public): GLD↔088691, SLV↔084691,
+  USO↔067651, UNG↔023651, CORN↔002602, WEAT↔001602, SOYB↔005602, CPER↔085692, PPLT↔076651.
+  A name enters the cross-section only when its ETF close and its report are both present, and the
+  cross-section requires ≥ 5 active names.
+- Features: `hp` = (comm_short − comm_long)/open_interest (level), and `hp_change_4w` =
+  hp_t − hp_{t−4 reports} (positioning change). Both are computed from the Legacy futures-only
+  report (`comm_positions_*_all`, `open_interest_all`).
+- Cross-sectional z across active names on the weekly report grid, then the existing hysteresis
+  rule (entry_z / exit_z, top-k long / bottom-k short, gross-normalized to 1); weights are
+  forward-filled to the daily ETF calendar, so turnover happens at most weekly.
+- Grid (bounded, 16): feature {hp, hp_change_4w} × entry_z {0.5, 1.0} × exit_z {0.0} × k {2, 3} ×
+  vol_target {0.10, 0.15}; train-only 4-fold walk-forward Sharpe selection.
+- Sample 2012-01-03 → 2026-11-17 (common ETF availability). Train → 2021-12-31; Val
+  2022-01-01 → 2023-12-31; **Test protected 2024-01-01 → 2026-11-17** (never used for selection).
+- Costs: 5 bps one-way per leg traded (ETF commission + spread), no separate roll charge (the ETF
+  embeds roll); vol targeting delevers only (scale ≤ 1).
+- Gates (fail-closed, standard 8, unchanged): OOS Val+Test Sharpe ≥ 1.0; trades ≥ 50; PF ≥ 1.3;
+  maxDD ≤ 15%; WF stability ≥ 0.7; worst-regime rolling-252 Sharpe ≥ 0.3; benchmark p ≤ 0.05
+  two-sided with IR ≥ 0 vs the passive equal-weight long ETF book; OAT ±20% perturbation min
+  ratio ≥ 0.5.
+- Ablations/falsifiers: passive equal-weight long book, random-ranking control (seed 42), inverse
+  signal, and the train-block cross-sectional Spearman of `hp` vs the H184/H185 observables is
+  *not* available here (different markets); instead the runner reports the train-block Spearman of
+  `hp` vs `hp_change_4w` as an input-collinearity diagnostic only.
+
+**What would reject it:** failing any of the 8 gates on OOS Val+Test; in particular a Sharpe below
+1.0, a benchmark p-value above 0.05, or a passive book that dominates. A failed test is a durable
+REJECT at the family level; do not re-run it as a window/k/universe variant.

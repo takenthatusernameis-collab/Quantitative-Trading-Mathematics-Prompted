@@ -1,0 +1,182 @@
+{
+  "experiment": "nf_20261119_02_commodity_hedging_pressure",
+  "nf_id": "NF-20261119-02",
+  "hypothesis": "H186",
+  "timestamp_utc": "2026-11-19T09:33:44Z",
+  "runtime_sec": 13.106,
+  "data": {
+    "cftc_source": "https://publicreporting.cftc.gov/resource/6dca-aqww.json",
+    "cftc_dataset": "Legacy - Futures Only",
+    "cftc_reports": 776,
+    "cftc_first_report": "2012-01-03",
+    "cftc_last_report": "2026-11-10",
+    "publish_lag_days": 3,
+    "etf_source": "yfinance auto-adjusted Close (free/public)",
+    "universe": [
+      {
+        "etf": "GLD",
+        "cftc_code": "088691"
+      },
+      {
+        "etf": "SLV",
+        "cftc_code": "084691"
+      },
+      {
+        "etf": "USO",
+        "cftc_code": "067651"
+      },
+      {
+        "etf": "UNG",
+        "cftc_code": "023651"
+      },
+      {
+        "etf": "CORN",
+        "cftc_code": "002602"
+      },
+      {
+        "etf": "WEAT",
+        "cftc_code": "001602"
+      },
+      {
+        "etf": "SOYB",
+        "cftc_code": "005602"
+      },
+      {
+        "etf": "CPER",
+        "cftc_code": "085692"
+      },
+      {
+        "etf": "PPLT",
+        "cftc_code": "076651"
+      }
+    ],
+    "active_names_last_report": 9,
+    "start": "2012-01-03",
+    "end": "2026-11-17",
+    "train_end": "2021-12-31",
+    "val_end": "2023-12-31",
+    "train_rows": 2609,
+    "val_rows": 520,
+    "test_rows": 752,
+    "oos_rows": 1272
+  },
+  "grid_size": 16,
+  "selected": {
+    "feature": "hp",
+    "entry_z": 1.0,
+    "exit_z": 0.0,
+    "k": 2,
+    "vol_target": 0.15
+  },
+  "wf_train_sharpe": -0.0040283482706755525,
+  "train_selected_sharpe": -0.02254853979108026,
+  "full_sample": {
+    "sharpe": 0.2071616411395425,
+    "profit_factor": 1.0354468532277605,
+    "max_drawdown": -0.5677117914584258,
+    "trades": 8530,
+    "periods": 3881,
+    "total_return": 0.3516859797289418,
+    "worst_regime_rolling252_sharpe": -3.208989799985153
+  },
+  "oos_val_test": {
+    "sharpe": 0.6362742757048516,
+    "profit_factor": 1.1119849715142283,
+    "max_drawdown": -0.2619142171493749,
+    "trades": 4822,
+    "periods": 1272,
+    "total_return": 0.5554669513225625,
+    "worst_regime_rolling252_sharpe": -1.056167929714484
+  },
+  "val": {
+    "sharpe": 0.22462482416180274,
+    "profit_factor": 1.0366654659421575,
+    "max_drawdown": -0.2619142171493749,
+    "trades": 518,
+    "periods": 520,
+    "total_return": 0.04774628786387236,
+    "worst_regime_rolling252_sharpe": -1.056167929714484
+  },
+  "test": {
+    "sharpe": 0.9072698480435412,
+    "profit_factor": 1.1681688713461424,
+    "max_drawdown": -0.1622984506997348,
+    "trades": 752,
+    "periods": 752,
+    "total_return": 0.48458546222063137,
+    "worst_regime_rolling252_sharpe": -0.1364193047718187
+  },
+  "benchmark_passive_equal_weight_long_oos": {
+    "sharpe": 0.4360170967536947,
+    "profit_factor": 1.0768931570674662,
+    "max_drawdown": -0.2695518455843734,
+    "trades": 5454,
+    "periods": 1272,
+    "total_return": 0.3052828753068517,
+    "worst_regime_rolling252_sharpe": -1.6118456929354839
+  },
+  "benchmark_comparison": {
+    "information_ratio": 0.16108744712694162,
+    "alpha_annualized": 0.10845988712298771,
+    "beta": -0.13503215569713012,
+    "alpha_t_stat": 0.36177137778346535,
+    "alpha_p_value": 0.7175830162705541,
+    "alpha_p_value_one_sided": 0.35879150813527705,
+    "win_rate": 0.49056603773584906,
+    "excess_return_annual": 0.03654642135074492,
+    "excess_vol_annual": 0.22687317977014854
+  },
+  "ablations": {
+    "random_ranking_oos": {
+      "sharpe": -1.0608376706487526,
+      "profit_factor": 0.8325915142205838,
+      "max_drawdown": -0.6325738238067222,
+      "trades": 6773,
+      "periods": 1272,
+      "total_return": -0.6049256076841012,
+      "worst_regime_rolling252_sharpe": -4.341643955340957
+    },
+    "inverse_signal_oos": {
+      "sharpe": -0.6522434687152965,
+      "profit_factor": 0.8969023551776859,
+      "max_drawdown": -0.6345443077248598,
+      "trades": 4822,
+      "periods": 1272,
+      "total_return": -0.4396465678195056,
+      "worst_regime_rolling252_sharpe": -2.9702548951242442
+    }
+  },
+  "wf_stability_oos_over_train": -28.217981368201443,
+  "benchmark_pvalue_two_sided": 0.7175830162705541,
+  "information_ratio_vs_passive_book": 0.16108744712694162,
+  "perturbation": {
+    "min_ratio": 0.8080500868129744,
+    "n_points": 4,
+    "min_sharpe": 0.5141414837201678
+  },
+  "train_input_collinearity_hp_vs_change": 0.10908739365815932,
+  "gates": {
+    "sharpe_ge_1": false,
+    "trades_ge_50": true,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": false,
+    "wf_stability_ge_0_7": false,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_and_ir_ge_0": false,
+    "perturbation_min_ratio_ge_0_5": true
+  },
+  "gates_passed": 2,
+  "gates_total": 8,
+  "verdict": "REJECT",
+  "integrity": {
+    "src_qtr_unchanged": true,
+    "gate_weakening": false,
+    "published_artifacts_modified": false,
+    "selection_holdout_feedback": false,
+    "real_data": true,
+    "cost_one_way_bps": 5.0,
+    "roll_cross_bps": 0.0,
+    "benchmark_pvalue_statistic": "two-sided (published gate statistic)",
+    "pit_rule": "report_date + 3 calendar days publication, engine shift(1)"
+  }
+}

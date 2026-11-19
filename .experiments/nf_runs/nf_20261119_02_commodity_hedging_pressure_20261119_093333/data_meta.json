@@ -1,0 +1,48 @@
+{
+  "cftc_source": "https://publicreporting.cftc.gov/resource/6dca-aqww.json",
+  "cftc_dataset": "Legacy - Futures Only",
+  "cftc_reports": 776,
+  "cftc_first_report": "2012-01-03",
+  "cftc_last_report": "2026-11-10",
+  "publish_lag_days": 3,
+  "etf_source": "yfinance auto-adjusted Close (free/public)",
+  "universe": [
+    {
+      "etf": "GLD",
+      "cftc_code": "088691"
+    },
+    {
+      "etf": "SLV",
+      "cftc_code": "084691"
+    },
+    {
+      "etf": "USO",
+      "cftc_code": "067651"
+    },
+    {
+      "etf": "UNG",
+      "cftc_code": "023651"
+    },
+    {
+      "etf": "CORN",
+      "cftc_code": "002602"
+    },
+    {
+      "etf": "WEAT",
+      "cftc_code": "001602"
+    },
+    {
+      "etf": "SOYB",
+      "cftc_code": "005602"
+    },
+    {
+      "etf": "CPER",
+      "cftc_code": "085692"
+    },
+    {
+      "etf": "PPLT",
+      "cftc_code": "076651"
+    }
+  ],
+  "active_names_last_report": 9
+}
