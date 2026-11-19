@@ -9014,9 +9014,12 @@ H-ID should be pre-registered without a newly authorized data source.
 
 ## H186 — Commodity futures commercial hedging pressure cross-section (NF-20261119-02)
 
-**Status:** PRE-REGISTERED (Cycle 219, 2026-11-19) — written and committed to the repository
-before any forward-return outcome was computed or inspected. **NF-ID (execution key):**
-NF-20261119-02. **Hypothesis ID:** H186 (next unused after H185). `src/qtr` unchanged intended;
+**Status:** EXECUTED — **REJECT (2/8)** (Cycle 219, 2026-11-19). Pre-registration text below was
+written before the forward-return outcome was computed (spec file mtime 09:30 UTC; run artifact
+timestamp 09:33:44 UTC); spec text and artifact landed in the same commit `a3b599c`, so the
+ordering is supported by the run timestamp but is not independently provable from git history.
+Execution result: see "H186 execution result" below. **NF-ID (execution key):**
+NF-20261119-02. **Hypothesis ID:** H186 (next unused after H185). `src/qtr` unchanged;
 no published/certified artifact, verdict, threshold, or frozen number modified.
 
 **Broad mechanism category:** hedging pressure / risk-transfer premium, measured by the
@@ -9080,3 +9083,61 @@ tradeable at the next session after the Friday release. No same-week outcome is 
 **What would reject it:** failing any of the 8 gates on OOS Val+Test; in particular a Sharpe below
 1.0, a benchmark p-value above 0.05, or a passive book that dominates. A failed test is a durable
 REJECT at the family level; do not re-run it as a window/k/universe variant.
+
+---
+
+## H186 execution result (Cycle 219, 2026-11-19): EXECUTED — **REJECT (2/8)**
+
+**Status:** EXECUTED and rejected on the pre-registered OOS Val+Test window. Artifact:
+`.experiments/nf_runs/nf_20261119_02_commodity_hedging_pressure_20261119_093333/summary.json`
++ `grid.csv` (16 combos) + `data_meta.json`. Runner
+`run_nf_20261119_02_commodity_hedging_pressure.py`; tests
+`tests/test_nf_20261119_02_commodity_hedging_pressure.py` (14 passed). `src/qtr` unchanged; no
+gate weakening; real free/PIT data only; no US/EU cost transfer. Reproduced independently in
+Cycle 220 from the committed cache: all summary fields except timestamp/runtime/artifact path
+identical (OOS Sharpe 0.6362742757048516 in both runs).
+
+**Data actually used (own evidence).** CFTC public reporting API (`6dca-aqww`, Legacy futures-only)
+776 weekly reports 2012-01-03 → 2026-11-10 (last Tuesday as-of); publication lag 3 calendar days
+then engine `shift(1)`; yfinance auto-adjusted ETF closes for 9 names (GLD, SLV, USO, UNG, CORN,
+WEAT, SOYB, CPER, PPLT), 9 active on the last report. Sample 2012-01-03 → 2026-11-17. Train rows
+2,609 (→2021-12-31), Val 520 (2022-01-01→2023-12-31), Test 752 (2024-01-01→2026-11-17,
+protected), OOS 1,272.
+
+**Selected config (train-only 4-fold WF).** `feature=hp` (commercial net-short share of open
+interest), `entry_z=1.0`, `exit_z=0.0`, `k=2`, `vol_target=0.15`; WF train Sharpe **−0.004**;
+in-train Sharpe −0.023. The selected signal has no in-sample edge even before costs.
+
+**OOS Val+Test.** Sharpe **0.636**, PF **1.112**, maxDD **−26.19%**, trades **4,822**, worst
+rolling-252 Sharpe **−1.056**, total return 0.555. Val Sharpe 0.225 / PF 1.037 / DD −26.19%;
+Test Sharpe 0.907 / PF 1.168 / DD −16.23%. Full sample Sharpe 0.207 / PF 1.035 / DD −56.77%.
+
+**Gates (fail-closed, 8).** PASS: trades ≥ 50 (4,822); OAT perturbation min ratio ≥ 0.5
+(**0.808**, min Sharpe 0.514 over 4 points). FAIL: Sharpe ≥ 1.0 (0.636), PF ≥ 1.3 (1.112),
+maxDD ≤ 15% (26.19%), WF stability ≥ 0.7 (**−28.218**, because the train Sharpe is slightly
+negative), worst-regime ≥ 0.3 (−1.056), benchmark p ≤ 0.05 with IR ≥ 0 (p **0.718** two-sided;
+IR **+0.161** passes the IR half but the alpha is insignificant). **Verdict REJECT (2/8).**
+
+**Benchmark / ablations.** The passive equal-weight long ETF book is *beaten* on raw Sharpe by
+the strategy (0.436 vs 0.636) but the difference is statistically indistinguishable: annualised
+alpha 0.108, alpha t 0.362, p 0.718 two-sided, beta −0.135, excess return 3.65%/yr, tracking
+error 22.69%/yr, win rate 0.491. Random ranking OOS Sharpe −1.061 (PF 0.833, return −0.605) and
+inverse signal −0.652 (PF 0.897) confirm the sign is right, but both the base signal's in-train
+Sharpe (−0.023) and its inability to separate from a passive commodity book mean the hedging
+premium is not capturable by this construction after 5 bps costs. Train-block Spearman of `hp`
+vs `hp_change_4w` = 0.109, so the two features are not collinear. Null (H0) not rejected.
+
+**Disclosure.** The pre-registration and the execution artifact were committed together
+(`a3b599c`), so the "pre-registered before outcome" claim rests on the spec file mtime (09:30 UTC)
+preceding the artifact timestamp (09:33:44 UTC), not on a separate pre-registration commit. No
+post-hoc grid expansion: `grid.csv` has exactly the 16 pre-registered combos.
+
+**Conclusion.** Commodity commercial hedging pressure is executed and rejected; **H1–H186 are now
+exhausted/rejected**. Next unused H-ID **H187**, but per directive §6 the free-data point-in-time
+strategy-family queue remains exhausted: every executed family is rejected and the remaining
+candidate classes (options dealer GEX, PIT analyst revisions, index reconstitution/splits,
+relmom/calendar/vol-complex adjacency) are blocked or adjacency-recycled with no free PIT history.
+Do not re-run H186 as a parameter/universe/window variant (feature set, k, entry threshold, ETF
+list), do not treat the CFTC trader-category breakdown in another market as a "new family" without
+a newly authorized data source, and do not re-declare the CFTC Socrata API as blocked (probed and
+usable, 776 reports).

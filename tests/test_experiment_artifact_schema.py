@@ -111,10 +111,18 @@ def test_incomplete_runs_match_audit_inventory():
 # `benchmark_passive_front_month_long_oos`, `benchmark_pvalue_two_sided`,
 # `full_sample` and `information_ratio_vs_passive_front_month`. Each appears
 # in one of 104 summaries, so the >=50% / >=80% sets are unchanged.
-EXPECTED_TOTAL_DIRS = 112
-EXPECTED_SUMMARY_COUNT = 104
+# Cycle 219 added one summary (+1 directory): the H186 commodity commercial
+# hedging-pressure run
+# `nf_20261119_02_commodity_hedging_pressure_20261119_093333`. It adds three
+# top-level keys (distinct keys 143 -> 146):
+# `benchmark_passive_equal_weight_long_oos`,
+# `information_ratio_vs_passive_book` and
+# `train_input_collinearity_hp_vs_change`. Each appears in one of 105
+# summaries, so the >=50% / >=80% sets are unchanged.
+EXPECTED_TOTAL_DIRS = 113
+EXPECTED_SUMMARY_COUNT = 105
 EXPECTED_CACHE_ONLY_DIRS = 11
-EXPECTED_DISTINCT_KEYS = 143
+EXPECTED_DISTINCT_KEYS = 146
 EXPECTED_KEYS_GE_50_PCT = frozenset(
     {
         "ablations",

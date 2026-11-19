@@ -1,55 +1,50 @@
-# Next task (2026-11-19, Cycle 218)
+# Next task (2026-11-19, Cycle 220)
 
 ## What changed this session
-- **No source, test, gate, artifact, sidecar, hash, frozen-number, or workflow change.**
-  Working tree clean (`git status --short` empty), HEAD == origin/main. Handoff update only —
-  baseline re-verified with own evidence; no project progress.
+- Recorded the previously unrecorded **Cycle 219 H186 execution** (REJECT 2/8) across the durable
+  record: `HYPOTHESIS_SPEC.md` (status + execution-result section),
+  `NEW_FAMILY_RESEARCH_REGISTER.md` (Cycle 219), `AGENTS.md` (H-range → H1–H186), `HANDOFF.md`
+  banner, this file, `HANDOFF_CURRENT_SESSION.md`.
+- Fixed **red inventory pins at HEAD**: `tests/test_experiment_artifact_schema.py` expected
+  112 dirs / 104 summaries / 143 distinct keys while the committed H186 artifact makes it
+  113 / 105 / 146. Bumped with a comment naming the three new keys.
+- No change to `src/qtr`, gates, artifacts, sidecars, hashes, frozen numbers, or
+  `.github/workflows/**`.
 
-## What was actually verified (own evidence, 2026-11-19)
-- `python -m ruff check src tests run_*.py scripts` → **All checks passed.**
-- `python -m ruff format --check src tests run_*.py scripts` → **350 files already formatted.**
-- `python scripts/verify_gates_workflow_patch.py` → **PATCH VERIFIED** (applies to live gates.yml,
-  resolves all 7 violations; exit 0).
-- `python scripts/backtest_perf_regression_gate.py` → **PERF GATE PASSED** (0.421s < 5s limit,
-  10.7MB peak, 13668 trades).
-- `python -m pytest -q -W error --ignore=tests/test_gates_workflow.py` → **4453 passed,
-  51 skipped, 0 failed** (410.06s).
-- `python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing --ignore=tests/test_gates_workflow.py`
-  → **4453 passed, 51 skipped**, `src/qtr` coverage **100.00%** (1692 stmts / 642 branches / 0
-  miss).
-- `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged, red on origin/main;
-  maintainer-gated contract; fixed by `patches/0001-gates-workflow-contract-fix.patch`).
-- Counts match Cycle 217 exactly; handoff counts re-verified rather than trusted.
+## What was actually verified (own evidence)
+- `python run_nf_20261119_02_commodity_hedging_pressure.py --out …/h186_repro` → REJECT 2/8,
+  OOS Sharpe 0.6362742757048516; **0 differing fields** vs the committed summary.
+- `python -m pytest -q tests/test_nf_20261119_02_commodity_hedging_pressure.py
+  tests/test_experiment_artifact_schema.py` → **124 passed**.
+- `python -m pytest -q -W error --ignore=tests/test_gates_workflow.py` → **4470 passed,
+  51 skipped, 0 failed** (484.44s).
+- Coverage run → `src/qtr` **100.00%** (1692 stmts / 642 branches / 0 miss).
+- `ruff check` clean; `ruff format --check` 352 files formatted.
+- `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged, maintainer-gated).
 
 ## What remains unresolved
-- **Maintainer-gated (agent-unreachable):** apply/push
-  `patches/0001-gates-workflow-contract-fix.patch` with `workflows`-scoped credentials, then
-  `python scripts/verify_gates_workflow_patch.py` (expect `CONTRACT SATISFIED`) and
-  `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed). Currently 7 failed,
-  unchanged.
-- **H1–H185 exhausted/rejected; H186 unassigned with no free-data source pending.** Per directive §6
-  the free-data point-in-time strategy-family queue is exhausted. Do not pre-register an H-ID without
-  a newly authorized data source.
-- **Reproducibility backlog (frozen, authorization-gated):** missing_files=197, hash_mismatches=11,
-  orphaned_files=528, missing_meta_files=0. Out of scope for an agent session.
+- **Maintainer-gated workflow patch:** apply/push `patches/0001-gates-workflow-contract-fix.patch`,
+  then `python scripts/verify_gates_workflow_patch.py` (expect `CONTRACT SATISFIED`) and
+  `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed).
+- **H1–H186 exhausted/rejected; H187 unassigned with no free-data source.** Do not pre-register an
+  H-ID without a newly authorized data source.
+- **Reproducibility backlog (frozen):** missing_files=197, hash_mismatches=11, orphaned_files=528,
+  missing_meta_files=0.
 
 ## One precise next task
-**Maintainer:** `git apply patches/0001-gates-workflow-contract-fix.patch && git commit -am
-"fix(ci): satisfy gates workflow contract" && git push origin main`, then
-`python scripts/verify_gates_workflow_patch.py` (expect `CONTRACT SATISFIED`) and
-`python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed).
+**Maintainer:** apply/push `patches/0001-gates-workflow-contract-fix.patch`, then verify
+`CONTRACT SATISFIED` and 7 passing contract tests.
 
-**Agent:** re-verify the baseline (`ruff check/format`, full suite, coverage, perf gate,
-`scripts/verify_gates_workflow_patch.py`) with own evidence — do not trust handoff counts — and
-leave this handoff. No free-data research task remains; any future cycle requires a newly authorized
-data source first.
+**Agent:** re-verify the baseline with own evidence (`ruff check/format`, full suite, 100% coverage,
+perf gate, `scripts/verify_gates_workflow_patch.py`) and leave the handoff. If any committed runner
+or artifact landed without its schema-pin update, reconcile the pins (as this session did) — that is
+the only known class of agent-actionable defect left. Any new research cycle requires a newly
+authorized data source first.
 
 ## Approaches already tried and why they should not be repeated
-- Do not rebuild a corpus guard on `json.loads` — it collapses duplicate keys; use
-  `object_pairs_hook` (Cycle 217 fix).
-- Do not re-run H184/H185 or any parameter/universe/window variant; do not re-probe
-  CHRIS/CME/Yahoo/stooq/LME/DCE; do not re-declare probed FRED/binance/exchange sources as blocked.
-- Do not edit `.github/workflows/**` or weaken `tests/test_gates_workflow.py` or any gate.
-- Do not trust handoff counts — re-run the checks every session.
-
-(End of file - total 70 lines)
+- Do not rebuild the corpus guard on `json.loads`; use `object_pairs_hook` (Cycle 217).
+- Do not re-run H184/H185/H186 or parameter/universe/window variants; H186 family is rejected.
+- Do not re-probe CHRIS/CME/Yahoo/stooq/LME/DCE; do not re-declare FRED, binance, Chinese exchange,
+  or CFTC Socrata data as blocked (all probed and usable).
+- Do not edit `.github/workflows/**` or weaken any gate or contract test.
+- Do not trust "working tree clean" or handoff counts as proof tests are green — re-run them.

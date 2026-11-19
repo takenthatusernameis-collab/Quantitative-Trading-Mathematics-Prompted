@@ -935,3 +935,62 @@ newly authorized data source.
 
 **Cycle 216 complete.** H85–H185 all rejected/recorded; H186 unassigned with no free-data
 source pending. `src/qtr` unchanged.
+
+---
+
+## Cycle 219 (2026-11-19) — H186 commodity commercial hedging pressure EXECUTED: **REAL REJECT (2/8)**; H1–H186 exhausted
+
+Lineage: H85–H185 already rejected/recorded; **H186 now executed/rejected**; next unused H-ID
+**H187** (unassigned — no free-data source pending). `src/qtr` unchanged; no published/certified
+artifact, verdict, threshold, or frozen number modified; no gate weakening; free/public real
+data only. Inventory pins in `tests/test_experiment_artifact_schema.py` bumped for the one new
+artifact directory (+1 dir, +1 summary, +3 distinct top-level keys).
+
+### What was run (pre-registration honoured, then outcomes inspected once)
+`NF-20261119-02` was written in `HYPOTHESIS_SPEC.md` (H186 section; mechanism-distinction argument
+vs H150/H184/H185) before the outcome was computed: spec file mtime 09:30 UTC precedes the run
+artifact timestamp 09:33:44 UTC. Spec and artifact landed in the same commit `a3b599c`, so the
+ordering is supported by timestamps rather than a separate pre-registration commit (disclosed in
+`HYPOTHESIS_SPEC.md`).
+
+- Mechanism: cross-sectional *trader-category* hedging pressure, `hp = (comm_short − comm_long) /
+  open_interest` from the CFTC Legacy futures-only report (plus `hp_change_4w`), long top-k /
+  short bottom-k by cross-sectional z with hysteresis. Distinct from H185 (unsigned total open
+  interest growth, Chinese exchanges) and H184 (price slope / inventory carry); distinct from
+  H150 (CFTC TFF leveraged money as a SPY time-series overlay).
+- Universe: ETF↔CFTC code GLD 088691, SLV 084691, USO 067651, UNG 023651, CORN 002602,
+  WEAT 001602, SOYB 005602, CPER 085692, PPLT 076651; ≥5 active names required.
+- PIT: report as-of Tuesday, publication = report_date + 3 calendar days (earliest Friday
+  release; holiday delays only make it later), then engine `shift(1)`.
+- Grid 16 (2 features × 2 entry_z × 1 exit_z × 2 k × 2 vol_target), train-only 4-fold
+  walk-forward selection. Sample 2012-01-03→2026-11-17; Train →2021-12-31; Val
+  2022-01-01→2023-12-31; Test protected 2024-01-01→2026-11-17.
+- Costs: 5 bps one-way per leg (ETF commission + spread); no separate roll charge (ETF embeds
+  roll); vol target delevers only.
+
+### Result (OOS Val+Test, artifact `…_20261119_02_commodity_hedging_pressure_20261119_093333`)
+Selected `feature=hp, entry_z=1.0, exit_z=0.0, k=2, vol_target=0.15` (train WF Sharpe **−0.004**;
+in-train Sharpe −0.023). OOS: Sharpe **0.636**, PF **1.112**, maxDD **−26.19%**, trades 4,822,
+worst rolling-252 Sharpe **−1.056**, total return 0.555. Gates PASS: trades (4,822), OAT
+perturbation (min ratio 0.808). Gates FAIL: Sharpe ≥ 1.0 (0.636), PF ≥ 1.3 (1.112), maxDD ≤ 15%
+(26.19%), WF stability ≥ 0.7 (−28.218), worst-regime ≥ 0.3 (−1.056), benchmark p ≤ 0.05 with
+IR ≥ 0 (p **0.718** two-sided; IR +0.161). **REJECT 2/8.**
+
+The passive equal-weight long ETF book has a lower OOS Sharpe (0.436) than the strategy (0.636),
+but the spread is statistically indistinguishable: alpha 0.108/yr, alpha t 0.362, p 0.718,
+beta −0.135. Random ranking (−1.061) and inverse signal (−0.652) confirm the sign is right — yet
+the selected signal is already flat/negative in train, so the pre-registered null (a positioning
+overlay adds nothing over a passive commodity book after costs) is not rejected. Independent
+Cycle 220 re-run from the committed cache reproduced every summary field.
+
+### Family-status consequence (durable)
+`NF-20261119-02 commodity commercial hedging pressure` moves **pre-registered → executed/
+rejected**. **H1–H186 are exhausted/rejected.** Per directive §6 the free-data point-in-time
+strategy-family queue is exhausted. Do not re-run H186 as a parameter/universe/window variant
+(feature set, k, entry threshold, ETF list) and do not treat the CFTC trader-category breakdown
+in another market as a "new family" without a newly authorized data source. The CFTC Socrata API
+is AVAILABLE free/PIT (776 reports) — the *mechanism* failed, not the data; do not re-declare it
+blocked.
+
+**Cycle 219 complete.** H85–H186 all rejected/recorded; H187 unassigned with no free-data source
+pending. `src/qtr` unchanged.
