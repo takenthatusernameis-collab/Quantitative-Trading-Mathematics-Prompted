@@ -17,6 +17,10 @@
 - **Corrected a stale handoff number.** The previous `NEXT_TASK.md` said the artifact-schema pins had
   "distinct keys unchanged at 139"; the pinned value is **143**
   (`tests/test_experiment_artifact_schema.py:117`), and the test passes at 143.
+- **Pinned the identity of the 11 `hash_mismatches`.** Added `PINNED_HASH_MISMATCHES` list to
+  `tests/test_reproducibility_audit.py` with exact (experiment_id, experiment_name, artifact_name,
+  expected_hash, actual_hash) tuples. The test now asserts the live mismatches match this list
+  exactly (order-insensitive), preventing a fixed row from being silently replaced by a new mismatch.
 - No change to `src/qtr`, gates, `.github/workflows/**`, artifacts, sidecars, hashes, verdicts, or
   frozen numbers.
 
@@ -25,11 +29,13 @@
 - Adversarial end-to-end proof: copied the real `experiments.jsonl`, injected a duplicate key into
   record 1, pointed the module at the copy → guard **fired** (`found 1 experiment record(s) with
   duplicate JSON keys: line 1: ['dupe_key']`); the same copy is invisible to `json.loads`.
-- `python -m ruff check tests/...` → All checks passed; `ruff format --check` → already formatted.
+- `python -m ruff check src tests run_*.py scripts` → All checks passed; `ruff format --check` → already formatted.
+- `python scripts/backtest_perf_regression_gate.py` → **PERF GATE PASSED** (0.422s, limit 5s).
+- `python scripts/verify_gates_workflow_patch.py` → **PATCH VERIFIED** (applies to live gates.yml, resolves all 7 violations).
+- `python -m pytest -q tests/test_reproducibility_audit.py` → **7 passed** (identity pin verified).
 - Full pinned suite `python -m pytest -q -W error --ignore=tests/test_gates_workflow.py` →
-  **4450 passed, 51 skipped, 0 failed** before the change (baseline) and **4453 passed, 51 skipped,
-  0 failed** after it. Pinned coverage run (`--cov=qtr --cov-branch`) → `src/qtr` **100.00%**
-  (1692 stmts / 642 branches / 0 miss).
+  **4453 passed, 51 skipped, 0 failed**. Pinned coverage run (`--cov=qtr --cov-branch`) → `src/qtr`
+  **100.00%** (1692 stmts / 642 branches / 0 miss).
 
 ## What remains unresolved
 - **Maintainer-gated (agent-unreachable):** apply/push
@@ -48,11 +54,8 @@
 `python scripts/verify_gates_workflow_patch.py` (expect `CONTRACT SATISFIED`) and
 `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed).
 
-**Agent:** no free-data research task remains. If a future session wants to strengthen the frozen
-record further, the next bounded, evidence-based option is to pin the **identity** of the 11
-`hash_mismatches` (currently only the count 11 is pinned, so a fixed row replaced by a new mismatch
-would slip through) as an explicit list in `tests/test_reproducibility_audit.py` — verify the list
-against the live audit first, and do not modify artifacts. Otherwise verify the baseline
+**Agent:** no free-data research task remains. The frozen record has been strengthened by pinning
+the identity of the 11 `hash_mismatches`. Future sessions should verify the baseline
 (`ruff check/format`, focused tests, full suite, `python scripts/backtest_perf_regression_gate.py`)
 and leave the handoff.
 
@@ -63,3 +66,5 @@ and leave the handoff.
   CHRIS/CME/Yahoo/stooq/LME/DCE; do not re-declare probed FRED/binance/exchange sources as blocked.
 - Do not edit `.github/workflows/**` or weaken `tests/test_gates_workflow.py` or any gate.
 - Do not trust handoff counts (including the ones in this file) — re-run the checks.
+
+(End of file - total 65 lines)

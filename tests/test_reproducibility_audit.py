@@ -57,6 +57,93 @@ REPRODUCIBILITY_BASELINE = {
     "missing_meta_files": 0,
 }
 
+# Pinned identity of the 11 hash_mismatches (2026-11-19, Cycle 217).
+# Each entry: (experiment_id, experiment_name, artifact_name, expected_hash, actual_hash).
+# This list prevents a fixed row from being silently replaced by a new mismatch.
+# Do not modify artifacts; only update this list if a deliberate remediation occurs
+# (and update REPRODUCIBILITY_AUDIT_REPORT.md together with it).
+PINNED_HASH_MISMATCHES = [
+    (
+        "exp_2026-10-10T20-56-30-507309Z",
+        "ts_momentum_20etf_v1",
+        "param_grid_results_3c3ca96bf45b5f28",
+        "3c3ca96bf45b5f28",
+        "2cfbb88200656d0d",
+    ),
+    (
+        "exp_2026-10-10T20-57-26-136503Z",
+        "ts_momentum_20etf_v1",
+        "param_grid_results_3c3ca96bf45b5f28",
+        "3c3ca96bf45b5f28",
+        "2cfbb88200656d0d",
+    ),
+    (
+        "exp_2026-10-10T20-59-28-306148Z",
+        "cs_momentum_10etf_v1",
+        "param_grid_results_3c5c66cd85442477",
+        "3c5c66cd85442477",
+        "c7a1cedb8a4fc5b1",
+    ),
+    (
+        "exp_2026-10-10T21-08-54-188263Z",
+        "ts_momentum_20etf_v1",
+        "param_grid_results_3c3ca96bf45b5f28",
+        "3c3ca96bf45b5f28",
+        "2cfbb88200656d0d",
+    ),
+    (
+        "exp_2026-10-10T21-09-06-830199Z",
+        "cs_momentum_10etf_v1",
+        "param_grid_results_3c5c66cd85442477",
+        "3c5c66cd85442477",
+        "c7a1cedb8a4fc5b1",
+    ),
+    (
+        "exp_2026-10-10T21-27-13-928282Z",
+        "regime_gated_momentum_20etf_v1",
+        "param_grid_results_5aa48f8683d54d37",
+        "5aa48f8683d54d37",
+        "b7dddfb0dc0c524d",
+    ),
+    (
+        "exp_2026-10-10T21-28-20-920399Z",
+        "regime_gated_momentum_20etf_v1",
+        "param_grid_results_5aa48f8683d54d37",
+        "5aa48f8683d54d37",
+        "b7dddfb0dc0c524d",
+    ),
+    (
+        "exp_2026-10-14T08-26-18-385545Z",
+        "ts_momentum_20etf_v1",
+        "param_grid_results_3c3ca96bf45b5f28",
+        "3c3ca96bf45b5f28",
+        "2cfbb88200656d0d",
+    ),
+    (
+        "exp_2026-11-05T18-20-38-363385Z",
+        "nf_20261105_14_credit_regime",
+        "summary_b8cf0dae88579c7a",
+        "b8cf0dae88579c7a",
+        "63139e710dc45c09",
+    ),
+    (
+        "exp_2026-11-05T19-06-45-864432Z",
+        "nf_20261105_16_usd_macro",
+        "summary_361a5942ebe194a6",
+        "361a5942ebe194a6",
+        "7ec56dd201670d5a",
+    ),
+    (
+        "exp_2026-11-06T01-28-49-517869Z",
+        "nf_20261105_19_pead",
+        "summary_4eff6682192c3e69",
+        "4eff6682192c3e69",
+        "da9da6784d5a7d8d",
+    ),
+]
+
+assert len(PINNED_HASH_MISMATCHES) == REPRODUCIBILITY_BASELINE["hash_mismatches"]
+
 
 def _compute_file_hash(filepath: Path, length: int = 16) -> str:
     """Compute SHA-256 hash of a file, return first `length` chars."""
@@ -163,6 +250,7 @@ class TestReproducibilityAudit:
                         }
                     )
 
+        # Verify count matches baseline
         details = "\n".join(
             f"  Exp {m['experiment_id']} ({m['experiment_name']}): "
             f"{m['artifact_name']} expected {m['expected_hash']}, got {m['actual_hash']}"
@@ -171,6 +259,27 @@ class TestReproducibilityAudit:
         if len(hash_mismatches) > 20:
             details += f"\n  ... and {len(hash_mismatches) - 20} more"
         _assert_backlog_matches_baseline("hash_mismatches", len(hash_mismatches), details)
+
+        # Verify exact identity matches pinned list (order-insensitive)
+        actual_tuples = {
+            (
+                m["experiment_id"],
+                m["experiment_name"],
+                m["artifact_name"],
+                m["expected_hash"],
+                m["actual_hash"],
+            )
+            for m in hash_mismatches
+        }
+        expected_tuples = set(PINNED_HASH_MISMATCHES)
+        assert actual_tuples == expected_tuples, (
+            "Hash mismatch identity changed: a pinned row was fixed or a new mismatch appeared.\n"
+            f"Expected: {sorted(expected_tuples)}\n"
+            f"Actual:   {sorted(actual_tuples)}\n"
+            "If this is a deliberate remediation, update PINNED_HASH_MISMATCHES and "
+            "REPRODUCIBILITY_BASELINE['hash_mismatches'] together with "
+            "REPRODUCIBILITY_AUDIT_REPORT.md."
+        )
 
     def test_orphaned_artifacts_match_recorded_backlog(self):
         """Unreferenced artifact files must equal the recorded backlog."""
