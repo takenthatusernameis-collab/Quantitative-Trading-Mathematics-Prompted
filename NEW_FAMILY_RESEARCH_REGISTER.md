@@ -882,3 +882,56 @@ label arithmetic error, **not** a post-hoc search expansion: every value in ever
 pre-registered in Cycle 214. The label is corrected in `HYPOTHESIS_SPEC.md`.
 
 **Cycle 215 complete.** H85–H184 all rejected/recorded; H185 unassigned. `src/qtr` unchanged.
+
+---
+
+## Cycle 216 (2026-11-19) — H185 commodity open-interest positioning EXECUTED: **REAL REJECT (1/8)**; H1–H185 exhausted; free-data family discovery concluded
+
+Lineage: H85–H184 already rejected/recorded; **H185 now executed/rejected**; next unused H-ID
+**H186** (unassigned — no free-data source pending). `src/qtr` unchanged; no published/certified
+artifact, verdict, threshold, or frozen number modified; no gate weakening; free/public real
+data only.
+
+### What was run (pre-registration honoured, then outcomes inspected once)
+`NF-20261119-01` was pre-registered in this cycle (`HYPOTHESIS_SPEC.md` H185 section,
+mechanism-distinction argument written before any outcome was computed) *before* any forward
+return was inspected. The run implements exactly that construction:
+
+- Mechanism: cross-sectional open-interest positioning (total OI growth over 21/63 trading
+  days and front-contract OI share; long top-k / short bottom-k by z, hysteresis on z) — a
+  *quantity* signal, distinct from H184's relative *price* slope (train-block cross-sectional
+  Spearman vs H184 slope: −0.026 / +0.014 / +0.144 for oi_growth_21 / oi_growth_63 /
+  front_share), distinct from H19/H20 volume (OI counts open positions, not turnover).
+- Universe SHFE RB, CU, AL, ZN, AU, AG (2016-01-04→) + INE SC (2018-03-26→), bounded
+  2016-01-04→2026-11-17; delivery-month contracts excluded; settlement > 0 and OI ≥ 100.
+- Grid 72 (3 features × 3 entry_z × 2 exit_z × 2 k × 2 vol_target), train-only 4-fold
+  walk-forward selection; Val 2023-07-01→2024-12-31; Test protected 2025-01-01→2026-11-17.
+- Costs unchanged from H184: 5 bps one-way per contract traded + 1 bps roll crossing; vol
+  target delevers only. Data reuses the warm `.cache/commodity_settlements/`.
+
+### Result (OOS Val+Test, artifact `…_20261119_01_commodity_oi_positioning_20261119_cycle216`)
+Selected `feature=oi_growth_63, entry_z=0.5, exit_z=0.0, k=2, vol_target=0.10` (train WF
+Sharpe 0.456). OOS: Sharpe **0.097**, PF **1.020**, maxDD **−21.54%**, trades 1,101, worst
+rolling-252 Sharpe **−2.564**, total return 0.016. Gates PASS: trades (1,101 ≥ 50). Gates
+FAIL: Sharpe ≥ 1.0 (0.097), PF ≥ 1.3 (1.020), maxDD ≤ 15% (21.54%), worst-regime ≥ 0.3
+(−2.564), benchmark p ≤ 0.05 with IR ≥ 0 (p 0.183 / IR −0.712), perturbation min ratio ≥ 0.5
+(0.353). **REJECT 1/8.** The passive front-month long benchmark dominates on OOS (Sharpe
+1.004, PF 1.215, DD −12.65%, return 0.367 vs 0.016); random ranking (−1.317) and inverse
+(−0.538) add nothing. The pre-registered null (OI cross-section adds nothing over a passive
+front-month book after CNY costs) is not rejected.
+
+### Family-status consequence (durable)
+`NF-20261119-01 commodity open-interest positioning` moves **pre-registered → executed/
+rejected**. **H1–H185 are exhausted/rejected.** Per directive §6 the free-data
+point-in-time strategy-family queue is exhausted: every executed family is rejected, and the
+remaining candidate classes (options dealer GEX, PIT analyst revisions, index
+reconstitution/splits, relmom/calendar/vol-complex adjacency) are blocked or
+adjacency-recycled with no free point-in-time history. Do not re-run H185 as a
+parameter/universe variant (OI windows, k thresholds, vol targets), do not treat an OI window
+or front-share threshold as a "new family", and do not re-declare commodity per-contract,
+crypto funding, or breakeven-inflation data as blocked (all probed and usable where stated).
+Free-data family discovery is concluded; no further H-ID should be pre-registered without a
+newly authorized data source.
+
+**Cycle 216 complete.** H85–H185 all rejected/recorded; H186 unassigned with no free-data
+source pending. `src/qtr` unchanged.

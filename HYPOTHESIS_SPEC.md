@@ -8833,12 +8833,14 @@ exhausted/rejected. Next unused H-ID **H185**. This is a family-level result: do
 H184 as a parameter/universe variant, do not add CZCE/CFFEX breadth as a "new family", and
 do not re-declare commodity per-contract data blocked.
 
-## H185 (NF-20261119-01): Commodity Open-Interest Positioning (Cycle 216 pre-registration)
+## H185 (NF-20261119-01): Commodity Open-Interest Positioning (Cycle 216: pre-registered and executed)
 
-**Status:** PRE-REGISTERED — not executed at the time this section was written. No forward
-return, validation, or test outcome had been inspected; no artifact existed. `src/qtr`
-unchanged; no published/certified artifact, verdict, threshold, or frozen number modified; no
-gate weakening; free/public real data only.
+**Status:** PRE-REGISTERED in Cycle 216 (this section, before any outcome was computed) and
+EXECUTED on the pre-registered OOS Val+Test window — **REJECT (1/8)**. Artifact:
+`.experiments/nf_runs/nf_20261119_01_commodity_oi_positioning_20261119_cycle216/summary.json`
++ `grid.csv` (72 combos). Runner `run_nf_20261119_01_commodity_oi_positioning.py`; tests
+`tests/test_nf_20261119_01_commodity_oi_positioning.py`. `src/qtr` unchanged; no gate
+weakening; real free/PIT data only; no US/EU cost transfer.
 
 **NF-ID:** NF-20261119-01 (H185). **Broad mechanism category:** hedging pressure /
 speculative positioning measured by open interest (a *quantity* signal), not carry (a
@@ -8955,4 +8957,55 @@ writing).
 
 | Root family | H-IDs | Mechanism | Markets / data | Status | Known risks |
 |---|---|---|---|---|---|
-| Positioning / hedging pressure (open interest) | H185 (NF-20261119-01) | Cross-sectional OI growth (21/63 trading days) and front-contract OI share; long top-k / short bottom-k by z, hysteresis, CNY costs, explicit `shift(1)` delay | SHFE/INE public settlement cross-sections, per product from first available date | **PRE-REGISTERED** (Cycle 216) | OI is unsigned (no long/short split), so hedging pressure is proxied not observed; 7-product cross-section limits k; OI growth correlates with price (sign-robustness via inverse ablation); front share is near-zero for some products |
+| Positioning / hedging pressure (open interest) | H185 (NF-20261119-01) | Cross-sectional OI growth (21/63 trading days) and front-contract OI share; long top-k / short bottom-k by z, hysteresis, CNY costs, explicit `shift(1)` delay | SHFE/INE public settlement cross-sections, per product from first available date | **EXECUTED — REJECT (1/8)** (Cycle 216; `.experiments/nf_runs/nf_20261119_01_commodity_oi_positioning_20261119_cycle216/summary.json`) | OI is unsigned (no long/short split), so hedging pressure is proxied not observed; 7-product cross-section limits k; OI growth correlates with price (sign-robustness via inverse ablation); front share is near-zero for some products |
+
+---
+
+## H185 execution result (Cycle 216, 2026-11-19): EXECUTED — **REJECT (1/8)**
+
+**Status:** EXECUTED and rejected on the pre-registered OOS Val+Test window. Artifact:
+`.experiments/nf_runs/nf_20261119_01_commodity_oi_positioning_20261119_cycle216/summary.json`
++ `grid.csv` (72 combos). Runner `run_nf_20261119_01_commodity_oi_positioning.py`; tests
+`tests/test_nf_20261119_01_commodity_oi_positioning.py`. `src/qtr` unchanged; no gate
+weakening; real free/PIT data only; no US/EU cost transfer.
+
+**Data actually used (own evidence).** SHFE RB, CU, AL, ZN, AU, AG and INE SC,
+2016-01-04 → 2026-11-17; 5,094 per-date requests (SHFE 2,640 HIT / 197 MISSING; INE 2,098
+HIT / 159 MISSING; 404 holidays/predating dates skipped), resumable cache
+`.cache/commodity_settlements/`. Train rows 1,955 (→2023-06-30), Val 392
+(2023-07-01→2024-12-31), Test 490 (2025-01-01→2026-11-17, protected), OOS 882.
+
+**Selected config (train-only 4-fold WF).** `feature=oi_growth_63`, `entry_z=0.5`,
+`exit_z=0.0`, `k=2`, `vol_target=0.10`; WF train Sharpe 0.456; in-train Sharpe 0.469.
+
+**OOS Val+Test.** Sharpe **0.097**, PF **1.020**, maxDD **−21.54%**, trades **1,101**,
+worst rolling-252 Sharpe **−2.564**, total return 0.016. Val Sharpe 0.523 / PF 1.097 /
+DD −4.14%; Test Sharpe −0.087 / PF 0.983 / DD −21.54%. Full sample Sharpe 0.353 / PF 1.071 /
+DD −24.97% (never competitive with a passive book).
+
+**Gates (fail-closed, 8).** PASS: trades ≥ 50 (1,101).
+FAIL: Sharpe ≥ 1.0 (0.097), PF ≥ 1.3 (1.020), maxDD ≤ 15% (21.54%), worst-regime ≥ 0.3
+(−2.564), benchmark p ≤ 0.05 with IR ≥ 0 (p **0.183**, IR **−0.712** vs the passive
+front-month long book), perturbation min ratio ≥ 0.5 (**0.353**, min Sharpe over 6 OAT
+points). **Verdict REJECT (1/8).**
+
+**Benchmark / ablations.** The passive front-month long book dominates on OOS: Sharpe
+**1.004**, PF 1.215, maxDD −12.65%, total return 0.367 vs the strategy's 0.016; excess return
+vs benchmark −4.33%/yr approx., alpha t not significant (p 0.183 two-sided), IR −0.712.
+Random ranking OOS Sharpe −1.317 and inverse signal −0.538: neither falsifies the
+pre-registered sign on its own, but the base signal adds nothing over the passive book — the
+OI cross-section predicts nothing after CNY costs. Train-block cross-sectional Spearman of
+the OI features vs the H184 slope z (−0.026 / +0.014 / +0.144 for oi_growth_21 /
+oi_growth_63 / front_share) confirms the inputs are distinct from carry, yet the *edge* is
+absent: hedging pressure/OI crowding is not a certifiable return source on this sample.
+Null (H0) not rejected.
+
+**Conclusion.** Commodity open-interest positioning is executed and rejected; **H1–H185 are
+now exhausted/rejected**. Next unused H-ID **H186**, but per directive §6 the free-data
+point-in-time strategy-family queue is exhausted: every executed family (H1–H185) is
+rejected, and the remaining candidate classes (options dealer GEX, PIT analyst revisions,
+index reconstitution/splits, relmom/calendar/vol-complex adjacency) are blocked or
+adjacency-recycled with no free PIT history. Do not re-run H185 as a parameter/universe
+variant, do not add OI windows/k thresholds as a "new family", and do not re-declare
+commodity per-contract data blocked. Free-data family discovery is concluded; no further
+H-ID should be pre-registered without a newly authorized data source.

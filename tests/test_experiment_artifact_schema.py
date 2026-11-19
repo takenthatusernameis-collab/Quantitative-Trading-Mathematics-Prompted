@@ -110,11 +110,11 @@ def test_incomplete_runs_match_audit_inventory():
 # five keys (+5 distinct): `benchmark_comparison`,
 # `benchmark_passive_front_month_long_oos`, `benchmark_pvalue_two_sided`,
 # `full_sample` and `information_ratio_vs_passive_front_month`. Each appears
-# in one of 103 summaries, so the >=50% / >=80% sets are unchanged.
-EXPECTED_TOTAL_DIRS = 111
-EXPECTED_SUMMARY_COUNT = 103
+# in one of 104 summaries, so the >=50% / >=80% sets are unchanged.
+EXPECTED_TOTAL_DIRS = 112
+EXPECTED_SUMMARY_COUNT = 104
 EXPECTED_CACHE_ONLY_DIRS = 11
-EXPECTED_DISTINCT_KEYS = 139
+EXPECTED_DISTINCT_KEYS = 143
 EXPECTED_KEYS_GE_50_PCT = frozenset(
     {
         "ablations",

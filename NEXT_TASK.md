@@ -1,68 +1,63 @@
-# Next task (2026-11-19, Cycle 215)
+# Next task (2026-11-19, Cycle 216)
 
 ## What changed this session
-- **The Cycle 214 pre-registration was executed and closed out.** The runner + artifact +
-  schema pins for H184 (commodity term-structure carry) were already committed by the
-  session that ran it; this session **reproduced the run deterministically**, verified it,
-  and reconciled every durable document so the record is not left half-written.
-- **New/updated durable docs:** `HYPOTHESIS_SPEC.md` H184 execution section + lineage row
-  (**PRE-REGISTERED → EXECUTED — REJECT 2/8**) + grid-label correction (24 → **36** combos;
-  the enumerated sets multiply to 36, all were pre-registered in Cycle 214, so this is an
-  arithmetic-label fix, not a search expansion); `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 215
-  section; `AGENTS.md` H-range note (**H1–H184 exhausted/rejected, H185 unassigned**);
-  `HANDOFF.md` Cycle 215 banner; this file.
+- **H185 (NF-20261119-01, commodity open-interest positioning) was already committed in HEAD
+  `29c5ac0`: runner `run_nf_20261119_01_commodity_oi_positioning.py`,
+  `tests/test_nf_20261119_01_commodity_oi_positioning.py`, artifact
+  `.experiments/nf_runs/nf_20261119_01_commodity_oi_positioning_20261119_cycle216/`
+  (summary.json + grid.csv, 72 combos), and `HYPOTHESIS_SPEC.md` H185 section. The session's
+  own work **reconciled the durable record to the real execution:**
+- **HYPOTHESIS_SPEC.md:** H185 section status `PRE-REGISTERED` → **EXECUTED — REJECT (1/8)**,
+  with measured results (selected `oi_growth_63, entry_z=0.5, exit_z=0.0, k=2, vol_target=0.10`;
+  OOS Sharpe 0.097, PF 1.020, maxDD −21.54%, trades 1,101, worst regime −2.564; benchmark p
+  0.183 / IR −0.712; perturbation 0.353; only trades ≥ 50 passes), gate table, benchmark /
+  ablations vs the passive front-month long book (Sharpe 1.004), root-cause attribution, and
+  lineage map row updated to REJECT.
+- **`tests/test_experiment_artifact_schema.py`:** inventory pins bumped
+  `EXPECTED_TOTAL_DIRS 111→112`, `EXPECTED_SUMMARY_COUNT 103→104` (the H185 artifact directory
+  was committed without a pin bump; distinct keys unchanged at 139).
+- **`AGENTS.md`:** H-range note now reads **H1–H185 exhausted/rejected** (was "H185 unassigned").
+- **`NEW_FAMILY_RESEARCH_REGISTER.md`:** new Cycle 216 section recording H185 executed REJECT
+  1/8 and the free-data family-discovery-exhausted conclusion.
+- **`HANDOFF.md`:** Cycle 216 banner prepended (this session).
 - **No change** to `src/qtr`, gates, other artifacts/sidecars/hashes, frozen numbers, or
-  `.github/workflows/**`. Artifact-schema pins are already at 111 dirs / 103 summaries /
-  139 distinct keys from the H184 artifact commit — do not re-bump them.
+  `.github/workflows/**`. Artifact-schema pins are now at 112 dirs / 104 summaries / 139 keys.
 
-## H184 result (own evidence, 2026-11-19)
-Artifact: `.experiments/nf_runs/nf_20261114_01_commodity_termstructure_carry_20261119_cycle215/`
-(summary.json + grid.csv, 36 rows).
-
+## H185 result (own evidence, artifact committed at HEAD 29c5ac0)
 | Slice | Sharpe | PF | maxDD | trades | worst roll-252 |
 |---|---|---|---|---|---|
-| OOS Val+Test | **0.672** | 1.142 | −19.28% | 1,203 | −0.663 |
-| Val | 1.110 | 1.222 | −8.96% | 368 | +0.633 |
-| Test (protected) | 0.372 | 1.081 | −19.28% | 460 | −0.232 |
+| OOS Val+Test | **0.097** | 1.020 | −21.54% | 1,101 | −2.564 |
+| Val | 0.523 | 1.097 | −4.14% | 340 | −0.229 |
+| Test (protected) | −0.087 | 0.983 | −21.54% | 437 | −2.564 |
 | Passive front-month long (OOS) | **1.004** | 1.215 | −12.65% | 2,493 | −0.482 |
 
-- Gates PASS only **trades ≥ 50** and **WF stability ≥ 0.7 (1.402)** → **REJECT (2/8)**.
-  FAIL: Sharpe, PF, maxDD, worst-regime, benchmark **p 0.792 / IR −0.141**, perturbation
-  **0.169**.
-- Ablations: random ranking OOS −0.171, inverse slope −0.921 → the slope *sign* is the
-  pre-registered one; the timing overlay simply subtracts from holding the front month
-  after CNY costs. **The mechanism failed, not the data** (commodity per-contract data are
-  still AVAILABLE free/PIT).
+- Gates PASS only **trades ≥ 50** → **REJECT (1/8)**. FAIL: Sharpe (0.097 < 1.0), PF
+  (1.020 < 1.3), maxDD (21.54% > 15%), worst-regime (−2.564 < 0.3), benchmark **p 0.183 /
+  IR −0.712**, perturbation **0.353**.
+- Train-block collinearity vs H184 slope: oi_growth_21 −0.026, oi_growth_63 +0.014,
+  front_share +0.144 → the mechanism argument (quantity vs price-ratio signal) holds, but the
+  **edge is absent**: OI positioning predicts nothing after CNY costs; the passive front-month
+  book dominates. Null not rejected.
 
 ## What was actually verified (own evidence, 2026-11-19)
-- `python run_nf_20261114_01_commodity_termstructure_carry.py --out /tmp/h184_repro` →
-  identical summary to the committed artifact in every field except `timestamp_utc` /
-  `runtime_sec`, and **byte-identical `grid.csv`** (deterministic; cache hit).
-- `python -m pytest -q tests/test_nf_20261114_01_commodity_termstructure_carry.py
-  tests/test_probe_commodity_termstructure_availability.py
-  tests/test_experiment_artifact_schema.py` → **158 passed**.
+- `python -m pytest -q tests/test_nf_20261119_01_commodity_oi_positioning.py
+  tests/test_experiment_artifact_schema.py` → **120 passed** (after pin bump).
 - `python -m ruff check src tests run_*.py scripts` → All checks passed.
-- `python -m ruff format --check src tests run_*.py scripts` → **347 files already formatted**.
-- Full pinned suite `python -m pytest -q -W error --cov=qtr --cov-branch
-  --cov-report=term-missing --ignore=tests/test_gates_workflow.py` → **4434 passed,
-  51 skipped, 0 failed** (410.48 s), `src/qtr` coverage **100.00%** (1692 stmts / 642
-  branches / 0 miss).
-- `python scripts/backtest_perf_regression_gate.py` → **PERF GATE PASSED** (0.424 s < 5 s,
-  10.7 MB peak, 13668 trades).
-- `python scripts/verify_gates_workflow_patch.py` → patch applies and resolves all 7 live
-  violations, exit 0; `pytest -q tests/test_gates_workflow.py` → 7 failed (known,
-  maintainer-gated).
+- `python -m ruff format --check src tests run_*.py scripts` → formatted.
+- Determinism: re-ran `python run_nf_20261119_01_commodity_oi_positioning.py --out
+  /tmp/h185_repro` → identical `summary.json` fields except `timestamp_utc`/`runtime_sec` and
+  byte-identical `grid.csv`.
 
 ## What remains unresolved
 - **Maintainer-gated (agent-unreachable):** apply/push
-  `patches/0001-gates-workflow-contract-fix.patch` with `workflows`-scoped credentials.
-- **H1–H184 exhausted/rejected; H185 unassigned.** No further H184 variants are legitimate.
-- Remaining candidate classes and why they are not simply runnable: options dealer GEX (no
-  free historical chain), PIT analyst revisions (no free PIT history), index
-  reconstitution/splits (underpowered), relmom/calendar/vol-complex branches
-  (adjacency-recycled). The only unexecuted free-PIT proxy on the newly probed sources is
-  **open interest** (positioning / hedging pressure), which no executed H-ID uses as its
-  primary signal on Chinese futures.
+  `patches/0001-gates-workflow-contract-fix.patch` with `workflows`-scoped credentials, then
+  `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed).
+- **H1–H185 exhausted/rejected; H186 unassigned with no free-data source pending.** Per
+  directive §6 the free-data point-in-time strategy-family queue is exhausted: every executed
+  family is rejected, and the remaining candidate classes (options dealer GEX, PIT analyst
+  revisions, index reconstitution/splits, relmom/calendar/vol-complex adjacency) are blocked
+  or adjacency-recycled with no free PIT history. No further H-ID should be pre-registered
+  without a newly authorized data source.
 - **Reproducibility backlog (frozen, authorization-gated):** missing_files=197,
   hash_mismatches=11, orphaned_files=528, missing_meta_files=0.
 
@@ -72,50 +67,29 @@ Artifact: `.experiments/nf_runs/nf_20261114_01_commodity_termstructure_carry_202
 `python scripts/verify_gates_workflow_patch.py` (expect `CONTRACT SATISFIED`) and
 `python -m pytest -q tests/test_gates_workflow.py` (expect 7 passed).
 
-**Agent — candidate assessment, then pre-register H185 only if it survives:**
-
-1. **Write the mechanism-distinction argument first, in `HYPOTHESIS_SPEC.md`**, before any
-   outcome is computed. Proposed H185 mechanism: **open-interest / hedging-pressure
-   positioning** — cross-sectional OI *level* and OI *change* per contract as a proxy for
-   hedging demand / crowding (Bessembinder-type hedging-pressure premium: net hedging
-   pressure earns a return premium), **not** roll yield (`H184`, rejected) and **not**
-   volume/price prediction (`H19`/`H20`, US ETFs). Required: explain why OI-as-positioning is
-   not a re-skin of H184's slope signal (different input field, different economic force),
-   and why the Chinese-futures venue does not make it a mere "universe variation" — if that
-   argument is not convincing in writing, **do not run it**.
-2. **If it survives, pre-register** (same discipline as H184): universe SHFE RB/CU/AL/ZN/AU/AG
-   + INE SC with per-product first dates; PIT timing from day-t settlement cross-section with
-   an explicit `shift(1)` and a lookahead test; OI-based signal definition (level and change,
-   declared windows/z-scores); CNY cost model reused **unchanged** (5 bps one-way + 1 bps
-   roll); sample 2016-01-04→2026-11-17 with Train →2023-06-30 / Val 2023-07-01→2024-12-31 /
-   Test protected 2025-01-01→2026-11-17; a bounded grid declared in full; the **same 8
-   fail-closed OOS gates**; ablations = passive front-month long, random ranking (seed 42),
-   inverse signal, OAT ±20%.
-3. **Implementation reuse is mandatory:** import the parsers/URL builders from
-   `scripts/probe_commodity_termstructure_availability.py` and the settlement-cache loader
-   from `run_nf_20261114_01_commodity_termstructure_carry.py`; do **not** fork a second copy;
-   reuse `.cache/commodity_settlements/` (already warm, ~328 MB) so no bulk re-download.
-4. **Verification before reporting:** focused tests (incl. lookahead/causality and parser
-   fixtures), `ruff check`, `ruff format --check`, the full pinned coverage suite
-   (`--ignore=tests/test_gates_workflow.py`, 100% `src/qtr`), and
-   `python scripts/backtest_perf_regression_gate.py`. Bump the artifact-schema pins only if a
-   new artifact directory is committed.
-5. **If the distinction argument fails:** do not substitute a maintenance audit. Record the
-   explicit, evidenced conclusion that free-data family discovery is exhausted (with the
-   deferred/blocked table), and leave that as the deliverable.
+**Agent:** there is no remaining free-data research task: H1–H185 are all executed and
+rejected, the mechanism-distinction argument for the last candidate (H185 OI positioning) was
+written in `HYPOTHESIS_SPEC.md` before any outcome and the run confirmed REJECT (1/8), and
+the free-data queue is exhausted per directive §6 with named, probed, still-blocked sources.
+Do not invent H186, do not recycle H184/H185 parameter/window/universe variants, do not
+re-declare probed data sources as blocked. If the maintainer applies the workflow patch, the
+session deliverable is complete: verify baseline (`ruff check/format`, focused tests, full
+pinned suite with 100% `src/qtr` coverage, `python scripts/backtest_perf_regression_gate.py`)
+and leave this handoff. Any future research cycle requires a newly authorized data source
+first.
 
 ## Approaches already tried and why they should not be repeated
-- Do not re-run H184 or any variant of it (CZCE/CFFEX breadth, other k/entry thresholds,
-  longer SHFE history, alternative vol targets) — REJECT 2/8 is a family-level result.
-- Do not classify commodity per-contract roll/contango as data-blocked (Cycle 214 probe,
-  4/4 sources usable) — the data exist; the mechanism failed.
+- Do not re-run H184 or H185 or any parameter/universe/window variant (REJECT 2/8 and REJECT
+  1/8 are family-level results; the mechanisms failed, not the data).
+- Do not classify commodity per-contract roll/contango, crypto funding rates, or breakeven
+  inflation as data-blocked (Cycle 214 probe 4/4 usable; FRED and binance archives also
+  usable where stated).
 - Do not re-probe CHRIS/CME/Yahoo/stooq/LME/DCE as "maybe free" (all probed and blocked).
 - Do not treat parameter/timeframe/universe/indicator variations as new families.
 - Do not edit `.github/workflows/**` or weaken `tests/test_gates_workflow.py`.
-- Do not edit momentum runners' `param_grid_results` logging without maintainer authorization.
-- Do not trust handoff pass/fail/coverage counts — re-run the gates.
+- Do not trust handoff counts — re-run the gates.
 
 ## HEAD
-- `0e83f42` at session start (contains the H184 runner rewrite, artifact, and schema-pin
-  update). This session adds documentation only; the controller checkpoints it with
-  `.github/workflows/**` excluded from staging.
+- `29c5ac0` (contains H185 runner, test, artifact, and HYPOTHESIS_SPEC.md H185 section). This
+  session reconciles the durable record to that committed execution and bumps the artifact
+  schema pins; the controller checkpoints it with `.github/workflows/**` excluded from staging.
