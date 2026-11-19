@@ -27,6 +27,27 @@ Current values:
 - `missing_files` = 197 → `7e7f4db4df1f8e8bb47bcee382177b3565de163bba72b20207e523a0e8c76251`
 - `orphaned_files` = 528 → `9f601bfe43839514cec97d7327922bed4db9003920e099152aa0aa98e837603a`
 
+**Remediated (2026-11-19, Cycle 224):** the 172 "contract-blocked" rows were
+never absent files — `experiments.jsonl` recorded obsolete depth-one paths while
+the H28 artifacts live under
+`.experiments/artifacts/h28_causal_recertification/runs/<exp_id>/`. The recorded
+paths were corrected to the real location (every replacement hash-verified
+against the artifact-name suffix), so `missing_files` fell **197 → 25** (all
+remaining rows are unrecoverable) and `orphaned_files` fell **528 → 356** (the
+formerly-orphaned H28 files are now referenced). `hash_mismatches` (11) and
+`missing_meta_files` (0) are unchanged. New pinned digests:
+
+- `missing_files` = 25 → `a50244430ef816f0a00733d82e3f140a92a9bbb29d9f6ee4157c819a2accaaff`
+- `orphaned_files` = 356 → `c6611f77e80f5bf80ce351d444a7b35e5a7b72427867da16225a99a3f1143c50`
+
+Making those 8 H28 summaries reachable also required 8 additive
+`.meta.json` sidecars (JSON → top-level `keys`, the 2026-11-13 derivation), so
+`missing_meta_files` stays 0. No artifact, hash, gate, or frozen number was
+modified; only `experiments.jsonl` recorded paths were corrected and 8 sidecars
+were added. The change is rehearsed in
+`patches/0002-h28-jsonl-path-remediation.patch` and verified by
+`scripts/verify_h28_path_remediation_patch.py`.
+
 No artifact, sidecar, hash, gate, or frozen count was modified.
 **Task:** Verify all experiment artifacts can be re-derived from tracked metadata (STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §6 fallback path)
 
@@ -44,7 +65,8 @@ gate green at the current state while preventing silent regression or a stale
 baseline.
 
 **Audit Status:** **GREEN WITH RECORDED BACKLOG** — 3 invariant checks pass; 4
-backlog checks are locked to the counts below.
+backlog checks are locked to the counts below (post-remediation: 25 missing,
+11 hash-mismatched, 356 orphaned, 0 missing sidecars).
 
 **2026-11-12 remediation:** 149 non-H28 hash-exact artifacts were restored into
 place, so `missing_files` fell 346 → 197. The other 172 hash-exact rows are H28
@@ -52,10 +74,11 @@ causal-recertification artifacts: the committed `experiments.jsonl` records thei
 old depth-one paths, but H28 runs must live under
 `.experiments/artifacts/h28_causal_recertification/runs/`, so copying them to
 depth-one would satisfy the audit while breaking the H28 depth-one invariant
-(`tests/test_h28_causal_recertification.py`). They are reported as
-**contract-blocked** in `REPRODUCIBILITY_RESTORATION_PLAN.{md,csv}` and are not
-restored. Sidecar count is unchanged at 140. The baselines below reflect this
-state; all deltas are additive and verified.
+(`tests/test_h28_causal_recertification.py`). **Resolved 2026-11-19** by
+correcting the logged paths to the real `runs/` location instead of copying
+files (see the Cycle 224 note above); `REPRODUCIBILITY_RESTORATION_PLAN.{md,csv}`
+now reports 0 recoverable / 0 excluded / 25 unrecoverable. Sidecar count is
+unchanged at 140.
 
 ---
 
@@ -64,9 +87,9 @@ state; all deltas are additive and verified.
 | Check | Status | Count | Details |
 |-------|--------|-------|---------|
 | Experiments log exists & nonempty | ✅ PASS | 174 experiments | All records parseable |
-| Artifact files exist on disk | ⚠ BASELINE | 197 missing | Referenced parquet/JSON files not found (was 346; 149 restored) |
+| Artifact files exist on disk | ⚠ BASELINE | 25 missing | Referenced parquet/JSON files not found (was 346; 149 restored, 172 path-corrected) |
 | Artifact hashes match recorded values | ⚠ BASELINE | 11 mismatches | SHA-256 prefix differs from artifact name |
-| No orphaned files in artifacts dir | ⚠ BASELINE | 528 orphaned | Files on disk not referenced by any experiment |
+| No orphaned files in artifacts dir | ⚠ BASELINE | 356 orphaned | Files on disk not referenced by any experiment (was 528; 172 H28 files referenced after path correction) |
 | Experiment metadata completeness | ✅ PASS | 174/174 complete | All required fields present |
 | Git commit consistency | ✅ PASS | 174/174 valid | No "unknown" commits |
 | Artifact `.meta.json` sidecars exist | ✅ PASS | 0 missing | All 140 historically missing sidecars backfilled 2026-11-13 (additive; none overwritten) |
@@ -96,7 +119,7 @@ historical corpus to that end state.
 
 ## Root Cause Analysis
 
-### 1. Missing Artifact Files (197 remaining, was 346)
+### 1. Missing Artifact Files (25 remaining, was 346)
 
 Experiments reference artifact paths under `.experiments/artifacts/<exp_id>/`
 but those files were never created, were cleaned up, or were written under a
@@ -108,12 +131,14 @@ different experiment id. For example, `exp_2026-10-13T21-46-52-446478Z`
 Recovery audit: of the 346 originally-missing paths, 321 had a same-basename
 candidate whose recorded 16-char SHA-256 prefix matched. Of those 321,
 **149 non-H28 rows were applied (copied) on 2026-11-12**, reducing
-`missing_files` from 346 to 197. The remaining 197 rows are **172 H28
-contract-blocked** (their hash-exact sources live under
-`.experiments/artifacts/h28_causal_recertification/runs/`; restoring depth-one
-copies would break `tests/test_h28_causal_recertification.py`) plus **25 with no
-hash-matching source** that need a re-run. The planner reports 0 recoverable /
-172 excluded / 25 unrecoverable (`REPRODUCIBILITY_RESTORATION_PLAN.{md,csv}`).
+`missing_files` from 346 to 197. Of the remaining 197, the **172 H28 rows were
+resolved on 2026-11-19 by correcting the logged paths** to their real location
+under `.experiments/artifacts/h28_causal_recertification/runs/<exp_id>/` (each
+replacement hash-verified; copying depth-one files instead would break
+`tests/test_h28_causal_recertification.py`). The remaining **25 have no
+hash-matching source** anywhere in the artifact store and need a re-run. The
+planner now reports 0 recoverable / 0 excluded / 25 unrecoverable
+(`REPRODUCIBILITY_RESTORATION_PLAN.{md,csv}`).
 
 **Most affected experiments (before apply):** `h11_robustness_certification`,
 `h17_vrp`, early TS/CS momentum runs, and
@@ -172,9 +197,10 @@ edits the committed record; no baseline change is needed.
 **Verified 2026-11-13:** `tests/test_reproducibility_audit.py` — 7 passed;
 `tests/test_h54_non_metrics_block_disclosure.py` — 21 passed; the three
 `tests/test_nf_20261105_1{4,6,9}_*.py` — 34 passed; read-only planner unchanged
-(0 recoverable / 172 excluded / 25 unrecoverable).
+(0 recoverable / 172 excluded / 25 unrecoverable). After the 2026-11-19 path
+correction the planner reports 0 / 0 / 25.
 
-### 3. Orphaned Artifact Files (528)
+### 3. Orphaned Artifact Files (356 after the 2026-11-19 path correction; was 528)
 
 Files exist under `.experiments/artifacts/` but are not referenced by any
 record in `experiments.jsonl`. Includes:
@@ -189,13 +215,15 @@ They are catalogued here and locked by the baseline.
 
 **Re-audit 2026-11-13 (Cycle 105):** recomputed the orphan set with the audit's
 own logic (`tests/test_reproducibility_audit.py::test_orphaned_artifacts_match_recorded_backlog`):
-**528 orphans, unchanged.** Each orphan was (a) checked for a byte-identical
+**528 orphans, unchanged.** The 2026-11-19 path correction references the 172
+H28 `runs/` files, so the orphan backlog is now **356** (528 − 172); the
+category table below describes the pre-correction composition. Each orphan was (a) checked for a byte-identical
 copy already referenced by `experiments.jsonl` (SHA-256, 16-char prefix), and
 (b) checked for citation by path in `tests/`, `run_*.py`, or `*.md`. Results:
 
 | Category | Count | Byte-identical to a referenced artifact? | Cited by a test/runner/doc? |
 |---|---|---|---|
-| `h28_causal_recertification/runs/` (depth-3 subdirs of the H28 shared dir) | 172 | **133 are byte-identical to a referenced artifact** (the referenced copy lives in a different depth-3 subdir; the H28 depth-one invariant forbids merging them) | No — H28 contract-blocked by `tests/test_h28_causal_recertification.py` |
+| `h28_causal_recertification/runs/` (depth-3 subdirs of the H28 shared dir) | 172 → **0** | 133 were byte-identical to a recorded artifact | **Referenced after the 2026-11-19 path correction** |
 | `h28_causal_recertification/` top-level (`summary.json`, `recertification_table.parquet`, 18 orphaned `summary.json` under `runs/`) | 39 | No | `summary.json`/`recertification_table.parquet` are cited by `test_h28_causal_recertification.py` at this exact path |
 | `exp_.../cache/*.parquet` (4 dirs, 250 files: `exp_2026-11-05T01-22-22-092087Z` ×100, `...T01-17-49-208916Z` ×50, `...T01-15-02-402660Z` ×50, `...T01-24-02-934356Z` ×50) | 250 | No — filenames are bare SHA-256 hashes, none appears in `experiments.jsonl`; content is cached price/OHLCV frames (e.g. 2975×6 `open/high/low/close/volume/adj_close`) | No |
 | Shared dirs `h26_sharpe_scale/`, `h27_pnl_level/`, `h29_lookahead_sweep/`, `h57_total_return/`, `pf_robustness/` | 15 | No | **Yes — cited at these exact paths** by `test_h26_sharpe_scale_audit.py`, `test_h27_pnl_level_audit.py`, `test_h29_lookahead_sweep.py`, `test_h57_total_return_audit.py`, `test_h25_pf_robustness.py`, `test_h54_non_metrics_block_disclosure.py` |
@@ -208,10 +236,11 @@ rows are contract-blocked at depth one, the 250 cache files are unreferenced
 price frames, and the 15 shared-dir artifacts are *actively cited* by tests at
 their orphan path (moving them would break those tests). The remaining 130 are
 unappended experiment records with no on-disk twin. Deletion remains out of
-scope (committed data). The orphan count is frozen at 528 by
+scope (committed data). The orphan count is frozen at **356** by
 `REPRODUCIBILITY_BASELINE["orphaned_files"]`, and the exact orphan row set is
-pinned by `PINNED_ORPHANED_FILES_DIGEST` (Cycle 223), so a swap or substitution
-inside the backlog fails the audit even when the count is unchanged.
+pinned by `PINNED_ORPHANED_FILES_DIGEST` (updated 2026-11-19), so a swap or
+substitution inside the backlog fails the audit even when the count is
+unchanged.
 
 ### 4. Missing `.meta.json` Sidecars (140 → 0, remediated 2026-11-13)
 
@@ -264,10 +293,12 @@ Ordered by value and risk:
 
 1. **✅ Restore the 149 non-H28 hash-exact missing artifacts** — done 2026-11-12.
    Each byte-identical same-basename file was copied to the referenced path after
-   re-verifying its SHA-256 prefix; `missing_files` fell 346 → 197. The remaining
-   197 are 172 H28 contract-blocked rows plus 25 with no hash-exact source; the
-   planner now reports 0 recoverable / 172 excluded / 25 unrecoverable and refuses
-   to overwrite existing targets.
+   re-verifying its SHA-256 prefix; `missing_files` fell 346 → 197.
+   **✅ Resolve the 172 H28 contract-blocked rows** — done 2026-11-19 by
+   correcting their logged paths to the real `runs/` location (hash-verified),
+   not by copying depth-one files; `missing_files` fell 197 → 25. The planner
+   reports 0 recoverable / 0 excluded / 25 unrecoverable and refuses to overwrite
+   existing targets.
 
 2. **Re-run the 25 artifacts with no hash-matching source** — recreate them at
    the referenced paths and lower the baseline to 0.

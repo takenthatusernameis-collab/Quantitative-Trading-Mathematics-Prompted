@@ -42,18 +42,25 @@ ARTIFACTS_ROOT = Path(".experiments/artifacts")
 # when artifacts are remediated or when a new run legitimately adds artifacts.
 #
 # 2026-11-12 remediation: 149 non-H28 hash-exact artifacts were restored into
-# place, so ``missing_files`` fell 346 -> 197. The remaining 172 H28 rows are
-# hash-exact but must stay at their depth-one paths un-restored (restoring them
-# would violate the H28 depth-one invariant in
-# tests/test_h28_causal_recertification.py), and 25 have no hash-matching source.
+# place, so ``missing_files`` fell 346 -> 197.
+# 2026-11-19 remediation (authorized, patches/0002-h28-jsonl-path-remediation.patch):
+# the 172 H28 rows were not missing files at all -- ``experiments.jsonl`` recorded
+# obsolete depth-one paths while the artifacts live under
+# ``.experiments/artifacts/h28_causal_recertification/runs/<exp_id>/``. The log's
+# recorded paths were corrected to the real location (each replacement verified
+# hash-exact), so ``missing_files`` fell 197 -> 25 (all now unrecoverable) and
+# ``orphaned_files`` fell 528 -> 356 (the once-orphaned H28 files are referenced).
+# The remaining 25 have no hash-matching source anywhere in the artifact store.
 # Sidecar count is unchanged at 0 after the 2026-11-13 backfill: all 140
 # historically missing ``.meta.json`` sidecars were derived additively
 # (JSON -> top-level keys; parquet -> shape/columns/dtypes/index_type) and no
-# existing sidecar was overwritten. See REPRODUCIBILITY_AUDIT_REPORT.md §4.
+# existing sidecar was overwritten. The 2026-11-19 path correction made 8 H28
+# summary files newly reachable; their sidecars were derived the same additive
+# way, so ``missing_meta_files`` stays 0. See REPRODUCIBILITY_AUDIT_REPORT.md §4.
 REPRODUCIBILITY_BASELINE = {
-    "missing_files": 197,
+    "missing_files": 25,
     "hash_mismatches": 11,
-    "orphaned_files": 528,
+    "orphaned_files": 356,
     "missing_meta_files": 0,
 }
 
@@ -143,14 +150,14 @@ PINNED_HASH_MISMATCHES = [
 ]
 
 # Pinned identity digests for the two count-only backlogs (2026-11-19, Cycle 223).
-# A bare count cannot distinguish "still 197 stale rows" from "one row fixed and a
+# A bare count cannot distinguish "still 25 stale rows" from "one row fixed and a
 # different row regressed". These SHA-256 digests pin the exact row set:
 #   missing  -> sorted "<experiment_id>|<experiment_name>|<artifact_name>|<path>" lines
 #   orphaned -> sorted artifact paths (relative, POSIX)
 # Update deliberately (together with REPRODUCIBILITY_AUDIT_REPORT.md) only after a
 # remediation or a reviewed corpus change, exactly like PINNED_HASH_MISMATCHES.
-PINNED_MISSING_FILES_DIGEST = "7e7f4db4df1f8e8bb47bcee382177b3565de163bba72b20207e523a0e8c76251"
-PINNED_ORPHANED_FILES_DIGEST = "9f601bfe43839514cec97d7327922bed4db9003920e099152aa0aa98e837603a"
+PINNED_MISSING_FILES_DIGEST = "a50244430ef816f0a00733d82e3f140a92a9bbb29d9f6ee4157c819a2accaaff"
+PINNED_ORPHANED_FILES_DIGEST = "c6611f77e80f5bf80ce351d444a7b35e5a7b72427867da16225a99a3f1143c50"
 
 assert len(PINNED_HASH_MISMATCHES) == REPRODUCIBILITY_BASELINE["hash_mismatches"]
 

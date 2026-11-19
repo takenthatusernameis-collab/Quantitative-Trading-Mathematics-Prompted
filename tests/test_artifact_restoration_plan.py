@@ -27,13 +27,14 @@ PLANNER = ROOT / "scripts" / "plan_artifact_restoration.py"
 # Baseline computed from the committed corpus. Originally 346 missing referenced
 # artifacts. On 2026-11-12 the 149 non-H28 hash-exact rows were applied (see
 # NEXT_TASK.md and REPRODUCIBILITY_AUDIT_REPORT.md), so ``missing_files`` fell
-# 346 -> 197. The 172 H28 rows are hash-exact but contract-blocked: restoring the
-# recorded depth-one paths would violate the H28 depth-one invariant pinned by
-# ``tests/test_h28_causal_recertification.py``. The remaining 25 have no
-# hash-matching source. The ratchet still fires if any of these counts drift
-# without a deliberate remediation + report update.
+# 346 -> 197. On 2026-11-19 the 172 H28 rows were remediated by correcting the
+# obsolete depth-one paths recorded in ``experiments.jsonl`` to the real
+# ``h28_causal_recertification/runs/<exp_id>/`` location (each replacement
+# hash-verified), so no contract-blocked rows remain. The remaining 25 have no
+# hash-matching source anywhere in the artifact store. The ratchet still fires if
+# any of these counts drift without a deliberate remediation + report update.
 RECOVERABLE_BASELINE = 0
-EXCLUDED_BASELINE = 172
+EXCLUDED_BASELINE = 0
 UNRECOVERABLE_BASELINE = 25
 
 
