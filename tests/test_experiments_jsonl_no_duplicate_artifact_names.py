@@ -50,8 +50,7 @@ def test_no_duplicate_artifact_names_within_an_experiment():
     assert not offenders, (
         f"found {len(offenders)} experiment(s) with duplicate artifact names:\n"
         + "\n".join(
-            f"  {o['experiment_id']} ({o['name']}): {o['duplicate_names']}"
-            for o in offenders
+            f"  {o['experiment_id']} ({o['name']}): {o['duplicate_names']}" for o in offenders
         )
     )
 
@@ -87,7 +86,6 @@ def test_no_duplicate_artifact_names_across_same_run_family():
         f"found {len(offenders)} artifact name(s) published to one path by "
         f"multiple experiments:\n"
         + "\n".join(
-            f"  {o['artifact_name']} -> {o['path']} from {o['experiments']}"
-            for o in offenders
+            f"  {o['artifact_name']} -> {o['path']} from {o['experiments']}" for o in offenders
         )
     )
