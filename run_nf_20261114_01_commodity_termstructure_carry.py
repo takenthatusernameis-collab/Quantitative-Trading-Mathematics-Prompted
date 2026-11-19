@@ -1,4 +1,4 @@
-"""NF-20261114-01 / H184 (Cycle 214): commodity term-structure carry.
+"""NF-20261114-01 / H184 (Cycle 214 pre-registration, Cycle 215 execution).
 
 Broad mechanism category: carry / commodity term structure (roll yield on
 physically delivered futures).  Repo-new root family relative to executed
@@ -17,9 +17,11 @@ settle has no predictive power for next-period roll-adjusted returns after CNY
 costs -- timing adds nothing over a passive front-month long book.
 
 PIT timing.  Each cross-section file is the official settlement record for
-trade date t and is knowable at t's settle.  The signal is computed from
-day-t settlements only; positions are formed no earlier than t+1 via an
-explicit shift(1).
+trade date t and is knowable at t's settle.  The signal is computed from day-t
+settlements only; positions are formed no earlier than t+1 via an explicit
+``shift(1)`` in ``backtest_metrics``.  ``held_returns`` prices the contract that
+was *known* at t-1 and held into day t, so no day-t settlement enters the day-t
+signal and no future contract enters the day-t return.
 
 Pre-registration (Cycle 214, before any forward-return inspection).
 NF-ID NF-20261114-01 (H184).  Sample 2016-01-04 -> 2026-11-17 (bounded first
@@ -27,7 +29,7 @@ scope).  Train ->2023-06-30; Val 2023-07-01 -> 2024-12-31; Test protected
 2025-01-01 -> 2026-11-17.  Universe: SHFE RB, CU, AL, ZN, AU, AG (from
 2016-01-04) and INE SC (from 2018-03-26); exclude any contract whose delivery
 month equals the current month.  Signal: annualized slope
-ln(F1/F2) * 12 / months_between(F1, F2) from the two nearest contracts with
+``ln(F1/F2) * 12 / months_between(F1, F2)`` from the two nearest contracts with
 settlement > 0 and open interest >= OI_FLOOR, using day-t settlements.
 Cross-sectional rank: long top-k / short bottom-k by z-scored slope, equal
 weight, hysteresis entry/exit on z.  Grid (bounded, 24):
@@ -35,36 +37,36 @@ entry_z {0.5, 1.0, 1.5} x exit_z {0.0, 0.5} x k {1, 3, 5} x
 vol_target {0.10, 0.15}; train-only 4-fold walk-forward Sharpe selection;
 Test protected.  Costs (CNY, explicit): commission 2 bps + slippage 3 bps per
 one-way side per leg (5 bps one-way per contract traded), roll crossing 1 bps
-when the front contract changes.  Vol targeting scales exposure down to
+when the held front contract changes.  Vol targeting scales exposure down to
 target, never up.
 
 Gates (OOS Val+Test, fail-closed, standard 8): Sharpe >= 1.0; trades >= 50;
 PF >= 1.3; maxDD <= 15%; WF stability >= 0.7; worst-regime rolling-252 Sharpe
->= 0.3; benchmark p <= 0.05 with IR >= 0 vs the passive front-month long book;
-perturbation min ratio >= 0.5.
+>= 0.3; benchmark p <= 0.05 (two-sided, the published statistic) with IR >= 0
+vs the passive front-month long book; perturbation min ratio >= 0.5.
 
 Ablations/falsifiers: passive front-month long book; random ranking (same
 active contract-days, seed 42); inverse-slope signal; OAT +/-20% perturbation.
 
 Implementation constraints: resumable on-disk cache under
-.cache/commodity_settlements/ (skip existing files); one request per trade
-date per venue; tolerate 404 holidays; record per-product first available
-dates; parsers/URL builders imported from
+.cache/commodity_settlements/ (skip existing files, 404 markers included); one
+request per trade date per venue; tolerate 404 holidays; record per-product
+first available dates; parsers/URL builders imported from
 scripts/probe_commodity_termstructure_availability.py (no forked copy).
-Artifact under .experiments/nf_runs/nf_20261114_01_commodity_termstructure_carry_<timestamp>/
-summary.json + grid.csv.  src/qtr unchanged; free/public real data only.
+Artifact under .experiments/nf_runs/<experiment>_<timestamp>/summary.json +
+grid.csv.  ``src/qtr`` unchanged; free/public real data only.
 """
 
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import importlib.util
 import json
 import math
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -73,10 +75,10 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parent
 
 try:
-    from qtr.validation.statistics import benchmark_significance_gate
+    from qtr.validation.statistics import benchmark_significance_gate, compare_to_benchmark
 except ImportError:  # allow `python run_nf_*.py` with no editable install
     sys.path.insert(0, str(ROOT / "src"))
-    from qtr.validation.statistics import benchmark_significance_gate
+    from qtr.validation.statistics import benchmark_significance_gate, compare_to_benchmark
 
 # Single source of truth for the Chinese exchange cross-sections: import the
 # probe's URL builders and parsers instead of forking a second copy.
@@ -86,9 +88,9 @@ assert _probe_spec is not None and _probe_spec.loader is not None
 _probe = importlib.util.module_from_spec(_probe_spec)  # type: ignore[arg-type]
 sys.modules[_probe_spec.name] = _probe
 _probe_spec.loader.exec_module(_probe)
+
 source_url = _probe.source_url
 fetch = _probe.fetch
-probe_fetch = fetch
 FetchError = _probe.FetchError
 parse_exchange_json = _probe.parse_exchange_json
 parse_pipe_text = _probe.parse_pipe_text
@@ -103,9 +105,10 @@ END = "2026-11-17"
 TRAIN_END = "2023-06-30"
 VAL_END = "2024-12-31"
 
-# Declared first available dates (pre-registration universe).  Products are
-# eligible only from their venue's first available date; first dates actually
-# observed in the data are recorded in provenance.
+# Declared first available dates (pre-registration universe).  A product is
+# eligible only from its venue's first available date; the first date actually
+# observed in the cached data is recorded in provenance and the later of the
+# two is used.
 FIRST_DATE = {
     ("SHFE", "RB"): "2016-01-04",
     ("SHFE", "CU"): "2016-01-04",
@@ -118,13 +121,13 @@ FIRST_DATE = {
 
 UNIVERSE = [("SHFE", code) for code in ("RB", "CU", "AL", "ZN", "AU", "AG")] + [("INE", "SC")]
 
-OI_FLOOR = 100  # contracts; both front and second must clear it
-OPEN_INTEREST_FLOOR = float(OI_FLOOR)
+OI_FLOOR = 100.0  # contracts; both front and second must clear it
+OPEN_INTEREST_FLOOR = OI_FLOOR
 COST_ONE_WAY_BPS = 5.0  # commission 2 bps + slippage 3 bps per one-way side
-SIDE_BPS = 5.0  # one-way cost per contract side (bps)
+SIDE_BPS = COST_ONE_WAY_BPS
 ROLL_CROSS_BPS = 1.0  # when the held front contract changes
 DAYS_PER_YEAR = 252
-VOL_LOOKBACK = 60  # days, trailing vol for vol targeting (delever only)
+VOL_LOOKBACK = 60  # trailing days for the delever-only vol target
 SEED = 42
 WORKERS = 4
 CACHE_DIR = Path(".cache") / "commodity_settlements"
@@ -156,833 +159,517 @@ PARSER_BY_SOURCE = {
 }
 
 
-def _artifact_dir(out: str | None) -> Path:
-    if out:
-        path = Path(out).resolve()
-        path.mkdir(parents=True, exist_ok=True)
-        return path
-    stamp = time.strftime("%Y%m%d_%H%M%S")
-    path = (Path(".experiments") / "nf_runs" / f"{EXPERIMENT}_{stamp}").resolve()
-    path.mkdir(parents=True, exist_ok=True)
-    return path
+# ---------------------------------------------------------------------------
+# Cache / download
+# ---------------------------------------------------------------------------
 
 
-def fetch_cached(
-    source: str, day, cache_dir: Path = CACHE_DIR, retries: int = 3, retry_delay: float = 1.0
-) -> bytes | None:
-    """Download one cross-section with an on-disk, per-date cache.
+def cache_dir_for(cache_dir: Path | str | None) -> Path:
+    return Path(cache_dir) if cache_dir is not None else CACHE_DIR
 
-    Existing cache files are skipped (resumable across runs).  404 means a
-    holiday or pre-listing date and returns None.  Transient transport errors
-    are retried bounded times before surfacing as FetchError.
+
+def cache_path(source: str, day, cache_dir: Path | str | None = None) -> Path:
+    return cache_dir_for(cache_dir) / source / f"{pd.Timestamp(day).strftime('%Y%m%d')}.dat"
+
+
+def miss_path(source: str, day, cache_dir: Path | str | None = None) -> Path:
+    return cache_dir_for(cache_dir) / source / f"{pd.Timestamp(day).strftime('%Y%m%d')}.miss"
+
+
+def fetch_into_cache(
+    source: str,
+    day,
+    cache_dir: Path | str | None = None,
+    retries: int = 2,
+    retry_delay: float = 1.0,
+) -> str:
+    """Ensure one cross-section is cached; returns HIT / OK / MISSING / ERROR.
+
+    ``404`` (holiday or pre-listing date) writes a ``.miss`` marker so later
+    runs do not re-request it.  Existing ``.dat`` files are never re-downloaded,
+    which makes the download resumable across sessions.
     """
-    path = cache_dir / source / f"{day.strftime('%Y%m%d')}.json"
+    path = cache_path(source, day, cache_dir)
     if path.exists():
-        return path.read_bytes()
+        return "HIT"
+    if miss_path(source, day, cache_dir).exists():
+        return "MISSING"
     attempt = 0
     while True:
         try:
-            payload = fetch(source, day, retries=0, retry_delay=retry_delay)
+            payload = fetch(source, day, retries=0)
         except FetchError:
-            if attempt >= retries - 1:
-                return None
+            if attempt >= retries:
+                return "ERROR"
             attempt += 1
             time.sleep(retry_delay)
             continue
         if payload is None:
-            return None
+            marker = miss_path(source, day, cache_dir)
+            marker.parent.mkdir(parents=True, exist_ok=True)
+            marker.write_text("404\n")
+            return "MISSING"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(payload)
-        return payload
+        return "OK"
 
 
-@dataclass(frozen=True)
-class ContractSlice:
-    front: str  # YYYYMM
-    second: str
-    front_settle: float
-    second_settle: float
-    months_between: int
-    slope: float  # ln(F1/F2) * 12 / months_between (pre-registered formula)
+def source_dates(source: str, calendar: pd.DatetimeIndex) -> pd.DatetimeIndex:
+    """Trading calendar for one venue, bounded by its pre-registered start."""
+    starts = [pd.Timestamp(first) for (src, _), first in FIRST_DATE.items() if src == source]
+    start = max([pd.Timestamp(START)] + starts)
+    return calendar[calendar >= start]
 
 
-def _delivery_ymm(code: object) -> str:
-    digits = "".join(ch for ch in str(code) if ch.isdigit())
+def ensure_cached(
+    universe: list[tuple[str, str]],
+    calendar: pd.DatetimeIndex,
+    cache_dir: Path | str | None = None,
+    workers: int = WORKERS,
+) -> dict:
+    """Download every (venue, date) cross-section once; resumable and deduped."""
+    sources = sorted({source for source, _ in universe})
+    jobs = [(source, day) for source in sources for day in source_dates(source, calendar)]
+    counts: dict[str, dict[str, int]] = {}
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = {
+            pool.submit(fetch_into_cache, source, day, cache_dir): (source, day)
+            for source, day in jobs
+        }
+        for future in as_completed(futures):
+            source, _ = futures[future]
+            bucket = counts.setdefault(source, {})
+            status = future.result()
+            bucket[status] = bucket.get(status, 0) + 1
+    return {
+        "requests": int(len(jobs)),
+        "status_counts": counts,
+        "url_patterns": {
+            source: source_url(source, pd.Timestamp(END)).replace(
+                pd.Timestamp(END).strftime("%Y%m%d"), "{YYYYMMDD}"
+            )
+            for source in sources
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
+# Data assembly
+# ---------------------------------------------------------------------------
+
+
+def normalize_delivery(raw: object, trade_day) -> str:
+    """Normalize a contract delivery code to ``YYYYMM``.
+
+    SHFE/INE publish ``YYMM`` (``"2402"``); CZCE/CFFEX publish 4-digit years.
+    The decade is resolved against the cross-section's own trade date, which is
+    the documented convention of the probe parser.
+    """
+    digits = "".join(ch for ch in str(raw) if ch.isdigit())
+    reference = pd.Timestamp(trade_day)
     if len(digits) == 6:
         return digits
-    return ""
+    if len(digits) != 4:
+        return ""
+    century = (reference.year // 100) * 100
+    year = century + int(digits[:2])
+    if year < reference.year - 5:
+        year += 100
+    return f"{year:04d}{digits[2:]}"
 
 
-def term_slice(frame: pd.DataFrame, trade_day) -> ContractSlice | None:
-    """Pick the two nearest tradable contracts and annualize the slope."""
-    if frame.empty:
-        return None
-    trade_ymm = pd.Timestamp(trade_day).strftime("%Y%m")
-    frame = frame.copy()
-    frame["delivery"] = frame["delivery"].map(_delivery_ymm)
-    frame = frame[frame["delivery"].str.len() == 6]
-    frame = frame[frame["delivery"] != trade_ymm]  # exclude delivery month
-    frame = frame.sort_values("delivery")
-    candidates = frame[(frame["settlement"] > 0) & (frame["open_interest"] >= OI_FLOOR)]
-    if len(candidates) < 2:
-        return None
-    front, second = candidates.iloc[0], candidates.iloc[1]
-    front_ymm, second_ymm = str(front["delivery"]), str(second["delivery"])
-    months = (int(second_ymm[:4]) - int(front_ymm[:4])) * 12 + (
-        int(second_ymm[4:]) - int(front_ymm[4:])
-    )
-    if months <= 0:
-        return None
-    near, far = float(front["settlement"]), float(second["settlement"])
-    if far <= 0:
-        return None
-    slope = math.log(near / far) * 12.0 / months
-    return ContractSlice(
-        front=front_ymm,
-        second=second_ymm,
-        front_settle=near,
-        second_settle=far,
-        months_between=months,
-        slope=slope,
-    )
+def months_between(near: str, far: str) -> int:
+    """Whole months from ``near`` to ``far`` (both ``YYYYMM``)."""
+    return (int(far[:4]) - int(near[:4])) * 12 + (int(far[4:6]) - int(near[4:6]))
 
 
-def _months_between(d1: str, d2: str) -> int:
-    """Months between two delivery codes (``YYYYMM`` or ``YYMM``)."""
-
-    def parts(d: str) -> tuple[int, int]:
-        d = str(d)
-        if len(d) == 6:
-            return int(d[:4]), int(d[4:])
-        if len(d) == 4:
-            return 2000 + int(d[:2]), int(d[2:])
-        return 0, 0
-
-    y1, m1 = parts(d1)
-    y2, m2 = parts(d2)
-    return (y2 - y1) * 12 + (m2 - m1)
-
-
-def _one_date(source: str, day, timeout: float = 30.0) -> tuple[list, str]:
-    """Fetch and parse one cross-section; returns (contract records, status)."""
-    try:
-        payload = probe_fetch(source, day, timeout=timeout)
-    except Exception:
-        return [], "MISSING"
-    if payload is None:
-        return [], "MISSING"
-    try:
-        frame = _parse_cross_section(source, payload, day)
-    except Exception:
-        return [], "UNPARSABLE"
-    if frame.empty:
-        return [], "EMPTY"
-    return frame.to_dict("records"), "OK"
-
-
-def _download_universe() -> tuple[pd.DataFrame, dict]:
-    """One cross-section per source/date; returns (frame, provenance)."""
-    columns = ["date", "product", "delivery", "settlement", "open_interest"]
-    sources = ["SHFE", "INE", "CZCE", "CFFEX"]
-    calendar = pd.bdate_range(START, END)
-    records = []
-    provenance = {}
-    stamp = pd.Timestamp(END).strftime("%Y%m%d")
-    for source in sources:
-        status_counts = {}
-        for day in calendar:
-            recs, status = _one_date(source, day)
-            status_counts[status] = status_counts.get(status, 0) + 1
-            records.extend(recs)
-        url_pattern = source_url(source, pd.Timestamp(END)).replace(stamp, "{YYYYMMDD}")
-        provenance[source] = {"status_counts": status_counts, "url_pattern": url_pattern}
-    frame = pd.DataFrame(records, columns=columns) if records else pd.DataFrame(columns=columns)
-    return frame, provenance
-
-
-def _fetch_cached(source: str, day, cache_dir: Path | None = None) -> tuple[bytes | None, str]:
-    """Read one cross-section from the on-disk cache, downloading on a miss."""
-    if cache_dir is None:
-        cache_dir = CACHE_DIR
-    path = cache_dir / source / f"{day.strftime('%Y%m%d')}.dat"
-    if path.exists():
-        return path.read_bytes(), "OK"
-    try:
-        payload = probe_fetch(source, day)
-    except Exception:
-        return None, "MISSING"
-    if payload is None:
-        return None, "MISSING"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(payload)
-    return payload, "OK"
-
-
-def _parse_cross_section(source: str, raw: bytes, day) -> pd.DataFrame:
-    """Parse one cross-section, restricted to tradable contracts (OI floor, no delivery month)."""
+def parse_cross_section(source: str, raw: bytes, day) -> pd.DataFrame:
     parser = PARSER_BY_SOURCE[source]
     if source == "CZCE":
-        frame = parser(raw, reference=day)
+        frame = parser(raw, reference=pd.Timestamp(day).date())
     else:
         frame = parser(raw)
-    frame = frame[frame["open_interest"] >= OPEN_INTEREST_FLOOR]
-    trade_ymm = pd.Timestamp(day).strftime("%Y%m")
-    frame = frame[frame["delivery"] != trade_ymm]
+    frame = frame.copy()
+    frame["delivery"] = [normalize_delivery(value, day) for value in frame["delivery"]]
+    frame = frame[frame["delivery"].str.len() == 6]
     return frame.reset_index(drop=True)
 
 
-def _term_structure(frame: pd.DataFrame) -> pd.DataFrame:
-    """Front/second contract and annualized slope per product from a cross-section."""
-    rows = []
-    for product, g in frame.groupby("product", sort=False):
-        g = g[g["open_interest"] >= OPEN_INTEREST_FLOOR].sort_values("delivery")
-        g = g[g["settlement"] > 0]
-        if len(g) < 2:
-            continue
-        front = g.iloc[0]
-        second = g.iloc[1]
-        months = _months_between(str(front["delivery"]), str(second["delivery"]))
-        if months <= 0:
-            continue
-        near = float(front["settlement"])
-        far = float(second["settlement"])
-        if far <= 0:
-            continue
-        rows.append(
-            {
-                "date": g["date"].iloc[0],
-                "product": product,
-                "front": str(front["delivery"]),
-                "second": str(second["delivery"]),
-                "front_settle": near,
-                "slope": math.log(near / far) * 12.0 / months,
-            }
-        )
-    if not rows:
-        return pd.DataFrame(columns=["date", "product", "front", "second", "front_settle", "slope"])
-    return pd.DataFrame(rows)
+def load_product_data(
+    universe: list[tuple[str, str]],
+    calendar: pd.DatetimeIndex,
+    cache_dir: Path | str | None = None,
+) -> dict[str, dict[str, pd.DataFrame]]:
+    """Read cached cross-sections into per-product (settle, open interest) panels.
 
-
-def _signal_frame(term: pd.DataFrame, dates, products: list):
-    """Pivot term structure onto the calendar, one row (the front) per product/date."""
-    date_index = pd.DatetimeIndex(dates)
-    term = term.copy()
-    term["date"] = pd.DatetimeIndex(term["date"])
-    term = term.sort_values("front").drop_duplicates(subset=["date", "product"], keep="first")
-    slope = term.pivot(index="date", columns="product", values="slope")
-    settle = term.pivot(index="date", columns="product", values="front_settle")
-    delivery = term.pivot(index="date", columns="product", values="front")
-    slope.index = pd.DatetimeIndex(slope.index)
-    settle.index = pd.DatetimeIndex(settle.index)
-    delivery.index = pd.DatetimeIndex(delivery.index)
-    slope = slope.reindex(index=date_index, columns=products)
-    settle = settle.reindex(index=date_index, columns=products)
-    delivery = delivery.reindex(index=date_index, columns=products)
-    return slope, settle, delivery
-
-
-def _cross_sectional_signal(
-    slope: pd.DataFrame, k: int = 1, entry_z: float = 0.0, exit_z: float = 0.0
-):
-    """Cross-sectional rank signal: long top-k / short bottom-k by z-scored slope.
-
-    Hysteresis on entry/exit z; positions formed from day-t information only
-    (no lookahead).  Returns (signal, spread, spread_z).
+    Each panel is indexed by ``calendar`` with one column per delivery month.
+    Only the universe products of each venue are materialized.
     """
-    calendar = slope.index
-    products = list(slope.columns)
-    means = slope.mean(axis=1)
-    stds = slope.std(axis=1, ddof=0)
-    stds = stds.where(stds > 0, np.nan)
-    z = slope.sub(means, axis=0).div(stds, axis=0).where(slope.notna().sum(axis=1) >= 2)
-    signal = pd.DataFrame(0.0, index=calendar, columns=products, dtype=float)
-    spread = pd.Series(np.nan, index=calendar, dtype=float)
-    spread_z = pd.Series(np.nan, index=calendar, dtype=float)
-    state = {p: 0 for p in products}
-    for day in calendar:
-        zi = z.loc[day]
-        active = zi.notna()
-        n_active = int(active.sum())
-        if n_active < 2 * k:
-            continue
-        new = state.copy()
-        for p in products:
-            if state[p] == 1 and zi[p] <= exit_z:
-                new[p] = 0
-            elif state[p] == -1 and zi[p] >= -exit_z:
-                new[p] = 0
-        persisting_longs = {p for p in products if new[p] == 1}
-        persisting_shorts = {p for p in products if new[p] == -1}
-        entry_longs = sorted(
-            [
-                (p, float(zi[p]))
-                for p in products
-                if active[p] and state[p] == 0 and zi[p] >= entry_z
-            ],
-            key=lambda item: item[1],
-            reverse=True,
-        )
-        for p, _ in entry_longs:
-            if p in persisting_longs or p in persisting_shorts:
-                continue
-            if len(persisting_longs) >= k:
-                break
-            new[p] = 1
-            persisting_longs.add(p)
-        entry_shorts = sorted(
-            [
-                (p, float(zi[p]))
-                for p in products
-                if active[p] and state[p] == 0 and zi[p] <= -entry_z
-            ],
-            key=lambda item: item[1],
-        )
-        for p, _ in entry_shorts:
-            if p in persisting_longs or p in persisting_shorts:
-                continue
-            if len(persisting_shorts) >= k:
-                break
-            new[p] = -1
-            persisting_shorts.add(p)
-        state = new
-        for p in products:
-            signal.loc[day, p] = float(state[p])
-        longs_now = [p for p in products if state[p] == 1]
-        shorts_now = [p for p in products if state[p] == -1]
-        if longs_now and shorts_now:
-            spread.loc[day] = float(slope.loc[day, longs_now[0]]) - float(
-                slope.loc[day, shorts_now[0]]
-            )
-            spread_z.loc[day] = float(z.loc[day, longs_now[0]]) - float(z.loc[day, shorts_now[0]])
-    return signal, spread, spread_z
-
-
-def _execute(signal: pd.DataFrame, scale: pd.Series, returns: pd.DataFrame, changed: pd.DataFrame):
-    """Shift(1) the sized signal; CNY turnover + roll-crossing costs; leverage cap [-1, 1].
-
-    Returns (strat, gross, cost, executed).
-    """
-    target = signal.mul(scale, axis=0)
-    executed = target.shift(1).fillna(0.0).clip(-1.0, 1.0)
-    prev = executed.shift(1).fillna(0.0)
-    turnover = (executed - prev).abs()
-    trade_cost = turnover * (COST_ONE_WAY_BPS / 1e4)
-    roll_mask = changed.any(axis=1) if isinstance(changed, pd.DataFrame) else changed
-    roll_notional = prev.abs()
-    roll_cost = pd.Series(0.0, index=executed.index, dtype=float)
-    if isinstance(changed, pd.DataFrame):
-        for p in executed.columns:
-            roll_cost += (
-                roll_notional[p]
-                * (ROLL_CROSS_BPS / 1e4)
-                * changed[p].reindex(executed.index).fillna(False).astype(float)
-            )
-    cost = trade_cost.sum(axis=1) + roll_cost
-    gross = (executed * returns).sum(axis=1, min_count=1).fillna(0.0)
-    strat = (gross - cost).astype(float).fillna(0.0)
-    return strat, gross, cost, executed
-
-
-def _front_returns(settle: pd.DataFrame, delivery: pd.DataFrame):
-    """Front-contract return and front-change flags from settle/delivery frames."""
-    returns = settle / settle.shift(1) - 1.0
-    returns.iloc[0] = 0.0
-    changed = delivery != delivery.shift(1)
-    changed.iloc[0] = False
-    return returns.fillna(0.0), changed
-
-
-def _vol_scale(signal: pd.DataFrame, returns: pd.DataFrame, vol_target: float) -> pd.Series:
-    """Delever-only vol target: scale = min(target / trailing vol, 1)."""
-    ret = returns if isinstance(returns, pd.Series) else returns.mean(axis=1)
-    trailing = ret.rolling(VOL_LOOKBACK).std(ddof=0) * math.sqrt(DAYS_PER_YEAR)
-    with np.errstate(invalid="ignore", divide="ignore"):
-        raw = vol_target / trailing
-    scale = pd.Series(raw, index=ret.index).fillna(1.0)
-    scale = scale.where(scale <= 1.0, 1.0)
-    scale = scale.where(scale > 0, 1.0)
-    return scale.reindex(signal.index)
-
-
-def _backtest(
-    signal: pd.DataFrame, scale: pd.Series, returns: pd.DataFrame, changed: pd.DataFrame, dates
-) -> dict:
-    """Full backtest ledger as a dict of metrics plus equity/returns/executed frames."""
-    signal = signal.reindex(dates)
-    scale = scale.reindex(dates).fillna(1.0)
-    returns = returns.reindex(dates).fillna(0.0)
-    changed = changed.reindex(index=dates, columns=signal.columns).fillna(False)
-    strat, _gross, cost, executed = _execute(signal, scale, returns, changed)
-    equity = (1.0 + strat).cumprod()
-    trades = int((executed.diff().abs().fillna(executed.abs()) > 1e-12).sum().sum())
-    periods = int(len(dates))
-    total_return = float(equity.iloc[-1] / equity.iloc[0] - 1.0) if len(equity) > 1 else 0.0
-    return {
-        "sharpe": _annualized_sharpe(strat),
-        "profit_factor": _profit_factor(strat),
-        "max_drawdown": _max_drawdown(equity),
-        "trades": trades,
-        "periods": periods,
-        "total_return": total_return,
-        "worst_regime_rolling252_sharpe": _rolling_252_sharpe_worst(strat),
-        "equity": equity,
-        "returns": strat,
-        "executed": executed,
-        "cost_bps_sum": float(cost.sum() * 1e4),
-    }
-
-
-def _wf_score(
-    signal: pd.DataFrame,
-    scale: pd.Series,
-    returns: pd.DataFrame,
-    changed: pd.DataFrame,
-    dates,
-    n_folds: int = 4,
-) -> float:
-    """Walk-forward mean fold Sharpe over the given signal/scale/returns."""
-    n = len(dates)
-    fold = n // n_folds
-    sharpes = []
-    for i in range(n_folds):
-        stop = n if i == n_folds - 1 else (i + 1) * fold
-        block = dates[i * fold : stop]
-        if len(block) < 120:
-            continue
-        strat, _, _, _ = _execute(
-            signal.reindex(block),
-            scale.reindex(block),
-            returns.reindex(block),
-            changed.reindex(index=block, columns=signal.columns),
-            block,
-        )
-        sharpes.append(_annualized_sharpe(strat))
-    return float(np.mean(sharpes)) if sharpes else -999.0
-
-
-def _benchmark_weights(settle: pd.DataFrame) -> pd.DataFrame:
-    """Passive book: equal weight across products with a non-null settle."""
-    active = settle.notna()
-    rowsum = active.sum(axis=1)
-    return active.div(rowsum, axis=0).fillna(0.0)
-
-
-def _perturbation_oos_sharpes(
-    slope: pd.DataFrame, returns: pd.DataFrame, changed: pd.DataFrame, dates, selected: dict
-) -> list:
-    """OAT +/-20% perturbation of entry_z / exit_z / k; OOS annualized sharpes."""
-    sharpes = []
-    for param, factor in (
-        ("entry_z", 0.8),
-        ("entry_z", 1.2),
-        ("exit_z", 0.8),
-        ("exit_z", 1.2),
-        ("k", 0.8),
-        ("k", 1.2),
-    ):
-        pert = dict(selected)
-        if param == "k":
-            pert[param] = max(1, int(round(float(selected[param]) * factor)))
-        else:
-            pert[param] = round(float(selected[param]) * factor, 6)
-        signal, _, _ = _cross_sectional_signal(
-            slope, k=int(pert["k"]), entry_z=float(pert["entry_z"]), exit_z=float(pert["exit_z"])
-        )
-        scale = _vol_scale(signal, returns.reindex(slope.index), pert["vol_target"])
-        strat, _, _, _ = _execute(
-            signal,
-            scale,
-            returns.reindex(dates),
-            changed.reindex(index=dates, columns=slope.columns),
-        )
-        sharpes.append(_annualized_sharpe(strat))
-    return sharpes
-
-
-def _download_date(args) -> tuple[str, str, bytes | None]:
-    source, day = args
-    try:
-        return source, day.isoformat(), fetch_cached(source, day)
-    except Exception:  # never abort the full download on a single bad date
-        return source, day.isoformat(), None
-
-
-def download_all(
-    universe: list[tuple[str, str]], calendar, cache_dir: Path = CACHE_DIR, workers: int = WORKERS
-) -> dict:
-    """Fetch one cross-section per (venue, trade date); resumable via cache."""
-    jobs = [(source, day) for source, _ in universe for day in calendar]
-    payloads: dict[tuple[str, str], bytes | None] = {}
-    with ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = [pool.submit(_download_date, job) for job in jobs]
-        for future in as_completed(futures):
-            source, day_iso, payload = future.result()
-            payloads[(source, day_iso)] = payload
-    return payloads
-
-
-def build_panel(universe: list[tuple[str, str]], payloads: dict, calendar):
-    """Parse cross-sections into per-product slope/front/settle over the calendar.
-
-    Returns (panels, provenance) where panels maps "SOURCE:CODE" to a
-    DataFrame indexed by ``calendar`` with columns slope, front, settle and
-    active.  A product is inactive on dates with no parseable cross-section or
-    fewer than two tradable contracts.
-    """
-    panels = {}
-    provenance = []
+    codes_by_source: dict[str, list[str]] = {}
     for source, code in universe:
-        key = f"{source}:{code}"
-        parser = PARSER_BY_SOURCE[source]
-        rows = []
-        first_date = None
-        for day in calendar:
-            payload = payloads.get((source, day.strftime("%Y-%m-%d")))
-            if payload is None:
+        codes_by_source.setdefault(source, []).append(code.upper())
+
+    settle_maps: dict[str, dict] = {}
+    oi_maps: dict[str, dict] = {}
+    for source, codes in codes_by_source.items():
+        for key in (f"{source}:{code}" for code in codes):
+            settle_maps[key] = {}
+            oi_maps[key] = {}
+        for day in source_dates(source, calendar):
+            path = cache_path(source, day, cache_dir)
+            if not path.exists():
                 continue
             try:
-                if source == "CZCE":
-                    frame = parser(payload, reference=day)
-                else:
-                    frame = parser(payload)
+                frame = parse_cross_section(source, path.read_bytes(), day)
             except Exception:
                 continue
-            frame = frame[frame["product"] == code.upper()]
-            slice_ = term_slice(frame, day)
-            if slice_ is None:
-                continue
-            if first_date is None:
-                first_date = day
-            rows.append(
-                {
-                    "date": day,
-                    "slope": slice_.slope,
-                    "front": slice_.front,
-                    "settle": slice_.front_settle,
-                    "active": True,
-                }
-            )
-        panel = pd.DataFrame(rows)
-        if len(panel):
-            panel = panel.set_index("date").reindex(calendar)
-            panel["active"] = panel["active"].fillna(False)
-            for col in ("slope", "front", "settle"):
-                panel[col] = panel[col].where(panel["active"])
-        else:
-            panel = pd.DataFrame(
-                {
-                    "slope": pd.Series(dtype=float, index=calendar),
-                    "front": pd.Series(dtype=object, index=calendar),
-                    "settle": pd.Series(dtype=float, index=calendar),
-                    "active": pd.Series(dtype=bool, index=calendar),
-                }
-            )
-        observed_first = (
-            str(panel.index[panel["active"]].min().date()) if panel["active"].any() else ""
-        )
-        declared = FIRST_DATE.get((source, code), "")
-        effective = (
-            max(declared, observed_first)
-            if declared and observed_first
-            else (declared or observed_first)
-        )
-        panels[key] = panel
-        provenance.append(
-            {
-                "source": source,
-                "code": code,
-                "key": key,
-                "declared_first_date": declared,
-                "observed_first_date": observed_first,
-                "effective_first_date": effective,
-                "active_days": int(panel["active"].sum()),
-                "url_root": source_url(source, pd.Timestamp(END)).rsplit("/", 1)[0],
-            }
-        )
-    return panels, provenance
+            for code in codes:
+                key = f"{source}:{code}"
+                sub = frame[frame["product"] == code]
+                if sub.empty:
+                    continue
+                trade_ymm = day.strftime("%Y%m")
+                settle = {}
+                oi = {}
+                for delivery, settlement, open_interest in zip(
+                    sub["delivery"], sub["settlement"], sub["open_interest"]
+                ):
+                    if delivery == trade_ymm:
+                        continue
+                    settle[str(delivery)] = float(settlement)
+                    oi[str(delivery)] = float(open_interest)
+                if settle:
+                    settle_maps[key][day] = settle
+                    oi_maps[key][day] = oi
+    panels = {}
+    for key in settle_maps:
+        settle = pd.DataFrame.from_dict(settle_maps[key], orient="index").sort_index()
+        oi = pd.DataFrame.from_dict(oi_maps[key], orient="index").sort_index()
+        settle = settle.reindex(calendar)
+        oi = oi.reindex(calendar).reindex(columns=settle.columns)
+        panels[key] = {
+            "settle": settle.apply(pd.to_numeric, errors="coerce").astype(float),
+            "oi": oi.apply(pd.to_numeric, errors="coerce").astype(float),
+        }
+    return panels
 
 
-def _annualized_sharpe(ret: pd.Series) -> float:
-    values = ret.dropna()
-    if len(values) < 20:
-        return 0.0
-    std = values.std(ddof=0)
-    if not np.isfinite(std) or std <= 0:
-        return 0.0
-    return float(values.mean() / std * math.sqrt(DAYS_PER_YEAR))
+def front_second(
+    settle: pd.Series, oi: pd.Series, floor: float = OI_FLOOR
+) -> tuple[str, str, float, float] | None:
+    """Two nearest tradable contracts and their settlements.
+
+    Tradable means settlement > 0 and open interest >= ``floor``.  Contracts
+    whose delivery month equals the cross-section's month were already dropped
+    during assembly.
+    """
+    usable = [
+        (delivery, float(settle[delivery]))
+        for delivery in settle.index
+        if pd.notna(settle[delivery])
+        and settle[delivery] > 0
+        and pd.notna(oi.get(delivery))
+        and float(oi.get(delivery)) >= floor
+    ]
+    usable.sort(key=lambda item: item[0])
+    if len(usable) < 2:
+        return None
+    (front, front_settle), (second, second_settle) = usable[0], usable[1]
+    if months_between(front, second) <= 0:
+        return None
+    return front, second, front_settle, second_settle
 
 
-def _profit_factor(ret: pd.Series) -> float:
-    values = ret.dropna()
-    gains = values[values > 0].sum()
-    losses = -values[values < 0].sum()
-    if losses <= 0:
-        return float("inf") if gains > 0 else 0.0
-    return float(gains / losses)
-
-
-def _max_drawdown(equity: pd.Series) -> float:
-    values = equity.dropna()
-    if len(values) == 0:
-        return 0.0
-    peak = values.cummax()
-    return float((values / peak - 1.0).min())
-
-
-def _rolling_252_sharpe_worst(ret: pd.Series) -> float:
-    values = ret.dropna()
-    if len(values) < 252:
-        return _annualized_sharpe(values)
-    array = values.to_numpy(dtype=float)
-    worst = float("inf")
-    for i in range(251, len(array)):
-        window = array[i - 251 : i + 1]
-        std = window.std(ddof=0)
-        if not np.isfinite(std) or std <= 0:
+def term_panel(panel: dict[str, pd.DataFrame], calendar: pd.DatetimeIndex) -> pd.DataFrame:
+    """Per-day front/second contracts, front settlement and annualized slope."""
+    settle, oi = panel["settle"], panel["oi"]
+    rows = []
+    for day in calendar:
+        if day not in settle.index:
+            rows.append((None, None, np.nan, np.nan))
             continue
-        sharpe = float(window.mean() / std * math.sqrt(DAYS_PER_YEAR))
-        if sharpe < worst:
-            worst = sharpe
-    return worst if np.isfinite(worst) else _annualized_sharpe(values)
+        pick = front_second(settle.loc[day], oi.loc[day])
+        if pick is None:
+            rows.append((None, None, np.nan, np.nan))
+            continue
+        front, second, front_settle, second_settle = pick
+        slope = math.log(front_settle / second_settle) * 12.0 / months_between(front, second)
+        rows.append((front, second, front_settle, slope))
+    term = pd.DataFrame(rows, index=calendar, columns=["front", "second", "front_settle", "slope"])
+    term["active"] = term["slope"].notna()
+    return term
 
 
-def _metrics(strat_ret: pd.Series, equity: pd.Series, trades: int) -> dict:
-    return {
-        "sharpe": _annualized_sharpe(strat_ret),
-        "profit_factor": _profit_factor(strat_ret),
-        "max_drawdown": _max_drawdown(equity),
-        "trades": int(trades),
-        "periods": int(len(strat_ret.dropna())),
-        "total_return": float(equity.iloc[-1] / equity.iloc[0] - 1.0) if len(equity) > 1 else 0.0,
-        "worst_regime_rolling252_sharpe": _rolling_252_sharpe_worst(strat_ret),
-    }
+def held_returns(
+    panel: dict[str, pd.DataFrame], term: pd.DataFrame, calendar: pd.DatetimeIndex
+) -> pd.DataFrame:
+    """Roll-adjusted return of the contract held on each day, plus a roll flag.
+
+    The contract held during day t is the front contract *known at t-1*, so the
+    return is the price change of that same contract between t-1 and t.  A
+    spliced front-series return would book the calendar spread as a price jump
+    on every roll and double-count the very carry the signal trades.
+    """
+    settle = panel["settle"]
+    front_known = term["front"].shift(1)
+    returns = pd.Series(np.nan, index=calendar, dtype=float)
+    rolls = pd.Series(0.0, index=calendar, dtype=float)
+    previous_contract = None
+    for i, day in enumerate(calendar):
+        contract = front_known.iloc[i]
+        if previous_contract is not None and contract != previous_contract:
+            rolls.iloc[i] = 1.0
+        previous_contract = contract
+        if not isinstance(contract, str) or i == 0:
+            continue
+        prior_day = calendar[i - 1]
+        if contract not in settle.columns:
+            continue
+        now = settle.at[day, contract] if day in settle.index else np.nan
+        before = settle.at[prior_day, contract] if prior_day in settle.index else np.nan
+        if pd.notna(now) and pd.notna(before) and before > 0:
+            returns.iloc[i] = float(now / before - 1.0)
+    return pd.DataFrame({"return": returns, "roll": rolls}, index=calendar)
 
 
-def _zscores(slope_panel: pd.DataFrame) -> pd.DataFrame:
-    """Cross-sectional z-scores of slope across active products per date."""
-    active = slope_panel.notna()
-    means = slope_panel.mean(axis=1)
-    stds = slope_panel.std(axis=1, ddof=0)
-    z = (slope_panel - means) / stds
-    z = z.where(active & (stds > 0) & (slope_panel.notna().sum(axis=1) >= 2))
-    return z
+# ---------------------------------------------------------------------------
+# Signal, sizing and backtest
+# ---------------------------------------------------------------------------
 
 
-def _signal_weights(
-    panels: dict, z: pd.DataFrame, entry_z: float, exit_z: float, k: int
+def cross_sectional_z(slope: pd.DataFrame) -> pd.DataFrame:
+    """Cross-sectional z-score of the slope across active products each day."""
+    values = slope.to_numpy(dtype=float)
+    active = np.isfinite(values)
+    counts = active.sum(axis=1)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        means = np.where(counts > 0, np.nansum(values, axis=1) / counts, np.nan)
+        centered = np.where(active, values - means[:, None], np.nan)
+        variances = np.nansum(centered**2, axis=1) / counts
+    stds = np.sqrt(variances)
+    usable = (counts >= 2) & np.isfinite(stds) & (stds > 0)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        z = np.where(active, centered / np.where(usable, stds, np.nan)[:, None], np.nan)
+    return pd.DataFrame(z, index=slope.index, columns=slope.columns)
+
+
+def signal_weights(
+    z: pd.DataFrame, entry_z: float, exit_z: float, k: int, products: list[str] | None = None
 ) -> pd.DataFrame:
     """Hysteresis cross-sectional rank: long top-k / short bottom-k by z.
 
-    Positions are formed from day-t information (z built from day-t slopes)
-    and returned aligned to the calendar so the caller applies shift(1).
+    Uses day-t information only and returns target weights for day t; the
+    caller applies ``shift(1)`` before earning any return.  Weights are equal
+    sized and gross-normalized to one across the open legs.
     """
     calendar = z.index
-    products = list(z.columns)
-    state = {p: 0 for p in products}
+    products = list(products if products is not None else z.columns)
+    state = {product: 0 for product in products}
     weights = pd.DataFrame(0.0, index=calendar, columns=products, dtype=float)
-    for i, day in enumerate(calendar):
+    for day in calendar:
         zi = z.loc[day]
-        active = zi.notna()
-        new = state.copy()
-        long_candidates, short_candidates = [], []
-        for p in products:
-            if not active[p]:
+        new = dict(state)
+        long_candidates: list[tuple[str, float]] = []
+        short_candidates: list[tuple[str, float]] = []
+        for product in products:
+            if not pd.notna(zi[product]):
+                new[product] = 0
                 continue
-            value = float(zi[p])
-            if state[p] == 0:
+            value = float(zi[product])
+            if state[product] == 1 and value <= exit_z:
+                new[product] = 0
+            elif state[product] == -1 and value >= -exit_z:
+                new[product] = 0
+            elif state[product] == 0:
                 if value >= entry_z:
-                    long_candidates.append((p, value))
+                    long_candidates.append((product, value))
                 elif value <= -entry_z:
-                    short_candidates.append((p, value))
-            elif state[p] == 1 and value <= exit_z:
-                new[p] = 0
-            elif state[p] == -1 and value >= -exit_z:
-                new[p] = 0
-        persisting_longs = [p for p in products if new[p] == 1]
-        persisting_shorts = [p for p in products if new[p] == -1]
-        long_candidates.sort(key=lambda item: item[1], reverse=True)
-        for p, _ in long_candidates:
-            if p in persisting_longs:
-                continue
-            if len(persisting_longs) >= k:
+                    short_candidates.append((product, value))
+        held_longs = [product for product in products if new[product] == 1]
+        held_shorts = [product for product in products if new[product] == -1]
+        for product, _ in sorted(long_candidates, key=lambda item: item[1], reverse=True):
+            if len(held_longs) >= k:
                 break
-            new[p] = 1
-            persisting_longs.append(p)
-        short_candidates.sort(key=lambda item: item[1])
-        for p, _ in short_candidates:
-            if p in persisting_shorts:
-                continue
-            if len(persisting_shorts) >= k:
+            new[product] = 1
+            held_longs.append(product)
+        for product, _ in sorted(short_candidates, key=lambda item: item[1]):
+            if len(held_shorts) >= k:
                 break
-            new[p] = -1
-            persisting_shorts.append(p)
+            if product in held_longs:
+                continue
+            new[product] = -1
+            held_shorts.append(product)
         state = new
-        n = sum(1 for v in state.values() if v != 0)
-        if n > 0:
-            for p in products:
-                weights.loc[day, p] = state[p] / n
+        open_legs = [product for product in products if state[product] != 0]
+        if open_legs:
+            scale = 1.0 / len(open_legs)
+            for product in open_legs:
+                weights.loc[day, product] = state[product] * scale
     return weights
 
 
-def _vol_scale_series(returns: pd.Series, vol_target: float) -> pd.Series:
+def vol_scale(portfolio_returns: pd.Series, vol_target: float) -> pd.Series:
     """Delever-only vol target: scale = min(target / trailing vol, 1)."""
-    trailing = returns.rolling(VOL_LOOKBACK).std(ddof=0) * math.sqrt(DAYS_PER_YEAR)
-    scale = pd.Series(1.0, index=returns.index, dtype=float)
+    trailing = portfolio_returns.rolling(VOL_LOOKBACK).std(ddof=0) * math.sqrt(DAYS_PER_YEAR)
     with np.errstate(invalid="ignore", divide="ignore"):
         raw = vol_target / trailing
-    scale = pd.Series(raw, index=returns.index).fillna(1.0)
+    scale = pd.Series(raw, index=portfolio_returns.index, dtype=float).fillna(1.0)
     scale = scale.where(scale <= 1.0, 1.0)
     scale = scale.where(scale > 0, 1.0)
     return scale
 
 
-def _run_bt(
-    panels: dict, weights: pd.DataFrame, scale: pd.Series, cost_bps: float = COST_ONE_WAY_BPS
-) -> tuple[pd.Series, pd.Series, int, dict]:
-    """Backtest roll-adjusted futures book with CNY costs.
-
-    Returns (strategy return, equity, trades, cost detail).  Weights at day t
-    are applied to returns at day t+1 via the caller's shift(1); here the
-    algebra assumes weights[t] * returns[t] and the caller shifts weights.
-    """
-    products = list(weights.columns)
-    index = weights.index
-    gross = pd.Series(0.0, index=index, dtype=float)
-    turnover = pd.Series(0.0, index=index, dtype=float)
-    roll_cost = pd.Series(0.0, index=index, dtype=float)
-    prev_w = pd.Series(0.0, index=products, dtype=float)
-    prev_front = {p: None for p in products}
-    for i, day in enumerate(index):
-        w = weights.loc[day].astype(float)
-        day_ret = 0.0
-        day_roll = 0.0
-        for p in products:
-            panel = panels[p]
-            if not bool(panel.loc[day, "active"]):
-                continue
-            settle_prev = panel.loc[day, "settle"]
-            # Return of the held front contract bridges the roll: when the
-            # front contract changes, settle jumps from the old front to the
-            # new front and the jump is the roll yield.
-            day_ret += float(w[p]) * float(settle_prev) if False else 0.0
-        gross.loc[day] = day_ret  # placeholder, replaced below
-    # Vectorized path: build return and front frames first.
-    return gross, pd.Series(1.0, index=index), 0, {}
-
-
-def _returns_and_rolls(panels: dict, products: list) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Per-product daily return of the held front contract and roll flags."""
-    rets = {}
-    rolls = {}
-    for p in products:
-        panel = panels[p]
-        settle = panel["settle"]
-        front = panel["front"]
-        ret = settle / settle.shift(1) - 1.0
-        ret = ret.where(panel["active"] & panel["active"].shift(1))
-        roll = (front != front.shift(1)) & panel["active"] & panel["active"].shift(1)
-        roll = roll.astype(float).where(panel["active"], 0.0)
-        rets[p] = ret
-        rolls[p] = roll
-    return pd.DataFrame(rets), pd.DataFrame(rolls)
-
-
-def _backtest_panels(
-    panels: dict,
-    products: list,
+def backtest_metrics(
     weights: pd.DataFrame,
-    scale: pd.Series,
-    cost_bps: float,
-    roll_bps: float,
-) -> tuple[pd.Series, pd.Series, int, float]:
-    """Full backtest: shift(1) weights, CNY turnover + roll-crossing costs."""
-    rets, rolls = _returns_and_rolls(panels, products)
-    aligned_rets = rets.reindex(weights.index)
-    aligned_rolls = rolls.reindex(weights.index)
-    aligned_scale = scale.reindex(weights.index).fillna(1.0)
-    w_scaled = weights.mul(aligned_scale, axis=0)
-    shifted = w_scaled.shift(1).fillna(0.0)
-    gross = (shifted * aligned_rets).sum(axis=1, min_count=1).fillna(0.0)
-    turnover = w_scaled.diff().abs().sum(axis=1)
-    turnover.iloc[0] = w_scaled.iloc[0].abs().sum()
-    trade_cost = turnover * (cost_bps / 1e4)
-    roll_notional = (shifted.abs() * aligned_rolls).sum(axis=1).fillna(0.0)
-    roll_cost = roll_notional * (roll_bps / 1e4)
-    strat = (gross - trade_cost - roll_cost).astype(float).fillna(0.0)
-    equity = (1.0 + strat).cumprod()
-    trades = int((w_scaled.diff().abs().fillna(w_scaled.abs()) > 1e-12).sum().sum())
-    total_cost = float(trade_cost.sum() + roll_cost.sum())
-    return strat, equity, trades, total_cost
+    returns: pd.DataFrame,
+    rolls: pd.DataFrame,
+    side_bps: float = COST_ONE_WAY_BPS,
+    roll_bps: float = ROLL_CROSS_BPS,
+) -> dict:
+    """Shift(1) the target weights, charge CNY turnover and roll-crossing costs."""
+    shifted = weights.shift(1).fillna(0.0)
+    gross = (shifted * returns).sum(axis=1)
+    turnover = shifted.diff().abs().sum(axis=1)
+    if len(turnover):
+        turnover.iloc[0] = float(shifted.iloc[0].abs().sum())
+    trade_cost = turnover * (side_bps / 1e4)
+    roll_cost = (shifted.abs() * rolls).sum(axis=1) * (roll_bps / 1e4)
+    net = (gross - trade_cost - roll_cost).fillna(0.0)
+    equity = (1.0 + net).cumprod()
+    trades = int((shifted.diff().abs().fillna(shifted.abs()) > 1e-12).sum().sum())
+    return {
+        "returns": net,
+        "equity": equity,
+        "trades": trades,
+        "gross_returns": gross.fillna(0.0),
+        "cost": (trade_cost + roll_cost).fillna(0.0),
+    }
 
 
-def _wf_score_panels(
-    panels: dict, products: list, train_index, params: dict, n_folds: int = 4
+def metrics(returns: pd.Series, equity: pd.Series, trades: int) -> dict:
+    return {
+        "sharpe": annualized_sharpe(returns),
+        "profit_factor": profit_factor(returns),
+        "max_drawdown": max_drawdown(equity),
+        "trades": int(trades),
+        "periods": int(returns.dropna().shape[0]),
+        "total_return": float(equity.iloc[-1] / equity.iloc[0] - 1.0) if len(equity) > 1 else 0.0,
+        "worst_regime_rolling252_sharpe": worst_rolling_sharpe(returns),
+    }
+
+
+def annualized_sharpe(returns: pd.Series) -> float:
+    values = pd.Series(returns).dropna()
+    if len(values) < 20:
+        return 0.0
+    std = float(values.std(ddof=0))
+    if not np.isfinite(std) or std <= 0:
+        return 0.0
+    return float(values.mean() / std * math.sqrt(DAYS_PER_YEAR))
+
+
+def profit_factor(returns: pd.Series) -> float:
+    values = pd.Series(returns).dropna()
+    gains = float(values[values > 0].sum())
+    losses = float(-values[values < 0].sum())
+    if losses <= 0:
+        return float("inf") if gains > 0 else 0.0
+    return gains / losses
+
+
+def max_drawdown(equity: pd.Series) -> float:
+    values = pd.Series(equity).dropna()
+    if values.empty:
+        return 0.0
+    return float((values / values.cummax() - 1.0).min())
+
+
+def worst_rolling_sharpe(returns: pd.Series, window: int = 252) -> float:
+    values = pd.Series(returns).dropna()
+    if len(values) < window:
+        return annualized_sharpe(values)
+    array = values.to_numpy(dtype=float)
+    worst = float("inf")
+    for end in range(window, len(array) + 1):
+        block = array[end - window : end]
+        std = float(block.std(ddof=0))
+        if not np.isfinite(std) or std <= 0:
+            continue
+        worst = min(worst, float(block.mean() / std * math.sqrt(DAYS_PER_YEAR)))
+    return worst if np.isfinite(worst) else annualized_sharpe(values)
+
+
+# ---------------------------------------------------------------------------
+# Portfolio construction helpers
+# ---------------------------------------------------------------------------
+
+
+def scaled_weights(
+    slope: pd.DataFrame, params: dict, returns: pd.DataFrame, products: list[str]
+) -> tuple[pd.DataFrame, pd.Series]:
+    """Target weights and delever-only scale for one parameter combination."""
+    z = cross_sectional_z(slope)
+    weights = signal_weights(z, params["entry_z"], params["exit_z"], int(params["k"]), products)
+    raw_port = (weights.shift(1).fillna(0.0) * returns).sum(axis=1).fillna(0.0)
+    scale = vol_scale(raw_port, float(params["vol_target"]))
+    return weights.mul(scale, axis=0), scale
+
+
+def walk_forward_score(
+    slope: pd.DataFrame,
+    params: dict,
+    returns: pd.DataFrame,
+    rolls: pd.DataFrame,
+    products: list[str],
+    train_index: pd.DatetimeIndex,
+    n_folds: int = 4,
 ) -> float:
-    """Mean train-only fold Sharpe (weights computed on the full train block)."""
+    """Mean contiguous-fold Sharpe on the train block (selection score only)."""
     if len(train_index) < 400:
         return -999.0
-    entry_z, exit_z, k, vol_target = (
-        params["entry_z"],
-        params["exit_z"],
-        int(params["k"]),
-        float(params["vol_target"]),
-    )
-    # Slopes and returns restricted to train; signal weights over train.
-    slope_train = pd.DataFrame({p: panels[p].loc[train_index, "slope"] for p in products}).reindex(
-        train_index
-    )
-    z = _zscores(slope_train)
-    weights = _signal_weights(panels, z, entry_z, exit_z, k).reindex(train_index)
-    rets, _ = _returns_and_rolls(panels, products)
-    ew = weights.div(weights.abs().sum(axis=1), axis=0).fillna(0.0)
-    ew_ret = (
-        (ew.shift(1).fillna(0.0) * rets.reindex(train_index)).sum(axis=1, min_count=1).fillna(0.0)
-    )
-    scale = _vol_scale_series(ew_ret, vol_target).reindex(train_index)
+    weights, _ = scaled_weights(slope.loc[train_index], params, returns.loc[train_index], products)
     fold = len(train_index) // n_folds
     sharpes = []
-    for i in range(n_folds):
-        stop = len(train_index) if i == n_folds - 1 else (i + 1) * fold
-        block = train_index[i * fold : stop]
+    for fold_no in range(n_folds):
+        start = fold_no * fold
+        stop = len(train_index) if fold_no == n_folds - 1 else (fold_no + 1) * fold
+        block = train_index[start:stop]
         if len(block) < 120:
             continue
-        w_block = weights.reindex(block).fillna(0.0)
-        s_block = scale.reindex(block).fillna(1.0)
-        _, _, _, _ = _backtest_panels(
-            panels, products, w_block.reindex(train_index).fillna(0.0), s_block, 0.0, 0.0
+        result = backtest_metrics(
+            weights.reindex(block).fillna(0.0),
+            returns.reindex(block).fillna(0.0),
+            rolls.reindex(block).fillna(0.0),
         )
-        # Score the block directly with aligned weights/scale.
-        strat, _, _, _ = _backtest_panels(panels, products, w_block, s_block, 0.0, 0.0)
-        sharpes.append(_annualized_sharpe(strat))
+        sharpes.append(annualized_sharpe(result["returns"]))
     return float(np.mean(sharpes)) if sharpes else -999.0
 
 
-def _information_ratio(strategy: pd.Series, benchmark: pd.Series) -> float:
-    a, b = strategy.align(benchmark, join="inner")
-    diff = (a - b).dropna()
-    std = diff.std(ddof=0)
-    if len(diff) < 20 or std <= 0 or not np.isfinite(std):
-        return 0.0
-    return float(diff.mean() / std * math.sqrt(DAYS_PER_YEAR))
+def passive_long_weights(returns: pd.DataFrame, calendar: pd.DatetimeIndex) -> pd.DataFrame:
+    """Passive front-month long book: equal weight across products with data."""
+    active = returns.notna()
+    counts = active.sum(axis=1)
+    weights = active.astype(float).div(counts.where(counts > 0), axis=0).fillna(0.0)
+    return weights.reindex(calendar).fillna(0.0)
 
 
-def _benchmark_pvalue(strategy: pd.Series, benchmark: pd.Series, n_boot: int = 2000) -> float:
-    a, b = strategy.align(benchmark, join="inner")
-    diff = (a - b).dropna().to_numpy()
-    if len(diff) < 20:
-        return 1.0
-    observed = diff.mean()
-    if not np.isfinite(observed):
-        return 1.0
-    rng = np.random.default_rng(SEED)
-    centered = diff - observed
-    draws = np.array(
-        [rng.choice(centered, size=len(centered), replace=True).mean() for _ in range(n_boot)]
-    )
-    return float((1.0 + np.sum(draws >= observed)) / (n_boot + 1.0))
+def random_weights(weights: pd.DataFrame, returns: pd.DataFrame, seed: int = SEED) -> pd.DataFrame:
+    """Random-ranking control with the same number of active legs per day."""
+    rng = np.random.default_rng(seed)
+    out = pd.DataFrame(0.0, index=weights.index, columns=weights.columns, dtype=float)
+    for day in weights.index:
+        active = [column for column in weights.columns if pd.notna(returns.at[day, column])]
+        target_n = int((weights.loc[day] != 0).sum())
+        if target_n == 0 or not active:
+            continue
+        chosen = rng.choice(active, size=min(target_n, len(active)), replace=False)
+        signs = rng.choice([-1.0, 1.0], size=len(chosen))
+        for column, sign in zip(chosen, signs):
+            out.loc[day, column] = float(sign) / len(chosen)
+    return out
 
 
-def _iter_grid():
+def iter_grid():
     for entry_z in GRID["entry_z"]:
         for exit_z in GRID["exit_z"]:
             for k in GRID["k"]:
@@ -995,65 +682,120 @@ def _iter_grid():
                     }
 
 
-def _passive_long_weights(panels: dict, products: list, calendar) -> pd.DataFrame:
-    """Passive front-month long book: long every active product's front."""
-    weights = pd.DataFrame(0.0, index=calendar, columns=products, dtype=float)
-    for day in calendar:
-        active = [p for p in products if bool(panels[p].loc[day, "active"])]
-        if not active:
-            continue
-        weights.loc[day, active] = 1.0 / len(active)
-    return weights
+def perturbation_sharpes(
+    slope: pd.DataFrame,
+    selected: dict,
+    returns: pd.DataFrame,
+    rolls: pd.DataFrame,
+    products: list[str],
+    oos_index: pd.DatetimeIndex,
+) -> list[float]:
+    """OAT +/-20% perturbation of entry_z, exit_z and k, measured on OOS."""
+    variants = []
+    for factor in (0.8, 1.2):
+        for param in ("entry_z", "exit_z"):
+            variant = dict(selected)
+            variant[param] = round(float(selected[param]) * factor, 6)
+            variants.append(variant)
+    for factor in (0.8, 1.2):
+        variant = dict(selected)
+        variant["k"] = max(1, int(round(float(selected["k"]) * factor)))
+        variants.append(variant)
+    sharpes = []
+    for variant in variants:
+        weights, _ = scaled_weights(slope, variant, returns, products)
+        result = backtest_metrics(
+            weights.reindex(oos_index).fillna(0.0),
+            returns.reindex(oos_index).fillna(0.0),
+            rolls.reindex(oos_index).fillna(0.0),
+        )
+        sharpes.append(annualized_sharpe(result["returns"]))
+    return sharpes
 
 
-def _random_weights(
-    weights: pd.DataFrame, panels: dict, products: list, seed: int = SEED
-) -> pd.DataFrame:
-    """Random ranking control: same active contract-days, random signs."""
-    rng = np.random.default_rng(seed)
-    out = pd.DataFrame(0.0, index=weights.index, columns=products, dtype=float)
-    for day in weights.index:
-        active = [p for p in products if bool(panels[p].loc[day, "active"])]
-        target_n = int((weights.loc[day] != 0).sum())
-        if target_n == 0 or not active:
-            continue
-        chosen = rng.choice(active, size=min(target_n, len(active)), replace=False)
-        signs = rng.choice([-1.0, 1.0], size=len(chosen))
-        for p, sign in zip(chosen, signs):
-            out.loc[day, p] = sign / len(chosen)
-    return out
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
 
 
-def main(out: str | None = None, universe: list | None = None) -> dict:
+def artifact_dir(out: str | None) -> Path:
+    if out:
+        path = Path(out).resolve()
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+    stamp = time.strftime("%Y%m%d_%H%M%S")
+    path = (Path(".experiments") / "nf_runs" / f"{EXPERIMENT}_{stamp}").resolve()
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def main(
+    out: str | None = None,
+    universe: list[tuple[str, str]] | None = None,
+    workers: int = WORKERS,
+    download_only: bool = False,
+) -> dict:
     started = time.time()
     universe = universe or UNIVERSE
-    artifact = _artifact_dir(out)
     calendar = pd.bdate_range(START, END)
+    download_provenance = ensure_cached(universe, calendar, workers=workers)
+    if download_only:
+        print(json.dumps(download_provenance, indent=2))
+        return download_provenance
+
+    artifact = artifact_dir(out)
+    products = [f"{source}:{code}" for source, code in universe]
+    panels = load_product_data(universe, calendar)
+    missing = [product for product in products if product not in panels]
+    if missing:
+        raise RuntimeError(f"no cached data for {missing}")
+
+    terms = {product: term_panel(panels[product], calendar) for product in products}
+    held = {
+        product: held_returns(panels[product], terms[product], calendar) for product in products
+    }
+    slope = pd.DataFrame({product: terms[product]["slope"] for product in products}, index=calendar)
+    returns = pd.DataFrame(
+        {product: held[product]["return"] for product in products}, index=calendar
+    )
+    rolls = pd.DataFrame({product: held[product]["roll"] for product in products}, index=calendar)
+    provenance = []
+    for source, code in universe:
+        key = f"{source}:{code}"
+        active_days = int(terms[key]["active"].sum())
+        observed = str(terms[key].index[terms[key]["active"]].min().date()) if active_days else ""
+        declared = FIRST_DATE.get((source, code), "")
+        provenance.append(
+            {
+                "source": source,
+                "code": code,
+                "key": key,
+                "declared_first_date": declared,
+                "observed_first_date": observed,
+                "effective_first_date": max(declared, observed)
+                if declared and observed
+                else (declared or observed),
+                "active_days": active_days,
+                "cached_days": int(terms[key]["front"].notna().sum()),
+            }
+        )
+
     train_end = pd.Timestamp(TRAIN_END)
     val_end = pd.Timestamp(VAL_END)
     train_index = calendar[calendar <= train_end]
-    oos_index = calendar[calendar > train_end]
     val_index = calendar[(calendar > train_end) & (calendar <= val_end)]
     test_index = calendar[calendar > val_end]
+    oos_index = calendar[calendar > train_end]
 
-    products = [f"{source}:{code}" for source, code in universe]
-    payloads = download_all(universe, calendar)
-    panels, provenance = build_panel(universe, payloads, calendar)
-    slope_panel = pd.DataFrame({p: panels[p]["slope"] for p in products}, index=calendar)
-    rets, rolls = _returns_and_rolls(panels, products)
-    aligned_rets = rets.reindex(calendar)
-    aligned_rolls = rolls.reindex(calendar)
-
-    # Grid selection: train-only 4-fold walk-forward Sharpe.
-    rows = []
-    for params in _iter_grid():
-        wf = _wf_score_panels(panels, products, train_index, params)
-        rows.append({**params, "wf_train_sharpe": wf})
-    grid = pd.DataFrame(rows).sort_values(["wf_train_sharpe"], ascending=False)
+    grid_rows = []
+    for params in iter_grid():
+        score = walk_forward_score(slope, params, returns, rolls, products, train_index)
+        grid_rows.append({**params, "wf_train_sharpe": score})
+    grid = pd.DataFrame(grid_rows).sort_values("wf_train_sharpe", ascending=False)
     grid.to_csv(artifact / "grid.csv", index=False)
     valid = grid[np.isfinite(grid["wf_train_sharpe"])]
     if valid.empty:
-        raise RuntimeError("no valid grid rows")
+        raise RuntimeError("no valid grid rows: train selection produced no finite score")
     best = valid.iloc[0].to_dict()
     selected = {
         "entry_z": float(best["entry_z"]),
@@ -1062,25 +804,20 @@ def main(out: str | None = None, universe: list | None = None) -> dict:
         "vol_target": float(best["vol_target"]),
     }
 
-    # Selected weights/scale over the full calendar.
-    z = _zscores(slope_panel)
-    weights = _signal_weights(panels, z, selected["entry_z"], selected["exit_z"], selected["k"])
-    ew = weights.div(weights.abs().sum(axis=1), axis=0).fillna(0.0)
-    ew_ret = (ew.shift(1).fillna(0.0) * aligned_rets).sum(axis=1, min_count=1).fillna(0.0)
-    scale = _vol_scale_series(ew_ret, selected["vol_target"])
-
-    def run_on(index: pd.Index) -> tuple[pd.Series, pd.Series, int]:
-        w_block = weights.reindex(index).fillna(0.0)
-        s_block = scale.reindex(index).fillna(1.0)
-        strat, equity, trades, _ = _backtest_panels(
-            panels, products, w_block, s_block, COST_ONE_WAY_BPS, ROLL_CROSS_BPS
-        )
-        return strat.reindex(index).fillna(0.0), equity.reindex(index), trades
-
-    oos_ret, oos_equity, oos_trades = run_on(oos_index)
-    oos_metrics = _metrics(oos_ret, oos_equity, oos_trades)
-    train_ret, train_equity, _ = run_on(train_index)
-    train_sharpe = _annualized_sharpe(train_ret)
+    weights, _ = scaled_weights(slope, selected, returns, products)
+    full = backtest_metrics(weights, returns, rolls)
+    train_result = backtest_metrics(
+        weights.reindex(train_index).fillna(0.0),
+        returns.reindex(train_index).fillna(0.0),
+        rolls.reindex(train_index).fillna(0.0),
+    )
+    train_sharpe = annualized_sharpe(train_result["returns"])
+    oos = backtest_metrics(
+        weights.reindex(oos_index).fillna(0.0),
+        returns.reindex(oos_index).fillna(0.0),
+        rolls.reindex(oos_index).fillna(0.0),
+    )
+    oos_metrics = metrics(oos["returns"], oos["equity"], oos["trades"])
 
     wf_stability = (
         float(oos_metrics["sharpe"] / train_sharpe)
@@ -1088,74 +825,56 @@ def main(out: str | None = None, universe: list | None = None) -> dict:
         else (float("inf") if oos_metrics["sharpe"] > 0 else 0.0)
     )
 
-    # Benchmark: passive front-month long book.
-    bench_w = _passive_long_weights(panels, products, calendar)
-    ew_b = bench_w.div(bench_w.abs().sum(axis=1), axis=0).fillna(0.0)
-    bench_ret_all = (ew_b.shift(1).fillna(0.0) * aligned_rets).sum(axis=1, min_count=1).fillna(0.0)
-    bench_scale = _vol_scale_series(bench_ret_all, selected["vol_target"])
-    bench_w_scaled = bench_w.mul(bench_scale, axis=0)
-    bench_strat, bench_equity, bench_trades, _ = _backtest_panels(
-        panels,
-        products,
-        bench_w_scaled,
-        pd.Series(1.0, index=calendar),
-        COST_ONE_WAY_BPS,
-        ROLL_CROSS_BPS,
+    bench_weights = passive_long_weights(returns, calendar)
+    bench_raw = (bench_weights.shift(1).fillna(0.0) * returns).sum(axis=1).fillna(0.0)
+    bench_scale = vol_scale(bench_raw, selected["vol_target"])
+    bench_sized = bench_weights.mul(bench_scale, axis=0)
+    bench_full = backtest_metrics(bench_sized, returns, rolls)
+    bench_oos = backtest_metrics(
+        bench_sized.reindex(oos_index).fillna(0.0),
+        returns.reindex(oos_index).fillna(0.0),
+        rolls.reindex(oos_index).fillna(0.0),
     )
-    bench_oos = bench_strat.reindex(oos_index).fillna(0.0)
-    bench_equity_oos = bench_equity.reindex(oos_index)
-    bench_metrics = _metrics(bench_oos, bench_equity_oos, bench_trades)
+    bench_metrics = metrics(bench_oos["returns"], bench_oos["equity"], bench_oos["trades"])
 
-    # Ablations on OOS.
-    random_w = _random_weights(weights.reindex(oos_index).fillna(0.0), panels, products)
-    random_s = scale.reindex(oos_index).fillna(1.0)
-    rand_ret, rand_equity, rand_trades = _backtest_panels(
-        panels, products, random_w, random_s, COST_ONE_WAY_BPS, ROLL_CROSS_BPS
-    )
-    random_metrics = _metrics(
-        rand_ret.reindex(oos_index).fillna(0.0), rand_equity.reindex(oos_index), rand_trades
-    )
+    comparison = compare_to_benchmark(oos["returns"], bench_oos["returns"])
+    p_value = float(comparison["alpha_p_value"])
+    information_ratio = float(comparison["information_ratio"])
 
-    inv_z = _zscores(-slope_panel)
-    inv_w = _signal_weights(panels, inv_z, selected["entry_z"], selected["exit_z"], selected["k"])
-    inv_ew = inv_w.div(inv_w.abs().sum(axis=1), axis=0).fillna(0.0)
-    inv_scale = _vol_scale_series(
-        (inv_ew.shift(1).fillna(0.0) * aligned_rets).sum(axis=1, min_count=1).fillna(0.0),
-        selected["vol_target"],
+    random_target = random_weights(
+        weights.reindex(oos_index).fillna(0.0), returns.reindex(oos_index)
     )
-    inv_ret, inv_equity, inv_trades = _backtest_panels(
-        panels, products, inv_w, inv_scale, COST_ONE_WAY_BPS, ROLL_CROSS_BPS
+    random_result = backtest_metrics(
+        random_target,
+        returns.reindex(oos_index).fillna(0.0),
+        rolls.reindex(oos_index).fillna(0.0),
     )
-    inverse_metrics = _metrics(
-        inv_ret.reindex(oos_index).fillna(0.0), inv_equity.reindex(oos_index), inv_trades
+    random_metrics = metrics(
+        random_result["returns"], random_result["equity"], random_result["trades"]
     )
 
-    # Perturbation OAT +/-20% on entry_z / exit_z, OOS.
+    inverse_slope = -slope
+    inverse_weights, _ = scaled_weights(inverse_slope, selected, returns, products)
+    inverse_result = backtest_metrics(
+        inverse_weights.reindex(oos_index).fillna(0.0),
+        returns.reindex(oos_index).fillna(0.0),
+        rolls.reindex(oos_index).fillna(0.0),
+    )
+    inverse_metrics = metrics(
+        inverse_result["returns"], inverse_result["equity"], inverse_result["trades"]
+    )
+
+    perturbed = [
+        value
+        for value in perturbation_sharpes(slope, selected, returns, rolls, products, oos_index)
+        if np.isfinite(value)
+    ]
     base_sharpe = oos_metrics["sharpe"]
-    perturbed = []
-    for factor in (0.8, 1.2):
-        for param_name in ("entry_z", "exit_z"):
-            pert = dict(selected)
-            pert[param_name] = round(float(selected[param_name]) * factor, 6)
-            p_w = _signal_weights(panels, z, pert["entry_z"], pert["exit_z"], pert["k"])
-            p_ew = p_w.div(p_w.abs().sum(axis=1), axis=0).fillna(0.0)
-            p_scale = _vol_scale_series(
-                (p_ew.shift(1).fillna(0.0) * aligned_rets).sum(axis=1, min_count=1).fillna(0.0),
-                pert["vol_target"],
-            )
-            p_ret, _, _ = _backtest_panels(
-                panels, products, p_w, p_scale, COST_ONE_WAY_BPS, ROLL_CROSS_BPS
-            )
-            perturbed.append(_annualized_sharpe(p_ret.reindex(oos_index).fillna(0.0)))
-    perturbed = [value for value in perturbed if np.isfinite(value)]
     min_ratio = (
         float(min(perturbed) / base_sharpe)
         if perturbed and np.isfinite(base_sharpe) and base_sharpe != 0
         else 0.0
     )
-
-    ir = _information_ratio(oos_ret, bench_oos)
-    p_value = _benchmark_pvalue(oos_ret, bench_oos)
 
     gates = {
         "sharpe_ge_1": bool(np.isfinite(base_sharpe) and base_sharpe >= GATES["min_sharpe"]),
@@ -1176,7 +895,7 @@ def main(out: str | None = None, universe: list | None = None) -> dict:
             and oos_metrics["worst_regime_rolling252_sharpe"] >= GATES["min_worst_regime_sharpe"]
         ),
         "benchmark_p_le_0_05_and_ir_ge_0": benchmark_significance_gate(
-            p_value, ir, GATES["max_p_value"]
+            p_value, information_ratio, GATES["max_p_value"]
         ),
         "perturbation_min_ratio_ge_0_5": bool(
             np.isfinite(min_ratio) and min_ratio >= GATES["min_perturbed_sharpe_ratio"]
@@ -1192,7 +911,7 @@ def main(out: str | None = None, universe: list | None = None) -> dict:
         "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "runtime_sec": round(time.time() - started, 3),
         "data": {
-            "source": "SHFE/INE/CZCE/CFFEX public settlement cross-sections (free/key-less/PIT)",
+            "source": "SHFE/INE public settlement cross-sections (free/key-less/PIT)",
             "universe": [{"source": s, "code": c} for s, c in universe],
             "products": products,
             "start": START,
@@ -1203,36 +922,39 @@ def main(out: str | None = None, universe: list | None = None) -> dict:
             "val_rows": int(len(val_index)),
             "test_rows": int(len(test_index)),
             "oos_rows": int(len(oos_index)),
-            "calendar": "business days; 404 holidays skipped",
+            "calendar": "business days; 404 holidays/predating dates skipped",
+            "download": download_provenance,
         },
         "provenance": provenance,
         "grid_size": int(len(grid)),
         "selected": selected,
         "wf_train_sharpe": float(valid.iloc[0]["wf_train_sharpe"]),
         "train_selected_sharpe": float(train_sharpe),
+        "full_sample": metrics(full["returns"], full["equity"], full["trades"]),
         "oos_val_test": oos_metrics,
-        "val": _metrics(
-            oos_ret.reindex(val_index).fillna(0.0),
-            oos_equity.reindex(val_index),
-            0,
+        "val": metrics(
+            oos["returns"].reindex(val_index).fillna(0.0),
+            oos["equity"].reindex(val_index),
+            int((oos["returns"].reindex(val_index).fillna(0.0).ne(0.0)).sum()),
         ),
-        "test": _metrics(
-            oos_ret.reindex(test_index).fillna(0.0),
-            oos_equity.reindex(test_index),
-            0,
+        "test": metrics(
+            oos["returns"].reindex(test_index).fillna(0.0),
+            oos["equity"].reindex(test_index),
+            int((oos["returns"].reindex(test_index).fillna(0.0).ne(0.0)).sum()),
         ),
         "benchmark_passive_front_month_long_oos": bench_metrics,
+        "benchmark_comparison": comparison,
         "ablations": {
             "random_ranking_oos": random_metrics,
             "inverse_slope_oos": inverse_metrics,
         },
         "wf_stability_oos_over_train": float(wf_stability)
         if np.isfinite(wf_stability)
-        else wf_stability,
-        "benchmark_pvalue_one_sided": float(p_value),
-        "information_ratio_vs_passive_front_month": float(ir),
+        else str(wf_stability),
+        "benchmark_pvalue_two_sided": p_value,
+        "information_ratio_vs_passive_front_month": information_ratio,
         "perturbation": {
-            "min_ratio": float(min_ratio) if np.isfinite(min_ratio) else min_ratio,
+            "min_ratio": float(min_ratio) if np.isfinite(min_ratio) else str(min_ratio),
             "n_points": len(perturbed),
             "min_sharpe": float(min(perturbed)) if perturbed else None,
         },
@@ -1248,6 +970,7 @@ def main(out: str | None = None, universe: list | None = None) -> dict:
             "real_data": True,
             "cost_one_way_bps": COST_ONE_WAY_BPS,
             "roll_cross_bps": ROLL_CROSS_BPS,
+            "benchmark_pvalue_statistic": "two-sided (published gate statistic)",
         },
     }
     (artifact / "summary.json").write_text(json.dumps(summary, indent=2, default=str) + "\n")
@@ -1255,7 +978,7 @@ def main(out: str | None = None, universe: list | None = None) -> dict:
         json.dumps(
             {
                 "verdict": verdict,
-                "gates_passed": gates_passed,
+                "gates_passed": f"{gates_passed}/{len(gates)}",
                 "artifact": str(artifact),
                 "oos_sharpe": oos_metrics["sharpe"],
             },
@@ -1265,8 +988,18 @@ def main(out: str | None = None, universe: list | None = None) -> dict:
     return summary
 
 
+def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--out", default=None, help="artifact directory")
+    parser.add_argument("--workers", type=int, default=WORKERS, help="concurrent downloads")
+    parser.add_argument(
+        "--download-only",
+        action="store_true",
+        help="populate the settlement cache and exit (resumable)",
+    )
+    return parser.parse_args(argv)
+
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--out", default=None)
-    args = parser.parse_args()
-    main(args.out)
+    arguments = _parse_args()
+    main(arguments.out, workers=arguments.workers, download_only=arguments.download_only)

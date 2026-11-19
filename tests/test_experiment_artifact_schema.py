@@ -104,10 +104,17 @@ def test_incomplete_runs_match_audit_inventory():
 # funding-carry re-run `nf_20261114_02_crypto_funding_carry_20261118_194621`
 # (the earlier truncated `…_20261118_163437` artifact is preserved). Key
 # statistics are unchanged: 134 distinct keys, the same >=50% / >=80% sets.
-EXPECTED_TOTAL_DIRS = 110
-EXPECTED_SUMMARY_COUNT = 102
+# Cycle 215 added one summary (+1 directory): the H184 commodity
+# term-structure-carry run
+# `nf_20261114_01_commodity_termstructure_carry_20261119_cycle215`. It adds
+# five keys (+5 distinct): `benchmark_comparison`,
+# `benchmark_passive_front_month_long_oos`, `benchmark_pvalue_two_sided`,
+# `full_sample` and `information_ratio_vs_passive_front_month`. Each appears
+# in one of 103 summaries, so the >=50% / >=80% sets are unchanged.
+EXPECTED_TOTAL_DIRS = 111
+EXPECTED_SUMMARY_COUNT = 103
 EXPECTED_CACHE_ONLY_DIRS = 11
-EXPECTED_DISTINCT_KEYS = 134
+EXPECTED_DISTINCT_KEYS = 139
 EXPECTED_KEYS_GE_50_PCT = frozenset(
     {
         "ablations",

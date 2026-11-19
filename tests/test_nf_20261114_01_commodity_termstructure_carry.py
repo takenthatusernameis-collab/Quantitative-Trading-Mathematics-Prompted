@@ -9,6 +9,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location(
@@ -21,14 +22,23 @@ spec.loader.exec_module(mod)
 
 DATES = pd.bdate_range("2024-01-02", periods=60)
 PRODUCTS = ["CU", "AL", "RB"]
-DAY = dt.date(2024, 1, 2)
 
 
-def _slope_frame(values: list[list[float]]) -> pd.DataFrame:
-    return pd.DataFrame(values, index=DATES[: len(values)], columns=PRODUCTS)
+def _json_cross_section(rows: list[dict]) -> bytes:
+    return json.dumps({"o_curinstrument": rows}).encode()
 
 
-def test_constants():
+def _shfe_row(product: str, delivery: str, settle: str, oi: str) -> dict:
+    return {
+        "PRODUCTGROUPID": f"{product:<8}",
+        "PRODUCTID": f"{product.lower()}_f",
+        "DELIVERYMONTH": delivery,
+        "SETTLEMENTPRICE": settle,
+        "OPENINTEREST": oi,
+    }
+
+
+def test_constants_match_preregistration():
     assert mod.EXPERIMENT == "nf_20261114_01_commodity_termstructure_carry"
     assert mod.NF_ID == "NF-20261114-01"
     assert mod.HYPOTHESIS == "H184"
@@ -36,29 +46,31 @@ def test_constants():
     assert mod.END == "2026-11-17"
     assert mod.TRAIN_END == "2023-06-30"
     assert mod.VAL_END == "2024-12-31"
-    assert set(mod.GRID) == {"entry_z", "exit_z", "k", "vol_target"}
-    assert mod.GRID["entry_z"] == [0.5, 1.0, 1.5]
-    assert mod.GRID["exit_z"] == [0.0, 0.5]
-    assert mod.GRID["k"] == [1, 3, 5]
-    assert mod.GRID["vol_target"] == [0.10, 0.15]
-    assert set(mod.GATES) == {
-        "min_sharpe",
-        "min_trades",
-        "min_profit_factor",
-        "max_drawdown",
-        "min_walkforward_stability",
-        "min_worst_regime_sharpe",
-        "max_p_value",
-        "min_information_ratio",
-        "min_perturbed_sharpe_ratio",
+    assert mod.GRID == {
+        "entry_z": [0.5, 1.0, 1.5],
+        "exit_z": [0.0, 0.5],
+        "k": [1, 3, 5],
+        "vol_target": [0.10, 0.15],
+    }
+    assert mod.GATES == {
+        "min_sharpe": 1.0,
+        "min_trades": 50,
+        "min_profit_factor": 1.3,
+        "max_drawdown": 0.15,
+        "min_walkforward_stability": 0.7,
+        "min_worst_regime_sharpe": 0.3,
+        "max_p_value": 0.05,
+        "min_information_ratio": 0.0,
+        "min_perturbed_sharpe_ratio": 0.5,
     }
     assert mod.SIDE_BPS == 5.0
     assert mod.ROLL_CROSS_BPS == 1.0
     assert mod.OPEN_INTEREST_FLOOR == 100.0
+    assert mod.FIRST_DATE[("INE", "SC")] == "2018-03-26"
 
 
-def test_iter_grid_size_and_constraints():
-    combos = list(mod._iter_grid())
+def test_extreme_bounded_grid():
+    combos = list(mod.iter_grid())
     assert len(combos) == 3 * 2 * 3 * 2
     for params in combos:
         assert params["exit_z"] <= params["entry_z"]
@@ -66,291 +78,339 @@ def test_iter_grid_size_and_constraints():
         assert params["vol_target"] in {0.10, 0.15}
 
 
-def test_download_universe_all_missing(monkeypatch):
-    def missing(source, day, timeout=30.0):
-        return [], "MISSING"
-
-    monkeypatch.setattr(mod, "_one_date", missing)
-    frame, provenance = mod._download_universe()
-    assert list(frame.columns) == [
-        "date",
-        "product",
-        "delivery",
-        "settlement",
-        "open_interest",
-    ]
-    assert len(frame) == 0
-    assert set(provenance) == {"SHFE", "INE", "CZCE", "CFFEX"}
-    for source in provenance:
-        assert provenance[source]["status_counts"]["MISSING"] > 0
-        assert "{YYYYMMDD}" in provenance[source]["url_pattern"]
+def test_normalize_delivery_resolves_decades():
+    assert mod.normalize_delivery("2402", dt.date(2024, 1, 2)) == "202402"
+    assert mod.normalize_delivery("2402", dt.date(2019, 12, 2)) == "202402"
+    assert mod.normalize_delivery("202401", dt.date(2024, 1, 2)) == "202401"
+    assert mod.normalize_delivery("2001", dt.date(2019, 12, 2)) == "202001"
+    assert mod.normalize_delivery("TA401", dt.date(2024, 1, 2)) == ""
+    assert mod.normalize_delivery("", dt.date(2024, 1, 2)) == ""
 
 
-def test_fetch_cached_resumes_without_redownload(tmp_path, monkeypatch):
-    mod.CACHE_DIR = tmp_path / "commodity_settlements"
-    day = DAY
-    calls = {"n": 0}
-
-    def fake(source, d, timeout=30.0):
-        calls["n"] += 1
-        return b'{"o_curinstrument": []}'
-
-    monkeypatch.setattr(mod, "probe_fetch", fake)
-    payload, status = mod._fetch_cached("SHFE", day)
-    assert status == "OK"
-    assert payload == b'{"o_curinstrument": []}'
-    assert calls["n"] == 1
-    assert (tmp_path / "commodity_settlements" / "SHFE" / "20240102.dat").exists()
-    payload, status = mod._fetch_cached("SHFE", day)
-    assert status == "OK"
-    assert calls["n"] == 1  # cache hit: no re-download
-
-    def missing(source, d, timeout=30.0):
-        return None
-
-    monkeypatch.setattr(mod, "probe_fetch", missing)
-    payload, status = mod._fetch_cached("INE", day)
-    assert status == "MISSING"
-    assert payload is None
+def test_parse_cross_section_keeps_four_digit_shfe_contracts():
+    raw = _json_cross_section(
+        [
+            _shfe_row("CU", "2402", "68920", "49865"),
+            _shfe_row("CU", "2403", "68990", "1234"),
+            _shfe_row("X9", "2402", "100", "10"),
+        ]
+    )
+    frame = mod.parse_cross_section("SHFE", raw, dt.date(2024, 1, 2))
+    assert list(frame["product"]) == ["CU", "CU"]
+    assert list(frame["delivery"]) == ["202402", "202403"]
 
 
-def test_parse_cross_section_excludes_non_universe_and_delivery_window():
-    raw = json.dumps(
-        {
-            "o_curinstrument": [
-                {
-                    "PRODUCTGROUPID": "CU      ",
-                    "PRODUCTID": "cu_f    ",
-                    "DELIVERYMONTH": "2402",
-                    "SETTLEMENTPRICE": "68920",
-                    "OPENINTEREST": "49865",
-                },
-                {
-                    "PRODUCTGROUPID": "X9      ",
-                    "PRODUCTID": "x9_f    ",
-                    "DELIVERYMONTH": "2402",
-                    "SETTLEMENTPRICE": "100",
-                    "OPENINTEREST": "10",
-                },
-            ]
-        }
-    ).encode()
-    frame = mod._parse_cross_section("SHFE", raw, DAY)
-    assert list(frame["product"]) == ["CU"]
-    assert list(frame["delivery"]) == ["2402"]
-
-
-def test_parse_czce_excludes_current_delivery_month():
+def test_parse_cross_section_czce_six_digit():
     text = (
         "合约代码|昨结算|今开盘|最高价|最低价|今收盘|今结算|涨跌1|涨跌2|成交量|持仓量|增减量\n"
         "TA401 |4,000 |4,010 |4,020 |3,990 |4,015 |4,010 |1 |2 |10 |1,000 |0\n"
         "TA402 |3,900 |3,910 |3,920 |3,890 |3,915 |3,905 |1 |2 |5 |500 |0\n"
     ).encode()
-    frame = mod._parse_cross_section("CZCE", text, dt.date(2024, 1, 2))
-    assert list(frame["product"]) == ["TA"]
-    assert list(frame["delivery"]) == ["202402"]
+    frame = mod.parse_cross_section("CZCE", text, dt.date(2024, 1, 2))
+    assert list(frame["product"]) == ["TA", "TA"]
+    assert list(frame["delivery"]) == ["202401", "202402"]
 
 
-def test_term_structure_oi_floor_and_two_nearest():
-    frame = pd.DataFrame(
-        {
-            "date": [DAY] * 5,
-            "product": ["CU", "CU", "CU", "AL", "AL"],
-            "delivery": ["2401", "2402", "2403", "2401", "2402"],
-            "settlement": [100.0, 90.0, 80.0, 20000.0, 19900.0],
-            "open_interest": [5000.0, 1000.0, 50.0, 3000.0, 50.0],
-        }
+def test_front_second_excludes_delivery_month_and_thin_contracts():
+    settle = pd.Series({"202401": 100.0, "202402": 90.0, "202403": 80.0})
+    oi = pd.Series({"202401": 5000.0, "202402": 1000.0, "202403": 50.0})
+    pick = mod.front_second(settle, oi)
+    assert pick == ("202401", "202402", 100.0, 90.0)
+    thin = pd.Series({"202401": 5000.0, "202402": 50.0})
+    assert mod.front_second(settle, thin) is None
+    assert mod.front_second(pd.Series({"202401": 100.0}), pd.Series({"202401": 5000.0})) is None
+
+
+def test_term_panel_slope_formula():
+    index = DATES[:3]
+    settle = pd.DataFrame(
+        {"202402": [100.0, 101.0, 102.0], "202404": [90.0, 91.0, 92.0]}, index=index
     )
-    term = mod._term_structure(frame)
-    assert len(term) == 1
-    row = term.iloc[0]
-    assert row["product"] == "CU"
-    assert row["front"] == "2401"
-    assert row["second"] == "2402"
-    assert abs(row["slope"] - math.log(100.0 / 90.0) * 12.0) < 1e-12
-
-
-def test_signal_frame_full_date_range():
-    term = pd.DataFrame(
-        {
-            "date": [DAY, DAY],
-            "product": ["CU", "CU"],
-            "front": ["2401", "2402"],
-            "front_settle": [100.0, 90.0],
-            "slope": [0.1, 0.05],
-        }
+    oi = pd.DataFrame(
+        {"202402": [5000.0, 5000.0, 5000.0], "202404": [4000.0, 4000.0, 4000.0]}, index=index
     )
-    slope, settle, delivery = mod._signal_frame(term, DATES, ["CU"])
-    assert list(slope.index) == list(DATES)
-    assert list(slope.columns) == ["CU"]
-    assert slope.iloc[0]["CU"] == 0.1
-    assert settle.iloc[0]["CU"] == 100.0
-    assert delivery.iloc[0]["CU"] == "2401"
+    term = mod.term_panel({"settle": settle, "oi": oi}, index)
+    expected = math.log(100.0 / 90.0) * 12.0 / 2
+    assert np.isclose(term["slope"].iloc[0], expected)
+    assert term["front"].iloc[0] == "202402"
+    assert term["second"].iloc[0] == "202404"
+    assert bool(term["active"].all())
 
 
-def test_cross_sectional_signal_ranking():
-    slope = _slope_frame(
-        [[i + 1, i + 2, i * 2 + 3] for i in range(len(DATES))]
-    )  # RB highest, CU lowest
-    signal, spread, spread_z = mod._cross_sectional_signal(slope, k=1, entry_z=-1e9, exit_z=-1e9)
-    # entry low enough to enter immediately after spread_z warm-up; exit never triggers
-    active = spread_z.notna()
-    assert (signal.loc[active, "RB"] == 1.0).all()
-    assert (signal.loc[active, "CU"] == -1.0).all()
-    assert (signal.loc[active, "AL"] == 0.0).all()
-    assert spread.notna().all()
-    assert spread_z.loc[active].notna().all()
+def test_term_panel_marks_missing_dates_inactive():
+    index = DATES[:2]
+    settle = pd.DataFrame({"202402": [100.0, np.nan], "202404": [90.0, np.nan]}, index=index)
+    oi = pd.DataFrame({"202402": [5000.0, np.nan], "202404": [4000.0, np.nan]}, index=index)
+    term = mod.term_panel({"settle": settle, "oi": oi}, index)
+    assert bool(term["active"].iloc[0])
+    assert not bool(term["active"].iloc[1])
 
 
-def test_cross_sectional_signal_gated_off():
-    slope = _slope_frame([[1.0, 2.0, 3.0]] * len(DATES))
-    signal, _, _ = mod._cross_sectional_signal(slope, k=1, entry_z=1e9, exit_z=0.0)
-    assert (signal == 0.0).all().all()
+def test_held_returns_use_same_contract_across_a_roll():
+    index = DATES[:4]
+    settle = pd.DataFrame(
+        {"202401": [100.0, 110.0, 121.0, np.nan], "202402": [90.0, 95.0, 100.0, 105.0]},
+        index=index,
+    )
+    oi = pd.DataFrame(1e6, index=index, columns=settle.columns)
+    panel = {"settle": settle, "oi": oi}
+    term = mod.term_panel(panel, index)
+    # 202401 is excluded from the signal exactly in its delivery month only;
+    # here it stays the front until day 2, then rolls to 202402.
+    term["front"] = pd.Series(["202401", "202401", "202402", "202402"], index=index)
+    out = mod.held_returns(panel, term, index)
+    # Day 0 has no held contract; day 1 holds 202401 priced 100 -> 110.
+    assert np.isnan(out["return"].iloc[0])
+    assert np.isclose(out["return"].iloc[1], 0.10)
+    # Day 2 is still the old front (rolled at the close of day 2): 110 -> 121.
+    assert np.isclose(out["return"].iloc[2], 0.10)
+    assert out["roll"].iloc[2] == 0.0
+    # Day 3 holds the new front 202402: 100 -> 105.  A spliced front series
+    # would have booked 105/121 - 1 = -0.132 (the roll gap as a fake loss).
+    assert np.isclose(out["return"].iloc[3], 0.05)
+    assert out["roll"].iloc[3] == 1.0
 
 
-def test_cross_sectional_signal_insufficient_products_flat():
-    slope = pd.DataFrame({"CU": [1.0, 2.0]}, index=DATES[:2]).reindex(index=DATES, columns=PRODUCTS)
-    signal, spread, _ = mod._cross_sectional_signal(slope, k=1, entry_z=-1e9, exit_z=-1e9)
-    assert (signal == 0.0).all().all()
-    assert spread.isna().all()
+def test_held_returns_skip_when_held_contract_has_no_price():
+    index = DATES[:3]
+    settle = pd.DataFrame(
+        {"202402": [90.0, np.nan, 92.0], "202403": [80.0, 81.0, 82.0]}, index=index
+    )
+    oi = pd.DataFrame(1e6, index=index, columns=settle.columns)
+    panel = {"settle": settle, "oi": oi}
+    term = mod.term_panel(panel, index)
+    term["front"] = pd.Series(["202402", "202402", "202402"], index=index)
+    out = mod.held_returns(panel, term, index)
+    assert np.isnan(out["return"].iloc[1])  # held contract unquoted on day 1
+    assert np.isnan(out["return"].iloc[2])  # prior day price missing
 
 
-def test_no_lookahead_signal_only_depends_on_past():
-    slope = _slope_frame([[i, i + 1, i + 2] for i in range(len(DATES))])
-    signal, _, _ = mod._cross_sectional_signal(slope, k=1, entry_z=-1e9, exit_z=-1e9)
-    baseline = signal.copy()
+def test_cross_sectional_z_is_cross_sectional_and_needs_two_products():
+    slope = pd.DataFrame({"CU": [1.0, 1.0], "AL": [2.0, 1.0], "RB": [3.0, 3.0]}, index=DATES[:2])
+    z = mod.cross_sectional_z(slope)
+    assert np.isclose(z["CU"].iloc[0], -1.224744871391589)
+    assert np.isclose(z.iloc[0].mean(), 0.0)
+    lone = pd.DataFrame({"CU": [1.0, 2.0], "AL": [np.nan, np.nan]}, index=DATES[:2])
+    assert mod.cross_sectional_z(lone).isna().all().all()
+
+
+def test_signal_weights_long_top_k_short_bottom_k_and_gross_one():
+    slope = pd.DataFrame({"A": [1.0] * 30, "B": [2.0] * 30, "C": [3.0] * 30}, index=DATES[:30])
+    z = mod.cross_sectional_z(slope)
+    weights = mod.signal_weights(z, entry_z=0.5, exit_z=0.0, k=1)
+    assert np.isclose(weights["C"].iloc[-1], 0.5)
+    assert np.isclose(weights["A"].iloc[-1], -0.5)
+    assert weights["B"].iloc[-1] == 0.0
+    assert np.isclose(weights.iloc[-1].abs().sum(), 1.0)
+
+
+def test_signal_weights_hysteresis_exits_only_below_exit_z():
+    values = [3.0, 2.0, 1.0, 0.5, 0.0, -0.5]
+    slope = pd.DataFrame(
+        {"A": values, "B": [0.0] * len(values), "C": [-1.0] * len(values)},
+        index=DATES[: len(values)],
+    )
+    z = mod.cross_sectional_z(slope)
+    weights = mod.signal_weights(z, entry_z=1.0, exit_z=0.5, k=1)
+    held = weights["A"].to_numpy()
+    assert held[0] == 1.0  # single open leg -> gross-normalized to one
+    assert held[3] == 0.5  # z still above exit_z -> hold
+    assert held[5] == 0.0  # z fell to 0 -> exit
+
+
+def test_signal_weights_no_lookahead():
+    rng = np.random.default_rng(7)
+    values = rng.normal(size=(40, 3))
+    slope = pd.DataFrame(values, index=DATES[:40], columns=PRODUCTS)
+    base = mod.signal_weights(mod.cross_sectional_z(slope), 1.0, 0.5, 1)
     future = slope.copy()
-    future.iloc[-1] = 1e6  # change the last date only
-    signal2, _, _ = mod._cross_sectional_signal(future, k=1, entry_z=-1e9, exit_z=-1e9)
-    pd.testing.assert_frame_equal(signal.iloc[:-1], signal2.iloc[:-1])
+    future.iloc[-1] = 1e6
+    changed = mod.signal_weights(mod.cross_sectional_z(future), 1.0, 0.5, 1)
+    pd.testing.assert_frame_equal(base.iloc[:-1], changed.iloc[:-1])
 
 
-def test_execute_shifts_signal_by_one_bar():
-    dates = DATES[:4]
-    signal = pd.DataFrame({"A": [1.0, -1.0, 0.5, 0.0]}, index=dates)
-    scale = pd.Series([1.0, 2.0, 1.0, 1.0], index=dates)
-    returns = pd.DataFrame({"A": [0.01, 0.02, -0.01, 0.03]}, index=dates)
-    changed = pd.DataFrame(False, index=dates, columns=["A"])
-    _, _, _, executed = mod._execute(signal, scale, returns, changed)
-    assert executed.iloc[0]["A"] == 0.0  # nothing to shift into the first bar
-    assert executed.iloc[1]["A"] == 1.0  # signal[0] * scale[0]
-    assert executed.iloc[2]["A"] == -1.0  # signal[1] * scale[1] = -2.0, leverage-capped to -1.0
-
-
-def test_execute_applies_turnover_and_roll_costs():
-    dates = DATES[:3]
-    signal = pd.DataFrame({"A": [1.0, 1.0, 0.0]}, index=dates)
-    scale = pd.Series([1.0, 1.0, 1.0], index=dates)
-    returns = pd.DataFrame(0.0, index=dates, columns=["A"])
-    changed = pd.DataFrame({"A": [False, True, False]}, index=dates)  # front changes at t=1
-    strat, _, cost, executed = mod._execute(signal, scale, returns, changed)
-    # executed = shift(1)(signal): [0, 1, 1]
-    assert executed.iloc[0]["A"] == 0.0
-    assert executed.iloc[1]["A"] == 1.0  # position formed at t=0 holds into t=1
-    assert executed.iloc[2]["A"] == 1.0  # held again into t=2
-    # t=0: flat -> no cost; t=1: establish 1.0 -> 5 bps turnover; no prior position -> no roll
-    assert cost.iloc[0] == 0.0
-    assert cost.iloc[1] == 5.0 / 1e4
-    # t=2: keep position (no turnover); front change at t=1 already crossed -> no new roll
-    assert cost.iloc[2] == 0.0
-    assert strat.iloc[0] == 0.0
-    assert strat.iloc[1] == -5.0 / 1e4
-    assert strat.iloc[2] == 0.0
-
-
-def test_vol_scale_flatlining():
-    signal = pd.DataFrame({"A": [1.0, -1.0, 0.5]}, index=DATES[:3])
-    returns = pd.DataFrame({"A": [0.01, -0.01, 0.02]}, index=DATES[:3])
-    scale = mod._vol_scale(signal, returns, 0.15)
-    assert len(scale) == 3
-
-
-def test_front_returns_and_flags():
-    settle = pd.DataFrame({"A": [100.0, 100.0, 102.0]}, index=DATES[:3])
-    delivery = pd.DataFrame({"A": ["2401", "2401", "2402"]}, index=DATES[:3])
-    returns, changed = mod._front_returns(settle, delivery)
-    assert np.isclose(returns.iloc[1]["A"], 0.0)
-    assert np.isclose(returns.iloc[2]["A"], 0.02)
-    assert not bool(changed.iloc[0]["A"])
-    assert not bool(changed.iloc[1]["A"])
-    assert bool(changed.iloc[2]["A"])
-
-
-def test_backtest_ledgers():
-    dates = DATES
-    signal = pd.DataFrame(0.0, index=dates, columns=["A"])
-    signal.iloc[10:30] = 1.0
-    scale = pd.Series(1.0, index=dates)
-    returns = pd.DataFrame(np.repeat(0.001, len(dates)), index=dates, columns=["A"])
-    changed = pd.DataFrame(False, index=dates, columns=["A"])
-    bt = mod._backtest(signal, scale, returns, changed, dates)
-    assert set(bt) >= {
-        "sharpe",
-        "profit_factor",
-        "max_drawdown",
-        "trades",
-        "periods",
-        "total_return",
-        "worst_regime_rolling252_sharpe",
-        "equity",
-        "returns",
-        "executed",
-        "cost_bps_sum",
-    }
-    assert len(bt["equity"]) == len(dates)
-    assert len(bt["returns"]) == len(dates)
-    assert bt["executed"].shape == (len(dates), 1)
-
-
-def test_wf_score_returns_float():
-    dates = DATES
-    signal = pd.DataFrame(0.0, index=dates, columns=["A"])
-    scale = pd.Series(1.0, index=dates)
-    returns = pd.DataFrame(np.repeat(0.001, len(dates)), index=dates, columns=["A"])
-    changed = pd.DataFrame(False, index=dates, columns=["A"])
-    score = mod._wf_score(signal, scale, returns, changed, dates, n_folds=4)
-    assert isinstance(score, float)
-    assert np.isfinite(score)
-
-
-def test_benchmark_weights_fully_invested():
-    settle = pd.DataFrame({"A": [100.0, np.nan], "B": [200.0, 201.0]}, index=DATES[:2])
-    weights = mod._benchmark_weights(settle)
-    assert np.isclose(weights.iloc[0].sum(), 1.0)
-    assert np.isclose(weights.iloc[1]["B"], 1.0)
-    assert weights.iloc[0]["A"] == 0.5
-
-
-def test_information_ratio_and_pvalue_shapes():
-    a = pd.Series(np.repeat(0.001, len(DATES)), index=DATES) + np.linspace(
-        -0.0005, 0.0005, len(DATES)
+def test_signal_weights_drops_inactive_positions():
+    slope = pd.DataFrame(
+        {"A": [3.0, 3.0, np.nan], "B": [-3.0, -3.0, -3.0], "C": [0.0, 0.0, 0.0]},
+        index=DATES[:3],
     )
-    b = pd.Series(np.repeat(0.0005, len(DATES)), index=DATES)
-    ir = mod._information_ratio(a, b)
-    p = mod._benchmark_pvalue(a, b, n_boot=200)
-    assert np.isfinite(ir) and ir > 0
-    assert 0.0 <= p <= 1.0
+    weights = mod.signal_weights(mod.cross_sectional_z(slope), 1.0, 0.5, 1)
+    assert weights["A"].iloc[1] != 0.0
+    assert weights["A"].iloc[2] == 0.0
 
 
-def test_perturbation_returns_finite_values():
-    slope = _slope_frame([[i, i + 1, i + 2] for i in range(len(DATES))])
-    returns = pd.DataFrame({p: np.repeat(0.001, len(DATES)) for p in PRODUCTS}, index=DATES)
-    changed = pd.DataFrame(False, index=DATES, columns=PRODUCTS)
+def test_vol_scale_delevers_only():
+    index = pd.bdate_range("2024-01-02", periods=100)
+    calm = pd.Series(np.repeat(0.001, 100), index=index)
+    assert (mod.vol_scale(calm, 0.15) <= 1.0).all()
+    wild = pd.Series(np.tile([0.05, -0.05], 50), index=index)
+    scale = mod.vol_scale(wild, 0.15)
+    assert (scale.tail(40) < 1.0).all()
+    assert (scale > 0).all()
+    flat = pd.Series(np.repeat(0.001, 100), index=index)
+    assert (mod.vol_scale(flat, 0.15) == 1.0).all()  # zero vol never levers up
+
+
+def test_backtest_shifts_one_bar_and_never_earns_same_day():
+    index = DATES[:4]
+    weights = pd.DataFrame({"A": [1.0, 1.0, 1.0, 1.0]}, index=index)
+    returns = pd.DataFrame({"A": [0.0, 0.10, 0.0, 0.0]}, index=index)
+    rolls = pd.DataFrame({"A": [0.0, 0.0, 0.0, 0.0]}, index=index)
+    result = mod.backtest_metrics(weights, returns, rolls, side_bps=0.0, roll_bps=0.0)
+    assert np.isclose(result["returns"].iloc[0], 0.0)  # nothing held yet
+    assert np.isclose(result["returns"].iloc[1], 0.10)  # weight[0] * return[1]
+    assert np.isclose(result["returns"].iloc[2], 0.0)
+
+
+def test_backtest_charges_turnover_when_the_position_is_established():
+    index = DATES[:4]
+    weights = pd.DataFrame({"A": [1.0, 1.0, 0.0, 0.0]}, index=index)
+    returns = pd.DataFrame({"A": [0.0, 0.0, 0.0, 0.0]}, index=index)
+    rolls = pd.DataFrame({"A": [0.0, 0.0, 0.0, 0.0]}, index=index)
+    result = mod.backtest_metrics(weights, returns, rolls, side_bps=5.0, roll_bps=1.0)
+    # executed = shift(1) -> [0, 1, 1, 0]: the 1.0 leg is opened on day 1.
+    assert result["returns"].iloc[1] == pytest.approx(-5.0 / 1e4)
+    assert result["returns"].iloc[3] == pytest.approx(-5.0 / 1e4)
+    assert result["trades"] == 2
+
+
+def test_backtest_charges_roll_crossing_on_the_held_notional():
+    index = DATES[:3]
+    weights = pd.DataFrame({"A": [1.0, 1.0, 1.0]}, index=index)
+    returns = pd.DataFrame({"A": [0.0, 0.0, 0.0]}, index=index)
+    rolls = pd.DataFrame({"A": [0.0, 1.0, 0.0]}, index=index)
+    result = mod.backtest_metrics(weights, returns, rolls, side_bps=0.0, roll_bps=1.0)
+    # Day 1 holds weight[0]=1.0 and the contract rolls -> 1 bp.
+    assert result["returns"].iloc[1] == pytest.approx(-1.0 / 1e4)
+
+
+def test_metrics_helpers_fail_closed():
+    assert mod.annualized_sharpe(pd.Series([0.01])) == 0.0
+    assert mod.annualized_sharpe(pd.Series([0.0] * 30, dtype=float)) == 0.0
+    assert mod.profit_factor(pd.Series([0.01, -0.01])) == pytest.approx(1.0)
+    assert mod.profit_factor(pd.Series([0.01, 0.02])) == float("inf")
+    assert mod.profit_factor(pd.Series([-0.01, -0.02])) == 0.0
+    flat = pd.Series([1.0] * 30)
+    assert mod.max_drawdown(flat) == 0.0
+    assert mod.worst_rolling_sharpe(pd.Series(np.repeat(0.001, 30)), window=252) > 0
+
+
+def test_passive_long_weights_equal_weight_over_active_products():
+    returns = pd.DataFrame({"A": [0.01, np.nan], "B": [0.02, 0.03]}, index=DATES[:2])
+    weights = mod.passive_long_weights(returns, DATES[:2])
+    assert np.isclose(weights.iloc[0].sum(), 1.0)
+    assert weights.iloc[0]["A"] == 0.5
+    assert weights.iloc[1]["B"] == 1.0
+    assert weights.iloc[1]["A"] == 0.0
+
+
+def test_random_weights_match_active_leg_count_and_are_seeded():
+    weights = pd.DataFrame({"A": [0.5, 0.0], "B": [-0.5, 0.5], "C": [0.0, -0.5]}, index=DATES[:2])
+    returns = pd.DataFrame({"A": [0.0, 0.0], "B": [0.0, 0.0], "C": [0.0, 0.0]}, index=DATES[:2])
+    first = mod.random_weights(weights, returns, seed=42)
+    second = mod.random_weights(weights, returns, seed=42)
+    pd.testing.assert_frame_equal(first, second)
+    assert int((first.iloc[0] != 0).sum()) == 2
+    assert int((first.iloc[1] != 0).sum()) == 2
+
+
+def test_perturbation_returns_six_finite_sharpes():
+    rng = np.random.default_rng(11)
+    index = pd.bdate_range("2024-01-02", periods=200)
+    slope = pd.DataFrame(rng.normal(size=(200, 3)) * 0.1, index=index, columns=PRODUCTS)
+    returns = pd.DataFrame(rng.normal(size=(200, 3)) * 0.01, index=index, columns=PRODUCTS)
+    rolls = pd.DataFrame(0.0, index=index, columns=PRODUCTS)
     selected = {"entry_z": 1.0, "exit_z": 0.5, "k": 1, "vol_target": 0.15}
-    sharpes = mod._perturbation_oos_sharpes(slope, returns, changed, DATES, selected)
-    assert len(sharpes) == 6  # 3 params x 2 perturbed values
-    assert all(np.isfinite(v) for v in sharpes)
+    sharpes = mod.perturbation_sharpes(slope, selected, returns, rolls, PRODUCTS, index)
+    assert len(sharpes) == 6
+    assert all(np.isfinite(value) for value in sharpes)
 
 
-def test_gates_keys_drive_summary_keys():
-    assert set(mod.GATES) == {
-        "min_sharpe",
-        "min_trades",
-        "min_profit_factor",
-        "max_drawdown",
-        "min_walkforward_stability",
-        "min_worst_regime_sharpe",
-        "max_p_value",
-        "min_information_ratio",
-        "min_perturbed_sharpe_ratio",
-    }
+def test_walk_forward_score_requires_enough_history():
+    slope = pd.DataFrame({"A": [0.0], "B": [1.0]}, index=DATES[:1])
+    returns = pd.DataFrame(0.0, index=DATES[:1], columns=["A", "B"])
+    rolls = pd.DataFrame(0.0, index=DATES[:1], columns=["A", "B"])
+    params = {"entry_z": 1.0, "exit_z": 0.5, "k": 1, "vol_target": 0.10}
+    assert mod.walk_forward_score(slope, params, returns, rolls, ["A", "B"], DATES[:1]) == -999.0
+
+
+def test_fetch_into_cache_resumes_and_marks_missing(tmp_path, monkeypatch):
+    calls = {"n": 0}
+
+    def fake(source, day, timeout=30.0, retries=0):
+        calls["n"] += 1
+        return b'{"o_curinstrument": []}'
+
+    monkeypatch.setattr(mod, "fetch", fake)
+    day = dt.date(2024, 1, 2)
+    assert mod.fetch_into_cache("SHFE", day, tmp_path) == "OK"
+    assert mod.fetch_into_cache("SHFE", day, tmp_path) == "HIT"
+    assert calls["n"] == 1
+    assert mod.cache_path("SHFE", day, tmp_path).exists()
+
+    def missing(source, d, timeout=30.0, retries=0):
+        return None
+
+    monkeypatch.setattr(mod, "fetch", missing)
+    assert mod.fetch_into_cache("INE", day, tmp_path) == "MISSING"
+    assert mod.miss_path("INE", day, tmp_path).exists()
+    assert mod.fetch_into_cache("INE", day, tmp_path) == "MISSING"
+    assert calls["n"] == 1  # the miss marker prevented a second request
+
+
+def test_fetch_into_cache_counts_transport_errors(tmp_path, monkeypatch):
+    def broken(source, day, timeout=30.0, retries=0):
+        raise mod.FetchError("boom")
+
+    monkeypatch.setattr(mod, "fetch", broken)
+    monkeypatch.setattr(mod.time, "sleep", lambda _seconds: None)
+    assert mod.fetch_into_cache("SHFE", dt.date(2024, 1, 3), tmp_path) == "ERROR"
+
+
+def test_ensure_cached_dedupes_venues(tmp_path, monkeypatch):
+    seen = []
+
+    def fake(source, day, cache_dir=None, retries=2, retry_delay=1.0):
+        seen.append((source, str(day.date())))
+        return "OK"
+
+    monkeypatch.setattr(mod, "fetch_into_cache", fake)
+    calendar = pd.bdate_range("2018-03-26", periods=3)
+    provenance = mod.ensure_cached(
+        [("SHFE", "RB"), ("SHFE", "CU"), ("INE", "SC")], calendar, cache_dir=tmp_path, workers=1
+    )
+    assert len(seen) == 6  # 3 SHFE dates + 3 INE dates, not 6 per extra SHFE product
+    assert provenance["requests"] == 6
+    assert provenance["status_counts"]["SHFE"]["OK"] == 3
+    assert "{YYYYMMDD}" in provenance["url_patterns"]["SHFE"]
+
+
+def test_load_product_data_handles_empty_cache(tmp_path):
+    calendar = pd.bdate_range("2024-01-02", periods=3)
+    panels = mod.load_product_data([("SHFE", "CU")], calendar, cache_dir=tmp_path)
+    assert panels["SHFE:CU"]["settle"].shape == (3, 0)
+
+
+def test_load_product_data_reads_cached_cross_sections(tmp_path):
+    calendar = pd.bdate_range("2024-01-02", periods=2)
+    raw = _json_cross_section(
+        [
+            _shfe_row("CU", "2402", "68920", "49865"),
+            _shfe_row("CU", "2403", "68990", "1234"),
+        ]
+    )
+    path = mod.cache_path("SHFE", calendar[0], tmp_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(raw)
+    panels = mod.load_product_data([("SHFE", "CU")], calendar, cache_dir=tmp_path)
+    settle = panels["SHFE:CU"]["settle"]
+    assert list(settle.columns) == ["202402", "202403"]
+    assert settle.loc[calendar[0], "202402"] == 68920.0
+    assert np.isnan(settle.loc[calendar[1], "202402"])
+
+
+def test_artifact_dir_honors_explicit_path(tmp_path):
+    target = tmp_path / "art"
+    resolved = mod.artifact_dir(str(target))
+    assert resolved == target.resolve()
+    assert resolved.exists()
