@@ -43,7 +43,7 @@ ARTIFACTS_ROOT = Path(".experiments/artifacts")
 #
 # 2026-11-12 remediation: 149 non-H28 hash-exact artifacts were restored into
 # place, so ``missing_files`` fell 346 -> 197.
-# 2026-11-19 remediation (authorized, patches/0002-h28-jsonl-path-remediation.patch):
+# 2026-11-19 remediation (applied in commit 1a7c83a):
 # the 172 H28 rows were not missing files at all -- ``experiments.jsonl`` recorded
 # obsolete depth-one paths while the artifacts live under
 # ``.experiments/artifacts/h28_causal_recertification/runs/<exp_id>/``. The log's

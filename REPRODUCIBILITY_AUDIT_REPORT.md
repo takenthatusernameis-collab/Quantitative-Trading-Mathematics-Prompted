@@ -44,9 +44,9 @@ Making those 8 H28 summaries reachable also required 8 additive
 `.meta.json` sidecars (JSON → top-level `keys`, the 2026-11-13 derivation), so
 `missing_meta_files` stays 0. No artifact, hash, gate, or frozen number was
 modified; only `experiments.jsonl` recorded paths were corrected and 8 sidecars
-were added. The change is rehearsed in
-`patches/0002-h28-jsonl-path-remediation.patch` and verified by
-`scripts/verify_h28_path_remediation_patch.py`.
+were added. The change was applied directly to the committed corpus in commit
+`1a7c83a` (the 172 path rewrites live in that commit's diff of
+`.experiments/experiments.jsonl`); there is no separate rehearsal patch file.
 
 No artifact, sidecar, hash, gate, or frozen count was modified.
 **Task:** Verify all experiment artifacts can be re-derived from tracked metadata (STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §6 fallback path)
@@ -275,10 +275,10 @@ this report were updated together per the ratchet contract.
 
 | Claim | Supported? | Evidence |
 |-------|------------|----------|
-| "All 174 experiments are fully reproducible from tracked metadata" | ❌ No | 197 missing files (172 H28 contract-blocked + 25 unrecoverable), 11 hash mismatches |
+| "All 174 experiments are fully reproducible from tracked metadata" | ❌ No | 25 missing files (all unrecoverable, no hash-matching source), 11 hash mismatches |
 | "Artifact hashes in experiment records match on-disk content" | ❌ No | 11 mismatches prove divergence |
-| "Every file in `.experiments/artifacts/` is accounted for" | ❌ No | 528 orphaned files |
-| "Every artifact has per-artifact metadata" | ❌ No | 140 missing sidecars |
+| "Every file in `.experiments/artifacts/` is accounted for" | ❌ No | 356 orphaned files (was 528 before the 2026-11-19 path correction) |
+| "Every artifact has per-artifact metadata" | ✅ Yes | `missing_meta_files=0` after the 2026-11-13 additive backfill |
 | "No *new* reproducibility drift is introduced" | ✅ Yes | Baseline ratchet fails on any count change |
 
 **However:** Experiment-level metadata (git commit, dependencies, seeds, config)
@@ -313,7 +313,7 @@ Ordered by value and risk:
    hash-exact scan of all 2,155 on-disk artifacts found **0** sources for the 25
    unrecoverable rows, so the missing backlog cannot be reduced this way.
 
-4. **Catalog or archive the 528 orphaned files** — add references if they are
+4. **Catalog or archive the 356 orphaned files** — add references if they are
    valid artifacts, or move them to an explicit archive directory. Do not
    delete committed data.
 
