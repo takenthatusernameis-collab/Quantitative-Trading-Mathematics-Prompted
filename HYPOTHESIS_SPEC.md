@@ -8775,7 +8775,7 @@ NF-20261114-01 was classified data-blocked on a US/EU retail premise (yfinance `
 
 **Costs (CNY, explicit).** Commission 2 bps + slippage 3 bps per one-way side per leg (5 bps round-trip per contract traded), roll crossing 1 bps when the front contract changes; no US/EU cost assumptions. T+1 settlement and daily price limits are modeled constraints.
 
-**Grid (bounded).** `entry_z {0.5, 1.0, 1.5} × exit_z {0.0, 0.5} × k {1, 3, 5} × vol_target {0.10, 0.15}` = 24 combos; train-only 4-fold walk-forward Sharpe selection; Test protected.
+**Grid (bounded).** `entry_z {0.5, 1.0, 1.5} × exit_z {0.0, 0.5} × k {1, 3, 5} × vol_target {0.10, 0.15}` = **36 combos** (3×2×3×2; the earlier "= 24" was an arithmetic label error — the enumerated sets are authoritative and the Cycle 215 run used all 36, `grid.csv` has 36 rows); train-only 4-fold walk-forward Sharpe selection; Test protected.
 
 **Gates (OOS Val+Test, fail-closed, standard 8).** Sharpe ≥ 1.0; trades ≥ 50; PF ≥ 1.3; maxDD ≤ 15%; WF stability ≥ 0.7; worst-regime rolling-252 Sharpe ≥ 0.3; benchmark p ≤ 0.05 with IR ≥ 0 vs the passive front-month long book; perturbation min ratio ≥ 0.5.
 
@@ -8789,6 +8789,46 @@ NF-20261114-01 was classified data-blocked on a US/EU retail premise (yfinance `
 
 | Root family | H-IDs | Mechanism | Markets / data | Status | Known risks |
 |---|---|---|---|---|---|
-| Carry / commodity term structure (roll yield) | H184 (NF-20261114-01) | Cross-sectional roll-yield slope (front/second settlement) on physically delivered futures; long top-k / short bottom-k by slope, hysteresis entry/exit, CNY costs, explicit `shift(1)` delay | SHFE/INE/CZCE/CFFEX public settlement cross-sections, per product from first available date | **PRE-REGISTERED** | CNY/T+1/daily-limit cost model; ~4,000 one-file-per-day requests (resumable cache mandatory); delivery-month exclusion; venue-specific settlement times; no US/EU transferability |
+| Carry / commodity term structure (roll yield) | H184 (NF-20261114-01) | Cross-sectional roll-yield slope (front/second settlement) on physically delivered futures; long top-k / short bottom-k by slope, hysteresis entry/exit, CNY costs, explicit `shift(1)` delay | SHFE/INE/CZCE/CFFEX public settlement cross-sections, per product from first available date | **EXECUTED — REJECT 2/8** (Cycle 215) | CNY/T+1/daily-limit cost model; ~4,000 one-file-per-day requests (resumable cache mandatory); delivery-month exclusion; venue-specific settlement times; no US/EU transferability |
 
 **Cycle 214 (continued).** H85–H183 rejected; H184 **pre-registered, not executed**. Next unused H-ID **H185**. `src/qtr` unchanged. No commit/push.
+
+## H184 execution result (Cycle 215, 2026-11-19): EXECUTED — **REJECT (2/8)**
+
+**Status:** EXECUTED and rejected on the pre-registered OOS Val+Test window. Artifact:
+`.experiments/nf_runs/nf_20261114_01_commodity_termstructure_carry_20261119_cycle215/summary.json`
++ `grid.csv` (36 combos). Runner `run_nf_20261114_01_commodity_termstructure_carry.py`; tests
+`tests/test_nf_20261114_01_commodity_termstructure_carry.py`. `src/qtr` unchanged; no gate
+weakening; real free/PIT data only; no US/EU cost transfer.
+
+**Data actually used (own evidence).** SHFE RB, CU, AL, ZN, AU, AG and INE SC, 2016-01-04 →
+2026-11-17; 5,094 per-date requests (SHFE 2,640 HIT / 197 MISSING; INE 2,098 HIT / 159
+MISSING; 404 holidays/predating dates skipped), resumable cache `.cache/commodity_settlements/`.
+Train rows 1,955 (→2023-06-30), Val 392 (2023-07-01→2024-12-31), Test 490 (2025-01-01→2026-11-17,
+protected), OOS 882.
+
+**Selected config (train-only 4-fold WF).** `entry_z=1.0`, `exit_z=0.0`, `k=1`,
+`vol_target=0.10`; WF train Sharpe 0.441; in-train Sharpe 0.480.
+
+**OOS Val+Test.** Sharpe **0.672**, PF **1.142**, maxDD **−19.28%**, trades **1,203**,
+worst rolling-252 Sharpe **−0.663**, total return 0.270. Val Sharpe 1.110 / PF 1.222 /
+DD −8.96%; Test Sharpe 0.372 / PF 1.081 / DD −19.28%. Full sample Sharpe 0.540 / PF 1.110 /
+DD −23.96% (never competitive with a passive book).
+
+**Gates (fail-closed, 8).** PASS: trades ≥ 50 (1,203), WF stability ≥ 0.7 (1.402).
+FAIL: Sharpe ≥ 1.0 (0.672), PF ≥ 1.3 (1.142), maxDD ≤ 15% (19.28%), worst-regime ≥ 0.3
+(−0.663), benchmark p ≤ 0.05 with IR ≥ 0 (p **0.792**, IR **−0.141** vs the passive
+front-month long book), perturbation min ratio ≥ 0.5 (**0.169**, min Sharpe 0.113 over 6
+OAT points). **Verdict REJECT (2/8).**
+
+**Benchmark / ablations.** The passive front-month long book dominates on OOS: Sharpe
+**1.004**, PF 1.215, maxDD −12.65%, total return 0.367 vs the strategy's 0.270; excess return
+−1.91%/yr at 13.5% excess vol, alpha t −0.264 (p 0.792 two-sided), win rate 49.4%. Random
+ranking OOS Sharpe −0.171 and inverse slope −0.921 confirm the slope signal's *sign* is the
+pre-registered one (long backwardation / short contango), but timing it adds nothing after
+CNY costs over simply holding the front month. Null (H0) not rejected.
+
+**Conclusion.** Commodity term-structure carry is executed and rejected; H1–H184 are now
+exhausted/rejected. Next unused H-ID **H185**. This is a family-level result: do not re-run
+H184 as a parameter/universe variant, do not add CZCE/CFFEX breadth as a "new family", and
+do not re-declare commodity per-contract data blocked.

@@ -830,3 +830,55 @@ The last named free-data blocker on the research queue is closed with reproducib
 **Cycle 214 complete.** H85–H183 all rejected/recorded; H184 unassigned but now *executable*. `src/qtr` unchanged. New durable artifact: `scripts/probe_commodity_termstructure_availability.py` + `tests/test_probe_commodity_termstructure_availability.py` (20 tests). Repeated rapid
 probes can transiently report `UNREACHABLE` on the exchange sites; `fetch` has one bounded
 retry and distinguishes transport failure from a genuine 404 (`MISSING`).
+
+---
+
+## Cycle 215 (2026-11-19) — H184 commodity term-structure carry EXECUTED: **REAL REJECT (2/8)**; H1–H184 exhausted
+
+Lineage: H85–H183 already rejected/recorded; **H184 now executed/rejected**; next unused
+H-ID **H185** (unassigned). `src/qtr` unchanged; no published/certified artifact, verdict,
+threshold, or frozen number modified; no gate weakening; free/public real data only.
+
+### What was run (pre-registration honoured, then outcomes inspected once)
+`NF-20261114-01` was pre-registered in Cycle 214 (`HYPOTHESIS_SPEC.md`) *before* any forward
+return was downloaded. The Cycle 215 run implements exactly that construction:
+
+- Universe SHFE RB, CU, AL, ZN, AU, AG (2016-01-04→) + INE SC (2018-03-26→), bounded
+  2016-01-04→2026-11-17. Delivery-month contracts excluded; both front and second contract
+  must have settlement > 0 and OI ≥ 100.
+- Signal: annualized slope `ln(F1/F2)*12/months_between(F1,F2)` from day-t settlements;
+  cross-sectional long top-k / short bottom-k, hysteresis on z; explicit `shift(1)`.
+- Costs: 5 bps one-way per contract traded (2 bps commission + 3 bps slippage) + 1 bps roll
+  crossing on front-contract change; vol target delevers only.
+- Grid 36 (3 entry_z × 2 exit_z × 3 k × 2 vol_target), train-only 4-fold walk-forward
+  selection; Val 2023-07-01→2024-12-31; Test protected 2025-01-01→2026-11-17.
+- Data: 5,094 per-date requests (SHFE 2,640 HIT / 197 MISSING; INE 2,098 HIT / 159 MISSING),
+  resumable `.cache/commodity_settlements/`; 404 holidays/predating dates skipped.
+
+### Result (OOS Val+Test, artifact `…_20261119_cycle215`)
+Selected `entry_z=1.0, exit_z=0.0, k=1, vol_target=0.10` (train WF Sharpe 0.441).
+OOS: Sharpe **0.672**, PF **1.142**, maxDD **−19.28%**, trades 1,203, worst rolling-252
+Sharpe **−0.663**, total return 0.270. Gates PASS: trades, WF stability (1.402). Gates FAIL:
+Sharpe, PF, maxDD, worst-regime, benchmark p (0.792) / IR (−0.141), perturbation (0.169).
+**REJECT 2/8.** The passive front-month long benchmark is strictly better on OOS (Sharpe
+1.004, PF 1.215, DD −12.65%, return 0.367); excess return −1.91%/yr, alpha t −0.264.
+
+Ablations behave as expected for a real-but-insufficient signal: random ranking OOS Sharpe
+−0.171, inverse slope −0.921 — the slope *sign* is right (long backwardation, short contango)
+but the timing overlay subtracts from a plain front-month hold after CNY costs. The
+pre-registered null is not rejected.
+
+### Family-status consequence (durable)
+`NF-20261114-01 commodity futures term-structure carry` moves **pre-registered → executed/
+rejected**. Do **not** re-run H184 or any parameter/universe variant (CZCE/CFFEX breadth,
+different k/entry thresholds, longer SHFE history) as a new family. The commodity
+per-contract data remain AVAILABLE free/PIT (Cycle 214); the *mechanism* is what failed, not
+the data. **H1–H184 are exhausted/rejected; H185 is unassigned.**
+
+### Disclosure
+The pre-registration text labelled the grid "24 combos" while enumerating sets that multiply
+to 36; the Cycle 215 run used all 36 enumerated combos (`grid.csv` has 36 rows). This is a
+label arithmetic error, **not** a post-hoc search expansion: every value in every set was
+pre-registered in Cycle 214. The label is corrected in `HYPOTHESIS_SPEC.md`.
+
+**Cycle 215 complete.** H85–H184 all rejected/recorded; H185 unassigned. `src/qtr` unchanged.
