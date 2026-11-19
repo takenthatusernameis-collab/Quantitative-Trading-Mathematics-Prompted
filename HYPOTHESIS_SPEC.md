@@ -8832,3 +8832,127 @@ CNY costs over simply holding the front month. Null (H0) not rejected.
 exhausted/rejected. Next unused H-ID **H185**. This is a family-level result: do not re-run
 H184 as a parameter/universe variant, do not add CZCE/CFFEX breadth as a "new family", and
 do not re-declare commodity per-contract data blocked.
+
+## H185 (NF-20261119-01): Commodity Open-Interest Positioning (Cycle 216 pre-registration)
+
+**Status:** PRE-REGISTERED — not executed at the time this section was written. No forward
+return, validation, or test outcome had been inspected; no artifact existed. `src/qtr`
+unchanged; no published/certified artifact, verdict, threshold, or frozen number modified; no
+gate weakening; free/public real data only.
+
+**NF-ID:** NF-20261119-01 (H185). **Broad mechanism category:** hedging pressure /
+speculative positioning measured by open interest (a *quantity* signal), not carry (a
+*price-ratio* signal).
+
+**Mechanism-distinction argument (written before any outcome was computed).**
+
+H184 (rejected 2/8) trades the **relative price** of two contracts — the annualized front/second
+settlement slope `ln(F1/F2)*12/months`, i.e. an inventory-carry/roll-yield signal whose economic
+force is the cost of storage and the basis. H185 trades **contract counts** — total open
+interest and its distribution across the curve. The two inputs are mathematically independent
+fields: OI is a count of outstanding positions (a quantity, unsigned, no price units); slope is
+a ratio of settlement prices (a price relation). A market can be in steep backwardation with
+flat OI, or carry enormous OI on a flat curve. This is a different *economic force*: hedging
+pressure (Keynes/Hicks normal backwardation; Bessembinder 1992) and speculative participation
+(Hong & Yogo 2012, who show aggregate open interest growth predicts commodity futures returns)
+concern **who holds the positions and how many**, not the price spread between delivery months.
+
+Quantified input-only collinearity check (run before any outcome inspection, train block
+2016-01-04→2023-06-30 only, 1,649–1,676 daily cross-sections): the mean cross-sectional
+Spearman rank correlation between the H185 OI-growth z-score and the H184 slope z-score is
+**−0.026** (W=21) and **+0.014** (W=63); front-OI-share vs slope z is **+0.144**. The OI
+features are effectively rank-orthogonal to H184's signal, so H185 is not a re-skin of carry.
+
+Why this is not a re-skin of an executed momentum/volume hypothesis either: H19/H20 tested
+**volume**-based predictive regressions on US ETFs; H185 uses open interest (a different field
+with different economics — OI counts open positions, volume counts daily turnover) and is
+cross-sectional positioning on Chinese commodity futures. No executed H-ID (H1–H184) uses open
+interest as its primary signal in any market. H185 uses **no return series in the signal** —
+only OI quantities and their own history — so it is not time-series momentum in disguise; price
+enters only as the realized P&L of the held contract.
+
+Why the Chinese venue is not a mere "universe variation": the mechanism is not being applied to
+an already-executed family on a new market. It is the first test of OI-as-positioning in this
+repository, and it is tested here because per-contract daily open interest is available free and
+point-in-time from the SHFE/INE settlement cross-sections verified in Cycle 214. If the OI
+features were duplicated by H184's slope, the collinearity numbers above would show it; they do
+not. **This argument is judged sufficient in writing; H185 is therefore being executed.**
+
+**Mechanism / causal chain.** Open interest measures the stock of open positions. OI *growth*
+measures new capital entering (or leaving) a market: when hedging demand rises, hedgers must
+induce speculators to take the other side, and the resulting risk transfer pays a premium
+(Hong–Yogo: aggregate OI growth positively predicts commodity futures returns). The front
+contract's share of total OI measures concentration of near-dated positions, i.e. roll-cycle
+crowding: when nearly all OI sits in the nearest contract, that cohort must roll, creating
+predictable roll-related flow. Null (H0): the day-t open-interest cross-section (growth over a
+declared window, or front-contract OI share) has no predictive power for next-period
+roll-adjusted returns after CNY costs — a positioning overlay adds nothing over a passive
+front-month long book.
+
+**PIT timing.** Each cross-section file is the official settlement record for trade date t and
+is knowable at t's settle. Total OI and front-OI share for day t use day-t records only; the
+growth window uses strictly earlier cached trade dates (`shift(W)` on the trading calendar).
+Positions are formed no earlier than t+1 via the explicit `shift(1)` in the shared engine. The
+return earned on day t is the price change of the contract *known at t−1* (the H184
+`held_returns` basis), so no day-t settlement enters the day-t signal and no future contract
+enters the day-t return. A lookahead/causality test asserts that mutating any settlement or OI
+dated after t leaves the day-t signal unchanged.
+
+**Universe (declared first-available dates).** Identical to H184: SHFE RB, CU, AL, ZN, AU, AG
+(from 2016-01-04 in the first scope) and INE SC (from 2018-03-26). Exclude any contract whose
+delivery month equals the current month. Contracts enter the OI aggregate only when settlement
+> 0 and open interest ≥ 100 (the same `OI_FLOOR` used by H184), so the OI panel and the return
+panel cover the same tradable set.
+
+**Features (declared in full).** Three, each z-scored cross-sectionally across active products:
+`oi_growth_21` = `ln(OI_total,t / OI_total,t−21)`; `oi_growth_63` =
+`ln(OI_total,t / OI_total,t−63)`; `front_share` = `OI_front,t / OI_total,t` where `front` is the
+nearest tradable contract used by the H184 return basis. `OI_total,t` sums open interest over
+all non-delivery-month contracts clearing `OI_FLOOR`. Window is counted in trading days on the
+business-day calendar. No winsorization, no smoothing, no further transforms.
+
+**Pre-registered sign.** Long top-k / short bottom-k by z (i.e. long OI expansion and/or high
+front-concentration, short contraction and/or low front-concentration), the Hong–Yogo /
+hedging-pressure direction. The inverse-sign ablation must reproduce the mirror loss if the sign
+is real; if the inverse ablation beats the base signal, the pre-registered direction is falsified
+and the result is a reject regardless of the base Sharpe.
+
+**Sample.** Bounded 2016-01-04 → 2026-11-17. Train →2023-06-30; Val 2023-07-01 → 2024-12-31;
+Test protected 2025-01-01 → 2026-11-17. Test never enters selection. Reuses the warm resumable
+cache `.cache/commodity_settlements/` (no bulk re-download).
+
+**Costs (CNY, explicit, reused unchanged).** Commission 2 bps + slippage 3 bps per one-way side
+per leg (5 bps one-way per contract traded), roll crossing 1 bps on front-contract change; vol
+target delevers only.
+
+**Grid (bounded, declared in full, 72 combos).** `feature {oi_growth_21, oi_growth_63,
+front_share} × entry_z {0.5, 1.0, 1.5} × exit_z {0.0, 0.5} × k {1, 2} × vol_target {0.10, 0.15}`
+= 3×3×2×2×2 = **72**, train-only 4-fold walk-forward Sharpe selection. `k` is capped at 2
+because the cross-section has 7 products and the z-score needs ≥2 active products per day.
+
+**Gates (OOS Val+Test, fail-closed, standard 8 — unchanged).** Sharpe ≥ 1.0; trades ≥ 50; PF ≥
+1.3; maxDD ≤ 15%; WF stability ≥ 0.7; worst-regime rolling-252 Sharpe ≥ 0.3; benchmark p ≤ 0.05
+with IR ≥ 0 vs the passive front-month long book; perturbation min ratio ≥ 0.5.
+
+**Ablations / falsifiers.** Passive front-month long book (H184 benchmark, same cost model);
+random ranking (same active leg count, seed 42); inverse-sign signal for the selected feature;
+OAT ±20% perturbation of entry_z, exit_z and k (6 points).
+
+**Implementation constraints.** Reuse, do not fork: import the parsers/URL builders/cache helper
+and the settlement-cache loader, return basis, backtest engine, gate helpers and benchmark
+constructors from `scripts/probe_commodity_termstructure_availability.py` and
+`run_nf_20261114_01_commodity_termstructure_carry.py`. Only the OI feature construction is new
+code. Artifact under `.experiments/nf_runs/nf_20261119_01_commodity_oi_positioning_<timestamp>/`
+(`summary.json` + `grid.csv`); bump `tests/test_experiment_artifact_schema.py` inventory pins
+only if the artifact directory is committed.
+
+**Runner / tests.** `run_nf_20261119_01_commodity_oi_positioning.py`;
+`tests/test_nf_20261119_01_commodity_oi_positioning.py` (feature construction, OI floor and
+delivery-month exclusion, PIT/lookahead causality, bounded grid, cache handling, artifact
+writing).
+
+**Lineage map (H185 PRE-REGISTERED):**
+
+| Root family | H-IDs | Mechanism | Markets / data | Status | Known risks |
+|---|---|---|---|---|---|
+| Positioning / hedging pressure (open interest) | H185 (NF-20261119-01) | Cross-sectional OI growth (21/63 trading days) and front-contract OI share; long top-k / short bottom-k by z, hysteresis, CNY costs, explicit `shift(1)` delay | SHFE/INE public settlement cross-sections, per product from first available date | **PRE-REGISTERED** (Cycle 216) | OI is unsigned (no long/short split), so hedging pressure is proxied not observed; 7-product cross-section limits k; OI growth correlates with price (sign-robustness via inverse ablation); front share is near-zero for some products |

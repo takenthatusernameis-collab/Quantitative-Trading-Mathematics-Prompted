@@ -1,0 +1,284 @@
+{
+  "experiment": "nf_20261119_01_commodity_oi_positioning",
+  "nf_id": "NF-20261119-01",
+  "hypothesis": "H185",
+  "timestamp_utc": "2026-11-19T03:32:37Z",
+  "runtime_sec": 50.679,
+  "data": {
+    "source": "SHFE/INE public settlement cross-sections (free/key-less/PIT)",
+    "universe": [
+      {
+        "source": "SHFE",
+        "code": "RB"
+      },
+      {
+        "source": "SHFE",
+        "code": "CU"
+      },
+      {
+        "source": "SHFE",
+        "code": "AL"
+      },
+      {
+        "source": "SHFE",
+        "code": "ZN"
+      },
+      {
+        "source": "SHFE",
+        "code": "AU"
+      },
+      {
+        "source": "SHFE",
+        "code": "AG"
+      },
+      {
+        "source": "INE",
+        "code": "SC"
+      }
+    ],
+    "products": [
+      "SHFE:RB",
+      "SHFE:CU",
+      "SHFE:AL",
+      "SHFE:ZN",
+      "SHFE:AU",
+      "SHFE:AG",
+      "INE:SC"
+    ],
+    "start": "2016-01-04",
+    "end": "2026-11-17",
+    "train_end": "2023-06-30",
+    "val_end": "2024-12-31",
+    "train_rows": 1955,
+    "val_rows": 392,
+    "test_rows": 490,
+    "oos_rows": 882,
+    "calendar": "business days; 404 holidays/predating dates skipped",
+    "download": {
+      "requests": 5094,
+      "status_counts": {
+        "INE": {
+          "HIT": 2098,
+          "MISSING": 159
+        },
+        "SHFE": {
+          "HIT": 2640,
+          "MISSING": 197
+        }
+      },
+      "url_patterns": {
+        "INE": "https://www.ine.cn/data/tradedata/future/dailydata/kx{YYYYMMDD}.dat",
+        "SHFE": "https://www.shfe.com.cn/data/tradedata/future/dailydata/kx{YYYYMMDD}.dat"
+      }
+    }
+  },
+  "provenance": [
+    {
+      "source": "SHFE",
+      "code": "RB",
+      "key": "SHFE:RB",
+      "declared_first_date": "2016-01-04",
+      "observed_first_date": "2016-01-04",
+      "effective_first_date": "2016-01-04",
+      "active_days": 2640,
+      "cached_days": 2640
+    },
+    {
+      "source": "SHFE",
+      "code": "CU",
+      "key": "SHFE:CU",
+      "declared_first_date": "2016-01-04",
+      "observed_first_date": "2016-01-04",
+      "effective_first_date": "2016-01-04",
+      "active_days": 2640,
+      "cached_days": 2640
+    },
+    {
+      "source": "SHFE",
+      "code": "AL",
+      "key": "SHFE:AL",
+      "declared_first_date": "2016-01-04",
+      "observed_first_date": "2016-01-04",
+      "effective_first_date": "2016-01-04",
+      "active_days": 2640,
+      "cached_days": 2640
+    },
+    {
+      "source": "SHFE",
+      "code": "ZN",
+      "key": "SHFE:ZN",
+      "declared_first_date": "2016-01-04",
+      "observed_first_date": "2016-01-04",
+      "effective_first_date": "2016-01-04",
+      "active_days": 2640,
+      "cached_days": 2640
+    },
+    {
+      "source": "SHFE",
+      "code": "AU",
+      "key": "SHFE:AU",
+      "declared_first_date": "2016-01-04",
+      "observed_first_date": "2016-01-04",
+      "effective_first_date": "2016-01-04",
+      "active_days": 2639,
+      "cached_days": 2639
+    },
+    {
+      "source": "SHFE",
+      "code": "AG",
+      "key": "SHFE:AG",
+      "declared_first_date": "2016-01-04",
+      "observed_first_date": "2016-01-04",
+      "effective_first_date": "2016-01-04",
+      "active_days": 2640,
+      "cached_days": 2640
+    },
+    {
+      "source": "INE",
+      "code": "SC",
+      "key": "INE:SC",
+      "declared_first_date": "2018-03-26",
+      "observed_first_date": "2018-03-26",
+      "effective_first_date": "2018-03-26",
+      "active_days": 2098,
+      "cached_days": 2098
+    }
+  ],
+  "feature_set": [
+    "oi_growth_21",
+    "oi_growth_63",
+    "front_share"
+  ],
+  "oi_growth_window": {
+    "oi_growth_21": 21,
+    "oi_growth_63": 63
+  },
+  "signal": {
+    "construction": "cross-sectional z of the declared OI feature",
+    "preregistered_sign": "long top-k / short bottom-k (hedging-pressure direction)",
+    "pit": "day-t cross-section only; growth windows use earlier trade dates; shift(1)"
+  },
+  "grid_size": 72,
+  "selected": {
+    "feature": "oi_growth_63",
+    "entry_z": 0.5,
+    "exit_z": 0.0,
+    "k": 2,
+    "vol_target": 0.1
+  },
+  "wf_train_sharpe": 0.4562112642865237,
+  "train_selected_sharpe": 0.4688640433984335,
+  "full_sample": {
+    "sharpe": 0.35333821033264884,
+    "profit_factor": 1.0709118327671694,
+    "max_drawdown": -0.24968754599212228,
+    "trades": 4025,
+    "periods": 2837,
+    "total_return": 0.3471521484301998,
+    "worst_regime_rolling252_sharpe": -2.564241555083079
+  },
+  "oos_val_test": {
+    "sharpe": 0.09736159880320058,
+    "profit_factor": 1.0196590495516364,
+    "max_drawdown": -0.21539344695587492,
+    "trades": 1101,
+    "periods": 882,
+    "total_return": 0.016482420891918537,
+    "worst_regime_rolling252_sharpe": -2.564241555083079
+  },
+  "val": {
+    "sharpe": 0.5234715338278787,
+    "profit_factor": 1.097432950183993,
+    "max_drawdown": -0.041443517725111234,
+    "trades": 340,
+    "periods": 392,
+    "total_return": 0.04457599200278706,
+    "worst_regime_rolling252_sharpe": -0.22908899352589177
+  },
+  "test": {
+    "sharpe": -0.08691214852616191,
+    "profit_factor": 0.9827277307965411,
+    "max_drawdown": -0.21539344695587492,
+    "trades": 437,
+    "periods": 490,
+    "total_return": -0.026894712616364225,
+    "worst_regime_rolling252_sharpe": -2.564241555083079
+  },
+  "benchmark_passive_front_month_long_oos": {
+    "sharpe": 1.0043357311962082,
+    "profit_factor": 1.2145967004872709,
+    "max_drawdown": -0.126468836560227,
+    "trades": 2493,
+    "periods": 882,
+    "total_return": 0.36694023737829773,
+    "worst_regime_rolling252_sharpe": -0.4822600721589018
+  },
+  "benchmark_comparison": {
+    "information_ratio": -0.7124003332056534,
+    "alpha_annualized": 9.093923454732929e-05,
+    "beta": 0.08718207208549193,
+    "alpha_t_stat": -1.3320232266196947,
+    "alpha_p_value": 0.18319703219568056,
+    "alpha_p_value_one_sided": 0.9084014839021597,
+    "win_rate": 0.42517006802721086,
+    "excess_return_annual": -0.08539306477250706,
+    "excess_vol_annual": 0.11986668280776347
+  },
+  "ablations": {
+    "random_ranking_oos": {
+      "sharpe": -1.3172267051324342,
+      "profit_factor": 0.7424862014316866,
+      "max_drawdown": -0.45430758533990123,
+      "trades": 3435,
+      "periods": 882,
+      "total_return": -0.39499387212406356,
+      "worst_regime_rolling252_sharpe": -4.123284391711774
+    },
+    "inverse_signal_oos": {
+      "sharpe": -0.5377341464695413,
+      "profit_factor": 0.8981052280125513,
+      "max_drawdown": -0.2240131254209804,
+      "trades": 1101,
+      "periods": 882,
+      "total_return": -0.1584375369906209,
+      "worst_regime_rolling252_sharpe": -1.8339446984613277
+    }
+  },
+  "feature_collinearity_vs_h184_slope_train": {
+    "oi_growth_21": -0.02589826647821607,
+    "oi_growth_63": 0.014437188903640692,
+    "front_share": 0.14397950100784043
+  },
+  "wf_stability_oos_over_train": 0.20765422338104988,
+  "benchmark_pvalue_two_sided": 0.18319703219568056,
+  "information_ratio_vs_passive_front_month": -0.7124003332056534,
+  "perturbation": {
+    "min_ratio": 0.35276994798164685,
+    "n_points": 6,
+    "min_sharpe": 0.03434624614521504
+  },
+  "gates": {
+    "sharpe_ge_1": false,
+    "trades_ge_50": true,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": false,
+    "wf_stability_ge_0_7": false,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_and_ir_ge_0": false,
+    "perturbation_min_ratio_ge_0_5": false
+  },
+  "gates_passed": 1,
+  "gates_total": 8,
+  "verdict": "REJECT",
+  "integrity": {
+    "src_qtr_unchanged": true,
+    "gate_weakening": false,
+    "published_artifacts_modified": false,
+    "selection_holdout_feedback": false,
+    "real_data": true,
+    "cost_one_way_bps": 5.0,
+    "roll_cross_bps": 1.0,
+    "benchmark_pvalue_statistic": "two-sided (published gate statistic)",
+    "reused_engine": "run_nf_20261114_01_commodity_termstructure_carry.py"
+  }
+}
