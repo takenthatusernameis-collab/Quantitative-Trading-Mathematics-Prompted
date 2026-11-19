@@ -1,12 +1,19 @@
-"""Guard: no experiment records two ``artifacts`` entries with the same name.
+"""Guard: no experiment record carries duplicate JSON keys / artifact names.
 
-The 2026-10-10 momentum runs (ts_momentum_20etf_v1, cs_momentum_10etf_v1,
-regime_gated_momentum_20etf_v1) each record ``param_grid_results`` twice: once
-with the hash of the file actually on disk and once with a stale hash from an
-earlier grid run.  The duplicate entry is what the reproducibility audit's
-``hash_mismatches`` backlog counts (11 rows, all ``param_grid_results`` /
-``summary``), so the baseline cannot be lowered without first removing the
-phantom rows from ``.experiments/experiments.jsonl``.
+The 2026-10-10 momentum runs originally recorded ``param_grid_results`` twice in
+one ``artifacts`` object: once with the hash of the file on disk and once with a
+stale hash from an earlier grid run. That duplicate *key* pattern is gone from
+the current corpus, but the reproducibility audit still counts 11
+``hash_mismatches``: those are stale hash suffixes on records whose artifact file
+was rewritten in place (8 momentum ``param_grid_results`` parquet rows and 3
+``summary.json`` rows), not duplicate keys. See ``REPRODUCIBILITY_AUDIT_REPORT.md``.
+
+Why the parse below is raw: ``json.loads`` keeps the last value for a repeated
+key and silently drops the duplicate, so a guard built on the parsed dict can
+never see the pattern it claims to protect. We therefore parse each line with an
+``object_pairs_hook`` that records repeated keys at every nesting level.
+``test_duplicate_key_detection_is_not_vacuous`` proves the detector fires on a
+crafted record while ``json.loads`` collapses it.
 
 Read-only: does not modify ``src/qtr``, frozen-contract tests, or artifacts.
 """
@@ -31,28 +38,51 @@ def _load_experiments() -> list[dict]:
     return experiments
 
 
-def test_no_duplicate_artifact_names_within_an_experiment():
-    """No single experiment may publish two artifacts under the same name."""
-    experiments = _load_experiments()
+def _duplicate_keys(raw: str) -> list[str]:
+    """Return every JSON key repeated within one object of ``raw``.
+
+    ``json.loads`` collapses duplicate keys, so the duplicate is only visible
+    while the object pairs are still being decoded.
+    """
+    duplicates: list[str] = []
+
+    def hook(pairs):
+        counts = Counter(key for key, _ in pairs)
+        duplicates.extend(key for key, count in counts.items() if count > 1)
+        return dict(pairs)
+
+    json.loads(raw, object_pairs_hook=hook)
+    return duplicates
+
+
+def test_no_duplicate_keys_within_an_experiment_record():
+    """No experiment record may repeat a JSON key (artifact names included)."""
     offenders = []
-    for exp in experiments:
-        names = list(exp.get("artifacts", {}).keys())
-        dupes = [name for name, count in Counter(names).items() if count > 1]
-        if dupes:
-            offenders.append(
-                {
-                    "experiment_id": exp["metadata"]["experiment_id"],
-                    "name": exp["metadata"]["name"],
-                    "duplicate_names": dupes,
-                }
-            )
+    with open(EXPERIMENTS_JSONL) as f:
+        for lineno, line in enumerate(f, start=1):
+            if not line.strip():
+                continue
+            duplicates = _duplicate_keys(line)
+            if duplicates:
+                offenders.append({"line": lineno, "duplicate_keys": duplicates})
 
     assert not offenders, (
-        f"found {len(offenders)} experiment(s) with duplicate artifact names:\n"
-        + "\n".join(
-            f"  {o['experiment_id']} ({o['name']}): {o['duplicate_names']}" for o in offenders
-        )
+        f"found {len(offenders)} experiment record(s) with duplicate JSON keys:\n"
+        + "\n".join(f"  line {o['line']}: {o['duplicate_keys']}" for o in offenders)
     )
+
+
+def test_duplicate_key_detection_is_not_vacuous():
+    """The detector must catch a duplicate that ``json.loads`` would hide."""
+    raw = (
+        '{"metadata": {"experiment_id": "x"}, '
+        '"artifacts": {"param_grid_results_deadbeef": "p1", '
+        '"param_grid_results_deadbeef": "p2"}}'
+    )
+
+    assert _duplicate_keys(raw) == ["param_grid_results_deadbeef"]
+    assert list(json.loads(raw)["artifacts"]) == ["param_grid_results_deadbeef"]
+    assert list(json.loads(raw)["artifacts"].values()) == ["p2"]
 
 
 def test_no_duplicate_artifact_names_across_same_run_family():
@@ -89,3 +119,10 @@ def test_no_duplicate_artifact_names_across_same_run_family():
             f"  {o['artifact_name']} -> {o['path']} from {o['experiments']}" for o in offenders
         )
     )
+
+
+@pytest.mark.parametrize("line_ending", ["\n", ""])
+def test_detector_handles_trailing_newline(line_ending):
+    """The detector is newline-agnostic so it can read raw lines from disk."""
+    raw = '{"a": 1, "a": 2}' + line_ending
+    assert _duplicate_keys(raw) == ["a"]
