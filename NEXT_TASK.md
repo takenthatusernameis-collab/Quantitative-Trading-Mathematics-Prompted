@@ -1,21 +1,19 @@
-# Next task (2026-11-19, Cycle 221)
+# Next task (2026-11-19, Cycle 222)
 
 ## What changed this session
-- Re-verified the Cycle 220 baseline with own evidence (no source/test/gate/artifact/workflow change).
-- `git status --short` empty; HEAD `ac0dc71` == origin/main. Only handoff files updated:
-  `HANDOFF.md` (Cycle 221 banner), `NEXT_TASK.md`, `HANDOFF_CURRENT_SESSION.md`.
+- Re-verified the Cycle 221 baseline with own evidence (no source/test/gate/artifact/workflow change).
+- `git status --short` empty; HEAD `6773007` == origin/main. Only handoff files updated:
+  `HANDOFF.md` (Cycle 222 banner), `NEXT_TASK.md`, `HANDOFF_CURRENT_SESSION.md`.
 
 ## What was actually verified (own evidence)
 - `python -m ruff check src tests run_*.py scripts` → All checks passed.
 - `python -m ruff format --check src tests run_*.py scripts` → 352 files already formatted.
 - `python scripts/verify_gates_workflow_patch.py` → PATCH VERIFIED (applies to live gates.yml,
   resolves all 7 violations); live gates.yml still fails 7 contract assertions (maintainer-gated).
-- `python scripts/backtest_perf_regression_gate.py` → PERF GATE PASSED (0.419s < 5s, 10.7MB peak, 13668 trades).
-- `python -m pytest -q tests/test_nf_20261119_02_commodity_hedging_pressure.py
-  tests/test_experiment_artifact_schema.py` → **124 passed** (pins at 113 dirs / 105 summaries /
-  146 distinct keys, green).
+- `python scripts/backtest_perf_regression_gate.py` → PERF GATE PASSED (0.413s < 5s, 10.7MB peak,
+  13668 trades).
 - `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing
-  --ignore=tests/test_gates_workflow.py` → **4470 passed, 51 skipped, 0 failed** (485.65s);
+  --ignore=tests/test_gates_workflow.py` → **4470 passed, 51 skipped, 0 failed** (484.35s);
   `src/qtr` coverage **100.00%** (1692 stmts / 642 branches / 0 miss).
 - `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged, maintainer-gated).
 
@@ -45,5 +43,3 @@ source first.
   or CFTC Socrata data as blocked (all probed and usable).
 - Do not edit `.github/workflows/**` or weaken any gate or contract test.
 - Do not trust "working tree clean" or handoff counts as proof tests are green — re-run them.
-
-(End of file - total 50 lines)
