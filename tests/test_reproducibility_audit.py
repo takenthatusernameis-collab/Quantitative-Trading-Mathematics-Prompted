@@ -30,6 +30,7 @@ for the remediation plan.
 import hashlib
 import json
 import re
+from collections import Counter
 from pathlib import Path
 
 import pytest
@@ -161,7 +162,41 @@ PINNED_HASH_MISMATCHES = [
 PINNED_MISSING_FILES_DIGEST = "a50244430ef816f0a00733d82e3f140a92a9bbb29d9f6ee4157c819a2accaaff"
 PINNED_ORPHANED_FILES_DIGEST = "c6611f77e80f5bf80ce351d444a7b35e5a7b72427867da16225a99a3f1143c50"
 
+# File-based composition of the 356-file orphan backlog (2026-11-19, Cycle 227).
+# The pre-Cycle-227 prose table mixed directory counts with file counts and summed
+# to 345, not 356, and its "byte-identical to a referenced artifact?" column said
+# "No" for every live category. Each orphan below lands in exactly one bucket:
+#   h28_top_level          -> files directly under h28_causal_recertification/
+#   exp_cache              -> exp_*/cache/* files (bare-SHA cached frames)
+#   shared_audit_dir       -> files in the shared audit output dirs
+#   exp_duplicate_of_referenced -> content equals an existing referenced artifact
+#   exp_unique             -> unique content in an unreferenced experiment dir
+# "exp_duplicate_of_referenced" rows carry no unique data: 51 non-cache duplicates
+# are all cross-directory copies of a referenced artifact (plus 2 inside caches).
+# Update deliberately (together with REPRODUCIBILITY_AUDIT_REPORT.md §3) only after
+# a reviewed corpus change; do not delete artifacts on the strength of this pin.
+ORPHAN_COMPOSITION = {
+    "h28_top_level": 2,
+    "exp_cache": 282,
+    "shared_audit_dir": 13,
+    "exp_duplicate_of_referenced": 51,
+    "exp_unique": 8,
+}
+PINNED_ORPHAN_COMPOSITION_DIGEST = (
+    "4866581c9817064cb59942429fd5a5b6185cf24673c8fcd738f3d359cfa4bd97"
+)
+SHARED_AUDIT_DIRS = frozenset(
+    {
+        "h26_sharpe_scale",
+        "h27_pnl_level",
+        "h29_lookahead_sweep",
+        "h57_total_return",
+        "pf_robustness",
+    }
+)
+
 assert len(PINNED_HASH_MISMATCHES) == REPRODUCIBILITY_BASELINE["hash_mismatches"]
+assert sum(ORPHAN_COMPOSITION.values()) == REPRODUCIBILITY_BASELINE["orphaned_files"]
 
 # Findings-table label -> baseline key. ``test_audit_report_findings_table_matches_pinned_baseline``
 # parses the human-visible status table in REPRODUCIBILITY_AUDIT_REPORT.md and asserts its
@@ -214,6 +249,41 @@ def _load_experiments() -> list[dict]:
             if line:
                 experiments.append(json.loads(line))
     return experiments
+
+
+def _referenced_artifact_paths() -> set[Path]:
+    """Resolved paths of every artifact recorded in ``experiments.jsonl``."""
+    paths: set[Path] = set()
+    for exp in _load_experiments():
+        for artifact_path_str in exp.get("artifacts", {}).values():
+            paths.add(Path(artifact_path_str).resolve())
+    return paths
+
+
+def _orphaned_artifact_files() -> list[Path]:
+    """Artifact files on disk that no experiment record references."""
+    referenced = _referenced_artifact_paths()
+    return [
+        artifact_file
+        for artifact_file in ARTIFACTS_ROOT.rglob("*")
+        if artifact_file.is_file()
+        and not artifact_file.name.endswith(".meta.json")
+        and artifact_file.resolve() not in referenced
+    ]
+
+
+def _orphan_category(artifact_file: Path, referenced_hashes: set[str]) -> str:
+    """Classify one orphan into exactly one ``ORPHAN_COMPOSITION`` bucket."""
+    parts = artifact_file.relative_to(ARTIFACTS_ROOT).parts
+    if parts[0] == "h28_causal_recertification":
+        return "h28_top_level" if len(parts) == 2 else "h28_runs"
+    if parts[0] in SHARED_AUDIT_DIRS:
+        return "shared_audit_dir"
+    if len(parts) >= 3 and parts[1] == "cache":
+        return "exp_cache"
+    if _compute_file_hash(artifact_file, 64) in referenced_hashes:
+        return "exp_duplicate_of_referenced"
+    return "exp_unique"
 
 
 def _assert_backlog_matches_baseline(check: str, count: int, details: str) -> None:
@@ -440,6 +510,64 @@ class TestReproducibilityAudit:
             "REPRODUCIBILITY_BASELINE['orphaned_files'] together with "
             "REPRODUCIBILITY_AUDIT_REPORT.md."
         )
+
+    def test_orphaned_artifact_composition_matches_recorded_baseline(self):
+        """The orphan backlog's file-based composition must match its pins.
+
+        The count alone cannot say what the backlog *is*: 51 of the 356 orphan
+        files are byte-identical to a referenced artifact (no unique content),
+        while the rest include actively-cited audit outputs and unreferenced
+        experiment directories. Pinning the composition keeps
+        ``REPRODUCIBILITY_AUDIT_REPORT.md`` §3 answerable to the live store and
+        stops a "delete the orphans" remediation from destroying unique data.
+        """
+        if not ARTIFACTS_ROOT.exists():
+            pytest.skip(f"Artifacts directory not found: {ARTIFACTS_ROOT}")
+
+        referenced = _referenced_artifact_paths()
+        referenced_hashes = {_compute_file_hash(path, 64) for path in referenced if path.exists()}
+        orphans = _orphaned_artifact_files()
+        categories = Counter(_orphan_category(p, referenced_hashes) for p in orphans)
+        counts = dict(categories)
+
+        assert counts == ORPHAN_COMPOSITION, (
+            "Orphan composition changed: "
+            f"{counts} (recorded {ORPHAN_COMPOSITION}). Update ORPHAN_COMPOSITION, "
+            "PINNED_ORPHAN_COMPOSITION_DIGEST, and REPRODUCIBILITY_AUDIT_REPORT.md §3 "
+            "together if this is a reviewed corpus change; otherwise fix the drift."
+        )
+        assert sum(counts.values()) == REPRODUCIBILITY_BASELINE["orphaned_files"]
+
+        identity_lines = sorted(
+            f"{_orphan_category(p, referenced_hashes)}|{p.as_posix()}" for p in orphans
+        )
+        assert _digest_lines(identity_lines) == PINNED_ORPHAN_COMPOSITION_DIGEST, (
+            "Orphan composition identity changed: a row moved bucket or was swapped.\n"
+            f"Expected digest: {PINNED_ORPHAN_COMPOSITION_DIGEST}\n"
+            f"Actual digest:   {_digest_lines(identity_lines)}"
+        )
+
+        # A "duplicate" bucket row must really equal referenced content.
+        duplicates = [
+            p
+            for p in orphans
+            if _orphan_category(p, referenced_hashes) == "exp_duplicate_of_referenced"
+        ]
+        assert len(duplicates) == ORPHAN_COMPOSITION["exp_duplicate_of_referenced"]
+        assert all(_compute_file_hash(p, 64) in referenced_hashes for p in duplicates), (
+            "An exp_duplicate_of_referenced row has no referenced twin"
+        )
+
+    def test_orphan_composition_digest_is_not_vacuous(self):
+        """The composition digest must discriminate bucket moves and additions."""
+        base = ["exp_cache|.experiments/artifacts/a/cache/x.parquet"]
+        moved = ["exp_unique|.experiments/artifacts/a/cache/x.parquet"]
+        assert _digest_lines(base) != _digest_lines(moved)
+        assert _digest_lines(base) != _digest_lines([])
+        assert _digest_lines(base) != _digest_lines(
+            base + ["exp_unique|.experiments/artifacts/b/y.parquet"]
+        )
+        assert _digest_lines(base) != PINNED_ORPHAN_COMPOSITION_DIGEST
 
     def test_experiment_metadata_completeness(self):
         """Every experiment must have required metadata fields."""
