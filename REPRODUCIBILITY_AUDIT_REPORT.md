@@ -1,6 +1,12 @@
 # REPRODUCIBILITY AUDIT REPORT
 
 **Session:** 2026-11-12
+**Current status (2026-11-19, Cycle 226):** `missing_files` **25**, `hash_mismatches`
+**11**, `orphaned_files` **356**, `missing_meta_files` **0** — see §Findings. These are
+the values pinned by `REPRODUCIBILITY_BASELINE` in `tests/test_reproducibility_audit.py`
+and asserted against this report by
+`test_audit_report_findings_table_matches_pinned_baseline`, so the prose and the gate
+cannot drift apart. Every "197 / 528" figure below is **pre-remediation history**.
 **Re-verified:** 2026-11-13 — `missing_files` is **197** (172 H28 contract-blocked +
 25 unrecoverable), the planner reports 0 recoverable / 172 excluded / 25
 unrecoverable, and `missing_meta_files` is **140**. The earlier prose that said
@@ -22,7 +28,8 @@ row regressed". `tests/test_reproducibility_audit.py` now also pins
 `experiment_id|name|artifact_name|path` rows) and
 `PINNED_ORPHANED_FILES_DIGEST` (SHA-256 over sorted orphan paths), plus a
 non-vacuity test proving the digest discriminates substituted/removed rows.
-Current values:
+Values pinned from Cycle 223 until the Cycle 224 path remediation (**superseded**, kept
+as history; the live values are in the block immediately below and in §Findings):
 
 - `missing_files` = 197 → `7e7f4db4df1f8e8bb47bcee382177b3565de163bba72b20207e523a0e8c76251`
 - `orphaned_files` = 528 → `9f601bfe43839514cec97d7327922bed4db9003920e099152aa0aa98e837603a`

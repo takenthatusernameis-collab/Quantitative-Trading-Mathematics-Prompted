@@ -29,6 +29,7 @@ for the remediation plan.
 
 import hashlib
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -36,6 +37,7 @@ import pytest
 EXPERIMENTS_JSONL = Path(".experiments/experiments.jsonl")
 EXPERIMENTS_ROOT = Path(".experiments")
 ARTIFACTS_ROOT = Path(".experiments/artifacts")
+AUDIT_REPORT = Path("REPRODUCIBILITY_AUDIT_REPORT.md")
 
 # Snapshot of the historical reproducibility backlog when this gate was
 # introduced. Update deliberately (together with REPRODUCIBILITY_AUDIT_REPORT.md)
@@ -161,6 +163,33 @@ PINNED_ORPHANED_FILES_DIGEST = "c6611f77e80f5bf80ce351d444a7b35e5a7b72427867da16
 
 assert len(PINNED_HASH_MISMATCHES) == REPRODUCIBILITY_BASELINE["hash_mismatches"]
 
+# Findings-table label -> baseline key. ``test_audit_report_findings_table_matches_pinned_baseline``
+# parses the human-visible status table in REPRODUCIBILITY_AUDIT_REPORT.md and asserts its
+# counts equal REPRODUCIBILITY_BASELINE, so prose can no longer drift from the gate
+# (Cycles 222-225 repeatedly left stale counts in the report and handoffs).
+REPORT_ROW_LABELS = {
+    "Artifact files exist on disk": "missing_files",
+    "Artifact hashes match recorded values": "hash_mismatches",
+    "No orphaned files in artifacts dir": "orphaned_files",
+    "Artifact `.meta.json` sidecars exist": "missing_meta_files",
+}
+
+
+def _report_status_row_counts(text: str) -> dict[str, int]:
+    """Extract baseline counts from the audit report's Findings status table."""
+    counts: dict[str, int] = {}
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("|"):
+            continue
+        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+        if len(cells) < 3 or cells[0] not in REPORT_ROW_LABELS:
+            continue
+        match = re.search(r"\d+", cells[2])
+        if match:
+            counts[REPORT_ROW_LABELS[cells[0]]] = int(match.group())
+    return counts
+
 
 def _digest_lines(lines: list[str]) -> str:
     """SHA-256 digest over sorted, newline-joined identity lines."""
@@ -219,6 +248,45 @@ class TestReproducibilityAudit:
         assert _digest_lines(base) != _digest_lines(base + substituted)
         assert _digest_lines(base) != _digest_lines([])
         assert PINNED_MISSING_FILES_DIGEST != PINNED_ORPHANED_FILES_DIGEST
+
+    def test_audit_report_findings_table_matches_pinned_baseline(self):
+        """REPRODUCIBILITY_AUDIT_REPORT.md must state the live pinned backlog.
+
+        The report is the durable human record; the baseline in this module is the
+        executable one. This keeps them in lockstep: editing either without the
+        other fails here.
+        """
+        assert AUDIT_REPORT.exists(), f"Missing: {AUDIT_REPORT}"
+        text = AUDIT_REPORT.read_text(encoding="utf-8")
+
+        counted = _report_status_row_counts(text)
+        missing_labels = sorted(set(REPORT_ROW_LABELS.values()) - set(counted))
+        assert not missing_labels, (
+            "Could not parse the Findings status rows for: "
+            f"{missing_labels}. Keep the report's Findings table labels intact."
+        )
+        assert counted == REPRODUCIBILITY_BASELINE, (
+            "REPRODUCIBILITY_AUDIT_REPORT.md status table disagrees with "
+            f"REPRODUCIBILITY_BASELINE: report={counted}, baseline="
+            f"{REPRODUCIBILITY_BASELINE}. Update both together."
+        )
+
+        # The identity pins that the count cannot express must be quoted verbatim.
+        for digest in (PINNED_MISSING_FILES_DIGEST, PINNED_ORPHANED_FILES_DIGEST):
+            assert digest in text, (
+                "REPRODUCIBILITY_AUDIT_REPORT.md is missing a live identity digest: "
+                f"{digest}. Update the report when a digest is re-pinned."
+            )
+
+    def test_audit_report_count_parser_is_not_vacuous(self):
+        """A drifted count in the report must be detectable, not silently ignored."""
+        parsed = _report_status_row_counts(
+            "| Artifact files exist on disk | ⚠ BASELINE | 26 missing | extra |\n"
+            "| No orphaned files in artifacts dir | ⚠ BASELINE | 3 orphaned | scale |\n"
+            "| unrelated | row | 999 |\n"
+        )
+        assert parsed == {"missing_files": 26, "orphaned_files": 3}
+        assert parsed != REPRODUCIBILITY_BASELINE
 
     def test_experiments_log_exists_and_nonempty(self):
         """Experiments log must exist and contain records."""
