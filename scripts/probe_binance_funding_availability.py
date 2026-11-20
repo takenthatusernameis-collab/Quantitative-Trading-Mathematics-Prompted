@@ -115,12 +115,16 @@ def parse_funding_archive(raw: bytes) -> pd.DataFrame:
     stamp = pd.to_numeric(frame.iloc[:, 0], errors="coerce")
     frame = frame.loc[stamp.notna()].reset_index(drop=True)
     frame.columns = [str(i) for i in range(len(frame.columns))]
-    frame["calc_time"] = pd.to_datetime(pd.to_numeric(frame["0"], errors="coerce"), unit="ms", utc=True)
+    frame["calc_time"] = pd.to_datetime(
+        pd.to_numeric(frame["0"], errors="coerce"), unit="ms", utc=True
+    )
     frame["funding_interval_hours"] = pd.to_numeric(frame["1"], errors="coerce")
     frame["last_funding_rate"] = pd.to_numeric(frame["2"], errors="coerce")
-    return frame[["calc_time", "funding_interval_hours", "last_funding_rate"]].dropna(
-        subset=["last_funding_rate"]
-    ).reset_index(drop=True)
+    return (
+        frame[["calc_time", "funding_interval_hours", "last_funding_rate"]]
+        .dropna(subset=["last_funding_rate"])
+        .reset_index(drop=True)
+    )
 
 
 def parse_kline_archive(raw: bytes) -> pd.DataFrame:
