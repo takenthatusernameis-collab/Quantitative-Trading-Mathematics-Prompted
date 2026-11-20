@@ -90,6 +90,18 @@ artifact, hash, gate, frozen number, test, or workflow was modified.
    `param_grid_results` keys + 3 stale `summary` keys from `experiments.jsonl`.
    **Do not overwrite artifacts** without authorization.
 
+## Session verification (2026-11-20, Cycle 237 — no changes made)
+
+No code changes were made this session: both remaining items are authority-blocked
+(workflow contract fix is maintainer-managed/agent-unreachable; artifact cleanup is
+authorization-gated). The working baseline was re-verified clean:
+- `python -m pytest -q -W error` → 7 failed / 4540 passed / 51 skipped; all 7
+  failures are `tests/test_gates_workflow.py` (maintainer-gated, by design).
+- `python -m ruff check src tests run_*.py scripts` → clean.
+- `python -m ruff format --check src tests run_*.py scripts` → 360 files formatted.
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly.
+- Working tree clean, on `main`, up to date with `origin/main`.
+
 ## Approaches already tried / do not repeat
 
 - Do not re-declare any H-ID family as data-blocked without naming the probed source.
