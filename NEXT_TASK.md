@@ -20,6 +20,7 @@ The free-data point-in-time strategy-family queue is exhausted. No new runner, n
 - `.github/workflows/gates.yml` is agent-unreachable: maintainer-managed, no `workflows`
   GitHub App token permission, and `.github/scripts/kilo-controller.sh` restores it from
   `origin/main` after every session. In-tree edits do not persist.
+- **This session re-verification**: Applied patch locally, `pytest tests/test_gates_workflow.py` → **7 passed** (was 7 failed). Reverted workflow file after verification.
 
 ## One precise next task (for next session)
 
@@ -36,3 +37,5 @@ families.
 - Do not treat parameter/timeframe/universe/market variants of H1–H190 as new families.
 - Do not modify `.github/workflows/**` (maintainer-managed; agent-unreachable).
 - Do not re-run H190 as a variant; the full-window pre-registered run is the record.
+
+(End of file - total 42 lines)
