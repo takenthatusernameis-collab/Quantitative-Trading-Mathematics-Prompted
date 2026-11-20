@@ -1,7 +1,7 @@
 # Experiment Artifact Schema Audit
 
 **Date:** 2026-11-11
-**Scope:** All 103 directories under `.experiments/nf_runs/`
+**Scope:** All 116 top-level directories under `.experiments/nf_runs/`
 **Trigger:** Handoff directive to shift to auditing/infrastructure (free-data family discovery exhausted)
 
 > **Re-verified 2026-11-13:** the summary statistics below were recomputed directly from the
@@ -25,9 +25,9 @@
 
 ## Executive Summary
 
-Audit of 103 experiment artifact directories reveals **severe schema inconsistency** across `summary.json` files. Only 95 directories contain a `summary.json`; 8 directories have only `grid.csv`/`auctions.csv` (incomplete runs), and 11 are cache-only subdirectories.
+Audit of 116 experiment artifact directories reveals **severe schema inconsistency** across `summary.json` files. 108 directories contain a `summary.json`; 8 top-level directories have only `grid.csv`/`auctions.csv` (incomplete runs), and 11 nested cache-only subdirectories exist.
 
-**Key finding:** No two experiment summaries share an identical schema. There are 130 distinct keys across 95 files, with only 1 key (`verdict`) appearing in >90% of files. Critical fields like `hypothesis`, `nf_id`, `timestamp_utc`, `selected` parameters, and OOS metrics are missing from 30–80% of artifacts.
+**Key finding:** No two experiment summaries share an identical schema. There are 150 distinct keys across 108 files, with only 1 key (`verdict`) appearing in >90% of files. Critical fields like `hypothesis`, `nf_id`, `timestamp_utc`, `selected` parameters, and OOS metrics are missing from 30–80% of artifacts.
 
 This inconsistency prevents programmatic analysis of the experiment corpus and undermines reproducibility guarantees.
 
@@ -37,11 +37,11 @@ This inconsistency prevents programmatic analysis of the experiment corpus and u
 
 | Metric | Count |
 |--------|-------|
-| Total artifact directories | 103 |
-| Directories with `summary.json` | 95 |
-| Directories without `summary.json` (incomplete/cache) | 8 |
+| Total artifact directories | 116 |
+| Directories with `summary.json` | 108 |
+| Directories without `summary.json` (incomplete, top-level) | 8 |
 | Cache-only subdirectories | 11 |
-| Distinct keys across all summaries | 130 |
+| Distinct keys across all summaries | 150 |
 | Keys appearing in ≥50% of summaries | 9 |
 | Keys appearing in ≥80% of summaries | 3 (`data`, `gates`, `verdict`) |
 
