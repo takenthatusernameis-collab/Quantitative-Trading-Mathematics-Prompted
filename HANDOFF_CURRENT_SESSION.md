@@ -8,9 +8,12 @@ Nothing in `src/qtr`, `tests`, `run_*.py`, `scripts`, gates, artifacts, sidecars
 
 - `python -m ruff check src tests run_*.py scripts` — **All checks passed**.
 - `python -m ruff format --check src tests run_*.py scripts` — **353 files already formatted**.
-- `python scripts/backtest_perf_regression_gate.py` — **PERF GATE PASSED** (100 symbols × 252 bars → 0.761s, limit 5s).
+- `python scripts/backtest_perf_regression_gate.py` — **PERF GATE PASSED** (100 symbols × 252 bars → 0.760s, limit 5s).
 - `python scripts/verify_gates_workflow_patch.py` — **PATCH VERIFIED** (7 live violations; maintainer-gated).
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` — applies cleanly.
 - Test suite smoke: 983 passed, 1 skipped before hitting the 7 known `test_gates_workflow.py` failures (expected, documented).
+- `python -m pytest -q tests/test_verify_gates_workflow_patch.py` — **15 passed**.
+- `python -m pytest -q tests/test_baselines.py` — **42 passed**.
 - Baseline already green per Cycle 226/228 evidence (4473 passed, 51 skipped, 0 failed; `src/qtr` coverage **100.00%** 1692/642/0; ruff check/format clean; perf gate passed). Full suite **not** re-run per Cycle 226 guidance.
 
 ## What remains unresolved
@@ -38,3 +41,5 @@ Nothing in `src/qtr`, `tests`, `run_*.py`, `scripts`, gates, artifacts, sidecars
 ## HEAD
 
 - Session started at `b61606d` (== origin/main, clean tree).
+
+(End of file - total 46 lines)
