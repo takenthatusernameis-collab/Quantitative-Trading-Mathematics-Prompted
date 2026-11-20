@@ -1205,3 +1205,23 @@ profitability. It must be pre-registered as its own H-ID with a mechanism-separa
 against H187/H188 before execution; it may not be run as a variant of H187/H188.
 
 **Cycle 233 complete.** H1–H188 all executed/rejected; H189 unassigned; `src/qtr` unchanged.
+
+---
+
+## Cycle 234 (2026-11-20) — H189 gross profitability confirmed data-blocked on SEC XBRL
+
+### Verification (own evidence, offline, 2026-11-20)
+
+Gross profitability requires revenue AND cost reported on the **same** 10-K fiscal-year end (gross margin = (revenue − cost) / revenue). Probed all 100 S&P 100 names from the cached `.cache/xbrl` companyfacts bundles (no network) reusing `scripts/probe_sec_xbrl_fundamentals` helpers (`cached_companyfacts`, `tag_rows`, `load_ticker_cik_map`), accepting annual 10-K duration (340–380 days) and requiring revenue and cost on the same `end`:
+
+- `CostOfRevenue` co-reported with `Revenues` on same 10-K end: **28/100** names; >=2 such periods: 28/100.
+- `CostOfGoodsSold` co-reported with `Revenues` on same 10-K end: **29/100** names; >=2 such periods: 29/100.
+- XOM (CIK 0002115436): no 10-K history (successor entity); BKNG: revenue but no CostOfRevenue; AAPL: revenue but no CostOfRevenue.
+
+Both cost tags fall below the 40-name minimum required to field a cross-section at each rebalance. **H189 is data-blocked, not rejected** — no executable gross-profitability test exists on SEC XBRL at the required universe size.
+
+### Family-status consequence (durable)
+
+`NF-20261120-03 gross profitability` moves **deferred → confirmed data-blocked** (recorded, not rejected; not executed). It may not be run as a variant of H187/H188, and no alternative measured cost tag on this source clears the 40-name minimum. The free-data point-in-time fundamental source (SEC XBRL `companyfacts`) has now been tested across its three accounting mechanisms: H187 accruals/asset-growth REJECT 2/8 (Cycle 231), H188 net-share-issuance REJECT 3/8 (Cycle 233), H189 gross profitability data-blocked (Cycle 234). H1–H188 all executed/rejected; H189 unassigned/blocked; `src/qtr` unchanged.
+
+**Cycle 234 complete.**

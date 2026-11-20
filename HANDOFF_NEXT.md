@@ -9,27 +9,20 @@
 
 ## What changed this session
 
-- **H188 executed** (Cycle 233): `NF-20261120-02` net share issuance / external financing run
-  on SEC XBRL `companyfacts` (free/public/PIT). Runner `run_nf_20261120_02_net_share_issuance.py`
-  created, tests `tests/test_nf_20261120_02_net_share_issuance.py` added.
-  Artifact: `.experiments/nf_runs/nf_20261120_02_net_share_issuance_20261120_075812/`
-  (`summary.json` + `grid.csv` + `data_meta.json`).
-  **Result: REJECT (3/8 gates)** — OOS Val+Test Sharpe 0.698 (< 1.0), PF 1.126 (< 1.3),
-  worst-regime rolling-252 Sharpe −0.387 (< 0.3), benchmark p=0.178 (IR −0.600),
-  OAT perturbation min ratio −0.668 (< 0.5). PASS: trades (14,743), maxDD (−12.43%),
-  WF stability (0.880).
-- **Mechanism separation from H188 vs H187 verified**: train-block Spearman |ρ| < 0.7
-  for all four cross-diagnostics (max |ρ| = 0.29 vs asset_growth). Separation holds.
-- **H1–H188 now all executed/rejected**. The SEC XBRL source remains free/public/PIT and
-  usable — the *mechanisms* failed on this survivorship-biased large-cap construction after
-  5 bps costs, not the data.
-- **Documentation updated**: `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 233 added,
-  `HYPOTHESIS_SPEC.md` §Cycle 233 (H188 execution result) added, `AGENTS.md` stale claim
-  updated to H1–H188 exhausted.
-- **Artifact schema pins updated**: `tests/test_experiment_artifact_schema.py` inventory
-  bumped for the one new artifact directory (Cycle 219 precedent):
-  `EXPECTED_TOTAL_DIRS = 115`, `EXPECTED_SUMMARY_COUNT = 107`, `EXPECTED_DISTINCT_KEYS = 149`.
-- **Lint/format**: Clean across `src`, `tests`, `run_*.py`, `scripts` (358 files).
+- **H189 confirmed data-blocked** (Cycle 234): gross profitability requires revenue AND cost
+  on the same 10-K fiscal-year end. Offline probe of all 100 S&P 100 names from the cached
+  `.cache/xbrl` companyfacts bundles (reusing `scripts/probe_sec_xbrl_fundamentals`
+  helpers): `CostOfRevenue` co-reported with `Revenues` on the same 10-K end = 28/100 names
+  (>=2 periods: 28/100); `CostOfGoodsSold` co-reported with `Revenues` = 29/100 (>=2
+  periods: 29/100). Both below the 40-name minimum, so no executable gross-profitability
+  test exists on SEC XBRL at the required universe size. `NEW_FAMILY_RESEARCH_REGISTER.md`
+  Cycle 234 added; `AGENTS.md` H189 bullet updated to "confirmed data-blocked" with evidence.
+- **H1–H188 all executed/rejected** (Cycle 233 complete). SEC XBRL fundamental source tested
+  across its three accounting mechanisms: H187 REJECT 2/8 (Cycle 231), H188 REJECT 3/8
+  (Cycle 233), H189 data-blocked (Cycle 234).
+- **Documentation updated**: `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 234 added,
+  `HYPOTHESIS_SPEC.md` §Cycle 234 (H189 data-blocked record) referenced from the register,
+  `AGENTS.md` H189 bullet corroborated with measured evidence.
 
 ## Actually verified (this session, 2026-11-20)
 
@@ -43,15 +36,25 @@
 
 ## Next task
 
-**Execute H189 (NF-20261120-03): gross profitability premium** — currently deferred for
-measured data thinness (`CostOfRevenue` annual facts cover only 31/99 names, below the
-40-name minimum). Before execution, a different measured cost tag must be found and the
-family must be pre-registered as its own H-ID with a mechanism-separation argument
-against H187/H188. It may not be run as a variant of H187/H188.
+H189 (NF-20261120-03, gross profitability) is **confirmed data-blocked** (Cycle 234): revenue
+AND cost on the same 10-K end cover only 28/100 names via `CostOfRevenue` and 29/100 via
+`CostOfGoodsSold`, below the 40-name minimum; both cost tags probed on this source. **Do not
+execute H189** (prerequisite ≥40 active names known missing) and do not run it as a variant of
+H187/H188.
 
-**Alternative (if H189 remains blocked)**: Conclude free-data point-in-time family
-discovery is exhausted (H1–H188 all executed/rejected on SEC XBRL) and shift to
-auditing/infrastructure per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6.
+Per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6, the next research task is to discover and
+assess a new strategy family from a **materially different source or mechanism category**
+(directive §4.1: at least three candidates spanning at least three broad categories — e.g.
+information transmission/lead-lag, relative value/convergence, carry/term structure,
+volatility/convexity premia, liquidity provision/order-flow, event/auction, supply/flow
+constraints). The free PIT fundamental source (SEC XBRL `companyfacts`) is tapped out
+(H187 REJECT, H188 REJECT, H189 data-blocked); price-based families (H1–H30, H184–H188) are
+already exhausted per the register. If no materially different candidate is testable on a
+free/public source, conclude per directive §6 §6 and shift to auditing/infrastructure work,
+leaving a precise handoff with the deferred families and the reason each was blocked.
+
+Do **not** declare the global queue exhausted on the basis of this session alone; directive
+§6 requires searching one materially different set of sources/mechanism categories first.
 
 **Maintainer (unchanged, separate):** apply/push
 `patches/0001-gates-workflow-contract-fix.patch`, then verify `CONTRACT SATISFIED` and
@@ -65,6 +68,9 @@ auditing/infrastructure per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6.
 - Do not re-declare PIT accounting fundamentals (SEC XBRL `companyfacts`) as blocked — the
   source is free/public/PIT with 98/100 usable accrual observations and 88/91 usable
   share-count observations; the mechanisms failed after costs, not for lack of data.
+- Do not re-probe H189 cost tags: `CostOfRevenue` (28/100) and `CostOfGoodsSold` (29/100)
+  names report revenue AND cost on the same 10-K end, both below the 40-name minimum;
+  H189 is data-blocked on this source, not executable.
 - Do not edit `.github/workflows/**` or weaken any gate or contract test.
 - Do not modify the 25 unrecoverable-missing / 11 hash-mismatch backlog without authorization;
   the baseline (both identity digests and `REPRODUCIBILITY_AUDIT_REPORT.md`) must move in
