@@ -7,21 +7,19 @@ data-blocked on SEC XBRL gross profitability: 28/29 of 100 names, below 40 minim
 H190 crypto perpetual funding/basis cross-section REJECT 1/8, Cycle 235).
 The free-data point-in-time strategy-family queue is exhausted. No new runner, no new H-ID.
 
-## Verified evidence (this session)
+## Verified evidence (this session — independently re-verified)
 
 - `python -m ruff check src tests run_*.py scripts` → clean.
-- `python -m ruff format --check src tests run_*.py scripts` → 1 file needs formatting (`scripts/probe_binance_funding_availability.py`).
-- `python -m pytest -q` → 4540 passed, 51 skipped, 7 failed. All 7 failures are in
-  `tests/test_gates_workflow.py`, which is red on `origin/main` by design (workflow
-  contract test pinned to `.github/workflows/gates.yml`). Fix is
-  `patches/0001-gates-workflow-contract-fix.patch`, but `.github/workflows/**` is
-  maintainer-managed and agent-unreachable (no `workflows` GitHub App permission;
-  `.github/scripts/kilo-controller.sh` restores workflows from origin/main after each
-  session). Recorded for maintainer action; do not attempt in-tree workflow edits.
-- `python scripts/backtest_perf_regression_gate.py` → PERF GATE PASSED (0.423s, limit 5s).
+- `python -m ruff format --check src tests run_*.py scripts` → clean (360 files formatted; the earlier `probe_binance_funding_availability.py` format note is resolved).
+- `python -m pytest -q` → only failures are the 7 in `tests/test_gates_workflow.py` (re-verified: all 7 fail against committed `gates.yml`, each matching a missing patch change).
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → succeeds (patch is apply-ready against current tree).
+- `python scripts/backtest_perf_regression_gate.py` → PERF GATE PASSED (~0.4s, limit 5s).
 - Last executed family run: `run_nf_20261120_04_crypto_funding_carry.py`, artifact
   `.experiments/nf_runs/nf_20261120_04_crypto_funding_carry_20261120_101548/`,
   verdict REJECT (1/8 gates), runtime 450.3 s.
+- `.github/workflows/gates.yml` is agent-unreachable: maintainer-managed, no `workflows`
+  GitHub App token permission, and `.github/scripts/kilo-controller.sh` restores it from
+  `origin/main` after every session. In-tree edits do not persist.
 
 ## One precise next task (for next session)
 
