@@ -9263,4 +9263,136 @@ Artifact under ``.experiments/nf_runs/nf_20261120_01_equity_accruals_<timestamp>
 + ``grid.csv``; bump ``tests/test_experiment_artifact_schema.py`` inventory pins only if a new
 artifact directory is committed (Cycle 213/219 precedent).
 
-**Status:** pre-registered 2026-11-20T05:13Z; not executed. No artifact exists yet.
+**Status:** pre-registered 2026-11-20T05:13Z; **EXECUTED 2026-11-20T06:21Z — REJECT (2/8)**
+(Cycle 231). See the execution-result section immediately below.
+
+---
+
+## H187 execution result (Cycle 231, 2026-11-20): EXECUTED — **REJECT (2/8)**
+
+**Status:** executed on the pre-registered construction and rejected on the protected OOS
+Val+Test window. Artifact
+`.experiments/nf_runs/nf_20261120_01_equity_accruals_20261120_062010/summary.json` + `grid.csv`
+(16 combos) + `data_meta.json` (committed in `c73c565`; a duplicate earlier-timestamp directory
+from the same session was removed in `dcd2d99`, leaving exactly one artifact — no re-run and no
+grid change). Runner `run_nf_20261120_01_equity_accruals.py`; tests
+`tests/test_nf_20261120_01_equity_accruals.py` + artifact-schema inventory pins (126 passed with
+`tests/test_experiment_artifact_schema.py`). `src/qtr` unchanged; no gate weakening; no published
+artifact or frozen number modified; free/public PIT data only; no cost transfer.
+
+**Data actually used (own evidence).** SEC XBRL `companyfacts` (98 of the 100-name snapshot after
+the measured XOM/BKNG exclusions), PIT stamp = max `filed` of the three tags then engine
+`shift(1)`, monthly refresh forward-filled to the daily calendar; yfinance auto-adjusted closes.
+Sample 2011-01-03 → 2026-11-17. Train rows 2,870 (→2021-12-31), Val 520
+(2022-01-01→2023-12-31), Test 752 (2024-01-01→2026-11-17, protected), OOS 1,272. Runtime 77.1 s.
+
+**Selected config (train-only 4-fold WF).** `feature=accruals`, `entry_z=0.5`, `exit_z=0.0`,
+`k=20`, `vol_target=0.15`; WF train Sharpe **0.690**; in-train Sharpe 0.682. Asset-growth
+candidates all had *negative* WF train Sharpe (best −0.385), so the train data preferred the
+accruals leg.
+
+**OOS Val+Test.** Sharpe **0.187**, PF **1.033**, maxDD **−10.57%**, trades **342**, worst
+rolling-252 Sharpe **−1.289**, total return 0.052. Val Sharpe 0.201 / PF 1.035 / DD −10.57%;
+Test Sharpe 0.179 / PF 1.032 / DD −9.19%. Full sample Sharpe 0.521 / PF 1.095 / DD −10.57%.
+
+**Gates (fail-closed, 8).** PASS: trades ≥ 50 (342); maxDD ≤ 15% (−10.57%). FAIL: Sharpe ≥ 1.0
+(0.187), PF ≥ 1.3 (1.033), WF stability ≥ 0.7 (**0.274**, OOS/train Sharpe ratio), worst-regime
+≥ 0.3 (−1.289), benchmark p ≤ 0.05 with IR ≥ 0 (p **0.0486** two-sided passes the p half, but
+IR **−0.879** fails), OAT perturbation min ratio ≥ 0.5 (**−0.596**, min Sharpe −0.112 over 4
+points). **Verdict REJECT (2/8).**
+
+**Benchmark / ablations.** The passive equal-weight long book of the same 98 names dominates OOS:
+Sharpe **1.075**, PF 1.207, maxDD −19.28%, total return 0.982 vs the strategy's 0.052; excess
+return **−13.24%/yr**, tracking error 15.06%/yr, IR −0.879, win rate 0.465. The market-neutral
+alpha is near zero (0.0136/yr, beta −0.009, alpha t −1.974) because the strategy is ~beta-neutral
+while the benchmark is outright long; the strategy is therefore not a competitive alternative to
+the passive book. Random ranking OOS Sharpe −3.081 and inverse signal −0.197 confirm the sign is
+right (the *accruals* ordering is not noise), yet the capturable spread after 5 bps costs is far
+below the gate. Train-block Spearman of `accruals` vs `asset_growth` = −0.194, so the two features
+are not collinear. Null (H0) not rejected: accruals/asset growth carry no certifiable
+cross-sectional return after costs on a survivorship-biased large-cap book.
+
+**Disclosure.** Pre-registration (`49e74c4`, spec §Cycle 230 written 2026-11-20T05:13Z) precedes
+the run artifact timestamp 06:21Z, and the pre-registration commit does not contain the runner —
+the ordering is therefore provable from git history. `grid.csv` has exactly the 16 pre-registered
+combos; no post-hoc expansion. The test window was not used for selection or debugging.
+
+---
+
+## Cycle 232 (2026-11-20): H188 pre-registration — external financing / net share issuance
+
+**Status: PRE-REGISTERED, NOT YET EXECUTED.** Written 2026-11-20 (before any return series or
+backtest outcome is computed for this signal). Follows the Cycle 231 consequence that H1–H187 are
+exhausted/rejected and that `NF-20261120-02` (deferred in Cycle 230) becomes eligible once H187 is
+executed.
+
+### Mechanism separation from H187 (required before execution)
+
+| | H187 (executed, REJECT 2/8) | H188 (this cycle) |
+|---|---|---|
+| Observable | `(NI − CFO)/avg assets`, `ΔAssets/Assets` | `Δshares/shares_{t−1}`, `buybacks/assets_{t−1}` |
+| Economic channel | accrual persistence; investment q-theory (total asset expansion) | equity-market timing / external financing (Daniel & Titman 2006; Pontiff & Woodgate 2008) |
+| Management decision | capital budgeting + accounting recognition | whether/how much to sell or retire *equity claims* |
+
+Asset growth and share issuance are not the same signal: a firm can expand assets with debt or
+retained earnings without changing its share count, and can repurchase or issue shares without
+changing total assets (refinancing). H188 trades the **share-count / payout channel** — the price at
+which managers transact in their own equity. Train-block Spearman of net issuance vs `accruals` and
+vs `asset_growth` will be reported as an input-separation diagnostic; a value of |ρ| ≥ 0.7 would
+show the two are the same signal and would be recorded as a failed separation, not quietly ignored.
+
+### Pre-registered construction
+
+- **Universe (measured, own evidence 2026-11-20).** The probe's 100-name S&P 100 snapshot minus the
+  9 names with fewer than two usable annual share-count observations: ACN, CMCSA, MA, META, RTX,
+  SNDK, UPS, V, XOM → **91 names**. A name enters a rebalance only when its feature is non-null at
+  that date; a rebalance is skipped when fewer than **40** names are active. (Note BKNG *is* usable
+  for share counts even though it was excluded from H187's three-tag accrual join.)
+- **Features** (cross-sectional z, winsorized at ±3):
+  - `net_issuance = shares_t / shares_{t−1} − 1`, where `shares` is the 10-K instant value of
+    `CommonStockSharesOutstanding`, falling back to `CommonStockSharesIssued` when absent.
+    Prediction: **short** the top-k (heavy issuers underperform).
+  - `buyback_intensity = PaymentsForRepurchaseOfCommonStock / assets_{t−1}`.
+    Prediction: **long** the top-k (heavy repurchasers outperform).
+- **Signal orientation.** Both features are expressed so that a *higher* score means a *more
+  attractive* long, i.e. the ranking input is `−z(net_issuance)` and `+z(buyback_intensity)`,
+  before the standard long-top-k / short-bottom-k hysteresis rule. The sign is fixed here and may
+  not be re-chosen after seeing results.
+- **PIT timing.** Availability stamp = max of the `filed` dates of the tags required for that
+  fiscal year (`shares` at t and t−1, `assets`, and for `buyback_intensity` the repurchase fact);
+  engine `shift(1)` then applies. Monthly refresh, forward-filled to the daily calendar, so turnover
+  is at most monthly. No fiscal `end` is used as an availability stamp.
+- **Grid (bounded, 16):** feature {net_issuance, buyback_intensity} × entry_z {0.5, 1.0} × k {10,
+  20} × vol_target {0.10, 0.15}; `exit_z = 0.0`. Train-only 4-fold walk-forward Sharpe selection.
+- **Sample** 2011-01-03 → 2026-11-17 (same start rule as H187); Train → 2021-12-31; Val
+  2022-01-01 → 2023-12-31; **Test protected 2024-01-01 → 2026-11-17** (never used for selection or
+  debugging).
+- **Costs:** 5 bps one-way per leg; no borrow cost modelled (disclosed optimistic assumption).
+- **Gates (fail-closed, standard 8, unchanged):** OOS Val+Test Sharpe ≥ 1.0; trades ≥ 50; PF ≥ 1.3;
+  maxDD ≤ 15%; WF stability ≥ 0.7; worst-regime rolling-252 Sharpe ≥ 0.3; benchmark p ≤ 0.05
+  two-sided with IR ≥ 0 vs the passive equal-weight long book of the same 91 names; OAT ±20%
+  perturbation min ratio ≥ 0.5.
+- **Ablations/falsifiers:** passive equal-weight long book; random ranking (seed 42, identical leg
+  count); inverse signal; train-block Spearman of the two features and of each feature vs the H187
+  accrual/asset-growth z (separation diagnostic).
+
+**Disclosed biases.** The universe is current S&P 100 membership (survivorship bias); the sample is
+large-cap only, where issuance/repurchase effects are weakest; the share-count fallback mixes
+`CommonStockSharesOutstanding` and `CommonStockSharesIssued`, so the delta may pick up split or
+recapitalisation events, not only open-market issuance. Splits are not adjusted away in the XBRL
+share counts — a `|Δshares| > 50%` observation is winsorized at the ±3 z stage but not otherwise
+cleaned; this is disclosed as noise, not corrected post hoc.
+
+**What would reject it:** failing any of the 8 gates on OOS Val+Test, or a separation diagnostic
+|ρ| ≥ 0.7 against H187's signals (recorded as "not separable" rather than as a new family result).
+A failed test is a durable REJECT at the family level and must not be re-run as a
+window/k/threshold/universe variant.
+
+**Implementation constraints.** Reuse the backtest engine, metrics, gate helpers, benchmark
+constructors and the cross-sectional/hysteresis primitives used by
+`run_nf_20261120_01_equity_accruals.py` (no forked copy). New code is limited to a shares/units
+reader (the existing `tag_rows` handles `USD` only; add a units parameter without changing its
+`USD` behaviour) and the monthly refresh. `src/qtr` unchanged; free/public real data only. Artifact
+under `.experiments/nf_runs/nf_20261120_02_net_share_issuance_<timestamp>/summary.json` +
+`grid.csv` + `data_meta.json`; bump `tests/test_experiment_artifact_schema.py` inventory pins for
+the one new directory only.

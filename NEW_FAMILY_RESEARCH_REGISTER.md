@@ -1041,3 +1041,103 @@ must not be run as variants of H187.
 
 **Cycle 230 complete.** H1–H186 rejected; H187 pre-registered and awaiting execution;
 `src/qtr` unchanged.
+
+---
+
+## Cycle 231 (2026-11-20) — H187 equity accruals / asset growth EXECUTED: **REAL REJECT (2/8)**; H1–H187 exhausted
+
+Lineage: H1–H186 executed/rejected (Cycles 215–219); **H187 now executed/rejected**; next unused
+H-ID **H188** (unassigned — NF-20261120-02/03 recorded as deferred, not rejected). `src/qtr`
+unchanged; no published/certified artifact, verdict, threshold, or frozen number modified; no gate
+weakening; free/public real data only. Inventory pins in `tests/test_experiment_artifact_schema.py`
+were bumped in `c73c565` for the one new artifact directory.
+
+### What was run (pre-registration honoured, then outcomes inspected once)
+`NF-20261120-01` was pre-registered in `HYPOTHESIS_SPEC.md` §Cycle 230 (commit `49e74c4`, spec text
+written 2026-11-20T05:13Z) **without** the runner. The runner landed later in `c73c565`; the
+artifact timestamp is 06:21:21Z. The pre-registration therefore precedes the outcome by git
+history, not just by file mtime.
+
+- Mechanism: cross-sectional *earnings quality* (`accruals = (NI − CFO)/avg assets`, Sloan 1996)
+  and *corporate investment* (`asset_growth = ΔAssets/Assets`, Cooper–Gulen–Schill 2008), read
+  from SEC XBRL `companyfacts`. Root family new to H1–H186 (all prior families were price,
+  positioning, funding or survey observables).
+- Universe: the probe's 100-name S&P 100 snapshot minus the measured exclusions XOM (2026 successor
+  CIK, no 10-K history) and BKNG (tag discontinuity) = 98 names; ≥ 40 active names per rebalance.
+- PIT: row availability = **max** of the three `filed` acceptance dates, then engine `shift(1)`;
+  monthly refresh forward-filled to the daily calendar (turnover ≤ monthly).
+- Grid 16 (2 features × entry_z {0.5, 1.0} × k {10, 20} × vol_target {0.10, 0.15}, exit_z 0.0),
+  train-only 4-fold walk-forward selection. Sample 2011-01-03 → 2026-11-17; Train →2021-12-31;
+  Val 2022-01-01→2023-12-31; Test protected 2024-01-01→2026-11-17. Train/Val/Test rows
+  2,870 / 520 / 752; OOS 1,272.
+- Costs: 5 bps one-way per leg; no borrow cost modelled (disclosed optimistic assumption).
+
+### Result (OOS Val+Test, artifact `…_equity_accruals_20261120_062010`)
+Selected `feature=accruals, entry_z=0.5, exit_z=0.0, k=20, vol_target=0.15` (WF train Sharpe
+**0.690**; in-train 0.682). All eight asset-growth combos had *negative* WF train Sharpe, so the
+train data preferred accruals. OOS: Sharpe **0.187**, PF **1.033**, maxDD **−10.57%**, trades 342,
+worst rolling-252 Sharpe **−1.289**, total return 0.052. Gates PASS: trades (342), maxDD (−10.57%).
+Gates FAIL: Sharpe ≥ 1.0 (0.187), PF ≥ 1.3 (1.033), WF stability ≥ 0.7 (**0.274**), worst-regime
+≥ 0.3 (−1.289), benchmark p ≤ 0.05 *with* IR ≥ 0 (p 0.0486 two-sided, but IR **−0.879**), OAT
+perturbation min ratio ≥ 0.5 (**−0.596**). **REJECT 2/8.**
+
+The passive equal-weight long book of the same 98 names dominates: OOS Sharpe **1.075**, total
+return 0.982 vs 0.052, excess return **−13.24%/yr**, tracking error 15.06%/yr, win rate 0.465.
+The market-neutral alpha is ~0 (0.0136/yr, alpha t −1.974, beta −0.009) because the book is
+beta-neutral while the benchmark is outright long. Random ranking (−3.081) and inverse signal
+(−0.197) confirm the accruals *sign* is right, so the null is not rejected for lack of direction
+but for lack of capturable magnitude after costs. Train-block Spearman accruals vs asset_growth
+= −0.194 (not collinear).
+
+### Family-status consequence (durable)
+`NF-20261120-01 equity accruals / asset growth` moves **pre-registered → executed/rejected**.
+**H1–H187 are exhausted/rejected.** The SEC XBRL source remains free/public/PIT and usable — the
+*mechanism* failed on this survivorship-biased large-cap construction after 5 bps costs, not the
+data. Do not re-run H187 as a parameter/universe/window variant (feature set, k, entry threshold,
+formulation, or sample window), and do not re-declare PIT accounting fundamentals as blocked.
+
+Deferred and now eligible for pre-registration (recorded, not rejected): `NF-20261120-02` external
+financing / net share issuance and `NF-20261120-03` gross profitability. Each must be pre-registered
+as its own H-ID with a mechanism-separation argument against H187 (and against each other) before
+execution; neither may be run as a variant of H187 or of the other.
+
+**Cycle 231 complete.** H1–H187 all executed/rejected; H188 unassigned; `src/qtr` unchanged.
+
+---
+
+## Cycle 232 (2026-11-20) — H188 pre-registered: external financing / net share issuance (not executed)
+
+Lineage: H1–H187 executed/rejected (Cycle 231 closes H187). **H188 = `NF-20261120-02` is now
+pre-registered** in `HYPOTHESIS_SPEC.md` §Cycle 232; **not executed**, no artifact exists, so no
+inventory pin moves. `src/qtr` unchanged; no published/certified artifact, verdict, threshold, or
+frozen number modified; free/public real data only.
+
+### Measured availability (own evidence, 2026-11-20, 99 cached SEC XBRL bundles)
+
+| tag (annual 10-K FY facts) | names with data |
+|---|---|
+| `CommonStockSharesOutstanding` (shares unit) | 69 |
+| `CommonStockSharesIssued` (shares unit) | 89 |
+| `PaymentsForRepurchaseOfCommonStock` (USD) | 97 |
+| `Revenues` | 81 |
+| `CostOfRevenue` | **31** |
+| `Assets` / `NetIncomeLoss` / `CFO` | 98 |
+
+- **Net share issuance is feasible:** 90/99 bundles have ≥ 2 usable annual share-count
+  observations; 89 also have ≥ 2 buyback and ≥ 2 assets observations. On the pre-registered
+  100-name snapshot the usable set is **91 names**, excluding measured gaps ACN, CMCSA, MA, META,
+  RTX (1 obs), SNDK (1 obs), UPS, V, XOM. 91 ≫ the 40-name minimum.
+- **Gross profitability (`NF-20261120-03`) is thin on the fixed tag recipe:** `CostOfRevenue`
+  annual facts exist for only 31/99 names, so the joint `(Revenues−CostOfRevenue)/Assets` signal
+  would fall *below* the 40-name minimum. It stays **deferred**, and must not be pre-registered
+  without a different, measured cost tag.
+
+### Family-status consequence (durable)
+`NF-20261120-02 net share issuance / external financing` moves **deferred → pre-registered** with a
+written mechanism-separation argument from H187 (share-count / payout channel vs accrual persistence
+and total asset growth) and a pre-registered |ρ| ≥ 0.7 separation falsifier. It may not be run as a
+variant of H187 (feature/k/threshold/window), and its feature sign is fixed before execution.
+`NF-20261120-03` remains deferred for measured data thinness, not rejection.
+
+**Cycle 232 complete.** H1–H187 rejected; H188 pre-registered and awaiting execution; `src/qtr`
+unchanged.
