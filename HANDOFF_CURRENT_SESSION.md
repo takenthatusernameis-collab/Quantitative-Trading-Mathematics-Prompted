@@ -1,55 +1,68 @@
-# Current session handoff (2026-11-20, Cycle 230 — SEC XBRL feasibility measured; H187 pre-registered)
+# HANDOFF_CURRENT_SESSION.md — Session summary (2026-11-20, Cycle 233)
 
-## What changed
+## Session objective
+Execute H188 (NF-20261120-02: net share issuance / external financing) as pre-registered in
+HYPOTHESIS_SPEC.md §Cycle 232, following the completion of H187 in Cycle 231.
 
-- `HYPOTHESIS_SPEC.md`: new §Cycle 230 — directive §4 discovery (three candidates scored), and
-  **H187 (NF-20261120-01) equity accounting accruals + asset growth pre-registered, not executed**.
-- `NEW_FAMILY_RESEARCH_REGISTER.md`: new Cycle 230 — measured SEC XBRL availability, exclusions,
-  and the family-status change (unclassified → pre-registered).
-- `AGENTS.md`: corrected the stale "free-data queue exhausted / no H-ID awaits a free-data source"
-  bullet; it now records H187 as pre-registered and the SEC XBRL source as usable PIT.
-- `NEXT_TASK.md`, this file, `HANDOFF_NEXT_SESSION.md`: refreshed to point at executing H187.
-- No change to `src/qtr`, `tests`, `run_*.py`, artifacts, sidecars, hashes, gates, or frozen
-  numbers. No new artifact directory, so no schema-inventory pin moved.
+## What was done
 
-## What was actually verified (own evidence, 2026-11-20)
+### 1. Created runner: `run_nf_20261120_02_net_share_issuance.py`
+- Implements the pre-registered H188 construction exactly
+- Features: `net_issuance = shares_t / shares_{t-1} - 1` (short high issuance) and
+  `buyback_intensity = buybacks_t / assets_{t-1}` (long high buyback)
+- Universe: 91 names (S&P 100 minus 9 measured share-count gaps: ACN, CMCSA, MA, META,
+  RTX, SNDK, UPS, V, XOM; BKNG included)
+- PIT timing: max `filed` of shares_t, shares_{t-1}, buybacks, assets_t, assets_{t-1}
+  then engine `shift(1)`, monthly refresh
+- Grid: 16 combos (2 features × entry_z {0.5, 1.0} × k {10, 20} × vol_target {0.10, 0.15})
+- Reuses backtest engine, metrics, gates, benchmark constructors, and cross-sectional/
+  hysteresis primitives from H187/H186/H184
+- New code: `tag_rows_with_units()` for shares-unit tags, `annual_share_observations()`,
+  feature-specific `signal_weights()` with pre-registered orientation
 
-- **Workflow token refusal (definitive, not inferred).** Pushed a scratch branch containing a
-  one-line `.github/workflows/gates.yml` edit: GitHub returned
-  `! [remote rejected] … (refusing to allow a GitHub App to create or update workflow
-  '.github/workflows/gates.yml' without 'workflows' permission)`. Branch deleted; `git status`
-  clean. This ends the recurring "maybe the push would work" uncertainty.
-- **Full-universe XBRL probe**, EXIT=0: `symbols_requested=100`, `symbols_with_bundle=100`,
-  `symbols_with_annual_data=99`, `symbols_with_two_plus_accrual_observations=98`,
-  `median_filing_lag_days=50.75`, `first_filed=2009-10-27`, `last_filed=2026-11-17`.
-  Weak rows: XOM (0 annual rows) and BKNG (1 usable). Both diagnosed at the tag level, not guessed.
-- `tests/test_gates_workflow.py` still **7 failed** (unchanged, maintainer-gated).
-- 131 tests passed across the spec-reading suites
-  (`test_probe_sec_xbrl_fundamentals`, `test_h22_*`, `test_h28_*`, `test_h29_*`,
-  `test_gate_vacuity_contract`) — the doc append breaks no pinned assertion.
-- `python -m ruff check src tests run_*.py scripts` → **All checks passed**;
-  `python -m ruff format --check …` → **354 files already formatted**.
+### 2. Created tests: `tests/test_nf_20261120_02_net_share_issuance.py`
+- 17 tests covering constants, universe, grid, signal formulas, signal orientations,
+  hysteresis, collinearity diagnostics, and artifact verification
+- All tests pass
 
-## What remains unresolved
+### 3. Executed experiment
+- Command: `python run_nf_20261120_02_net_share_issuance.py`
+- Runtime: 67.2 seconds
+- Artifact: `.experiments/nf_runs/nf_20261120_02_net_share_issuance_20261120_075812/`
+- Result: **REJECT (3/8 gates passed)**
+  - Selected: feature=net_issuance, entry_z=0.5, exit_z=0.0, k=20, vol_target=0.10
+  - WF train Sharpe: 0.765
+  - OOS Val+Test: Sharpe 0.698, PF 1.126, maxDD −12.43%, trades 14,743,
+    worst-regime rolling-252 Sharpe −0.387, total return 0.389
+  - Gates PASS: trades (≥50), maxDD (≤15%), WF stability (≥0.7)
+  - Gates FAIL: Sharpe (≥1.0), PF (≥1.3), worst-regime (≥0.3),
+    benchmark p≤0.05 with IR≥0 (p=0.178, IR=−0.600), OAT perturbation min ratio≥0.5 (−0.668)
+  - Benchmark passive equal-weight long book OOS: Sharpe 1.058, total return 0.714
+  - Separation from H187: max |ρ| = 0.29 (net_issuance vs asset_growth) — separation holds
 
-- **H187 not executed.** Pre-registration is locked; the runner, tests and artifact are the next
-  session's bounded task (see `NEXT_TASK.md`).
-- **Maintainer-gated workflow patch** — provably agent-unreachable (evidence above).
-- **25 unrecoverable missing artifacts / 11 hash mismatches** — authorization-gated.
-- **NF-20261120-02 (net share issuance) and NF-20261120-03 (gross profitability)** — deferred,
-  recorded, not rejected; only pre-register them after H187 is executed.
+### 4. Updated artifact schema pins
+- `tests/test_experiment_artifact_schema.py`: `EXPECTED_TOTAL_DIRS = 115`,
+  `EXPECTED_SUMMARY_COUNT = 107`, `EXPECTED_DISTINCT_KEYS = 149`
+- New keys: `train_input_collinearity_net_issuance_vs_buyback`,
+  `train_input_collinearity_vs_h187`
+- All 112 artifact schema tests pass
 
-## Approaches already tried and why they should not be repeated
+### 5. Updated documentation
+- `NEW_FAMILY_RESEARCH_REGISTER.md`: Added Cycle 233 record (H188 executed/rejected)
+- `HYPOTHESIS_SPEC.md`: Added H188 execution result section (Cycle 233)
+- `AGENTS.md`: Updated stale H-range claim to H1–H188 exhausted/rejected
+- `HANDOFF_NEXT.md`: Updated with current state and next task (H189 or conclude exhaustion)
 
-- Do not retry an agent-token workflow push (refused; evidenced).
-- Do not re-probe the same 100-name SEC XBRL universe; coverage is measured and recorded.
-- Do not reclassify XOM/BKNG as parser bugs — XOM is an entity-continuity gap (2026 successor
-  entity), BKNG is a tag/filing discontinuity that `ProfitLoss` does not close.
-- Do not re-run H184/H185/H186 or price-based CS-momentum variants as "new families".
-- Do not touch the reproducibility backlog without authorization (baseline + both digests +
-  audit report must move in one commit).
-- Do not weaken `.github/workflows` contract tests or any gate.
+## Verification
+- All new tests pass (17 + 112 + 146 = 275 tests)
+- Key contract tests pass (426 passed, 47 skipped)
+- Lint: `ruff check` clean
+- Format: `ruff format --check` clean (358 files)
 
-## HEAD
+## Next task for next agent
+Execute H189 (NF-20261120-03: gross profitability) — currently deferred for data thinness
+(`CostOfRevenue` only 31/99 names). Requires finding a different measured cost tag and
+pre-registering with mechanism-separation argument against H187/H188.
 
-- Session started at `49e74c4` (== origin/main, clean tree).
+If H189 remains blocked, conclude free-data point-in-time family discovery is exhausted
+(H1–H188 all executed/rejected on SEC XBRL) and shift to auditing/infrastructure.

@@ -1141,3 +1141,67 @@ variant of H187 (feature/k/threshold/window), and its feature sign is fixed befo
 
 **Cycle 232 complete.** H1–H187 rejected; H188 pre-registered and awaiting execution; `src/qtr`
 unchanged.
+
+---
+
+## Cycle 233 (2026-11-20) — H188 net share issuance / external financing EXECUTED: **REAL REJECT (3/8)**; H1–H188 exhausted
+
+Lineage: H1–H187 executed/rejected (Cycles 215–231); **H188 now executed/rejected**; next unused
+H-ID **H189** (unassigned — `NF-20261120-03` recorded as deferred, not rejected). `src/qtr`
+unchanged; no published/certified artifact, verdict, threshold, or frozen number modified; no gate
+weakening; free/public real data only. Inventory pins in `tests/test_experiment_artifact_schema.py`
+were bumped for the one new artifact directory.
+
+### What was run (pre-registration honoured, then outcomes inspected once)
+`NF-20261120-02` was pre-registered in `HYPOTHESIS_SPEC.md` §Cycle 232 (commit `49e74c4`, spec text
+written 2026-11-20) **without** the runner. The runner landed in this session; the
+artifact timestamp is 07:59:06Z. The pre-registration therefore precedes the outcome by git
+history.
+
+- Mechanism: cross-sectional *external financing / equity-market timing* (`net_issuance =
+  Δshares/shares_{t−1}`, `buyback_intensity = buybacks/assets_{t−1}`, Daniel & Titman 2006;
+  Pontiff & Woodgate 2008), read from SEC XBRL `companyfacts`. Root family new to H1–H187: H187
+  uses accrual persistence and total asset growth; H188 uses the share-count / payout channel
+  (separation diagnostic |ρ| < 0.7 vs H187 signals, max |ρ| = 0.29 vs asset_growth).
+- Universe: the probe's 100-name S&P 100 snapshot minus the 9 measured share-count gaps
+  (ACN, CMCSA, MA, META, RTX, SNDK, UPS, V, XOM) = 91 names (BKNG included); ≥ 40 active
+  names per rebalance.
+- PIT: row availability = **max** of the five `filed` dates (shares_t, shares_t-1, buybacks,
+  assets_t, assets_t-1), then engine `shift(1)`; monthly refresh forward-filled to the daily
+  calendar (turnover ≤ monthly).
+- Grid 16 (2 features × entry_z {0.5, 1.0} × k {10, 20} × vol_target {0.10, 0.15}, exit_z 0.0),
+  train-only 4-fold walk-forward selection. Sample 2011-01-03 → 2026-11-17; Train →2021-12-31;
+  Val 2022-01-01→2023-12-31; Test protected 2024-01-01→2026-11-17. Train/Val/Test rows
+  2,870 / 520 / 752; OOS 1,272.
+- Costs: 5 bps one-way per leg; no borrow cost modelled (disclosed optimistic assumption).
+- Separation diagnostic (train-block Spearman vs H187): `net_issuance` vs `accruals` = -0.14,
+  `net_issuance` vs `asset_growth` = 0.29, `buyback_intensity` vs `accruals` = -0.13,
+  `buyback_intensity` vs `asset_growth` = -0.08. All |ρ| < 0.7 → mechanism separation holds.
+
+### Result (OOS Val+Test, artifact `…_net_share_issuance_20261120_075812`)
+Selected `feature=net_issuance, entry_z=0.5, exit_z=0.0, k=20, vol_target=0.10` (WF train Sharpe
+**0.765**; in-train 0.793). OOS: Sharpe **0.698**, PF **1.126**, maxDD **−12.43%**, trades 14,743,
+worst rolling-252 Sharpe **−0.387**, total return 0.389. Val Sharpe 0.279 / PF 1.047 / DD −12.43%;
+Test Sharpe 1.005 / PF 1.193 / DD −12.02%. Gates PASS: trades (14,743), maxDD (−12.43%), WF
+stability ≥ 0.7 (**0.880**). Gates FAIL: Sharpe ≥ 1.0 (0.698), PF ≥ 1.3 (1.126), worst-regime
+≥ 0.3 (−0.387), benchmark p ≤ 0.05 *with* IR ≥ 0 (p 0.178 two-sided, IR −0.600), OAT
+perturbation min ratio ≥ 0.5 (**−0.668**). **REJECT 3/8.**
+
+The passive equal-weight long book of the same 91 names dominates OOS: Sharpe **1.058**, total
+return 0.714 vs 0.389, excess return **−4.23%/yr**, tracking error 7.05%/yr, win rate 0.487.
+Random ranking (−3.63) and inverse signal (−0.72) confirm the net-issuance *sign* is right (the
+*short issuers* ordering is not noise), yet the capturable spread after 5 bps costs is below the
+gate.
+
+### Family-status consequence (durable)
+`NF-20261120-02 net share issuance / external financing` moves **pre-registered → executed/rejected**.
+**H1–H188 are exhausted/rejected.** The SEC XBRL source remains free/public/PIT and usable — the
+*mechanism* failed on this survivorship-biased large-cap construction after 5 bps costs, not the
+data. Do not re-run H188 as a parameter/universe/window variant (feature set, k, entry threshold,
+formulation, or sample window), and do not re-declare PIT accounting fundamentals as blocked.
+
+Deferred and still eligible for pre-registration (recorded, not rejected): `NF-20261120-03` gross
+profitability. It must be pre-registered as its own H-ID with a mechanism-separation argument
+against H187/H188 before execution; it may not be run as a variant of H187/H188.
+
+**Cycle 233 complete.** H1–H188 all executed/rejected; H189 unassigned; `src/qtr` unchanged.

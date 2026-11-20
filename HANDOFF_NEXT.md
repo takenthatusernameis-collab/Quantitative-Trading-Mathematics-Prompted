@@ -1,96 +1,78 @@
-# HANDOFF_NEXT.md — H51 frozen-contract drift resolved; trade log drifts remain
+# HANDOFF_NEXT.md — H188 net share issuance / external financing executed; H1–H188 exhausted/rejected
 
-## Re-verification banner (2026-11-12T10:00Z, Cycle 101)
+## Re-verification banner (2026-11-20T07:59Z, Cycle 233)
 
-> **Provenance caution (added 2026-11-13, Cycle 104):** this banner cites HEAD `1712a5e`
-> and commit `bec162f`. **Neither object exists in this repository** (`git cat-file -t` →
-> "Not a valid object name"; full history is 6 commits, all empty-message). The counts here
-> are also stale: current is **3,744 passed / 51 skipped / 7 failed** (the 7 =
-> maintainer-gated `test_gates_workflow.py`), **1211 stmts / 422 branches**, and **327
-> files** (re-verified 2026-11-14, Cycle 105). The trade-log drifts this banner claims "resolved" are
-> green in the working tree; `FROZEN_CONTRACT_DRIFT_EVIDENCE.md` carries the durable
-> re-verification. **No trade-log drifts remain unresolved.**
+> **Provenance caution:** This session executed H188 (NF-20261120-02) on the pre-registered
+> construction from HYPOTHESIS_SPEC.md §Cycle 232. The runner was written after the
+> pre-registration commit and the artifact timestamp (07:59:06Z) follows the pre-registration,
+> establishing temporal ordering by git history.
 
-**This doc was stale.** It claimed 2 trade-log frozen-contract drifts remained. Re-running
-at HEAD reports **3,744 passed / 51 skipped / 7 failed** (re-verified 2026-11-14, Cycle 105);
-the 7 failures are exclusively `tests/test_gates_workflow.py`, the maintainer-gated contract
-block. `src/qtr` coverage is **100%** (1211 stmts / 422 branches / 0 miss), `ruff check` clean,
-`ruff format --check` clean on 327 files. Historical inventory below is preserved; the
-"Unresolved / pre-existing" section is superseded by the banner.
+## What changed this session
 
-## What changed (verified this session)
+- **H188 executed** (Cycle 233): `NF-20261120-02` net share issuance / external financing run
+  on SEC XBRL `companyfacts` (free/public/PIT). Runner `run_nf_20261120_02_net_share_issuance.py`
+  created, tests `tests/test_nf_20261120_02_net_share_issuance.py` added.
+  Artifact: `.experiments/nf_runs/nf_20261120_02_net_share_issuance_20261120_075812/`
+  (`summary.json` + `grid.csv` + `data_meta.json`).
+  **Result: REJECT (3/8 gates)** — OOS Val+Test Sharpe 0.698 (< 1.0), PF 1.126 (< 1.3),
+  worst-regime rolling-252 Sharpe −0.387 (< 0.3), benchmark p=0.178 (IR −0.600),
+  OAT perturbation min ratio −0.668 (< 0.5). PASS: trades (14,743), maxDD (−12.43%),
+  WF stability (0.880).
+- **Mechanism separation from H188 vs H187 verified**: train-block Spearman |ρ| < 0.7
+  for all four cross-diagnostics (max |ρ| = 0.29 vs asset_growth). Separation holds.
+- **H1–H188 now all executed/rejected**. The SEC XBRL source remains free/public/PIT and
+  usable — the *mechanisms* failed on this survivorship-biased large-cap construction after
+  5 bps costs, not the data.
+- **Documentation updated**: `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 233 added,
+  `HYPOTHESIS_SPEC.md` §Cycle 233 (H188 execution result) added, `AGENTS.md` stale claim
+  updated to H1–H188 exhausted.
+- **Artifact schema pins updated**: `tests/test_experiment_artifact_schema.py` inventory
+  bumped for the one new artifact directory (Cycle 219 precedent):
+  `EXPECTED_TOTAL_DIRS = 115`, `EXPECTED_SUMMARY_COUNT = 107`, `EXPECTED_DISTINCT_KEYS = 149`.
+- **Lint/format**: Clean across `src`, `tests`, `run_*.py`, `scripts` (358 files).
 
-- **H51 resolved**: Added all 21 NF artifacts (2026-11-05/06) that publish `information_ratio` to `PUBLISHED_INFORMATION_RATIOS` disclosure table in `tests/test_h51_benchmark_container_invariance.py`.
-  - 3 artifacts from `nf_20261104_02_cross_asset_leadlag` (H87): OOS window recipe (train_end="2019-12-31"), container=ndarray, ddof=0
-  - 18 artifacts from 8 other NF families (H88-H95): full-series recipe, container=Series, ddof=0 (post-H51 fix)
-  - Updated `DDOF_0_ARTIFACTS` from 26 → 47, `DDOF_1_ARTIFACTS` stays 22
-  - Added RECIPES for all 21 artifacts
-  - Added 9 NF runners to `RUNNER_CALL_SITE_CONTAINER` (8 Series, 1 ndarray)
-  - Updated `test_the_series_call_sites_belong_to_the_ddof_1_families` to distinguish pre-H51 Series families (ddof=1) from post-H51 NF Series families (ddof=0)
-  - Updated `test_the_pre_h51_implementation_reproduces_the_published_values` to skip NF artifacts (post-H51, ddof=0 regardless of container)
-- **Benchmark gate contract**: 26 passed (unchanged)
-- **Frozen-contract suite**: H51, H53, H55, trade log all green. The 2 trade-log drifts
-  listed below were resolved in commit `bec162f` (2026-11-12T08:30Z); see the
-  re-verification banner at the top of this file.
-- **Lint/format**: Clean across `src`, `tests`, `run_*.py` (314 files)
+## Actually verified (this session, 2026-11-20)
 
-## Actually verified (this session)
-
-- `python -m ruff check src tests run_*.py && python -m ruff format --check src tests run_*.py` — clean.
-- `PYTHONPATH=src python -m pytest -q tests/test_h51_benchmark_container_invariance.py tests/test_h53_published_metrics_disclosure.py tests/test_h55_nested_metrics_disclosure.py tests/test_benchmark_gate_contract.py` — **389 passed, 47 skipped**.
-- `PYTHONPATH=src python -m pytest -q tests/test_trade_log_cost_reconciliation.py` — **37 passed, 0 failed** (was 327 passed / 3 failed; the 3 failures were resolved in commit `bec162f`).
-
-**Current re-verification (2026-11-12T10:00Z, Cycle 101) — supersedes all above:**
-- Full suite `pytest -q --cov=qtr --cov-branch` — **3,744 passed, 51 skipped, 7 failed** (428s; the 7 = maintainer-gated `test_gates_workflow.py`).
-- `src/qtr` coverage — **100%** (1211 stmts / 422 branches / 0 miss).
-- `python -m ruff check src tests run_*.py` — All checks passed.
-- `python -m ruff format --check src tests run_*.py scripts` — 327 files already formatted.
-
-## Unresolved / pre-existing
-
-**Superseded by the re-verification banner above** — both trade-log drifts it lists
-were resolved in commit `bec162f` (2026-11-12T08:30Z) and the full suite is green at
-HEAD. Historical record preserved for lineage only.
-
-1. **Trade log reconciliation** `test_the_committed_trade_logs_are_exactly_the_pinned_record` — committed but unpinned/misaligned: 3 contested `exp_2026-11-05` per-trade logs (`01-17-49-208916Z`, `01-24-02-934356Z`, `18-09-06-924039Z`) + 7 H28 causal-recertification run trade parquets. Constrained by partition semantics (`test_the_three_pinned_sets_partition_the_record`).
-
-2. **Trade log attribution** `test_every_committed_trade_log_records_the_aggregate_attribution` — the same 3 contested `exp_2026-11-05` logs record per-trade (not aggregate) attribution.
-
-## Resolved since prior handoff (do not re-open)
-
-- **H51** `test_every_published_information_ratio_is_disclosed` — all 21 NF IR entries added with correct recipes, containers, conventions, and p-values. Test now passes.
-- **H53** `test_h53_metrics_summary_count_pinned` (54 vs 58) and `test_h53_published_value_count_pinned` (630 vs 674) — remain green.
-- **H55** 4 failures (nested-block set, leaf count, rederivable count, perturbation gate) — remain green.
-- **Trade log** (2 drifts) — resolved in commit `bec162f` (2026-11-12T08:30Z): the 3
-  contested `exp_2026-11-05` per-trade logs were added to `TRADE_LOG_RECORD` +
-  `PER_TRADE_LOGS` and the 7 H28 causal-recertification trade parquets were added to
-  `TRADE_LOG_RECORD`, all under the partition-test constraint.
-  `test_trade_log_cost_reconciliation.py` now passes 37/37.
-
-## Failed approaches / do not blindly repeat
-
-- Do not add contested per-trade logs to `TRADE_LOG_RECORD` — breaks `test_the_three_pinned_sets_partition_the_record`.
-- Do not mass-edit runners/tests/gates to force the suite green or weaken frozen-contract/coverage gates.
-- **Do not trust a handoff doc's failure list.** This doc's own "Unresolved" section was
-  stale by ~1.5h at Cycle 101: the trade-log drifts it lists were resolved in
-  `bec162f` and the full suite is green. Re-run the suite (or the focused contract
-  file) before acting on a handoff's "unresolved" section.
+- `python run_nf_20261120_02_net_share_issuance.py` → REJECT (3/8), artifact created, runtime 67.2 s
+- `python -m pytest -q tests/test_nf_20261120_02_net_share_issuance.py` — **17 passed**
+- `python -m pytest -q tests/test_experiment_artifact_schema.py` — **112 passed**
+- `python -m pytest -q tests/test_nf_20261120_01_equity_accruals.py tests/test_probe_sec_xbrl_fundamentals.py tests/test_h22_futures_tsmom_voltarget.py tests/test_h28_causal_recertification.py tests/test_h29_lookahead_sweep.py tests/test_gate_vacuity_contract.py` — **146 passed**
+- `python -m pytest -q tests/test_benchmark_gate_contract.py tests/test_h51_benchmark_container_invariance.py tests/test_h53_published_metrics_disclosure.py tests/test_h55_nested_metrics_disclosure.py tests/test_trade_log_cost_reconciliation.py` — **426 passed, 47 skipped**
+- `python -m ruff check src tests run_*.py scripts` — **All checks passed**
+- `python -m ruff format --check src tests run_*.py scripts` — **358 files already formatted**
 
 ## Next task
 
-**Superseded** — see the re-verification banner at the top of this file. Both trade-log
-drifts it describes are resolved at HEAD and the full suite is green (3,744 passed, 51
-skipped, 7 failed; `src/qtr` coverage 100%; ruff clean). The only remaining open item is
-**H182 selection**: per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6 and
-`NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96, the free-data point-in-time
-strategy-family queue is exhausted (H1–H181 executed/rejected; commodity carry
-data-blocked; insider/earnings/options PIT unavailable without paid services).
-Selecting H182 requires resolving a data gap under explicit authorization. Absent
-that, conclude free-data family discovery is exhausted and shift to
-auditing/infrastructure rather than inventing candidates.
+**Execute H189 (NF-20261120-03): gross profitability premium** — currently deferred for
+measured data thinness (`CostOfRevenue` annual facts cover only 31/99 names, below the
+40-name minimum). Before execution, a different measured cost tag must be found and the
+family must be pre-registered as its own H-ID with a mechanism-separation argument
+against H187/H188. It may not be run as a variant of H187/H188.
 
-**Research queue:** `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96 — H1–H181 exhausted/rejected; free-data point-in-time family queue exhausted; H182 unassigned (commodity-carry data gap; insider/earnings/options PIT unavailable without paid services). H182 selection requires data-gap resolution under explicit authorization per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6.
+**Alternative (if H189 remains blocked)**: Conclude free-data point-in-time family
+discovery is exhausted (H1–H188 all executed/rejected on SEC XBRL) and shift to
+auditing/infrastructure per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6.
 
-**Constraints:** `src/qtr` unchanged unless an evidenced defect requires it (then rerun pinned full gates: `pytest -q -W error`, ruff check/format, coverage 100% for `src/qtr`); no gate weakening; no published/certified artifact, verdict, threshold, or frozen number modified without authorization; no commit/push unless explicitly requested.
+**Maintainer (unchanged, separate):** apply/push
+`patches/0001-gates-workflow-contract-fix.patch`, then verify `CONTRACT SATISFIED` and
+7 passing contract tests. The agent cannot land it (hard evidence: GitHub App token lacks
+`workflows` permission).
 
-(End of file)
+## Approaches already tried and why they should not be repeated
+
+- Do not re-run H187 or H188 as parameter/universe/window variants (feature set, k, entry
+  threshold, formulation, or sample window); both are durably REJECTED at the family level.
+- Do not re-declare PIT accounting fundamentals (SEC XBRL `companyfacts`) as blocked — the
+  source is free/public/PIT with 98/100 usable accrual observations and 88/91 usable
+  share-count observations; the mechanisms failed after costs, not for lack of data.
+- Do not edit `.github/workflows/**` or weaken any gate or contract test.
+- Do not modify the 25 unrecoverable-missing / 11 hash-mismatch backlog without authorization;
+  the baseline (both identity digests and `REPRODUCIBILITY_AUDIT_REPORT.md`) must move in
+  one commit.
+
+## Constraints
+
+`src/qtr` unchanged unless an evidenced defect requires it (then rerun pinned full gates:
+`pytest -q -W error`, ruff check/format, coverage 100% for `src/qtr`); no gate weakening;
+no published/certified artifact, verdict, threshold, or frozen number modified without
+authorization; no commit/push unless explicitly requested.

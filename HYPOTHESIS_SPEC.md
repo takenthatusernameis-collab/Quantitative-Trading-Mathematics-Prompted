@@ -9396,3 +9396,54 @@ reader (the existing `tag_rows` handles `USD` only; add a units parameter withou
 under `.experiments/nf_runs/nf_20261120_02_net_share_issuance_<timestamp>/summary.json` +
 `grid.csv` + `data_meta.json`; bump `tests/test_experiment_artifact_schema.py` inventory pins for
 the one new directory only.
+
+**Status:** pre-registered 2026-11-20 (Cycle 232); **EXECUTED 2026-11-20T07:59Z — REJECT (3/8)**
+(Cycle 233).
+
+---
+
+## H188 execution result (Cycle 233, 2026-11-20): EXECUTED — **REJECT (3/8)**
+
+**Status:** executed on the pre-registered construction and rejected on the protected OOS
+Val+Test window. Artifact
+`.experiments/nf_runs/nf_20261120_02_net_share_issuance_20261120_075812/summary.json` + `grid.csv`
+(16 combos) + `data_meta.json`. Runner `run_nf_20261120_02_net_share_issuance.py`; tests
+`tests/test_nf_20261120_02_net_share_issuance.py` + artifact-schema inventory pins (129 passed).
+`src/qtr` unchanged; no gate weakening; no published artifact or frozen number modified; free/public
+PIT data only; no cost transfer.
+
+**Data actually used (own evidence).** SEC XBRL `companyfacts` (88 of the 91-name snapshot with
+usable annual share observations), PIT stamp = max `filed` of the five tags then engine
+`shift(1)`, monthly refresh forward-filled to the daily calendar; yfinance auto-adjusted closes.
+Sample 2011-01-03 → 2026-11-17. Train rows 2,870 (→2021-12-31), Val 520
+(2022-01-01→2023-12-31), Test 752 (2024-01-01→2026-11-17, protected), OOS 1,272. Runtime 67.2 s.
+
+**Selected config (train-only 4-fold WF).** `feature=net_issuance`, `entry_z=0.5`, `exit_z=0.0`,
+`k=20`, `vol_target=0.10`; WF train Sharpe **0.765**; in-train Sharpe 0.793.
+
+**OOS Val+Test.** Sharpe **0.698**, PF **1.126**, maxDD **−12.43%**, trades **14,743**, worst
+rolling-252 Sharpe **−0.387**, total return 0.389. Val Sharpe 0.279 / PF 1.047 / DD −12.43%;
+Test Sharpe 1.005 / PF 1.193 / DD −12.02%. Full sample Sharpe 0.755 / PF 1.141 / DD −17.26%.
+
+**Gates (fail-closed, 8).** PASS: trades ≥ 50 (14,743); maxDD ≤ 15% (−12.43%); WF stability ≥ 0.7
+(**0.880**, OOS/train Sharpe ratio). FAIL: Sharpe ≥ 1.0 (0.698), PF ≥ 1.3 (1.126), worst-regime
+≥ 0.3 (−0.387), benchmark p ≤ 0.05 with IR ≥ 0 (p **0.178** two-sided, IR **−0.600**), OAT
+perturbation min ratio ≥ 0.5 (**−0.668**, min Sharpe −0.466 over 4 points). **Verdict REJECT (3/8).**
+
+**Benchmark / ablations.** The passive equal-weight long book of the same 91 names dominates OOS:
+Sharpe **1.058**, PF 1.201, maxDD −13.39%, total return 0.714 vs the strategy's 0.389; excess
+return **−4.23%/yr**, tracking error 7.05%/yr, IR −0.600, win rate 0.487. Random ranking OOS
+Sharpe −3.63 and inverse signal −0.72 confirm the sign is right (the *net issuance* ordering is
+not noise), yet the capturable spread after 5 bps costs is below the gate. Train-block Spearman
+of `net_issuance` vs `buyback_intensity` = −0.436. Separation from H187: `net_issuance` vs
+`accruals` = −0.14, `net_issuance` vs `asset_growth` = 0.29, `buyback_intensity` vs `accruals` =
+−0.13, `buyback_intensity` vs `asset_growth` = −0.08; all |ρ| < 0.7 → mechanism separation holds.
+Null (H0) not rejected: net share issuance / buyback intensity carry no certifiable
+cross-sectional return after costs on a survivorship-biased large-cap book.
+
+**Disclosure.** Pre-registration (Cycle 232 spec text written 2026-11-20) precedes
+the run artifact timestamp 07:59Z, and the pre-registration commit does not contain the runner —
+the ordering is therefore provable from git history. `grid.csv` has exactly the 16 pre-registered
+combos; no post-hoc expansion. The test window was not used for selection or debugging.
+
+---
