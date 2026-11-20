@@ -17,6 +17,47 @@ sys.modules[spec.name] = mod
 spec.loader.exec_module(mod)
 
 
+def _fact(start, end, value, filed, *, form="10-K"):
+    row = {"end": end, "val": value, "filed": filed, "form": form}
+    if start is not None:
+        row["start"] = start
+    return row
+
+
+def _share_bundle():
+    """Synthetic three-year 10-K bundle (no network, no cache).
+
+    Shares outstanding grow each year (net issuance) and share repurchases are
+    positive (buybacks). Each tag carries a *distinct* ``filed`` date so the
+    latest-contributing-fact rule is observable, and the balance-sheet dates are
+    deliberately later than the share/buyback dates.
+    """
+    shares = [
+        _fact(None, "2022-12-31", 1000.0, "2023-02-20"),
+        _fact(None, "2023-12-31", 1100.0, "2024-02-15"),
+        _fact(None, "2024-12-31", 1210.0, "2025-02-14"),
+    ]
+    buybacks = [
+        _fact("2022-01-01", "2022-12-31", 50.0, "2023-02-20"),
+        _fact("2023-01-01", "2023-12-31", 60.0, "2024-02-15"),
+        _fact("2024-01-01", "2024-12-31", 70.0, "2025-02-14"),
+    ]
+    assets = [
+        _fact(None, "2022-12-31", 10000.0, "2023-02-25"),
+        _fact(None, "2023-12-31", 11000.0, "2024-02-25"),
+        _fact(None, "2024-12-31", 12100.0, "2025-02-14"),
+    ]
+    return {
+        "facts": {
+            "us-gaap": {
+                "CommonStockSharesOutstanding": {"units": {"shares": shares}},
+                "PaymentsForRepurchaseOfCommonStock": {"units": {"USD": buybacks}},
+                "Assets": {"units": {"USD": assets}},
+            }
+        }
+    }
+
+
 def test_constants_match_preregistration():
     assert mod.EXPERIMENT == "nf_20261120_02_net_share_issuance"
     assert mod.NF_ID == "NF-20261120-02"
@@ -55,19 +96,7 @@ def test_bounded_grid_is_sixteen_declared_combos():
 
 
 def test_annual_share_observations_compute_net_issuance_and_buyback():
-    probe_path = ROOT / "scripts" / "probe_sec_xbrl_fundamentals.py"
-    probe_spec = importlib.util.spec_from_file_location("xbrl_probe", probe_path)
-    assert probe_spec and probe_spec.loader
-    probe = importlib.util.module_from_spec(probe_spec)
-    sys.modules[probe_spec.name] = probe
-    probe_spec.loader.exec_module(probe)
-
-    cache_dir = ROOT / ".cache" / "xbrl"
-    mapping = probe.load_ticker_cik_map(cache_dir / "company_tickers.json", fetch=False)
-    cik = mapping.get("AAPL")
-    assert cik is not None
-    facts = probe.cached_companyfacts(cik, cache_dir, fetch=False)
-    obs = mod.annual_share_observations(facts)
+    obs = mod.annual_share_observations(_share_bundle())
     assert not obs.empty
     expected_cols = {
         "end",
@@ -98,41 +127,19 @@ def test_annual_share_observations_compute_net_issuance_and_buyback():
 
 
 def test_filed_date_is_max_of_relevant_tags():
-    probe_path = ROOT / "scripts" / "probe_sec_xbrl_fundamentals.py"
-    probe_spec = importlib.util.spec_from_file_location("xbrl_probe", probe_path)
-    assert probe_spec and probe_spec.loader
-    probe = importlib.util.module_from_spec(probe_spec)
-    sys.modules[probe_spec.name] = probe
-    probe_spec.loader.exec_module(probe)
-
-    cache_dir = ROOT / ".cache" / "xbrl"
-    mapping = probe.load_ticker_cik_map(cache_dir / "company_tickers.json", fetch=False)
-    cik = mapping.get("AAPL")
-    facts = probe.cached_companyfacts(cik, cache_dir, fetch=False)
-    obs = mod.annual_share_observations(facts)
-    if len(obs) >= 2:
-        for _, row in obs.iterrows():
-            # The filed date should be the max of shares_filed(t), shares_filed(t-1),
-            # buybacks_filed, assets_filed(t), assets_filed(t-1)
-            # We can't directly access those from annual_share_observations output,
-            # but we can verify that the filed dates are non-decreasing (as we sort by filed in the probe)
-            pass
+    obs = mod.annual_share_observations(_share_bundle())
+    # Each row's ``filed`` is the latest of shares(t), shares(t-1), buybacks,
+    # assets(t) and assets(t-1) acceptance dates.
+    filed_by_end = dict(
+        zip(obs["end"].dt.strftime("%Y-%m-%d"), obs["filed"].dt.strftime("%Y-%m-%d"))
+    )
+    assert filed_by_end["2022-12-31"] == "2023-02-25"
+    assert filed_by_end["2023-12-31"] == "2024-02-25"
+    assert filed_by_end["2024-12-31"] == "2025-02-14"
 
 
 def test_build_monthly_signal_panel_shape():
-    probe_path = ROOT / "scripts" / "probe_sec_xbrl_fundamentals.py"
-    probe_spec = importlib.util.spec_from_file_location("xbrl_probe", probe_path)
-    assert probe_spec and probe_spec.loader
-    probe = importlib.util.module_from_spec(probe_spec)
-    sys.modules[probe_spec.name] = probe
-    probe_spec.loader.exec_module(probe)
-
-    cache_dir = ROOT / ".cache" / "xbrl"
-    mapping = probe.load_ticker_cik_map(cache_dir / "company_tickers.json", fetch=False)
-    cik = mapping.get("AAPL")
-    facts = probe.cached_companyfacts(cik, cache_dir, fetch=False)
-    obs = mod.annual_share_observations(facts)
-
+    obs = mod.annual_share_observations(_share_bundle())
     calendar = pd.bdate_range(mod.START, mod.END)
     panels = mod.build_monthly_signal_panel({"AAPL": obs}, calendar)
     assert set(panels.keys()) == {"net_issuance", "buyback_intensity"}

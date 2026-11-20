@@ -17,6 +17,44 @@ sys.modules[spec.name] = mod
 spec.loader.exec_module(mod)
 
 
+def _fact(start, end, value, filed, *, form="10-K"):
+    row = {"end": end, "val": value, "filed": filed, "form": form}
+    if start is not None:
+        row["start"] = start
+    return row
+
+
+def _accruals_bundle():
+    """Synthetic two-year 10-K companyfacts bundle (no network, no cache).
+
+    FY2022 has no prior assets, so its ``accruals`` / ``asset_growth`` are NaN;
+    FY2023 is fully derived. Each tag carries a *distinct* ``filed`` date so the
+    latest-contributing-fact rule is observable, and the balance-sheet dates are
+    deliberately later than the income-statement dates.
+    """
+    ni = [
+        _fact("2022-01-01", "2022-12-31", 100.0, "2023-02-20"),
+        _fact("2023-01-01", "2023-12-31", 120.0, "2024-02-15"),
+    ]
+    cfo = [
+        _fact("2022-01-01", "2022-12-31", 90.0, "2023-03-01"),
+        _fact("2023-01-01", "2023-12-31", 100.0, "2024-03-01"),
+    ]
+    assets = [
+        _fact(None, "2022-12-31", 1000.0, "2023-02-25"),
+        _fact(None, "2023-12-31", 1200.0, "2024-02-25"),
+    ]
+    return {
+        "facts": {
+            "us-gaap": {
+                "NetIncomeLoss": {"units": {"USD": ni}},
+                "NetCashProvidedByUsedInOperatingActivities": {"units": {"USD": cfo}},
+                "Assets": {"units": {"USD": assets}},
+            }
+        }
+    }
+
+
 def test_constants_match_preregistration():
     assert mod.EXPERIMENT == "nf_20261120_01_equity_accruals"
     assert mod.NF_ID == "NF-20261120-01"
@@ -52,19 +90,7 @@ def test_bounded_grid_is_sixteen_declared_combos():
 
 
 def test_annual_observations_compute_accruals_and_asset_growth():
-    probe_path = ROOT / "scripts" / "probe_sec_xbrl_fundamentals.py"
-    probe_spec = importlib.util.spec_from_file_location("xbrl_probe", probe_path)
-    assert probe_spec and probe_spec.loader
-    probe = importlib.util.module_from_spec(probe_spec)
-    sys.modules[probe_spec.name] = probe
-    probe_spec.loader.exec_module(probe)
-
-    cache_dir = ROOT / ".cache" / "xbrl"
-    mapping = probe.load_ticker_cik_map(cache_dir / "company_tickers.json", fetch=False)
-    cik = mapping.get("AAPL")
-    assert cik is not None
-    facts = probe.cached_companyfacts(cik, cache_dir, fetch=False)
-    obs = probe.annual_observations(facts)
+    obs = mod.xbrl.annual_observations(_accruals_bundle())
     assert not obs.empty
     assert set(obs.columns) == {"end", "filed", "ni", "cfo", "assets", "accruals", "asset_growth"}
     assert obs["accruals"].notna().any()
@@ -87,40 +113,19 @@ def test_annual_observations_compute_accruals_and_asset_growth():
 
 
 def test_filed_date_is_max_of_three_tags():
-    probe_path = ROOT / "scripts" / "probe_sec_xbrl_fundamentals.py"
-    probe_spec = importlib.util.spec_from_file_location("xbrl_probe", probe_path)
-    assert probe_spec and probe_spec.loader
-    probe = importlib.util.module_from_spec(probe_spec)
-    sys.modules[probe_spec.name] = probe
-    probe_spec.loader.exec_module(probe)
-
-    cache_dir = ROOT / ".cache" / "xbrl"
-    mapping = probe.load_ticker_cik_map(cache_dir / "company_tickers.json", fetch=False)
-    cik = mapping.get("AAPL")
-    facts = probe.cached_companyfacts(cik, cache_dir, fetch=False)
-    obs = probe.annual_observations(facts)
-    if len(obs) >= 2:
-        for _, row in obs.iterrows():
-            # The filed date should be the max of ni_filed, cfo_filed, assets_filed
-            # We can't directly access those from annual_observations output, but we can
-            # verify that the filed dates are non-decreasing (as we sort by filed in the probe)
-            pass
+    obs = mod.xbrl.annual_observations(_accruals_bundle())
+    # Each row's ``filed`` is the latest contributing tag acceptance date:
+    # FY2022 -> max(2023-02-20, 2023-03-01, 2023-02-25) = 2023-03-01
+    # FY2023 -> max(2024-02-15, 2024-03-01, 2024-02-25) = 2024-03-01
+    filed_by_end = dict(
+        zip(obs["end"].dt.strftime("%Y-%m-%d"), obs["filed"].dt.strftime("%Y-%m-%d"))
+    )
+    assert filed_by_end["2022-12-31"] == "2023-03-01"
+    assert filed_by_end["2023-12-31"] == "2024-03-01"
 
 
 def test_build_monthly_signal_panel_shape():
-    probe_path = ROOT / "scripts" / "probe_sec_xbrl_fundamentals.py"
-    probe_spec = importlib.util.spec_from_file_location("xbrl_probe", probe_path)
-    assert probe_spec and probe_spec.loader
-    probe = importlib.util.module_from_spec(probe_spec)
-    sys.modules[probe_spec.name] = probe
-    probe_spec.loader.exec_module(probe)
-
-    cache_dir = ROOT / ".cache" / "xbrl"
-    mapping = probe.load_ticker_cik_map(cache_dir / "company_tickers.json", fetch=False)
-    cik = mapping.get("AAPL")
-    facts = probe.cached_companyfacts(cik, cache_dir, fetch=False)
-    obs = probe.annual_observations(facts)
-
+    obs = mod.xbrl.annual_observations(_accruals_bundle())
     calendar = pd.bdate_range(mod.START, mod.END)
     panels = mod.build_monthly_signal_panel({"AAPL": obs}, calendar)
     assert set(panels.keys()) == {"accruals", "asset_growth"}
