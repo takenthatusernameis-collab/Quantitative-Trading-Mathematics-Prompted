@@ -1,3 +1,21 @@
+> **Superseded banner (2026-11-20, Cycle 238):** every entry in this file that reads
+> "H1–H186 exhausted/rejected; H187 unassigned" or "free-data family discovery concluded"
+> is **stale by 4+ hypotheses**. The current record is **H1–H190 exhausted/rejected, H189
+> confirmed data-blocked** (`NEW_FAMILY_RESEARCH_REGISTER.md` Cycles 215–235;
+> `AGENTS.md`). Since the Cycle 227 entry at the top of this file, the following were
+> executed/rejected on free data: H187 (equity accruals, Cycle 231, REJECT 2/8), H188
+> (net share issuance, Cycle 233, REJECT 3/8), H189 (gross profitability, Cycle 234,
+> confirmed data-blocked on SEC XBRL — CostOfRevenue 28/100, CostOfGoodsSold 29/100,
+> both below the 40-name minimum), H190 (crypto perpetual funding/basis cross-section,
+> Cycle 235, REJECT 1/8 on Binance public archives). The free-data point-in-time
+> strategy-family queue is now **exhausted (H1–H190)**; no H191 is pre-registered. The
+> only remaining actionable item is the maintainer-applied workflow contract fix
+> (`patches/0001-gates-workflow-contract-fix.patch`), which is agent-unreachable. The
+> reproducibility backlog (25 missing / 11 hash mismatches / 356 orphaned / 0 missing
+> sidecars) and the maintainer-gated `test_gates_workflow.py` (7 failed) are unchanged.
+> Historical narrative below is preserved; do not act on its "next task" lines without
+> re-reading the banner.
+
 > **Latest (2026-11-20, Cycle 227 — confirmed both remaining blocks are still live; no `src/qtr`/test/gate/artifact/workflow change; handoff update only):**
 > - **What changed:** nothing in `src/qtr`, `tests`, `run_*.py`, `scripts`, gates, artifacts, sidecars, hashes, frozen numbers, or `.github/workflows/**`. `git status --short` empty; HEAD `a080c14` == origin/main. Only handoff files (`HANDOFF.md`, `NEXT_TASK.md`) updated this session. **Handoff update, not project progress.**
 > - **Verified (own evidence, 2026-11-20):** `git apply --check patches/0001-gates-workflow-contract-fix.patch` → patch applies cleanly to the live `gates.yml` (maintainer task remains ready-to-apply). `python -m pytest -q tests/test_gates_workflow.py` → **7 failed**, unchanged (lint lacks `scripts/**` in ruff targets; push/pull_request lack `scripts/**` path filters; `research_gates` lacks both the backtest perf gate and the editable install). Full suite was **not** re-run: Cycle 226 already re-verified with own evidence (4473 passed, 51 skipped, 0 failed; `src/qtr` coverage 100.00%: 1692/642/0); per Cycle 226 guidance, counts are not re-derived a tenth time.

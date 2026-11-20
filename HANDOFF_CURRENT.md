@@ -1,5 +1,22 @@
 # Handoff — Current Session: H53 recipe verified in dep-enabled env; remaining failures are frozen-count drifts
 
+> **Superseded banner (2026-11-20, Cycle 238):** this doc's "Next task — select H182"
+> content (lines 84–93) is **stale by 9+ hypotheses**. The current record is
+> **H1–H190 exhausted/rejected, H189 confirmed data-blocked** (`NEW_FAMILY_RESEARCH_REGISTER.md`
+> Cycles 215–235; `AGENTS.md`). Since this doc was written the following were
+> executed/rejected on free data: H182 (insider signal, Cycle 115), H183–H186 (commodity
+> carry/positioning/hedging, Cycles 215–219), H187 (equity accruals, Cycle 231, REJECT 2/8),
+> H188 (net share issuance, Cycle 233, REJECT 3/8), H189 (gross profitability, Cycle 234,
+> confirmed data-blocked on SEC XBRL), H190 (crypto perpetual funding/basis cross-section,
+> Cycle 235, REJECT 1/8 on Binance public archives). The free-data point-in-time
+> strategy-family queue is now **exhausted (H1–H190)**; no H191 is pre-registered. The
+> only remaining actionable item is the maintainer-applied workflow contract fix
+> (`patches/0001-gates-workflow-contract-fix.patch`), which is agent-unreachable. The
+> provenance caution at line 5 (non-existent commit objects) and the stale counts at
+> lines 8–10 are superseded by the Cycle 236/237 re-verification in `NEXT_TASK.md`
+> (4,540 passed / 51 skipped / 7 failed; ruff clean on 360 files; patch applies cleanly).
+> Historical narrative below is preserved.
+
 ## Re-verification banner (2026-11-12T10:00Z, Cycle 101)
 
 > **Provenance caution (added 2026-11-13, Cycle 104):** this banner cites HEAD `1712a5e`

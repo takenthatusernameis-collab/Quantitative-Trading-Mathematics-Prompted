@@ -1,5 +1,18 @@
 # HANDOFF_CURRENT_SESSION.md — Session summary (2026-11-20, Cycle 233)
 
+> **Superseded banner (2026-11-20, Cycle 238):** this doc's "Next task for next agent —
+> Execute H189" instruction (lines 63–68) is **stale by 2 hypotheses**. H189 was
+> confirmed **data-blocked** in Cycle 234 (SEC XBRL `companyfacts`: CostOfRevenue
+> 28/100 and CostOfGoodsSold 29/100 co-reported with Revenues on the same 10-K end,
+> both below the 40-name minimum — no executable gross-profitability test exists on this
+> source) and H190 was executed/rejected in Cycle 235 (crypto perpetual funding/basis
+> cross-section, REJECT 1/8 on Binance public archives). The free-data point-in-time
+> strategy-family queue is now **exhausted (H1–H190)**; no H191 is pre-registered. The
+> only remaining actionable item is the maintainer-applied workflow contract fix
+> (`patches/0001-gates-workflow-contract-fix.patch`), which is agent-unreachable. The
+> H188 execution record below (Cycle 233, REJECT 3/8) is durable and unchanged. Historical
+> narrative below is preserved.
+
 ## Session objective
 Execute H188 (NF-20261120-02: net share issuance / external financing) as pre-registered in
 HYPOTHESIS_SPEC.md §Cycle 232, following the completion of H187 in Cycle 231.

@@ -1,9 +1,20 @@
 # HANDOFF_SESSION — session complete (baseline verified green on HEAD aeb3b2a)
 
+> **Re-verification banner (2026-11-20, Cycle 238):** this doc's "H1–H30 exhausted;
+> hypotheses up to H83 documented" claim is **stale by ~107 hypotheses**. The current
+> research record is **H1–H190 exhausted/rejected, H189 confirmed data-blocked**, per
+> `NEW_FAMILY_RESEARCH_REGISTER.md` Cycles 215–235 and `AGENTS.md`. The free-data
+> point-in-time strategy-family queue is exhausted; do not re-declare any H-ID
+> data-blocked without naming the probed source, and do not treat
+> parameter/timeframe/universe/market variants of H1–H190 as new families. The only
+> remaining actionable item is the maintainer-applied workflow contract fix
+> (`patches/0001-gates-workflow-contract-fix.patch`), which is agent-unreachable.
+> Historical narrative below is preserved.
+
 ## State
 - Working tree clean (`git status --short` empty). HEAD `aeb3b2a` on `main`; `main == origin/main`.
 - `.github/workflows/gates.yml` tracked in HEAD; CI gates present.
-- H1–H30 exhausted; hypotheses up to H83 documented.
+- H1–H190 exhausted/rejected; H189 confirmed data-blocked on SEC XBRL (CostOfRevenue 28/100, CostOfGoodsSold 29/100 co-reported with Revenues on the same 10-K end; both below the 40-name minimum).
 
 ## What changed (this session)
 - None to source/tests/runners/artifacts/gates/thresholds/verdicts/certified numbers.
@@ -18,7 +29,7 @@
 ## What remains unresolved
 - Items in `FINAL_REPORT.md` §H53–§H61 remain disclosed (not quantified); no gate impact.
 - Older handoff files reference different HEADs; treat as historical narrative.
-- H1–H30 exhausted; hypotheses up to H83 documented.
+- H1–H190 exhausted/rejected; H189 confirmed data-blocked on SEC XBRL.
 
 ## Approaches already tried / failed
 - None this session. Baseline verified green.

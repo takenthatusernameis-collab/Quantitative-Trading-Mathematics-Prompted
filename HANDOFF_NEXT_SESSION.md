@@ -1,5 +1,14 @@
 # Next session handoff (2026-11-20, Cycle 230 — H187 pre-registered, ready to execute)
 
+> **Superseded banner (2026-11-20, Cycle 238):** this doc's "Next session should execute
+> H187" instruction is **stale** — H187 was executed/rejected in Cycle 231, followed by
+> H188 (Cycle 233, REJECT 3/8), H189 (Cycle 234, confirmed data-blocked on SEC XBRL), and
+> H190 (Cycle 235, REJECT 1/8 on Binance public archives). The free-data point-in-time
+> strategy-family queue is now **exhausted (H1–H190)**; see `NEW_FAMILY_RESEARCH_REGISTER.md`
+> Cycles 215–235 and `AGENTS.md`. The Cycle 230 probe evidence recorded below (98/100 names
+> usable, 50.75-day median filing lag) remains durable and is the basis for the H187/H188
+> executions. Historical narrative below is preserved.
+
 ## Summary
 
 Cycle 230 measured the SEC XBRL `companyfacts` source across the full 100-name S&P 100 universe

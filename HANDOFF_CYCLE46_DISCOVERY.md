@@ -1,5 +1,12 @@
 # Handoff — Cycle 46 discovery + H132 executed (REJECT 5/8)
 
+> **Superseded banner (2026-11-20, Cycle 238):** this doc's "One precise next task — run
+> H132" instruction is **stale**; H132 was executed/rejected in Cycle 46 itself and the
+> lineage has since advanced to **H1–H190 exhausted/rejected, H189 confirmed data-blocked**
+> (`NEW_FAMILY_RESEARCH_REGISTER.md` Cycles 215–235; `AGENTS.md`). The free-data
+> point-in-time strategy-family queue is exhausted; do not re-run H132 or any exhausted
+> H-ID as a variant. Historical narrative below is preserved.
+
 ## What changed
 - **Cycle 46 discovery completed (directive §4):** Reconciled lineage to H131 (H85–H131 all REJECTED/recorded). Proposed/scored >=3 repo-new mechanism candidates across >=3 broad mechanism categories with honest 25/25/20/15/10/5 scoring and concrete reassessment of deferred/held families (no silent drops):
   - NF-20261107-35 **SPY trailing realized kurtosis (4th-moment) stress regime timing** (realized higher-moment / tail-clustering transmission) — **4.00**, **selected/executed as H132**. Repo-new realized 4th-moment observable; honest adjacency to H89/H122/H124/H128 (implied SKEW/semivariance/MAX/realized skewness, all REJECT) acknowledged and scored moderately.

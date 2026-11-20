@@ -1,5 +1,23 @@
 # HANDOFF — Session Complete: Baseline Re-verified; Free-Data Family Discovery Exhausted
 
+> **Superseded banner (2026-11-20, Cycle 238):** this doc's "Strategy Family Discovery
+> Status: EXHAUSTED (H1–H181)" and "Next Task: unblock H182" content is **stale by 9
+> hypotheses**. The current record is **H1–H190 exhausted/rejected, H189 confirmed
+> data-blocked** (`NEW_FAMILY_RESEARCH_REGISTER.md` Cycles 215–235; `AGENTS.md`). Since
+> this doc was written the following were executed/rejected on free data: H182
+> (insider signal, Cycle 115), H183–H186 (commodity carry/positioning/hedging, Cycles
+> 215–219), H187 (equity accruals, Cycle 231, REJECT 2/8), H188 (net share issuance,
+> Cycle 233, REJECT 3/8), H189 (gross profitability, Cycle 234, confirmed data-blocked on
+> SEC XBRL — CostOfRevenue 28/100, CostOfGoodsSold 29/100, both below the 40-name
+> minimum), H190 (crypto perpetual funding/basis cross-section, Cycle 235, REJECT 1/8 on
+> Binance public archives). The free-data point-in-time strategy-family queue is now
+> **exhausted (H1–H190)**; no H191 is pre-registered. The only remaining actionable item is
+> the maintainer-applied workflow contract fix
+> (`patches/0001-gates-workflow-contract-fix.patch`), which is agent-unreachable. The
+> Cycle 102 baseline counts cited below (3,744 passed / 51 skipped / 7 failed) were
+> re-verified this session at **4,540 passed / 51 skipped / 7 failed** (the 7 = the same
+> maintainer-gated `test_gates_workflow.py`). Historical narrative below is preserved.
+
 ## Re-verification banner (2026-11-12T11:30Z, Cycle 102)
 
 > **Provenance caution (added 2026-11-13, Cycle 104):** this banner cites HEAD `7fd1a1e`
