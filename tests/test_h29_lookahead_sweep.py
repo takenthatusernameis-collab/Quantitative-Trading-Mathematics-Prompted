@@ -145,6 +145,7 @@ class TestSourceSweep:
             "run_h6_vix_ddcv_experiment.py",
             "run_h7_intraday_tsmom_experiment.py",
             "run_h8_rolladjusted_tsmom_experiment.py",
+            "run_nf_20261120_04_crypto_funding_carry.py",
             "run_regime_gated_momentum_experiment.py",
             "run_ts_momentum_experiment.py",
         }

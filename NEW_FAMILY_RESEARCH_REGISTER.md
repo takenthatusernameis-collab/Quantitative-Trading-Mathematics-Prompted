@@ -1224,4 +1224,63 @@ Both cost tags fall below the 40-name minimum required to field a cross-section 
 
 `NF-20261120-03 gross profitability` moves **deferred → confirmed data-blocked** (recorded, not rejected; not executed). It may not be run as a variant of H187/H188, and no alternative measured cost tag on this source clears the 40-name minimum. The free-data point-in-time fundamental source (SEC XBRL `companyfacts`) has now been tested across its three accounting mechanisms: H187 accruals/asset-growth REJECT 2/8 (Cycle 231), H188 net-share-issuance REJECT 3/8 (Cycle 233), H189 gross profitability data-blocked (Cycle 234). H1–H188 all executed/rejected; H189 unassigned/blocked; `src/qtr` unchanged.
 
-**Cycle 234 complete.**
+## Cycle 235 (2026-11-20) — H190 (NF-20261120-04) crypto perpetual funding/basis cross-section EXECUTED: **REAL REJECT (1/8)**; H1–H190 exhausted
+
+Lineage: H1–H188 executed/rejected (Cycles 215–233); H189 data-blocked on SEC XBRL (Cycle 234).
+**H190 now executed/rejected**; `src/qtr` unchanged; no published/certified artifact, verdict,
+threshold, or frozen number modified; no gate weakening; free/public data only.
+
+### Data-availability (durable, Cycle 213 correction)
+Binance public archives at `data.binance.vision` serve perpetual `fundingRate` and daily
+spot/perp `klines` free, key-less, and reachable from this host
+(probe: `scripts/probe_binance_funding_availability.py`). 7/7 curated USDT perps usable
+2020-01 → 2026-10. Do not re-declare crypto funding carry data-blocked.
+
+### Pre-registration (Cycle 235, before any forward-return outcome was examined)
+**Mechanism.** Perp funding transfers carry between longs/shorts every 8h to anchor perp to
+spot. Cross-sectional hypothesis: names with most negative funding (longs pay shorts) are
+pressured by excess short demand and should earn positive forward returns; most positive
+funding faces excess long demand and should earn less. Pre-registered direction: long top-k
+lowest funding, short top-k highest funding. Null (H0): funding/basis cross-section has no
+predictive power for next-period perp returns after costs.
+
+**Sample.** 2020-01-01 → 2026-10-31; train → 2023-12-31; Val 2024-01-01 → 2024-12-31;
+Test protected 2025-01-01 → 2026-10-31. Universe: BTCUSDT, ETHUSDT, BNBUSDT, XRPUSDT,
+ADAUSDT, SOLUSDT, DOGEUSDT. Features: `funding_annualized`, `basis_annualized`,
+`carry_combined`. Grid (bounded, 24): 3 features × entry_z {0.5, 1.0} × exit_z {0.0} ×
+k {2, 3} × vol_target {0.10, 0.15}; train-only 4-fold WF Sharpe selection. Costs: 5 bps
+one-way per leg.
+
+**Gates (OOS Val+Test, fail-closed, standard 8).** Sharpe ≥ 1.0; trades ≥ 50; PF ≥ 1.3;
+maxDD ≤ 15%; WF stability ≥ 0.7; worst-regime rolling-252 Sharpe ≥ 0.3; benchmark p ≤ 0.05
+(two-sided) with IR ≥ 0 vs passive equal-weight long perp book; OAT ±20% perturbation min
+ratio ≥ 0.5.
+
+### Execution outcome (REAL)
+**Runner:** `run_nf_20261120_04_crypto_funding_carry.py`.
+**Tests:** `tests/test_nf_20261120_04_crypto_funding_carry.py`.
+**Artifact:** `.experiments/nf_runs/nf_20261120_04_crypto_funding_carry_20261120_101548/`
+(summary.json + grid.csv + data_meta.json), runtime 450.3 s.
+Data: 1043 train / 262 val / 478 test / 740 OOS; all 7 symbols reach 2026-10-31.
+**Selected (train-only WF 0.769):** `feature=funding_annualized, entry_z=0.5, exit_z=0.0,
+k=3, vol_target=0.10`; train Sharpe 0.691.
+**OOS Val+Test (740 periods, 3530 trades):** Sharpe **0.039** (fail), PF **1.007** (fail),
+maxDD **−19.57%** (fail), trades **3530** (pass), WF stability **0.056** (fail),
+worst-regime rolling-252 **−0.617** (fail), benchmark p **0.551** / IR **−0.349** (fail),
+perturbation min ratio **−18.02** (fail). Total return −0.004. Passive equal-weight long
+book OOS Sharpe **0.502**, total return 0.152 — benchmark dominates. **Verdict REJECT (1/8).**
+
+**Lineage map (H190 REJECT):**
+| Root family | H-ID | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Carry / crypto perpetual funding & basis cross-section | H190 (NF-20261120-04) | Cross-sectional z on monthly funding/basis; long low-funding / short high-funding; monthly refresh, vol-targeted | Binance public archives fundingRate + daily spot/perp klines, 7 USDT perps, 2020-01→2026-10 | **REJECT** (1/8; `…/nf_20261120_04_crypto_funding_carry_20261120_101548/summary.json`) | OOS Sharpe 0.039 vs benchmark 0.502; maxDD −19.57% > 15%; worst-regime −0.617; benchmark p 0.551; perturbation min ratio −18.02 |
+
+**Family-status consequence (durable).** The free-data point-in-time strategy-family queue is
+**exhausted**: H1–H190 all executed/rejected or confirmed data-blocked (H189). SEC XBRL
+fundamentals tested across all three accounting mechanisms (H187 REJECT 2/8, H188 REJECT 3/8,
+H189 data-blocked). Price-based crypto funding/basis cross-section now executed and rejected.
+No H191 is pre-registered and no new runner is created this cycle. Future discovery cycles
+must search for genuinely distinct return-generating mechanisms (per directive §6), not
+parameter/timeframe/universe variants.
+
+**Cycle 235 complete.** H1–H190 exhausted/rejected; H189 data-blocked; `src/qtr` unchanged.

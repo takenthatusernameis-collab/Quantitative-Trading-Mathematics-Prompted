@@ -9447,3 +9447,62 @@ the ordering is therefore provable from git history. `grid.csv` has exactly the 
 combos; no post-hoc expansion. The test window was not used for selection or debugging.
 
 ---
+
+## H190 (NF-20261120-04): Crypto perpetual funding/basis cross-section (Cycle 235: pre-registered and executed)
+
+**Status:** pre-registered 2026-11-20 (Cycle 235); **EXECUTED 2026-11-20T10:15Z — REJECT (1/8)** (Cycle 235).
+
+**Mechanism separation from H184/H183/H188.** H184 trades commodity term-structure carry (physically delivered futures roll yield) on a different instrument, settlement, and data source. H183 trades delta-neutral funding carry on a single perp (BTCUSDT) with fixed notional — a time-series timing null on one name, not a cross-section. H188 trades equity net-share-issuance / buyback intensity — a fundamental accounting mechanism on US large-cap ETFs. H190 trades the *cross-sectional* perpetual funding-rate/basis carry across 7 liquid USDT perps, long low-funding / short high-funding, monthly refresh, vol-targeted. Genuinely distinct mechanism per directive §6.
+
+**Pre-registration (Cycle 235, written before any forward-return outcome was computed).** Sample 2020-01-01 → 2026-10-31 (common Binance public archive availability); train → 2023-12-31; Val 2024-01-01 → 2024-12-31; Test protected 2025-01-01 → 2026-10-31. Universe: BTCUSDT, ETHUSDT, BNBUSDT, XRPUSDT, ADAUSDT, SOLUSDT, DOGEUSDT (7 curated USDT perps). Features: `funding_annualized` (8h rate × 365.25/8 × 3), `basis_annualized` ((perp−spot)/spot × 12), `carry_combined` (sum). Cross-sectional z on the monthly grid (last settlement of each month), hysteresis entry_z/exit_z, top-k long / bottom-k short, gross-normalized to one, forward-filled to daily calendar. Grid (bounded, 24): feature × entry_z {0.5, 1.0} × exit_z {0.0} × k {2, 3} × vol_target {0.10, 0.15}; train-only 4-fold WF Sharpe selection. Costs: 5 bps one-way per leg traded.
+
+**Gates (OOS Val+Test, fail-closed, standard 8, unchanged from H184/H186).** Sharpe ≥ 1.0; trades ≥ 50; PF ≥ 1.3; maxDD ≤ 15%; WF stability ≥ 0.7; worst-regime rolling-252 Sharpe ≥ 0.3; benchmark p ≤ 0.05 (two-sided) with IR ≥ 0 vs passive equal-weight long perp book; OAT ±20% perturbation min ratio ≥ 0.5.
+
+**PIT timing.** Binance archives publish funding with `calc_time` settlement timestamps every 8h (00:00/08:00/16:00 UTC). Each settlement is knowable at its timestamp; daily date t may only use funding whose `calc_time` ≤ t end-of-day. The shared engine applies `shift(1)`, so a funding snapshot at t is first tradeable at t+1. Monthly refresh forward-filled to daily calendar. No same-day outcome enters the signal.
+
+**Execution result.** Artifact
+`.experiments/nf_runs/nf_20261120_04_crypto_funding_carry_20261120_101548/summary.json` +
+`grid.csv` + `data_meta.json` (24 combos). Runner `run_nf_20261120_04_crypto_funding_carry.py`;
+tests `tests/test_nf_20261120_04_crypto_funding_carry.py`. `src/qtr` unchanged; no gate
+weakening; no published artifact or frozen number modified; free/public PIT data only.
+Data: 1043 train rows (→2023-12-31), 262 val rows (2024-01-01→2024-12-31), 478 test rows
+(2025-01-01→2026-10-31, protected), 740 OOS rows; all 7 symbols reach 2026-10-31. Runtime 450.3 s.
+
+**Selected config (train-only 4-fold WF).** `feature=funding_annualized`, `entry_z=0.5`,
+`exit_z=0.0`, `k=3`, `vol_target=0.10`; WF train Sharpe **0.769**; in-train Sharpe 0.691.
+
+**OOS Val+Test.** Sharpe **0.039**, PF **1.007**, maxDD **−19.57%**, trades **3,530**,
+worst rolling-252 Sharpe **−0.617**, total return −0.004. Val Sharpe 0.047 / PF 1.009 /
+DD −19.57%; Test Sharpe 0.033 / PF 1.006 / DD −14.96%. Full sample Sharpe 0.471 / PF 1.120 /
+DD −31.89%.
+
+**Gates (fail-closed, 8).** PASS: trades ≥ 50 (3,530). FAIL: Sharpe ≥ 1.0 (0.039),
+PF ≥ 1.3 (1.007), maxDD ≤ 15% (−19.57%), WF stability ≥ 0.7 (0.056, OOS/train Sharpe ratio),
+worst-regime ≥ 0.3 (−0.617), benchmark p ≤ 0.05 with IR ≥ 0 (p **0.551** two-sided,
+IR **−0.349**), OAT perturbation min ratio ≥ 0.5 (**−18.02**, min Sharpe −0.696 over 4
+points). **Verdict REJECT (1/8).**
+
+**Benchmark / ablations.** The passive equal-weight long book of the same 7 perps dominates
+OOS: Sharpe **0.502**, PF 1.094, maxDD −17.89%, total return 0.152 vs the strategy's −0.004;
+excess return **−4.997%/yr**, tracking error 14.331%/yr, IR −0.349, win rate 0.500. Random
+ranking OOS Sharpe −0.489 and inverse signal −0.110 confirm the sign structure is not noise,
+yet the capturable cross-sectional spread after 5 bps costs is below every gate. Train-block
+Spearman pairwise feature collinearity: funding vs basis 0.202, funding vs carry 0.837,
+basis vs carry 0.490 — funding and carry_combined are highly collinear (expected, since
+carry = funding + basis). Null (H0) not rejected: the perpetual funding/basis cross-section
+carries no certifiable cross-sectional return after costs on this universe.
+
+**Disclosure.** Pre-registration (Cycle 235 spec text) precedes the run artifact timestamp
+10:15Z, and the pre-registration commit does not contain the runner — the ordering is
+therefore provable from git history. `grid.csv` has exactly the 24 pre-registered combos;
+no post-hoc expansion. The test window was not used for selection or debugging.
+
+---
+
+**Conclusion (Cycle 235).** The free-data point-in-time strategy-family queue is **exhausted**:
+H1–H190 all executed/rejected, H189 confirmed data-blocked. SEC XBRL fundamentals tested
+across all three accounting mechanisms (H187 REJECT 2/8, H188 REJECT 3/8, H189 data-blocked).
+Price-based crypto funding/basis cross-section executed and rejected. **No H191 is
+pre-registered and no new runner is created this cycle.** Future discovery cycles must
+search for genuinely distinct return-generating mechanisms (per directive §6), not
+parameter/timeframe/universe/market variants. `src/qtr` unchanged.

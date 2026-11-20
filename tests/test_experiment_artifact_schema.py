@@ -133,17 +133,19 @@ def test_incomplete_runs_match_audit_inventory():
 # and `train_input_collinearity_vs_h187`. Each appears in one of 107 summaries,
 # so the >=50% / >=80% sets are unchanged.
 # Cycle 235 added one summary (+1 directory): the H190 crypto perpetual funding/basis
-# cross-section run `nf_20261120_04_crypto_funding_carry_20261120_101548`. It adds three
-# top-level keys (distinct keys 149 -> 152): the three pairwise feature-collinearity
-# diagnostics `basis_annualized_vs_carry_combined`,
-# `funding_annualized_vs_basis_annualized` and
-# `funding_annualized_vs_carry_combined`. Each appears in one of 108 summaries, so the
-# >=50% / >=80% sets are unchanged. (H-ID note: this runner is H190, not H189 — H189 is
-# reserved by the data-blocked gross-profitability candidate NF-20261120-03.)
+# cross-section run `nf_20261120_04_crypto_funding_carry_20261120_101548`. It adds one
+# top-level key (distinct keys 149 -> 150): `train_input_collinearity`, a nested dict
+# holding the three pairwise feature-collinearity diagnostics
+# `funding_annualized_vs_basis_annualized`,
+# `funding_annualized_vs_carry_combined` and
+# `basis_annualized_vs_carry_combined` (nested, so they do not add to the top-level
+# distinct-key count). Each appears in one of 108 summaries, so the >=50% / >=80% sets
+# are unchanged. (H-ID note: this runner is H190, not H189 — H189 is reserved by the
+# data-blocked gross-profitability candidate NF-20261120-03.)
 EXPECTED_TOTAL_DIRS = 116
 EXPECTED_SUMMARY_COUNT = 108
 EXPECTED_CACHE_ONLY_DIRS = 11
-EXPECTED_DISTINCT_KEYS = 152
+EXPECTED_DISTINCT_KEYS = 150
 EXPECTED_KEYS_GE_50_PCT = frozenset(
     {
         "ablations",
