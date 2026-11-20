@@ -10,6 +10,7 @@ The free-data point-in-time strategy-family queue is exhausted. No new runner, n
 ## Verified evidence (this session)
 
 - `python -m ruff check src tests run_*.py scripts` → clean.
+- `python -m ruff format --check src tests run_*.py scripts` → 1 file needs formatting (`scripts/probe_binance_funding_availability.py`).
 - `python -m pytest -q` → 4540 passed, 51 skipped, 7 failed. All 7 failures are in
   `tests/test_gates_workflow.py`, which is red on `origin/main` by design (workflow
   contract test pinned to `.github/workflows/gates.yml`). Fix is
@@ -17,6 +18,7 @@ The free-data point-in-time strategy-family queue is exhausted. No new runner, n
   maintainer-managed and agent-unreachable (no `workflows` GitHub App permission;
   `.github/scripts/kilo-controller.sh` restores workflows from origin/main after each
   session). Recorded for maintainer action; do not attempt in-tree workflow edits.
+- `python scripts/backtest_perf_regression_gate.py` → PERF GATE PASSED (0.423s, limit 5s).
 - Last executed family run: `run_nf_20261120_04_crypto_funding_carry.py`, artifact
   `.experiments/nf_runs/nf_20261120_04_crypto_funding_carry_20261120_101548/`,
   verdict REJECT (1/8 gates), runtime 450.3 s.
