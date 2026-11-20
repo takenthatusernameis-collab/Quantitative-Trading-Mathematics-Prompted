@@ -1,14 +1,18 @@
-"""NF-20261120-04 / H189 (Cycle 235 pre-registration and execution).
+"""NF-20261120-04 / H190 (Cycle 235 pre-registration and execution).
 
 Broad mechanism category: carry / crypto perpetual funding & basis.  Repo-new root
-family relative to executed H1-H188: no executed H-ID trades the perpetual
+family relative to executed H-ID: no executed H-ID trades the perpetual
 funding-rate/basis cross-section.  H183 (rejected) tested delta-neutral funding
-carry on a single crypto perp (BTCUSDT) with a fixed notional; H189's observable
+carry on a single crypto perp (BTCUSDT) with a fixed notional; H190's observable
 is the *cross-sectional* funding/basis carry across a universe of liquid USDT
 perps, long low-funding (negative carry paid to shorts) / short high-funding,
 with monthly refresh and vol targeting.  H184 (rejected) uses commodity
 term-structure carry (physically delivered futures roll yield); different
 instrument, different settlement, different data source.
+
+H-ID note: H189 is reserved by `NF-20261120-03` gross profitability (confirmed
+data-blocked on SEC XBRL, Cycle 234) and is NOT consumed by this runner.  H190 is
+the next free H-ID for the crypto funding/basis cross-section.
 
 Mechanism / causal chain.  Perpetual futures embed a funding rate that transfers
 carry between longs and shorts every 8 hours to anchor the perp price to spot.
@@ -103,7 +107,7 @@ _probe_spec.loader.exec_module(probe)
 
 EXPERIMENT = "nf_20261120_04_crypto_funding_carry"
 NF_ID = "NF-20261120-04"
-HYPOTHESIS = "H189"
+HYPOTHESIS = "H190"
 
 START = "2020-01-01"
 END = "2026-10-31"

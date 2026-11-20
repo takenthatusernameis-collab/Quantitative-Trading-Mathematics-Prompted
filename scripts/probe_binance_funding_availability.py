@@ -101,27 +101,45 @@ def fetch_archive(url: str, timeout: float = 30.0) -> bytes | None:
 
 
 def parse_funding_archive(raw: bytes) -> pd.DataFrame:
-    """Parse a fundingRate ZIP into ``calc_time``/``interval``/``rate`` rows."""
+    """Parse a fundingRate ZIP into ``calc_time``/``interval``/``rate`` rows.
+
+    Binance archive files are header-less before ~2023 and header-punctuated
+    afterwards, so the format is detected per file by coercing column 0 (a
+    millisecond epoch in every archive) to numeric and dropping the header row
+    when it does not parse.  Positional columns are then used: 0 = calc_time,
+    1 = funding_interval_hours, 2 = last_funding_rate.
+    """
     with zipfile.ZipFile(io.BytesIO(raw)) as archive:
         name = archive.namelist()[0]
-        frame = pd.read_csv(io.BytesIO(archive.read(name)))
-    frame.columns = [str(c).strip() for c in frame.columns]
-    frame["calc_time"] = pd.to_datetime(frame["calc_time"], unit="ms", utc=True)
-    frame["funding_interval_hours"] = pd.to_numeric(
-        frame["funding_interval_hours"], errors="coerce"
-    )
-    frame["last_funding_rate"] = pd.to_numeric(frame["last_funding_rate"], errors="coerce")
-    return frame.dropna(subset=["last_funding_rate"]).reset_index(drop=True)
+        frame = pd.read_csv(io.BytesIO(archive.read(name)), header=None)
+    stamp = pd.to_numeric(frame.iloc[:, 0], errors="coerce")
+    frame = frame.loc[stamp.notna()].reset_index(drop=True)
+    frame.columns = [str(i) for i in range(len(frame.columns))]
+    frame["calc_time"] = pd.to_datetime(pd.to_numeric(frame["0"], errors="coerce"), unit="ms", utc=True)
+    frame["funding_interval_hours"] = pd.to_numeric(frame["1"], errors="coerce")
+    frame["last_funding_rate"] = pd.to_numeric(frame["2"], errors="coerce")
+    return frame[["calc_time", "funding_interval_hours", "last_funding_rate"]].dropna(
+        subset=["last_funding_rate"]
+    ).reset_index(drop=True)
 
 
 def parse_kline_archive(raw: bytes) -> pd.DataFrame:
-    """Parse a daily kline ZIP into ``open_time``/``close`` rows (numeric only)."""
+    """Parse a daily kline ZIP into ``open_time``/``close`` rows (numeric only).
+
+    Binance archive files are header-less before ~2023 and header-punctuated
+    afterwards, so the format is detected per file by coercing column 0 (a
+    millisecond epoch in every archive) to numeric and dropping the header row
+    when it does not parse.  Positional columns are then used: 0 = open_time,
+    4 = close.
+    """
     with zipfile.ZipFile(io.BytesIO(raw)) as archive:
         name = archive.namelist()[0]
-        frame = pd.read_csv(io.BytesIO(archive.read(name)))
-    frame.columns = [str(c).strip() for c in frame.columns]
-    frame["open_time"] = pd.to_numeric(frame["open_time"], errors="coerce")
-    frame["close"] = pd.to_numeric(frame["close"], errors="coerce")
+        frame = pd.read_csv(io.BytesIO(archive.read(name)), header=None)
+    stamp = pd.to_numeric(frame.iloc[:, 0], errors="coerce")
+    frame = frame.loc[stamp.notna()].reset_index(drop=True)
+    frame.columns = [str(i) for i in range(len(frame.columns))]
+    frame["open_time"] = pd.to_numeric(frame["0"], errors="coerce")
+    frame["close"] = pd.to_numeric(frame["4"], errors="coerce")
     return frame.dropna(subset=["open_time", "close"]).reset_index(drop=True)
 
 

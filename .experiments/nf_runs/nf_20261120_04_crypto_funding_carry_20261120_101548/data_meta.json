@@ -1,0 +1,32 @@
+{
+  "funding_source": "Binance public archives (data.binance.vision)",
+  "funding_dataset": "futures/um/monthly/fundingRate",
+  "perp_source": "Binance public archives (data.binance.vision)",
+  "perp_dataset": "futures/um/monthly/klines/1d",
+  "spot_source": "Binance public archives (data.binance.vision)",
+  "spot_dataset": "spot/monthly/klines/1d",
+  "universe": [
+    {
+      "symbol": "BTCUSDT"
+    },
+    {
+      "symbol": "ETHUSDT"
+    },
+    {
+      "symbol": "BNBUSDT"
+    },
+    {
+      "symbol": "XRPUSDT"
+    },
+    {
+      "symbol": "ADAUSDT"
+    },
+    {
+      "symbol": "SOLUSDT"
+    },
+    {
+      "symbol": "DOGEUSDT"
+    }
+  ],
+  "active_names_last_month": 7
+}

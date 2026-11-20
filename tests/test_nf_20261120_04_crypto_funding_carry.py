@@ -20,7 +20,7 @@ spec.loader.exec_module(mod)
 def test_constants_match_preregistration():
     assert mod.EXPERIMENT == "nf_20261120_04_crypto_funding_carry"
     assert mod.NF_ID == "NF-20261120-04"
-    assert mod.HYPOTHESIS == "H189"
+    assert mod.HYPOTHESIS == "H190"
     assert mod.START == "2020-01-01"
     assert mod.END == "2026-10-31"
     assert mod.TRAIN_END == "2023-12-31"
