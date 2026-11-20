@@ -57,16 +57,16 @@ This inconsistency prevents programmatic analysis of the experiment corpus and u
 
 | Key | Frequency | % of Summaries |
 |-----|-----------|----------------|
-| `verdict` | 90 | 94.7% |
-| `data` | 88 | 92.6% |
-| `gates` | 83 | 87.4% |
-| `ablations` | 71 | 74.7% |
-| `hypothesis` | 65 | 68.4% |
-| `nf_id` | 63 | 66.3% |
-| `experiment` | 55 | 57.9% |
-| `gates_passed` | 52 | 54.7% |
-| `selected_params` | 49 | 51.6% |
-| `oos_val_test` | 46 | 48.4% |
+| `verdict` | 103 | 95.4% |
+| `data` | 101 | 93.5% |
+| `gates` | 96 | 88.9% |
+| `ablations` | 84 | 77.8% |
+| `hypothesis` | 78 | 72.2% |
+| `nf_id` | 76 | 70.4% |
+| `experiment` | 68 | 63.0% |
+| `gates_passed` | 65 | 60.2% |
+| `oos_val_test` | 59 | 54.6% |
+| `selected_params` | 49 | 45.4% |
 
 ---
 
@@ -75,18 +75,18 @@ This inconsistency prevents programmatic analysis of the experiment corpus and u
 ### Identity Fields
 | Field | Present In | Missing From | Notes |
 |-------|------------|--------------|-------|
-| `experiment` | 55 (57.9%) | 40 | Often replaced by `name` or `experiment_name` |
-| `nf_id` | 63 (66.3%) | 32 | Sometimes `nf_id_exec`, `nf_id_prereg_lineage` |
-| `hypothesis` | 65 (68.4%) | 30 | Sometimes `hypothesis_id`, `h_id`, `family_id` |
-| `family` | 2 (2.1%) | 93 | |
+| `experiment` | 68 (63.0%) | 40 | Often replaced by `name` or `experiment_name` |
+| `nf_id` | 76 (70.4%) | 32 | Sometimes `nf_id_exec`, `nf_id_prereg_lineage` |
+| `hypothesis` | 78 (72.2%) | 30 | Sometimes `hypothesis_id`, `h_id`, `family_id` |
+| `family` | 2 (1.9%) | 106 | |
 
 ### Timing Fields (9 distinct keys for the same concept)
 | Key | Count | Example Value |
 |-----|-------|---------------|
-| `timestamp_utc` | 19 | `"2026-11-10T13:09:48Z"` |
+| `timestamp_utc` | 32 | `"2026-11-10T13:09:48Z"` |
 | `timestamp` | 9 | `"2026-11-10T13:09:48Z"` |
 | `elapsed_s` | 20 | `10.319` |
-| `runtime_sec` | 23 | `10.319` |
+| `runtime_sec` | 36 | `10.319` |
 | `timing_seconds` | 29 | `10.319` |
 | `elapsed_seconds` | 5 | `10.319` |
 | `runtime_s` | 8 | `10.319` |
@@ -97,7 +97,7 @@ This inconsistency prevents programmatic analysis of the experiment corpus and u
 ### Selected Parameters Fields (5 distinct keys)
 | Key | Count |
 |-----|-------|
-| `selected` | 22 |
+| `selected` | 35 |
 | `selected_params` | 49 |
 | `best_params` | 3 |
 | `params` | 1 |
@@ -106,7 +106,7 @@ This inconsistency prevents programmatic analysis of the experiment corpus and u
 ### OOS Metrics Fields (7+ distinct keys)
 | Key | Count |
 |-----|-------|
-| `oos_val_test` | 46 |
+| `oos_val_test` | 59 |
 | `oos_val_test_metrics` | 7 |
 | `oos_metrics` | 12 |
 | `oos_diagnostics` | 9 |
@@ -128,7 +128,7 @@ This inconsistency prevents programmatic analysis of the experiment corpus and u
 ### Worst-Regime Fields (4 distinct keys)
 | Key | Count |
 |-----|-------|
-| `worst_regime_rolling252_sharpe` | 34 |
+| `worst_regime_rolling252_sharpe` | 39 |
 | `worst_regime_sharpe` | 4 |
 | `worst_regime_yearly_sharpe` | 1 |
 | `worst_regime_rolling252_sharpe_oos` | 2 |
@@ -139,7 +139,7 @@ This inconsistency prevents programmatic analysis of the experiment corpus and u
 | Key | Count |
 |-----|-------|
 | `wf_stability_ratio` | 23 |
-| `wf_stability_oos_over_train` | 15 |
+| `wf_stability_oos_over_train` | 28 |
 | `wf_stability` | 3 |
 | `wf_stability_ratio_oos_to_train` | 2 |
 | `wf_stability_train` | 2 |

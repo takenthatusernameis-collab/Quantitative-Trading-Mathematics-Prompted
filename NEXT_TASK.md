@@ -32,6 +32,30 @@ latest-contributing-fact rule against distinct per-tag `filed` dates.
 Scope: test files only. No `src/qtr`, runner, artifact, sidecar, hash, gate,
 frozen number, or workflow was modified.
 
+## What changed (this session)
+
+`EXPERIMENT_ARTIFACT_AUDIT.md` frequency tables were stale: counts/percentages in
+the "Top Keys by Frequency" and per-category tables were computed against ~95
+summaries (e.g. `verdict | 90 | 94.7%` = 90/95; `oos_val_test | 46 | 48.4%`
+= 46/95), while the corpus and `tests/test_experiment_artifact_schema.py` pins are
+116 dirs / 108 summaries / 150 distinct keys / 9 keys ≥50% / 3 keys ≥80%.
+Recomputed the corpus read-only (walk of `.experiments/nf_runs`, no artifact
+modification) and refreshed all affected tables:
+- Top keys now: verdict 103 (95.4%), data 101 (93.5%), gates 96 (88.9%),
+  ablations 84 (77.8%), hypothesis 78 (72.2%), nf_id 76 (70.4%), experiment
+  68 (63.0%), gates_passed 65 (60.2%), oos_val_test 59 (54.6%),
+  selected_params 49 (45.4%).
+- Fixed stale per-key counts in Identity Fields (experiment 68/63.0%, nf_id
+  76/70.4%, hypothesis 78/72.2%, family 2/1.9%), Timing Fields (timestamp_utc
+  32, runtime_sec 36), Selected Parameters (selected 35), OOS Metrics
+  (oos_val_test 59), Worst-Regime (worst_regime_rolling252_sharpe 39), and
+  Walk-Forward (wf_stability_oos_over_train 28).
+- The incomplete-run inventory (8 dirs) and cache-only directory list (11) were
+  confirmed identical to the live corpus.
+
+Scope: `EXPERIMENT_ARTIFACT_AUDIT.md` prose/tables only. No `src/qtr`, runner,
+artifact, hash, gate, frozen number, test, or workflow was modified.
+
 ## Verified evidence (this session)
 
 - `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing`
@@ -51,19 +75,20 @@ frozen number, or workflow was modified.
 
 ## One precise next task (for next session)
 
-**None blocking.** The only remaining actionable item is still the
-maintainer-applied workflow contract fix (`patches/0001-gates-workflow-contract-fix.patch`)
-to make `tests/test_gates_workflow.py` green; it is agent-unreachable
-(`.github/workflows/**` is maintainer-managed, restored from `origin/main` after
-every session, and the repo-scoped GitHub App token has no `workflows` permission).
-Optionally, as low-risk follow-ups:
-1. `EXPERIMENT_ARTIFACT_AUDIT.md` still states Cycle-115 pins (108 dirs / 100
-   summaries / 131 keys) while the live corpus and
-   `tests/test_experiment_artifact_schema.py` pins are 116 / 108 / 150; refresh the
-   prose (no test currently pins that doc, so it drifted silently).
-2. Continue artifact/audit follow-ups from `REPRODUCIBILITY_AUDIT_REPORT.md` §2
-   (drop 8 superseded duplicate `param_grid_results` keys + 3 stale `summary`
-   keys from `experiments.jsonl`; authorization-gated, do not overwrite artifacts).
+**None blocking.** The only remaining actionable items are:
+
+1. Maintainer-applied workflow contract fix
+   (`patches/0001-gates-workflow-contract-fix.patch`) to make
+   `tests/test_gates_workflow.py` green — **agent-unreachable** (`.github/workflows/**`
+   is maintainer-managed, restored from `origin/main` after every session, and the
+   repo-scoped GitHub App token has no `workflows` permission). Patch verified to
+   `git apply --check` cleanly; capture as apply-ready and record maintainer action
+   in NEXT_TASK.md.
+
+2. Optional, authorization-gated artifact cleanup from
+   `REPRODUCIBILITY_AUDIT_REPORT.md` §2: drop 8 superseded duplicate
+   `param_grid_results` keys + 3 stale `summary` keys from `experiments.jsonl`.
+   **Do not overwrite artifacts** without authorization.
 
 ## Approaches already tried / do not repeat
 
@@ -74,5 +99,9 @@ Optionally, as low-risk follow-ups:
 - Do not reintroduce a hard dependency on `.cache/xbrl/**` in tests: that cache is
   git-ignored and absent on fresh checkouts/CI. Tests must be hermetic (synthetic
   fixtures), as H187/H188 now are.
+- Do not recompute `EXPERIMENT_ARTIFACT_AUDIT.md` tables from memory — the prior
+  Cycle-115-vs-Cycle-236 mix-up came from stale percentages keyed to a ~95-summary
+  corpus; recompute read-only against `.experiments/nf_runs` and diff against the
+  `tests/test_experiment_artifact_schema.py` pins.
 
 (End of file - total 78 lines)
