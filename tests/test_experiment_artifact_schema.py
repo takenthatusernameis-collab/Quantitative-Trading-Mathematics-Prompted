@@ -119,10 +119,17 @@ def test_incomplete_runs_match_audit_inventory():
 # `information_ratio_vs_passive_book` and
 # `train_input_collinearity_hp_vs_change`. Each appears in one of 105
 # summaries, so the >=50% / >=80% sets are unchanged.
-EXPECTED_TOTAL_DIRS = 113
-EXPECTED_SUMMARY_COUNT = 105
+# Cycle 230 added one summary (+1 directory): the H187 equity accounting
+# accruals run
+# `nf_20261120_01_equity_accruals_20261120_061520`. It adds one top-level
+# key (distinct keys 146 -> 147): `train_input_collinearity_accruals_vs_asset_growth`
+# (the other keys `benchmark_passive_equal_weight_long_oos` and
+# `information_ratio_vs_passive_book` were already introduced by H186).
+# Each appears in one of 106 summaries, so the >=50% / >=80% sets are unchanged.
+EXPECTED_TOTAL_DIRS = 114
+EXPECTED_SUMMARY_COUNT = 106
 EXPECTED_CACHE_ONLY_DIRS = 11
-EXPECTED_DISTINCT_KEYS = 146
+EXPECTED_DISTINCT_KEYS = 147
 EXPECTED_KEYS_GE_50_PCT = frozenset(
     {
         "ablations",
