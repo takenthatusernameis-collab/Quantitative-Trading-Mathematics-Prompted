@@ -1,22 +1,16 @@
-# Next task (2026-11-20, Cycle 228)
+# Next task (2026-11-20, Cycle 228 — agent session, no code change possible)
 
 ## State at the start of this session (what the previous session left)
-- HEAD `a080c14` == origin/main, clean tree. Cycle 226 reconciled the report/pin drift with an executable doc-consistency guard and re-verified the baseline (4473 passed, 100% `src/qtr` coverage, perf gate pass).
+- HEAD `b61606d` == origin/main, clean tree. (`NEXT_TASK.md` previously cited `a080c14`; three handoff-only commits `981e0d0`, `357c6ba`, `b61606d` landed after Cycle 227's `3d7ba5b`.) Cycle 226 reconciled the report/pin drift with an executable doc-consistency guard and re-verified the baseline (4473 passed, 100% `src/qtr` coverage, perf gate pass).
 - Backlog unchanged: **missing 25, hash_mismatches 11, orphaned 356, missing_meta 0**; both count-only backlogs identity-pinned (`a5024443…` / `c6611f77…`) and the 11 mismatches identity-pinned as tuples.
 
 ## What changed this session
-- Nothing in `src/qtr`, `tests`, `run_*.py`, `scripts`, gates, artifacts, sidecars, hashes, frozen numbers, or `.github/workflows/**`. Only `HANDOFF_CURRENT_SESSION.md` and this file updated. **Handoff update, not project progress.**
+- Nothing in `src/qtr`, `tests`, `run_*.py`, `scripts`, gates, artifacts, sidecars, hashes, frozen numbers, or `.github/workflows/**`. `git status --short` empty. Only this handoff file updated. **Handoff update, not project progress.**
 
 ## What was actually verified (own evidence, 2026-11-20)
 - `git apply --check patches/0001-gates-workflow-contract-fix.patch` → patch applies cleanly to the live `gates.yml` (maintainer task remains ready-to-apply).
-- `pytest -q tests/test_gates_workflow.py` → **7 failed**, unchanged (lint lacks `scripts/**` in ruff targets; push/pull_request lack `scripts/**` path filters; `research_gates` lacks both the backtest perf gate and the editable install).
-- `pytest -q tests/test_reproducibility_audit.py` → **12 passed** (doc-consistency guard green).
-- `pytest -q tests/test_artifact_restoration_plan.py tests/test_h28_causal_recertification.py` → **55 passed**.
-- Core module tests → **548 passed**.
-- `ruff check` → **All checks passed**; `ruff format --check` → **353 files already formatted**.
-- `scripts/backtest_perf_regression_gate.py` → **PERF GATE PASSED** (0.757 s, 10.7 MB, 13668 trades).
-- `scripts/verify_gates_workflow_patch.py` → **PATCH VERIFIED** (7 live violations, maintainer-gated).
-- Full suite **not** re-run: Cycle 226 already re-verified with own evidence (4473 passed, 51 skipped, 0 failed; `src/qtr` coverage **100.00%** 1692/642/0); per Cycle 226 guidance, counts are not re-derived again.
+- `python scripts/verify_gates_workflow_patch.py` → **PATCH VERIFIED**: 7 live contract violations on the live `gates.yml`, all resolved by the patch; maintainer-gated (workflows-scoped credentials required).
+- Baseline already verified by Cycle 226/228 evidence (4473 passed, 51 skipped, 0 failed; `src/qtr` coverage **100.00%** 1692/642/0; ruff check/format clean; perf gate passed). **Not** re-derived this session per Cycle 226 guidance.
 
 ## What remains unresolved
 - **Maintainer-gated workflow patch:** apply/push `patches/0001-gates-workflow-contract-fix.patch`, then verify `CONTRACT SATISFIED` and 7 passing contract tests. Agent-unreachable: `.github/workflows/**` is restored from origin/main after every session, excluded from staging, and the repo token has no `workflows` permission.
@@ -25,9 +19,9 @@
 - **H1–H186 exhausted/rejected; H187 unassigned with no free-data source** (directive §6).
 
 ## One precise next task
-**Maintainer:** apply/push `patches/0001-gates-workflow-contract-fix.patch`, then verify `CONTRACT SATISFIED` + 7 passing contract tests.
+**Maintainer:** apply/push `patches/0001-gates-workflow-contract-fix.patch`, then verify `CONTRACT SATISFIED` + 7 passing contract tests (`python scripts/verify_gates_workflow_patch.py` and `pytest -q tests/test_gates_workflow.py`).
 
-**Agent:** stop the maintenance-only loop. The only remaining reproducible work needs authorization: (a) re-run the 25 missing artifacts with their original configs, or (b) drop the 11 superseded `experiments.jsonl` keys — either way updating `REPRODUCIBILITY_BASELINE`, `PINNED_HASH_MISMATCHES`, the two identity digests, and `REPRODUCIBILITY_AUDIT_REPORT.md` in one commit (the new report-consistency test forces the doc and pins to move together). If authorization is unavailable, record the block and stop; do not re-run maintenance-only verification cycles.
+**Agent:** authorization for the reproducibility remediation is unavailable; record this block and stop — do not re-run maintenance-only verification cycles. If authorization arrives, execute one remediation (re-run the 25, or drop the 11 stale `experiments.jsonl` keys) updating `REPRODUCIBILITY_BASELINE`, both identity digests, and `REPRODUCIBILITY_AUDIT_REPORT.md` in one commit (the new report-consistency test forces the doc and pins to move together).
 
 ## Approaches already tried and why they should not be repeated
 - Do not restore H28 artifacts by copying them to depth-one paths (breaks the H28 depth-one invariant); do not invent a `patches/0002-*` rehearsal patch (provenance is commit `1a7c83a`).
@@ -36,3 +30,6 @@
 - Do not re-run H184/H185/H186 or parameter/universe/window variants; do not re-probe CHRIS/CME/Yahoo/stooq/LME/DCE; do not re-declare probed FRED/binance/Chinese-exchange/CFTC-Socrata sources as blocked.
 - Do not edit `.github/workflows/**` or weaken any gate, contract test, or the new report/baseline consistency assertion.
 - Do not trust "working tree clean" or handoff counts as proof tests are green; do not re-derive the same counts again — Cycle 226 evidence stands.
+
+## HEAD
+- Session started at `b61606d` (== origin/main, clean tree).
