@@ -14,6 +14,14 @@ observations for the three tags needed by an accruals / asset-growth signal
 (``NetIncomeLoss``, ``NetCashProvidedByUsedInOperatingActivities``, ``Assets``)
 and reports, per symbol, the fiscal-year coverage and filing lags.
 
+Tag portability is *not* universal.  A companyfacts bundle can exist for a
+ticker while the fixed three-tag recipe yields few or zero annual rows: the
+ticker map may resolve to a recently formed successor entity with no 10-K
+history, or a firm may report net income under a different us-gaap tag after a
+fiscal-year change.  The summary therefore separates "bundle downloaded" from
+"annual rows extracted" and lists the zero-annual symbols, so coverage is an
+observed quantity rather than an assumption.
+
 Nothing here is a strategy: no returns are read, no backtest runs, no existing
 artifact is touched.  The probe writes only its own cache (``.cache/xbrl``,
 git-ignored) and prints a JSON summary.  Sources probed by name:
@@ -216,6 +224,7 @@ def coverage(facts: dict, symbol: str = "") -> dict:
     lags = (observations["filed"] - observations["end"]).dt.days if len(observations) else None
     return {
         "symbol": symbol,
+        "has_annual_data": bool(len(observations)),
         "annual_observations": int(len(observations)),
         "first_end": str(observations["end"].min().date()) if len(observations) else "",
         "last_end": str(observations["end"].max().date()) if len(observations) else "",
@@ -256,22 +265,18 @@ def probe(
         rows.append(row)
     frame = pd.DataFrame(rows)
     usable = frame[frame["usable_accruals"] >= 2] if len(frame) else frame
+    zero_annual = [row["symbol"] for row in rows if not row["has_annual_data"]]
     return {
         "source": "SEC XBRL companyfacts",
         "companyfacts_url_template": COMPANYFACTS_URL,
         "ticker_map_url": TICKER_MAP_URL,
         "pit_field": "filed (acceptance date per reported fact)",
-        "tag_availability": {
-            "NetIncomeLoss": int(frame["usable_accruals"].gt(0).sum()) if len(frame) else 0,
-            "NetCashProvidedByUsedInOperatingActivities": int(frame["usable_accruals"].gt(0).sum())
-            if len(frame)
-            else 0,
-            "Assets": int(frame["usable_accruals"].gt(0).sum()) if len(frame) else 0,
-        },
         "symbols_requested": len(symbols),
-        "symbols_with_data": int(len(frame)),
+        "symbols_with_bundle": int(len(frame)),
+        "symbols_with_annual_data": int(frame["has_annual_data"].sum()) if len(frame) else 0,
         "symbols_with_two_plus_accrual_observations": int(len(usable)),
-        "missing_symbols": missing,
+        "symbols_with_zero_annual_observations": zero_annual,
+        "missing_bundles": missing,
         "median_filing_lag_days": float(usable["median_filing_lag_days"].median())
         if len(usable)
         else None,
@@ -301,7 +306,7 @@ def main(argv: list[str] | None = None) -> dict:
     if args.download_only:
         report = {
             key: report[key]
-            for key in ("symbols_requested", "symbols_with_data", "missing_symbols")
+            for key in ("symbols_requested", "symbols_with_bundle", "missing_bundles")
         }
     text = json.dumps(report, indent=2)
     if args.out:
