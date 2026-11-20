@@ -994,3 +994,50 @@ blocked.
 
 **Cycle 219 complete.** H85–H186 all rejected/recorded; H187 unassigned with no free-data source
 pending. `src/qtr` unchanged.
+
+---
+
+## Cycle 230 (2026-11-20) — data-availability probe: SEC XBRL PIT fundamentals are usable; H187 pre-registered (not executed)
+
+Lineage: H1–H186 executed/rejected (Cycles 215–219). **H187 now pre-registered**
+(`NF-20261120-01`, equity accounting accruals + asset growth) but **not executed**; no artifact
+exists, so nothing is added to the artifact inventory and no schema pin moves. `src/qtr`
+unchanged; no published/certified artifact, verdict, threshold, or frozen number modified; no gate
+weakening; free/public data only.
+
+### What changed this cycle
+- Nothing in `src/qtr`, `tests`, `run_*.py`, artifacts, hashes, or frozen numbers.
+- `scripts/probe_sec_xbrl_fundamentals.py` and `tests/test_probe_sec_xbrl_fundamentals.py` were
+  already committed by the preceding session (`49e74c4`). This cycle **ran the probe across the
+  full universe** for the first time and recorded the measured coverage durably.
+- `HYPOTHESIS_SPEC.md` gains the Cycle 230 discovery section and the H187 pre-registration.
+
+### Measured availability (own evidence, 2026-11-20)
+Source: `https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json` + `company_tickers.json`,
+PIT stamp = each fact's `filed` acceptance date. Probe invocation:
+`python scripts/probe_sec_xbrl_fundamentals.py --out .cache/xbrl/probe_full.json`.
+
+- 100/100 bundles downloaded, 99 with annual 10-K rows, **98 with ≥ 2 usable accrual
+  observations**; median filing lag **50.75 days**; PIT span 2009-10-27 → 2026-11-17; earliest
+  fiscal `end` 2007-12-31.
+- Exclusions (measured, not assumed): **XOM** (ticker map → CIK 0002115436, the 2026 ExxonMobil
+  Holdings successor entity, no annual 10-K history) and **BKNG** (1 usable accrual observation;
+  `NetIncomeLoss` annual facts stop at fiscal 2010, CFO resumes 2016; `ProfitLoss` fallback also
+  stops at 2015).
+- Cache lives in `.cache/xbrl` (git-ignored); only the JSON summary is evidence and it is
+  reproduced in `HYPOTHESIS_SPEC.md` §Cycle 230.
+
+### Family-status consequence (durable)
+`NF-20261120-01 equity accruals / asset growth` moves **unclassified → pre-registered**. The
+earlier classification "fundamental / accounting is data-blocked because free data is prices
+only" is **withdrawn**: the SEC XBRL companyfacts API is free, public and point-in-time
+(98/100 large-cap coverage). Do not re-declare PIT accounting fundamentals as blocked without
+naming the probed source; do not re-probe `data.sec.gov` as unavailable.
+
+Deferred (recorded, not rejected): `NF-20261120-02` net share issuance / external financing and
+`NF-20261120-03` gross profitability — both feasible on the same source but scored lower on
+mechanism separation. They may be pre-registered in later cycles *after* H187 is executed, and
+must not be run as variants of H187.
+
+**Cycle 230 complete.** H1–H186 rejected; H187 pre-registered and awaiting execution;
+`src/qtr` unchanged.

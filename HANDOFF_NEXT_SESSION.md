@@ -1,33 +1,36 @@
-# Next session handoff (2026-11-20, Cycle 229 — agent session, baseline verified; no code change possible)
+# Next session handoff (2026-11-20, Cycle 230 — H187 pre-registered, ready to execute)
 
 ## Summary
 
-This session performed maintenance-only verification. No code changes were made. All gates pass except the 7 known `test_gates_workflow.py` failures, which require a maintainer to apply `patches/0001-gates-workflow-contract-fix.patch` to `.github/workflows/gates.yml`.
+Cycle 230 measured the SEC XBRL `companyfacts` source across the full 100-name S&P 100 universe
+and **pre-registered H187** (NF-20261120-01, equity accounting accruals + asset growth) in
+`HYPOTHESIS_SPEC.md` §Cycle 230. The "free-data family queue exhausted" conclusion is withdrawn
+for accounting fundamentals: 98/100 names yield ≥2 usable PIT accrual observations with a
+50.75-day median filing lag.
 
-## Verified (2026-11-20)
+## Verified (2026-11-20, own evidence)
 
-- Ruff check: **PASS**
-- Ruff format: **PASS** (353 files)
-- Perf gate: **PASS** (0.760s / 5s limit)
-- Patch verification: **PASS** — 7 live violations, all resolved by the patch
-- `git apply --check`: **PASS** — patch applies cleanly
-- `test_verify_gates_workflow_patch.py`: **15 passed**
-- `test_baselines.py`: **42 passed**
-- Test smoke: 983 passed before expected 7 gate workflow failures
+- Full probe: 100/100 bundles, 99 with annual rows, **98 usable**, lag 50.75 d, PIT span
+  2009-10-27 → 2026-11-17. Exclusions measured: XOM (2026 successor entity) and BKNG (tag gap).
+- Workflow token refusal is now evidenced by a real remote rejection, not inferred.
+- 131 spec-reading tests passed; ruff check/format clean (354 files).
 
-## Blocked (require maintainer/authorization)
+## Blocked (separate, unchanged)
 
-1. **Workflow patch** — maintainer must apply `patches/0001-gates-workflow-contract-fix.patch` with workflows-scoped credentials. Agent cannot land workflow changes (token lacks `workflows` permission; `.github/scripts/kilo-controller.sh` restores from origin/main).
-
-2. **Reproducibility backlog** — 25 missing artifacts + 11 hash mismatches. Remediation requires authorization to either re-run original configs or drop stale `experiments.jsonl` keys. Must update `REPRODUCIBILITY_BASELINE`, both identity digests, and `REPRODUCIBILITY_AUDIT_REPORT.md` in one commit (report-consistency test enforces this).
-
-3. **Hypothesis queue exhausted** — H1–H186 rejected; H187 unassigned with no free-data source (directive §6).
+1. **Workflow patch** — maintainer-only; the agent token is refused by GitHub for workflow files.
+2. **Reproducibility backlog** (25 missing / 11 mismatches) — authorization-gated; baseline,
+   both identity digests and `REPRODUCIBILITY_AUDIT_REPORT.md` must move in one commit.
 
 ## Next session should
 
-- **If maintainer applied patch:** verify `CONTRACT SATISFIED` + 7 passing gate workflow tests, then stop (no further reproducible work without authorization).
-- **If no maintainer action:** record the block and stop. Do not re-run maintenance-only verification cycles.
+**Execute H187 exactly as pre-registered**: write `run_nf_20261120_01_equity_accruals.py`
+importing the probe's `annual_observations`, reuse the H186 runner's engine/gate/benchmark
+helpers, run the fixed 16-combo grid with train-only WF selection, emit the artifact under
+`.experiments/nf_runs/nf_20261120_01_equity_accruals_<timestamp>/`, add the focused test, bump the
+artifact-schema inventory pins, and record the verdict as Cycle 231. Full instructions and
+constraints are in `NEXT_TASK.md`.
 
 ## HEAD
 
-`b61606d` (== origin/main, clean tree)
+`49e74c4` at session start; this session adds documentation-only changes (spec, register,
+`AGENTS.md`, handoffs).

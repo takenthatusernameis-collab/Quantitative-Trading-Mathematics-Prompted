@@ -9141,3 +9141,126 @@ Do not re-run H186 as a parameter/universe/window variant (feature set, k, entry
 list), do not treat the CFTC trader-category breakdown in another market as a "new family" without
 a newly authorized data source, and do not re-declare the CFTC Socrata API as blocked (probed and
 usable, 776 reports).
+
+---
+
+## Cycle 230 (2026-11-20): Directive §4 discovery — SEC XBRL PIT fundamentals unblock the fundamental family; H187 pre-registered
+
+**Status: PRE-REGISTERED, NOT YET EXECUTED.** Written 2026-11-20T05:13Z, before any
+return series or backtest outcome was computed. No H-ID had ever been executed on
+accounting-statement data before this cycle.
+
+### Why the "fundamental/accounting is data-blocked" classification is withdrawn
+
+The register classified fundamental/accounting mechanisms as data-blocked because the free
+pipeline served prices only (yfinance). That was an unprobed assumption.
+`scripts/probe_sec_xbrl_fundamentals.py` (written 2026-11-20, commit `49e74c4`) shows the SEC
+XBRL ``companyfacts`` API is free, public and **point-in-time**: every fact carries the
+accession's ``filed`` acceptance date, so a 10-K value cannot be used before the filing was
+public.
+
+Measured coverage (own evidence, ``probe_full.json``, 2026-11-20, full 100-name S&P 100
+snapshot in ``scripts/probe_sec_xbrl_fundamentals.py:UNIVERSE``):
+
+| quantity | value |
+|---|---|
+| symbols requested / bundles downloaded | 100 / 100 |
+| symbols with annual 10-K rows | 99 |
+| symbols with ≥ 2 usable accrual observations | **98** |
+| median filing lag (``filed`` − fiscal ``end``) | 50.75 days |
+| earliest ``filed`` in the universe | 2009-10-27 |
+| latest ``filed`` | 2026-11-17 |
+| earliest fiscal-year ``end`` | 2007-12-31 |
+
+Two exclusions, both measured and durable:
+
+- **XOM** — the ticker map now resolves to CIK 0002115436 "ExxonMobil Holdings Corporation", a
+  2026 successor entity whose bundle carries no annual 10-K history for the fixed three-tag
+  recipe. Not a parser bug; an entity-continuity gap. Excluded.
+- **BKNG** — only 1 usable accrual observation. ``NetIncomeLoss`` annual-duration facts stop at
+  fiscal 2010 and ``NetCashProvidedByUsedInOperatingActivities`` resumes at 2016, so the
+  three-tag join yields 2 rows ending 2010. A ``ProfitLoss`` fallback was tested and does not
+  close the gap (it also stops at 2015). Excluded.
+
+### Directive §4 candidate search (three materially distinct mechanisms)
+
+| NF-ID | Mechanism | Observable (XBRL tags) | Closest prior family / why distinct | Score |
+|---|---|---|---|---|
+| NF-20261120-01 | **Earnings quality / accruals**; investment q-theory (Sloan 1996; Cooper, Gulen & Schill 2008) | ``accruals=(NI−CFO)/avg assets``; ``asset_growth=ΔAssets/Assets`` | H1–H186 are price/positioning/funding observables. CS momentum uses past returns, PEAD uses announcement-window price reaction; neither reads the income statement. | **4.65** |
+| NF-20261120-02 | **External financing / net share issuance** (Daniel & Titman 2006; Pontiff & Woodgate 2008) | Δ``CommonStockSharesOutstanding``, ``PaymentsForRepurchaseOfCommonStock`` | Not a repackaging of momentum; a corporate-financing signal. Same source, weaker tag portability. | 3.95 |
+| NF-20261120-03 | **Profitability premium** (Novy-Marx 2013) | ``(Revenues−CostOfRevenue)/Assets`` | Overlaps quality/value tilt already implicitly spanned; weaker separation from a smart-beta long book. | 3.95 |
+
+Scores (novelty 25%, plausibility 25%, data 20%, falsifiability 15%, execution 10%, support 5%):
+NF-01 = 0.25·4 + 0.25·5 + 0.20·5 + 0.15·5 + 0.10·4 + 0.05·5 = 4.65; NF-02 = 4.00·… = 3.95;
+NF-03 = 3.95. **NF-20261120-01 selected** (strongest replication record, cleanest decisive test,
+best measured tag portability). NF-02/03 are recorded as deferred, not rejected.
+
+## H187 (NF-20261120-01): Equity accounting accruals and asset growth cross-section (Cycle 230 pre-registration)
+
+**Hypothesis ID:** H187 (next unused after H186). **NF-ID:** NF-20261120-01.
+**Broad mechanism category:** fundamental / accounting information (earnings quality and
+corporate investment). Repo-new root family relative to executed H1–H186: no executed H-ID uses
+any accounting-statement observable.
+
+**Mechanism / causal chain.** Accruals are the non-cash component of earnings. Investors fixate
+on headline earnings and underreact to the lower persistence of the accrual component, so firms
+with high accruals subsequently earn lower returns and firms with low (or negative) accruals earn
+higher returns (Sloan 1996). Separately, firms that grow their asset base aggressively tend to
+subsequently earn lower returns (empire-building / q-theory; Cooper, Gulen & Schill 2008).
+Prediction (directional): **long the bottom-k names by cross-sectional accruals (and by asset
+growth), short the top-k.** Null (H0): accruals and asset growth carry no cross-sectional
+predictive power for next-period equity returns after costs — a fundamental tilt adds nothing
+over a passive equal-weight book of the same universe.
+
+**PIT timing.** A row may enter the signal only when ``filed`` (the acceptance date of the last
+tag needed for that fiscal year) is ``<= t``; the shared engine then applies ``shift(1)``. No
+fiscal-period ``end`` is ever used as an availability stamp. Because the three tags can be filed
+on different accessions, the row timestamp is the **max** of the three ``filed`` dates.
+
+**Pre-registered construction.**
+- Universe: the 100-name S&P 100 snapshot in ``scripts/probe_sec_xbrl_fundamentals.py:UNIVERSE``,
+  minus XOM and BKNG = 98 names (measured exclusions above). A name enters a rebalance only when
+  both its ``accruals`` and ``asset_growth`` are non-null at that date; a rebalance is skipped
+  when fewer than 40 names are active.
+- Features (cross-sectional z, winsorized at ±3): ``accruals`` and ``asset_growth``, both as
+  defined and tested in ``scripts/probe_sec_xbrl_fundamentals.py:annual_observations``.
+- Weights: hysteresis long/short on the z score (entry_z / k), gross-normalized to 1, refreshed
+  monthly from the latest available 10-K rows and forward-filled to the daily calendar, so
+  turnover happens at most monthly.
+- Grid (bounded, 16): feature {accruals, asset_growth} × entry_z {0.5, 1.0} × k {10, 20} ×
+  vol_target {0.10, 0.15}; exit_z = 0.0. Train-only 4-fold walk-forward Sharpe selection.
+- Sample 2011-01-03 → 2026-11-17 (the first year in which ≥ 40 names have a filed 10-K row);
+  Train → 2021-12-31; Val 2022-01-01 → 2023-12-31; **Test protected 2024-01-01 → 2026-11-17**
+  (never used for selection or debugging).
+- Costs: 5 bps one-way per leg traded (commission + spread). No borrow cost for shorts is
+  modelled; this must be disclosed as an optimistic assumption for a long/short equity book.
+- Gates (fail-closed, standard 8, unchanged): OOS Val+Test Sharpe ≥ 1.0; trades ≥ 50; PF ≥ 1.3;
+  maxDD ≤ 15%; WF stability ≥ 0.7; worst-regime rolling-252 Sharpe ≥ 0.3; benchmark p ≤ 0.05
+  two-sided with IR ≥ 0 vs the passive equal-weight long book of the same 98 names; OAT ±20%
+  perturbation min ratio ≥ 0.5.
+- Ablations/falsifiers: passive equal-weight long book; random ranking (seed 42, identical active
+  leg count); inverse signal; train-block Spearman of ``accruals`` vs ``asset_growth`` as an
+  input-collinearity diagnostic.
+
+**Disclosed biases.** (1) The universe is current S&P 100 membership, so it is
+survivorship-biased; the accrual/asset-growth *sign* is less sensitive to this than level
+returns, but the bias is stated and does not permit raising the bar. (2) ``NetIncomeLoss``
+excludes non-controlling interests where a firm reports only ``ProfitLoss``; names that fail the
+fixed three-tag join are excluded rather than patched, so the sample is a subset of large caps.
+(3) Equity closes come from the existing yfinance path; if a name's price history is unavailable
+on a rebalance it is dropped, not imputed.
+
+**What would reject it:** failing any of the 8 gates on OOS Val+Test, in particular a Sharpe below
+1.0, a benchmark p above 0.05, or a passive book that dominates. A failed test is a durable
+REJECT at the family level; it must not be re-run as a window/k/threshold/universe variant.
+
+**Implementation constraints.** Reuse the backtest engine, metrics, gate helpers, benchmark
+constructors and the cross-sectional/hysteresis primitives already used by
+``run_nf_20261119_02_commodity_hedging_pressure.py`` (no forked copy). New code is limited to an
+XBRL row loader (import the probe's ``annual_observations``; do not fork the tag logic), a
+monthly signal refresh and price alignment. ``src/qtr`` unchanged; free/public real data only.
+Artifact under ``.experiments/nf_runs/nf_20261120_01_equity_accruals_<timestamp>/summary.json``
++ ``grid.csv``; bump ``tests/test_experiment_artifact_schema.py`` inventory pins only if a new
+artifact directory is committed (Cycle 213/219 precedent).
+
+**Status:** pre-registered 2026-11-20T05:13Z; not executed. No artifact exists yet.
