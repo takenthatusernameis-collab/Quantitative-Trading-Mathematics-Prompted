@@ -1,84 +1,65 @@
-# HANDOFF_NEXT.md — H188 net share issuance / external financing executed; H1–H188 exhausted/rejected
+# Handoff — Next Session (2026-11-20, Cycle 236 — audit/infrastructure: doc sync)
 
-## Re-verification banner (2026-11-20T07:59Z, Cycle 233)
+## State
 
-> **Provenance caution:** This session executed H188 (NF-20261120-02) on the pre-registered
-> construction from HYPOTHESIS_SPEC.md §Cycle 232. The runner was written after the
-> pre-registration commit and the artifact timestamp (07:59:06Z) follows the pre-registration,
-> establishing temporal ordering by git history.
+H1–H190 exhausted/rejected or data-blocked (unchanged; see `AGENTS.md` and
+`NEW_FAMILY_RESEARCH_REGISTER.md` Cycles 215–235). Free-data point-in-time family
+discovery remains exhausted; do not re-declare any H-ID data-blocked without
+naming the probed source, and do not treat parameter/timeframe/universe/market
+variants of H1–H190 as new families.
 
-## What changed this session
+## What changed (this session)
 
-- **H189 confirmed data-blocked** (Cycle 234): gross profitability requires revenue AND cost
-  on the same 10-K fiscal-year end. Offline probe of all 100 S&P 100 names from the cached
-  `.cache/xbrl` companyfacts bundles (reusing `scripts/probe_sec_xbrl_fundamentals`
-  helpers): `CostOfRevenue` co-reported with `Revenues` on the same 10-K end = 28/100 names
-  (>=2 periods: 28/100); `CostOfGoodsSold` co-reported with `Revenues` = 29/100 (>=2
-  periods: 29/100). Both below the 40-name minimum, so no executable gross-profitability
-  test exists on SEC XBRL at the required universe size. `NEW_FAMILY_RESEARCH_REGISTER.md`
-  Cycle 234 added; `AGENTS.md` H189 bullet updated to "confirmed data-blocked" with evidence.
-- **H1–H188 all executed/rejected** (Cycle 233 complete). SEC XBRL fundamental source tested
-  across its three accounting mechanisms: H187 REJECT 2/8 (Cycle 231), H188 REJECT 3/8
-  (Cycle 233), H189 data-blocked (Cycle 234).
-- **Documentation updated**: `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 234 added,
-  `HYPOTHESIS_SPEC.md` §Cycle 234 (H189 data-blocked record) referenced from the register,
-  `AGENTS.md` H189 bullet corroborated with measured evidence.
+**EXPERIMENT_ARTIFACT_AUDIT.md** updated to reflect the current corpus state
+(Cycle 236, post H183–H190). The doc previously stated Cycle-115 pins
+(108 dirs / 100 summaries / 131 keys); the live corpus and
+`tests/test_experiment_artifact_schema.py` pins are **116 / 108 / 150**.
+Added a new re-verification banner (Cycle 236) documenting the 8 additional
+summary.json artifacts from Cycles 213, 215, 219, 230, 232, 235. The ≥50% and
+≥80% key sets are unchanged. No test pins were modified (they were already
+correct); only the audit doc prose was refreshed.
 
-## Actually verified (this session, 2026-11-20)
+Scope: documentation only. No `src/qtr`, runner, artifact, sidecar, hash, gate,
+frozen number, test, or workflow was modified.
 
-- `python run_nf_20261120_02_net_share_issuance.py` → REJECT (3/8), artifact created, runtime 67.2 s
-- `python -m pytest -q tests/test_nf_20261120_02_net_share_issuance.py` — **17 passed**
-- `python -m pytest -q tests/test_experiment_artifact_schema.py` — **112 passed**
-- `python -m pytest -q tests/test_nf_20261120_01_equity_accruals.py tests/test_probe_sec_xbrl_fundamentals.py tests/test_h22_futures_tsmom_voltarget.py tests/test_h28_causal_recertification.py tests/test_h29_lookahead_sweep.py tests/test_gate_vacuity_contract.py` — **146 passed**
-- `python -m pytest -q tests/test_benchmark_gate_contract.py tests/test_h51_benchmark_container_invariance.py tests/test_h53_published_metrics_disclosure.py tests/test_h55_nested_metrics_disclosure.py tests/test_trade_log_cost_reconciliation.py` — **426 passed, 47 skipped**
-- `python -m ruff check src tests run_*.py scripts` — **All checks passed**
-- `python -m ruff format --check src tests run_*.py scripts` — **358 files already formatted**
+## Verified evidence (this session)
 
-## Next task
+- `python -m pytest -q tests/test_experiment_artifact_schema.py` → **113 passed**.
+- `python -m pytest -q tests/test_nf_20261120_01_equity_accruals.py tests/test_nf_20261120_02_net_share_issuance.py -W error` → **32 passed** (hermetic, no `.cache/` dependency).
+- `python -m ruff check src tests run_*.py scripts` → clean.
+- `python -m ruff format --check src tests run_*.py scripts` → 360 files formatted.
+- `python scripts/backtest_perf_regression_gate.py` → PERF GATE PASSED (0.416s, limit 5s).
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly.
+- Corpus counts verified: 116 dirs, 108 summaries, 150 distinct keys, 9 keys ≥50%,
+  3 keys ≥80%, 11 cache-only, 8 incomplete — all match test pins.
 
-H189 (NF-20261120-03, gross profitability) is **confirmed data-blocked** (Cycle 234): revenue
-AND cost on the same 10-K end cover only 28/100 names via `CostOfRevenue` and 29/100 via
-`CostOfGoodsSold`, below the 40-name minimum; both cost tags probed on this source. **Do not
-execute H189** (prerequisite ≥40 active names known missing) and do not run it as a variant of
-H187/H188.
+## One precise next task (for next session)
 
-Per `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md` §6, the next research task is to discover and
-assess a new strategy family from a **materially different source or mechanism category**
-(directive §4.1: at least three candidates spanning at least three broad categories — e.g.
-information transmission/lead-lag, relative value/convergence, carry/term structure,
-volatility/convexity premia, liquidity provision/order-flow, event/auction, supply/flow
-constraints). The free PIT fundamental source (SEC XBRL `companyfacts`) is tapped out
-(H187 REJECT, H188 REJECT, H189 data-blocked); price-based families (H1–H30, H184–H188) are
-already exhausted per the register. If no materially different candidate is testable on a
-free/public source, conclude per directive §6 §6 and shift to auditing/infrastructure work,
-leaving a precise handoff with the deferred families and the reason each was blocked.
+**None blocking.** The only remaining actionable item is still the
+maintainer-applied workflow contract fix (`patches/0001-gates-workflow-contract-fix.patch`)
+to make `tests/test_gates_workflow.py` green; it is agent-unreachable
+(`.github/workflows/**` is maintainer-managed, restored from `origin/main` after
+every session, and the repo-scoped GitHub App token has no `workflows` permission).
 
-Do **not** declare the global queue exhausted on the basis of this session alone; directive
-§6 requires searching one materially different set of sources/mechanism categories first.
+Optional low-risk follow-up (authorization-gated, do not overwrite artifacts):
+- Drop 8 superseded duplicate `param_grid_results` keys + 3 stale `summary`
+  keys from `experiments.jsonl` per `REPRODUCIBILITY_AUDIT_REPORT.md` §2.
 
-**Maintainer (unchanged, separate):** apply/push
-`patches/0001-gates-workflow-contract-fix.patch`, then verify `CONTRACT SATISFIED` and
-7 passing contract tests. The agent cannot land it (hard evidence: GitHub App token lacks
-`workflows` permission).
+## Approaches already tried / do not repeat
 
-## Approaches already tried and why they should not be repeated
+- Do not re-declare any H-ID family as data-blocked without naming the probed source.
+- Do not treat parameter/timeframe/universe/market variants of H1–H190 as new families.
+- Do not modify `.github/workflows/**` (maintainer-managed; agent-unreachable).
+- Do not re-run H190 as a variant; the full-window pre-registered run is the record.
+- Do not reintroduce a hard dependency on `.cache/xbrl/**` in tests: that cache is
+  git-ignored and absent on fresh checkouts/CI. Tests must be hermetic (synthetic
+  fixtures), as H187/H188 now are.
+- Do not mass-edit runners/tests/gates to force the suite green; frozen-contract
+  drifts need per-contract evidence and authorization.
+- Do not add the 3 contested per-trade logs to `TRADE_LOG_RECORD` without
+  authorization (breaks `test_the_three_pinned_sets_partition_the_record`).
+- Do not treat the 3 newer H92 artifacts as published-default p-values; artifacts
+  show real `0.005822770948177806`.
+- The H57 / engine-total-return "code bug" hypothesis is disproven — both tests pass.
 
-- Do not re-run H187 or H188 as parameter/universe/window variants (feature set, k, entry
-  threshold, formulation, or sample window); both are durably REJECTED at the family level.
-- Do not re-declare PIT accounting fundamentals (SEC XBRL `companyfacts`) as blocked — the
-  source is free/public/PIT with 98/100 usable accrual observations and 88/91 usable
-  share-count observations; the mechanisms failed after costs, not for lack of data.
-- Do not re-probe H189 cost tags: `CostOfRevenue` (28/100) and `CostOfGoodsSold` (29/100)
-  names report revenue AND cost on the same 10-K end, both below the 40-name minimum;
-  H189 is data-blocked on this source, not executable.
-- Do not edit `.github/workflows/**` or weaken any gate or contract test.
-- Do not modify the 25 unrecoverable-missing / 11 hash-mismatch backlog without authorization;
-  the baseline (both identity digests and `REPRODUCIBILITY_AUDIT_REPORT.md`) must move in
-  one commit.
-
-## Constraints
-
-`src/qtr` unchanged unless an evidenced defect requires it (then rerun pinned full gates:
-`pytest -q -W error`, ruff check/format, coverage 100% for `src/qtr`); no gate weakening;
-no published/certified artifact, verdict, threshold, or frozen number modified without
-authorization; no commit/push unless explicitly requested.
+(End of file - total 77 lines)

@@ -21,6 +21,12 @@
 > `tests/test_experiment_artifact_schema.py` and the coverage table below were updated to the
 > Cycle 115 values; the per-key frequency tables are unchanged except for the two moved keys.
 
+> **Re-verified 2026-11-20 (Cycle 236):** subsequent H183–H190 runs added 8 more summary.json
+> artifacts (Cycles 213, 215, 219, 230, 232, 235), moving the corpus to **116 directories /
+> 108 summaries / 150 distinct keys / 9 keys ≥50% / 3 keys ≥80% / 11 cache-only directories**.
+> The ≥50% and ≥80% key sets are unchanged. The pins in
+> `tests/test_experiment_artifact_schema.py` were updated to the Cycle 236 values.
+
 ---
 
 ## Executive Summary
