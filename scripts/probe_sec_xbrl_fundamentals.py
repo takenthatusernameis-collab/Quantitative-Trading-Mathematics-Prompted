@@ -263,9 +263,7 @@ def probe(
         "pit_field": "filed (acceptance date per reported fact)",
         "tag_availability": {
             "NetIncomeLoss": int(frame["usable_accruals"].gt(0).sum()) if len(frame) else 0,
-            "NetCashProvidedByUsedInOperatingActivities": int(
-                frame["usable_accruals"].gt(0).sum()
-            )
+            "NetCashProvidedByUsedInOperatingActivities": int(frame["usable_accruals"].gt(0).sum())
             if len(frame)
             else 0,
             "Assets": int(frame["usable_accruals"].gt(0).sum()) if len(frame) else 0,
@@ -301,7 +299,10 @@ def main(argv: list[str] | None = None) -> dict:
         symbols = symbols[: args.limit]
     report = probe(symbols, args.cache_dir, refresh=args.refresh)
     if args.download_only:
-        report = {key: report[key] for key in ("symbols_requested", "symbols_with_data", "missing_symbols")}
+        report = {
+            key: report[key]
+            for key in ("symbols_requested", "symbols_with_data", "missing_symbols")
+        }
     text = json.dumps(report, indent=2)
     if args.out:
         target = Path(args.out)
