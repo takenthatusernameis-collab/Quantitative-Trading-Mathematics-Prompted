@@ -200,7 +200,16 @@ def extract_13f_filings(submissions: dict) -> pd.DataFrame:
     recent = submissions.get("filings", {}).get("recent", {})
     accession_numbers = recent.get("accessionNumber", [])
     if not isinstance(accession_numbers, list) or not accession_numbers:
-        return pd.DataFrame(columns=["accession_number", "form", "filing_date", "acceptance_datetime", "report_date", "primary_document"])
+        return pd.DataFrame(
+            columns=[
+                "accession_number",
+                "form",
+                "filing_date",
+                "acceptance_datetime",
+                "report_date",
+                "primary_document",
+            ]
+        )
 
     count = len(accession_numbers)
     forms = recent.get("form", [""] * count)
@@ -214,14 +223,18 @@ def extract_13f_filings(submissions: dict) -> pd.DataFrame:
         form = str(forms[i]).upper() if i < len(forms) else ""
         if form not in ("13F-HR", "13F-HR/A"):
             continue
-        rows.append({
-            "accession_number": accession_numbers[i],
-            "form": form,
-            "filing_date": filing_dates[i] if i < len(filing_dates) else "",
-            "acceptance_datetime": acceptance_datetimes[i] if i < len(acceptance_datetimes) else "",
-            "report_date": report_dates[i] if i < len(report_dates) else "",
-            "primary_document": primary_documents[i] if i < len(primary_documents) else "",
-        })
+        rows.append(
+            {
+                "accession_number": accession_numbers[i],
+                "form": form,
+                "filing_date": filing_dates[i] if i < len(filing_dates) else "",
+                "acceptance_datetime": acceptance_datetimes[i]
+                if i < len(acceptance_datetimes)
+                else "",
+                "report_date": report_dates[i] if i < len(report_dates) else "",
+                "primary_document": primary_documents[i] if i < len(primary_documents) else "",
+            }
+        )
     return pd.DataFrame(rows)
 
 
@@ -406,10 +419,16 @@ def coverage_for_cik(
         "filings_with_positions": filings_with_positions,
         "total_positions": int(total_positions),
         "quarters_covered": int(report_dates_valid.nunique()),
-        "first_report_date": str(report_dates_valid.min().date()) if len(report_dates_valid) else "",
+        "first_report_date": str(report_dates_valid.min().date())
+        if len(report_dates_valid)
+        else "",
         "last_report_date": str(report_dates_valid.max().date()) if len(report_dates_valid) else "",
-        "first_acceptance_date": str(acceptance_dates_valid.min().date()) if len(acceptance_dates_valid) else "",
-        "last_acceptance_date": str(acceptance_dates_valid.max().date()) if len(acceptance_dates_valid) else "",
+        "first_acceptance_date": str(acceptance_dates_valid.min().date())
+        if len(acceptance_dates_valid)
+        else "",
+        "last_acceptance_date": str(acceptance_dates_valid.max().date())
+        if len(acceptance_dates_valid)
+        else "",
         "median_filing_lag_days": float(pd.Series(filing_lags).median()) if filing_lags else None,
         "zero_position_filings": zero_position_filings,
     }
@@ -424,7 +443,9 @@ def probe(
 ) -> dict:
     """Download (or reuse) submissions for ``ciks`` and report 13F coverage."""
     cik_list = list(ciks if ciks is not None else UNIQUE_CIKS)
-    cik_name_map = load_cik_name_map(cache_dir_for(cache_dir) / "institutional_ciks.json", fetch=fetch)
+    cik_name_map = load_cik_name_map(
+        cache_dir_for(cache_dir) / "institutional_ciks.json", fetch=fetch
+    )
 
     rows = []
     missing: list[str] = []
@@ -460,7 +481,9 @@ def probe(
         "first_acceptance_date": str(usable["first_acceptance_date"].min()) if len(usable) else "",
         "last_acceptance_date": str(usable["last_acceptance_date"].max()) if len(usable) else "",
         "total_filings_downloaded": int(frame["filings_downloaded"].sum()) if len(frame) else 0,
-        "total_filings_with_positions": int(frame["filings_with_positions"].sum()) if len(frame) else 0,
+        "total_filings_with_positions": int(frame["filings_with_positions"].sum())
+        if len(frame)
+        else 0,
         "total_positions_extracted": int(frame["total_positions"].sum()) if len(frame) else 0,
         "per_cik": rows,
     }

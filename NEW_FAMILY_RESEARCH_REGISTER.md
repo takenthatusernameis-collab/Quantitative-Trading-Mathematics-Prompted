@@ -1537,3 +1537,135 @@ sample window), and do not re-declare R&D / intangible fundamentals or PIT accou
 SEC XBRL remains free/public/PIT and usable — the *mechanism* failed after costs, not the data.
 
 **Cycle 246 complete.** H1–H192 exhausted/rejected; H189 data-blocked; `src/qtr` unchanged.
+
+---
+
+## Cycle 247 (2026-11-21) — H193 (NF-20261121-03) beta-sorted equity cross-section / betting-against-beta EXECUTED: **REAL REJECT (3/8)**; H1–H193 exhausted
+
+Lineage: H1–H192 exhausted/rejected or confirmed data-blocked (Cycles 215–246); H193 now
+executed/rejected; `src/qtr` unchanged; no published/certified artifact, verdict, threshold,
+or frozen number modified; no gate weakening; free/public data only.
+
+### Discovery scan (directive §4 — ≥3 repo-new/decisive candidates, ≥3 mechanism categories, honest scoring; weights novelty 25 / plausibility 25 / data 20 / falsifiability 15 / execution 10 / support 5)
+
+| Candidate | Category | Mechanism | Novelty | Plaus. | Data | Falsif. | Exec. | Support | Weighted | Decision |
+|---|---|---|---|---|---|---|---|---|---|---|
+| **NF-20261121-03 beta-sorted cross-section (betting-against-beta)** | Leverage-constraint risk premium | Leverage constraints (margin, borrow costs, unleverable low-beta portfolios) flatten the Security Market Line; long low-beta / short high-beta harvests the flat-SML premium (Frazzini & Pedersen 2014) | 5 | 4 | 5 (98/98 offline) | 4 | 4 | 5 | **4.55** | **SELECTED** |
+| Stock-level coskewness / systematic skewness | Higher-moment risk / lottery demand | Stocks with negative coskewness (crash-sensitive) are avoided and earn a premium; long low-coskewness / short high (Harvey & Siddique 2000) | 4 | 3 | 4 (98/98 offline) | 3 | 3 | 3 | 3.45 | Deferred (adjacent to H93 IVOL + H124 MAX) |
+| Beta-dispersion / aggregate beta regime timing | Market-risk regime timing | A rising cross-sectional beta dispersion or aggregate beta z-score forecasts a de-risking regime (scalar market timing) | 2 | 3 | 5 | 4 | 4 | 3 | 3.15 | Deferred (adjacent to H117 avg-beta regime; variant) |
+
+**Why beta-sorted BAB wins honestly.** All three are data-feasible on the cached yfinance
+close panel (offline). Coskewness (candidate 2) is genuinely distinct but is a higher-moment
+*risk* story adjacent to the already-executed H93 (idiosyncratic-volatility) and H124/125
+(MAX / lottery) families; scoring it down on novelty (4) is deliberate because its economic
+prediction (avoid high-lottery / high-idiosyncratic-risk names) overlaps those families. The
+beta-dispersion candidate (candidate 3) is a *market-level* scalar-timing overlay -- the same
+construction class as the already-executed H117 average-beta regime and H29 -- so it is scored
+low on novelty (2) and is a variant, not a new family. Beta-sorted BAB is the only candidate that
+is both a genuinely distinct mechanism (a *systematic*-risk single-stock cross-section built on
+leverage constraints, not a lottery/IVOL ranking and not a scalar index-timing overlay) *and*
+fully offline-feasible (98/98 names with >= 252 valid daily returns). It is the highest
+expected-information experiment.
+
+### Pre-registration (Cycle 247, written before any forward-return outcome was examined)
+
+**Mechanism.** Leverage constraints -- margin requirements, short-sale/borrow costs, and the
+inability of many investors to lever a low-beta portfolio up to the market beta -- keep the
+*realised* Security Market Line flatter than the CAPM predicts: high-beta stocks are bid up by
+leverage-seeking investors and low-beta stocks are held by risk-averse investors who cannot
+lever them, so a long-low-beta / short-high-beta tilt earns a premium (Frazzini & Pedersen 2014,
+"Betting Against Beta"). Direction: **long the bottom-k names by beta (least systematic risk),
+short the top-k (most systematic risk).** Null (H0): the beta cross-section carries no predictive
+power for next-period equity returns after costs -- a low-beta-minus-high-beta tilt adds nothing
+over a passive equal-weight book of the same universe.
+
+**Mechanism separation from H93 / H117 / H29.** H93 (idiosyncratic volatility) ranks on the
+*residual* standard deviation of symbol-minus-SPY returns -- risk orthogonal to the market -- and
+rests on a lottery-demand / overpricing mechanism. H117 (average beta regime) and H29 use an
+*average* sector beta as a scalar z-score to time a single index (SPY) exposure; they never rank
+individual stocks. H193 ranks individual stocks on the *systematic* beta
+(Cov(r_i, r_mkt) / Var(r_mkt), a covariance/co-movement measure) and trades a long-short stock
+book. A high-beta stock can have low idiosyncratic volatility and vice versa, so the beta sort is
+not reproducible as an IVOL or beta-timing variant.
+
+**PIT / causality.** Beta at day t is estimated from a trailing window of daily returns through t
+only (``rolling(window)`` on past returns); the shared engine applies ``shift(1)``, so the target
+set at close t earns the return t -> t+1 -- strictly causal, no same-day look-ahead. Market proxy
+is the equal-weight mean of the tradable universe's contemporaneous returns (broad-market proxy;
+each name carries 1/98 weight, so the own-inclusion bias is ~1%, disclosed). Beta is slow-moving,
+so the signal refreshes monthly (first business day of each month) and forward-fills to the daily
+calendar, so turnover happens at most monthly.
+
+**Sample / grid / gates.** Sample 2011-01-03 -> 2026-11-17; Train -> 2021-12-31; Val 2022-01-01
+-> 2023-12-31; Test protected 2024-01-01 -> 2026-11-17. Universe: the 100-name S&P 100 snapshot
+in `scripts/probe_sec_xbrl_fundamentals.py:UNIVERSE` minus XOM and BKNG (same measured exclusions
+as H187/H188/H191/H192) = 98 names; all 98 have >= 252 valid daily returns (measured min 441), so
+no name is dropped for short history. Features `beta_126` (6-month) and `beta_252` (12-month) are
+both estimated; the traded signal is the selected one and the pair is a collinearity diagnostic.
+Cross-sectional z on the monthly refresh grid, winsorized at +/-3, hysteresis entry_z/exit_z,
+top-k long (lowest beta) / bottom-k short (highest beta), gross-normalized, forward-filled to the
+daily calendar. Grid (bounded, 16): feature {beta_126, beta_252} x entry_z {0.5, 1.0} x exit_z
+{0.0} x k {5, 10} x vol_target {0.10, 0.15}; train-only 4-fold walk-forward Sharpe selection.
+Costs: 5 bps one-way per leg; no borrow cost for shorts (disclosed optimistic assumption, identical
+to H187/H191/H192). Gates (OOS Val+Test, fail-closed, standard 8, unchanged): Sharpe >= 1.0;
+trades >= 50; PF >= 1.3; maxDD <= 15%; WF stability >= 0.7; worst-regime rolling-252 Sharpe >=
+0.3; benchmark p <= 0.05 (two-sided) with IR >= 0 vs the passive equal-weight long book of the
+same universe; OAT +/-20% perturbation min ratio >= 0.5. Ablations: passive equal-weight long
+book; random ranking (seed 42); inverse signal (anti-beta).
+
+### Data-availability (durable)
+
+Equity closes are free/public via yfinance (auto-adjusted daily Close), cached offline at
+`.cache/xbrl/equity_closes.csv`. Measured offline: the 98-name universe (S&P 100 minus XOM/BKNG)
+has >= 252 valid daily returns for **98/98** names (min 441 valid returns), so a beta cross-section
+is fully executable at the full universe size -- no name is dropped. Beta is computable from prices
+alone with no fundamental data, so this family does not depend on SEC XBRL coverage at all. Do not
+re-declare beta / systematic-risk cross-sections or the yfinance close panel as blocked.
+
+### Execution outcome (REAL)
+
+**Runner:** `run_nf_20261121_03_bab_beta.py`. **Tests:**
+`tests/test_nf_20261121_03_bab_beta.py` (19 passed). **Artifact:**
+`.experiments/nf_runs/nf_20261121_03_bab_beta_20261121_184109/` (summary.json + grid.csv +
+data_meta.json), runtime 41.799 s. Data: 2870 train / 520 val / 752 test / 1272 OOS rows; 98/98
+symbols tradeable. **Selected (train-only WF -0.540):** `feature=beta_126, entry_z=0.5,
+exit_z=0.0, k=5, vol_target=0.10`; train Sharpe -0.550. **OOS Val+Test (1272 periods, 12716
+trades):** Sharpe **-0.977** (fail), PF **0.848** (fail), maxDD **-52.09%** (fail), trades **12716**
+(pass), WF stability **1.778** (pass -- but see note), worst-regime rolling-252 **-2.828** (fail),
+benchmark p **0.0067** / IR **-1.209** (fail, significant but negative IR). Total return -0.430;
+val Sharpe -0.829, test Sharpe -1.074. Passive equal-weight long book OOS Sharpe **1.129** --
+benchmark dominates. **Inverse signal (anti-beta, long high-beta / short low-beta) OOS Sharpe
++0.959** and random ranking -2.269: the beta *sign* is empirically inverted in this universe
+(post-2011 mega-cap decade, high-beta names outperformed), so the pre-registered BAB direction is
+wrong and even the profitable (inverse) direction fails the Sharpe >= 1.0 gate. Train input
+collinearity beta_126 vs beta_252 **0.931** (the two windows agree, so the conclusion is robust to
+the estimation-window choice). **Verdict REJECT (3/8).**
+
+**Honest note on the WF-stability pass.** The `wf_stability_ge_0_7` gate compares OOS Sharpe to
+train Sharpe (ratio -0.977 / -0.550 = 1.78). It passes only because *both* are negative; this is a
+negative/negative ratio, not genuine out-of-sample stability. The strategy is unprofitable in
+sample and out of sample. This is recorded explicitly so the single "pass" is not read as evidence
+of robustness. The same is true of the `perturbation_min_ratio_ge_0_5` pass (0.920): OAT
+perturbations of an unprofitable base Sharpe stay unprofitable, so the ratio is well-behaved but
+economically vacuous.
+
+**Lineage map (H193 REJECT):**
+| Root family | H-ID | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Beta-sorted cross-section / betting-against-beta (leverage-constraint risk premium) | H193 (NF-20261121-03) | Cross-sectional z on monthly trailing beta (126d & 252d); long bottom-k low-beta / short top-k high-beta; monthly refresh, vol-targeted | yfinance auto-adjusted daily Close (free), S&P 100 minus XOM/BKNG -> 98 names, 2011-01->2026-11 | **REJECT** (3/8; `…/nf_20261121_03_bab_beta_20261121_184109/summary.json`) | OOS Sharpe -0.977 (BAB sign inverted: inverse +0.959) vs benchmark 1.129; PF 0.848; maxDD -52.09%; worst-regime -2.828; benchmark p 0.0067 but IR -1.209 (negative); WF-stability/perturbation passes are negative-ratio artifacts |
+
+### Family-status consequence (durable)
+
+`NF-20261121-03 beta-sorted cross-section / betting-against-beta` moves **pre-registered ->
+executed/rejected**. **H1–H193 are exhausted/rejected** (H189 confirmed data-blocked). Beta-sorted
+BAB is a genuinely distinct leverage-constraint risk family, but on this survivorship-biased
+large-cap S&P 100 construction the *pre-registered* BAB direction is empirically inverted: high-beta
+mega-caps outperformed low-beta defensives over 2011-2026, so the long-low-beta book loses ~43%
+OOS while its mirror image earns +0.96 Sharpe (still below the 1.0 gate). Do not re-run H193 as a
+parameter/universe/window variant (beta window, k, entry threshold, formulation, or sample window),
+and do not re-declare beta / systematic-risk cross-sections or the yfinance close panel as blocked.
+Prices remain free/public and fully usable -- the *mechanism's direction* failed on this universe,
+not the data. Coskewness / systematic skewness (deferred candidate 2) and beta-dispersion timing
+(deferred candidate 3) remain untested distinct families for a future cycle.
+
+**Cycle 247 complete.** H1–H193 exhausted/rejected; H189 data-blocked; `src/qtr` unchanged.

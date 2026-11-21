@@ -156,10 +156,17 @@ def test_incomplete_runs_match_audit_inventory():
 # the R&D/revenue vs R&D/assets Spearman diagnostic (a sibling-collinearity key
 # name distinct from H187/H188/H190/H191, so it adds its own key). The key
 # appears in one of 110 summaries, so the >=50% / >=80% sets are unchanged.
-EXPECTED_TOTAL_DIRS = 118
-EXPECTED_SUMMARY_COUNT = 110
+# Cycle 247 added one summary (+1 directory): the H193 betting-against-beta
+# cross-section run `nf_20261121_03_bab_beta_20261121_184109`. It adds one
+# top-level key (distinct keys 152 -> 153):
+# `train_input_collinearity_beta126_vs_beta252`, the 6-month vs 12-month beta
+# Spearman diagnostic (a sibling-collinearity key name distinct from
+# H187/H188/H190/H191/H192, so it adds its own key). The key appears in one of
+# 111 summaries, so the >=50% / >=80% sets are unchanged.
+EXPECTED_TOTAL_DIRS = 119
+EXPECTED_SUMMARY_COUNT = 111
 EXPECTED_CACHE_ONLY_DIRS = 11
-EXPECTED_DISTINCT_KEYS = 152
+EXPECTED_DISTINCT_KEYS = 153
 EXPECTED_KEYS_GE_50_PCT = frozenset(
     {
         "ablations",
