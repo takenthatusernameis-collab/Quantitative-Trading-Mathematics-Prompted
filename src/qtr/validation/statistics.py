@@ -1477,22 +1477,58 @@ def statistical_power_analysis(
     return int(np.ceil(n))
 
 
+def _validate_strategy_fail_closed(trades: pd.DataFrame) -> dict[str, Any]:
+    """Fail-closed result for degenerate validate_strategy inputs.
+
+    Every evidence gate fails; the drawdown gate passes (no exposure => no
+    drawdown). This is the same result returned for empty and non-finite
+    return series.
+    """
+    n_trades = len(trades) if trades is not None else 0
+    return {
+        "sharpe": 0.0,
+        "sharpe_pass": False,
+        "n_trades": n_trades,
+        "trades_pass": False,
+        "profit_factor": 1.0,
+        "profit_factor_pass": False,
+        "max_drawdown": 0.0,
+        "drawdown_pass": True,
+        "walkforward_stability": 0.0,
+        "walkforward_pass": False,
+        "param_stability": 0.0,
+        "param_stability_pass": False,
+        "annualized_return": 0.0,
+        "annualized_volatility": 0.0,
+        "total_return": 0.0,
+        "all_pass": False,
+    }
+
+
 def validate_strategy(
-    returns: np.ndarray | pd.Series,
-    trades: pd.DataFrame,
-    config: dict[str, Any],
+    returns: np.ndarray | pd.Series | list | tuple,
+    trades: pd.DataFrame | None,
+    config: dict[str, Any] | None,
 ) -> dict[str, Any]:
     """
     Comprehensive strategy validation against PROMPT_V2.md criteria.
 
     Args:
-        returns: Net returns series
-        trades: Trade DataFrame
-        config: Validation config with thresholds
+        returns: Net returns series (1-D array-like: list, tuple, ndarray, Series)
+        trades: Trade DataFrame (None is treated as empty)
+        config: Validation config with thresholds (None is treated as empty)
 
     Returns:
         Dictionary with pass/fail for each criterion
     """
+    # Caller-type guards: None for trades/config are type violations.
+    # Fail closed rather than raise, for consistency with the other
+    # degenerate-input guards in this function.
+    if config is None:
+        config = {}
+    if trades is None:
+        trades = pd.DataFrame()
+
     defaults = {
         "min_sharpe": 1.0,
         "min_trades": 200,
@@ -1503,32 +1539,28 @@ def validate_strategy(
     }
     thresholds = {**defaults, **config}
 
-    # Convert to pandas Series for easier manipulation
-    if isinstance(returns, np.ndarray):
-        returns = pd.Series(returns)
+    # Normalise returns to a 1-D float ndarray. This accepts list, tuple,
+    # ndarray, Series, and any other array-like, matching the convention in
+    # sibling functions (compare_to_benchmark, regime_analysis, ...).
+    returns_arr = np.asarray(returns, dtype=float)
+
+    # Shape guard: returns must be 1-D. A 2-D array (or higher) or a DataFrame
+    # violates the documented contract and would produce ambiguous or wrong
+    # results (e.g. a 2-D panel would be interpreted as a single long series,
+    # or trigger ambiguous-truth errors on DataFrame comparisons). Fail closed
+    # to the same all-fail tuple the empty/non-finite paths return, matching
+    # regime_analysis (non-1-D) and parameter_sensitivity (non-2-D).
+    if returns_arr.ndim != 1:
+        return _validate_strategy_fail_closed(trades)
+
+    # Convert to pandas Series for easier manipulation downstream
+    returns = pd.Series(returns_arr)
 
     # Degenerate input guard: an empty return series cannot be annualized
     # (252 / len(returns) divides by zero) and yields no walk-forward folds,
     # so it must fail every evidence gate rather than crash.
     if len(returns) == 0:
-        return {
-            "sharpe": 0.0,
-            "sharpe_pass": False,
-            "n_trades": len(trades),
-            "trades_pass": False,
-            "profit_factor": 1.0,
-            "profit_factor_pass": False,
-            "max_drawdown": 0.0,
-            "drawdown_pass": True,
-            "walkforward_stability": 0.0,
-            "walkforward_pass": False,
-            "param_stability": 0.0,
-            "param_stability_pass": False,
-            "annualized_return": 0.0,
-            "annualized_volatility": 0.0,
-            "total_return": 0.0,
-            "all_pass": False,
-        }
+        return _validate_strategy_fail_closed(trades)
 
     # Non-finite-input guard. A validation is only defined on a set of finite
     # returns, and the function used to walk straight into the arithmetic on
@@ -1571,24 +1603,7 @@ def validate_strategy(
     # is bit-identical to before: this guard only short-circuits the
     # degenerate cases. See tests/test_statistics.py::TestValidateStrategy.
     if not np.all(np.isfinite(returns.to_numpy(dtype=float))):
-        return {
-            "sharpe": 0.0,
-            "sharpe_pass": False,
-            "n_trades": len(trades),
-            "trades_pass": False,
-            "profit_factor": 1.0,
-            "profit_factor_pass": False,
-            "max_drawdown": 0.0,
-            "drawdown_pass": True,
-            "walkforward_stability": 0.0,
-            "walkforward_pass": False,
-            "param_stability": 0.0,
-            "param_stability_pass": False,
-            "annualized_return": 0.0,
-            "annualized_volatility": 0.0,
-            "total_return": 0.0,
-            "all_pass": False,
-        }
+        return _validate_strategy_fail_closed(trades)
 
     n_trades = len(trades)
     # The total return is the compound of the whole series, measured the same

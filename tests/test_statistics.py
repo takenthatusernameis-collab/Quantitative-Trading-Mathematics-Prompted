@@ -2131,6 +2131,66 @@ class TestValidateStrategy:
         what validate_strategy returned before it mirrored the engine's 0.0."""
         assert np.isnan(pd.Series([0.001]).std())
 
+    # =======================================================================
+    # Coverage-gap closure: validate_strategy new degenerate-input guards
+    # =======================================================================
+    def test_validate_strategy_config_none_fails_closed(self):
+        """config=None is a caller type violation; must fail closed, not raise."""
+        returns = np.array([0.001] * 100)
+        trades = self._trades(50)
+        res = st.validate_strategy(returns, trades, None)
+        assert res["all_pass"] is False
+        assert res["sharpe"] == 0.0
+        assert res["n_trades"] == 50
+
+    def test_validate_strategy_trades_none_fails_closed(self):
+        """trades=None is a caller type violation; must fail closed, not raise."""
+        returns = np.array([0.001] * 100)
+        res = st.validate_strategy(returns, None, {})
+        assert res["all_pass"] is False
+        assert res["sharpe"] == 0.0
+        assert res["n_trades"] == 0
+
+    def test_validate_strategy_list_input_accepted(self, rng):
+        """list returns must be accepted (normalised via np.asarray)."""
+        returns = rng.normal(0.001, 0.01, 200).tolist()
+        trades = self._trades(50)
+        res = st.validate_strategy(returns, trades, {})
+        assert "sharpe" in res
+        assert np.isfinite(res["sharpe"])
+
+    def test_validate_strategy_tuple_input_accepted(self, rng):
+        """tuple returns must be accepted (normalised via np.asarray)."""
+        returns = tuple(rng.normal(0.001, 0.01, 200))
+        trades = self._trades(50)
+        res = st.validate_strategy(returns, trades, {})
+        assert "sharpe" in res
+        assert np.isfinite(res["sharpe"])
+
+    def test_validate_strategy_2d_ndarray_fails_closed(self, rng):
+        """2-D ndarray returns must fail closed (shape guard)."""
+        returns = rng.normal(0.001, 0.01, (2, 100))
+        trades = self._trades(50)
+        res = st.validate_strategy(returns, trades, {})
+        assert res["all_pass"] is False
+        assert res["sharpe"] == 0.0
+
+    def test_validate_strategy_dataframe_fails_closed(self, rng):
+        """DataFrame returns must fail closed (shape guard)."""
+        returns = pd.DataFrame({"a": rng.normal(0.001, 0.01, 100), "b": rng.normal(0.001, 0.01, 100)})
+        trades = self._trades(50)
+        res = st.validate_strategy(returns, trades, {})
+        assert res["all_pass"] is False
+        assert res["sharpe"] == 0.0
+
+    def test_validate_strategy_3d_ndarray_fails_closed(self, rng):
+        """3-D ndarray returns must fail closed (shape guard)."""
+        returns = rng.normal(0.001, 0.01, (2, 3, 10))
+        trades = self._trades(50)
+        res = st.validate_strategy(returns, trades, {})
+        assert res["all_pass"] is False
+        assert res["sharpe"] == 0.0
+
 
 def test_purged_kfold_basic():
     from qtr.validation.statistics import purged_kfold_splits
