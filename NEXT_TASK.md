@@ -159,10 +159,25 @@ consistently with the rest of the module.
   session (not a `.py` file, so ruff ignores it). It is harmless; leave it unless
   a cleanup task is authorized.
 
-## Session re-verification (2026-11-21, Cycle 243) — verification only; no code change
+## Session re-verification (2026-11-21, Cycle 244) — verification only; no code change
 
-This session inspected the repository and re-confirmed the assigned task is
+This session (2026-11-21) independently re-verified the assigned task remains
 agent-unreachable; no in-tree change was made and the working tree is clean.
+
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → **applies cleanly** on the live tree (re-confirmed).
+- `tests/test_gates_workflow.py` → **7 failed** (re-confirmed), all contract gaps the patch closes (scripts in ruff targets + path triggers, editable install in both jobs, backtest perf gate in research_gates).
+
+Why the task cannot be landed by this agent:
+- `.github/scripts/kilo-controller.sh` restores `.github/workflows/**` from origin/main at session end and excludes those paths from staging.
+- The repo-scoped GitHub App token has no `workflows` permission, so `git push` of a workflow change is rejected.
+
+Precise next task (maintainer, with workflow scope):
+  git apply patches/0001-gates-workflow-contract-fix.patch
+  git commit -am "fix(ci): satisfy gates workflow contract"
+  git push origin main
+  Expected result: `tests/test_gates_workflow.py` -> 7 passed (was 7 failed),
+  bringing the full suite from 4572 passed / 51 skipped / 7 failed to
+  4579 passed / 51 skipped / 0 failed.
 
 - `git apply --check patches/0001-gates-workflow-contract-fix.patch` → **applies
   cleanly** on the live tree (re-confirmed).
