@@ -163,10 +163,18 @@ def test_incomplete_runs_match_audit_inventory():
 # Spearman diagnostic (a sibling-collinearity key name distinct from
 # H187/H188/H190/H191/H192, so it adds its own key). The key appears in one of
 # 111 summaries, so the >=50% / >=80% sets are unchanged.
-EXPECTED_TOTAL_DIRS = 119
-EXPECTED_SUMMARY_COUNT = 111
+# Cycle 248 added one summary (+1 directory): the H194 stock-level coskewness /
+# systematic skewness cross-section run
+# `nf_20261121_04_coskewness_20261121_194429`. It adds two top-level keys
+# (distinct keys 153 -> 155): `train_input_collinearity_coskew126_vs_coskew252`,
+# the 6-month vs 12-month coskewness Spearman diagnostic, and
+# `train_mechanism_separation`, a nested dict holding the cross-sectional
+# Spearman diagnostics vs beta_252 and beta_126 (H193) for mechanism separation.
+# Each appears in one of 112 summaries, so the >=50% / >=80% sets are unchanged.
+EXPECTED_TOTAL_DIRS = 120
+EXPECTED_SUMMARY_COUNT = 112
 EXPECTED_CACHE_ONLY_DIRS = 11
-EXPECTED_DISTINCT_KEYS = 153
+EXPECTED_DISTINCT_KEYS = 155
 EXPECTED_KEYS_GE_50_PCT = frozenset(
     {
         "ablations",
