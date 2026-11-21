@@ -46,6 +46,38 @@ root cause of 8 of the 11 `hash_mismatches` in `REPRODUCIBILITY_AUDIT_REPORT.md`
 - Working tree: 4 files changed (3 runners + 1 new test) plus 3 doc files; no
   artifacts or frozen contracts touched.
 
+## Session verification (2026-11-21, Cycle 243 — verification only; no code change)
+
+No source, runner, test, or artifact change was made this session. The only remaining
+actionable item (the workflow contract fix) is agent-unreachable, and artifact cleanup
+is authorization-gated, so this session's durable contribution is fresh verification
+evidence for the next agent / maintainer.
+
+- `tests/test_gates_workflow.py` → **7 failed** (re-confirmed). The 7 failures are
+  exactly the contract gaps the patch closes:
+  - `test_lint_job_includes_scripts_in_ruff_targets[ruff check]` and `[ruff format]`:
+    committed `gates.yml` lint step is `python -m ruff check src tests run_*.py` /
+    `python -m ruff format --check src tests run_*.py` (missing `scripts`).
+  - `test_path_triggers_include_scripts[push]` and `[pull_request]`: path filters
+    lack `scripts/**`.
+  - `test_research_gates_job_runs_performance_regression_gate`: research_gates job
+    lacks `python scripts/backtest_perf_regression_gate.py`.
+  - `test_jobs_install_the_package_editably[lint]` and `[research_gates]`: neither job
+    installs the package editably (`python -m pip install -e . --no-deps`).
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → **applies
+  cleanly** on the live tree.
+- `scripts/backtest_perf_regression_gate.py` → **PERF GATE PASSED**
+  (100 symbols x 252 bars -> 0.942s, limit 5s, 10.7MB peak, 13668 trades).
+- Focused regression set
+  (`test_tsmom_runner_long_only`, `test_runner_causality_inventory`,
+  `test_runner_metric_agreement`, `test_h29_lookahead_sweep`,
+  `test_h54_non_metrics_block_disclosure`, `test_reproducibility_audit`,
+  `test_experiments_jsonl_no_duplicate_artifact_names`) → **447 passed**.
+- `python -m ruff check src tests run_*.py scripts` → **clean**.
+- `python -m ruff format --check src tests run_*.py scripts` → **361 files already
+  formatted**.
+- `src/qtr` coverage unchanged at 100% (no source change).
+
 ## Remaining reproducible-but-NOT-changed (deliberate, evidence-based)
 
 - The committed `experiments.jsonl` still carries the 11 `hash_mismatches` (8
@@ -80,6 +112,15 @@ root cause of 8 of the 11 `hash_mismatches` in `REPRODUCIBILITY_AUDIT_REPORT.md`
 **None blocking.** The single next task is the maintainer action above: apply
 `patches/0001-gates-workflow-contract-fix.patch` to `.github/workflows/**` so
 `tests/test_gates_workflow.py` goes green, then record the action in this file.
+
+Command (maintainer, with workflow scope):
+  git apply patches/0001-gates-workflow-contract-fix.patch
+  git commit -am "fix(ci): satisfy gates workflow contract"
+  git push origin main
+
+Expected result: `tests/test_gates_workflow.py` -> 7 passed (was 7 failed), bringing
+the full suite from 4572 passed / 51 skipped / 7 failed to 4579 passed / 51 skipped /
+0 failed.
 
 If that lands and artifact-cleanup authorization arrives, perform item 2: in one
 commit, drop the 8 superseded `param_grid_results` keys + 3 stale `summary` keys
