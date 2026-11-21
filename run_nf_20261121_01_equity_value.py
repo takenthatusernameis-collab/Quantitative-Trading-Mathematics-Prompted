@@ -328,9 +328,14 @@ def build_value_panel(
             return pd.DataFrame(index=calendar, columns=UNIVERSE_SYMBOLS, dtype=float)
         return frame.reindex(calendar).ffill().reindex(columns=UNIVERSE_SYMBOLS)
 
+    # ``pd.DataFrame(dict_of_series)`` is already indexed by refresh date with one
+    # column per symbol, which is exactly the layout ``to_daily`` reindexes onto the
+    # calendar.  Transposing here would put symbols on the index and every
+    # ``reindex(calendar)`` would match nothing, silently producing an all-NaN panel
+    # (a vacuous flat strategy).  Do NOT transpose.
     return {
-        "book_to_price": to_daily(pd.DataFrame(bp_series).T),
-        "cash_flow_yield": to_daily(pd.DataFrame(cfy_series).T),
+        "book_to_price": to_daily(pd.DataFrame(bp_series)),
+        "cash_flow_yield": to_daily(pd.DataFrame(cfy_series)),
     }
 
 
