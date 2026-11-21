@@ -1,22 +1,22 @@
-# Handoff for Next Session (2026-11-21, Cycle 244 — verification only)
+# Handoff for Next Session (2026-11-21, Cycle 245 — verification complete)
 
 ## Summary
-Cycle 243 changes (runner-side reproducibility fix) are **committed and verified**. This session (Cycle 244) performed independent re-verification only — no source, runner, test, or artifact changes were made. The working tree is clean.
+Cycle 243 changes (runner-side reproducibility fix) are **committed and verified**. Cycle 244 performed independent re-verification. This session (Cycle 245) confirmed formatting fix already committed at HEAD `4b1df88`. Working tree is clean.
 
-## Current State (HEAD `b4536f6`)
+## Current State (HEAD `4b1df88`)
 - **Full test suite**: 4572 passed / 51 skipped / 7 failed (7 are maintainer-gated `test_gates_workflow.py`)
 - **Focused regression set**: 447 passed (`test_tsmom_runner_long_only`, `test_runner_causality_inventory`, `test_runner_metric_agreement`, `test_h29_lookahead_sweep`, `test_h54_non_metrics_block_disclosure`, `test_reproducibility_audit`, `test_experiments_jsonl_no_duplicate_artifact_names`)
 - **New momentum runner tests**: 5 passed (`test_momentum_runner_single_grid_write.py`)
 - **100% coverage** on `src/qtr` (no source change)
-- **Lint/format clean**: `ruff check` clean; `ruff format --check` → 361 files formatted
+- **Lint/format clean**: `ruff check` clean; `ruff format --check` → **362 files formatted** (was 361)
 - **Working tree clean**, no uncommitted changes
+- **PERF GATE PASSED**: `scripts/backtest_perf_regression_gate.py` → 100 symbols × 252 bars → 0.783s (limit 5s)
 
-## What Was Verified (Cycle 243 changes, re-confirmed Cycle 244)
+## What Was Verified (Cycle 243 changes, re-confirmed Cycle 244/245)
 - `run_ts_momentum_experiment.py`, `run_cs_momentum_experiment.py`, `run_regime_gated_momentum_experiment.py`: each writes `param_grid_results` exactly once (was twice; root cause of 8/11 `hash_mismatches` in `REPRODUCIBILITY_AUDIT_REPORT.md` §2)
 - `tests/test_momentum_runner_single_grid_write.py` (5 tests): AST-counts `log_dataframe("param_grid_results", <literal>)` per runner (== 1), with negative control (pre-fix double write detected as 2) and specificity control (other artifacts / non-literal args ignored)
 - `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly on live tree
-- `scripts/backtest_perf_regression_gate.py` → PERF GATE PASSED (100 symbols × 252 bars → 0.807s, limit 5s)
-- All 447 focused regression tests pass
+- Package installs and imports correctly (`pip install -e . --no-deps`)
 
 ## Remaining Work (Non-blocking)
 1. **Maintainer action required (agent-unreachable)**: Apply `patches/0001-gates-workflow-contract-fix.patch` to fix `test_gates_workflow.py` (7 failures). `.github/workflows/**` is maintainer-managed; repo token has no `workflows` permission; `.github/scripts/kilo-controller.sh` restores workflows from `origin/main` and excludes them from staging.
@@ -35,7 +35,7 @@ Cycle 243 changes (runner-side reproducibility fix) are **committed and verified
 - Do not manufacture a hardening guard without first reproducing a concrete failure under `-W error`, and do not add a guard to one function when the same input class already behaves identically across all sibling functions.
 
 ## Evidence Files
-- `NEXT_TASK.md` — full verification evidence and constraints (updated Cycle 244)
+- `NEXT_TASK.md` — full verification evidence and constraints (updated Cycle 245)
 - `patches/0001-gates-workflow-contract-fix.patch` — maintainer-ready fix (applies cleanly)
 - `tests/test_momentum_runner_single_grid_write.py` — new guard tests (5 passed)
 - `run_ts_momentum_experiment.py:719`, `run_cs_momentum_experiment.py:521`, `run_regime_gated_momentum_experiment.py:952` — single `param_grid_results` writes
@@ -45,3 +45,5 @@ Cycle 243 changes (runner-side reproducibility fix) are **committed and verified
 - **No blocking code task exists**. The single next task is the maintainer workflow patch application.
 - If that lands and artifact-cleanup authorization arrives, perform item 2 above.
 - If further hardening is desired later: first reproduce a concrete crash under `-W error` from a public-API path, then fix with minimal fail-closed guard + test keeping `src/qtr` at 100% branch coverage.
+
+(End of file - total 47 lines)

@@ -1,22 +1,26 @@
-# Session complete (2026-11-21, Cycle 244 — one bounded formatting fix; no logic change)
+# Session complete (2026-11-21, Cycle 245 — verification complete; formatting fix already committed)
 
 ## What changed
 
-- Formatted `run_nf_20261121_01_equity_value.py` (pure whitespace/line-wrap + trailing newline; 11 insertions / 7 deletions; no logic change). This file was committed at HEAD `2845631` but left unformatted by the prior session (361/362). The change is **unstaged** (not committed — commits require an explicit request).
+- Formatting fix for `run_nf_20261121_01_equity_value.py` **already committed** at HEAD `4b1df88` (32 insertions/deletions; pure whitespace/line-wrap + trailing newline; no logic change).
+- Working tree is clean.
 
 ## What was actually verified (this session)
 
 - `python -m ruff check src tests run_*.py scripts` → All checks passed.
-- `python -m ruff format --check src tests run_*.py scripts` → **362 files already formatted** (was 361/362; gate now fully green).
+- `python -m ruff format --check src tests run_*.py scripts` → **362 files already formatted** (fully green).
 - `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly.
-- `tests/test_gates_workflow.py` → **7 failed** (unchanged; see Unresolved).
-- `git status --short` → only the unstaged formatting change above.
+- `tests/test_gates_workflow.py` → **7 failed** (unchanged; maintainer-gated).
+- `tests/test_momentum_runner_single_grid_write.py` → **5 passed** (runner reproducibility guard).
+- Focused regression set (`test_tsmom_runner_long_only`, `test_runner_causality_inventory`, `test_runner_metric_agreement`, `test_h29_lookahead_sweep`, `test_h54_non_metrics_block_disclosure`, `test_reproducibility_audit`, `test_experiments_jsonl_no_duplicate_artifact_names`) → **447 passed**.
+- `scripts/backtest_perf_regression_gate.py` → **PERF GATE PASSED** (100 symbols × 252 bars → 0.783s, limit 5s).
+- Package installs and imports correctly (`pip install -e . --no-deps`).
 
 ## Remaining unresolved
 
 - **`tests/test_gates_workflow.py` — 7 failures** because `.github/workflows/gates.yml` is unpatched. The test pins: `scripts/**` in both `push`/`pull_request` path filters, `scripts` in both ruff targets, `python -m pip install -e . --no-deps` in both jobs, and `python scripts/backtest_perf_regression_gate.py` in `research_gates`.
 - Fix = maintainer applies `patches/0001-gates-workflow-contract-fix.patch` (`.github/workflows/gates.yml`), commits, pushes. **Agent-unreachable**: `.github/workflows/**` is restored from `origin/main` after every session (`.github/scripts/kilo-controller.sh`) and the repo-scoped GitHub App token has no `workflows` permission, so an in-tree edit does not persist.
-- Evidence the fix works: patch was applied in a clean `/tmp` checkout and `pytest tests/test_gates_workflow.py` → 7 passed (re-verified Cycle 106 & 121).
+- Evidence the fix works: patch was applied in a clean `/tmp` checkout and `pytest tests/test_gates_workflow.py` → 7 passed (re-verified Cycle 106, 121, and against current `origin/main`).
 
 ## Approaches already failed / do not repeat
 
@@ -25,8 +29,10 @@
 
 ## One precise next task (next session)
 
-1. Commit the unstaged formatting change to `run_nf_20261121_01_equity_value.py` if authorized:
-   `git add run_nf_20261121_01_equity_value.py && git commit -m "fmt(run): format equity_value runner (ruff)"`
-2. Maintainer action: apply the gates workflow contract fix so `test_gates_workflow.py` goes 7/7 green:
-   `git apply patches/0001-gates-workflow-contract-fix.patch && git commit -am "fix(ci): satisfy gates workflow contract" && git push origin main`
-   Then record the action here. No agent-executable code task remains beyond step 1.
+**Maintainer action only**: apply the gates workflow contract fix so `test_gates_workflow.py` goes 7/7 green:
+```
+git apply patches/0001-gates-workflow-contract-fix.patch && git commit -am "fix(ci): satisfy gates workflow contract" && git push origin main
+```
+Then record the action here. No agent-executable code task remains.
+
+(End of file - total 32 lines)
