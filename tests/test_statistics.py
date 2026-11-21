@@ -2177,7 +2177,9 @@ class TestValidateStrategy:
 
     def test_validate_strategy_dataframe_fails_closed(self, rng):
         """DataFrame returns must fail closed (shape guard)."""
-        returns = pd.DataFrame({"a": rng.normal(0.001, 0.01, 100), "b": rng.normal(0.001, 0.01, 100)})
+        returns = pd.DataFrame(
+            {"a": rng.normal(0.001, 0.01, 100), "b": rng.normal(0.001, 0.01, 100)}
+        )
         trades = self._trades(50)
         res = st.validate_strategy(returns, trades, {})
         assert res["all_pass"] is False
