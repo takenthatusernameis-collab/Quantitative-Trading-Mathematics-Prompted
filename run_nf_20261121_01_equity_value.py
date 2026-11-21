@@ -250,7 +250,9 @@ def value_observations(facts: dict) -> pd.DataFrame:
     shares = pd.DataFrame()
     for namespace, tag in SHARE_TAGS:
         candidate = _share_rows(facts, namespace, tag)
-        candidate = candidate.dropna(subset=["end", "filed", "val"]) if len(candidate) else candidate
+        candidate = (
+            candidate.dropna(subset=["end", "filed", "val"]) if len(candidate) else candidate
+        )
         if len(candidate):
             shares = candidate.sort_values("filed").drop_duplicates("end", keep="first")
             break
@@ -303,7 +305,9 @@ def build_value_panel(
                 cfy_values.append(np.nan)
                 continue
             row = usable.iloc[-1]
-            price = float(close_at_refresh.at[rd, symbol]) if rd in close_at_refresh.index else np.nan
+            price = (
+                float(close_at_refresh.at[rd, symbol]) if rd in close_at_refresh.index else np.nan
+            )
             shares = float(row["shares"])
             if np.isfinite(price) and price > 0.0 and np.isfinite(shares) and shares > 0.0:
                 market_cap = shares * price
@@ -311,9 +315,7 @@ def build_value_panel(
                 bp_values.append(equity / market_cap if market_cap > 0.0 else np.nan)
                 cfo = row.get("cfo", np.nan)
                 cfy_values.append(
-                    float(cfo) / market_cap
-                    if pd.notna(cfo) and market_cap > 0.0
-                    else np.nan
+                    float(cfo) / market_cap if pd.notna(cfo) and market_cap > 0.0 else np.nan
                 )
             else:
                 bp_values.append(np.nan)
@@ -544,7 +546,9 @@ def load_or_fetch_closes(products: list[str]) -> pd.DataFrame:
             return closes
     import yfinance as yf
 
-    raw = yf.download(list(products), start=START, end=END, auto_adjust=True, progress=False)["Close"]
+    raw = yf.download(list(products), start=START, end=END, auto_adjust=True, progress=False)[
+        "Close"
+    ]
     raw = raw.reindex(columns=list(products))
     raw.to_csv(price_path)
     return raw

@@ -1,36 +1,32 @@
-# Session complete (2026-11-21, Cycle 244 — verification only; no code change)
+# Session complete (2026-11-21, Cycle 244 — one bounded formatting fix; no logic change)
 
-## State
+## What changed
 
-H1–H190 exhausted/rejected or data-blocked (unchanged). Free-data point-in-time
-family discovery remains exhausted.
+- Formatted `run_nf_20261121_01_equity_value.py` (pure whitespace/line-wrap + trailing newline; 11 insertions / 7 deletions; no logic change). This file was committed at HEAD `2845631` but left unformatted by the prior session (361/362). The change is **unstaged** (not committed — commits require an explicit request).
 
-## Verified evidence (this session, 2026-11-21)
+## What was actually verified (this session)
 
-- `python -m ruff check src tests run_*.py scripts` → clean.
-- `python -m ruff format --check src tests run_*.py scripts` → 361 files already formatted (re-confirmed prior).
+- `python -m ruff check src tests run_*.py scripts` → All checks passed.
+- `python -m ruff format --check src tests run_*.py scripts` → **362 files already formatted** (was 361/362; gate now fully green).
 - `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly.
-- `git status --short` → clean working tree (no uncommitted changes).
-- `src/qtr` coverage unchanged at 100% (no source change).
+- `tests/test_gates_workflow.py` → **7 failed** (unchanged; see Unresolved).
+- `git status --short` → only the unstaged formatting change above.
 
-## Remaining actionable items (unchanged)
+## Remaining unresolved
 
-1. **Maintainer-applied workflow contract fix**
-   (`patches/0001-gates-workflow-contract-fix.patch`) → makes
-   `tests/test_gates_workflow.py` (7 failures) green. Agent-unreachable.
-2. **Authorization-gated artifact cleanup** (`REPRODUCIBILITY_AUDIT_REPORT.md` §2):
-   drop 8 superseded duplicate `param_grid_results` keys + 3 stale `summary` keys
-   from `experiments.jsonl`. Do not overwrite artifacts without authorization.
+- **`tests/test_gates_workflow.py` — 7 failures** because `.github/workflows/gates.yml` is unpatched. The test pins: `scripts/**` in both `push`/`pull_request` path filters, `scripts` in both ruff targets, `python -m pip install -e . --no-deps` in both jobs, and `python scripts/backtest_perf_regression_gate.py` in `research_gates`.
+- Fix = maintainer applies `patches/0001-gates-workflow-contract-fix.patch` (`.github/workflows/gates.yml`), commits, pushes. **Agent-unreachable**: `.github/workflows/**` is restored from `origin/main` after every session (`.github/scripts/kilo-controller.sh`) and the repo-scoped GitHub App token has no `workflows` permission, so an in-tree edit does not persist.
+- Evidence the fix works: patch was applied in a clean `/tmp` checkout and `pytest tests/test_gates_workflow.py` → 7 passed (re-verified Cycle 106 & 121).
 
-## One precise next task (for next session)
+## Approaches already failed / do not repeat
 
-Maintainer action: apply `patches/0001-gates-workflow-contract-fix.patch` to
-`.github/workflows/**` so `tests/test_gates_workflow.py` goes green, then record
-the action here.
+- In-tree edit of `.github/workflows/gates.yml`: does not persist (restored from origin/main; token lacks workflows permission). Do not retry.
+- Mass-editing runners/tests/gates to force the suite green; frozen-contract drifts need per-contract evidence + authorization (per AGENTS.md / HANDOFF_CURRENT.md).
 
-  git apply patches/0001-gates-workflow-contract-fix.patch
-  git commit -am "fix(ci): satisfy gates workflow contract"
-  git push origin main
+## One precise next task (next session)
 
-No agent-executable code task remains; the runner-side root cause (Cycle 243)
-and all repo-side verification are complete.
+1. Commit the unstaged formatting change to `run_nf_20261121_01_equity_value.py` if authorized:
+   `git add run_nf_20261121_01_equity_value.py && git commit -m "fmt(run): format equity_value runner (ruff)"`
+2. Maintainer action: apply the gates workflow contract fix so `test_gates_workflow.py` goes 7/7 green:
+   `git apply patches/0001-gates-workflow-contract-fix.patch && git commit -am "fix(ci): satisfy gates workflow contract" && git push origin main`
+   Then record the action here. No agent-executable code task remains beyond step 1.
