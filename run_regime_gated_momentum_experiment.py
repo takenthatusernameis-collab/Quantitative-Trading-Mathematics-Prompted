@@ -575,7 +575,12 @@ def main():
         combos_df["overfit_robust_z"] = robust_z
         combos_df["overfit_penalty"] = penalty
         combos_df["selection_score"] = combos_df["wf_oos_mean_sharpe"] - penalty
-        tracker.log_dataframe("param_grid_results", combos_df)
+        # ``param_grid_results`` is logged once, at the final path below, with
+        # the walk-forward p-value columns attached. An earlier version also
+        # logged the pre-correction grid here; ``log_dataframe`` rewrites the
+        # same ``param_grid_results.parquet`` path in place, so the first write
+        # was always superseded and only left a stale hash in the record (the 8
+        # ``param_grid_results`` hash mismatches in the audit, §2).
 
         # Select: maximize penalized selection score; tie-break on train Sharpe.
         combos_df_sorted = combos_df.sort_values(
@@ -615,7 +620,8 @@ def main():
         for rec, ap, rej in zip(combo_records, adj_pvals, rejected):
             rec["wf_oos_adj_pvalue"] = float(ap)
             rec["wf_oos_significant"] = bool(rej)
-        tracker.log_dataframe("param_grid_results", pd.DataFrame(combo_records))
+        # The single ``param_grid_results`` write: the grid is logged once, at
+        # the final path, with the walk-forward p-value columns attached.
 
         # ------------------------------------------------------------
         # 4. FINAL STRATEGY with selected params (applied to Val + Test)

@@ -1284,3 +1284,52 @@ must search for genuinely distinct return-generating mechanisms (per directive �
 parameter/timeframe/universe variants.
 
 **Cycle 235 complete.** H1–H190 exhausted/rejected; H189 data-blocked; `src/qtr` unchanged.
+
+---
+
+## Cycle 243 (2026-11-21) — Momentum runners: `param_grid_results` written once (root-cause fix for 8 of the 11 audit hash mismatches)
+
+Lineage: H1–H190 exhausted/rejected or confirmed data-blocked (Cycles 215–235); no new
+strategy family is pre-registered and no new runner is created this cycle. `src/qtr`
+unchanged; no published/certified artifact, verdict, threshold, or frozen number modified;
+no gate weakening; free/public data only.
+
+### Defect (re-derived, own evidence)
+
+`REPRODUCIBILITY_AUDIT_REPORT.md` §2 pins 11 `hash_mismatches`: 8 are
+`param_grid_results` rows whose recorded SHA-256 suffix cannot match the file on disk. The
+mechanism is in the momentum runners, not the tracker: each of
+`run_ts_momentum_experiment.py`, `run_cs_momentum_experiment.py`, and
+`run_regime_gated_momentum_experiment.py` called
+`tracker.log_dataframe("param_grid_results", ...)` **twice** inside one `main()` — once
+with the pre-correction grid and once with the final grid after the walk-forward p-value
+columns were attached. `ExperimentTracker.log_dataframe` writes
+`<artifact_dir>/param_grid_results.parquet` in place, so the second write overwrote the
+first and the experiment record kept the *first* write's hash. The on-disk file matches the
+*final* write in every case (audit §2, "on disk authoritative? = Yes").
+
+### Change (smallest reversible, runner-side)
+
+Each runner now logs `param_grid_results` **once**, at the final path, with all columns
+attached; the superseded first write is removed (with a comment recording why). The
+surviving write is the same call that produced the current on-disk artifact, so a re-run
+is byte-identical for the grid; only the stale recorded hash disappears from *future*
+records. The committed `.experiments/experiments.jsonl` is **not** edited (that remains
+authorization-gated per audit §2); the 11-row backlog and its pins are unchanged.
+
+### Verification (this cycle)
+
+- New `tests/test_momentum_runner_single_grid_write.py` — AST-counts
+  `log_dataframe("param_grid_results", <literal>)` per runner (== 1), with a negative
+  control that reconstructs the pre-fix double write and shows the detector reports 2, and
+  a specificity control (other artifact names / non-literal first argument are not
+  counted). **5 passed.**
+- Focused regression set (`test_tsmom_runner_long_only`, `test_runner_causality_inventory`,
+  `test_runner_metric_agreement`, `test_h29_lookahead_sweep`,
+  `test_h54_non_metrics_block_disclosure`, `test_reproducibility_audit`,
+  `test_experiments_jsonl_no_duplicate_artifact_names`) — **447 passed**.
+- Full suite: **4572 passed / 51 skipped / 7 failed** (the 7 are the maintainer-gated
+  `tests/test_gates_workflow.py`); `ruff check` clean; `ruff format --check` 361 files
+  formatted; `src/qtr` coverage unchanged at 100%.
+
+**Cycle 243 complete.** Runner-side root cause fixed and pinned; committed corpus untouched.

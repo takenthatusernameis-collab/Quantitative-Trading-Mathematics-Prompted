@@ -1,4 +1,4 @@
-# Session complete (2026-11-21, Cycle 242 — verify + hand off: no source change needed)
+# Session complete (2026-11-21, Cycle 243 — runner-side reproducibility fix)
 
 ## State
 
@@ -8,46 +8,55 @@ discovery remains exhausted; do not re-declare any H-ID data-blocked without
 naming the probed source, and do not treat parameter/timeframe/universe/market
 variants of H1–H190 as new families.
 
-**The task assigned by the previous agent is COMPLETE.** The `validate_strategy`
-degenerate-input hardening and the `scripts/verify_gates_workflow_patch.py`
-relative-path fix are both present and committed at HEAD `63561db` (working tree
-clean). No source code changed this session; this session only verified the state
-and corrected the stale `NEXT_TASK.md` (it previously referenced HEAD `7fe9d08`/
-`a442bd8` and claimed the verify-script fix was uncommitted — both stale).
+**This session made a real source change (the first in several cycles):** the three
+momentum runners no longer write `param_grid_results` twice per run. This is the
+root cause of 8 of the 11 `hash_mismatches` in `REPRODUCIBILITY_AUDIT_REPORT.md`
+§2. `src/qtr` is unchanged; the committed `.experiments/experiments.jsonl` is
+**not** edited (that remains authorization-gated).
 
-## Verified evidence (this session, HEAD `63561db`, 2026-11-21)
+## What changed (Cycle 243)
 
-- `python -m pytest -q` → **4567 passed / 51 skipped / 7 failed**. All 7 failures
-  are `tests/test_gates_workflow.py`, unchanged and maintainer-gated by design
-  (patch `patches/0001-gates-workflow-contract-fix.patch`).
-- `PYTHONPATH=src python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing`
-  → **100.00% coverage**: TOTAL 1713 stmts / 654 branches / 0 miss;
-  `src/qtr/validation/statistics.py` 392 stmts / 164 branches / 0 miss.
-- `python -m pytest -q tests/test_statistics.py` → **372 passed**.
+- `run_ts_momentum_experiment.py`, `run_cs_momentum_experiment.py`,
+  `run_regime_gated_momentum_experiment.py`: removed the superseded first
+  `tracker.log_dataframe("param_grid_results", ...)` call; the single remaining
+  call is the final-path write that produced the current on-disk artifact, so a
+  re-run is byte-identical for the grid.
+- New `tests/test_momentum_runner_single_grid_write.py` (5 tests): AST-counts
+  `log_dataframe("param_grid_results", <literal>)` per runner (== 1), with a
+  negative control that reconstructs the pre-fix double write (detector reports 2)
+  and a specificity control (other artifact names / non-literal first argument are
+  not counted).
+- Docs: `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 243 entry;
+  `REPRODUCIBILITY_AUDIT_REPORT.md` §2 runner-side note.
+
+## Verified evidence (this session, 2026-11-21)
+
+- `python -m pytest -q` → **4572 passed / 51 skipped / 7 failed** (was 4567/51/7;
+  +5 from the new test file). All 7 failures are `tests/test_gates_workflow.py`,
+  unchanged and maintainer-gated by design (patch
+  `patches/0001-gates-workflow-contract-fix.patch`).
+- Focused regression set (`test_tsmom_runner_long_only`,
+  `test_runner_causality_inventory`, `test_runner_metric_agreement`,
+  `test_h29_lookahead_sweep`, `test_h54_non_metrics_block_disclosure`,
+  `test_reproducibility_audit`, `test_experiments_jsonl_no_duplicate_artifact_names`)
+  → **447 passed**.
 - `python -m ruff check src tests run_*.py scripts` → clean;
-  `python -m ruff format --check src tests run_*.py scripts` → 360 files formatted.
-- Working tree clean; no uncommitted changes. `git log -1 HEAD` = `63561db`
-  (`src/qtr/validation/statistics.py` + `tests/test_statistics.py`, the
-  `validate_strategy` hardening) — the verify-script fix
-  (`scripts/verify_gates_workflow_patch.py:140`, `repo_root = Path(repo_root).resolve()`)
-  is already committed.
+  `python -m ruff format --check src tests run_*.py scripts` → 361 files formatted.
+- `src/qtr` coverage unchanged at 100% (no source change).
+- Working tree: 4 files changed (3 runners + 1 new test) plus 3 doc files; no
+  artifacts or frozen contracts touched.
 
 ## Remaining reproducible-but-NOT-changed (deliberate, evidence-based)
 
-`validate_strategy` still raises on a **generator** argument
-(`TypeError: float() argument ... not 'generator'`) and on a **non-numeric
-string array** (`ValueError: could not convert string to float`). These were
-reproduced under `-W error` in a prior session but **intentionally left raising**:
-
-- Every sibling function (`sharpe_ratio`, `parameter_sensitivity`,
-  `regime_analysis`, `compare_to_benchmark`, ...) also uses the bare
-  `np.asarray(x, dtype=float)` and raises identically on the same inputs. This is
-  a **module-wide caller-type violation** for non-numeric data, not a
-  `validate_strategy`-specific divergence. Fixing only `validate_strategy` would
-  make it inconsistent with the module; fixing all siblings is a broad API
-  change out of scope for a hardening cycle and would weaken the documented
-  "1-D array-like (list, tuple, ndarray, Series)" contract. Leave as-is unless a
-  future task is explicitly authorized to change the module-wide convention.
+- The committed `experiments.jsonl` still carries the 11 `hash_mismatches` (8
+  `param_grid_results` + 3 `summary.json`). The runner fix prevents *future*
+  stale hashes but does not rewrite history; the log remediation (drop superseded
+  duplicate keys) is **authorization-gated** (audit §2) and was not performed.
+- `validate_strategy` still raises on a **generator** argument and on a
+  **non-numeric string array**. Left raising deliberately: every sibling function
+  (`sharpe_ratio`, `parameter_sensitivity`, ...) uses the same bare
+  `np.asarray(x, dtype=float)`, so this is a module-wide caller-type convention,
+  not a `validate_strategy` divergence (see prior handoffs).
 
 ## Remaining actionable items
 
@@ -59,17 +68,26 @@ reproduced under `-W error` in a prior session but **intentionally left raising*
    session, and the repo-scoped GitHub App token has no `workflows` permission).
    Capture as apply-ready and record the maintainer action here.
 
-2. **Optional, authorization-gated artifact cleanup** from
+2. **Authorization-gated artifact cleanup** from
    `REPRODUCIBILITY_AUDIT_REPORT.md` §2: drop 8 superseded duplicate
-   `param_grid_results` keys + 3 stale `summary` keys from `experiments.jsonl`.
-   **Do not overwrite artifacts** without authorization.
+   `param_grid_results` keys + 3 stale `summary` keys from `experiments.jsonl`
+   (and move the audit baseline + pins in the same commit). The runner-side root
+   cause is now fixed, so this is the remaining half. **Do not overwrite
+   artifacts** without authorization.
 
 ## One precise next task (for next session)
 
 **None blocking.** The single next task is the maintainer action above: apply
 `patches/0001-gates-workflow-contract-fix.patch` to `.github/workflows/**` so
 `tests/test_gates_workflow.py` goes green, then record the action in this file.
-If that lands and artifact-cleanup authorization arrives, perform item 2.
+
+If that lands and artifact-cleanup authorization arrives, perform item 2: in one
+commit, drop the 8 superseded `param_grid_results` keys + 3 stale `summary` keys
+from `.experiments/experiments.jsonl`, update `REPRODUCIBILITY_BASELINE`
+(`hash_mismatches` 11 → 3), `PINNED_HASH_MISMATCHES`, and
+`REPRODUCIBILITY_AUDIT_REPORT.md` together, then re-run
+`tests/test_reproducibility_audit.py` (the gate fails on any count change that is
+not a deliberate, documented baseline move).
 
 If further hardening is desired later, follow the same evidence-first pattern:
 first reproduce a concrete crash under `-W error` from a public-API path, then

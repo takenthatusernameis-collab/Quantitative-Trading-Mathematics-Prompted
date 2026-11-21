@@ -441,8 +441,13 @@ def main():
                 f"train Sharpe={train_sharpe:.3f} wfOOS={sel:.3f} val={rec['val_sharpe']:.3f} test={rec['test_sharpe']:.3f}"
             )
 
+        # ``param_grid_results`` is logged once, at the final path below, with
+        # the walk-forward p-value columns attached. An earlier version also
+        # logged the pre-correction grid here; ``log_dataframe`` rewrites the
+        # same ``param_grid_results.parquet`` path in place, so the first write
+        # was always superseded and only left a stale hash in the record (the 8
+        # ``param_grid_results`` hash mismatches in the audit, §2).
         combos_df = pd.DataFrame(combo_records)
-        tracker.log_dataframe("param_grid_results", combos_df)
 
         # Select: maximize internal walk-forward OOS Sharpe (train only), tie-break on train Sharpe.
         combos_df_sorted = combos_df.sort_values(
@@ -475,7 +480,8 @@ def main():
         for rec, ap, rej in zip(combo_records, adj_pvals, rejected):
             rec["wf_oos_adj_pvalue"] = float(ap)
             rec["wf_oos_significant"] = bool(rej)
-        tracker.log_dataframe("param_grid_results", pd.DataFrame(combo_records))
+        # The single ``param_grid_results`` write: the grid is logged once, at
+        # the final path, with the walk-forward p-value columns attached.
 
         # ------------------------------------------------------------
         # 4. FINAL STRATEGY with selected params (applied to Val + Test)

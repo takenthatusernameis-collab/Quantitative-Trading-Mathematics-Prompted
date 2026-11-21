@@ -290,8 +290,13 @@ def main():
                 f"train={train_sr:.3f} wfOOS={sel:.3f} val={rec['val_sharpe']:.3f} test={rec['test_sharpe']:.3f}"
             )
 
+        # ``param_grid_results`` is logged once, at the final path below, with
+        # the walk-forward p-value columns attached. An earlier version also
+        # logged the pre-correction grid here; ``log_dataframe`` rewrites the
+        # same ``param_grid_results.parquet`` path in place, so the first write
+        # was always superseded and only left a stale hash in the record (the 8
+        # ``param_grid_results`` hash mismatches in the audit, §2).
         combos = pd.DataFrame(records)
-        tracker.log_dataframe("param_grid_results", combos)
         # Multiple-testing correction on train wf p-values
         pvals = []
         for r in records:

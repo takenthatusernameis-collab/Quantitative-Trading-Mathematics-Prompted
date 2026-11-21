@@ -209,6 +209,18 @@ recorded name is a superseded duplicate/stale entry.** Remediation should correc
 final path), not overwrite the artifacts. This is authorization-gated because it
 edits the committed record; no baseline change is needed.
 
+**Runner-side root cause fixed (2026-11-21, Cycle 243).** The three momentum runners
+(`run_ts_momentum_experiment.py`, `run_cs_momentum_experiment.py`,
+`run_regime_gated_momentum_experiment.py`) each logged `param_grid_results` twice per
+run; each now logs it **once**, at the final path, with the walk-forward p-value columns
+attached. The surviving call is the one that produced the current on-disk artifact, so a
+re-run is byte-identical for the grid; the superseded first write (the source of the 8
+stale hashes) is gone from future records. Pinned by
+`tests/test_momentum_runner_single_grid_write.py` (AST count == 1 per runner, with a
+pre-fix double-write negative control). The committed `experiments.jsonl` is **not**
+edited here — the 11-row backlog and its pins below are unchanged pending the
+authorization-gated log remediation.
+
 **Verified 2026-11-13:** `tests/test_reproducibility_audit.py` — 7 passed;
 `tests/test_h54_non_metrics_block_disclosure.py` — 21 passed; the three
 `tests/test_nf_20261105_1{4,6,9}_*.py` — 34 passed; read-only planner unchanged
