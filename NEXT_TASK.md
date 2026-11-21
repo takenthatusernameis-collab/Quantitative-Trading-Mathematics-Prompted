@@ -226,3 +226,24 @@ Precise next task (maintainer, with workflow scope):
   Expected result: `tests/test_gates_workflow.py` -> 7 passed (was 7 failed),
   bringing the full suite from 4572 passed / 51 skipped / 7 failed to
   4579 passed / 51 skipped / 0 failed.
+
+## Definitive evidence (this session, 2026-11-21)
+
+The assigned task (workflow contract fix) was attempted end-to-end and is
+**provably agent-unreachable**:
+
+- `git apply patches/0001-gates-workflow-contract-fix.patch` → applies cleanly;
+  only `.github/workflows/gates.yml` modified (10 insertions, 2 deletions).
+- `git commit -m "fix(ci): satisfy gates workflow contract"` → local commit
+  created; `git push origin main` → **REJECTED by GitHub**:
+  `refusing to allow a GitHub App to create or update workflow
+  .github/workflows/gates.yml without workflows permission`
+- The local commit was reverted (`git reset --hard HEAD~1`); tree is clean at
+  `2fcf1c4` = origin/main.
+
+This confirms (no longer assumed) that the repo-scoped GitHub App token lacks
+the `workflows` permission, so the workflow contract fix cannot be landed by
+this agent. The patch remains apply-ready for a maintainer with workflow scope.
+The maintainer needs the `workflows` permission on the GitHub App token (or a
+PAT with workflow scope) to push `.github/workflows/**`. Until then, the 7
+`test_gates_workflow.py` failures remain and the suite cannot go fully green.
