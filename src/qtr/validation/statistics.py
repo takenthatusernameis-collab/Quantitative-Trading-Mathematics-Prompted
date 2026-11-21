@@ -205,7 +205,10 @@ def bars_per_year(index: pd.DatetimeIndex) -> float:
     Returns:
         Bars per calendar year. NaN when the index has fewer than two bars,
         spans no measurable time, or is not a timestamp axis (a numeric /
-        positional index such as a ``RangeIndex``).
+        positional index such as a ``RangeIndex``, or any other
+        non-datetime-convertible axis such as a categorical/object string
+        index, a ``MultiIndex``, a ``PeriodIndex``, a ``TimedeltaIndex`` or an
+        ``IntervalIndex``).
     """
     if isinstance(index, pd.DatetimeIndex):
         idx = index
@@ -230,7 +233,23 @@ def bars_per_year(index: pd.DatetimeIndex) -> float:
         raw = pd.Index(index)
         if pd.api.types.is_numeric_dtype(raw):
             return float("nan")
-        idx = pd.DatetimeIndex(raw)
+        try:
+            idx = pd.DatetimeIndex(raw)
+        except (TypeError, ValueError):
+            # A non-numeric index that is not datetime-convertible is "not a
+            # timestamp axis" exactly like the numeric case above, and the
+            # docstring's return contract is NaN for that case. A categorical
+            # or object string index, a ``MultiIndex``, a ``PeriodIndex``, a
+            # ``TimedeltaIndex`` or an ``IntervalIndex`` all reach
+            # ``pd.DatetimeIndex`` and raise ``TypeError`` (or a
+            # ``DateParseError``, a ``ValueError``) out of a function every
+            # caller treats as returning a float; ``annualized_sharpe`` calls
+            # this helper directly, so the crash propagated there too. Refuse
+            # the axis rather than crash. A datetime-like index (date strings,
+            # ``date``/``datetime`` objects, ``Timestamp``s) converts unchanged,
+            # so the valid path is bit-identical. See
+            # tests/test_statistics.py::TestBarsPerYearNonTimestampIndex.
+            return float("nan")
     if len(idx) < 2:
         return float("nan")
     span_days = (idx[-1] - idx[0]).total_seconds() / 86400.0

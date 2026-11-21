@@ -2627,6 +2627,60 @@ class TestBarsPerYearNumericIndex:
         assert st.bars_per_year(idx) == pytest.approx(expected)
 
 
+class TestBarsPerYearNonTimestampIndex:
+    """A non-timestamp axis must fail closed to NaN, not raise.
+
+    ``bars_per_year`` already refuses a numeric/positional axis (a
+    ``RangeIndex``, ``pd.Index([1, 2, 3])``) because ``pd.DatetimeIndex``
+    would coerce the integers to 1970 nanoseconds and manufacture a
+    ~4.7e16 bars-per-year factor.  The docstring's return contract is NaN for
+    *any* axis that is "not a timestamp axis", but the implementation only
+    screened the numeric case: a categorical/object string index, a
+    ``MultiIndex``, a ``PeriodIndex``, a ``TimedeltaIndex`` or an
+    ``IntervalIndex`` fell through to ``pd.DatetimeIndex(raw)`` and raised
+    ``TypeError`` (or ``DateParseError``, a ``ValueError``) out of a function
+    every caller treats as returning a float.  ``annualized_sharpe`` calls
+    this helper directly, so the crash propagated there too.
+
+    These axes are all "not a timestamp axis" in exactly the same sense as a
+    ``RangeIndex``, so they must return NaN -- the same fail-closed value a
+    single-bar or zero-span index returns -- and ``annualized_sharpe`` must
+    map that to ``0.0`` rather than crash.  A datetime-like index is
+    unchanged (pinned by ``TestBarsPerYearNumericIndex``).
+    """
+
+    @pytest.mark.parametrize(
+        "index",
+        [
+            pd.Index(pd.Categorical(["x", "y", "z"])),
+            pd.Index(["x", "y", "z"], dtype=object),
+            pd.Index([object(), object(), object()], dtype=object),
+            pd.MultiIndex.from_tuples([("a", 1), ("b", 2), ("c", 3)]),
+            pd.period_range("2020-01", periods=3, freq="M"),
+            pd.to_timedelta([1, 2, 3], unit="D"),
+            pd.IntervalIndex.from_breaks([0, 1, 2, 3]),
+        ],
+    )
+    def test_non_timestamp_index_returns_nan(self, index):
+        assert np.isnan(st.bars_per_year(index))
+
+    def test_annualized_sharpe_returns_zero_for_non_timestamp_index(self):
+        rets = np.array([0.01, -0.005, 0.02])
+        multi = pd.MultiIndex.from_tuples([("a", 1), ("b", 2), ("c", 3)])
+        assert st.annualized_sharpe(rets, multi) == 0.0
+        assert st.annualized_sharpe(rets, pd.to_timedelta([1, 2, 3], unit="D")) == 0.0
+
+    def test_datetime_like_index_still_converts(self):
+        # The guard only refuses a non-datetime-convertible axis; a valid
+        # datetime-like index converts exactly as before.
+        idx = pd.DatetimeIndex(["2020-01-01", "2020-01-02", "2020-01-03"])
+        span_days = (idx[-1] - idx[0]).total_seconds() / 86400.0
+        expected = len(idx) / (span_days / 365.25)
+        assert st.bars_per_year(["2020-01-01", "2020-01-02", "2020-01-03"]) == pytest.approx(
+            expected
+        )
+
+
 # ===========================================================================
 # Sharpe-period annualization guard
 # ===========================================================================
