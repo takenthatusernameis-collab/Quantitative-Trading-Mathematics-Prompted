@@ -137,7 +137,7 @@ def patched_workflow_text(workflow_path: Path | str, patch_path: Path | str) -> 
 
 def verify(repo_root: Path | str) -> tuple[int, list[str]]:
     """Return ``(exit_code, report_lines)`` for the tree rooted at ``repo_root``."""
-    repo_root = Path(repo_root)
+    repo_root = Path(repo_root).resolve()
     workflow_path = repo_root / WORKFLOW_RELPATH
     patch_path = repo_root / DEFAULT_PATCH
 

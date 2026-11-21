@@ -77,13 +77,25 @@ reproduced under `-W error` this session but **intentionally left raising**:
   "1-D array-like (list, tuple, ndarray, Series)" contract. Leave as-is unless a
   future task is explicitly authorized to change the module-wide convention.
 
-## This session (verification only, no source change)
+## This session (Cycle 242)
 
-- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly on the current tree.
-- `python -m ruff check src tests run_*.py scripts` → clean.
-- `python -m ruff format --check src tests run_*.py scripts` → 360 files formatted.
-- `tests/test_gates_workflow.py` → 7 failed (all maintainer-gated workflow contract assertions), all other suite tests pass per prior full-suite run (4561 passed / 51 skipped / 7 failed); tree clean at HEAD `a442bd8`.
-- Full-suite run hangs on a network-dependent test (not re-run; prior evidence stands).
+- Fixed a reproducible bug in `scripts/verify_gates_workflow_patch.py::verify()`:
+  `git apply` runs inside a throwaway temp dir (`cwd=tree`) but the patch path was
+  left relative to `repo_root`, so invoking with a relative `--repo-root` (e.g. `.`)
+  failed with `git apply rejected patches/...patch: No such file or directory` (exit 1).
+  The tests only ever pass absolute paths (`tmp_path`, `ROOT`), so the gap was not
+  covered. Fixed by resolving `repo_root` to absolute (`scripts/verify_gates_workflow_patch.py:140`);
+  derived `workflow_path`/`patch_path` are now absolute and `git apply -p1 <abs patch>`
+  works regardless of cwd.
+- Verified:
+  - `--repo-root .` → `PATCH VERIFIED ... resolves all 7 violation(s)`, exit 0 (was exit 1).
+  - `--repo-root $(pwd)` → exit 0.
+  - `python -m pytest -q tests/test_verify_gates_workflow_patch.py` → 15 passed.
+  - `python -m ruff check scripts/verify_gates_workflow_patch.py` → clean;
+    `python -m ruff format --check scripts/verify_gates_workflow_patch.py` → formatted.
+  - `tests/test_statistics.py` → 372 passed; `tests/test_gates_workflow.py` → 7 failed
+    (all maintainer-gated workflow contract assertions, unchanged).
+- Working tree clean at HEAD `a442bd8` except this one-file change (not yet committed).
 
 ## One precise next task (for next session)
 
