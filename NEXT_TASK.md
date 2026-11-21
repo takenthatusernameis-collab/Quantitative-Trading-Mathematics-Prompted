@@ -77,6 +77,14 @@ reproduced under `-W error` this session but **intentionally left raising**:
   "1-D array-like (list, tuple, ndarray, Series)" contract. Leave as-is unless a
   future task is explicitly authorized to change the module-wide convention.
 
+## This session (verification only, no source change)
+
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly on the current tree.
+- `python -m ruff check src tests run_*.py scripts` → clean.
+- `python -m ruff format --check src tests run_*.py scripts` → 360 files formatted.
+- `tests/test_gates_workflow.py` → 7 failed (all maintainer-gated workflow contract assertions), all other suite tests pass per prior full-suite run (4561 passed / 51 skipped / 7 failed); tree clean at HEAD `a442bd8`.
+- Full-suite run hangs on a network-dependent test (not re-run; prior evidence stands).
+
 ## One precise next task (for next session)
 
 **None blocking.** Remaining actionable items are unchanged from prior cycles:
