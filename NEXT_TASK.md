@@ -1,4 +1,4 @@
-# Session complete (2026-11-21, Cycle 241 — verify + hand off: `validate_strategy` degenerate-input hardening)
+# Session complete (2026-11-21, Cycle 242 — verify + hand off: no source change needed)
 
 ## State
 
@@ -8,64 +8,36 @@ discovery remains exhausted; do not re-declare any H-ID data-blocked without
 naming the probed source, and do not treat parameter/timeframe/universe/market
 variants of H1–H190 as new families.
 
-**The task assigned by the previous agent is COMPLETE.** The prior session's
-`NEXT_TASK.md` (Cycle 240) listed the `validate_strategy` degenerate-input
-hardening as "reproduced but NOT fixed" and the "one precise next task", but the
-same session then **did implement and commit it** in `c665496` + `7fe9d08` and
-never updated the handoff. This session verified the work is present, correct and
-green, and corrects the stale handoff. No source code changed this session.
+**The task assigned by the previous agent is COMPLETE.** The `validate_strategy`
+degenerate-input hardening and the `scripts/verify_gates_workflow_patch.py`
+relative-path fix are both present and committed at HEAD `63561db` (working tree
+clean). No source code changed this session; this session only verified the state
+and corrected the stale `NEXT_TASK.md` (it previously referenced HEAD `7fe9d08`/
+`a442bd8` and claimed the verify-script fix was uncommitted — both stale).
 
-## What the prior session actually committed (verified present at HEAD `7fe9d08`)
+## Verified evidence (this session, HEAD `63561db`, 2026-11-21)
 
-`src/qtr/validation/statistics.py::validate_strategy` now:
-
-- Accepts `list`, `tuple`, `ndarray`, `Series` and any 1-D array-like: returns
-  are normalised with `np.asarray(returns, dtype=float)` (statistics.py:1545),
-  matching the sibling convention (`compare_to_benchmark`, `regime_analysis`,
-  `parameter_sensitivity` all use the same `np.asarray(..., dtype=float)`).
-- Fails closed on **non-1-D** input (2-D ndarray / DataFrame / 3-D ndarray):
-  `returns_arr.ndim != 1` returns the same all-fail dict as the empty/non-finite
-  paths (statistics.py:1553) via the new `_validate_strategy_fail_closed(trades)`
-  helper (statistics.py:1480), matching `regime_analysis` (non-1-D) and
-  `parameter_sensitivity` (non-2-D).
-- Treats `config=None` and `trades=None` as empty (statistics.py:1527–1530) —
-  previously raised `TypeError`. Both are caller type violations and now fail
-  closed consistently with the other guards.
-
-Tests: `tests/test_statistics.py::TestValidateStrategy` gained
-`test_validate_strategy_config_none_fails_closed`,
-`test_validate_strategy_trades_none_fails_closed`,
-`test_validate_strategy_list_input_accepted`,
-`test_validate_strategy_tuple_input_accepted`,
-`test_validate_strategy_2d_ndarray_fails_closed`,
-`test_validate_strategy_dataframe_fails_closed`,
-`test_validate_strategy_3d_ndarray_fails_closed`.
-
-## Verified evidence (this session, HEAD `7fe9d08`)
-
-- `python -m pytest -q` → **4561 passed / 51 skipped / 7 failed**. All 7
-  failures are `tests/test_gates_workflow.py`, unchanged and maintainer-gated by
-  design (patch `patches/0001-gates-workflow-contract-fix.patch`).
+- `python -m pytest -q` → **4567 passed / 51 skipped / 7 failed**. All 7 failures
+  are `tests/test_gates_workflow.py`, unchanged and maintainer-gated by design
+  (patch `patches/0001-gates-workflow-contract-fix.patch`).
 - `PYTHONPATH=src python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing`
-  → **100.00% coverage**: `src/qtr/validation/statistics.py` 390 stmts / 162
-  branches / 0 miss; TOTAL 1711 stmts / 652 branches / 0 miss.
+  → **100.00% coverage**: TOTAL 1713 stmts / 654 branches / 0 miss;
+  `src/qtr/validation/statistics.py` 392 stmts / 164 branches / 0 miss.
 - `python -m pytest -q tests/test_statistics.py` → **372 passed**.
 - `python -m ruff check src tests run_*.py scripts` → clean;
   `python -m ruff format --check src tests run_*.py scripts` → 360 files formatted.
-- Direct probe under `-W error`: list/tuple/`np.zeros((10,2))`/2-D DataFrame all
-  return the fail-closed dict (no raise); scalar, bool array, object-numeric
-  array, single-element and empty inputs all return `all_pass=False` without
-  raising.
-- Working tree clean; no uncommitted changes. `git log` HEAD `7fe9d08`
-  (tests format tweak) on top of `c665496` (the hardening) on top of `4dc3b94`
-  (Cycle 240 bars_per_year fix).
+- Working tree clean; no uncommitted changes. `git log -1 HEAD` = `63561db`
+  (`src/qtr/validation/statistics.py` + `tests/test_statistics.py`, the
+  `validate_strategy` hardening) — the verify-script fix
+  (`scripts/verify_gates_workflow_patch.py:140`, `repo_root = Path(repo_root).resolve()`)
+  is already committed.
 
 ## Remaining reproducible-but-NOT-changed (deliberate, evidence-based)
 
 `validate_strategy` still raises on a **generator** argument
 (`TypeError: float() argument ... not 'generator'`) and on a **non-numeric
 string array** (`ValueError: could not convert string to float`). These were
-reproduced under `-W error` this session but **intentionally left raising**:
+reproduced under `-W error` in a prior session but **intentionally left raising**:
 
 - Every sibling function (`sharpe_ratio`, `parameter_sensitivity`,
   `regime_analysis`, `compare_to_benchmark`, ...) also uses the bare
@@ -77,31 +49,9 @@ reproduced under `-W error` this session but **intentionally left raising**:
   "1-D array-like (list, tuple, ndarray, Series)" contract. Leave as-is unless a
   future task is explicitly authorized to change the module-wide convention.
 
-## This session (Cycle 242)
+## Remaining actionable items
 
-- Fixed a reproducible bug in `scripts/verify_gates_workflow_patch.py::verify()`:
-  `git apply` runs inside a throwaway temp dir (`cwd=tree`) but the patch path was
-  left relative to `repo_root`, so invoking with a relative `--repo-root` (e.g. `.`)
-  failed with `git apply rejected patches/...patch: No such file or directory` (exit 1).
-  The tests only ever pass absolute paths (`tmp_path`, `ROOT`), so the gap was not
-  covered. Fixed by resolving `repo_root` to absolute (`scripts/verify_gates_workflow_patch.py:140`);
-  derived `workflow_path`/`patch_path` are now absolute and `git apply -p1 <abs patch>`
-  works regardless of cwd.
-- Verified:
-  - `--repo-root .` → `PATCH VERIFIED ... resolves all 7 violation(s)`, exit 0 (was exit 1).
-  - `--repo-root $(pwd)` → exit 0.
-  - `python -m pytest -q tests/test_verify_gates_workflow_patch.py` → 15 passed.
-  - `python -m ruff check scripts/verify_gates_workflow_patch.py` → clean;
-    `python -m ruff format --check scripts/verify_gates_workflow_patch.py` → formatted.
-  - `tests/test_statistics.py` → 372 passed; `tests/test_gates_workflow.py` → 7 failed
-    (all maintainer-gated workflow contract assertions, unchanged).
-- Working tree clean at HEAD `a442bd8` except this one-file change (not yet committed).
-
-## One precise next task (for next session)
-
-**None blocking.** Remaining actionable items are unchanged from prior cycles:
-
-1. Maintainer-applied workflow contract fix
+1. **Maintainer-applied workflow contract fix**
    (`patches/0001-gates-workflow-contract-fix.patch`) to make
    `tests/test_gates_workflow.py` green — **agent-unreachable** (`.github/workflows/**`
    is maintainer-managed, excluded from staging by
@@ -109,16 +59,23 @@ reproduced under `-W error` this session but **intentionally left raising**:
    session, and the repo-scoped GitHub App token has no `workflows` permission).
    Capture as apply-ready and record the maintainer action here.
 
-2. Optional, authorization-gated artifact cleanup from
+2. **Optional, authorization-gated artifact cleanup** from
    `REPRODUCIBILITY_AUDIT_REPORT.md` §2: drop 8 superseded duplicate
    `param_grid_results` keys + 3 stale `summary` keys from `experiments.jsonl`.
    **Do not overwrite artifacts** without authorization.
 
-If further hardening is desired, follow the same evidence-first pattern: first
-reproduce a concrete crash under `-W error` from a public-API path, then fix with
-a minimal fail-closed guard + a test that keeps `src/qtr` at 100% branch coverage.
-Do not manufacture guards for inputs that already behave consistently with the
-rest of the module.
+## One precise next task (for next session)
+
+**None blocking.** The single next task is the maintainer action above: apply
+`patches/0001-gates-workflow-contract-fix.patch` to `.github/workflows/**` so
+`tests/test_gates_workflow.py` goes green, then record the action in this file.
+If that lands and artifact-cleanup authorization arrives, perform item 2.
+
+If further hardening is desired later, follow the same evidence-first pattern:
+first reproduce a concrete crash under `-W error` from a public-API path, then
+fix with a minimal fail-closed guard + a test that keeps `src/qtr` at 100%
+branch coverage. Do not manufacture guards for inputs that already behave
+consistently with the rest of the module.
 
 ## Approaches already tried / do not repeat
 
