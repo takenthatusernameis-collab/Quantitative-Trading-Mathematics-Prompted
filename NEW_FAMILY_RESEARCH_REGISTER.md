@@ -1721,3 +1721,170 @@ Equity closes are free/public via yfinance (auto-adjusted daily Close), cached o
 `NF-20261121-04 coskewness / systematic skewness` moves **pre-registered -> executed/rejected**. **H1–H194 are exhausted/rejected** (H189 confirmed data-blocked). Coskewness is a genuinely distinct higher-moment risk / lottery-demand family, but on this survivorship-biased large-cap S&P 100 construction the *pre-registered* direction (long negative coskew / short positive coskew) is empirically wrong: lottery-like high-coskewness names did not underperform as Harvey & Siddique predict in this post-2011 mega-cap universe. The inverse signal earns +0.46 Sharpe but still fails the 1.0 gate. Do not re-run H194 as a parameter/universe/window variant (coskew window, k, entry threshold, formulation, or sample window), and do not re-declare coskewness / systematic-skewness cross-sections or the yfinance close panel as blocked. Prices remain free/public and fully usable -- the *mechanism's direction* failed on this universe, not the data. Beta-dispersion timing (deferred candidate 3) remains an untested distinct family for a future cycle.
 
 **Cycle 248 complete.** H1–H194 exhausted/rejected; H189 data-blocked; `src/qtr` unchanged.
+
+---
+
+## Cycle 249 (2026-11-21) — H195 (NF-20261121-05) stock-level price delay (Hou-Moskowitz 2005) EXECUTED: **REAL REJECT (2/8)**; H1–H195 exhausted
+
+Lineage: H1–H194 exhausted/rejected or confirmed data-blocked (Cycles 215–248); H195 now
+executed/rejected; `src/qtr` unchanged; no published/certified artifact, verdict, threshold,
+or frozen number modified; no gate weakening; free/public data only.
+
+**Bug-fix disclosure (durable — read before re-running).** The H195 runner
+(`run_nf_20261121_05_price_delay.py`) and its test were committed at HEAD `c18a8c7` (Cycle 249
+pre-registration) with an **unfinished, buggy execution**: the artifact directory held only a
+`grid.csv` whose `wf_train_sharpe` column was **0.0 for all 16 rows** and no `summary.json` /
+`data_meta.json`, and the committed state left `tests/test_experiment_artifact_schema.py` red
+(extra incomplete-run dir; total-dirs 121 vs 120). Root cause: `trailing_delay` discarded an
+*entire day* whenever **any** of the 98 names had a NaN in the trailing window
+(`if np.isnan(returns_window).any(): continue`); because many S&P 100 constituents IPO'd after
+2011 (DELL, GEV, ANET, PLTR, UBER, SNDK, ...), ~95% of the delay panel was NaN, so the signal
+produced **zero positions** and a vacuous all-zero in-sample Sharpe — not a genuine null result.
+Fix (this session): estimate each name on **its own valid rows** within the window (require
+`>= max(n_lags+5, window//2)` non-NaN observations; vectorized shared solve for complete windows,
+per-stock least-squares for gapped names), preserving the market-design warm-up guard so complete
+names are NaN until row `window-1+n_lags`. This lifts panel coverage to ~90% of cells
+(delay_126 92.6%, delay_252 89.6%; 3995/3863 active days vs ~200 before) with 97–98 active names
+in recent years. A second latent bug was then fixed: `train_mechanism_separation` computed
+momentum/volatility from `returns` (actual yfinance trading days) but indexed them against the
+synthetic `pd.bdate_range` calendar (which includes market holidays), so an exact-label Spearman
+lookup raised `KeyError` on e.g. 2011-01-17 (MLK Day); momentum/volatility are now reindexed onto
+the delay panel's calendar. A new hermetic regression test
+(`test_trailing_delay_handles_per_stock_gaps`) pins the per-stock gap handling. The buggy artifact
+was deleted and the runner re-executed to a **valid** summary-bearing artifact.
+
+### Discovery scan (directive §4 — ≥3 repo-new/decisive candidates, ≥3 mechanism categories, honest scoring; weights novelty 25 / plausibility 25 / data 20 / falsifiability 15 / execution 10 / support 5; weighted = Σ score·weight / 100)
+
+| Candidate | Category | Mechanism | Novelty | Plaus. | Data | Falsif. | Exec. | Support | Weighted | Decision |
+|---|---|---|---|---|---|---|---|---|---|---|
+| **NF-20261121-05 stock-level price delay (Hou-Moskowitz 2005)** | Market frictions / slow information diffusion | Stocks whose price responds sluggishly to *market-wide* news (high delay) underreact and subsequently earn higher returns; long top-k high-delay / short bottom-k low-delay | 4 | 2 | 4 (98/98 offline) | 4 | 4 | 4 | 3.50 | **SELECTED** |
+| Beta-dispersion / aggregate-beta regime timing | Market-risk regime timing | Rising cross-sectional beta dispersion or aggregate-beta z-score forecasts a de-risking regime (scalar market-timing overlay) | 2 | 3 | 5 | 4 | 4 | 3 | 3.40 | Deferred (scalar-timing variant of H117 avg-beta regime / H29; not a new family) |
+| Realized-kurtosis / tail-risk cross-section | Higher-moment / tail risk | Cross-sectional z on trailing realized kurtosis; long low-kurtosis / short high-kurtosis (tail-aversion) | 3 | 2 | 4 | 3 | 4 | 3 | 3.05 | Deferred (adjacent to H128 realized-skewness / H194 coskewness higher-moment families; variant) |
+
+**Why price delay wins honestly.** Price delay is the only candidate that is a genuinely distinct
+return-generating mechanism (a *response-speed* friction — the lag structure of a stock's reaction
+to *market* returns, not a volatility, higher-moment, or own-past-return measure) **and** fully
+offline-feasible (98/98 names with >= 252 valid daily returns; computable from prices alone). Its
+plausibility is scored low (2) because the Hou-Moskowitz effect is documented mainly on
+smaller/less-liquid stocks, whereas this universe is the most liquid, most-watched mega-caps where
+frictions are minimal — an *honest* prior that the effect would be weak here (borne out by the
+result). Beta-dispersion and realized-kurtosis are lower-novelty variants of already-executed
+families and are deferred, not run.
+
+### Pre-registration (Cycle 249, written before any forward-return outcome was examined)
+
+**Mechanism.** Frictions -- limited investor attention, slow information diffusion, and
+transaction/participation costs -- cause a stock's price to incorporate market-wide information with
+a lag. Stocks with *high* delay (slow response) underreact to market-wide news and subsequently earn
+higher returns as the information is incorporated; stocks with *low* delay (fast response) have
+already priced the information and earn no such drift (Hou & Moskowitz 2005, "Market Frictions,
+Delay, and the Response of Stock Prices", Review of Financial Studies). Prediction (directional):
+**long the top-k names by delay (slowest response), short the bottom-k (fastest response).**
+Null (H0): the delay cross-section carries no predictive power for next-period equity returns after
+costs -- a high-delay-minus-low-delay tilt adds nothing over a passive equal-weight book of the same
+universe. The mechanism can persist because limited attention and slow diffusion are structural
+behavioural frictions that do not arbitrage away in a large-cap universe.
+
+**Mechanism separation from H93 / H128 / H194 / momentum.** H93 (idiosyncratic volatility) ranks on
+the *residual standard deviation* of symbol-minus-SPY returns -- a second moment. H128 (realized
+skewness) and H194 (coskewness) rank on *third* moments (own and systematic). The momentum/reversal
+families rank on the stock's *own past return*. Delay ranks on the *lag structure* of the stock's
+response to *market* returns (contemporaneous vs lagged market co-movement). A stock can be
+high-momentum but low-delay (it responds fast to market news), or low-momentum but high-delay.
+Delay is therefore not reproducible as a volatility, higher-moment, or momentum/reversal variant;
+the run reports cross-sectional Spearman diagnostics vs beta (H193), trailing 252-day return
+(momentum) and trailing 252-day volatility.
+
+**PIT / causality.** Delay at day t is estimated from a trailing window of daily returns and
+market returns through t only (the design uses lagged market returns, never future ones); the shared
+engine applies `shift(1)`, so the target set at close t earns the return t -> t+1 -- strictly
+causal, no same-day look-ahead. The market proxy is the equal-weight mean of the tradable
+universe's contemporaneous returns (a broad-market proxy; each name carries 1/98 weight, so the
+own-inclusion bias is ~1%, disclosed). Delay is slow-moving, so the signal refreshes monthly (first
+business day of each month) and forward-fills to the daily calendar, so turnover happens at most
+monthly.
+
+**Sample / grid / gates.** Sample 2011-01-03 -> 2026-11-21; Train -> 2021-12-31; Val
+2022-01-01 -> 2023-12-31; Test protected 2024-01-01 -> 2026-11-21. Universe: the 100-name S&P 100
+snapshot in `scripts/probe_sec_xbrl_fundamentals.py:UNIVERSE` minus XOM and BKNG (same measured
+exclusions as H187/H188/H191/H192/H193/H194) = 98 names; all 98 have >= 252 valid daily returns
+(measured min 441), so no name is dropped for short history. Features `delay_252` (12-month) and
+`delay_126` (6-month) are both estimated; the traded signal is the selected one and the pair is a
+collinearity diagnostic. Cross-sectional z on the monthly refresh grid, winsorized at +/-3,
+hysteresis entry_z/exit_z, long top-k (highest delay) / short bottom-k (lowest delay),
+gross-normalized, forward-filled to the daily calendar. Grid (bounded, 16): feature
+{delay_126, delay_252} x entry_z {0.5, 1.0} x exit_z {0.0} x k {5, 10} x vol_target {0.10, 0.15};
+train-only 4-fold walk-forward Sharpe selection. Costs: 5 bps one-way per leg traded; no borrow
+cost for shorts is modelled -- disclosed as an optimistic assumption for a long/short equity book
+(identical to H187/H191/H192/H193/H194).
+
+Gates (OOS Val+Test, fail-closed, standard 8, unchanged from
+H187/H190/H191/H192/H193/H194): Sharpe >= 1.0; trades >= 50; PF >= 1.3; maxDD <= 15%; WF stability
+>= 0.7; worst-regime rolling-252 Sharpe >= 0.3; benchmark p <= 0.05 (two-sided) with IR >= 0 vs the
+passive equal-weight long book of the same universe; OAT +/-20% perturbation min ratio >= 0.5.
+
+Ablations/falsifiers: passive equal-weight long book; random ranking (same active leg count,
+seed 42); inverse signal (anti-delay, i.e. long low-delay / short high-delay); train-block Spearman
+of `delay_126` vs `delay_252` as an input-collinearity diagnostic; cross-sectional Spearman of delay
+vs beta (H193), trailing 252-day return (momentum) and trailing 252-day volatility as
+mechanism-separation diagnostics.
+
+### Data-availability (durable)
+
+Equity closes are free/public via yfinance (auto-adjusted daily Close), cached offline at
+`.cache/xbrl/equity_closes.csv`. Measured offline: the 98-name universe (S&P 100 minus XOM/BKNG)
+has >= 252 valid daily returns for **98/98** names (min 441 valid returns), so a price-delay
+cross-section is fully executable at the full universe size -- no name is dropped. Delay is
+computable from prices alone with no fundamental data, so this family does not depend on SEC XBRL
+coverage at all. Do not re-declare price-delay / market-friction cross-sections or the yfinance
+close panel as blocked.
+
+### Execution outcome (REAL)
+
+**Runner:** `run_nf_20261121_05_price_delay.py`. **Tests:**
+`tests/test_nf_20261121_05_price_delay.py` (22 passed: 21 + 2 artifact-gated, with the new
+per-stock-gap regression test). **Artifact:**
+`.experiments/nf_runs/nf_20261121_05_price_delay_20261121_214249/` (summary.json + grid.csv +
+data_meta.json), runtime 50.488 s. Data: 2870 train / 520 val / 755 test / 1275 OOS rows; 98/98
+symbols tradeable. **Selected (train-only WF 0.717):** `feature=delay_252, entry_z=1.0,
+exit_z=0.0, k=10, vol_target=0.15`; train selected Sharpe 0.779. **OOS Val+Test (1275 periods, 101
+trades):** Sharpe **0.083** (fail), PF **1.014** (fail), maxDD **-14.70%** (pass), trades **101**
+(pass), WF stability **0.107** (fail, OOS/train ratio -- large decay), worst-regime rolling-252
+**-1.314** (fail), benchmark p **0.0697** / IR **-0.808** (fail, not significant and negative IR).
+Total return +0.018; val Sharpe -0.013, test Sharpe +0.145, full-sample Sharpe 0.584. Passive
+equal-weight long book OOS Sharpe **1.128** -- benchmark dominates. Random ranking OOS Sharpe
+**-2.197** (signal beats random) and **inverse signal (anti-delay) OOS Sharpe -0.094** (also
+unprofitable): unlike H193/H194, the pre-registered delay direction is **not** inverted -- it is
+simply weak and non-persistent on this universe (frictions are minimal in the most liquid mega-caps;
+in-sample 0.78 decays to 0.08 out-of-sample). Train input collinearity delay_126 vs delay_252
+**0.666** (moderate, windows differ). Mechanism separation: delay_252 vs beta_252 **-0.367**,
+delay_252 vs momentum_252 **-0.086**, delay_252 vs realized_vol_252 **-0.037** (all low, confirming
+delay is distinct from the beta sort, momentum and volatility). **Verdict REJECT (2/8).**
+
+**Honest note on the two passing gates.** Both passes are **genuine, not negative/negative-ratio
+artifacts** (unlike the H193/H194 WF-stability/perturbation "passes"): `trades_ge_50` passes with a
+real 101 trades, and `maxdd_le_15pct` passes with a real -14.70% drawdown (just inside the 15%
+limit). All six failures are genuine: the strategy is essentially flat out-of-sample (Sharpe 0.083)
+and is dominated by both the passive benchmark (1.128) and its own in-sample performance (0.779).
+
+**Lineage map (H195 REJECT):**
+| Root family | H-ID | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Price delay / market frictions (slow information diffusion) | H195 (NF-20261121-05) | Cross-sectional z on monthly trailing Hou-Moskowitz delay (126d & 252d); long top-k high-delay / short bottom-k low-delay; monthly refresh, vol-targeted | yfinance auto-adjusted daily Close (free), S&P 100 minus XOM/BKNG -> 98 names, 2011-01->2026-11 | **REJECT** (2/8; `…/nf_20261121_05_price_delay_20261121_214249/summary.json`) | OOS Sharpe 0.083 (inverse -0.094, direction not inverted) vs benchmark 1.128; PF 1.014; worst-regime -1.314; benchmark p 0.0697 with IR -0.808 (negative); WF-stability 0.107 (large decay); perturbation min-ratio -1.66 (unstable) |
+
+### Family-status consequence (durable)
+
+`NF-20261121-05 price delay / market frictions` moves **pre-registered -> executed/rejected**.
+**H1–H195 are exhausted/rejected** (H189 confirmed data-blocked). Price delay is a genuinely
+distinct market-frictions / slow-diffusion family, but on this survivorship-biased large-cap S&P
+100 construction the *pre-registered* direction (long high-delay / short low-delay) is too weak to
+clear the gates: the Hou-Moskowitz effect is a small/less-liquid-stock phenomenon and does not
+survive costs in the most liquid mega-caps (in-sample 0.78 -> OOS 0.08). The direction is **not**
+inverted (inverse -0.09), so unlike H193/H194 there is no profitable mirror to flag. Do not re-run
+H195 as a parameter/universe/window variant (delay window, k, entry threshold, lag count, or sample
+window), and do not re-declare price-delay / market-friction cross-sections or the yfinance close
+panel as blocked. Prices remain free/public and fully usable -- the *mechanism's strength* failed on
+this universe, not the data. Beta-dispersion timing (deferred candidate 2) and realized-kurtosis
+(deferred candidate 3) remain untested distinct families for a future cycle.
+
+**Cycle 249 complete.** H1–H195 exhausted/rejected; H189 data-blocked; `src/qtr` unchanged.

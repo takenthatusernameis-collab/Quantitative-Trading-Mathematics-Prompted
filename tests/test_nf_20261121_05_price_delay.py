@@ -32,7 +32,7 @@ def _synthetic_closes(n_days=900, n_names=6, seed=0):
     rng = np.random.default_rng(seed)
     calendar = pd.bdate_range("2020-01-01", periods=n_days)
     market = rng.normal(0.0, 0.01, size=n_days)
-    market_lag = np.concatenate([np.zeros(mod.DELAY_LAGS), market[:-mod.DELAY_LAGS]])
+    market_lag = np.concatenate([np.zeros(mod.DELAY_LAGS), market[: -mod.DELAY_LAGS]])
 
     idio = rng.normal(0.0, 0.004, size=(n_days, n_names))
     rets = np.zeros((n_days, n_names))
@@ -141,6 +141,44 @@ def test_build_delay_panels_is_not_all_nan_regression():
     panels = mod.build_delay_panels(returns, calendar, products)
     for feat in panels:
         assert panels[feat].notna().any().any()
+
+
+def test_trailing_delay_handles_per_stock_gaps():
+    """A gapped name must not erase the whole day's delay (all-or-nothing guard).
+
+    Reproduces the bug where ``if np.isnan(returns_window).any(): continue``
+    discarded an entire day whenever *any* name had a missing observation,
+    leaving ~95% of the real 98-name panel NaN and producing a vacuous flat
+    strategy (zero positions, zero in-sample Sharpe). Here one name (S5) has a
+    long NaN gap; the complete names (S0..S4) must still be estimated on days
+    where S5 is incomplete, and S5 itself must fill once it accumulates enough
+    valid rows.
+    """
+    closes, _ = _synthetic_closes(n_days=900, n_names=6, seed=4)
+    returns = mod.returns_from_closes(closes)
+    s5 = returns.columns.get_loc("S5")
+    returns.iloc[:200, s5] = np.nan  # S5 not yet public for the first 200 rows
+    window = 252
+    delay = mod.trailing_delay(returns, window)
+    min_valid = max(mod.DELAY_LAGS + 5, window // 2)
+
+    # Day 300: window rows 49..300 straddle S5's NaN gap (49..199), leaving S5
+    # only ~101 valid rows < min_valid -> S5 is NaN, but S0..S4 are complete in
+    # the window and MUST still be estimated (the old code zeroed all of them).
+    day = delay.index[300]
+    assert pd.isna(delay.loc[day, "S5"])
+    assert delay.loc[day, ["S0", "S1", "S2", "S3", "S4"]].notna().all()
+    assert delay.loc[day, ["S0", "S1", "S2", "S3", "S4"]].between(0.0, 1.0).all()
+
+    # Day 400: S5 now has ~201 valid rows >= min_valid -> it is estimated too.
+    day2 = delay.index[400]
+    assert pd.notna(delay.loc[day2, "S5"])
+    assert np.isfinite(delay.loc[day2, "S5"])
+
+    # Warm-up (complete names NaN until row window-1+n_lags) and bounds hold.
+    assert delay.iloc[: window - 1 + mod.DELAY_LAGS].isna().all().all()
+    assert delay.min().min() >= 0.0
+    assert delay.max().max() <= 1.0
 
 
 def test_cross_sectional_z_winsorized_at_three():

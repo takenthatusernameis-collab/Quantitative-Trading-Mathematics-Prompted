@@ -211,7 +211,12 @@ def _refresh_dates(calendar: pd.DatetimeIndex) -> pd.DatetimeIndex:
     return pd.DatetimeIndex(series.groupby(series.dt.to_period("M")).first().values)
 
 
-def trailing_delay(returns: pd.DataFrame, window: int, n_lags: int = DELAY_LAGS) -> pd.DataFrame:
+def trailing_delay(
+    returns: pd.DataFrame,
+    window: int,
+    n_lags: int = DELAY_LAGS,
+    min_valid: int | None = None,
+) -> pd.DataFrame:
     """Causal trailing Hou-Moskowitz (2005) price delay per name.
 
     For each stock, over the trailing ``window`` daily observations, we run
@@ -226,19 +231,36 @@ def trailing_delay(returns: pd.DataFrame, window: int, n_lags: int = DELAY_LAGS)
     clipped to [0, 1]. A high delay means the stock's price responds only
     sluggishly to market-wide information (slow diffusion / limited attention).
 
+    Each stock is estimated on its **own** valid rows within the trailing
+    window. A stock with a short history (e.g. a recent IPO) is estimated only
+    once it has at least ``min_valid`` non-NaN observations in the window
+    (default ``max(n_lags + 5, window // 2)``). Earlier this required *every*
+    name to have a complete window on a given day, so a single missing name
+    (many S&P 100 constituents IPO'd after 2011) discarded the entire day and
+    left ~95% of the panel NaN -- a vacuous flat strategy that produced zero
+    positions and zero in-sample Sharpe. Estimating per name over its available
+    rows lifts coverage to ~90% of cells on the real panel while preserving the
+    Hou-Moskowitz delay definition.
+
     The market proxy is the equal-weight mean of the tradable universe's
     contemporaneous returns (broad-market proxy; 1/N own-inclusion weight,
     disclosed). Delay at day t uses returns and lagged market returns through t
     only; the engine then applies ``shift(1)``, so the signal is strictly
     causal.
 
-    The estimator is vectorized over stocks: the market design matrix is shared
-    across names, so each day is one small normal-equations solve.
+    The shared market design matrix ``[1, m_t, m_{t-1}, ..., m_{t-n_lags}]``
+    must be NaN-free across the window (it is, after the first ``n_lags`` rows),
+    which preserves the warm-up: complete names are NaN until row
+    ``window - 1 + n_lags``. Names with a complete, finite window are solved in
+    one vectorized normal-equations step; names with gaps (but ``>= min_valid``
+    valid rows) fall back to a per-stock least-squares solve.
     """
     market = returns.mean(axis=1)
     n = len(returns)
     columns = list(returns.columns)
     n_names = len(columns)
+    if min_valid is None:
+        min_valid = max(n_lags + 5, window // 2)
 
     # Shared lagged-market design: [1, m_t, m_{t-1}, ..., m_{t-n_lags}].
     lag_columns = [market.shift(k).to_numpy() for k in range(n_lags + 1)]
@@ -251,36 +273,69 @@ def trailing_delay(returns: pd.DataFrame, window: int, n_lags: int = DELAY_LAGS)
         if np.isnan(design_window).any():
             continue
         returns_window = data[t - window + 1 : t + 1]
-        if np.isnan(returns_window).any():
-            continue
+        valid = ~np.isnan(returns_window)
+        counts = valid.sum(axis=0)
 
-        # Unrestricted regression (all market lags).
-        xtx = design_window.T @ design_window
-        xty = design_window.T @ returns_window
-        try:
-            beta_full = np.linalg.solve(xtx, xty)
-        except np.linalg.LinAlgError:
-            continue
-        resid_full = returns_window - design_window @ beta_full
-        ss_full = (resid_full**2).sum(axis=0)
+        # Fast path: names with a complete, finite window (one shared solve).
+        complete = valid.all(axis=0) & (counts >= min_valid)
+        solved_complete = np.zeros(n_names, dtype=bool)
+        if complete.any():
+            r_complete = returns_window[:, complete]
+            xtx = design_window.T @ design_window
+            design_restricted = design_window[:, :2]
+            try:
+                beta_full = np.linalg.solve(xtx, design_window.T @ r_complete)
+                beta_restricted = np.linalg.solve(
+                    design_restricted.T @ design_restricted,
+                    design_restricted.T @ r_complete,
+                )
+            except np.linalg.LinAlgError:
+                beta_full = None
+            if beta_full is not None:
+                resid_full = r_complete - design_window @ beta_full
+                ss_full = (resid_full**2).sum(axis=0)
+                resid_restricted = r_complete - design_restricted @ beta_restricted
+                ss_restricted = (resid_restricted**2).sum(axis=0)
+                total = ((r_complete - r_complete.mean(axis=0)) ** 2).sum(axis=0)
+                with np.errstate(divide="ignore", invalid="ignore"):
+                    r2_full = 1.0 - ss_full / total
+                    r2_restricted = 1.0 - ss_restricted / total
+                    delay_value = 1.0 - r2_restricted / r2_full
+                delay_value = np.where(
+                    (total > 0.0) & (r2_full > 0.0) & np.isfinite(delay_value),
+                    delay_value,
+                    np.nan,
+                )
+                delay_value = np.clip(delay_value, 0.0, 1.0)
+                delay[t, complete] = delay_value
+                solved_complete = complete.copy()
 
-        # Restricted regression (contemporaneous market return only).
-        design_restricted = design_window[:, :2]
-        beta_restricted = np.linalg.solve(
-            design_restricted.T @ design_restricted, design_restricted.T @ returns_window
-        )
-        resid_restricted = returns_window - design_restricted @ beta_restricted
-        ss_restricted = (resid_restricted**2).sum(axis=0)
-
-        total = ((returns_window - returns_window.mean(axis=0)) ** 2).sum(axis=0)
-        with np.errstate(divide="ignore", invalid="ignore"):
+        # Fallback path: names with gaps but enough valid rows, plus any complete
+        # name the shared solve could not handle.
+        needs_solve = (~solved_complete) & (counts >= min_valid)
+        for j in np.nonzero(needs_solve)[0]:
+            column = returns_window[:, j]
+            mask = ~np.isnan(column)
+            xv = design_window[mask]
+            yv = column[mask]
+            try:
+                beta_full, *_ = np.linalg.lstsq(xv, yv, rcond=None)
+                resid_full = yv - xv @ beta_full
+                ss_full = float(resid_full @ resid_full)
+                beta_restricted, *_ = np.linalg.lstsq(xv[:, :2], yv, rcond=None)
+                resid_restricted = yv - xv[:, :2] @ beta_restricted
+                ss_restricted = float(resid_restricted @ resid_restricted)
+            except np.linalg.LinAlgError:
+                continue
+            total = float(((yv - yv.mean()) ** 2).sum())
+            if total <= 0.0:
+                continue
             r2_full = 1.0 - ss_full / total
             r2_restricted = 1.0 - ss_restricted / total
-            delay_value = 1.0 - r2_restricted / r2_full
-        delay_value = np.where(
-            (total > 0.0) & (r2_full > 0.0) & np.isfinite(delay_value), delay_value, np.nan
-        )
-        delay[t] = np.clip(delay_value, 0.0, 1.0)
+            if r2_full > 0.0:
+                delay_value = 1.0 - r2_restricted / r2_full
+                if np.isfinite(delay_value):
+                    delay[t, j] = float(np.clip(delay_value, 0.0, 1.0))
 
     return pd.DataFrame(delay, index=returns.index, columns=columns)
 
@@ -536,6 +591,12 @@ def train_mechanism_separation(
     """Cross-sectional Spearman of delay vs beta (H193), momentum and vol."""
     diagnostics: dict[str, float] = {}
     delay = delay_features["delay_252"]
+    # Momentum / volatility are computed from ``returns`` (indexed by the actual
+    # yfinance trading days); align them to the delay panel's daily calendar
+    # index so the exact-label Spearman lookup does not fail on market holidays
+    # that the synthetic ``pd.bdate_range`` calendar includes but ``returns``
+    # does not.
+    calendar_index = delay.index
 
     if beta_features is not None:
         beta = beta_features.get("beta_252")
@@ -544,12 +605,12 @@ def train_mechanism_separation(
             if value is not None:
                 diagnostics["delay_252_vs_beta_252"] = value
 
-    momentum = trailing_total_return(returns, 252)
+    momentum = trailing_total_return(returns, 252).reindex(calendar_index)
     value = _mean_cross_sectional_spearman(delay, momentum, train_index)
     if value is not None:
         diagnostics["delay_252_vs_momentum_252"] = value
 
-    volatility = trailing_volatility(returns, 252)
+    volatility = trailing_volatility(returns, 252).reindex(calendar_index)
     value = _mean_cross_sectional_spearman(delay, volatility, train_index)
     if value is not None:
         diagnostics["delay_252_vs_realized_vol_252"] = value

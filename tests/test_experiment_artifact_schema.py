@@ -171,10 +171,21 @@ def test_incomplete_runs_match_audit_inventory():
 # `train_mechanism_separation`, a nested dict holding the cross-sectional
 # Spearman diagnostics vs beta_252 and beta_126 (H193) for mechanism separation.
 # Each appears in one of 112 summaries, so the >=50% / >=80% sets are unchanged.
-EXPECTED_TOTAL_DIRS = 120
-EXPECTED_SUMMARY_COUNT = 112
+# Cycle 249 added one summary (+1 directory): the H195 stock-level price-delay
+# (Hou-Moskowitz 2005 market-frictions) cross-section run
+# `nf_20261121_05_price_delay_20261121_214249`. It adds one top-level key
+# (distinct keys 155 -> 156):
+# `train_input_collinearity_delay126_vs_delay252`, the 6-month vs 12-month delay
+# Spearman diagnostic (a sibling-collinearity key name distinct from
+# H187/H188/H190/H191/H192/H193/H194, so it adds its own key). The key appears in
+# one of 113 summaries, so the >=50% / >=80% sets are unchanged. (The runner's
+# first execution was abandoned mid-run after a delay-panel bug left ~95% of the
+# panel NaN -- that incomplete artifact was deleted, so the incomplete-run set is
+# unchanged at 8; only the valid summary-bearing run is counted here.)
+EXPECTED_TOTAL_DIRS = 121
+EXPECTED_SUMMARY_COUNT = 113
 EXPECTED_CACHE_ONLY_DIRS = 11
-EXPECTED_DISTINCT_KEYS = 155
+EXPECTED_DISTINCT_KEYS = 156
 EXPECTED_KEYS_GE_50_PCT = frozenset(
     {
         "ablations",
