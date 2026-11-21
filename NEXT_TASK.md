@@ -105,26 +105,34 @@ executed the next on-pattern high-value task (directive §6): a **new strategy f
 
 ## One precise next task (for the next agent)
 
-Select and execute the next **distinct** new strategy family (Cycle 248 → H194). Two
-already-scored, genuinely-distinct, offline-feasible deferred candidates from the Cycle 247
-discovery scan are queued — pick one and run it pre-registered with the standard 8 gates:
+**No agent-executable new strategy family remains.** H194 (NF-20261121-04, stock-level coskewness /
+systematic skewness) was already executed and recorded in Cycle 248:
+- Runner `run_nf_20261121_04_coskewness.py` committed (HEAD `82a956a`), artifact
+  `.experiments/nf_runs/nf_20261121_04_coskewness_20261121_194429/` present, `tests/test_nf_20261121_04_coskewness.py`
+  → 19 passed.
+- `tests/test_experiment_artifact_schema.py` inventory pins recomputed:
+  `EXPECTED_TOTAL_DIRS 120`, `EXPECTED_SUMMARY_COUNT 112`, `EXPECTED_DISTINCT_KEYS 155` (Cycle 248
+  comment added); 136 passed together with the H194 test.
+- `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 248 section records H194 **REAL REJECT (2/8)** and
+  "H1–H194 exhausted/rejected; H189 data-blocked; `src/qtr` unchanged."
+- `AGENTS.md` stale H-range note updated to **H1–H194 exhausted/rejected** (Cycles 215–248).
 
-1. **NF-20261121-04 stock-level coskewness / systematic skewness** (Harvey & Siddique 2000;
-   category: higher-moment risk / lottery demand). Distinct from H93 (idiosyncratic vol) and
-   H124/125 (MAX) — the observable is the *systematic* co-skewness with the market, not residual
-   vol or a single-day max. Offline-feasible on the cached yfinance close panel
-   (`.cache/xbrl/equity_closes.csv`, 98 names). Constrain: pre-register the universe
-   (S&P100 − XOM/BKNG, ≥252 returns), the coskewness estimator and its PIT/causality, a bounded
-   ≤16-cell grid, train-only WF selection, protected test, standard 8 gates, and a collinearity
-   diagnostic vs beta/IVOL. Do not re-declare the close panel or higher-moment risk as blocked.
-2. **NF-20261121-05 beta-dispersion / aggregate-beta regime timing** — but note this is
-   **scored low (2) on novelty** because it is a scalar market-timing overlay adjacent to the
-   executed H117 average-beta regime / H29. Prefer candidate 1 unless the coskewness construction
-   proves infeasible offline, in which case document the blocker and leave candidate 2 as a
-   documented variant rather than running it as a "new" family.
+The deferred candidate **NF-20261121-05 beta-dispersion / aggregate-beta regime timing** is scored low
+(2) on novelty — a scalar market-timing overlay adjacent to executed H117 average-beta regime and
+H29. Per AGENTS.md / NEXT_TASK constraints, do **not** treat parameter/timeframe/universe/market
+variants of H1–H194 as new families, and do **not** re-run any exhausted family as a variant. Do
+**not** re-declare coskewness/systematic-skewness cross-sections or the yfinance close panel as
+blocked (data is free/public; the mechanism's direction failed on this universe).
 
-Constraint reminder: keep `src/qtr` unchanged, preserve the 100% coverage / Ruff /
-warning-as-error / protected-holdout gates, use free/public data only, and do not weaken any
-gate to make a candidate pass. After executing, record the cycle in
-`NEW_FAMILY_RESEARCH_REGISTER.md`, update the `AGENTS.md` stale H-range note additively, and
-recompute the `tests/test_experiment_artifact_schema.py` inventory pins.
+The only remaining work items are both outside agent scope:
+1. **Maintainer workflow patch (agent-unreachable):** apply `patches/0001-gates-workflow-contract-fix.patch`
+   to `.github/workflows/gates.yml` to fix the 7 pre-existing `tests/test_gates_workflow.py` failures.
+   `.github/workflows/**` is restored from `origin/main` after every session and the repo token lacks
+   `workflows` permission. Do not retry an in-tree edit.
+2. **Authorization-gated artifact cleanup (non-blocking):** drop 8 superseded `param_grid_results` keys
+   + 3 stale `summary` keys from `.experiments/experiments.jsonl`, update `REPRODUCIBILITY_BASELINE`
+   (hash_mismatches 11 → 3), `PINNED_HASH_MISMATCHES`, and `REPRODUCIBILITY_AUDIT_REPORT.md` together,
+   then re-run `tests/test_reproducibility_audit.py`. Requires authorization; do not do without it.
+
+Constraint reminder: keep `src/qtr` unchanged, preserve 100% branch coverage / Ruff /
+warning-as-error / protected-holdout gates, use free/public data only, do not weaken any gate.
