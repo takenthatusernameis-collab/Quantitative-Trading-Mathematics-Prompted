@@ -1,1 +1,95 @@
-probe
+"""Probe public-API functions for unguarded degenerate-input crashes under -W error.
+
+Each case is a (name, thunk) pair. We run with warnings-as-errors so any
+RuntimeWarning raised inside a public function surfaces as a traceback.
+"""
+import warnings
+
+import numpy as np
+import pandas as pd
+
+from qtr.backtest.engine import AssetClass, BacktestConfig, CostModel, run_backtest
+from qtr.data.insider import insider_net_buy_ratio
+from qtr.strategies.baselines import (
+    buy_and_hold_signals,
+    carry_signals,
+    vol_scaled_tsmom_signals,
+)
+from qtr.validation.statistics import (
+    compare_to_benchmark,
+    stressed_cost_test,
+    validate_strategy,
+)
+
+idx = pd.date_range("2024-01-01", periods=60, freq="D")
+
+# Prices with a ZERO in one column (finite, so survives the engine isfinite mask)
+prices_zero = pd.DataFrame(
+    {
+        "A": np.linspace(100, 110, 60),
+        "B": np.linspace(50, 55, 60),
+    },
+    index=idx,
+)
+prices_zero.loc[idx[10], "A"] = 0.0
+
+signals = pd.DataFrame(0.0, index=idx, columns=["A", "B"])
+signals["A"] = 1.0
+signals["B"] = 0.0
+
+cfg = BacktestConfig(asset_class=AssetClass.EQUITY)
+
+# --- Probe 1: run_backtest with screen_non_positive_prices=False + a zero price
+def p1():
+    return run_backtest(
+        prices_zero, signals, cfg, screen_non_positive_prices=False
+    ).metrics
+
+# --- Probe 2: buy_and_hold_signals with NaN weight
+def p2():
+    return buy_and_hold_signals(prices_zero, weight=float("nan"))
+
+# --- Probe 3: carry_signals with zero prices
+def p3():
+    return carry_signals(prices_zero, lookback=20)
+
+# --- Probe 4: vol_scaled_tsmom_signals with all-NaN prices
+prices_nan = pd.DataFrame({"A": [np.nan] * 60}, index=idx)
+def p4():
+    return vol_scaled_tsmom_signals(prices_nan)
+
+# --- Probe 5: validate_strategy with trades=None
+def p5():
+    return validate_strategy(np.zeros(100), None, {})
+
+# --- Probe 6: compare_to_benchmark with empty benchmark
+def p6():
+    return compare_to_benchmark(np.array([0.01, 0.02, 0.03]), np.array([]))
+
+# --- Probe 7: stressed_cost_test with empty base_returns
+def p7():
+    return stressed_cost_test(np.array([]), np.array([]))
+
+# --- Probe 8: insider_net_buy_ratio with empty df
+def p8():
+    return insider_net_buy_ratio(pd.DataFrame())
+
+# --- Probe 9: run_backtest with max_position_size=inf
+def p9():
+    return run_backtest(prices_zero.fillna(100.0), signals, cfg).metrics
+
+probes = [p1, p2, p3, p4, p5, p6, p7, p8, p9]
+
+for name, thunk in zip(
+    ["run_backtest zero-price", "buy_and_hold nan-weight", "carry zero-price",
+     "vol_scaled all-nan", "validate_strategy trades=None", "compare empty bench",
+     "stressed empty", "insider empty", "run_backtest maxpos=inf"],
+    probes,
+):
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        try:
+            out = thunk()
+            print(f"OK    {name}: {str(out)[:80]}")
+        except Exception as exc:
+            print(f"CRASH {name}: {type(exc).__name__}: {str(exc)[:200]}")

@@ -558,7 +558,7 @@ def run_backtest(
     # bit-identical: ``astype(float)`` and the ``isfinite`` mask are no-ops
     # on it.
     prices = prices.astype(float)
-    prices = prices.where(np.isfinite(prices))
+    prices = prices.where(np.isfinite(prices) & (prices != 0.0))
 
     # A column that is entirely NaN has no price data at all. Keeping it would
     # make ``pct_change`` produce all-NaN, ``fillna(0.0)`` turn it to 0.0 returns,
