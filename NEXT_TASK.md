@@ -1,4 +1,4 @@
-# Session complete (2026-11-20, Cycle 238 — doc sync: stale H-range claims)
+# Session complete (2026-11-21, Cycle 239 — code hardening: compare_to_benchmark 2-D strategy)
 
 ## State
 
@@ -8,69 +8,86 @@ discovery remains exhausted; do not re-declare any H-ID data-blocked without
 naming the probed source, and do not treat parameter/timeframe/universe/market
 variants of H1–H190 as new families.
 
-This cycle made a **durable documentation fix** (stale H-range claims in seven
-handoff files) instead of new family discovery — the queue is genuinely exhausted
-and no free-data H191 is pre-registered.
+This cycle made a **real code fix + tests** (not a doc-sync): it closed a
+degenerate-shape crash in `qtr.validation.statistics.compare_to_benchmark` that
+was reachable from the public API. No strategy family was added; H1–H190
+exhaustion is unchanged.
 
-## What changed (Cycle 238)
+## What changed (Cycle 239)
 
-Seven handoff files carried H-range claims stale by 4–107 hypotheses. All were
-flagged with superseded banners citing the current record (H1–H190 exhausted,
-H189 data-blocked) and the durable evidence (`NEW_FAMILY_RESEARCH_REGISTER.md`
-Cycles 215–235, `AGENTS.md`), while preserving the historical narrative:
+`src/qtr/validation/statistics.py::compare_to_benchmark` reduced a multi-symbol
+**benchmark** (DataFrame or 2-D ndarray) to its equal-weighted row-mean series
+but did NOT reduce the **strategy** side. A 2-D `strategy_returns` therefore
+broadcast against the 1-D benchmark in `excess = strat - bench`;
+`stats.ttest_1samp(excess, 0)` then returned an ARRAY `t_stat`, and
+`if t_stat > 0` raised an opaque
+`ValueError: The truth value of an array with more than one element is ambiguous`
+out of a function every caller treats as returning a dict.
 
-- `HANDOFF.md` — added a top-level superseded banner over the Cycle 227 entry.
-- `HANDOFF_CURRENT.md` — superseded banner over the Cycle 101 re-verification;
-  the "select H182" next-task block (lines 84–93) is now stale.
-- `HANDOFF_CURRENT_SESSION.md` — superseded banner over the Cycle 233 H188
-  record; the "execute H189" next-task block (lines 63–68) is now stale.
-- `HANDOFF_CYCLE46_DISCOVERY.md` — superseded banner over the Cycle 46 H132
-  record; the "run H132" next-task line is now stale.
-- `HANDOFF_FINAL.md` — superseded banner over the Cycle 102 re-verification; the
-  "EXHAUSTED (H1–H181)" status and "unblock H182" next-task content is now stale.
-- `HANDOFF_NEXT_SESSION.md` — superseded banner over the Cycle 230 H187
-  pre-registration; the "execute H187" next-task instruction is now stale.
-- `HANDOFF_SESSION.md` — banner + State/Unresolved lines corrected from
-  "H1–H30 exhausted; hypotheses up to H83 documented" to H1–H190 / H189
-  data-blocked.
+Fix: apply the same equal-weighted (mean across symbols, axis 1) reduction to
+`strategy_returns` that the benchmark side already carried, symmetric with it.
+A 1-D ndarray or `pd.Series` strategy is returned unchanged (the `ndim > 1` test
+is False), so every valid 1-D input is **bit-identical** to before. This is the
+same degenerate-shape class `regime_analysis` (non-1-D `returns`) and
+`parameter_sensitivity` (non-2-D `returns`) already fail closed on.
 
-Scope: handoff `.md` prose/banners only. No `src/qtr`, runner, artifact, sidecar,
-hash, gate, frozen number, test, or workflow was modified.
+Tests (`tests/test_statistics.py::TestCompareToBenchmark`): 3 new tests —
+`test_dataframe_strategy_reduced_to_equal_weighted`,
+`test_2d_ndarray_strategy_reduced`, `test_1d_strategy_is_unchanged_by_the_reduction`
+— each asserting the result equals the row-mean comparison (and the 1-D path is
+unchanged). No existing test passed a 2-D strategy (it previously crashed), so no
+frozen number/contract moved.
+
+Scope: `src/qtr/validation/statistics.py` + `tests/test_statistics.py` only. No
+runner, artifact, sidecar, hash, gate, frozen number, or workflow was modified.
+No `NEW_FAMILY_RESEARCH_REGISTER.md` / `HYPOTHESIS_SPEC.md` / `AGENTS.md` H-range
+claim was touched (this is a hardening fix, not a new family).
 
 ## Verified evidence (this session)
 
+- `python -m pytest -q` → **4543 passed / 51 skipped / 7 failed** (baseline was
+  4540/51/7; +3 = the new tests). All 7 failures are `tests/test_gates_workflow.py`,
+  unchanged and maintainer-gated by design (patch
+  `patches/0001-gates-workflow-contract-fix.patch`).
+- `PYTHONPATH=src python -m pytest -q --cov=qtr --cov-branch --cov-report=term-missing`
+  → **100.00% coverage** (`src/qtr/validation/statistics.py` 378 stmts / 158
+  branches / 0 miss; TOTAL 1697 stmts / 646 branches / 0 miss). The new branch is
+  fully covered by the 3 new tests.
 - `python -m ruff check src tests run_*.py scripts` → clean.
 - `python -m ruff format --check src tests run_*.py scripts` → 360 files formatted.
-- `python -m pytest -q tests/test_reproducibility_audit.py
-  tests/test_experiment_artifact_schema.py` → **125 passed** (audit 7 + artifact
-  schema 118).
-- `python -m pytest -q tests/test_gates_workflow.py` → **7 failed**, unchanged —
-  all maintainer-gated by design (patch `patches/0001-gates-workflow-contract-fix.patch`
-  is agent-unreachable).
-- Full suite **re-run this session (Cycle 239)**: 4,540 passed / 51 skipped / 7
-  failed — all 7 failures are `tests/test_gates_workflow.py`, unchanged and
-  maintainer-gated by design (patch `patches/0001-gates-workflow-contract-fix.patch`
-  `git apply --check`s clean). `src/qtr` 100% coverage unchanged.
-- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly
-  (re-verified Cycle 237).
-- Change set is exactly the seven handoff files (no stray edits).
+- Adversarial probe of the public API under `-W error` (statistics, baselines,
+  engine, cost model): no remaining crash / non-finite / inconsistency found.
+  Supplementary probe confirms 2-D-strategy + 1-D-bench, DataFrame strategy,
+  2-D + 2-D, 1-D list, and 2-D-with-NaN all return cleanly, and that a 1-D
+  `pd.Series` and a 1-D `ndarray` give bit-identical results.
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies
+  cleanly (unchanged).
+- Change set is exactly the two files above (no stray edits).
 
 ## One precise next task (for next session)
 
-**None blocking.** The only remaining actionable item is:
+**None blocking.** The only remaining actionable items are unchanged from prior
+cycles:
 
 1. Maintainer-applied workflow contract fix
    (`patches/0001-gates-workflow-contract-fix.patch`) to make
    `tests/test_gates_workflow.py` green — **agent-unreachable** (`.github/workflows/**`
-   is maintainer-managed, restored from `origin/main` after every session, and the
-   repo-scoped GitHub App token has no `workflows` permission). Patch verified to
-   `git apply --check` cleanly; capture as apply-ready and record the maintainer action
-   in `NEXT_TASK.md`.
+   is maintainer-managed, excluded from staging by
+   `.github/scripts/kilo-controller.sh`, restored from `origin/main` after every
+   session, and the repo-scoped GitHub App token has no `workflows` permission).
+   Patch verified to `git apply --check` cleanly; capture as apply-ready and record
+   the maintainer action here.
 
 2. Optional, authorization-gated artifact cleanup from
    `REPRODUCIBILITY_AUDIT_REPORT.md` §2: drop 8 superseded duplicate
    `param_grid_results` keys + 3 stale `summary` keys from `experiments.jsonl`.
    **Do not overwrite artifacts** without authorization.
+
+Optional further hardening (same pattern as this cycle, evidence-first): probe a
+public-API function for a degenerate-input class not yet guarded, reproduce the
+smallest failure under `-W error`, then fix with a minimal fail-closed/reduction
+guard + a test that keeps `src/qtr` at 100% branch coverage. Do not invent a
+guard with no reproduced failure.
 
 ## Approaches already tried / do not repeat
 
@@ -82,11 +99,10 @@ hash, gate, frozen number, test, or workflow was modified.
 - Do not reintroduce a hard dependency on `.cache/xbrl/**` in tests: that cache is
   git-ignored and absent on fresh checkouts/CI. Tests must be hermetic (synthetic
   fixtures), as H187/H188 now are.
-- Do not recompute handoff H-range claims from memory — every handoff file now carries
-  a dated superseded banner keyed to `NEW_FAMILY_RESEARCH_REGISTER.md` Cycles
-  215–235 and `AGENTS.md`; the current record is H1–H190 exhausted/rejected with H189
-  confirmed data-blocked.
 - Do not mass-edit runners/tests/gates to force the suite green; frozen-contract
   drifts need per-contract evidence and authorization.
+- Do not manufacture a hardening guard without first reproducing a concrete failure
+  under `-W error`; this cycle's fix was driven by a reproduced
+  `ValueError` from a 2-D strategy input, not by speculation.
 
-(End of file - total 78 lines)
+(End of file - total 110 lines)

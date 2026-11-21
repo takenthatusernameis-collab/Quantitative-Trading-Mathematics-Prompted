@@ -1673,6 +1673,47 @@ class TestCompareToBenchmark:
         assert res["beta"] == pytest.approx(res_mean["beta"])
         assert res["alpha_annualized"] == pytest.approx(res_mean["alpha_annualized"])
 
+    def test_dataframe_strategy_reduced_to_equal_weighted(self, rng):
+        """A multi-symbol strategy panel is reduced to its equal-weighted series.
+
+        Symmetric with the benchmark reduction above: a DataFrame strategy
+        (a per-symbol return panel) must be averaged across symbols rather
+        than crash. The pre-fix body did not reduce the strategy side, so a 2-D
+        ``strategy_returns`` broadcast against the 1-D benchmark and
+        ``stats.ttest_1samp`` returned an ARRAY ``t_stat``, making
+        ``if t_stat > 0`` raise an opaque ``ValueError: The truth value of an
+        array with more than one element is ambiguous``.
+        """
+        strat_df = pd.DataFrame(rng.normal(0.001, 0.01, (400, 4)))
+        bench = rng.normal(0.0003, 0.01, 400)
+        res = st.compare_to_benchmark(strat_df, bench)
+        res_mean = st.compare_to_benchmark(strat_df.mean(axis=1), bench)
+        for key in res:
+            assert res[key] == pytest.approx(res_mean[key])
+
+    def test_2d_ndarray_strategy_reduced(self, rng):
+        """A 2-D ndarray strategy is likewise reduced along axis 1."""
+        strat_2d = rng.normal(0.001, 0.01, (400, 3))
+        bench = rng.normal(0.0003, 0.01, 400)
+        res = st.compare_to_benchmark(strat_2d, bench)
+        res_mean = st.compare_to_benchmark(strat_2d.mean(axis=1), bench)
+        for key in res:
+            assert res[key] == pytest.approx(res_mean[key])
+
+    def test_1d_strategy_is_unchanged_by_the_reduction(self, rng):
+        """A 1-D strategy array is bit-identical to before the strategy guard.
+
+        The reduction only fires for a multi-symbol (ndim > 1) strategy, so the
+        clean 1-D path must be unchanged: comparing a 1-D strategy against a
+        1-D benchmark equals the same comparison written with an explicit
+        ``np.asarray``.
+        """
+        strat = rng.normal(0.001, 0.01, 400)
+        bench = rng.normal(0.0003, 0.01, 400)
+        res = st.compare_to_benchmark(strat, bench)
+        res_arr = st.compare_to_benchmark(np.asarray(strat, dtype=float), bench)
+        assert res == res_arr
+
     def test_non_finite_rows_are_dropped(self):
         """An ``inf``/``-inf`` row is dropped, not treated as a missing value.
 

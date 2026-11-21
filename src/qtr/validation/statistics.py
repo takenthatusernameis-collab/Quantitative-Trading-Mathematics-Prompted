@@ -1177,6 +1177,28 @@ def compare_to_benchmark(
         arr = np.asarray(benchmark_returns, dtype=float)
         benchmark_returns = arr.mean(axis=1) if arr.ndim > 1 else arr
 
+    # The strategy side is reduced the SAME way: a multi-symbol strategy (a
+    # DataFrame panel, or a 2-D ndarray whose columns are per-symbol return
+    # series) is averaged across symbols to its equal-weighted portfolio
+    # return series, symmetric with the benchmark reduction above. The
+    # benchmark side already carried this guard; the strategy side did not, so
+    # a 2-D ``strategy_returns`` broadcast against the 1-D benchmark in
+    # ``excess = strat - bench``, ``stats.ttest_1samp`` then returned an ARRAY
+    # ``t_stat``, and ``if t_stat > 0`` raised an opaque ``ValueError: The truth
+    # value of an array with more than one element is ambiguous`` out of a
+    # function every caller treats as returning a dict. That is the same
+    # degenerate-shape class ``regime_analysis`` (a non-1-D ``returns``) and
+    # ``parameter_sensitivity`` (a non-2-D ``returns``) already fail closed on,
+    # and the same shape a caller reaches with no caller-side filtering by
+    # passing a ``prices``/result DataFrame slice as the strategy. A 1-D array
+    # or ``pd.Series`` is returned unchanged (the ``ndim > 1`` test is False),
+    # so every valid 1-D input is bit-identical to before.
+    if isinstance(strategy_returns, pd.DataFrame):
+        strategy_returns = strategy_returns.mean(axis=1)
+    elif not isinstance(strategy_returns, pd.Series):
+        strat_arr = np.asarray(strategy_returns, dtype=float)
+        strategy_returns = strat_arr.mean(axis=1) if strat_arr.ndim > 1 else strat_arr
+
     # Both sides are reduced to plain float numpy arrays ONCE, here. Every
     # statistic below is then a function of the data alone and not of the
     # container the caller happened to pass:
