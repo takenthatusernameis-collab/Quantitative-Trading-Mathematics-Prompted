@@ -136,3 +136,11 @@ The only remaining work items are both outside agent scope:
 
 Constraint reminder: keep `src/qtr` unchanged, preserve 100% branch coverage / Ruff /
 warning-as-error / protected-holdout gates, use free/public data only, do not weaken any gate.
+
+## Session verification (2026-11-21, post-Cycle 248; no code changes)
+
+- `pytest tests/test_nf_20261121_04_coskewness.py tests/test_experiment_artifact_schema.py` → **136 passed** (H194 test 19 + artifact schema 117).
+- `python -m ruff check src tests run_*.py scripts` → **All checks passed.**
+- `python -m ruff format --check src tests run_*.py scripts` → **370 files already formatted.**
+- Working tree clean at HEAD `26bd9fa`; `src/qtr` unchanged → coverage unaffected at 100%.
+- Confirmed no agent-executable work remains: H1–H194 exhausted/rejected (H189 data-blocked); remaining items are the maintainer workflow patch (agent-unreachable) and artifact cleanup (authorization-gated).
