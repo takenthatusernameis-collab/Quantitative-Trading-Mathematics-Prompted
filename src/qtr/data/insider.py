@@ -718,6 +718,9 @@ def insider_net_buy_ratio(transactions: pd.DataFrame) -> pd.DataFrame:
     if len(transactions) == 0:
         return pd.DataFrame(columns=["available_at", "buys", "sells", "net_buy_ratio"])
 
+    if "transaction_code" not in transactions.columns or "available_at" not in transactions.columns:
+        return pd.DataFrame(columns=["available_at", "buys", "sells", "net_buy_ratio"])
+
     open_market = transactions[transactions["transaction_code"].isin(["P", "S"])].copy()
     if len(open_market) == 0:
         return pd.DataFrame(columns=["available_at", "buys", "sells", "net_buy_ratio"])

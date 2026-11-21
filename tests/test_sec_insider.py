@@ -735,6 +735,20 @@ def test_insider_net_buy_ratio_empty_inputs():
     assert insider.insider_net_buy_ratio(no_open_market).columns.tolist() == empty_columns
 
 
+@pytest.mark.parametrize("missing_column", ["transaction_code", "available_at"])
+def test_insider_net_buy_ratio_missing_required_column_fail_closed(missing_column):
+    empty_columns = ["available_at", "buys", "sells", "net_buy_ratio"]
+    frame = pd.DataFrame(
+        {
+            "transaction_code": ["P", "S"],
+            "available_at": pd.to_datetime(["2026-01-02", "2026-01-02"]),
+        }
+    ).drop(columns=[missing_column])
+    result = insider.insider_net_buy_ratio(frame)
+    assert result.columns.tolist() == empty_columns
+    assert len(result) == 0
+
+
 def test_load_cached_transactions_treats_missing_empty_and_corrupt_as_a_miss(tmp_path):
     missing = insider.load_cached_transactions(tmp_path / "absent.parquet")
     assert len(missing) == 0
