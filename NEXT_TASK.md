@@ -47,8 +47,10 @@ hash, gate, frozen number, test, or workflow was modified.
 - `python -m pytest -q tests/test_gates_workflow.py` → **7 failed**, unchanged —
   all maintainer-gated by design (patch `patches/0001-gates-workflow-contract-fix.patch`
   is agent-unreachable).
-- Full suite was **not** re-run this session: Cycle 237's own-evidence run stands
-  (4,540 passed / 51 skipped / 7 failed; `src/qtr` 100% coverage unchanged).
+- Full suite **re-run this session (Cycle 239)**: 4,540 passed / 51 skipped / 7
+  failed — all 7 failures are `tests/test_gates_workflow.py`, unchanged and
+  maintainer-gated by design (patch `patches/0001-gates-workflow-contract-fix.patch`
+  `git apply --check`s clean). `src/qtr` 100% coverage unchanged.
 - `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly
   (re-verified Cycle 237).
 - Change set is exactly the seven handoff files (no stray edits).
