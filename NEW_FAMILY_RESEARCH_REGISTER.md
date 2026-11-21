@@ -1424,3 +1424,116 @@ window), and do not re-declare PIT accounting fundamentals or valuation as block
 remains free/public/PIT and usable — the *mechanism* failed after costs, not the data.
 
 **Cycle 245 complete.** H1–H191 exhausted/rejected; H189 data-blocked; `src/qtr` unchanged.
+
+---
+
+## Cycle 246 (2026-11-21) — H192 (NF-20261121-02) innovation intensity / R&D cross-section EXECUTED: **REAL REJECT (3/8)**; H1–H192 exhausted
+
+Lineage: H1–H191 exhausted/rejected or confirmed data-blocked (Cycles 215–245); H192 now
+executed/rejected; `src/qtr` unchanged; no published/certified artifact, verdict, threshold,
+or frozen number modified; no gate weakening; free/public data only.
+
+### Discovery scan (directive §4 — ≥3 repo-new/decisive candidates, ≥3 mechanism categories, honest scoring; weights novelty 25 / plausibility 25 / data 20 / falsifiability 15 / execution 10 / support 5)
+
+| Candidate | Category | Mechanism | Novelty | Plaus. | Data | Falsif. | Exec. | Support | Weighted | Decision |
+|---|---|---|---|---|---|---|---|---|---|---|
+| **NF-20261121-02 innovation intensity (R&D / revenue)** | Corporate investment in intangibles | Expensed R&D understates intangible capital; market underreacts to the future payoff of R&D outlays (Lev & Sougiannis 1996; Chan-Lakonishok-Sottile 1996); long high R&D intensity | 5 | 4 | 4 (57/98) | 4 | 4 | 5 | **4.30** | **SELECTED** |
+| Capital-structure / financial distress (Liabilities / assets) | Capital structure / credit risk | High leverage raises distress costs; distress anomaly (Campbell-Hilscher-Szilagyi 2008) predicts high-distress firms earn lower returns; long low-leverage | 3 | 4 | 5 (75/98) | 4 | 4 | 3 | 3.90 | Deferred (novelty) |
+| Dividend-initiation / payout signalling | Corporate payout / event | First-time dividend initiations signal management confidence -> positive drift (signalling); long initiators | 3 | 3 | 2 (initiations rare among mega-caps) | 3 | 3 | 4 | 2.85 | Deferred (data) |
+
+**Why innovation intensity wins honestly.** The leverage candidate has *better* data coverage
+(75/98 vs 57/98) but is an accounting ratio scaled by assets, i.e. the same "fundamental / assets"
+construction as the already-executed H187 (accruals/asset-growth), H188 (net share issuance) and
+H189 (gross profitability, data-blocked). Scoring it down on repository-relative novelty (3, not 5)
+is deliberate: it is not a clean new family. The dividend-initiation candidate is an event/signalling
+mechanism but mega-cap initiations are sparse, so a decisive PIT event study is not feasible on the
+free S&P 100 snapshot (data 2). Innovation intensity is the only candidate that is both a genuinely
+distinct mechanism (R&D flow / revenue, not assets and not price) *and* data-feasible (57/98, well
+above the 40-name minimum). The chosen candidate is the highest *expected-information* experiment.
+
+### Pre-registration (Cycle 246, written before any forward-return outcome was examined)
+
+**Mechanism.** Accounting standards expense R&D as incurred, so reported book equity understates a
+firm's intangible capital. The market underreacts to the information content of current R&D outlays
+because the payoff arrives years later, after the cash is already expensed; high-R&D-intensity firms
+therefore subsequently earn higher returns (Lev & Sougiannis 1996; Chan, Lakonishok & Sottile 1996).
+A risk-based reading (high-R&D firms are growth options) and a behavioural reading (investors neglect
+intangibles) both predict the same sign. Direction: **long top-k R&D intensity (R&D / revenue), short
+bottom-k.** Null (H0): the R&D-intensity cross-section carries no predictive power for next-period
+equity returns after costs — an innovation tilt adds nothing over a passive equal-weight book of the
+same universe.
+
+**Mechanism separation from H187/H188/H189/H191.** H187 (accruals / asset growth) scales earnings and
+*total* asset growth by assets; H188 (net share issuance) scales equity issuance by shares; H189 (gross
+profitability) scales gross profit by assets; H191 (value) scales a *stock* fundamental by *price*
+(book-to-price, cash-flow yield). R&D intensity scales an R&D *flow* by *revenue* — an income-statement
+denominator, neither assets nor price — so it is a distinct corporate-investment mechanism and is
+directionally *opposite* to value (high R&D -> low book-to-price -> the value short leg). It cannot be
+reproduced as a value/accruals/issuance variant.
+
+**PIT timing.** A row may enter the signal only when `filed` (the SEC acceptance date of the last tag
+needed for that fiscal year) is `<= t`; the shared engine then applies `shift(1)`. No fiscal-period
+`end` is ever used as an availability stamp; because the contributing tags can be filed on different
+accessions, the row timestamp is the **max** of the contributing `filed` dates.
+
+**Sample / grid / gates.** Sample 2011-01-03 -> 2026-11-17; Train -> 2021-12-31; Val 2022-01-01 ->
+2023-12-31; Test protected 2024-01-01 -> 2026-11-17. Universe: the 100-name S&P 100 snapshot in
+`scripts/probe_sec_xbrl_fundamentals.py:UNIVERSE` minus XOM and BKNG (same measured exclusions as
+H187/H188/H191); only names with >= 2 annual 10-K R&D-and-revenue observations are tradeable
+(measured 57/98). Features `rd_intensity` (R&D/revenue) and `rd_to_assets` (R&D/assets, collinearity
+diagnostic). Cross-sectional z on the monthly refresh grid, winsorized at +/-3, hysteresis
+entry_z/exit_z, top-k long / bottom-k short, gross-normalized, forward-filled to the daily calendar.
+Grid (bounded, 16): feature {rd_intensity, rd_to_assets} x entry_z {0.5, 1.0} x exit_z {0.0} x k
+{5, 10} x vol_target {0.10, 0.15}; train-only 4-fold walk-forward Sharpe selection. Costs: 5 bps
+one-way per leg; no borrow cost for shorts (disclosed optimistic assumption, identical to H187/H191).
+Gates (OOS Val+Test, fail-closed, standard 8, unchanged): Sharpe >= 1.0; trades >= 50; PF >= 1.3;
+maxDD <= 15%; WF stability >= 0.7; worst-regime rolling-252 Sharpe >= 0.3; benchmark p <= 0.05
+(two-sided) with IR >= 0 vs the passive equal-weight long book of the same universe; OAT +/-20%
+perturbation min ratio >= 0.5. Ablations: passive equal-weight long book; random ranking (seed 42);
+inverse signal (anti-innovation).
+
+### Data-availability (durable)
+
+SEC XBRL `companyfacts` is free, public and point-in-time (AGENTS.md durable correction; probe
+`scripts/probe_sec_xbrl_fundamentals.py`). Measured offline over the cached 98-name universe:
+`ResearchAndDevelopmentExpense` (us-gaap duration, USD) has >= 2 annual 10-K observations for **57/98**
+names, and every one of those 57 also has revenue on the same fiscal `end` (`Revenues` 97/98; the
+`RevenueFromContractWithCustomerExcludingAssessedTax` fallback closes the gap), so R&D intensity is
+executable on 57 names — well above the 40-name minimum. H189 was rejected as data-blocked for
+*lacking* coverage; this family does not. Do not re-declare R&D / intangible fundamentals as blocked.
+
+### Execution outcome (REAL)
+
+**Runner:** `run_nf_20261121_02_innovation_intensity.py`. **Tests:**
+`tests/test_nf_20261121_02_innovation_intensity.py` (24 passed). **Artifact:**
+`.experiments/nf_runs/nf_20261121_02_innovation_intensity_20261121_174135/` (summary.json + grid.csv
++ data_meta.json), runtime 39.447 s. Data: 2870 train / 520 val / 752 test / 1272 OOS rows; 57/98
+symbols tradeable. **Selected (train-only WF 0.407):** `feature=rd_to_assets, entry_z=1.0, exit_z=0.0,
+k=10, vol_target=0.10`; train Sharpe 0.660. **OOS Val+Test (1272 periods, 16181 trades):** Sharpe
+**0.423** (fail), PF **1.073** (fail), maxDD **−13.63%** (pass), trades **16181** (pass), WF stability
+**0.641** (fail), worst-regime rolling-252 **−0.981** (fail), benchmark p **0.0298** / IR **−0.968**
+(fail, significant but negative IR), perturbation min ratio **1.051** (pass). Total return 0.206;
+val Sharpe 0.601, test Sharpe 0.310. Passive equal-weight long book OOS Sharpe **1.173**, total return
+0.849 — benchmark dominates. Random ranking (−2.971) and inverse signal (−0.440) confirm the R&D
+*sign* is right (long innovative / short non-innovative is not noise, and beats the anti-signal), yet
+the capturable spread after 5 bps costs is below the gate. Train input collinearity R&D/revenue vs
+R&D/assets **0.913** (the two denominators agree, so the conclusion is robust to the scaling choice).
+**Verdict REJECT (3/8).**
+
+**Lineage map (H192 REJECT):**
+| Root family | H-ID | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Innovation intensity / intangible capital (R&D cross-section) | H192 (NF-20261121-02) | Cross-sectional z on monthly R&D/revenue (and R&D/assets); long top-k innovative / short bottom-k; monthly refresh, vol-targeted | SEC XBRL companyfacts (PIT) + yfinance closes, S&P 100 minus XOM/BKNG -> 57 R&D reporters, 2011-01->2026-11 | **REJECT** (3/8; `…/nf_20261121_02_innovation_intensity_20261121_174135/summary.json`) | OOS Sharpe 0.423 vs benchmark 1.173; PF 1.073 < 1.3; worst-regime −0.981; WF stability 0.641 < 0.7; benchmark p 0.0298 but IR −0.968 (negative) |
+
+### Family-status consequence (durable)
+
+`NF-20261121-02 innovation intensity / R&D cross-section` moves **pre-registered -> executed/rejected**.
+**H1–H192 are exhausted/rejected** (H189 confirmed data-blocked). Innovation intensity is a genuinely
+distinct corporate-investment mechanism and its sign is empirically correct (inverse-signal and
+random-ranking controls both worse), but on this survivorship-biased large-cap construction the
+long-short spread is below the gate after 5 bps costs — the same failure mode as H191 value. Do not
+re-run H192 as a parameter/universe/window variant (feature set, k, entry threshold, formulation, or
+sample window), and do not re-declare R&D / intangible fundamentals or PIT accounting data as blocked.
+SEC XBRL remains free/public/PIT and usable — the *mechanism* failed after costs, not the data.
+
+**Cycle 246 complete.** H1–H192 exhausted/rejected; H189 data-blocked; `src/qtr` unchanged.

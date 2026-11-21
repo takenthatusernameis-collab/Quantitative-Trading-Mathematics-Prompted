@@ -149,10 +149,17 @@ def test_incomplete_runs_match_audit_inventory():
 # book-to-price vs cash-flow-yield Spearman diagnostic (the sibling H187/H188
 # runners use distinct collinearity-key names, so each adds its own key). The key
 # appears in one of 109 summaries, so the >=50% / >=80% sets are unchanged.
-EXPECTED_TOTAL_DIRS = 117
-EXPECTED_SUMMARY_COUNT = 109
+# Cycle 246 added one summary (+1 directory): the H192 innovation-intensity
+# (R&D / revenue, R&D / assets) cross-section run
+# `nf_20261121_02_innovation_intensity_20261121_174135`. It adds one top-level
+# key (distinct keys 151 -> 152): `train_input_collinearity_rd_intensity_vs_rd_to_assets`,
+# the R&D/revenue vs R&D/assets Spearman diagnostic (a sibling-collinearity key
+# name distinct from H187/H188/H190/H191, so it adds its own key). The key
+# appears in one of 110 summaries, so the >=50% / >=80% sets are unchanged.
+EXPECTED_TOTAL_DIRS = 118
+EXPECTED_SUMMARY_COUNT = 110
 EXPECTED_CACHE_ONLY_DIRS = 11
-EXPECTED_DISTINCT_KEYS = 151
+EXPECTED_DISTINCT_KEYS = 152
 EXPECTED_KEYS_GE_50_PCT = frozenset(
     {
         "ablations",
