@@ -144,3 +144,14 @@ warning-as-error / protected-holdout gates, use free/public data only, do not we
 - `python -m ruff format --check src tests run_*.py scripts` → **370 files already formatted.**
 - Working tree clean at HEAD `26bd9fa`; `src/qtr` unchanged → coverage unaffected at 100%.
 - Confirmed no agent-executable work remains: H1–H194 exhausted/rejected (H189 data-blocked); remaining items are the maintainer workflow patch (agent-unreachable) and artifact cleanup (authorization-gated).
+
+## Session verification (2026-11-21, this session — no tree changes)
+
+- Baseline: `pytest tests/test_gates_workflow.py` -> **7 failed** (gates.yml unpatched; matches origin/main).
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` -> applies cleanly.
+- Throwaway `/tmp/wfverify` copy with patch applied: `pytest tests/test_gates_workflow.py` -> **7 passed** (durable evidence the patch fixes the contract).
+- `python -m ruff check src tests run_*.py scripts` -> All checks passed.
+- `python -m ruff format --check src tests run_*.py scripts` -> **370 files already formatted.**
+- Working tree clean at HEAD `3f4d5c9`; `src/qtr` untouched; coverage unaffected (100%).
+
+No agent-executable change was made: the only fix (workflow patch) is maintainer-applied and agent-unreachable (`.github/workflows/**` restored from origin/main; token lacks `workflows` permission).
