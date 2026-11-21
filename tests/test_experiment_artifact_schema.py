@@ -142,10 +142,17 @@ def test_incomplete_runs_match_audit_inventory():
 # distinct-key count). Each appears in one of 108 summaries, so the >=50% / >=80% sets
 # are unchanged. (H-ID note: this runner is H190, not H189 — H189 is reserved by the
 # data-blocked gross-profitability candidate NF-20261120-03.)
-EXPECTED_TOTAL_DIRS = 116
-EXPECTED_SUMMARY_COUNT = 108
+# Cycle 245 added one summary (+1 directory): the H191 equity value /
+# book-to-price & cash-flow-yield cross-section run
+# `nf_20261121_01_equity_value_20261121_144056`. It adds one top-level key
+# (distinct keys 150 -> 151): `train_input_collinearity_bp_vs_cfy`, the
+# book-to-price vs cash-flow-yield Spearman diagnostic (the sibling H187/H188
+# runners use distinct collinearity-key names, so each adds its own key). The key
+# appears in one of 109 summaries, so the >=50% / >=80% sets are unchanged.
+EXPECTED_TOTAL_DIRS = 117
+EXPECTED_SUMMARY_COUNT = 109
 EXPECTED_CACHE_ONLY_DIRS = 11
-EXPECTED_DISTINCT_KEYS = 150
+EXPECTED_DISTINCT_KEYS = 151
 EXPECTED_KEYS_GE_50_PCT = frozenset(
     {
         "ablations",

@@ -1333,3 +1333,94 @@ authorization-gated per audit §2); the 11-row backlog and its pins are unchange
   formatted; `src/qtr` coverage unchanged at 100%.
 
 **Cycle 243 complete.** Runner-side root cause fixed and pinned; committed corpus untouched.
+
+---
+
+## Cycle 245 (2026-11-21) — H191 (NF-20261121-01) equity value / book-to-price & cash-flow-yield cross-section EXECUTED: **REAL REJECT (4/8)**; H1–H191 exhausted
+
+Lineage: H1–H190 exhausted/rejected or confirmed data-blocked (Cycles 215–235); H191 now
+executed/rejected; `src/qtr` unchanged; no published/certified artifact, verdict, threshold,
+or frozen number modified; no gate weakening; free/public data only.
+
+### Pre-registration (Cycle 245, written before any forward-return outcome was examined)
+**Mechanism.** A high book-to-price (book equity ÷ market cap) or cash-flow-to-price ratio means
+the market prices the firm cheaply relative to its accounting book or cash generation. The value
+premium (risk-based: value firms are more exposed to bad macro states; behavioural: investors
+over-extrapolate growth and under-react to fundamentals; Fama & French 1993 HML;
+Lakonishok-Shleifer-Vishny 1994) predicts value firms subsequently earn higher returns than
+growth firms. Direction: **long top-k book-to-price (and cash-flow yield), short bottom-k.** Null
+(H0): the valuation cross-section carries no predictive power for next-period equity returns after
+costs — a value tilt adds nothing over a passive equal-weight book of the same universe.
+
+**Mechanism separation from H187/H188/H189 and all prior H-IDs.** The SEC XBRL family H187
+(accruals/asset-growth), H188 (net share issuance) and H189 (gross profitability, data-blocked)
+each scale a fundamental by another *fundamental* (assets) — earnings quality, corporate
+investment, external financing, profitability. H191 scales a fundamental by *PRICE* (market
+capitalisation), which is the definitional boundary of the value/valuation family. No executed
+H-ID (H1–H190) trades a price-scaled (valuation) fundamental: H2 is cross-sectional *momentum*
+(prior returns), H187/H188/H189 are accounting-stock/quality/financing mechanisms, H190 is crypto
+funding carry. Value is therefore a genuinely distinct mechanism (per directive §6), not a
+parameter/universe/market variant of any prior family.
+
+**PIT timing.** A fundamental enters the signal only when `filed` (SEC acceptance date of the
+accession) ≤ t; the shared engine applies `shift(1)`, so a position formed at the close of t earns
+t → t+1. No fiscal-period `end` is ever used as an availability stamp. Market cap at a monthly
+refresh date R = (latest filed share count, filed ≤ R) × (close on R, known at R); book-to-price
+and cash-flow yield = equity (resp. operating cash flow) ÷ market cap. The panel refreshes on the
+first business day of each month and is forward-filled to the daily calendar (turnover at most
+monthly).
+
+**Sample / grid / gates.** Sample 2011-01-03 → 2026-11-17; train → 2021-12-31; Val 2022-01-01 →
+2023-12-31; Test protected 2024-01-01 → 2026-11-17. Universe: the 100-name S&P 100 snapshot in
+`scripts/probe_sec_xbrl_fundamentals.py:UNIVERSE`, minus XOM and BKNG = 98 names (measured
+exclusions; same as H187/H188). Grid (bounded, 16): feature {book_to_price, cash_flow_yield} ×
+entry_z {0.5, 1.0} × exit_z {0.0} × k {10, 20} × vol_target {0.10, 0.15}; train-only 4-fold
+walk-forward Sharpe selection. Costs: 5 bps one-way per leg traded (commission + spread); no borrow
+cost for shorts is modelled (disclosed optimistic assumption, identical to H187). Gates (OOS
+Val+Test, fail-closed, standard 8, unchanged): Sharpe ≥ 1.0; trades ≥ 50; PF ≥ 1.3; maxDD ≤ 15%;
+WF stability ≥ 0.7; worst-regime rolling-252 Sharpe ≥ 0.3; benchmark p ≤ 0.05 (two-sided) with
+IR ≥ 0 vs the passive equal-weight long book of the same 98 names; OAT ±20% perturbation min
+ratio ≥ 0.5. Ablations: passive equal-weight long book; random ranking (seed 42); inverse signal
+(anti-value); train-block Spearman of book_to_price vs cash_flow_yield.
+
+### Data-availability (durable)
+SEC XBRL `companyfacts` is free, public and point-in-time (AGENTS.md durable correction; probe
+`scripts/probe_sec_xbrl_fundamentals.py`). The 100-name universe was downloaded and measured:
+98/98 have a 10-K StockholdersEquity and a share count; **97/98 have a clean same-`end`
+equity+shares pairing** (72 CommonStockSharesOutstanding, 25 WeightedAverageNumberOfSharesBasic).
+The runner's `value_observations` load yields **96/98** usable symbols (well above the 40-name
+minimum). Value is executable, not data-blocked.
+
+### Execution outcome (REAL)
+**Runner:** `run_nf_20261121_01_equity_value.py`.
+**Tests:** `tests/test_nf_20261121_01_equity_value.py` (22 passed).
+**Artifact:** `.experiments/nf_runs/nf_20261121_01_equity_value_20261121_144056/`
+(summary.json + grid.csv + data_meta.json), runtime 46.674 s.
+Data: 2870 train / 520 val / 752 test / 1272 OOS rows; 96/98 symbols with observations.
+**Selected (train-only WF 0.354):** `feature=book_to_price, entry_z=0.5, exit_z=0.0, k=10,
+vol_target=0.15`; train Sharpe 0.326.
+**OOS Val+Test (1272 periods, 1430 trades):** Sharpe **0.853** (fail), PF **1.159** (fail),
+maxDD **−13.11%** (pass), trades **1430** (pass), WF stability **2.612** (pass), worst-regime
+rolling-252 **−0.683** (fail), benchmark p **0.756** / IR **−0.138** (fail), perturbation min
+ratio **1.129** (pass). Total return 0.761. Passive equal-weight long book OOS Sharpe **1.075**,
+total return 0.982 — benchmark dominates; excess return **−2.21%/yr**, tracking error 15.98%/yr,
+win rate 0.477. Random ranking (−1.018) and inverse signal (−0.862) confirm the value *sign* is
+right (long cheap / short expensive ordering is not noise), yet the capturable spread after 5 bps
+costs is below the gate. Train input collinearity B/P vs CFO yield **0.716**. **Verdict REJECT
+(4/8).**
+
+**Lineage map (H191 REJECT):**
+| Root family | H-ID | Mechanism | Markets / data | Verdict | Known failure mode |
+|---|---|---|---|---|---|
+| Value / valuation (price-scaled fundamentals) | H191 (NF-20261121-01) | Cross-sectional z on monthly book-to-price & cash-flow yield; long top-k cheap / short bottom-k expensive; monthly refresh, vol-targeted | SEC XBRL companyfacts (PIT) + yfinance closes, S&P 100 minus XOM/BKNG = 98 names, 2011-01→2026-11 | **REJECT** (4/8; `…/nf_20261121_01_equity_value_20261121_144056/summary.json`) | OOS Sharpe 0.853 vs benchmark 1.075; PF 1.159 < 1.3; worst-regime −0.683; benchmark p 0.756 / IR −0.138; excess return −2.21%/yr |
+
+### Family-status consequence (durable)
+`NF-20261121-01 equity value / book-to-price & cash-flow-yield` moves **pre-registered →
+executed/rejected**. **H1–H191 are exhausted/rejected** (H189 confirmed data-blocked). Value is a
+genuinely distinct price-scaled mechanism, but on this survivorship-biased large-cap construction
+it underperforms the passive equal-weight book after 5 bps costs. Do not re-run H191 as a
+parameter/universe/window variant (feature set, k, entry threshold, formulation, or sample
+window), and do not re-declare PIT accounting fundamentals or valuation as blocked. SEC XBRL
+remains free/public/PIT and usable — the *mechanism* failed after costs, not the data.
+
+**Cycle 245 complete.** H1–H191 exhausted/rejected; H189 data-blocked; `src/qtr` unchanged.
