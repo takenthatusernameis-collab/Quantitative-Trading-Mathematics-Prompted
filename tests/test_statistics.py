@@ -2313,6 +2313,55 @@ class TestCompareToBenchmarkDegenerate:
         assert res["information_ratio"] == 0.0
         assert res["alpha_p_value"] == 1.0
 
+    def test_scalar_strategy_returns_fail_closed(self):
+        """A 0-D ``strategy_returns`` has no length to align; it fails closed.
+
+        A single float handed in positionally is a scalar return series with no
+        observations. The pre-fix body reached ``min(len(strat), len(bench))``
+        with a 0-D array and raised ``TypeError: len() of unsized object``. The
+        sibling shape guards (``regime_analysis``, ``parameter_sensitivity``)
+        already fail closed on a non-1-D input; this closes the same class here.
+        """
+        res = st.compare_to_benchmark(np.float64(0.01), np.array([0.001, 0.002, 0.003]))
+        assert res == st._no_comparison()
+        assert res["alpha_p_value"] == 1.0
+
+    def test_scalar_benchmark_returns_fail_closed(self):
+        """Symmetric: a 0-D ``benchmark_returns`` fails closed against a 1-D strategy."""
+        res = st.compare_to_benchmark(np.array([0.001, 0.002, 0.003]), np.float64(0.001))
+        assert res == st._no_comparison()
+
+    def test_three_dimensional_strategy_fails_closed(self):
+        """A >=3-D ``strategy_returns`` reduces once to 2-D and would broadcast
+        against the 1-D benchmark, raising ``ValueError``. It fails closed."""
+        res = st.compare_to_benchmark(np.zeros((2, 2, 3)), np.array([0.001, 0.002]))
+        assert res == st._no_comparison()
+
+    def test_three_dimensional_benchmark_fails_closed(self):
+        """Symmetric: a >=3-D ``benchmark_returns`` fails closed against a 1-D strategy."""
+        res = st.compare_to_benchmark(np.array([0.001, 0.002]), np.zeros((2, 2, 3)))
+        assert res == st._no_comparison()
+
+    def test_the_contract_rejects_the_pre_fix_scalar_crash(self):
+        """Negative control: the pre-fix ``len()`` on a 0-D array raises, proving
+        the shape guard (not luck) is what makes the scalar call safe.
+        """
+        with pytest.raises(TypeError):
+            _ = len(np.asarray(0.01, dtype=float))
+        res = st.compare_to_benchmark(np.float64(0.01), np.array([0.001, 0.002, 0.003]))
+        assert res == st._no_comparison()
+
+    def test_two_dimensional_inputs_still_reduce(self):
+        """The guard must not widen: a 2-D (multi-symbol) input still reduces to
+        its equal-weighted 1-D series, exactly as before.
+        """
+        strat_2d = np.array([[0.001, 0.002, 0.003], [0.0005, 0.001, 0.0015]])
+        bench = np.array([0.0008, 0.0018, 0.0028])
+        res = st.compare_to_benchmark(strat_2d, bench)
+        res_mean = st.compare_to_benchmark(strat_2d.mean(axis=1), bench)
+        for key in res:
+            assert res[key] == pytest.approx(res_mean[key])
+
     @pytest.mark.parametrize("rf", [float("nan"), float("inf"), float("-inf")])
     def test_non_finite_risk_free_returns_no_evidence(self, rf):
         # A non-finite risk-free rate is config-degenerate. The pre-fix body

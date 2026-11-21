@@ -1241,6 +1241,37 @@ def compare_to_benchmark(
     strat = np.asarray(strategy_returns, dtype=float)
     bench = np.asarray(benchmark_returns, dtype=float)
 
+    # Shape guard: both sides must be 1-D after the multi-symbol reduction
+    # above. A per-observation comparison pairs every strategy return with the
+    # benchmark return at the same position, so it is only defined on two 1-D
+    # series of observations:
+    #
+    # * a scalar (0-D) ``strategy_returns`` or ``benchmark_returns`` -- e.g. a
+    #   single ``float`` handed in positionally -- leaves ``strat``/``bench``
+    #   0-D (the ``ndim > 1`` reduction above does not fire), so
+    #   ``len(strat)`` raises ``TypeError: len() of unsized object`` out of a
+    #   function every caller treats as returning a dict (reproduced under
+    #   ``-W error``: ``compare_to_benchmark(0.01, bench)`` and
+    #   ``compare_to_benchmark(strat, 0.01)`` both raised);
+    # * a >= 3-D input (e.g. a ``(date, symbol, field)`` panel) is reduced once
+    #   by ``mean(axis=1)`` to 2-D, and the tail alignment then broadcasts a 2-D
+    #   ``strat`` against a 1-D ``bench`` (or vice versa), so the boolean-mask
+    #   row filter and the ``excess = strat - bench`` subtraction raise
+    #   ``ValueError: operands could not be broadcast together`` (reproduced
+    #   under ``-W error`` with a ``(2, 2, 3)`` array on either side).
+    #
+    # A 2-D (multi-symbol) input is reduced to 1-D by the ``mean(axis=1)`` block
+    # above, so it is unaffected and its existing behaviour is bit-identical.
+    # The fail-closed result is ``_no_comparison()`` -- the same no-evidence
+    # tuple the empty-series and too-few-observations paths return -- so a caller
+    # gating on any field fails closed rather than catching an opaque exception.
+    # This matches the shape guards in the sibling functions ``regime_analysis``
+    # (returns/labels must be 1-D) and ``parameter_sensitivity`` (returns must be
+    # 2-D), where a non-1-D input fails closed rather than raising. See
+    # tests/test_statistics.py::TestCompareToBenchmarkDegenerate.
+    if strat.ndim != 1 or bench.ndim != 1:
+        return _no_comparison()
+
     # Align
     min_len = min(len(strat), len(bench))
     if min_len == 0:
