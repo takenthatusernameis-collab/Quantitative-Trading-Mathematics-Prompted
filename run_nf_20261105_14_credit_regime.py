@@ -42,6 +42,7 @@ Rejection: OOS Sharpe<0.5, PF<1.1, max DD>15%, <200 trades.
 import json
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
@@ -276,6 +277,18 @@ def full_gate_eval(result, oos_mask, val_mask, test_mask, prices, bench_result):
     }
 
 
+def _summary_path(run_dir: Path, run_stamp: str) -> Path:
+    """The summary artifact path for one run.
+
+    The directory is stable so the data cache under ``run_dir`` is shared
+    across runs; the filename carries the run's UTC stamp, so a re-run writes
+    a new file instead of overwriting the previous run's ``summary.json`` --
+    whose hash the earlier experiment record still carries (the 3
+    ``summary.json`` hash mismatches in REPRODUCIBILITY_AUDIT_REPORT.md §2).
+    """
+    return run_dir / f"summary_{run_stamp}.json"
+
+
 def main() -> int:
     t0 = time.time()
     run_dir = Path(".experiments") / "nf_runs" / EXPERIMENT_NAME
@@ -379,7 +392,9 @@ def main() -> int:
         "verdict": verdict,
         "duration_seconds": round(time.time() - t0, 3),
     }
-    (run_dir / "summary.json").write_text(json.dumps(summary, indent=2, default=str) + "\n")
+    run_stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    summary_path = _summary_path(run_dir, run_stamp)
+    summary_path.write_text(json.dumps(summary, indent=2, default=str) + "\n")
 
     tracker = get_tracker()
     exp_id = tracker.start_experiment(
@@ -405,11 +420,11 @@ def main() -> int:
             "gate_pass_count": float(gate["gate_pass_count"]),
         }
     )
-    tracker.log_artifact("summary", run_dir / "summary.json")
+    tracker.log_artifact("summary", summary_path)
     tracker.finish_experiment(status="completed")
     print(
         json.dumps(
-            {"exp_id": exp_id, "verdict": verdict, "summary": str(run_dir / "summary.json")},
+            {"exp_id": exp_id, "verdict": verdict, "summary": str(summary_path)},
             indent=2,
         )
     )
