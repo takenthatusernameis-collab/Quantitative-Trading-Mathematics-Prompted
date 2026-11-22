@@ -367,6 +367,7 @@ change. The `<!-- inventory-high-water-mark: H197 -->` marker remains IN SYNC
   newline). Left uncommitted per repo policy — commit only on explicit request.
 
 ### Precise next task (Cycle 262+)
+
 The agent-executable research track is exhausted (H187–H197 REJECT; S&P 500 price leg blocked at
 55% removed coverage; durable-infra probe/inventory coverage complete). Do NOT fabricate H198, do NOT
 run another 98-name equity cross-section, do NOT re-edit `.github/workflows/**`, and do NOT repeat
@@ -382,3 +383,51 @@ work requires one of the maintainer authorizations above:
 3. **Reproducibility artifact cleanup (non-blocking).** Optional, needs explicit authorization.
 
 Until authorization arrives, this session is at a stable, verified baseline.
+
+## Cycle 263 (2026-11-22) — fix 2 schema-guard failures from unaccounted SP500 price-leg probe directory
+
+No new H-ID, no runner, no strategy family, no `src/qtr`/artifact/gate/frozen-number/workflow
+change. The `<!-- inventory-high-water-mark: H197 -->` marker remains IN SYNC
+(`python scripts/verify_hypothesis_inventory.py` → H197 == H197). This cycle fixes 2 reproducible
+test failures caused by a second SP500 membership price-leg probe artifact directory that was
+created but not accounted for in the schema-guard inventory.
+
+### What changed
+
+**`tests/test_experiment_artifact_schema.py`** — added the second probe directory
+`nf_20261122_03_sp500_membership_priceleg_20261122_142922` (coverage.json only, no summary.json)
+to `EXPECTED_INCOMPLETE` and incremented `EXPECTED_TOTAL_DIRS` from 124 to 125. Both probe
+directories are free-data availability probes (coverage.json only), not backtest experiments, so
+they correctly remain incomplete by design with no impact on summary-count or key-frequency pins.
+
+### Root cause
+
+A second run of `scripts/probe_sp500_membership_priceleg.py` (Cycle 256, 14:29:22) created a new
+top-level artifact directory without a `summary.json`. The schema guard's `EXPECTED_INCOMPLETE`
+frozenset and `EXPECTED_TOTAL_DIRS` pin only covered the first run (07:36:18), so:
+- `test_incomplete_runs_match_audit_inventory` failed (set changed, extra dir)
+- `test_total_directory_inventory_matches_audit` failed (125 dirs vs expected 124)
+
+### What was verified (evidence)
+
+- `python -m pytest -q tests/test_experiment_artifact_schema.py` → **120 passed** (was 118 / 2 failed).
+- Full suite `python -m pytest -q` → **4845 passed / 51 skipped / 7 failed**. All 7 are the
+  pre-existing, agent-unreachable `tests/test_gates_workflow.py` failures (unpatched
+  `.github/workflows/gates.yml`; maintainer patch in `patches/0001-gates-workflow-contract-fix.patch`).
+  Zero new failures vs. Cycle 262 baseline (4843 passed / 51 skipped / 9 failed → now 7 failed).
+- `python -m ruff check src tests run_*.py scripts` → **All checks passed**.
+- `python -m ruff format --check src tests run_*.py scripts` → **387 files already formatted**.
+- `python scripts/verify_hypothesis_inventory.py` → **IN SYNC (H197 == H197)**.
+- `python scripts/backtest_perf_regression_gate.py` → **PASSED** (0.427s, limit 5s).
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly.
+- Working tree: 1 file modified (`tests/test_experiment_artifact_schema.py`).
+  Left uncommitted per repo policy — commit only on explicit request.
+
+### Precise next task (Cycle 263+)
+
+Same as Cycle 262: the agent-executable research track is exhausted. No bounded agent-executable
+research task remains without one of the three maintainer authorizations above (universe decision,
+workflow contract patch, reproducibility cleanup). Do NOT fabricate H198, do NOT run another
+98-name equity cross-section, do NOT re-edit `.github/workflows/**`, and do NOT repeat the
+"discovery scan → exhausted" approach (failed Cycles 96/116/251). The baseline is stable and
+verified; the next productive work requires maintainer authorization.
