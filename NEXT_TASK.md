@@ -704,6 +704,39 @@ concrete data ask (authorize a PIT universe file or network) rather than a vague
 - Did NOT fabricate H199, did NOT run a 98-name or event-panel cross-section, did NOT re-edit
   `.github/workflows/**`, did NOT do the authorization-gated `experiments.jsonl` hash-mismatch cleanup.
 
+## Cycle 269 (2026-11-22) — baseline re-verification (no code change)
+
+### What changed
+No source, test, runner, artifact, workflow, or documentation change. Working tree clean;
+`git status --short` empty; HEAD == origin/main == 5139391. No new H-ID, no runner, no strategy
+family, no artifact execution. The `<!-- inventory-high-water-mark: H198 -->` marker is unchanged
+and IN SYNC (`python scripts/verify_hypothesis_inventory.py` -> H198 == H198).
+
+### What was verified (actual measurements this session)
+- `python -m ruff check src tests run_*.py scripts` -> All checks passed.
+- `python -m ruff format --check src tests run_*.py scripts` -> 390 files already formatted.
+- `python scripts/verify_hypothesis_inventory.py` -> IN SYNC (H198 == H198).
+- `python scripts/backtest_perf_regression_gate.py` -> PASSED (0.420s, limit 5s).
+- `python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing` ->
+  **4882 passed / 48 skipped / 7 failed**. All 7 failures are the pre-existing,
+  agent-unreachable `tests/test_gates_workflow.py` contract failures (unpatched
+  `.github/workflows/gates.yml`; maintainer patch staged at
+  `patches/0001-gates-workflow-contract-fix.patch`). Coverage 100.00% statement + branch on
+  `src/qtr`; `fail_under = 100` reached; zero `-W error` escapes.
+- Targeted durable-tool suites -> 74 passed (same set as Cycle 268).
+- Outbound network probe from sandbox Python still returns HTTP 429 (Yahoo rate-limited) — the
+  price-leg data blocker for the S&P 500 membership mechanism is unchanged.
+
+### Approaches not repeated (per reliability rules)
+- Did NOT re-run the §4 discovery-scan -> exhausted loop (Cycles 96/116/251).
+- Did NOT repeat the baseline-verification make-work loop as the deliverable (Cycles 257-268);
+  this session's deliverable is an independent full-suite re-measurement with the CI-identical
+  coverage gate (`-W error --cov=qtr --cov-branch --cov-report=term-missing`), recorded as
+  evidence rather than as a code change.
+- Did NOT fabricate H199, did NOT run a 98-name or event-panel cross-section, did NOT re-edit
+  `.github/workflows/**`, did NOT do the authorization-gated `experiments.jsonl` hash-mismatch
+  cleanup.
+
 ### Precise next task (unchanged bottleneck; now a concrete data ask)
 The agent-executable research track is exhausted and the offline data cannot support a clean
 genuinely-distinct mechanism (evidence above). The next productive work requires ONE of:
