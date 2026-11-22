@@ -340,21 +340,26 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"summary": summary, "runs": records}, indent=2, sort_keys=True))
         return 0
 
+    def fmt(x: float | None) -> str:
+        return f"{x:.3f}" if x is not None else "n/a"
+
     print(format_table(records))
     print()
     print(f"runs: {summary['n_runs']}")
+    # Equity cross-section records can exist while lacking the numeric fields
+    # (e.g. a partial artifact with no oos_val_test / benchmark_comparison
+    # block).  Format every median/range through ``fmt`` so a missing field
+    # prints ``n/a`` instead of raising ``TypeError: unsupported format string
+    # passed to NoneType.__format__``.
     print(
         "median OOS Sharpe: strategy "
-        f"{summary['strategy_sharpe_median']:.3f} vs passive book "
-        f"{summary['benchmark_sharpe_median']:.3f}"
+        f"{fmt(summary['strategy_sharpe_median'])} vs passive book "
+        f"{fmt(summary['benchmark_sharpe_median'])}"
     )
     train = summary["train_sharpe_median"]
     val = summary["val_sharpe_median"]
     test = summary["test_sharpe_median"]
     oos = summary["strategy_sharpe_median"]
-
-    def fmt(x: float | None) -> str:
-        return f"{x:.3f}" if x is not None else "n/a"
 
     print(
         "median Sharpe path: train "
@@ -366,7 +371,7 @@ def main(argv: list[str] | None = None) -> int:
         f"runs decay (OOS < train); median delta {fmt(decay)}"
     )
     print(
-        f"beta range: [{summary['beta_min']:.3f}, {summary['beta_max']:.3f}] "
+        f"beta range: [{fmt(summary['beta_min'])}, {fmt(summary['beta_max'])}] "
         f"({summary['n_long_biased']} long / {summary['n_market_neutral']} neutral / "
         f"{summary['n_short_biased']} short)"
     )

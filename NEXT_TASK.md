@@ -283,3 +283,69 @@ removed coverage; repair-sidecar test now complete). Do NOT fabricate H198, do N
 No bounded agent-executable task remains. The next productive work requires one of the maintainer
 authorizations above (universe decision, workflow patch, or reproducibility cleanup). Until then, this
 session is at a stable, verified baseline.
+
+## Cycle 261 (2026-11-22) — durable-infra: fix reproducible TypeError crash in equity-cross-section reject analyzer
+
+No new H-ID, no runner, no strategy family, no `src/qtr`/artifact/gate/frozen-number/workflow
+change. The `<!-- inventory-high-water-mark: H197 -->` marker is unchanged and still IN SYNC
+(`python scripts/verify_hypothesis_inventory.py` → H197 == H197). This cycle fixes a concrete,
+reproduced crash in a durable, read-only diagnostic script (the same *unguarded-`None`-format*
+class as the Cycle 259 FRED fix).
+
+### What changed
+1. **`scripts/analyze_equity_cross_section_rejects.py`** — `main()` crashed with
+   `TypeError: unsupported format string passed to NoneType.__format__` whenever equity
+   cross-section records existed but lacked numeric fields (e.g. a partial artifact with no
+   `oos_val_test` / `benchmark_passive_equal_weight_long_oos` / `benchmark_comparison` block, or
+   no `beta`). The text-table path formatted `summary['strategy_sharpe_median']:.3f`,
+   `benchmark_sharpe_median:.3f`, and `beta_min/beta_max:.3f` directly; only the Sharpe-path line
+   used the `None`-safe `fmt()`. Fix: moved the existing `fmt()` helper above its first use and
+   routed **every** median/range (median OOS Sharpe, benchmark Sharpe, beta range) through it, so a
+   missing field prints `n/a` instead of raising. The `--json` path was already safe
+   (`json.dumps(None)` → `null`) and is unchanged. No output change for complete artifacts.
+2. **`tests/test_analyze_equity_cross_section_rejects.py`** (2 new tests) — `main()` with a
+   partial record (all numeric blocks removed) exits 0, prints `n/a` medians/beta-range and the
+   `inconclusive: ...` conclusion; `main()` with numeric Sharpe but `beta=None` prints
+   `beta range: [n/a, n/a]` and the numeric median line. Both reproduce-then-guard the crash.
+
+### Reproduced before fixing (evidence)
+`main(["--repo-root", <tmp with universe_symbols but no numeric blocks>])` →
+`TypeError: unsupported format string passed to NoneType.__format__` after printing the table and
+`runs: 1` line. After the fix all three cases (all-None / beta-None / `--json`) exit 0.
+
+### What was verified (evidence)
+- `python -m pytest -q tests/test_analyze_equity_cross_section_rejects.py` → **19 passed** (was 17; +2).
+- CI mode: `python -m pytest -q -W error tests/test_analyze_equity_cross_section_rejects.py` → **19 passed**.
+- `python -m ruff check` + `ruff format --check` on both changed files → clean.
+- Real repo: `python scripts/analyze_equity_cross_section_rejects.py` → 9 runs, median OOS Sharpe
+  strategy 0.187 vs passive book 1.075, beta range [-0.522, 0.841] (unchanged from Cycle 254).
+- `python scripts/verify_hypothesis_inventory.py` → IN SYNC (H197 == H197).
+- `python scripts/backtest_perf_regression_gate.py` → PASSED (0.430s, limit 5s).
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies clean.
+- `pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged; agent-unreachable workflow
+  contract; maintainer patch in `patches/`). Baseline suite was 4838 passed / 51 skipped / 7 failed;
+  this change adds 2 passing tests and touches no other suite.
+- Working tree: only `scripts/analyze_equity_cross_section_rejects.py` and
+  `tests/test_analyze_equity_cross_section_rejects.py` modified (plus this `NEXT_TASK.md`). Left
+  uncommitted per repo policy — commit only on explicit request.
+
+### Unresolved (maintainer / authorization only, out of agent scope — unchanged)
+1. **Universe/benchmark decision (the actual research bottleneck).** Authorize a higher-dispersion
+   universe (mid/small-cap or ex-US PIT) OR formally close the equity cross-section program.
+2. **Workflow contract patch.** Apply `patches/0001-gates-workflow-contract-fix.patch` on
+   `origin/main` (maintainer-only, workflows-scoped credentials). Do NOT re-edit
+   `.github/workflows/gates.yml` in a commit — it is restored from `origin/main`.
+3. **Reproducibility artifact cleanup (non-blocking).** Optional, needs explicit authorization.
+
+### Precise next task (Cycle 261+)
+The agent-executable research track is exhausted (H187–H197 REJECT; S&P 500 price leg blocked at
+55% removed coverage; durable-infra probe/inventory coverage complete). Do NOT fabricate H198, do NOT
+run another 98-name equity cross-section, do NOT re-edit `.github/workflows/**`, and do NOT repeat
+the "discovery scan → exhausted" approach (failed Cycles 96/116/251).
+
+No further *high-value* bounded agent task remains that is not make-work. The remaining productive
+work requires one of the maintainer authorizations above. If another durable-infra cycle is
+explicitly wanted, the only remaining candidates are low-value (e.g. a content-based
+"every `scripts/*.py` is referenced by some test" invariant — note filename matching is already
+fragile: `plan_artifact_restoration.py` is tested by `test_artifact_restoration_plan.py`). Prefer the
+maintainer authorizations over more infra polish.

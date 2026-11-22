@@ -345,6 +345,48 @@ def test_main_on_empty_repository_reports_and_fails(tmp_path, capsys):
     assert "no equity cross-section artifacts found" in capsys.readouterr().out
 
 
+def test_main_tolerates_partial_records_without_numeric_fields(tmp_path, capsys):
+    # An equity cross-section artifact can be present yet lack the numeric
+    # blocks (oos_val_test / benchmark / comparison).  The text table must
+    # degrade to ``n/a`` rather than raising ``TypeError`` on a ``None`` median.
+    module = _load_script()
+    summary = _summary(universe_symbols=["AAPL"])
+    for key in (
+        "oos_val_test",
+        "benchmark_passive_equal_weight_long_oos",
+        "benchmark_comparison",
+        "wf_train_sharpe",
+        "val",
+        "test",
+        "full_sample",
+    ):
+        summary.pop(key, None)
+    _write_summary(tmp_path, "nf_partial", summary)
+
+    exit_code = module.main(["--repo-root", str(tmp_path)])
+    out = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "median OOS Sharpe: strategy n/a vs passive book n/a" in out
+    assert "beta range: [n/a, n/a]" in out
+    assert "inconclusive" in out
+
+
+def test_main_tolerates_missing_beta_range(tmp_path, capsys):
+    # Numeric Sharpe but no benchmark beta: the beta-range line must print n/a
+    # instead of crashing on ``summary["beta_min"]:.3f`` when it is ``None``.
+    module = _load_script()
+    summary = _summary(universe_symbols=["AAPL"], beta=None)
+    _write_summary(tmp_path, "nf_nobeta", summary)
+
+    exit_code = module.main(["--repo-root", str(tmp_path)])
+    out = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "median OOS Sharpe: strategy 0.500 vs passive book 1.000" in out
+    assert "beta range: [n/a, n/a]" in out
+
+
 def test_format_table_contains_header_and_runs():
     module = _load_script()
     records = [_record(0.4, 0.3, 1.0, -0.02, -0.6)]
