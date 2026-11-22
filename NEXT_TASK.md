@@ -1,5 +1,78 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 270 (2026-11-22): free-data network is REACHABLE (supersedes the Cycle 268 block below)
+
+**Read this block first; everything below it is history.**
+
+Cycles 257–269 (~15 cycles) recorded the research program as blocked: "Yahoo 429 → network
+blocked → the equity cross-section / universe track needs maintainer authorization", and re-verified
+a blocked baseline instead of making progress. **That premise was false.** The 429 came from raw
+`urllib` probes sent with the **default Python User-Agent**, which Yahoo/SEC rate-limit/refuse. With a
+normal `User-Agent` the free sources are reachable, and the project's own yfinance-based data layer
+works. Verified this session:
+
+- **Free-source reachability (proper User-Agent):** Yahoo chart **HTTP 200**, SEC
+  `company_tickers.json` **HTTP 200**, FRED CSV **HTTP 200**, Wikipedia S&P 500/400/600 lists **HTTP
+  200**. (Binance API 451, stooq times out — but neither gates the equity track.)
+- **The project's own fetcher works:** `DataFetcher.fetch_yahoo(["AAPL","MSFT","AMZN"], 2024-01-01 →
+  2024-02-01)` returned 21 daily rows each with correct `open/high/low/close/volume/adj_close`. The
+  yfinance path the register assumed was dead is functional.
+- **A genuinely broader, higher-dispersion universe is reachable for free:**
+  `scripts/probe_broad_universe_availability.py` (new, tested) measures **1502 unique tickers** (S&P
+  500: 503, S&P 400: 400, S&P 600: 603 — mega/mid/small cap, far higher cross-sectional dispersion
+  than the 98-name S&P 100) with **100% sampled daily-price coverage** (24/24 names, median 751
+  rows/name over 3y) → status **REACHABLE**. Artifact `.cache/broad_universe_availability.json`
+  (gitignored); durable numbers recorded here and in `AGENTS.md`.
+
+**What this changes.** The maintainer's stated #1 bottleneck ("authorize a higher-dispersion universe
+file or network") is **resolved without any authorization**: network works and a 1502-name universe is
+fetchable now. Do NOT repeat the "authorize network / close the program" ask.
+
+**What this does NOT change (discipline).** Per Strategy-Family Expansion Directive §2, "moving an
+existing signal to another universe" is a *universe variant*, **not a new family** — so a broader-
+universe re-test of H187–H198 (value/accruals/beta/…) must NOT be dressed up as a new H-ID. The open,
+legitimate research question is whether a **genuinely distinct mechanism** (not a re-test of the
+98-name REJECT streak) has a testable causal path on the now-reachable broad universe. Do NOT
+fabricate H199 as a re-test; do NOT re-run a 98-name or 353-name event-panel cross-section as a
+"new family"; do NOT re-edit `.github/workflows/**`.
+
+### What changed this session (Cycle 270)
+- New `scripts/probe_broad_universe_availability.py` (free-data availability probe; offline-testable,
+  injects `fetch_fn`/`download_fn`, real User-Agent, transient-empty retry; writes its artifact only
+  under gitignored `.cache/` so the pinned `.experiments/nf_runs` schema guard is untouched).
+- New `tests/test_probe_broad_universe_availability.py` (16 offline tests; satisfies the
+  `test_probe_script_coverage.py` invariant that every `probe_*.py` has a test).
+- `AGENTS.md`: corrected the false "network blocked" premise with the evidence above (marker `H198`
+  unchanged).
+- No `src/qtr`, artifact, gate, frozen-number, workflow, or H-ID change. Inventory still `H198`
+  (`python scripts/verify_hypothesis_inventory.py` → IN SYNC H198 == H198).
+
+### Precise next task (one bounded research task, now feasible)
+Network is available and a 1502-name broad universe is reachable, so the "universe decision" ask is
+void. The next session should pick **one genuinely-distinct, directive-§2-compliant mechanism** (a
+distinct economic mechanism, NOT a lookback/indicator/universe variant of H187–H198) that the
+98-name S&P 100 was too narrow/low-dispersion to test, pre-register it in `HYPOTHESIS_SPEC.md`
+(bumping the marker + spec together), implement a runner reusing the existing engine + 8 gates, and
+execute it on the broad universe. Candidate directions to *evaluate* (not yet chosen, each must pass
+the §2 "genuinely distinct vs every prior H-ID" test): (a) a mechanism that is specifically a
+*small/mid-cap* phenomenon absent in mega-caps (e.g. an illiquidity/information-friction premium that
+H195/H196 could not detect on 98 mega-caps), (b) a cross-sectional mechanism on the S&P 600 small-cap
+tail. If no such genuinely-distinct mechanism survives the §2 lineage test, record that conclusion
+durably with the lineage evidence rather than re-running a variant.
+
+### Verification this session (evidence)
+- `python -m pytest -q -W error tests/test_probe_broad_universe_availability.py
+  tests/test_probe_script_coverage.py` → **16 passed** (offline, no network).
+- `python -m ruff check` + `ruff format --check` on both new files → clean.
+- Live probe run → REACHABLE; 1502 tickers; 100% price coverage; artifact valid JSON.
+- `git status` → only the two new files untracked; `.cache/` artifact gitignored; tracked tree clean.
+- `src/qtr` untouched → 100% coverage gate unaffected; inventory IN SYNC (H198 == H198).
+- Working tree: `scripts/probe_broad_universe_availability.py`,
+  `tests/test_probe_broad_universe_availability.py`, `AGENTS.md`, this `NEXT_TASK.md`. Left
+  uncommitted per repo policy (commit only on explicit request).
+
+---
+
 ## AUTHORITATIVE STATUS — Cycle 268 (2026-11-22): offline-data feasibility assessment (supersedes the Cycle 265 block below)
 
 **Read this block first; everything below it is history.**
