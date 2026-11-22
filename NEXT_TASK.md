@@ -526,7 +526,22 @@ verified; the next productive work requires maintainer authorization.
 - `python scripts/backtest_perf_regression_gate.py` -> PASSED.
 - Inventory marker remains H198 (matches `HYPOTHESIS_SPEC.md` max documented H-ID H198).
 
-### Precise next task
+### Cycle 266 baseline verification (2026-11-22)
+
+No source, test, runner, artifact, workflow, or documentation change this session.
+Working tree clean; `git status --short` empty; HEAD == origin/main == 5f6204c.
+No new H-ID, no runner, no strategy family, no artifact execution.
+
+### What was verified
+- `python scripts/verify_hypothesis_inventory.py` -> IN SYNC (H198 == H198).
+- `python -m ruff check src tests run_*.py scripts` -> All checks passed.
+- `python -m ruff format --check src tests run_*.py scripts` -> 390 files already formatted.
+- `python scripts/backtest_perf_regression_gate.py` -> PASSED (0.421s, limit 5s).
+- Baseline suite remains: 4882 passed / 48 skipped / 7 failed (all 7 are the pre-existing,
+  agent-unreachable `tests/test_gates_workflow.py` failures due to the unpatched
+  `.github/workflows/gates.yml`; maintainer patch staged at `patches/0001-gates-workflow-contract-fix.patch`).
+
+### Precise next task (unchanged)
 Same as Cycle 264+: the agent-executable research track is exhausted (H187-H198 exhausted/rejected;
 H189 data-blocked; H198 S&P 500 membership event-drift executed REJECT 1/8, Cycle 265, price leg
 probed 55% removed coverage). The remaining productive work requires one of the three maintainer
