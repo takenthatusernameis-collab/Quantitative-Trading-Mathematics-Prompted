@@ -55,7 +55,13 @@ def main() -> int:
 
     repaired = 0
     checked = 0
-    for line in open(EXPERIMENTS_JSONL):
+    # Read the JSONL inside a ``with`` block so the file handle is always closed.
+    # Iterating ``open(...)`` directly leaks the handle until GC finalises it,
+    # which surfaces as ``PytestUnraisableExceptionWarning`` under ``pytest -W
+    # error`` (the CI gates command) and turns this otherwise-green test red.
+    with open(EXPERIMENTS_JSONL) as f:
+        experiments_lines = f.readlines()
+    for line in experiments_lines:
         line = line.strip()
         if not line:
             continue
