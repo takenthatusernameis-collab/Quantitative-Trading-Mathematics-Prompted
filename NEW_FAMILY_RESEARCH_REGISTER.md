@@ -2253,3 +2253,50 @@ failed** (net +15 from the new diagnostic tests; the 7 are the unchanged, pre-ex
 agent-unreachable `tests/test_gates_workflow.py` failures). `ruff check` + `ruff format --check`
 clean on `src tests run_*.py scripts`. `src/qtr`, runners, artifacts, gates, coverage, and
 thresholds unchanged.
+
+---
+
+## Cycle 255 (2026-11-22) — inventory high-water-mark invariant + S&P 500 index-membership source probe (no new family)
+
+**Trigger.** Cycle 254 closed with a maintainer-only handoff and no agent-executable research task
+(H1–H197 exhausted on the 98-name universe). Per the reliability rules, rather than repeat the
+"discovery scan → exhausted" approach that already failed in Cycles 96 / 116 / 251, this cycle fixes a
+concrete, evidence-backed defect that has repeatedly cost cycles: stale research-inventory claims
+drifting from the committed record.
+
+**Concrete defect fixed (durable, additive).** The research notes carry prose "exhausted/rejected"
+high-water marks and "never executed" claims that drift from the committed record:
+- Cycle 251 asserted NF-01 (VIX term structure) and NF-02 (cross-asset lead-lag) were "proposed,
+  never executed"; both are executed and rejected (H86, H85) — caught only in Cycle 252.
+- `AGENTS.md` stated "H1–H196 exhausted/rejected" while H197 was already executed (Cycle 253).
+
+New `scripts/verify_hypothesis_inventory.py` (read-only, standard-library only, offline) and
+`tests/test_verify_hypothesis_inventory.py` (**13 passed**) encode the machine-checkable invariant: the
+`<!-- inventory-high-water-mark: H<N> -->` marker in `AGENTS.md` must equal the highest `## H<N>`
+section heading in `HYPOTHESIS_SPEC.md`. `AGENTS.md` now carries the marker (H197) and an authoritative
+"current inventory" note; the stale "H1–H196" prose is corrected to "H1–H197". No `src/qtr`, experiment
+artifact, gate, verdict, threshold, or frozen number was touched.
+
+**§6 materially-different-source probe (no H-ID executed).** The deferred S&P 500 index
+inclusion/deletion mechanism (NF-18 / NF-20261109-18, deferred on "external calendar dependency") was
+probed against a free source for the first time. Free PIT event data **exists**: Wikipedia "Historical
+components of the S&P 500" and "List of S&P 500 companies" (selected-changes table), plus third-party
+mirrors, list every effective-date addition/removal with ticker (e.g. tickericons.com: "411 changes
+since 1976, 391 added, 387 removed"). This corrects the "external calendar dependency" blocker: the
+event calendar is free. The **remaining, unprobed** blocker is the price leg — removed names are
+frequently delisted (M&A/bankruptcy) and yfinance does not reliably serve delisted tickers; the sandbox
+Python has no direct network (web tools only), so the price leg was **not** probed this cycle. Honest
+status: mechanism is event-data-feasible, price-data-unresolved. Not executed; no H198 fabricated.
+
+**Verification this session.** Full suite `python -m pytest -q` -> **4764 passed / 51 skipped / 7
+failed** (the 7 are the unchanged, pre-existing, agent-unreachable `tests/test_gates_workflow.py`
+failures; fix via `patches/0001-gates-workflow-contract-fix.patch`, never an in-tree workflow edit).
+`ruff check` + `ruff format --check` clean on `src tests run_*.py scripts` (380 files formatted). New
+suite 13 passed. `scripts/verify_hypothesis_inventory.py` -> **IN SYNC (H197 == H197)**. `src/qtr`,
+runners, artifacts, gates, coverage, and thresholds unchanged.
+
+**Approaches already tried / do not repeat.** Another "§4 discovery scan → exhausted" cycle (Cycles
+96 / 116 / 251) is ruled out. A 10th 98-name equity cross-section is ruled out (H187–H197 all REJECT).
+In-tree `.github/workflows/gates.yml` edits remain agent-unreachable.
+
+**Cycle 255 complete.** No new H-ID; inventory invariant enforced; `src/qtr` unchanged.
