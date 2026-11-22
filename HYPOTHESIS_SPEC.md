@@ -9748,3 +9748,50 @@ perturbation min ratio >= 0.5.
 **Ablations/falsifiers.** Passive equal-weight long book (benchmark); random event signs (same open
 legs, seed 42); inverse event (short additions / long removals); long-only additions (short leg
 removed); event-count / coverage diagnostics.
+
+**Measured (experiment `exp_2026-11-22T18-15-30-000000Z`, artifact
+`nf_20261122_03_sp500_membership_event_drift_20261122_181520`):**
+
+Selected: `holding_days=63, entry_delay=1, vol_target=0.15` (train-only 4-fold WF Sharpe -0.044).
+
+| Split | Sharpe |
+|-------|--------|
+| Train (2005-2021) | -0.044 |
+| Val (2022-2023) | -0.331 |
+| Test (2024-2026, protected) | 0.476 |
+| **OOS Val+Test (gated)** | **0.166** |
+
+| Gate (OOS) | Value | Threshold | Result |
+|------------|-------|-----------|--------|
+| Net Sharpe | 0.166 | ≥ 1.0 | FAIL |
+| Trades | 6869 | ≥ 50 | **PASS** |
+| Profit factor | 1.032 | ≥ 1.3 | FAIL |
+| Max drawdown | -24.97% | ≤ 15% | FAIL |
+| Walk-forward stability | -3.795 | ≥ 0.7 | FAIL |
+| Worst-regime rolling-252 Sharpe | -1.367 | ≥ 0.3 | FAIL |
+| Benchmark p ≤ 0.05 & IR ≥ 0 | p=0.348, IR=-0.417 | p≤0.05 & IR≥0 | FAIL |
+| ±20% perturbation min ratio | -0.321 | ≥ 0.5 | FAIL |
+
+Benchmark (passive equal-weight long book of same universe): Sharpe 0.713, total return 64.0%. Strategy IR = -0.417 (α = -0.57%/yr, p = 0.348 ⇒ **no statistically significant alpha**).
+
+Ablations (OOS Val+Test):
+- Random event signs: Sharpe -1.106, PF 0.692, DD -94.3%
+- Inverse event (short additions / long removals): Sharpe -0.235, PF 0.956, DD -50.0%
+- Long-only additions (short leg removed): Sharpe 0.334, PF 1.063, DD -25.0%
+
+**Verdict: REJECT H198.** 1/8 gates pass. The index-membership event-drift mechanism (long additions / short tradeable removals around effective dates, held 1-3 months) produces no positive edge after costs on the S&P 500 reconstitution events from 2005-2026. The passive equal-weight long book of the same universe (Sharpe 0.713) dominates the strategy (Sharpe 0.166). The mechanism is falsified on this sample; the post-effective-date drift is not exploitable within the PROMPT_V2 evidence gates on free daily data.
+
+**Root-cause attribution (what H198 actually proved):**
+1. **The index-fund demand/supply pressure at reconstitution is not a persistent edge.** The long-additions/short-removals book earns a negligible OOS Sharpe (0.166) with a negative information ratio vs the passive long book (-0.417). The mechanism does not survive costs.
+2. **Survivorship bias in the price leg.** Excluded added names (mostly later delisted) bias the long leg upward; excluded removed names (mostly later bankrupt) bias the short leg downward. Even with this optimistic bias, the strategy fails.
+3. **The short leg is the primary drag.** The long-only additions ablation (Sharpe 0.334) outperforms the dollar-neutral book (0.166), confirming that shorting tradeable removals (market_cap/spin_off/reorganization) loses money on this sample.
+4. **The passive book is the superior trade.** Holding an equal-weight long portfolio of all event universe names yields Sharpe 0.713 — 4.3× the strategy's OOS Sharpe. The event-selection adds negative value.
+5. **Coverage threshold met but not sufficient.** Binding coverage = 61.5% (tradeable removed) ≥ 60% threshold, but the universe is small (353 tickers with data, 396 events, 184 short legs) and the edge is absent.
+
+**What would invalidate the rejection:**
+- A different holding period / entry timing that captures a stronger drift (pre-registered grid only covered 21/42/63 days and entry_delay 0/1).
+- Explicit modeling of short borrow costs (currently 0 bps — the true short cost would further reduce the already-negative edge).
+- A broader index (e.g., Russell 1000/2000 reconstitutions) where index-fund flow pressure is larger relative to float.
+- Intraday execution at the closing auction on the effective date (the current model enters at next-day open via `shift(1)`).
+
+---

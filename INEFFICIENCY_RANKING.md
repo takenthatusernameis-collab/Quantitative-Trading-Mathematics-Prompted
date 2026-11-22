@@ -999,3 +999,18 @@ basket; H22's basket PF margin +0.034; H25's repair margin +0.020 — perturbati
   edges, and summary statistics. All 359 tests pass (including the 17-test H25
   Robustness bootstrap-CI audit, which now also pins the pre-registered
   block-bootstrap sensitivity).
+
+---
+
+### H198: S&P 500 Index-Membership Event Drift (executed — NF-20261122-03, REJECT 1/8)
+
+- **Mechanism:** Long announced S&P 500 additions / short tradeable removals (market_cap/spin_off/reorganization) around the effective date, held 1-3 months, dollar-neutral, vol-targeted.
+- **Universe:** 396 events (2005-2026), 353 tickers with yfinance data, binding coverage 61.5% (tradeable removed).
+- **Net edge measured:** OOS Val+Test Sharpe **0.166**, PF 1.032, max DD -24.97%, trades 6869.
+- **Gates:** 1/8 PASS (only trade count). Sharpe < 1.0, PF < 1.3, DD > 15%, WF stability negative, worst-regime Sharpe -1.367, benchmark IR -0.417 (p=0.348), perturbation ratio -0.321.
+- **Benchmark:** Passive equal-weight long book of same universe — Sharpe 0.713, total return 64.0%. Strategy adds negative value (IR -0.417).
+- **Status: REJECTED.** The index-fund demand/supply pressure at reconstitution is not a persistent edge on this sample. The short leg is the primary drag (long-only additions ablation Sharpe 0.334 > dollar-neutral 0.166). The passive book dominates. Even with survivorship bias favoring the strategy (excluded delisted added names, excluded bankrupt removed names), the mechanism fails.
+- **Net Opportunity Score:** 3/10 (theory: Shleifer 1986) → **1/10 (realized on free daily data)**.
+- **What would invalidate:** broader index (Russell 1000/2000), intraday closing-auction execution, explicit short-borrow cost model (currently 0 bps — true cost would worsen results).
+
+---
