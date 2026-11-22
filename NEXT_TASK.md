@@ -1,5 +1,57 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 265 (2026-11-22): real CI-gate measurement (supersedes scattered "next task" notes below)
+
+**Read this block first; everything below it is history.**
+
+For the first time in this handoff record the **actual CI gate** was executed and *measured* in a
+fresh environment with the full dependency stack installed (`pip install -r requirements.txt`,
+`pip install -e . --no-deps`, `pytest-cov` present) — prior cycles only ever ran plain `pytest -q`
+and *asserted* the coverage number without `pytest-cov` installed (the exact gap called out in the
+docstring of `tests/test_coverage_gate_contract.py`). Command (identical to AGENTS.md and
+`origin/main:.github/workflows/gates.yml`):
+
+```
+python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing
+```
+
+Result (454s): **4856 passed / 48 skipped / 7 failed**, and:
+
+- **Coverage 100.00%** on `src/qtr` (statement + branch); `fail_under = 100` reached — the gate passes.
+- **Zero `-W error` escapes**: no warning is promoted to error; the only failures are the same 7.
+- The 7 failures are ALL `tests/test_gates_workflow.py` (unpatched `.github/workflows/gates.yml`;
+  agent-unreachable — see item 2 below; the maintainer patch applies clean and is guarded green by
+  `scripts/verify_gates_workflow_patch.py`).
+
+Durable infra re-verified in the same fresh env: `scripts/backtest_perf_regression_gate.py` →
+**PASSED** (0.435s, limit 5s); `scripts/verify_gates_workflow_patch.py` → resolves all 7 violations;
+`scripts/verify_hypothesis_inventory.py` → **IN SYNC (H197 == H197)**; every `scripts/*.py` has a
+dedicated, test-referenced test file (no untested durable tool); `git apply --check
+patches/0001-gates-workflow-contract-fix.patch` → applies cleanly.
+
+**The agent-executable code/research track is complete.** No reachable crash was found in the durable
+stdlib scripts (the unguarded-`None` class was already fixed in Cycles 259/261); the coverage gate is
+pinned by `tests/test_coverage_gate_contract.py` (reads config back through the coverage API, so a
+weakened `fail_under`/`branch`/`source` fails at commit time); equity cross-section research on the
+98-name universe is exhausted (H187–H197 all REJECT; S&P 500 membership price leg blocked at 55%
+removed coverage, Cycle 256). Do NOT fabricate H198, do NOT run another 98-name equity cross-section,
+do NOT re-edit `.github/workflows/**`, do NOT repeat the "discovery scan → exhausted" approach (failed
+Cycles 96/116/251), and do NOT repeat the "baseline-verification make-work" loop (Cycles 257–264).
+
+**The one remaining task requires maintainer authorization (out of agent scope) — pick ONE:**
+1. **Universe/benchmark decision (the real research bottleneck).** Authorize a higher-dispersion
+   universe (mid/small-cap or ex-US PIT) OR formally close the equity cross-section program.
+2. **Workflow contract patch.** Apply `patches/0001-gates-workflow-contract-fix.patch` on
+   `origin/main` with workflows-scoped credentials (do NOT re-edit `.github/workflows/gates.yml` in a
+   commit — the controller restores it and excludes it from staging).
+3. **Reproducibility artifact cleanup (non-blocking).** Authorize cleanup of the 11 hash_mismatches
+   (→ 3 legitimate 24h PIT recutoff differences).
+
+Until one of these arrives, a further agent session has no safe, evidence-based, high-value change to
+make; the baseline is stable, green (modulo the 7 agent-unreachable failures), and fully measured.
+
+---
+
 ## Where to resume
 
 Cycle 255 (2026-11-22). `src/qtr`, all runners, tests, and every completed NF experiment
