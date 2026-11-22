@@ -1,5 +1,46 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 268 (2026-11-22): offline-data feasibility assessment (supersedes the Cycle 265 block below)
+
+**Read this block first; everything below it is history.**
+
+Fresh investigation this session (not a re-verification, not a discovery scan): the agent-executable
+research track is confirmed exhausted AND the *offline* data cannot support a clean genuinely-distinct
+mechanism. New concrete evidence gathered this session:
+
+- **Network still blocked.** `query1.finance.yahoo.com` → **HTTP 429** (re-verified). No new market
+  data can be fetched; any new-universe research needs data that is *already cached*.
+- **Offline price cache = 82 series** (`.cache/data/*.parquet`: 61 daily + 21 intraday, 2009–2026),
+  plus the S&P 500 event panel. (The other 1636 parquet files are experiment *outputs*, not raw data.)
+- **S&P 500 event panel (`.cache/sp500/event_closes.parquet`) = 353 tickers × 5507 days (2005–2026).**
+  It is an **event-union, NOT a clean PIT universe**: its columns are the subset of the 619 S&P 500
+  add/remove tickers (1976–2026, `membership_changes.csv`) that yfinance served (353/619); only 212/353
+  have ≥5000-day history. Using it as a "broader universe" for cross-sections is confounded by
+  "was-ever-an-S&P-500-change-with-yfinance-data" selection — do NOT treat it as a clean broad universe.
+- **Fundamentals are cached only for the 98-name S&P 100 universe** (`scripts/probe_sec_xbrl_fundamentals.py:UNIVERSE`,
+  100 minus XOM/BKNG). The 353-name panel has prices only → no accruals/value/innovation/distress
+  cross-sections are possible on it; price-only cross-sections there are variants (directive §2).
+- **13F cache = CIK list only** (`.cache/13f/institutional_ciks.json`), no holdings → no
+  institutional-flow mechanism is offline-testable.
+- **Reason-conditioned index-event study is pre-empted by H198**: acquisition/bankruptcy deletions are
+  delisted-by-construction and were excluded; the tradeable market_cap/spin_off/reorg deletions were
+  tested and ARE the short-leg drag. No distinct tradeable reason asymmetry remains.
+
+**Verdict.** No clean, genuinely-distinct, free-data, offline-feasible, non-variant mechanism remains,
+and the only offline broad panel is confounded. A clean higher-dispersion universe requires **new PIT
+data that is not cached and needs network (429)**. This sharpens the maintainer decision (item 1 below)
+into a concrete data ask: authorize a PIT universe file (constituents + point-in-time price panel) or
+network access, OR formally close the equity cross-section program. Do NOT fabricate H199, do NOT run a
+98-name or event-panel cross-section, do NOT re-edit `.github/workflows/**`, and do NOT repeat the
+discovery-scan / baseline-verification make-work loops (failed Cycles 96/116/251/257-267).
+
+Baseline re-verified this session (fast checks; docs-only session, full 450s suite NOT re-run):
+`ruff check` clean; `ruff format --check` 390 files clean; `verify_hypothesis_inventory` IN SYNC H198;
+`backtest_perf_regression_gate` PASSED (0.427s); 74 durable-tool tests passed (inventory / gates-patch /
+repair-sidecar / reject-analyzer / probe-coverage / momentum-single-write / reproducibility-audit);
+`git status` clean; HEAD == origin/main == 5139391. Full suite unchanged from Cycle 267:
+4882 passed / 48 skipped / 7 failed (the 7 are the agent-unreachable `tests/test_gates_workflow.py`).
+
 ## AUTHORITATIVE STATUS — Cycle 265 (2026-11-22): real CI-gate measurement (supersedes scattered "next task" notes below)
 
 **Read this block first; everything below it is history.**
@@ -599,3 +640,80 @@ productive work requires ONE of the three maintainer authorizations listed under
 3. Reproducibility artifact cleanup (non-blocking, needs explicit authorization).
 Do NOT re-edit `.github/workflows/**`, do NOT fabricate an H-ID, and do NOT run another 98-name
 equity cross-section or discovery scan.
+
+## Cycle 268 (2026-11-22) — offline-data feasibility assessment (no code change, no new H-ID)
+
+### What changed
+- No source, test, runner, artifact, workflow, or frozen-number change. Documentation only: this
+  `NEXT_TASK.md` (new authoritative Cycle 268 block + this section). Working tree otherwise clean;
+  HEAD == origin/main == 5139391. No new H-ID, no runner, no strategy family, no artifact execution.
+- The `<!-- inventory-high-water-mark: H198 -->` marker is unchanged and IN SYNC
+  (`python scripts/verify_hypothesis_inventory.py` -> H198 == H198).
+
+### Why (materially different approach, per reliability rules)
+The prior ~10 cycles produced baseline re-verification and "needs maintainer authorization" handoffs
+(the make-work loop the controller explicitly flags). Rather than repeat it, this session did a
+concrete, evidence-based feasibility assessment of the *offline data* to decide whether any
+genuinely-distinct mechanism is testable without network — the one question that gates all research.
+
+### New evidence gathered (own measurements this session)
+- **Network:** `query1.finance.yahoo.com/v8/finance/chart/AAPL` -> **HTTP 429** (Yahoo rate-limited).
+  No new market data fetchable.
+- **Offline price cache:** `.cache/data/*.parquet` = **82 series** (61 daily, 21 intraday; 2009–2026).
+  The other 1636 parquet files in the tree are experiment *outputs* (equity curves / grids), not raw data.
+- **S&P 500 event panel:** `.cache/sp500/event_closes.parquet` = **353 tickers × 5507 days (2005–2026)**.
+  Columns are the subset of the **619** S&P 500 add/remove tickers (1976–2026, from
+  `membership_changes.csv`: acquisition 182 / market_cap 147 / spin_off 43 / other 37 / bankruptcy 3 /
+  reorganization 2) that yfinance served -> **353/619**. Only **212/353** have ≥5000-day history. This
+  is an **event-union, not a clean PIT universe** — unusable as a "broader universe" without a
+  "was-ever-an-S&P-500-change-with-yfinance-data" selection caveat.
+- **Fundamentals:** cached XBRL companyfacts cover only the **98-name S&P 100 universe**
+  (`scripts/probe_sec_xbrl_fundamentals.py:UNIVERSE` = 100 minus XOM/BKNG). The 353-name panel is
+  prices-only, so no fundamental cross-section (accruals/value/innovation/distress) is possible on it;
+  price-only cross-sections there are directive-§2 variants.
+- **13F:** `.cache/13f/institutional_ciks.json` is a CIK list only (no holdings) -> no
+  institutional-flow mechanism offline.
+- **Reason-conditioned event study is pre-empted by H198:** acquisition/bankruptcy deletions are
+  delisted-by-construction and excluded; the tradeable market_cap/spin_off/reorg deletions were tested
+  and ARE the short-leg drag (H198 long-only ablation 0.334 > dollar-neutral 0.166). No distinct
+  tradeable reason asymmetry remains.
+
+### Verdict (durable)
+No clean, genuinely-distinct, free-data, offline-feasible, non-variant mechanism remains, and the only
+offline broad panel is confounded. A clean higher-dispersion universe requires **new PIT data that is
+not cached and needs network (429)**. This converts the maintainer's "universe vs close" question into a
+concrete data ask (authorize a PIT universe file or network) rather than a vague authorization request.
+
+### Verification this session (evidence)
+- `python -m ruff check src tests run_*.py scripts` -> All checks passed.
+- `python -m ruff format --check src tests run_*.py scripts` -> 390 files already formatted.
+- `python scripts/verify_hypothesis_inventory.py` -> IN SYNC (H198 == H198).
+- `python scripts/backtest_perf_regression_gate.py` -> PASSED (0.427s, limit 5s).
+- Targeted durable-tool suites -> **74 passed** (`test_verify_hypothesis_inventory`,
+  `test_verify_gates_workflow_patch`, `test_repair_sidecar_schemas`,
+  `test_analyze_equity_cross_section_rejects`, `test_probe_script_coverage`,
+  `test_momentum_runner_single_grid_write`, `test_reproducibility_audit`).
+- Full 450s suite NOT re-run (docs-only change; unchanged from Cycle 267: 4882 passed / 48 skipped /
+  7 failed — the 7 are the agent-unreachable `tests/test_gates_workflow.py`).
+- `git status --short` clean; `git diff --stat` = this file only.
+
+### Approaches not repeated
+- Did NOT re-run the §4 discovery-scan -> exhausted loop (Cycles 96/116/251).
+- Did NOT repeat the baseline-verification make-work loop as the deliverable (Cycles 257-267); the
+  deliverable here is a *new* offline-data feasibility assessment with concrete cache measurements.
+- Did NOT fabricate H199, did NOT run a 98-name or event-panel cross-section, did NOT re-edit
+  `.github/workflows/**`, did NOT do the authorization-gated `experiments.jsonl` hash-mismatch cleanup.
+
+### Precise next task (unchanged bottleneck; now a concrete data ask)
+The agent-executable research track is exhausted and the offline data cannot support a clean
+genuinely-distinct mechanism (evidence above). The next productive work requires ONE of:
+1. **Universe/benchmark decision (research bottleneck).** Authorize a PIT higher-dispersion universe
+   (mid/small-cap or ex-US constituents + a point-in-time price panel) — this needs a data file or
+   network (currently 429) — OR formally close the equity cross-section program. Do NOT treat the
+   353-name event panel as a clean broad universe.
+2. **Workflow contract patch.** Apply `patches/0001-gates-workflow-contract-fix.patch` on origin/main
+   (maintainer-only, workflows-scoped credentials). Do NOT re-edit `.github/workflows/gates.yml`.
+3. **Reproducibility artifact cleanup (non-blocking).** Authorize the `experiments.jsonl` hash-mismatch
+   remediation (11 -> 3; report §2). Do NOT do without explicit authorization (edits the committed record).
+Do NOT re-edit `.github/workflows/**`, do NOT fabricate an H-ID, and do NOT run another cross-section or
+discovery scan.
