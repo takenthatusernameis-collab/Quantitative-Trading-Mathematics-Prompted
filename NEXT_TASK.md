@@ -136,6 +136,17 @@ H198 NOT assigned. Artifact: `.experiments/sp500_price_leg_probe_20261122.md`.
 - No new H-ID, no runner, no artifact beyond the probe note. Inventory marker remains H197.
 - Verified: ruff clean; inventory + gates-patch tests 28 passed.
 
+## Cycle 257 baseline verification (2026-11-22)
+
+Confirmed stable and green (modulo the known agent-unreachable contract failures):
+- Full suite: `python -m pytest -q` → **4794 passed / 51 skipped / 7 failed**. All 7 = `tests/test_gates_workflow.py` (workflow contract; agent-unreachable, maintainer patch in `patches/`). Zero new failures vs. Cycle 256.
+- `python -m ruff check src tests run_*.py scripts` → clean.
+- `python -m ruff format --check src tests run_*.py scripts` → clean (382 files).
+- `python scripts/verify_hypothesis_inventory.py` → **IN SYNC (H197 == H197)**; `tests/test_verify_hypothesis_inventory.py` + `tests/test_verify_gates_workflow_patch.py` → pass.
+- `python scripts/backtest_perf_regression_gate.py` → PASSED (0.413s, limit 5s).
+- `src/qtr` untouched → 100% source/branch coverage gate unaffected.
+- Artifact `.experiments/sp500_price_leg_probe_20261122.md` recorded (removed 55% < 60% → H198 not assigned).
+
 ## Precise next task (Cycle 257+)
 
 Agent-executable research on the 98-name survivorship-biased universe is exhausted (H187–H197 all REJECT; S&P 500 index-membership price leg blocked at 55% removed coverage). Do NOT fabricate H198 or run another 98-name equity cross-section.
