@@ -46,6 +46,9 @@ EXPECTED_INCOMPLETE = frozenset(
         "nf_20261109_26_etf_nav_arbitrage_20261109_234200",
         "nf_20261110_01_treasury_auction_20261110_045905",
         "nf_20261110_01_treasury_auction_20261110_045929",
+        # Cycle 256 probe artifact (coverage.json only): a free-data availability
+        # probe, not a backtest experiment, so it has no summary.json by design.
+        "nf_20261122_03_sp500_membership_priceleg_20261122_073618",
     }
 )
 
@@ -199,7 +202,15 @@ def test_incomplete_runs_match_audit_inventory():
 # collinearity key name distinct from
 # H187/H188/H190/H191/H192/H193/H194/H195/H196, so it adds its own key). The key
 # appears in one of 115 summaries, so the >=50% / >=80% sets are unchanged.
-EXPECTED_TOTAL_DIRS = 123
+#
+# Cycle 256 (2026-11-22) added one top-level directory,
+# `nf_20261122_03_sp500_membership_priceleg_20261122_073618`, a *probe* artifact
+# (coverage.json only, no summary.json) from
+# `scripts/probe_sp500_membership_priceleg.py`. It adds exactly one top-level
+# directory and no summary, so EXPECTED_TOTAL_DIRS increments (123 -> 124) while
+# EXPECTED_SUMMARY_COUNT, the key-frequency sets, and the cache-only count are
+# unchanged.
+EXPECTED_TOTAL_DIRS = 124
 EXPECTED_SUMMARY_COUNT = 115
 EXPECTED_CACHE_ONLY_DIRS = 11
 EXPECTED_DISTINCT_KEYS = 158

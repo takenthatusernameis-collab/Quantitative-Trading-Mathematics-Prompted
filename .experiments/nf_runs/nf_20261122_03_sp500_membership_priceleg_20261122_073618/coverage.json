@@ -1,0 +1,761 @@
+{
+  "probe": "sp500_membership_priceleg",
+  "generated_utc": "2026-11-22T07:36:18.779151+00:00",
+  "changes_url": "https://en.wikipedia.org/wiki/Historical_components_of_the_S%26P_500",
+  "params": {
+    "sample": 40,
+    "min_year": 2005,
+    "window_days": 252
+  },
+  "summary": {
+    "added": {
+      "n_sampled": 40,
+      "n_with_data": 25,
+      "n_covers_event": 25,
+      "frac_with_data": 0.625,
+      "frac_covers_event": 0.625
+    },
+    "removed": {
+      "n_sampled": 40,
+      "n_with_data": 11,
+      "n_covers_event": 10,
+      "frac_with_data": 0.275,
+      "frac_covers_event": 0.25
+    },
+    "overall": {
+      "n_sampled": 80,
+      "n_with_data": 36,
+      "n_covers_event": 35,
+      "frac_with_data": 0.45,
+      "frac_covers_event": 0.4375
+    },
+    "binding_min_leg": 0.275,
+    "status": "PRICE LEG BLOCKED"
+  },
+  "results": {
+    "added": [
+      {
+        "ticker": "STZ",
+        "event_date": "2005-07-01",
+        "rows": 556,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2006-08-07",
+        "first_date": "2004-05-24"
+      },
+      {
+        "ticker": "TDC",
+        "event_date": "2007-10-01",
+        "rows": 280,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2008-11-06",
+        "first_date": "2007-10-01"
+      },
+      {
+        "ticker": "FAST",
+        "event_date": "2008-09-12",
+        "rows": 557,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2009-10-19",
+        "first_date": "2007-08-06"
+      },
+      {
+        "ticker": "ARG",
+        "event_date": "2009-09-28",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "KMX",
+        "event_date": "2010-06-28",
+        "rows": 557,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2011-08-04",
+        "first_date": "2009-05-21"
+      },
+      {
+        "ticker": "MMI",
+        "event_date": "2011-01-03",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "MOS",
+        "event_date": "2011-09-23",
+        "rows": 557,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2012-10-26",
+        "first_date": "2010-08-16"
+      },
+      {
+        "ticker": "WPX",
+        "event_date": "2011-12-31",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "ESV",
+        "event_date": "2012-07-31",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "DLPH",
+        "event_date": "2012-12-21",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "NLSN",
+        "event_date": "2013-07-08",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "FB",
+        "event_date": "2013-12-23",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "XEC",
+        "event_date": "2014-06-20",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "ENDP",
+        "event_date": "2015-01-27",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "QRVO",
+        "event_date": "2015-06-11",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "UAL",
+        "event_date": "2015-09-02",
+        "rows": 556,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2016-10-07",
+        "first_date": "2014-07-28"
+      },
+      {
+        "ticker": "CHD",
+        "event_date": "2015-12-29",
+        "rows": 554,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2017-02-03",
+        "first_date": "2014-11-21"
+      },
+      {
+        "ticker": "HOLX",
+        "event_date": "2016-03-30",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "AJG",
+        "event_date": "2016-05-31",
+        "rows": 556,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2017-07-07",
+        "first_date": "2015-04-24"
+      },
+      {
+        "ticker": "COTY",
+        "event_date": "2016-09-30",
+        "rows": 557,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2017-11-06",
+        "first_date": "2015-08-24"
+      },
+      {
+        "ticker": "SNPS",
+        "event_date": "2017-03-16",
+        "rows": 555,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2018-04-20",
+        "first_date": "2016-02-08"
+      },
+      {
+        "ticker": "ANSS",
+        "event_date": "2017-06-19",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "Q",
+        "event_date": "2017-08-29",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "SIVB",
+        "event_date": "2018-03-19",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "CPRT",
+        "event_date": "2018-07-02",
+        "rows": 555,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2019-08-08",
+        "first_date": "2017-05-25"
+      },
+      {
+        "ticker": "MXIM",
+        "event_date": "2018-12-03",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "DD",
+        "event_date": "2019-06-03",
+        "rows": 555,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2020-07-09",
+        "first_date": "2018-04-26"
+      },
+      {
+        "ticker": "NVR",
+        "event_date": "2019-09-26",
+        "rows": 555,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2020-10-30",
+        "first_date": "2018-08-20"
+      },
+      {
+        "ticker": "IR",
+        "event_date": "2020-03-03",
+        "rows": 556,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2021-04-09",
+        "first_date": "2019-01-25"
+      },
+      {
+        "ticker": "BIO",
+        "event_date": "2020-06-22",
+        "rows": 556,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2021-07-29",
+        "first_date": "2019-05-16"
+      },
+      {
+        "ticker": "MPWR",
+        "event_date": "2021-02-12",
+        "rows": 557,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2022-03-21",
+        "first_date": "2020-01-06"
+      },
+      {
+        "ticker": "TECH",
+        "event_date": "2021-08-30",
+        "rows": 557,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2022-10-06",
+        "first_date": "2020-07-23"
+      },
+      {
+        "ticker": "CEG",
+        "event_date": "2022-02-02",
+        "rows": 287,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2023-03-10",
+        "first_date": "2022-01-19"
+      },
+      {
+        "ticker": "CSGP",
+        "event_date": "2022-09-19",
+        "rows": 556,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2023-10-26",
+        "first_date": "2021-08-12"
+      },
+      {
+        "ticker": "PODD",
+        "event_date": "2023-03-15",
+        "rows": 553,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2024-04-19",
+        "first_date": "2022-02-07"
+      },
+      {
+        "ticker": "LULU",
+        "event_date": "2023-10-18",
+        "rows": 555,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2024-11-22",
+        "first_date": "2022-09-12"
+      },
+      {
+        "ticker": "VST",
+        "event_date": "2024-05-08",
+        "rows": 552,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2025-06-13",
+        "first_date": "2023-04-03"
+      },
+      {
+        "ticker": "LII",
+        "event_date": "2024-12-23",
+        "rows": 551,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2026-01-29",
+        "first_date": "2023-11-16"
+      },
+      {
+        "ticker": "TTD",
+        "event_date": "2025-07-18",
+        "rows": 553,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2026-08-24",
+        "first_date": "2024-06-10"
+      },
+      {
+        "ticker": "ARES",
+        "event_date": "2025-12-11",
+        "rows": 514,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2026-11-20",
+        "first_date": "2024-11-04"
+      }
+    ],
+    "removed": [
+      {
+        "ticker": "GLK",
+        "event_date": "2005-07-01",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "NCR",
+        "event_date": "2007-10-01",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "FNM",
+        "event_date": "2008-09-12",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "CBE",
+        "event_date": "2009-09-28",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "XTO",
+        "event_date": "2010-06-28",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "MDP",
+        "event_date": "2011-01-03",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "NSM",
+        "event_date": "2011-09-23",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "CPWR",
+        "event_date": "2011-12-31",
+        "rows": 553,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2013-02-05",
+        "first_date": "2010-11-23"
+      },
+      {
+        "ticker": "GR",
+        "event_date": "2012-07-31",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "TIE",
+        "event_date": "2012-12-21",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "S",
+        "event_date": "2013-07-08",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "TER",
+        "event_date": "2013-12-23",
+        "rows": 554,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2015-01-29",
+        "first_date": "2012-11-15"
+      },
+      {
+        "ticker": "FRX",
+        "event_date": "2014-07-01",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "PETM",
+        "event_date": "2015-03-12",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "TEG",
+        "event_date": "2015-07-01",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "HCBK",
+        "event_date": "2015-11-02",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "PCP",
+        "event_date": "2016-02-01",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "ADT",
+        "event_date": "2016-05-03",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "CPGX",
+        "event_date": "2016-07-05",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "SE",
+        "event_date": "2017-02-28",
+        "rows": 115,
+        "has_data": true,
+        "covers_event": false,
+        "last_date": "2018-04-06",
+        "first_date": "2017-10-20"
+      },
+      {
+        "ticker": "DNB",
+        "event_date": "2017-04-05",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "RAI",
+        "event_date": "2017-07-26",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "Q",
+        "event_date": "2017-11-15",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "MON",
+        "event_date": "2018-06-07",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "CA",
+        "event_date": "2018-11-06",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "GT",
+        "event_date": "2019-02-27",
+        "rows": 555,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2020-04-03",
+        "first_date": "2018-01-22"
+      },
+      {
+        "ticker": "RHT",
+        "event_date": "2019-07-15",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "MAC",
+        "event_date": "2019-12-23",
+        "rows": 553,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2021-01-28",
+        "first_date": "2018-11-15"
+      },
+      {
+        "ticker": "CPRI",
+        "event_date": "2020-05-12",
+        "rows": 556,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2021-06-18",
+        "first_date": "2019-04-05"
+      },
+      {
+        "ticker": "NBL",
+        "event_date": "2020-10-12",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "VAR",
+        "event_date": "2021-04-20",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "LEG",
+        "event_date": "2021-12-20",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "DISCA",
+        "event_date": "2022-04-11",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "NLSN",
+        "event_date": "2022-10-12",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "FRC",
+        "event_date": "2023-05-04",
+        "rows": 0,
+        "has_data": false,
+        "covers_event": false,
+        "last_date": null,
+        "first_date": null
+      },
+      {
+        "ticker": "SEDG",
+        "event_date": "2023-12-18",
+        "rows": 551,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2025-01-23",
+        "first_date": "2022-11-10"
+      },
+      {
+        "ticker": "RHI",
+        "event_date": "2024-06-24",
+        "rows": 552,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2025-07-31",
+        "first_date": "2023-05-18"
+      },
+      {
+        "ticker": "FMC",
+        "event_date": "2025-03-24",
+        "rows": 553,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2026-04-30",
+        "first_date": "2024-02-15"
+      },
+      {
+        "ticker": "MKTX",
+        "event_date": "2025-09-22",
+        "rows": 554,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2026-10-29",
+        "first_date": "2024-08-15"
+      },
+      {
+        "ticker": "SOLS",
+        "event_date": "2025-12-22",
+        "rows": 275,
+        "has_data": true,
+        "covers_event": true,
+        "last_date": "2026-11-20",
+        "first_date": "2025-10-20"
+      }
+    ]
+  }
+}

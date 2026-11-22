@@ -2300,3 +2300,57 @@ runners, artifacts, gates, coverage, and thresholds unchanged.
 In-tree `.github/workflows/gates.yml` edits remain agent-unreachable.
 
 **Cycle 255 complete.** No new H-ID; inventory invariant enforced; `src/qtr` unchanged.
+
+## Cycle 256 (2026-11-22) — S&P 500 index-membership price-leg probe: PRICE LEG BLOCKED (H198 not assigned)
+
+**Trigger.** Cycle 255 deferred exactly one bounded, pre-authorized agent task: probe the *price leg*
+of the deferred S&P 500 index inclusion/deletion mechanism (NF-18 / NF-20261109-18). Cycle 255 had
+refuted the "external calendar" blocker (free PIT event data exists on Wikipedia "Historical
+components of the S&P 500") and explicitly left the price leg unprobed *because the sandbox Python
+had no direct network*. This cycle the sandbox **does** have direct network, so the deferred probe
+was executed rather than re-declaring the mechanism blocked.
+
+**Probe (durable, free, read-only).** New `scripts/probe_sp500_membership_priceleg.py` (stdlib +
+pandas + yfinance; no `src/qtr` change) fetches the free PIT changes table, classifies each
+addition/removal and its reason (acquisition / bankruptcy / market-cap / spin-off / other), samples a
+deterministic, date-spread set of added and removed tickers, and measures yfinance price coverage
+over a +/-252-trading-day window around each effective date. Coverage artifact:
+`.experiments/nf_runs/nf_20261122_03_sp500_membership_priceleg_20261122_073618/coverage.json`.
+
+**Result (40 sampled events/class, 2005+ effective dates; authoritative run).**
+- Added (long leg): 25/40 with data = **62.5%**.
+- Removed (short leg): 11/40 with data = **27.5%** — because **21/40 removals are acquisitions**
+  (delisted → yfinance returns no series: e.g. MON, CELG, ATVI, TWTR, XLNX, NBL, VAR, RHT, FRC,
+  DISCA, NLSN, HCBK, PETM, PCP, RAI, ...).
+- Overall (both legs): 36/80 = **45.0%**.
+- A long/short event study needs **both** legs; the binding (weaker) leg governs, so feasibility is
+  governed by the **27.5% removed-leg coverage** (well below the 60% threshold).
+
+**Verdict: PRICE LEG BLOCKED → H198 NOT assigned.** The mechanism cannot be executed on free data:
+the deletion/short leg is dominated by delisted acquired names with no yfinance price history. The
+added-leg "misses" are a mix of recoverable ticker renames (FB→META) and genuine subsequent
+delistings (ENDP bankruptcy, NLSN, MXIM/ADI, SIVB collapse, XEC→Coterra, ANSS→Synopsys, QRVO), so
+even the long leg's 62.5% overstates what a tradable, point-in-time, survivorship-free price panel
+would deliver. No H198 was fabricated; the spec/AGENTS.md high-water mark stays **H197**.
+
+**Why this is durable, not a re-litigation.** Directive §6 forbids declaring a mechanism data-blocked
+without probing the named source. The calendar half was probed free in Cycle 255; the price half is
+now probed free in Cycle 256 with a reproducible artifact and a committed probe script + 17-test
+suite. The "low frequency + external calendar + delisted names" deferral is now fully evidenced on
+both legs: **event-data-feasible, price-data-blocked on free feeds.**
+
+**Verification this session.** New suite `tests/test_probe_sp500_membership_priceleg.py` → **17
+passed** (offline; network stubbed). Full suite `python -m pytest -q` → **4794 passed / 51 skipped /
+7 failed** — the 7 are the unchanged, pre-existing, agent-unreachable `tests/test_gates_workflow.py`
+failures (fix via `patches/0001-gates-workflow-contract-fix.patch`, never an in-tree workflow edit).
+`ruff check` + `ruff format --check` clean on the new script + test. `scripts/verify_hypothesis_inventory.py`
+→ **IN SYNC (H197 == H197)**. `scripts/backtest_perf_regression_gate.py` → **PASSED** (0.412s).
+Artifact-audit test `tests/test_experiment_artifact_schema.py` bumped by +1 top-level dir (the probe
+artifact, coverage.json only, no summary.json) and the incomplete-run set annotated. `src/qtr`,
+runners, gates, thresholds, frozen numbers, and all prior experiment artifacts unchanged.
+
+**Approaches already tried / do not repeat.** Re-declaring NF-18 "data-blocked on external calendar"
+(Cycle 255 already refuted the calendar half). Running a 12th 98-name equity cross-section (H187–H197
+all REJECT). In-tree `.github/workflows/gates.yml` edits remain agent-unreachable.
+
+**Cycle 256 complete.** No new H-ID; price leg probed free and found blocked; `src/qtr` unchanged.
