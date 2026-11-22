@@ -122,3 +122,9 @@ This session modified `scripts/verify_hypothesis_inventory.py` (new),
 `tests/test_verify_hypothesis_inventory.py` (new), `AGENTS.md` (marker + stale-claim fix),
 `NEW_FAMILY_RESEARCH_REGISTER.md` (Cycle 255), and this `NEXT_TASK.md`. The maintainer workflow patch
 (item 1) is a separate maintainer action on `origin/main`.
+## Cycle 256 price-leg probe result (2026-11-22)
+
+Price leg probed via yfinance on 20 removed + 20 added S&P 500 tickers sampled from the Wikipedia
+historical-components table. Removed coverage 11/20 = 55% (<60% threshold); added 17/20 = 85%.
+Delisted removed names (M&A/bankruptcy deletions) dominate failures. Price leg remains a data blocker;
+H198 NOT assigned. Artifact: `.experiments/sp500_price_leg_probe_20261122.md`.
