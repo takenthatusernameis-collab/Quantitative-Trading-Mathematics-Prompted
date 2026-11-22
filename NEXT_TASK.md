@@ -241,3 +241,45 @@ FRED gap is now closed) is to add a test for `scripts/repair_sidecar_schemas.py`
 experiments directory (it reads `.experiments/experiments.jsonl` and rewrites only disagreeing
 `.meta.json` sidecars; assert idempotency and that matching sidecars are left untouched). Otherwise,
 the next productive work requires the maintainer authorization in "Unresolved" above.
+
+## Cycle 260 (2026-11-22) — repair-sidecar schema test added
+
+### What changed
+- New `tests/test_repair_sidecar_schemas.py` (8 tests, fully offline) covering `scripts/repair_sidecar_schemas.py`:
+  mismatching parquet sidecar repaired (datetime-resolution), matching parquet sidecar left untouched,
+  JSON sidecar key-order repaired, superseded hash-mismatch artifact skipped, missing artifact file
+  skipped, missing sidecar skipped, non-parquet/non-json suffix skipped, idempotent second run repairs
+  nothing, and `main()` output counts checked/repaired.
+- `NEXT_TASK.md` updated with this Cycle 260 record.
+
+### What was verified
+- `tests/test_repair_sidecar_schemas.py` → 8 passed.
+- `ruff check` + `ruff format --check` on the new file + `scripts/repair_sidecar_schemas.py` → clean.
+- `python scripts/verify_hypothesis_inventory.py` → IN SYNC (H197 == H197).
+- `python scripts/backtest_perf_regression_gate.py` → PASSED (0.418s, limit 5s).
+- Full suite `python -m pytest -q` → 4830 passed / 51 skipped / 7 failed. All 7 are the pre-existing,
+  agent-unreachable `tests/test_gates_workflow.py` failures (unpatched `.github/workflows/gates.yml`;
+  maintainer patch in `patches/0001-gates-workflow-contract-fix.patch`). Baseline was 4822 passed;
+  +8 from the new suite.
+- `src/qtr`, tests, runners, artifacts, gates, frozen numbers, and workflows untouched. No new H-ID,
+  no runner, no strategy family. Inventory marker remains H197.
+- Working tree otherwise clean; only `tests/test_repair_sidecar_schemas.py` is untracked (left
+  uncommitted per repo policy — commit only on explicit request).
+
+### Unresolved (maintainer / authorization only, out of agent scope)
+1. **Universe/benchmark decision.** Authorize a higher-dispersion universe (mid/small-cap or ex-US PIT)
+   OR formally close the equity cross-section program. This is the actual research bottleneck.
+2. **Workflow contract patch.** Apply `patches/0001-gates-workflow-contract-fix.patch` on `origin/main`
+   (maintainer-only, workflows-scoped credentials). Do NOT re-edit `.github/workflows/gates.yml` in a
+   commit — it is restored from `origin/main`.
+3. **Reproducibility artifact cleanup (non-blocking).** Optional, needs explicit authorization.
+
+### Precise next task
+The agent-executable research track is exhausted (H187–H197 REJECT; S&P 500 price leg blocked at 55%
+removed coverage; repair-sidecar test now complete). Do NOT fabricate H198, do NOT run another
+98-name equity cross-section, do NOT re-edit `.github/workflows/**`, and do NOT repeat the
+"discovery scan → exhausted" approach (failed Cycles 96/116/251).
+
+No bounded agent-executable task remains. The next productive work requires one of the maintainer
+authorizations above (universe decision, workflow patch, or reproducibility cleanup). Until then, this
+session is at a stable, verified baseline.
