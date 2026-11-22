@@ -1,6 +1,57 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 271 (2026-11-22): genuine-distinct-mechanism lineage search on the broad universe; no feasible H199 this session
+## AUTHORITATIVE STATUS — Cycle 272 (2026-11-22): the Cycle 271 "PIT-shares not bounded" blocker is refuted; H199 is now data-feasible
+
+**Read this block first; everything below it (Cycle 271 and earlier) is history.**
+
+### What changed
+- New `scripts/probe_broad_universe_shares_availability.py` (free-data availability probe; injectable `fetch_fn`, real `User-Agent`, transient-empty retry, writes only to gitignored `.cache/` so the pinned `.experiments/nf_runs` schema guard is untouched).
+- New `tests/test_probe_broad_universe_shares_availability.py` (**22 offline tests**; satisfies the `test_probe_script_coverage.py` invariant that every `probe_*.py` has a test).
+- `AGENTS.md`: durable Cycle 272 correction to the Cycle 271 lineage bullet (marker `H198` unchanged; no H-ID executed).
+- This `NEXT_TASK.md`: this block.
+- **No** `src/qtr`, runner, artifact (under `.experiments`), gate, frozen-number, workflow, or H-ID change. Inventory still **H198** (`python scripts/verify_hypothesis_inventory.py` → IN SYNC H198 == H198).
+
+### Why this is a materially different approach (reliability §2)
+Cycles 257–271 (~15 cycles) re-verified a "blocked" baseline. Cycle 271 named one decisive blocker: the size premium is the only genuinely-distinct repo-new mechanism, but "PIT shares for ~1502 names is a large, slow, rate-limited SEC XBRL fetch — not bounded." That premise is **false**. The SEC **`frames`** API returns *every* reporting entity's value for one concept/period in a single request, so N quarters of PIT shares for the whole universe costs **N requests**, not a per-CIK crawl. This session *measured* it rather than re-asserting the blocker.
+
+### Evidence (live probe, 2026-11-22)
+```
+python scripts/probe_broad_universe_shares_availability.py --write-artifact
+```
+- Universe: S&P 500 (503) + S&P 400 (400) + S&P 600 (603) = **1502 unique tickers**; 1492 mapped to a CIK.
+- Fetch: **12 requests** (CY2023Q4I → CY2026Q3I), **49761 entity-observations**, ~0.2 s/request.
+- Coverage: **1348/1502 = 89.7%** have a shares series; **1334/1502 = 88.8%** reach **≥4 quarters** depth; median **11 quarters/name**; 10 names without a CIK.
+- Verdict: **REACHABLE** at the documented 80% feasibility bar (a size cross-section trades only covered names; 80% of ~1500 names is >1000 tradeable names spanning small/mid/large cap).
+- Artifact: `.cache/broad_universe_shares_availability.json` (gitignored).
+
+### Verification this session (evidence)
+- `python -m pytest -q -W error tests/test_probe_broad_universe_shares_availability.py tests/test_probe_script_coverage.py` → **22 passed** (offline, no network).
+- `python -m ruff check src tests run_*.py scripts` → All checks passed.
+- `python -m ruff format --check src tests run_*.py scripts` → 394 files already formatted.
+- `python scripts/verify_hypothesis_inventory.py` → **IN SYNC (H198 == H198)**.
+- `python scripts/backtest_perf_regression_gate.py` → **PASSED** (0.422s, limit 5s).
+- `git status --short` → only the two new files untracked; `.cache/` artifact gitignored; tracked tree clean.
+- `src/qtr` untouched → 100% coverage gate unaffected; artifact-schema guard untouched (no `.experiments` writes).
+
+### Approaches not repeated (per reliability rules)
+- Did NOT fabricate H199 or pre-register a size runner (execution is the next cycle's bounded task).
+- Did NOT run another equity cross-section or discovery scan (failed Cycles 96/116/251).
+- Did NOT re-edit `.github/workflows/**`.
+- Did NOT merely re-verify the baseline (the materially different approach = the SEC frames API).
+
+### Precise next task (one bounded research task, now feasible)
+**Pre-register and execute H199 — the market-cap size premium on the broad S&P 500/400/600 universe.** Concretely:
+1. **Pre-register H199** in `HYPOTHESIS_SPEC.md` (bump the `AGENTS.md` marker + spec together — `scripts/verify_hypothesis_inventory.py` enforces this): mechanism = small-minus-big market-cap sort; PIT market cap = `dei:EntityCommonStockSharesOutstanding` (SEC frames, conservative ≥1-quarter lag from the instant quarter) × calendar-aligned ffilled close; long small / short big, monthly rebalance; standard 8 gates; ablations incl. passive equal-weight book.
+2. **Implement `run_nf_<date>_size_premium.py`** reusing the engine + `h184`/`h187` primitives (as `run_nf_20261122_03_sp500_membership_event_drift.py` does) + the standard 8 gates. Reuse `probe_broad_universe_shares_availability.load_ticker_cik_map` / `fetch_frames` / `build_shares_panel` for PIT shares.
+3. **Execute.** The remaining practical cost is the **price leg**: ~1500 names × multi-year daily closes via yfinance is the real runtime (rate-limited). Mirror H198's `load_event_closes` resumable `--download-only` cache pattern (`.cache/` parquet) so the download is resumable and the backtest reads a cached panel. Then run with the standard 8 gates and record the verdict.
+
+### Unresolved (unchanged; maintainer/authorization only, out of agent scope)
+1. **Workflow contract patch.** Apply `patches/0001-gates-workflow-contract-fix.patch` on `origin/main` (maintainer-only, workflows-scoped credentials; 7 `tests/test_gates_workflow.py` failures). Do NOT re-edit `.github/workflows/gates.yml` in a commit.
+2. **Reproducibility artifact cleanup (non-blocking).** Optional; needs explicit authorization.
+
+---
+
+## AUTHORITATIVE STATUS — Cycle 271 (2026-11-22): genuine-distinct-mechanism lineage search on the broad universe; no feasible H199 this session (SUPERSEDED by Cycle 272 above)
 
 **Read this block first; everything below it (Cycle 270 and earlier) is history.**
 
