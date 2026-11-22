@@ -244,6 +244,30 @@ def test_probe_ticker_does_not_cover_event_when_series_misses_date():
     assert row["covers_event"] is False
 
 
+def test_probe_ticker_records_reason_bucket():
+    """The per-ticker result carries ``reason_bucket`` (default ``None``).
+
+    Recording *why* a name has no usable series (e.g. acquisition -> delisted at
+    the event) is what lets the coverage artifact be self-documenting instead of
+    leaving a future reader to guess why the removed leg is missing.
+    """
+    module = _load_script()
+    event = dt.date(2010, 6, 1)
+
+    def fake_download(ticker, **kwargs):
+        return _window_price_frame(**kwargs)
+
+    row = module._probe_ticker(
+        "TEST", event, window_days=252, download_fn=fake_download, reason_bucket="acquisition"
+    )
+    assert row["reason_bucket"] == "acquisition"
+
+    # Omitting it (the legacy call form) yields an explicit ``None``, not a KeyError.
+    row2 = module._probe_ticker("TEST", event, window_days=252, download_fn=fake_download)
+    assert "reason_bucket" in row2
+    assert row2["reason_bucket"] is None
+
+
 # --------------------------------------------------------------------------- #
 # Integration (offline): full main() with stubbed fetch + download
 # --------------------------------------------------------------------------- #

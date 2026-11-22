@@ -132,13 +132,26 @@ def classify_reason(reason: object) -> str:
     return "other"
 
 
-def _probe_ticker(ticker: str, event_date: dt.date, window_days: int, download_fn) -> dict:
-    """Request a price series for one ticker and measure coverage around the event."""
+def _probe_ticker(
+    ticker: str,
+    event_date: dt.date,
+    window_days: int,
+    download_fn,
+    reason_bucket: str | None = None,
+) -> dict:
+    """Request a price series for one ticker and measure coverage around the event.
+
+    ``reason_bucket`` (acquisition / bankruptcy / market_cap / spin_off /
+    reorganization / other) is carried through to the per-ticker result so the
+    written artifact records *why* a name has no usable series (e.g. an
+    acquired name that is delisted at the event), not merely that it is missing.
+    """
     start = event_date - dt.timedelta(days=int(window_days * 1.6))
     end = event_date + dt.timedelta(days=int(window_days * 1.6))
     row: dict = {
         "ticker": ticker,
         "event_date": event_date.isoformat(),
+        "reason_bucket": reason_bucket,
         "rows": 0,
         "has_data": False,
         "covers_event": False,
@@ -247,7 +260,13 @@ def main(argv: list[str] | None = None, download_fn=None) -> int:
     for label in ("added", "removed"):
         for ev in samples[label]:
             results[label].append(
-                _probe_ticker(ev["ticker"], ev["event_date"], args.window_days, download)
+                _probe_ticker(
+                    ev["ticker"],
+                    ev["event_date"],
+                    args.window_days,
+                    download,
+                    reason_bucket=ev.get("reason_bucket"),
+                )
             )
 
     def _summarize(rows: list[dict]) -> dict:
@@ -307,6 +326,9 @@ def main(argv: list[str] | None = None, download_fn=None) -> int:
         summ["overall"] = overall
         summ["binding_min_leg"] = binding
         summ["status"] = status
+        # Record why the short (removed) leg fails so the artifact is
+        # self-documenting without re-reading the changes table.
+        summ["removed_reason_buckets"] = removed_reasons
         _write_artifact(frame, summ, results, args)
 
     return 0 if status == "PRICE LEG FEASIBLE" else 1
