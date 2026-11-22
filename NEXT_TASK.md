@@ -430,9 +430,23 @@ frozenset and `EXPECTED_TOTAL_DIRS` pin only covered the first run (07:36:18), s
 - Working tree: 1 file modified (`tests/test_experiment_artifact_schema.py`).
   Left uncommitted per repo policy — commit only on explicit request.
 
-### Precise next task (Cycle 263+)
+### Cycle 264 baseline verification (2026-11-22)
 
-Same as Cycle 262: the agent-executable research track is exhausted. No bounded agent-executable
+Confirmed stable and green (modulo the known agent-unreachable contract failures):
+- `pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged; all due to unpatched
+  `.github/workflows/gates.yml`; agent-unreachable, maintainer patch in `patches/`).
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly.
+- `python -m ruff check src tests run_*.py scripts` → **All checks passed**.
+- `python -m ruff format --check src tests run_*.py scripts` → **388 files already formatted**.
+- `python scripts/verify_hypothesis_inventory.py` → **IN SYNC (H197 == H197)**.
+- `python scripts/backtest_perf_regression_gate.py` → **PASSED** (0.418s, limit 5s).
+- Working tree clean; `git status --short` empty; HEAD == origin/main.
+- No `src/qtr`, test, runner, artifact, hash, frozen-number, or workflow change this session.
+  No new H-ID, no runner, no research execution.
+
+## Precise next task (Cycle 264+)
+
+Same as Cycle 263: the agent-executable research track is exhausted. No bounded agent-executable
 research task remains without one of the three maintainer authorizations above (universe decision,
 workflow contract patch, reproducibility cleanup). Do NOT fabricate H198, do NOT run another
 98-name equity cross-section, do NOT re-edit `.github/workflows/**`, and do NOT repeat the
