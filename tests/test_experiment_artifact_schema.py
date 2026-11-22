@@ -50,8 +50,10 @@ EXPECTED_INCOMPLETE = frozenset(
         # probes, not backtest experiments, so they have no summary.json by design.
         # First run (Cycle 256, 07:36:18) and second run (Cycle 256, 14:29:22)
         # both lack summary.json and remain incomplete by design.
+        # Third run (Cycle 265, 18:01:03) likewise.
         "nf_20261122_03_sp500_membership_priceleg_20261122_073618",
         "nf_20261122_03_sp500_membership_priceleg_20261122_142922",
+        "nf_20261122_03_sp500_membership_priceleg_20261122_180103",
     }
 )
 
@@ -210,12 +212,15 @@ def test_incomplete_runs_match_audit_inventory():
 # `nf_20261122_03_sp500_membership_priceleg_20261122_073618` and
 # `nf_20261122_03_sp500_membership_priceleg_20261122_142922`, each a *probe*
 # artifact (coverage.json only, no summary.json) from
-# `scripts/probe_sp500_membership_priceleg.py`. Each adds exactly one top-level
-# directory and no summary, so EXPECTED_TOTAL_DIRS increments (123 -> 125) while
-# EXPECTED_SUMMARY_COUNT, the key-frequency sets, and the cache-only count are
-# unchanged.
-EXPECTED_TOTAL_DIRS = 125
-EXPECTED_SUMMARY_COUNT = 115
+# `scripts/probe_sp500_membership_priceleg.py`. Cycle 265 added a third probe
+# directory (`..._180103`) and one complete H198 experiment directory
+# (`nf_20261122_03_sp500_membership_event_drift_20261122_181520`) carrying a
+# summary.json. The two probes add directories only, while the H198 run adds one
+# directory and one summary, so EXPECTED_TOTAL_DIRS increments (125 -> 127) and
+# EXPECTED_SUMMARY_COUNT increments (115 -> 116); the key-frequency sets and the
+# cache-only count are unchanged.
+EXPECTED_TOTAL_DIRS = 127
+EXPECTED_SUMMARY_COUNT = 116
 EXPECTED_CACHE_ONLY_DIRS = 11
 EXPECTED_DISTINCT_KEYS = 158
 EXPECTED_KEYS_GE_50_PCT = frozenset(

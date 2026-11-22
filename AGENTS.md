@@ -1,12 +1,12 @@
 # AGENTS.md
 
-<!-- inventory-high-water-mark: H197 -->
+<!-- inventory-high-water-mark: H198 -->
 **Current hypothesis inventory (authoritative; kept in sync with `HYPOTHESIS_SPEC.md` by
 `scripts/verify_hypothesis_inventory.py`, tested by `tests/test_verify_hypothesis_inventory.py`):**
-H1–H197 exhausted/rejected; H189 data-blocked. Latest executed: H197 capital-structure /
-financial-distress cross-section REJECT 1/8 (Cycle 253, artifact
-`.experiments/nf_runs/nf_20261122_02_financial_distress_20261122_033354/`). Next unused
-H-ID: H198. When you execute a new hypothesis, bump the marker above and the spec together.
+H1–H198 exhausted/rejected; H189 data-blocked. Latest executed: H198 S&P 500 index-membership /
+inclusion/deletion event drift REJECT 1/8 (Cycle 265, artifact
+`.experiments/nf_runs/nf_20261122_03_sp500_membership_event_drift_20261122_181520/`). Next unused
+H-ID: H199. When you execute a new hypothesis, bump the marker above and the spec together.
 
 ## Quick start
 ```bash

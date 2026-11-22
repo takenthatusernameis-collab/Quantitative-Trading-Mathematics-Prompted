@@ -420,7 +420,8 @@ def test_artifact_has_data_meta_with_coverage():
     )
     if not metas:
         pytest.skip("H198 data_meta artifact not yet generated")
-    meta = json.load(open(max(metas)))
+    with open(max(metas)) as fh:
+        meta = json.load(fh)
     assert meta["event_source"].startswith("Wikipedia")
     assert meta["price_source"].startswith("yfinance")
     assert meta["n_events"] >= mod.MIN_EVENTS
