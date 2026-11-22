@@ -289,7 +289,7 @@ def test_main_offline_integration_blocks_on_removed_leg(capsys, monkeypatch):
             return _price_frame(300, start="2009-01-01")
         return pd.DataFrame()
 
-    rc = module.main(["--sample", "10"], download_fn=fake_download)
+    rc = module.main(["--sample", "10", "--throttle", "0"], download_fn=fake_download)
     out = capsys.readouterr().out
     assert "PRICE LEG BLOCKED" in out
     assert rc == 1
@@ -311,7 +311,122 @@ def test_main_offline_integration_feasible(capsys, monkeypatch):
     def fake_download(ticker, **kwargs):
         return _price_frame(300, start="2009-01-01")
 
-    rc = module.main(["--sample", "10"], download_fn=fake_download)
+    rc = module.main(["--sample", "10", "--throttle", "0"], download_fn=fake_download)
     out = capsys.readouterr().out
     assert "PRICE LEG FEASIBLE" in out
     assert rc == 0
+
+
+# --------------------------------------------------------------------------- #
+# Cycle 263: tradeable-leg stratification + transient-retry
+# --------------------------------------------------------------------------- #
+
+
+def test_removed_leg_stratifies_tradeable_vs_delisted(capsys, monkeypatch):
+    """Only the *tradeable* removed leg gates feasibility.
+
+    The synthetic table removes KVUE (acquisition -> delisted) and CTVA
+    (market_cap -> still trading).  If added + CTVA have data but KVUE does
+    not, the price leg is FEASIBLE: the untradeable acquisition deletion is not
+    a tradable short candidate and must not block the study.
+    """
+    module = _load_script()
+    monkeypatch.setattr(
+        module,
+        "fetch_changes_table",
+        lambda: _frame_from_html(_synthetic_changes_html()),
+    )
+
+    def fake_download(ticker, **kwargs):
+        # KVUE (acquisition) is delisted -> empty; everything else has data.
+        if ticker == "KVUE":
+            return pd.DataFrame()
+        return _price_frame(300, start="2009-01-01")
+
+    rc = module.main(["--sample", "10", "--throttle", "0"], download_fn=fake_download)
+    out = capsys.readouterr().out
+    assert "removed(tradeable)" in out
+    assert "removed(delisted)" in out
+    assert "PRICE LEG FEASIBLE" in out
+    assert rc == 0
+
+
+def test_transient_empty_then_data_counts_as_covered():
+    """An empty frame on early attempts that resolves to data -> has_data True.
+
+    This is the exact defect that made the old probe report live tickers as
+    "delisted": a single-attempt empty was treated as no data.  With retry, the
+    recovered series is correctly counted and the transient failure is recorded.
+    """
+    module = _load_script()
+    event = dt.date(2010, 6, 1)
+    calls = {"n": 0}
+
+    def flaky_download(ticker, **kwargs):
+        calls["n"] += 1
+        if calls["n"] < 3:
+            return pd.DataFrame()
+        return _window_price_frame(**kwargs)
+
+    row = module._probe_ticker(
+        "FLAKY", event, window_days=252, download_fn=flaky_download, throttle_s=0
+    )
+    assert row["has_data"] is True
+    assert row["covers_event"] is True
+    assert row["attempts"] == 3
+    assert row["transient_failures"] == 2
+
+
+def test_persistent_empty_returns_no_data_after_retries():
+    module = _load_script()
+    event = dt.date(2010, 6, 1)
+
+    def empty_download(ticker, **kwargs):
+        return pd.DataFrame()
+
+    row = module._probe_ticker(
+        "DEAD", event, window_days=252, download_fn=empty_download, throttle_s=0
+    )
+    assert row["has_data"] is False
+    assert row["covers_event"] is False
+    assert row["attempts"] == 3
+    # Every attempt was empty (no exception) -> transient_failures counts empties.
+    assert row["transient_failures"] == 2
+
+
+def test_transient_exception_then_success():
+    module = _load_script()
+    event = dt.date(2010, 6, 1)
+    calls = {"n": 0}
+
+    def flaky_raise(ticker, **kwargs):
+        calls["n"] += 1
+        if calls["n"] < 2:
+            raise RuntimeError("429 rate limited")
+        return _window_price_frame(**kwargs)
+
+    row = module._probe_ticker(
+        "FLAKY", event, window_days=252, download_fn=flaky_raise, throttle_s=0
+    )
+    assert row["has_data"] is True
+    assert row["transient_failures"] == 1
+    assert row["attempts"] == 2
+
+
+def test_sample_events_stratifies_removed_by_reason():
+    """`_sample_events` carries the reason bucket so the summary can split the
+    removed leg into tradeable vs delisted populations."""
+    module = _load_script()
+    frame = pd.DataFrame(
+        {
+            "effective_date": pd.to_datetime(["2015-01-01", "2016-01-01", "2017-01-01"]),
+            "added_ticker": ["A1", "A2", "A3"],
+            "removed_ticker": ["ACQ", "MC", "BANK"],
+            "reason": ["Acquired by X", "Market cap changes", "Bankruptcy filing"],
+        }
+    )
+    samples = module._sample_events(frame, per_class=10, min_year=2005)
+    buckets = {e["ticker"]: e["reason_bucket"] for e in samples["removed"]}
+    assert buckets["ACQ"] == "acquisition"
+    assert buckets["MC"] == "market_cap"
+    assert buckets["BANK"] == "bankruptcy"

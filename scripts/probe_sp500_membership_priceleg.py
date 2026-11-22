@@ -29,6 +29,36 @@ Design
 4. Report coverage fractions per class so a discovery cycle can *verify* the
    price-leg feasibility claim instead of assuming it.
 
+Removed-leg stratification (Cycle 263 correction)
+-------------------------------------------------
+The removed class mixes two economically distinct populations, and the earlier
+single-number "removed coverage" conflated them:
+
+* **acquisition / bankruptcy** deletions: the name is *delisted at the event*.
+  It has no post-event price *by construction* and is not a tradable index-drift
+  short candidate.  Requiring a price series for it is a category error.
+* **market_cap / spin_off / reorganization / other** deletions: the name keeps
+  trading after removal.  These are the genuine tradable short leg of a
+  long/short index-membership event study (population evidence: market_cap alone
+  is 147/386 US removals since 1990; 141/371 since 2005).
+
+The binding feasibility constraint is therefore `min(added, tradeable-removed)`,
+not `min(added, all-removed)`.  The untradeable (delisted) deletions are still
+sampled and reported, but do not gate feasibility.
+
+Transient-failure retry
+-----------------------
+Free quote APIs (yfinance) return empty frames for *live* tickers when a batch
+of requests is fired in a tight loop -- a transient rate-limit/connection
+failure, not a delisting.  Recording such an empty as "no data" silently
+inflates the apparent delisting rate and was the root cause of the unreliable
+"price leg blocked at 55% removed coverage" claim (Cycles 256-262: live tickers
+M, CMA, ENPH, DXC, WTW all returned 0 rows in bulk but hundreds in isolation).
+Each request is retried up to ``--max-attempts`` times with a linear
+``--throttle`` backoff; the artifact records ``attempts`` and
+``transient_failures`` so "delisted / genuinely empty" is distinguishable from
+"recovered after a transient failure".
+
 It is read-only: it downloads to memory, writes no cache, and touches no
 experiment artifact. The only disk output is an optional JSON coverage
 artifact under ``.experiments/`` when ``--write-artifact`` is passed, so the
@@ -38,11 +68,12 @@ Usage
 -----
     python scripts/probe_sp500_membership_priceleg.py                # full probe
     python scripts/probe_sp500_membership_priceleg.py --sample 12    # smaller sample
+    python scripts/probe_sp500_membership_priceleg.py --max-attempts 4 --throttle 1.0
     python scripts/probe_sp500_membership_priceleg.py --write-artifact
 
-Exit code is non-zero if neither the added nor the removed class yields a
-tradable price series for a majority of the sampled events, so the probe cannot
-silently pass while the price leg is actually unavailable.
+Exit code is non-zero if either *tradeable* leg (added or tradeable-removed)
+yields a price series for a majority of the sampled events, so the probe cannot
+silently pass while the tradable price leg is actually unavailable.
 """
 
 from __future__ import annotations
@@ -52,6 +83,7 @@ import datetime as dt
 import io
 import json
 import sys
+import time
 import urllib.request
 from pathlib import Path
 
@@ -138,6 +170,8 @@ def _probe_ticker(
     window_days: int,
     download_fn,
     reason_bucket: str | None = None,
+    max_attempts: int = 3,
+    throttle_s: float = 0.5,
 ) -> dict:
     """Request a price series for one ticker and measure coverage around the event.
 
@@ -145,6 +179,19 @@ def _probe_ticker(
     reorganization / other) is carried through to the per-ticker result so the
     written artifact records *why* a name has no usable series (e.g. an
     acquired name that is delisted at the event), not merely that it is missing.
+
+    Free quote APIs (yfinance in particular) return empty frames for *live*
+    tickers when a batch of requests is fired in a tight loop -- a transient
+    rate-limit / connection failure, not a delisting.  Recording such an empty
+    as "no data" silently inflates the apparent delisting rate and was the root
+    cause of the unreliable "price leg blocked at 55% removed coverage" claim
+    (Cycles 256-262).  Each request is therefore retried up to ``max_attempts``
+    times with a linear ``throttle_s`` backoff, and the per-ticker result records
+    ``attempts`` and ``transient_failures`` so the artifact can distinguish
+    "delisted / genuinely empty" from "recovered after a transient failure".
+
+    A genuinely absent series still returns ``has_data=False`` after all retries;
+    only the *classification confidence* changes, not the coverage definition.
     """
     start = event_date - dt.timedelta(days=int(window_days * 1.6))
     end = event_date + dt.timedelta(days=int(window_days * 1.6))
@@ -157,28 +204,51 @@ def _probe_ticker(
         "covers_event": False,
         "last_date": None,
         "first_date": None,
+        "attempts": 0,
+        "transient_failures": 0,
     }
-    try:
-        df = download_fn(
-            ticker,
-            start=start.isoformat(),
-            end=end.isoformat(),
-            progress=False,
-            auto_adjust=False,
-            threads=False,
-        )
-    except Exception as exc:  # noqa: BLE001 - report, do not crash the whole probe
-        row["error"] = f"{type(exc).__name__}: {exc}"[:120]
+    last_error: str | None = None
+    for attempt in range(1, max(1, max_attempts) + 1):
+        row["attempts"] = attempt
+        try:
+            df = download_fn(
+                ticker,
+                start=start.isoformat(),
+                end=end.isoformat(),
+                progress=False,
+                auto_adjust=False,
+                threads=False,
+            )
+        except Exception as exc:  # noqa: BLE001 - report, do not crash the whole probe
+            last_error = f"{type(exc).__name__}: {exc}"
+            if attempt < max_attempts:
+                row["transient_failures"] += 1
+                time.sleep(throttle_s * attempt)
+                continue
+            row["error"] = last_error[:120]
+            return row
+        if df is None or len(df) == 0:
+            # Empty frame: may be a genuine delisting OR a transient rate-limit
+            # empty.  Retry with backoff; if every attempt is empty we cannot
+            # distinguish the two, so record it as missing but flag that the
+            # empty persisted across all attempts.
+            last_error = "empty frame"
+            if attempt < max_attempts:
+                row["transient_failures"] += 1
+                time.sleep(throttle_s * attempt)
+                continue
+            return row
+        # Success: a non-empty series was returned on this attempt.
+        row["has_data"] = True
+        row["rows"] = int(len(df))
+        row["first_date"] = str(df.index[0].date())
+        row["last_date"] = str(df.index[-1].date())
+        # Does the series span the effective date (i.e. is it usable for an event study)?
+        event_ts = pd.Timestamp(event_date)
+        row["covers_event"] = bool(df.index.min() <= event_ts <= df.index.max())
         return row
-    if df is None or len(df) == 0:
-        return row
-    row["has_data"] = True
-    row["rows"] = int(len(df))
-    row["first_date"] = str(df.index[0].date())
-    row["last_date"] = str(df.index[-1].date())
-    # Does the series span the effective date (i.e. is it usable for an event study)?
-    event_ts = pd.Timestamp(event_date)
-    row["covers_event"] = bool(df.index.min() <= event_ts <= df.index.max())
+    # Defensive: the loop always returns on the final attempt.
+    row["error"] = (last_error or "no attempt executed")[:120]
     return row
 
 
@@ -231,19 +301,37 @@ def main(argv: list[str] | None = None, download_fn=None) -> int:
         help="half-window in calendar days around the event (default 252)",
     )
     parser.add_argument(
+        "--max-attempts",
+        type=int,
+        default=3,
+        help="per-ticker request attempts with backoff before recording a miss (default 3)",
+    )
+    parser.add_argument(
+        "--throttle",
+        type=float,
+        default=0.5,
+        help="base backoff seconds between attempts (scaled by attempt number) (default 0.5)",
+    )
+    parser.add_argument(
         "--write-artifact",
         action="store_true",
         help="write the coverage result as a JSON artifact under .experiments/",
     )
     args = parser.parse_args(argv)
 
-    try:
-        import yfinance as yf
-    except ImportError:
-        print("yfinance is not installed; cannot probe the price leg.", file=sys.stderr)
-        return 2
-
-    download = download_fn or yf.download
+    if download_fn is not None:
+        # Offline / injected-download path (tests): do not import yfinance, so
+        # the probe does not pull in google.protobuf (whose module-level
+        # ``datetime.utcfromtimestamp`` call raises a DeprecationWarning that
+        # would otherwise fail ``-W error`` runs of the offline tests).
+        download = download_fn
+    else:
+        try:
+            import yfinance as yf
+        except ImportError:
+            print("yfinance is not installed; cannot probe the price leg.", file=sys.stderr)
+            return 2
+        download = yf.download
 
     try:
         frame = fetch_changes_table()
@@ -266,6 +354,8 @@ def main(argv: list[str] | None = None, download_fn=None) -> int:
                     args.window_days,
                     download,
                     reason_bucket=ev.get("reason_bucket"),
+                    max_attempts=args.max_attempts,
+                    throttle_s=args.throttle,
                 )
             )
 
@@ -273,33 +363,70 @@ def main(argv: list[str] | None = None, download_fn=None) -> int:
         n = len(rows)
         with_data = [r for r in rows if r["has_data"]]
         covers = [r for r in rows if r["covers_event"]]
+        recovered = [r for r in rows if r.get("transient_failures", 0) and r["has_data"]]
         return {
             "n_sampled": n,
             "n_with_data": len(with_data),
             "n_covers_event": len(covers),
             "frac_with_data": (len(with_data) / n) if n else 0.0,
             "frac_covers_event": (len(covers) / n) if n else 0.0,
+            "n_recovered_after_transient": len(recovered),
         }
 
     summ = {label: _summarize(results[label]) for label in ("added", "removed")}
+    # The removed class mixes two economically distinct populations:
+    #   * acquisition / bankruptcy deletions -> the name is *delisted at the
+    #     event*.  It has no post-event price by construction and is therefore
+    #     NOT a tradable index-drift short candidate; requiring a price series
+    #     for it is a category error that made the removed leg look blocked.
+    #   * market_cap / spin_off / reorganization / other deletions -> the name
+    #     keeps trading after removal; these are the genuine index-drift short
+    #     candidates and the leg a long/short event study actually trades.
+    # The binding (min-leg) constraint must use the *tradeable* removed leg.
+    tradeable_buckets = {"market_cap", "spin_off", "reorganization", "other"}
+    removed_tradeable = [
+        r for r in results["removed"] if r.get("reason_bucket") in tradeable_buckets
+    ]
+    removed_untradeable = [
+        r for r in results["removed"] if r.get("reason_bucket") not in tradeable_buckets
+    ]
+    summ["removed_tradeable"] = _summarize(removed_tradeable)
+    summ["removed_untradeable"] = _summarize(removed_untradeable)
     all_rows = results["added"] + results["removed"]
     overall = _summarize(all_rows)
 
     print("S&P 500 index-membership price-leg availability probe (NF-18 / H198)")
     print(
         f"changes-table window: {args.min_year}+ ; window +-{args.window_days}d ; "
-        f"sample<= {args.sample}/class"
+        f"sample<= {args.sample}/class ; attempts<= {args.max_attempts}"
     )
-    print(f"{'class':<8}{'sampled':>8}{'with_data':>11}{'covers_evt':>12}{'frac_data':>11}")
+    print(
+        f"{'class':<20}{'sampled':>8}{'with_data':>11}{'covers_evt':>12}"
+        f"{'frac_data':>11}{'recovered':>11}"
+    )
     for label in ("added", "removed"):
         s = summ[label]
         print(
-            f"{label:<8}{s['n_sampled']:>8}{s['n_with_data']:>11}"
+            f"{label:<20}{s['n_sampled']:>8}{s['n_with_data']:>11}"
             f"{s['n_covers_event']:>12}{s['frac_with_data']:>11.2%}"
+            f"{s['n_recovered_after_transient']:>11}"
         )
+    rt = summ["removed_tradeable"]
+    ru = summ["removed_untradeable"]
     print(
-        f"{'ALL':<8}{overall['n_sampled']:>8}{overall['n_with_data']:>11}"
+        f"{'  removed(tradeable)':<20}{rt['n_sampled']:>8}{rt['n_with_data']:>11}"
+        f"{rt['n_covers_event']:>12}{rt['frac_with_data']:>11.2%}"
+        f"{rt['n_recovered_after_transient']:>11}"
+    )
+    print(
+        f"{'  removed(delisted)':<20}{ru['n_sampled']:>8}{ru['n_with_data']:>11}"
+        f"{ru['n_covers_event']:>12}{ru['frac_with_data']:>11.2%}"
+        f"{ru['n_recovered_after_transient']:>11}"
+    )
+    print(
+        f"{'ALL':<20}{overall['n_sampled']:>8}{overall['n_with_data']:>11}"
         f"{overall['n_covers_event']:>12}{overall['frac_with_data']:>11.2%}"
+        f"{overall['n_recovered_after_transient']:>11}"
     )
     # Print per-class reason breakdown for removed names (the delisting risk lives here).
     removed_reasons: dict[str, int] = {}
@@ -308,27 +435,37 @@ def main(argv: list[str] | None = None, download_fn=None) -> int:
     if removed_reasons:
         print("removed reason buckets:", removed_reasons)
 
-    # A long/short event study needs BOTH legs. The binding constraint is the
-    # weaker leg, so feasibility is governed by the minimum class coverage (not
-    # the max), reported alongside the overall (all-events) coverage.
-    binding = min(summ["added"]["frac_with_data"], summ["removed"]["frac_with_data"])
+    # A long/short event study trades the ADDED leg (long) and the *tradeable*
+    # REMOVED leg (short). Acquisition/bankruptcy deletions are untradeable by
+    # construction and excluded from the binding constraint. Feasibility is the
+    # weaker of the two *tradeable* legs.
+    binding = min(summ["added"]["frac_with_data"], summ["removed_tradeable"]["frac_with_data"])
     status = (
         "PRICE LEG FEASIBLE"
         if (binding >= MIN_COVERAGE_TO_PASS and overall["frac_with_data"] >= MIN_COVERAGE_TO_PASS)
         else "PRICE LEG BLOCKED"
     )
     print(
-        f"\nBinding (min-leg) coverage {binding:.2%}, overall coverage "
-        f"{overall['frac_with_data']:.2%} (threshold {MIN_COVERAGE_TO_PASS:.0%}) -> {status}"
+        f"\nBinding (min of tradeable legs: added vs tradeable-removed) coverage "
+        f"{binding:.2%}, overall coverage {overall['frac_with_data']:.2%} "
+        f"(threshold {MIN_COVERAGE_TO_PASS:.0%}) -> {status}"
     )
+    recovered_total = overall["n_recovered_after_transient"]
+    if recovered_total:
+        print(
+            f"note: {recovered_total} ticker(s) returned data only after a transient "
+            "empty/error retry; counting raw single-attempt empties as 'delisted' "
+            "under-counts coverage."
+        )
 
     if args.write_artifact:
         summ["overall"] = overall
-        summ["binding_min_leg"] = binding
+        summ["binding_tradeable_min_leg"] = binding
         summ["status"] = status
         # Record why the short (removed) leg fails so the artifact is
         # self-documenting without re-reading the changes table.
         summ["removed_reason_buckets"] = removed_reasons
+        summ["tradeable_removed_buckets"] = sorted(tradeable_buckets)
         _write_artifact(frame, summ, results, args)
 
     return 0 if status == "PRICE LEG FEASIBLE" else 1
