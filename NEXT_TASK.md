@@ -343,9 +343,42 @@ The agent-executable research track is exhausted (H187–H197 REJECT; S&P 500 pr
 run another 98-name equity cross-section, do NOT re-edit `.github/workflows/**`, and do NOT repeat
 the "discovery scan → exhausted" approach (failed Cycles 96/116/251).
 
+## Cycle 262 (2026-11-22) — baseline verification + ruff-format drift fix
+
+No new H-ID, no runner, no strategy family, no `src/qtr`/artifact/gate/frozen-number/workflow
+change. The `<!-- inventory-high-water-mark: H197 -->` marker remains IN SYNC
+(`python scripts/verify_hypothesis_inventory.py` → H197 == H197).
+
+### What changed
+- **`tests/test_generate_experiment_lineage_report.py`** — added a missing trailing newline at end
+  of file (pure whitespace, zero semantic change). This was a pre-existing committed file that the
+  installed ruff (0.17.6) flags as unformatted; it is not a regression from this session.
+
+### What was verified (evidence)
+- `python scripts/verify_hypothesis_inventory.py` → **IN SYNC (H197 == H197)**; `tests/test_verify_hypothesis_inventory.py` passes.
+- `python -m ruff check src tests run_*.py scripts` → **All checks passed**.
+- `python -m ruff format --check src tests run_*.py scripts` → **387 files already formatted** (was 1 unformatted; now clean).
+- `python scripts/backtest_perf_regression_gate.py` → **PASSED** (0.428s, limit 5s).
+- Full suite `python -m pytest -q` → **4840 passed / 51 skipped / 7 failed**. All 7 are the
+  pre-existing, agent-unreachable `tests/test_gates_workflow.py` failures (unpatched
+  `.github/workflows/gates.yml`; maintainer patch in `patches/0001-gates-workflow-contract-fix.patch`).
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly.
+- Working tree: 1 file modified (`tests/test_generate_experiment_lineage_report.py`, trailing
+  newline). Left uncommitted per repo policy — commit only on explicit request.
+
+### Precise next task (Cycle 262+)
+The agent-executable research track is exhausted (H187–H197 REJECT; S&P 500 price leg blocked at
+55% removed coverage; durable-infra probe/inventory coverage complete). Do NOT fabricate H198, do NOT
+run another 98-name equity cross-section, do NOT re-edit `.github/workflows/**`, and do NOT repeat
+the "discovery scan → exhausted" approach (failed Cycles 96/116/251).
+
 No further *high-value* bounded agent task remains that is not make-work. The remaining productive
-work requires one of the maintainer authorizations above. If another durable-infra cycle is
-explicitly wanted, the only remaining candidates are low-value (e.g. a content-based
-"every `scripts/*.py` is referenced by some test" invariant — note filename matching is already
-fragile: `plan_artifact_restoration.py` is tested by `test_artifact_restoration_plan.py`). Prefer the
-maintainer authorizations over more infra polish.
+work requires one of the maintainer authorizations above:
+1. **Universe/benchmark decision.** Authorize a higher-dispersion universe (mid/small-cap or ex-US PIT)
+   OR formally close the equity cross-section program. (Actual research bottleneck.)
+2. **Workflow contract patch.** Apply `patches/0001-gates-workflow-contract-fix.patch` on
+   `origin/main` (maintainer-only, workflows-scoped credentials). Do NOT re-edit
+   `.github/workflows/gates.yml` in a commit — it is restored from `origin/main`.
+3. **Reproducibility artifact cleanup (non-blocking).** Optional, needs explicit authorization.
+
+Until authorization arrives, this session is at a stable, verified baseline.
