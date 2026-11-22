@@ -107,6 +107,15 @@ event calendar is free (Cycle 255). The bounded agent task, **if network access 
 - **Computing returns on the unaligned yfinance grid for a rolling-vol signal.** H195 and H197 both hit
   this. Always calendar-align ffilled closes before `pct_change` (the H191 convention).
 
+## Session verification (2026-11-22)
+
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → succeeds.
+- `scripts/verify_gates_workflow_patch.py` → patch resolves all 7 violations on live `gates.yml`; maintainer must land it with workflows-scoped credentials.
+- `tests/test_gates_workflow.py` → 7 failed (unchanged; expected, agent-unreachable). `tests/test_verify_gates_workflow_patch.py` + `tests/test_verify_hypothesis_inventory.py` → pass.
+- `python -m ruff check` + `ruff format --check` on `src tests run_*.py scripts` → clean.
+- `python scripts/backtest_perf_regression_gate.py` → PASSED (0.412s, limit 5s).
+- Full suite per previous session: 4764 passed / 51 skipped / 7 failed (the 7 are this contract test).
+
 ## Commit
 
 This session modified `scripts/verify_hypothesis_inventory.py` (new),
