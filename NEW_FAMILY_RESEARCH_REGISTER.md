@@ -2008,3 +2008,94 @@ Also reassessed the deferred pool: NF-16 dividend capture (microstructure/overni
 **Verification this session:** no code changed, so `src/qtr` gates, coverage, ruff, and the pinned suite are unaffected. Baseline preserved: `python -m pytest -q` -> 4720 passed / 51 skipped / 7 failed (the 7 are the pre-existing, agent-unreachable `tests/test_gates_workflow.py` failures; fix via `patches/0001-gates-workflow-contract-fix.patch`, never an in-tree workflow edit). Dependencies installed first (`pip install -r requirements.txt`) because a fresh checkout has no numpy/pandas/scipy/yfinance.
 
 **Cycle 251 complete.** H1-H196 exhausted/rejected; H189 data-blocked; no H197; `src/qtr` unchanged.
+
+---
+
+## Cycle 252 (2026-11-22) — §3 inventory reconciliation: Cycle 251's "never executed" claims are FALSE; accurate executed-vs-untested map
+
+**Trigger.** Cycle 251 closed its §4 scan with (register line 1987 / prior `NEXT_TASK.md`):
+"NF-01 VIX term-structure slope (proposed, never executed), NF-02 cross-asset lead-lag
+(proposed, never executed)". **Both claims are false.** Directive §3 requires verifying the
+*complete current inventory* before declaring exhaustion, and §6 requires a durable register.
+A stale inventory violates both and risks re-running already-executed families. This cycle
+reconciles the deferred-pool tables against the actual artifacts and H-IDs.
+
+**§3.1 Correction of the two false "never executed" claims (evidence).**
+- **NF-20261104-02 (cross-asset lead-lag) = H85, EXECUTED, REJECT 2/8.** Runner
+  `run_nf_20261104_02_cross_asset_leadlag.py`; `HYPOTHESIS_SPEC.md` `## H85` (Status REJECTED 2/8;
+  OOS Sharpe −1.615, PF 0.759, 50,488 OOS trades). **Not** "proposed, never executed".
+- **NF-20261104-01 (VIX term-structure slope) = H86, EXECUTED, REJECT 2/9.** Runner
+  `run_nf_20261104_01_vix_termstructure.py`; `HYPOTHESIS_SPEC.md` `## H86` (Status REJECTED 2/9;
+  OOS Sharpe −0.118, PF 0.974, 594 OOS trades; inverse +0.118 still < gate). VIX term-structure
+  variants also executed and rejected: H113 = NF-20261106-26 (artifact
+  `.experiments/nf_runs/nf_20261106_26_vix9d_vix_termstructure/summary.json`, REJECT) and
+  `.experiments/nf_runs/nf_20261107_34_vix_termstructure_regime/summary.json` (REJECT 3/8).
+  **Not** "proposed, never executed".
+
+**§3.2 Other stale "Deferred" table entries that were in fact executed (tables at lines
+463–476 / 542–556 / 591–605 are historical lineage and are not rewritten here; corrected status):**
+| Register "Deferred"/"Blocked" label | Actual status | Evidence |
+|---|---|---|
+| NF-20261109-15 Tax-loss harvesting | H176 REJECT 3/8 | `nf_20261109_15_tax_loss_harvesting_20261110_025220/summary.json` |
+| NF-20261110-01 Treasury auction | H177 REJECT 5/8 | `nf_20261110_01_treasury_auction_20261110_050114/summary.json` |
+| NF-20261109-16 Dividend capture | H180 REJECT 2/8 | `nf_20261109_16_dividend_capture_test_run/summary.json` |
+| NF-20261104-03 ES-SPY basis | H181 REJECT 4/8 | `nf_20261104_03_es_spy_basis_20261110_cycle95/summary.json` |
+| NF-20261110-08 Insider / Form 4 / 13F | H182 REJECT 3/8 | `nf_20261110_08_insider_signal_20261114_113912/summary.json` |
+| NF-20261107-02 Short-term CS reversal | H119 REJECT 3/8 | `HYPOTHESIS_SPEC.md` `## H119` |
+| NF-04 Commodity carry ("BLOCKED") | H184 REJECT (Cycle 215) | unblocked via SHFE/INE/CZCE/CFFEX; `nf_20261114_01_commodity_termstructure_carry_*` |
+| NF-20261109-03 Macro regime / breakeven | H175 REJECT | `HYPOTHESIS_SPEC.md` `## H175` |
+
+**§3.3 Accurate current inventory — genuinely untested candidates (no runner/artifact/H-ID).**
+- **Capital-structure / financial distress (Campbell-Hilscher-Szilagyi 2008; Merton 1974
+  distance-to-default).** Deferred on novelty (score 3.90, novelty 3) — **not** on data. SEC XBRL
+  (Liabilities, Assets, interest, EBITDA proxies) + yfinance; ~75/98 names covered, same PIT loader
+  as H187/H188/H191. This is the **only remaining free-data-feasible, never-executed, genuinely
+  distinct mechanism** (firm default/solvency risk) vs accruals (H187), issuance (H188), value
+  (H191), beta (H193), coskewness (H194), delay (H195), turnover (H196). Caveats (honest): on 98
+  survivorship-biased mega-caps cross-sectional distress dispersion is minimal → likely trivial
+  REJECT; and it is still a long-short equity cross-section benchmarked to the passive equal-weight
+  book, the exact construction that has failed H187–H196.
+- **Blocked (data/power):** S&P 500 inclusion/deletion (NF-18, external calendar + low power),
+  Russell 2000 reconstitution (NF-07, annual/low power), stock-split effects (NF-20, incomplete
+  free split data), options dealer GEX (NF-19, no free historical options chain), earnings-revision
+  momentum (NF-20261109-02, no free PIT revision history), dividend-initiation/payout signalling
+  (rare among mega-caps).
+- **Variants / adjacency (not new families per directive §2):** RSP-SPY breadth relmom (NF-22),
+  USMV-SPY low-vol relmom (NF-23), holiday/pre-holiday drift (NF-12, calendar adjacency),
+  10Y-3M inversion depth (NF-20261110-04, curve variant), SPY jump asymmetry (NF-20261110-05,
+  higher-moment variant), realized-kurtosis (NF-20261122-02), beta-dispersion timing (NF-20261122-03).
+
+**§4 scan this cycle.** No candidate clears "materially different mechanism + free PIT data +
+smallest decisive test" that is not (a) a variant per §2 or (b) the capital-structure/distress
+candidate inventoried above. Per directive §4.3/§4.6, **H197 is not fabricated** and no
+sign-inverted / parameter-variant grid of an executed family is run. `src/qtr` unchanged; no
+runner added; no H-ID assigned.
+
+**§5/§6 diagnosis and precise next task.**
+- **Structural root cause of the 10-cycle REJECT streak (H187–H196):** on this survivorship-biased
+  98-name S&P-100-minus-2 mega-cap universe the passive equal-weight long book earns OOS Sharpe
+  ≈1.0–1.17 and dominates every long-short anomaly; several anomalies are sign-inverted and still
+  fail the ≥1.0 gate. This is a **universe/benchmark problem, not a mechanism-search failure.**
+  Per directive §2, changing universe/benchmark is **not** a new family and is a maintainer decision.
+- **Concrete defect fixed this cycle (governing-rule priority):** the research record carried false
+  "never executed" claims that would cause a future cycle to re-run executed families (H85/H86) and
+  mis-declare exhaustion. Corrected above with artifact/H-ID evidence.
+- **Precise next task.** (1) If a genuinely new free-data mechanism is mandated, the only remaining
+  distinct candidate is **capital-structure / financial distress (H197)** — feasible on ~75/98 XBRL
+  names; execute only if the maintainer judges novelty-3 sufficient (deferred on novelty, not data),
+  with explicit acknowledgment it is a long-short cross-section on the same universe and is expected
+  to REJECT for the same structural reason. (2) The higher-value maintainer decision is to **escape
+  survivorship-bias / passive-book dominance** by authorizing a different universe/benchmark (e.g.
+  mid/small-cap or ex-US PIT universe, or a non-passive benchmark), which is out of agent scope per
+  directive §2. Until then, more equity cross-sections on this universe are not expected to pass.
+
+**Verification this session:** no code changed (`src/qtr`, runners, tests, artifacts all unchanged);
+ruff clean (docs only); full suite baseline re-confirmed at **4720 passed / 51 skipped / 7 failed**
+(the 7 are the pre-existing, agent-unreachable `tests/test_gates_workflow.py` failures; fix is
+`patches/0001-gates-workflow-contract-fix.patch`, never an in-tree workflow edit). Dependencies were
+already installed this session (`numpy 2.5.5 / pandas 3.1.1 / scipy 1.18.1 / yfinance 1.8.0`), so
+the "179 collection errors" did not occur. Free/public data only; no published/certified artifact,
+verdict, threshold, or frozen number modified.
+
+**Cycle 252 complete.** Inventory reconciled; two false Cycle-251 claims corrected with evidence;
+H197 not fabricated; `src/qtr` unchanged.
