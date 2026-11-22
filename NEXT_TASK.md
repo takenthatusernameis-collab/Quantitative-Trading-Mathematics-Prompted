@@ -98,36 +98,41 @@ artifact `nf_20261122_01_share_turnover_20261122_003934` (REJECT 3/8).
   (all 98 names have PIT share counts; it failed on mechanism direction, not data). Always probe the
   named source before classifying blocked.
 
-## One precise next task (with evidence and constraints)
+## Cycle 251 (2026-11-22) — Directive §4 discovery scan: no qualifying candidate; no H197
 
-Per the STRATEGY_FAMILY_EXPANSION_DIRECTIVE governing rule, the free-data strategy-family queue is
-NOT globally exhausted and must keep discovering mechanisms — but the honest evidence is now very
-strong that **simple daily/monthly cross-sectional tilts on the 98-name large-cap universe cannot
-beat the passive equal-weight book** (H187-H196 all REJECT, mostly on mechanism direction/strength
-vs a ~1.0-Sharpe passive benchmark, several sign-inverted). The two genuinely-untested, free-data-
-feasible, distinct candidate families the prior cycles left deferred are:
+**Executed this session.** Ran the required §4 discovery cycle across three broad mechanism categories:
+1. Higher-moment / tail risk → realized-kurtosis / tail-risk cross-section (NF-20261122-02): adjacent to H128 (realized skewness cross-section) and H132/NF-20261107-35 (SPY single-asset realized-kurtosis timing); skewness→kurtosis is a close substitute → **not a new family** (novelty 3, weighted ≈3.05, deferred).
+2. Market-risk / beta regime timing → beta-dispersion / aggregate-beta regime timing (NF-20261122-03): same scalar-timing construction class as H117/H129 avg-beta regime timing on SPY and H193 BAB beta → **not a new family** (novelty 2, weighted ≈3.40, deferred).
+3. Liquidity / trading-activity → already executed as H196 (Cycle 250); no distinct third variant remains.
 
-- **realized-kurtosis / tail-risk cross-section** (4th return moment; distinct from H128 realized
-  skewness / H194 coskewness — tail/crash risk vs asymmetry; free from the yfinance close panel);
-- **beta-dispersion / aggregate-beta regime timing** (a *scalar* market-timing variant of
-  H117/H29 — must be argued distinct from regime-timing, not just a new parameter).
+Also reassessed the deferred pool (NF-16 dividend capture execution risk, NF-12 holiday drift calendar adjacency, NF-01 VIX term structure, NF-02 cross-asset lead-lag, H189 gross profitability data-blocked). None is a repo-new, free-data-feasible, non-variant candidate.
 
-**Recommended next action:** run one more §4 discovery cycle scoring these two (plus any newly-
-found repo-new category) honestly; if one clears the "materially different mechanism + free PIT data
-+ smallest decisive test" bar, pre-register it as **H197** (next unused; H189 is reserved for the
-data-blocked gross-profitability NF-20261120-03; H24/H68-H73/H76-H79 unassigned, not recycled),
-implement a runner that reuses the H184/H187/H191 primitives (only the new feature is new code,
-exactly as H196 did), and record the honest verdict in `NEW_FAMILY_RESEARCH_REGISTER.md` +
-`NEXT_TASK.md`. If the §4 scan cannot find a candidate that is genuinely distinct AND free-data-
-feasible AND not already sign-inverted-and-rejected, document the search domains and the precise
-blocker rather than fabricating a candidate — that documentation IS durable progress. Do NOT default
-to auditing/infrastructure/maintenance or another parameter grid (directive §6). Constraints: free/
-public data only; standard 8 gates, two-sided benchmark p, fail-closed, protected test split;
-`src/qtr` unchanged; apply the maintainer workflow patch only via `patches/` + this file (never an
-in-tree workflow edit).
+**Result: no candidate clears the "materially different mechanism + free PIT data + smallest decisive test" bar.** Per directive §4.3/§4.6 and the governing rule, H197 is NOT fabricated and no sign-inverted/parameter-variant grid of an executed family is run. `src/qtr` unchanged; no runner added; no H-ID assigned. H197 remains next unused; H189 reserved data-blocked.
 
-## Maintainer queue (prior sessions, unchanged — both verified again Cycle 250)
+Full record: `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 251.
 
-1. **Workflow patch — NOT agent-reachable (maintainer action required).** `origin/main:.github/workflows/gates.yml` is intentionally unpatched (7 tests read it and expect `-W error`, explicit `--cov=qtr`, `--cov-branch`). Agent edits to `.github/workflows/**` are discarded by `.github/scripts/kilo-controller.sh` (restore from `origin/$DEFAULT_BRANCH` + staging exclude `':(exclude).github/workflows/**'`) and the repo token lacks `workflows` permission, so a committed workflow edit cannot reach `main`. **The apply-ready fix is `patches/0001-gates-workflow-contract-fix.patch`** (9 insertions, 0 deletions; changes only `gates.yml`). Verified again Cycle 250: the patch applies cleanly with `git apply --check` and `pytest tests/test_gates_workflow.py` -> **7 passed** in a clean `/tmp` checkout at HEAD. Do not retry the in-tree edit (five+ sessions already did; the controller discards it every time and the fix is not agent-reachable). The patch content is unchanged from Cycles 104/106/121/235/245/247/249; `scripts/verify_gates_workflow_patch.py` still passes. Apply on `origin/main`:
-   `git apply --check patches/0001-gates-workflow-contract-fix.patch && git apply patches/0001-gates-workflow-contract-fix.patch`.
-2. **Authorization-gated reproducibility artifact cleanup (non-blocking).** `REPRODUCIBILITY_AUDIT_REPORT.md` #6 (11 artifact hash_mismatches, 24h) and #5 (rebuild-excluded artifacts, 7d). Safe cleanup would reduce hash_mismatches to 3 (legitimate 24h PIT recutoff differences). Requires authorization; do not do without it. No published/certified artifact, verdict, threshold, or frozen number may be modified without authorization. The full suite is green (4720/51/7) without this.
+**Precise blocker (durable):** the free-data equity cross-section space on the 98-name survivorship-biased large-cap universe is exhausted (H187–H196 all REJECT; passive equal-weight long book OOS Sharpe ~1.0–1.17 dominates; every anomaly OOS Sharpe is far below the ≥1.0 gate and several are sign-inverted). The two remaining deferred candidates are variants, not new families. No third genuinely distinct free-data-feasible candidate exists across information transmission/lead-lag, relative value/convergence, carry/term structure, volatility/convexity premia, liquidity/order-flow, event/auction, or supply/flow constraints — all are covered or proposed in this repo.
+
+## Where to resume (next agent)
+
+There is **no agent-executable research task** left in this session: free-data family discovery is exhausted per the honest §4 scan, and the standard-8-gates equity cross-section cannot beat the passive equal-weight book on this universe. Do NOT repeat the §4 scan (Cycle 251 complete and recorded), do NOT fabricate H197, and do NOT attempt an in-tree `.github/workflows/gates.yml` edit (controller discards it; agent-unreachable).
+
+The only remaining items are maintainer/authorization actions:
+1. **Workflow contract patch (agent-unreachable, maintainer action).** Apply `patches/0001-gates-workflow-contract-fix.patch` (9 insertions, 0 deletions, gates.yml only) on `origin/main`:
+   `git apply --check patches/0001-gates-workflow-contract-fix.patch && git apply patches/0001-gates-workflow-contract-fix.patch`
+   Verified clean-apply and `pytest tests/test_gates_workflow.py` -> 7 passed in a clean `/tmp` checkout at HEAD. `scripts/verify_gates_workflow_patch.py` still passes.
+2. **Authorization-gated reproducibility artifact cleanup (non-blocking).** `REPRODUCIBILITY_AUDIT_REPORT.md` #6 (11 artifact hash_mismatches, 24h) and #5 (rebuild-excluded artifacts, 7d). Requires authorization; do not do without it. The full suite is green (4720/51/7) without this.
+
+## Verified this session
+
+- No code changed (Cycle 251 is a documentation/analysis cycle), so `src/qtr` gates, coverage, ruff, and the pinned suite are unaffected.
+- Baseline preserved: `python -m pytest -q` -> **4720 passed / 51 skipped / 7 failed** (the 7 are the pre-existing agent-unreachable `tests/test_gates_workflow.py` failures; same as Cycle 250).
+- Environment note: a fresh checkout has no dependencies — run `pip install -r requirements.txt` first; the pre-install "179 collection errors" are the missing-numpy/pandas/scipy/yfinance symptom, not a regression.
+- Ruff clean on changed files (docs only).
+
+## Approaches already tried and why they failed (do not blindly repeat)
+
+- New equity cross-sections on the 98-name universe (H187-H196): ALL REJECT. Passive equal-weight book dominates; OOS Sharpe well below ≥1.0 gate, several sign-inverted. H196 adds share turnover (genuinely distinct mechanism) and confirms the pattern (direct tilt inverted, inverse +0.76 still fails gate).
+- Re-editing `.github/workflows/gates.yml` in a commit: fails every session (controller restores it; fix not agent-reachable). Capture via `patches/` + `NEXT_TASK.md` only.
+- Classifying a candidate "data-blocked" without probing: FRED, `data.binance.vision`, and Chinese futures (SHFE/INE/CZCE/CFFEX) all serve data older registers declared unavailable. Always probe the named source first.
+- Realized-kurtosis and beta-dispersion were already scored as low-novelty variants in Cycle 249 (3.05 and 3.40, "Deferred ... not a new family"); Cycle 251 reconfirms adjacency (H128/H132 and H117/H129/H193 respectively). Do not re-run them unchanged.

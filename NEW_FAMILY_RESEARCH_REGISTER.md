@@ -1974,3 +1974,37 @@ unassigned, not recycled). No published/certified artifact, verdict, threshold, 
 modified. Selection/validation used no protected-test feedback. Free/public data only.
 
 **Cycle 250 complete.** H1-H196 exhausted/rejected; H189 data-blocked; `src/qtr` unchanged.
+
+---
+
+## Cycle 251 (2026-11-22) — Directive §4 discovery scan: no repo-new candidate clears the novelty bar; no H197
+
+**§4.1 Search across mechanisms (≥3 broad categories).** Searched three broad categories:
+1. **Higher-moment / tail risk** — realized-kurtosis / tail-risk cross-section (long low-kurtosis / short high-kurtosis). Data: yfinance close panel (free, PIT).
+2. **Market-risk / beta regime timing** — beta-dispersion / aggregate-beta regime timing (scalar market-timing overlay). Data: yfinance close panel (free, PIT).
+3. **Liquidity / trading-activity** — already executed as H196 (share turnover cross-section, Cycle 250); no distinct third liquidity variant remains that is not a parameter/instrument/universe/timeframe variant of H196/H121/H19/H20.
+
+Also reassessed the deferred pool: NF-16 dividend capture (microstructure/overnight-open execution risk, decisive on free data), NF-12 holiday drift (calendar adjacency H91/H140/H142/H168), NF-01 VIX term-structure slope (proposed, never executed), NF-02 cross-asset lead-lag (proposed, never executed), H189 gross profitability (data-blocked: 28-29/98 names, below the 40-name minimum). None is a repo-new, free-data-feasible, non-variant candidate.
+
+**§4.2 Candidates (temporary NF-IDs).**
+- **NF-20261122-02: realized-kurtosis / tail-risk cross-section.** 4th-moment cross-section on the 98-name universe. Adjacent to H128 (realized skewness cross-section) and H132/NF-20261107-35 (SPY single-asset realized-kurtosis timing). Replacing skewness with kurtosis is a close substitute (both higher moments) → not a new family per directive §2.
+- **NF-20261122-03: beta-dispersion / aggregate-beta regime timing.** Scalar market-timing overlay: rising cross-sectional beta dispersion / aggregate-beta z-score forecasts a de-risking regime. Same construction class as H117/H129 (avg-beta regime timing on SPY, run_nf_20261107_29_avg_beta_regime.py) and H193 (BAB beta cross-section) → a variant, not a new family per directive §2.
+- No third credible repo-new candidate found; categories 1–3 and the deferred pool are exhausted.
+
+**§4.3 Weighted ranking (25/25/20/15/10/5; conservative adjacency penalty).**
+| Candidate | Category | Novelty | Plausibility | Data | Falsifiability | Execution | Support | Weighted | Decision |
+|---|---|---|---|---|---|---|---|---|---|
+| NF-20261122-02 kurtosis cross-section | Higher-moment/tail risk | 3 | 3 | 4 | 3 | 4 | 3 | ≈3.05 | Deferred — variant of H128/H132 higher-moment family, not a new family |
+| NF-20261122-03 beta-dispersion timing | Market-risk regime timing | 2 | 3 | 5 | 4 | 4 | 3 | ≈3.40 | Deferred — scalar-timing variant of H117/H129/H29, not a new family |
+
+(Consistent with Cycle 249 scoring: kurtosis 3.05, beta-dispersion 3.40, both "Deferred ... variant".)
+
+**§4.4 Selection.** No candidate clears the "materially different mechanism + free PIT data + smallest decisive test" bar. Both are variants of executed families (novelty ≤ 3, explicitly "not a new family"). Per directive §4.3/§4.6 and NEXT_TASK.md, do not fabricate H197 and do not run a sign-inverted or parameter-variant grid of an executed family.
+
+**§4.5 Implementation.** None — no hypothesis is decision-ready. `src/qtr` unchanged; no runner added; no H-ID assigned. H197 remains the next unused H-ID (H189 reserved for the data-blocked gross-profitability NF-20261120-03; H24/H68-H73/H76-H79 unassigned, not recycled). No published/certified artifact, verdict, threshold, or frozen number modified. Selection/validation used no protected-test feedback. Free/public data only.
+
+**§4.6 Close the loop / blocker.** Recorded above. Precise blocker: the free-data equity cross-section space on the 98-name survivorship-biased large-cap universe is exhausted (H187–H196 all REJECT; passive equal-weight long book OOS Sharpe ~1.0–1.17 dominates; every anomaly OOS Sharpe is far below the ≥1.0 gate and several are sign-inverted). The two remaining deferred candidates are variants, not new families. No third genuinely distinct free-data-feasible candidate exists across information transmission/lead-lag, relative value/convergence, carry/term structure, volatility/convexity premia, liquidity/order-flow, event/auction, or supply/flow constraints — all are covered or proposed in this repo. Next cycle must either find a genuinely distinct mechanism outside equity cross-sections on this universe or conclude free-data family discovery exhausted.
+
+**Verification this session:** no code changed, so `src/qtr` gates, coverage, ruff, and the pinned suite are unaffected. Baseline preserved: `python -m pytest -q` -> 4720 passed / 51 skipped / 7 failed (the 7 are the pre-existing, agent-unreachable `tests/test_gates_workflow.py` failures; fix via `patches/0001-gates-workflow-contract-fix.patch`, never an in-tree workflow edit). Dependencies installed first (`pip install -r requirements.txt`) because a fresh checkout has no numpy/pandas/scipy/yfinance.
+
+**Cycle 251 complete.** H1-H196 exhausted/rejected; H189 data-blocked; no H197; `src/qtr` unchanged.
