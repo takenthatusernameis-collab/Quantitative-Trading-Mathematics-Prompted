@@ -1,6 +1,56 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 270 (2026-11-22): free-data network is REACHABLE (supersedes the Cycle 268 block below)
+## AUTHORITATIVE STATUS — Cycle 271 (2026-11-22): genuine-distinct-mechanism lineage search on the broad universe; no feasible H199 this session
+
+**Read this block first; everything below it (Cycle 270 and earlier) is history.**
+
+## What changed
+
+Documentation only: this `NEXT_TASK.md` (new Cycle 271 block). No `src/qtr`, runner, test, artifact, gate, frozen-number, workflow, or H-ID change. Working tree clean; `git status --short` empty; HEAD == origin/main == 5139391. The `<!-- inventory-high-water-mark: H198 -->` marker is unchanged and IN SYNC (`python scripts/verify_hypothesis_inventory.py` → H198 == H198). **H199 is NOT assigned / not fabricated.**
+
+## Lineage search (directive §4) — executed
+
+Searched `HYPOTHESIS_SPEC.md`, `NEW_FAMILY_RESEARCH_REGISTER.md`, every runner and test for any executed H-ID that sorts purely by market capitalization (size). Result: **NONE**. Size / market-cap premium is the one genuinely-distinct, repo-new, free-data-feasible-in-principle mechanism:
+- Distinct from H193 beta/BAB (size ≠ beta), H191 value (book/cash-flow ÷ price ≠ raw market cap), H196 turnover (volume ÷ shares ≠ firm size), H195 price delay, H187–H192 fundamentals, H198 index-membership event drift, H190 crypto funding carry.
+- Only meaningful / high-dispersion on the broad small/mid-cap universe (the 98 mega-caps have no size dispersion) — fits Cycle 270 candidate (a): "a mechanism specifically a small/mid-cap phenomenon absent in mega-caps."
+
+## Data blocker (decisive)
+
+Size requires point-in-time market cap = shares_outstanding(filed ≤ month-end) × close(month-end). Shares outstanding for the broad universe are **not cached** (SEC XBRL fundamentals cover only the 98-name S&P 100 universe). `yfinance.Ticker.get_shares()` is **unimplemented** (`YFNotImplementedError`, verified on AAPL/MRVL/AMD/FVRR this session); `Ticker.info['marketCap']` is current-only (lookahead, unusable for a valid PIT backtest). PIT shares for ~1502 names requires a large, slow, rate-limited SEC XBRL fetch (ticker→CIK via `company_tickers.json` + per-CIK shares series) — not bounded for this session, not cached, not previously available.
+
+## Verdict
+
+No bounded, feasibly-executable, genuinely-distinct mechanism exists this session:
+- Size (the only genuinely-distinct untested candidate) is blocked by the PIT-shares data gap.
+- All price-only cross-sections (momentum, reversal, volatility, beta, coskewness, price delay, turnover, index drift) are already executed H187–H198.
+- 12 consecutive long-short cross-section REJECTs (H187–H198) show the passive equal-weight book dominates regardless of mechanism (H197 honest note: the universe/benchmark, not the mechanism search, is the binding constraint).
+
+Per directive §3 rule #7 ("if fewer than three credible candidates can be found, document the search domains and the actual blocker rather than inventing candidates") and AGENTS.md: **do NOT fabricate H199, do NOT run another cross-section or discovery scan.** Record this conclusion durably.
+
+## Recommendation (maintainer authorization, out of agent scope)
+
+1. **Authorize PIT shares/universe data** for the broad universe (a PIT shares-outstanding file or an SEC XBRL fetch budget). Then H199 = size premium on the broad universe is executable: pre-register in `HYPOTHESIS_SPEC.md` (bump the AGENTS.md marker + spec together), implement a runner reusing the engine + standard 8 gates, execute on the 1502-name universe.
+2. **OR formally close the equity cross-section program** (12 consecutive REJECTs; passive-book dominance; per directive §6 the universe/benchmark is the binding constraint — a maintainer decision).
+3. **Apply `patches/0001-gates-workflow-contract-fix.patch`** (still pending; 7 `test_gates_workflow.py` failures).
+
+## Verification this session (evidence)
+
+- `python -m ruff check src tests run_*.py scripts` → All checks passed.
+- `python -m ruff format --check src tests run_*.py scripts` → clean.
+- `python scripts/verify_hypothesis_inventory.py` → IN SYNC (H198 == H198).
+- `git status --short` → empty; HEAD == origin/main.
+- `yfinance.Ticker.get_shares()` → `YFNotImplementedError` (AAPL, MRVL, AMD, FVRR): confirms no easy PIT shares source.
+
+## Approaches not repeated (per reliability rules)
+
+- Did NOT fabricate H199 or pre-register a size runner (blocked by the PIT-shares data gap + 12 consecutive REJECTs).
+- Did NOT run another equity cross-section or discovery scan (failed Cycles 96/116/251; 12 consecutive H187–H198 REJECTs).
+- Did NOT re-edit `.github/workflows/**`.
+- Did NOT treat a universe variant (e.g. price delay / turnover moved to small caps) as a new family (directive §2).
+
+---
+
+# AUTHORITATIVE STATUS — Cycle 270 (2026-11-22): free-data network is REACHABLE (supersedes the Cycle 268 block below)
 
 **Read this block first; everything below it is history.**
 
