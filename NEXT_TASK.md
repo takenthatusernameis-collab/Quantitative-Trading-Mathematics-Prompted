@@ -25,7 +25,7 @@ Result (454s): **4856 passed / 48 skipped / 7 failed**, and:
 
 Durable infra re-verified in the same fresh env: `scripts/backtest_perf_regression_gate.py` →
 **PASSED** (0.435s, limit 5s); `scripts/verify_gates_workflow_patch.py` → resolves all 7 violations;
-`scripts/verify_hypothesis_inventory.py` → **IN SYNC (H197 == H197)**; every `scripts/*.py` has a
+`scripts/verify_hypothesis_inventory.py` → **IN SYNC (H198 == H198)**; every `scripts/*.py` has a
 dedicated, test-referenced test file (no untested durable tool); `git apply --check
 patches/0001-gates-workflow-contract-fix.patch` → applies cleanly.
 
@@ -33,8 +33,10 @@ patches/0001-gates-workflow-contract-fix.patch` → applies cleanly.
 stdlib scripts (the unguarded-`None` class was already fixed in Cycles 259/261); the coverage gate is
 pinned by `tests/test_coverage_gate_contract.py` (reads config back through the coverage API, so a
 weakened `fail_under`/`branch`/`source` fails at commit time); equity cross-section research on the
-98-name universe is exhausted (H187–H197 all REJECT; S&P 500 membership price leg blocked at 55%
-removed coverage, Cycle 256). Do NOT fabricate H198, do NOT run another 98-name equity cross-section,
+98-name universe is exhausted (H187–H198 exhausted/rejected; H189 data-blocked; H198 S&P 500
+membership event-drift REJECT 1/8, Cycle 265, price leg probed at 55% removed coverage and executed
+on tradeable-by-construction names only). Do NOT fabricate H198, do NOT run another 98-name equity
+cross-section,
 do NOT re-edit `.github/workflows/**`, do NOT repeat the "discovery scan → exhausted" approach (failed
 Cycles 96/116/251), and do NOT repeat the "baseline-verification make-work" loop (Cycles 257–264).
 
@@ -524,9 +526,10 @@ verified; the next productive work requires maintainer authorization.
 - `python scripts/backtest_perf_regression_gate.py` -> PASSED.
 
 ### Precise next task
-Same as Cycle 264+: the agent-executable research track is exhausted (H187-H197 REJECT; S&P 500
-price leg blocked at 55% removed coverage; ruff format drift now fixed). The remaining productive
-work requires one of the three maintainer authorizations:
+Same as Cycle 264+: the agent-executable research track is exhausted (H187-H198 exhausted/rejected;
+H189 data-blocked; H198 S&P 500 membership event-drift executed REJECT 1/8, Cycle 265, price leg
+probed 55% removed coverage). The remaining productive work requires one of the three maintainer
+authorizations:
 1. Universe/benchmark decision. Authorize a higher-dispersion universe (mid/small-cap or ex-US PIT)
    OR formally close the equity cross-section program. (Actual research bottleneck.)
 2. Workflow contract patch. Apply patches/0001-gates-workflow-contract-fix.patch on
