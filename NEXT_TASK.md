@@ -10,6 +10,14 @@ artifact changed.
 
 Commit for this cycle: the Cycle 252 register append + this file (see "Commit" below).
 
+## Cycle 253 (2026-11-22) — session verification
+
+- **Pushed `daea2dd` (Cycle 252 record correction) to `origin/main`** — the Cycle 252 register correction (`NEW_FAMILY_RESEARCH_REGISTER.md` + `NEXT_TASK.md`) is now durable on `origin/main`.
+- **Re-confirmed `tests/test_gates_workflow.py` → 7 failed** — all failures are because `.github/workflows/gates.yml` is unpatched. Agent-unreachable: `.github/scripts/kilo-controller.sh` restores `.github/workflows/**` from `origin/main` after every session, excludes workflow paths from staging, and the repo token lacks `workflows` permission. The apply-ready fix is already captured at `patches/0001-gates-workflow-contract-fix.patch` (verified clean-apply; `pytest tests/test_gates_workflow.py` → 7 passed in clean `/tmp` checkouts at Cycles 104/106/121).
+- **Ruff check and format: clean** on `src tests run_*.py scripts` (374 files formatted).
+- **H197 (capital-structure / financial distress) evaluated and declined as the next task.** It repeats the H187–H196 long-short cross-section construction on the same 98-name survivorship-biased S&P-100-minus-2 mega-cap universe — all 10 (H187–H196) REJECTed because the passive equal-weight long book (OOS Sharpe ≈1.0–1.17) dominates. Per rule 2 (change approach after repeated failure), do not run an 11th cross-section on the same failed construction. Listed under "approaches already tried and why they failed" in §Cycle 252.
+- **No agent-executable bounded task produces durable progress in this session.** Source, runners, tests, artifacts, gates, coverage, and thresholds are all complete and frozen. The only remaining work is the maintainer-applied workflow contract patch (item 1 below).
+
 ## What changed this cycle (durable, evidence-based)
 
 - **Corrected two false Cycle-251 claims.** The prior handoff / register line 1987 stated
