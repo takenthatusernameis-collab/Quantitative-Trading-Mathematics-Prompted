@@ -77,6 +77,13 @@ def _finite(value: Any) -> float | None:
     return result if result == result and result not in (float("inf"), float("-inf")) else None
 
 
+def _block_sharpe(block: Any) -> float | None:
+    """Return the ``sharpe`` from a ``val``/``test``/``oos_val_test`` block, else None."""
+    if isinstance(block, dict):
+        return _finite(block.get("sharpe"))
+    return None
+
+
 def load_record(path: Path | str) -> dict[str, Any] | None:
     """Parse one ``summary.json`` into a normalised record, or ``None``.
 
@@ -106,6 +113,10 @@ def load_record(path: Path | str) -> dict[str, Any] | None:
         "run": summary.get("experiment") or summary.get("nf_id") or path.parent.name,
         "strategy_sharpe": _finite(strategy.get("sharpe")),
         "benchmark_sharpe": _finite(benchmark.get("sharpe")),
+        "train_sharpe": _finite(summary.get("wf_train_sharpe")),
+        "val_sharpe": _block_sharpe(summary.get("val")),
+        "test_sharpe": _block_sharpe(summary.get("test")),
+        "full_sample_sharpe": _block_sharpe(summary.get("full_sample")),
         "beta": beta,
         "information_ratio": (
             _finite(comparison.get("information_ratio")) if isinstance(comparison, dict) else None
@@ -153,6 +164,10 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
 
     strategy = [r["strategy_sharpe"] for r in records if r["strategy_sharpe"] is not None]
     benchmark = [r["benchmark_sharpe"] for r in records if r["benchmark_sharpe"] is not None]
+    train = [r["train_sharpe"] for r in records if r["train_sharpe"] is not None]
+    val = [r["val_sharpe"] for r in records if r["val_sharpe"] is not None]
+    test = [r["test_sharpe"] for r in records if r["test_sharpe"] is not None]
+    full_sample = [r["full_sample_sharpe"] for r in records if r["full_sample_sharpe"] is not None]
     betas = [r["beta"] for r in records if r["beta"] is not None]
     iris = [r["information_ratio"] for r in records if r["information_ratio"] is not None]
     alphas = [r["alpha_annualized"] for r in records if r["alpha_annualized"] is not None]
@@ -174,7 +189,21 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
 
     strategy_median = _median(strategy)
     benchmark_median = _median(benchmark)
+    train_median = _median(train)
+    val_median = _median(val)
+    test_median = _median(test)
+    full_sample_median = _median(full_sample)
     alpha_median = _median(alphas)
+
+    # In-sample (train) to out-of-sample (val/test/oos) decay per run, measured
+    # only where both train and OOS are present.  A run "decays" when OOS < train.
+    decay_pairs = [
+        (r["train_sharpe"], r["strategy_sharpe"])
+        for r in records
+        if r["train_sharpe"] is not None and r["strategy_sharpe"] is not None
+    ]
+    n_train_to_oos_decay = sum(1 for train_s, oos_s in decay_pairs if oos_s < train_s)
+    train_to_oos_decay = _median([oos_s - train_s for train_s, oos_s in decay_pairs])
 
     benchmark_dominates = bool(
         strategy_median is not None
@@ -193,6 +222,10 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
         "n_runs": len(records),
         "strategy_sharpe_median": strategy_median,
         "benchmark_sharpe_median": benchmark_median,
+        "train_sharpe_median": train_median,
+        "val_sharpe_median": val_median,
+        "test_sharpe_median": test_median,
+        "full_sample_sharpe_median": full_sample_median,
         "n_strategy_beats_benchmark": n_beats,
         "n_paired": len(paired),
         "n_negative_ir": n_negative_ir,
@@ -206,6 +239,9 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
         "alpha_median": alpha_median,
         "n_negative_alpha": n_negative_alpha,
         "n_positive_alpha": n_positive_alpha,
+        "n_train_to_oos_decay": n_train_to_oos_decay,
+        "n_train_measured": len(decay_pairs),
+        "train_to_oos_decay_median": train_to_oos_decay,
         "benchmark_dominates": benchmark_dominates,
         "uniform_long_bias_artifact": uniform_long_bias_artifact,
         "genuine_negative_alpha": genuine_negative_alpha,
@@ -264,16 +300,17 @@ def format_table(records: list[dict[str, Any]]) -> str:
         return f"{str(value):>7s}"
 
     header = (
-        f"{'run':52s} {'oosSh':>7s} {'bmSh':>7s} {'beta':>7s} "
+        f"{'run':52s} {'train':>7s} {'val':>7s} {'test':>7s} {'oosSh':>7s} {'beta':>7s} "
         f"{'IR':>7s} {'alpha':>7s} {'class':>14s} {'verd':>7s}"
     )
     lines = [header, "-" * len(header)]
     for r in records:
         run = str(r["run"])[:52]
         lines.append(
-            f"{run:52s} {cell(r['strategy_sharpe'])} {cell(r['benchmark_sharpe'])} "
-            f"{cell(r['beta'])} {cell(r['information_ratio'])} "
-            f"{cell(r['alpha_annualized'])} {r['beta_class']:>14s} {str(r['verdict']):>7s}"
+            f"{run:52s} {cell(r['train_sharpe'])} {cell(r['val_sharpe'])} "
+            f"{cell(r['test_sharpe'])} {cell(r['strategy_sharpe'])} {cell(r['beta'])} "
+            f"{cell(r['information_ratio'])} {cell(r['alpha_annualized'])} "
+            f"{r['beta_class']:>14s} {str(r['verdict']):>7s}"
         )
     return "\n".join(lines)
 
@@ -310,6 +347,23 @@ def main(argv: list[str] | None = None) -> int:
         "median OOS Sharpe: strategy "
         f"{summary['strategy_sharpe_median']:.3f} vs passive book "
         f"{summary['benchmark_sharpe_median']:.3f}"
+    )
+    train = summary["train_sharpe_median"]
+    val = summary["val_sharpe_median"]
+    test = summary["test_sharpe_median"]
+    oos = summary["strategy_sharpe_median"]
+
+    def fmt(x: float | None) -> str:
+        return f"{x:.3f}" if x is not None else "n/a"
+
+    print(
+        "median Sharpe path: train "
+        f"{fmt(train)} -> val {fmt(val)} -> test {fmt(test)} -> OOS {fmt(oos)}"
+    )
+    decay = summary["train_to_oos_decay_median"]
+    print(
+        f"train->OOS decay: {summary['n_train_to_oos_decay']}/{summary['n_train_measured']} "
+        f"runs decay (OOS < train); median delta {fmt(decay)}"
     )
     print(
         f"beta range: [{summary['beta_min']:.3f}, {summary['beta_max']:.3f}] "

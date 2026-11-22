@@ -83,25 +83,83 @@ threshold, or frozen number was touched; `src/qtr` is unchanged.
 - **Computing returns on the unaligned yfinance grid for a rolling-vol signal.** H195 and H197 both
   hit this. Always calendar-align ffilled closes before `pct_change` (the H191 convention).
 
+## What changed this session (Cycle 254 extension)
+
+Extended the Cycle 254 root-cause diagnostic `scripts/analyze_equity_cross_section_rejects.py`
+to report the train → val → test Sharpe path from each committed `summary.json`, quantifying the
+in-sample→out-of-sample decay of each anomaly:
+
+- `load_record` now reads `wf_train_sharpe`, `val.sharpe`, `test.sharpe`, `full_sample.sharpe`
+  (all tolerant to missing blocks, returning `None`).
+- `summarize` aggregates `train_sharpe_median`, `val_sharpe_median`, `test_sharpe_median`,
+  `full_sample_sharpe_median`, plus `n_train_to_oos_decay` / `n_train_measured` /
+  `train_to_oos_decay_median` (OOS < train, measured only where both train and OOS are present).
+- `format_table` shows train/val/test/oosSh per run; `main` prints the median Sharpe path and
+  decay line. `--json` emits the new fields automatically.
+- `tests/test_analyze_equity_cross_section_rejects.py`: extended fixtures, added
+  `test_load_record_tolerates_missing_train_val_test_blocks`,
+  `test_summarize_reports_train_val_test_path_and_decay`, and table-column assertions (17 passed).
+
+Result on the committed corpus (9 equity cross-sections): median Sharpe path
+**train 0.690 → val 0.201 → test 0.179 → OOS 0.187**; 6/9 runs decay (OOS < train), median delta
+−0.437. Confirms the Cycle 254 finding: genuine in-sample→OOS decay / mechanism weakness, not a
+benchmark-construction artifact. No gate, verdict, threshold, or frozen number touched; `src/qtr`
+unchanged.
+
 ## Precise next task (one bounded task)
 
-The agent-executable equity-cross-section mechanism space is exhausted and Cycle 254 has now
-quantified the structural cause (no alpha vs a strong passive book, across the full beta spectrum).
-**Do not run another 98-name equity cross-section and do not fabricate H198.**
+There is **no agent-executable research task remaining**. The equity-cross-section mechanism space
+on the 98-name survivorship-biased universe is exhausted (H187–H197 all REJECT; Cycle 254+254-ext
+quantify why). Do **not** run another 98-name equity cross-section and do **not** fabricate H198.
 
-If the maintainer **authorizes a higher-dispersion universe** (mid/small-cap or ex-US PIT), the
-bounded agent task is to re-run `scripts/analyze_equity_cross_section_rejects.py` on that universe
-and execute **one** anomaly there (H198), pre-registered in `HYPOTHESIS_SPEC.md`.
+The only remaining work is maintainer/authorization-only:
 
-If the maintainer does **not** authorize a new universe, the only remaining work is item 1 (the
-workflow patch, maintainer-only). A concrete, agent-executable, read-only extension that is
-available offline and does **not** repeat a rejected construction: extend the Cycle 254 diagnostic to
-also report the train → val → test Sharpe path from each committed `summary.json` (`full_sample` /
-`val` / `test` / `oos_val_test` are all present), quantifying the in-sample→out-of-sample decay of
-each anomaly as further evidence for the universe decision. This is bounded, offline, and additive.
+1. **Workflow contract patch (agent-unreachable, maintainer action).**
+   `origin/main:.github/workflows/gates.yml` is intentionally unpatched; 7 tests in
+   `tests/test_gates_workflow.py` expect `-W error`, explicit `--cov=qtr`, `--cov-branch`,
+   `scripts/**` in ruff targets and path triggers, `python -m pip install -e . --no-deps`, and
+   `python scripts/backtest_perf_regression_gate.py`. Agent edits to `.github/workflows/**` are
+   discarded by `.github/scripts/kilo-controller.sh` and the repo token lacks `workflows`
+   permission. **Apply-ready fix: `patches/0001-gates-workflow-contract-fix.patch`** (gates.yml
+   only), guarded green by `scripts/verify_gates_workflow_patch.py`
+   (`pytest tests/test_verify_gates_workflow_patch.py` → 15 passed). Apply on `origin/main`:
+   `git apply --check patches/0001-gates-workflow-contract-fix.patch && git apply
+   patches/0001-gates-workflow-contract-fix.patch`. Do **not** retry an in-tree workflow edit.
+
+2. **Universe/benchmark decision (maintainer authorization only).** Escaping the REJECT streak
+   requires a higher-dispersion universe (mid/small-cap or ex-US PIT) or formally closing the
+   equity cross-section program — directive §2, out of agent scope. If authorized, the bounded
+   agent task is to re-run `scripts/analyze_equity_cross_section_rejects.py` on that universe and
+   execute **one** anomaly there (H198), pre-registered in `HYPOTHESIS_SPEC.md`.
+
+3. **Reproducibility artifact cleanup (non-blocking, authorization-gated).**
+   `REPRODUCIBILITY_AUDIT_REPORT.md` #6 (11 hash_mismatches, 24h) and #5 (rebuild-excluded
+   artifacts, 7d). Requires explicit authorization; do not modify published/certified artifacts
+   without it. Suite is green without this.
+
+## Verification this session
+
+- Full suite: `python -m pytest -q` → **4764 passed / 51 skipped / 7 failed** (the 7 are the
+  pre-existing, agent-unreachable `tests/test_gates_workflow.py` failures; unchanged baseline).
+- `ruff check src tests run_*.py scripts` → **All checks passed**.
+- `ruff format --check src tests run_*.py scripts` → **378 files already formatted**.
+- Diagnostic suite: `tests/test_analyze_equity_cross_section_rejects.py` → **17 passed**.
+- Coverage: `src/qtr` untouched → 100% source/branch coverage gate unaffected.
+
+## Approaches already tried and why they failed (do not blindly repeat)
+
+- New equity cross-sections on 98-name S&P 100 (H187–H197): **ALL REJECT**. Cycle 254+254-ext
+  show why: median train 0.690 → OOS 0.187 decay, 6/9 runs decay, no positive alpha, beta spans
+  [-0.522, 0.841], passive book OOS Sharpe 1.075 dominates. Mechanism space exhausted, not data.
+- Re-editing `.github/workflows/gates.yml` in a commit: **fails every session** (controller
+  restores; fix not agent-reachable). Capture/verify via `patches/` + `verify_gates_workflow_patch.py`
+  only.
+- "Data-blocked" claims without probing the named source: FRED, `data.binance.vision`,
+  SHFE/INE/CZCE/CFFEX, SEC XBRL all serve data older registers declared unavailable. Always probe
+  first.
 
 ## Commit
 
-This session added `scripts/analyze_equity_cross_section_rejects.py`,
-`tests/test_analyze_equity_cross_section_rejects.py`, and the Cycle 254 register entry. The
-maintainer workflow patch (item 1) is a separate maintainer action on `origin/main`.
+This session modified `scripts/analyze_equity_cross_section_rejects.py` and
+`tests/test_analyze_equity_cross_section_rejects.py` only. The maintainer workflow patch (item 1)
+is a separate maintainer action on `origin/main`.

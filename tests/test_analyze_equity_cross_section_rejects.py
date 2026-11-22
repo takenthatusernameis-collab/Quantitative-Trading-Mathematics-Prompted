@@ -31,6 +31,10 @@ def _summary(
     universe_symbols: list[str] | None = None,
     strategy_sharpe: float = 0.5,
     benchmark_sharpe: float = 1.0,
+    train_sharpe: float = 0.8,
+    val_sharpe: float = 0.3,
+    test_sharpe: float = 0.2,
+    full_sample_sharpe: float = 0.5,
     beta: float = 0.0,
     information_ratio: float = -0.5,
     alpha: float = -0.02,
@@ -44,6 +48,10 @@ def _summary(
         "experiment": name,
         "nf_id": name,
         "data": data,
+        "wf_train_sharpe": train_sharpe,
+        "val": {"sharpe": val_sharpe},
+        "test": {"sharpe": test_sharpe},
+        "full_sample": {"sharpe": full_sample_sharpe},
         "oos_val_test": {"sharpe": strategy_sharpe},
         "benchmark_passive_equal_weight_long_oos": {"sharpe": benchmark_sharpe},
         "benchmark_comparison": {
@@ -104,6 +112,10 @@ def test_load_record_normalises_equity_summary(tmp_path):
     assert record["run"] == "nf_test"
     assert record["strategy_sharpe"] == 0.5
     assert record["benchmark_sharpe"] == 1.0
+    assert record["train_sharpe"] == 0.8
+    assert record["val_sharpe"] == 0.3
+    assert record["test_sharpe"] == 0.2
+    assert record["full_sample_sharpe"] == 0.5
     assert record["beta"] == 0.0
     assert record["information_ratio"] == -0.5
     assert record["alpha_annualized"] == -0.02
@@ -140,17 +152,51 @@ def test_load_record_tolerates_missing_comparison_fields(tmp_path):
     assert record["information_ratio"] is None
 
 
+def test_load_record_tolerates_missing_train_val_test_blocks(tmp_path):
+    module = _load_script()
+    summary = _summary(universe_symbols=["AAPL"])
+    summary.pop("wf_train_sharpe", None)
+    summary.pop("val", None)
+    summary.pop("test", None)
+    summary.pop("full_sample", None)
+    path = _write_summary(tmp_path, "nf_test", summary)
+
+    record = module.load_record(path)
+
+    assert record is not None
+    assert record["train_sharpe"] is None
+    assert record["val_sharpe"] is None
+    assert record["test_sharpe"] is None
+    assert record["full_sample_sharpe"] is None
+    # the OOS path still loads from oos_val_test
+    assert record["strategy_sharpe"] == 0.5
+
+
 # --------------------------------------------------------------------------- #
 # Aggregation
 # --------------------------------------------------------------------------- #
 
 
-def _record(beta: float, strategy: float, benchmark: float, alpha: float, ir: float) -> dict:
+def _record(
+    beta: float,
+    strategy: float,
+    benchmark: float,
+    alpha: float,
+    ir: float,
+    train: float = 0.8,
+    val: float = 0.3,
+    test: float = 0.2,
+    full_sample: float = 0.5,
+) -> dict:
     module = _load_script()
     record = {
         "run": "r",
         "strategy_sharpe": strategy,
         "benchmark_sharpe": benchmark,
+        "train_sharpe": train,
+        "val_sharpe": val,
+        "test_sharpe": test,
+        "full_sample_sharpe": full_sample,
         "beta": beta,
         "information_ratio": ir,
         "alpha_annualized": alpha,
@@ -196,6 +242,27 @@ def test_summarize_span_spectrum_is_not_artifact_and_notes_weak_alpha():
     assert summary["genuine_negative_alpha"] is True
     assert "not a uniform long-bias artifact" in summary["conclusion"]
     assert "genuine mechanism weakness" in summary["conclusion"]
+
+
+def test_summarize_reports_train_val_test_path_and_decay():
+    module = _load_script()
+    # run A decays (train 1.0 -> OOS 0.2), run B holds (train 0.4 -> OOS 0.5)
+    records = [
+        _record(0.0, 0.2, 1.0, -0.02, -0.8, train=1.0, val=0.6, test=0.3, full_sample=0.9),
+        _record(0.0, 0.5, 1.0, 0.01, 0.4, train=0.4, val=0.45, test=0.5, full_sample=0.45),
+        _record(0.0, 0.1, 1.0, -0.01, -0.6, train=None, val=0.2, test=0.1, full_sample=None),
+    ]
+
+    summary = module.summarize(records)
+
+    assert summary["train_sharpe_median"] == 0.7  # median of [1.0, 0.4]
+    assert summary["val_sharpe_median"] == 0.45  # median of [0.6, 0.45, 0.2]
+    assert summary["test_sharpe_median"] == 0.3  # median of [0.3, 0.5, 0.1]
+    assert summary["full_sample_sharpe_median"] == 0.675  # median of [0.9, 0.45]
+    # decay measured only where both train and OOS present: runs A and B
+    assert summary["n_train_measured"] == 2
+    assert summary["n_train_to_oos_decay"] == 1  # only run A decays (0.2 < 1.0)
+    assert abs(summary["train_to_oos_decay_median"] - (-0.35)) < 1e-9  # median of [-0.8, +0.1]
 
 
 def test_summarize_empty_is_explicit():
@@ -288,3 +355,7 @@ def test_format_table_contains_header_and_runs():
     assert "oosSh" in table
     assert "nf_example" in table
     assert "market_neutral" in table
+    assert "train" in table
+    assert "val" in table
+    assert "test" in table
+    assert " 0.800 " in table  # default train_sharpe
