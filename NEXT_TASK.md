@@ -128,3 +128,21 @@ Price leg probed via yfinance on 20 removed + 20 added S&P 500 tickers sampled f
 historical-components table. Removed coverage 11/20 = 55% (<60% threshold); added 17/20 = 85%.
 Delisted removed names (M&A/bankruptcy deletions) dominate failures. Price leg remains a data blocker;
 H198 NOT assigned. Artifact: `.experiments/sp500_price_leg_probe_20261122.md`.
+
+## Cycle 256 closure (2026-11-22)
+
+- Price-leg probe completed and recorded: `.experiments/sp500_price_leg_probe_20261122.md`.
+- Removed (deletion) coverage 11/20 = 55% < 60% threshold → H198 NOT assigned. Event calendar remains free but price leg is a data blocker (delisted removed names dominate).
+- No new H-ID, no runner, no artifact beyond the probe note. Inventory marker remains H197.
+- Verified: ruff clean; inventory + gates-patch tests 28 passed.
+
+## Precise next task (Cycle 257+)
+
+Agent-executable research on the 98-name survivorship-biased universe is exhausted (H187–H197 all REJECT; S&P 500 index-membership price leg blocked at 55% removed coverage). Do NOT fabricate H198 or run another 98-name equity cross-section.
+
+The next productive work requires maintainer authorization (out of agent scope):
+1. Authorize a higher-dispersion universe (mid/small-cap or ex-US PIT) OR formally close the equity cross-section program.
+2. Apply `patches/0001-gates-workflow-contract-fix.patch` on origin/main (maintainer-only, workflows-scoped credentials).
+3. Optionally authorize reproducibility artifact cleanup (11 hash_mismatches → 3).
+
+Until authorization arrives, the only agent-executable items are durable-infrastructure improvements (inventory invariants, source probes, docs) — not new strategy families. Do not repeat the "discovery scan → exhausted" approach (failed Cycles 96/116/251).
