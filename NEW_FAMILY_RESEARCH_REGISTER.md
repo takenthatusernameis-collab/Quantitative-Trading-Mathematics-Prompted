@@ -2187,3 +2187,69 @@ EXPECTED_DISTINCT_KEYS 157->158 (new key
 Dependencies were already installed this session; free/public data only.
 
 **Cycle 253 complete.** H1-H197 exhausted/rejected; H189 data-blocked; `src/qtr` unchanged.
+
+---
+
+## Cycle 254 (2026-11-22) — root-cause decomposition of the H187–H197 reject streak (diagnostic, no new family)
+
+**Trigger / classification.** Cycle 253 closed with the structural claim that "the passive
+equal-weight long book dominates" and called the 11-cycle REJECT streak a "universe/benchmark
+problem". That claim was qualitative. Directive §6 requires the blocker to be identified as
+data, execution, capital, statistical power, or weak mechanism evidence before concluding the
+queue is exhausted. This cycle converts the claim into hard numbers. It is **not** a new strategy
+family (no H-ID, no runner, no artifact) and **not** an audit of `src/qtr`; it is a read-only
+decomposition of committed experiment artifacts that decides the next research move.
+
+**What changed (durable, additive).** New `scripts/analyze_equity_cross_section_rejects.py`
+(read-only, standard-library only, offline) and `tests/test_analyze_equity_cross_section_rejects.py`
+(**15 passed**). The script opens the committed `summary.json` files under
+`.experiments/nf_runs/`, keeps the equity cross-sections (identified by
+`data.universe_symbols`; the CFTC commodity and Binance crypto runs record a generic `universe`
+and are excluded), and reports per run the OOS strategy Sharpe, passive-book Sharpe, beta to the
+passive book, information ratio, and annualised alpha. It writes nothing and changes no artifact,
+gate, verdict, threshold, or frozen number. `src/qtr` is unchanged.
+
+**Result (own evidence, committed artifacts; 9 equity cross-sections).**
+
+| run | OOS Sharpe | passive-book Sharpe | beta | IR | alpha (ann.) | exposure |
+|---|---|---|---|---|---|---|
+| nf_20261120_01_equity_accruals | 0.187 | 1.075 | -0.009 | -0.879 | +0.014 | market_neutral |
+| nf_20261120_02_net_share_issuance | 0.698 | 1.058 | 0.727 | -0.600 | -0.012 | long_biased |
+| nf_20261121_01_equity_value | 0.853 | 1.075 | 0.365 | -0.138 | +0.070 | market_neutral |
+| nf_20261121_02_innovation_intensity | 0.423 | 1.173 | 0.585 | -0.968 | -0.033 | long_biased |
+| nf_20261121_03_bab_beta | -0.977 | 1.129 | -0.522 | -1.209 | -0.042 | short_biased |
+| nf_20261121_04_coskewness | -0.479 | 1.128 | -0.146 | -1.088 | -0.029 | market_neutral |
+| nf_20261121_05_price_delay | 0.083 | 1.128 | -0.179 | -0.807 | +0.034 | market_neutral |
+| nf_20261122_01_share_turnover | -0.774 | 1.033 | -0.410 | -1.075 | -0.037 | market_neutral |
+| nf_20261122_02_financial_distress | 0.522 | 0.986 | 0.841 | -0.779 | -0.032 | long_biased |
+
+Aggregate: median OOS Sharpe **strategy 0.187 vs passive book 1.075**; beta range
+**[-0.522, +0.841]** (3 long-biased / 5 market-neutral / 1 short-biased); **negative IR 9/9**;
+alpha **6 negative / 3 positive** (median ≈ -0.029).
+
+**Finding (refines the Cycle-252/253 claim).** The reject streak is **not** a uniform long-bias
+artifact: the strategies span the beta spectrum from short-biased (BAB, beta -0.522) through
+market-neutral (accruals, beta -0.009, OOS Sharpe 0.187 vs passive 1.075) to long-biased
+(distress, beta 0.841). If the benchmark were "unfairly long-only", the market-neutral and
+short-biased runs would be the ones that win — they do not; every run has negative IR. The binding
+constraint is therefore **genuine mechanism weakness (no positive alpha) against a strong
+equal-weight bull-market benchmark in a survivorship-biased mega-cap universe**, not a
+construction/beta mismatch. This sharpens the maintainer question: re-benchmarking or re-weighting
+the *same* 98 names cannot rescue the program, because even the (near) market-neutral anomalies
+carry no alpha here; escaping requires a **higher-dispersion universe** (more names / mid-small-cap
+/ ex-US PIT) where these mechanisms historically carry alpha, or formally closing the
+equity-cross-section program as exhausted — both maintainer decisions per directive §2.
+
+**Approaches already tried and why they failed (do not repeat).** H187–H197 (9 equity
+long-short cross-sections on the 98-name universe) all REJECT; this cycle explains *why*
+quantitatively (no alpha + strong benchmark, not a beta artifact). Running a 10th cross-section on
+the same universe is ruled out. In-tree `.github/workflows/gates.yml` edits remain agent-unreachable
+(restored by `.github/scripts/kilo-controller.sh`; token lacks `workflows` permission) — the
+apply-ready fix is `patches/0001-gates-workflow-contract-fix.patch`, still guarded green by
+`scripts/verify_gates_workflow_patch.py`.
+
+**Verification this session.** Full suite `python -m pytest -q` -> **4762 passed / 51 skipped / 7
+failed** (net +15 from the new diagnostic tests; the 7 are the unchanged, pre-existing,
+agent-unreachable `tests/test_gates_workflow.py` failures). `ruff check` + `ruff format --check`
+clean on `src tests run_*.py scripts`. `src/qtr`, runners, artifacts, gates, coverage, and
+thresholds unchanged.
