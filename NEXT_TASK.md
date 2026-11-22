@@ -168,3 +168,76 @@ The next productive work requires maintainer authorization (out of agent scope):
 3. Optionally authorize reproducibility artifact cleanup (11 hash_mismatches → 3).
 
 Until authorization arrives, the only agent-executable items are durable-infrastructure improvements (inventory invariants, source probes, docs) — not new strategy families. Do not repeat the "discovery scan → exhausted" approach (failed Cycles 96/116/251).
+
+## Cycle 259 (2026-11-22) — durable-infra: FRED probe tests + probe-coverage invariant + unknown-series fix
+
+No new H-ID, no runner, no strategy family, no `src/qtr`/artifact/gate/frozen-number/workflow
+change. The `<!-- inventory-high-water-mark: H197 -->` marker is unchanged and still IN SYNC
+(`python scripts/verify_hypothesis_inventory.py` → H197 == H197). This cycle closes a concrete,
+evidence-backed durable-infra gap (an untested free-data probe) and encodes the invariant that
+prevents it recurring.
+
+### What changed
+1. **`scripts/probe_fred_availability.py`** — fixed a reproducible `KeyError` crash (1-line).
+   `probe()` indexed `FRED_SERIES[series_id]` *before* its `try` block, so an unknown/typo series
+   crashed the whole probe even though `main()` prints "warning: ... probing anyway". Reproduced:
+   `main(["NOTREAL"])` printed the warning then raised `KeyError 'NOTREAL'`. Now
+   `FRED_SERIES.get(series_id, (series_id, "unknown"))` returns a graceful `UNREACHABLE`/unknown row.
+   No behaviour change for valid series ids.
+2. **`tests/test_probe_fred_availability.py`** (new, 10 tests, fully offline) — closes the last
+   untested durable-source probe (FRED is explicitly durable per `AGENTS.md`; 5 of 6 `probe_*.py`
+   already had tests, FRED did not). Covers `fetch_fred` CSV parsing (incl. `.`/empty → dropped),
+   `probe` OK / UNREACHABLE / unknown-series rows, `main` exit codes (0 all reachable / 1 any
+   unreachable), the "probing anyway" warning + no-crash path, default curated-set run, and
+   `FRED_SERIES` table well-formedness. Network stubbed via `monkeypatch` on `urlopen`/`fetch_fred`.
+3. **`tests/test_probe_script_coverage.py`** (new, 2 tests) — invariant: every `scripts/probe_*.py`
+   has a matching `tests/test_probe_*.py`. This is exactly the drift that just happened (a durable
+   probe with no test); it now fails at commit time instead of a cycle later.
+
+### What was verified (evidence)
+- Full suite: `python -m pytest -q` → **4822 passed / 51 skipped / 7 failed** (was 4810; +12 new
+  tests). The 7 are the unchanged, agent-unreachable `tests/test_gates_workflow.py` failures.
+- New tests under CI mode: `python -m pytest -q -W error tests/test_probe_fred_availability.py
+  tests/test_probe_script_coverage.py` → **12 passed**.
+- `python -m ruff check` + `ruff format --check` on the 3 changed files → clean.
+- `python scripts/verify_hypothesis_inventory.py` → IN SYNC (H197 == H197).
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly;
+  `python scripts/verify_gates_workflow_patch.py` → resolves all 7 violations.
+- `python scripts/backtest_perf_regression_gate.py` → PASSED (0.424s, limit 5s).
+- `src/qtr` untouched → 100% source/branch coverage gate unaffected.
+
+### Not committed (this session)
+Per repo policy these changes are left in the working tree (not committed). `git status`:
+`M scripts/probe_fred_availability.py`, `?? tests/test_probe_fred_availability.py`,
+`?? tests/test_probe_script_coverage.py`, plus this `NEXT_TASK.md`. To land:
+`git add scripts/probe_fred_availability.py tests/test_probe_fred_availability.py
+tests/test_probe_script_coverage.py NEXT_TASK.md && git commit -m "test(probes): cover FRED probe;
+fix unknown-series KeyError; enforce probe-test coverage invariant"`.
+
+### Unresolved (unchanged bottleneck — maintainer / authorization only, out of agent scope)
+1. **Universe/benchmark decision (the real research bottleneck).** Authorize a higher-dispersion
+   universe (mid/small-cap or ex-US PIT) OR formally close the equity cross-section program.
+2. **Workflow contract patch.** Apply `patches/0001-gates-workflow-contract-fix.patch` on
+   `origin/main` (maintainer-only, workflows-scoped credentials). Do NOT re-edit
+   `.github/workflows/gates.yml` in a commit — it is restored from `origin/main`.
+3. **Reproducibility artifact cleanup (non-blocking).** Optional, needs explicit authorization.
+
+### Remaining agent-executable durable-infra gap (lower priority)
+`scripts/repair_sidecar_schemas.py` still has **no dedicated test** (only a stale
+`tests/__pycache__/test_sidecar_schema_contract...pyc`; the source `tests/test_sidecar_schema_contract.py`
+tests the schema contract, not this repair script). It is a one-off, idempotent repair (already
+applied; now a no-op), so testing it is lower value than the FRED probe was — do it only if more
+durable-infra work is explicitly wanted.
+
+## Precise next task (Cycle 259+) — supersedes the Cycle 257+ note above
+
+The agent-executable research track is exhausted (H187–H197 REJECT; S&P 500 price leg blocked at
+55% removed coverage). Do NOT fabricate H198, do NOT run another 98-name equity cross-section, do
+NOT re-edit `.github/workflows/**`, and do NOT repeat the "discovery scan → exhausted" approach
+(failed Cycles 96/116/251).
+
+The one remaining bounded, agent-executable durable-infra task (only if explicitly wanted, since the
+FRED gap is now closed) is to add a test for `scripts/repair_sidecar_schemas.py` using a temporary
+experiments directory (it reads `.experiments/experiments.jsonl` and rewrites only disagreeing
+`.meta.json` sidecars; assert idempotency and that matching sidecars are left untouched). Otherwise,
+the next productive work requires the maintainer authorization in "Unresolved" above.

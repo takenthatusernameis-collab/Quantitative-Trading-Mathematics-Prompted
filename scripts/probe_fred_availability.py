@@ -75,7 +75,7 @@ def fetch_fred(series_id: str, timeout: float = 20.0) -> pd.Series:
 
 def probe(series_id: str) -> dict[str, object]:
     """Probe one series and return a row of evidence."""
-    description, category = FRED_SERIES[series_id]
+    description, category = FRED_SERIES.get(series_id, (series_id, "unknown"))
     try:
         data = fetch_fred(series_id)
     except Exception as error:  # noqa: BLE001 -- a per-series miss is the finding
