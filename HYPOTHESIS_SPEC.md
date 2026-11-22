@@ -9574,3 +9574,116 @@ parameter/timeframe/universe/market variants. `src/qtr` unchanged.
 ---
 
 **Conclusion (Cycle 248).** The free-data point-in-time strategy-family queue is **exhausted**: H1–H194 all executed/rejected, H189 confirmed data-blocked. SEC XBRL fundamentals tested across all three accounting mechanisms (H187 REJECT 2/8, H188 REJECT 3/8, H189 data-blocked). Price-based crypto funding/basis cross-section (H190) executed/rejected. Beta-sorted cross-section / betting-against-beta (H193) executed/rejected. Coskewness / systematic skewness (H194) executed/rejected. **No H195 is pre-registered and no new runner is created this cycle.** Future discovery cycles must search for genuinely distinct return-generating mechanisms (per directive §6), not parameter/timeframe/universe/market variants. `src/qtr` unchanged.
+
+---
+
+## H197 (NF-20261122-02): Capital-structure / financial-distress cross-section (Cycle 253: pre-registered and executed)
+
+**Broad mechanism category.** Capital structure / financial distress (stock-level balance-sheet
+leverage and default distance). Repo-new root family relative to executed H1-H196: no executed H-ID
+sorts single stocks by a leverage / default-distance (capital-structure) characteristic. The closest
+prior families are H187 (accruals / asset growth), H188 (net share issuance), H189 (gross
+profitability — data-blocked), H191 (valuation), H192 (innovation intensity), H193 (beta), H194
+(coskewness), H195 (price delay) and H196 (share turnover / liquidity). A solvency sort ranks on
+**how levered a firm is and how far its market equity sits above its default barrier** — a
+bankruptcy-risk characteristic distinct from earnings quality, financing flows, cheapness, innovation
+inputs, systematic risk, higher moments, response-speed frictions, or trading activity. Per directive
+§2 this is a new balance-sheet solvency axis, not a parameter/instrument/universe/timeframe variant.
+
+**Mechanism / causal chain.** (i) Distress risk (Campbell-Hilscher-Szilagyi 2008; Merton 1974): a firm
+whose asset value sits close to its default barrier (low distance-to-default) carries high bankruptcy
+risk; in the post-1980 U.S. cross-section such high-distress firms subsequently underperform, so
+low-distress (high-DD, low-leverage) names earn higher returns. (ii) Leverage / distress premium:
+highly levered equities have more volatile, option-like payoffs that lose value after de-leveraging,
+again predicting conservatively financed (low-leverage, high-equity-to-debt) names subsequently
+outperform. Both channels predict: **long the safest names (lowest leverage / highest distance-to-
+default), short the most distressed (highest leverage / lowest distance-to-default).** Null (H0): the
+capital-structure cross-section carries no predictive power for next-period equity returns after costs.
+
+**PIT timing.** A row may enter the signal only when `filed` (the SEC acceptance date of the last tag
+needed for that fiscal year — the max of the liabilities and share-count acceptance dates) is `<= t`;
+the shared engine then applies `shift(1)`. No fiscal-period `end` is used as an availability stamp. At
+a monthly refresh date R: market equity E = (latest filed shares on/before R) * (close on R); book
+liabilities F = latest filed 10-K `Liabilities` on/before R; sigma = trailing-252 annualised equity
+volatility known at R.
+
+**Pre-registration (Cycle 253, written before any forward-return outcome was computed).** Sample
+2011-01-03 -> 2026-11-21; Train -> 2021-12-31; Val 2022-01-01 -> 2023-12-31; Test protected
+2024-01-01 -> 2026-11-21. Universe: the 100-name S&P 100 snapshot in
+`scripts/probe_sec_xbrl_fundamentals.py:UNIVERSE` minus XOM and BKNG (same as H187-H196) = 98 names;
+names with >= 2 annual `Liabilities`+share observations and >= 252 valid daily returns are tradeable
+(96/98 measured). Features (high = safest, long-high): `equity_to_debt` = E / F and
+`distance_to_default` = (ln(E/F) - 0.5*sigma^2) / sigma. Cross-sectional z on the monthly refresh grid
+(winsorized +/-3), hysteresis entry_z/exit_z, long top-k / short bottom-k, gross-normalized,
+forward-filled to daily. Grid 16 (feature x entry_z {0.5,1.0} x exit_z {0.0} x k {5,10} x vol_target
+{0.10,0.15}), train-only 4-fold WF Sharpe selection. Costs 5 bps one-way; no short borrow cost
+modelled (disclosed optimistic).
+
+**Gates (OOS Val+Test, fail-closed, standard 8, unchanged).** Sharpe >= 1.0; trades >= 50; PF >= 1.3;
+maxDD <= 15%; WF stability >= 0.7; worst-regime rolling-252 Sharpe >= 0.3; benchmark p <= 0.05
+(two-sided) with IR >= 0 vs the passive equal-weight long book; OAT +/-20% perturbation min ratio
+>= 0.5.
+
+**Ablations/falsifiers.** Passive equal-weight long book; random ranking (seed 42); inverse signal
+(anti-distress); train-block Spearman of equity_to_debt vs distance_to_default (input collinearity);
+cross-sectional Spearman of distance_to_default vs beta (H193), trailing-252 momentum and trailing-252
+volatility (mechanism separation).
+
+---
+
+## H197 execution result (Cycle 253, 2026-11-22): EXECUTED — **REJECT (1/8)**
+
+**Status:** executed on the pre-registered construction and rejected on the protected OOS Val+Test
+window. Artifact `.experiments/nf_runs/nf_20261122_02_financial_distress_20261122_033354/summary.json`
++ `grid.csv` + `data_meta.json`. Runner `run_nf_20261122_02_financial_distress.py`; tests
+`tests/test_nf_20261122_02_financial_distress.py` (24 passed). `src/qtr` unchanged; no gate weakening;
+no published artifact or frozen number modified; free/public PIT data only.
+
+**Data actually used.** SEC XBRL companyfacts `Liabilities` (+ `LiabilitiesAndStockholdersEquity`
+fallback) and share counts (PIT by filed date) + yfinance auto-adjusted Close, cached offline. Sample
+2011-01-03 -> 2026-11-21. Train 2,870 rows, Val 520, Test 755 (protected), OOS 1,275. Universe 96/98
+names with capital-structure observations (above the 40-name minimum).
+
+**Selected config (train-only 4-fold WF).** feature=equity_to_debt, entry_z=1.0, exit_z=0.0, k=10,
+vol_target=0.10; WF train Sharpe 1.183; in-train Sharpe 1.173.
+
+**OOS Val+Test.** Sharpe **0.522**, PF **1.094**, maxDD **-15.59%**, trades **12,276**, worst
+rolling-252 Sharpe **-1.260**, total return 0.293. Val Sharpe 0.359 / Test Sharpe 0.624. Full sample
+see summary.json.
+
+**Gates (fail-closed, 8).** PASS: trades >= 50 (12,276, genuine). FAIL: Sharpe >= 1.0 (0.522), PF >=
+1.3 (1.094), maxDD <= 15% (-15.59%), WF stability >= 0.7 (0.445, OOS/train decay), worst-regime >= 0.3
+(-1.260), benchmark p <= 0.05 with IR >= 0 (p **0.0574** two-sided, IR **-0.846**), perturbation min
+ratio >= 0.5 (0.320). **Verdict REJECT (1/8).** No negative/negative-ratio artifact — the only passing
+gate (trades) is genuine.
+
+**Benchmark / ablations.** The passive equal-weight long book of the same names dominates OOS: Sharpe
+**1.029**. Random ranking OOS Sharpe -1.900. Inverse signal (anti-distress) OOS Sharpe **-0.538**: the
+pre-registered distress direction is *not* inverted (both direct and inverse are < 1.0; direct is the
+better sign but still weak). Train input collinearity equity_to_debt vs distance_to_default **0.973**
+(high, expected — both monotone in E/F). Mechanism separation: distance_to_default vs beta_252
+**-0.163**, momentum_252 **+0.161**, realized_vol_252 **-0.158** (all low, confirming H197 is distinct
+from the beta / momentum / volatility families). Null (H0) not rejected.
+
+**Honest note.** The capital-structure / distress cross-section does not survive in this
+survivorship-biased large-cap universe: the passive equal-weight book (OOS Sharpe 1.03) dominates and
+the distress tilt earns a modest positive OOS Sharpe (0.52) that decays badly out of sample with a
+worst-regime Sharpe of -1.26 and a drawdown beyond the 15% limit. Distress dispersion among 98
+mega-caps is minimal. Financial distress is NOT data-blocked — it failed on mechanism strength /
+dispersion, not data. The 11th consecutive long-short cross-section REJECT (H187-H197) confirms the
+structural diagnosis: the universe/benchmark (passive-book dominance, survivorship bias), not the
+mechanism search, is the binding constraint. Escaping it requires a different universe/benchmark or
+formally closing the equity-cross-section program — both maintainer decisions per directive §2.
+
+**Disclosure.** Pre-registration (Cycle 253 spec text written 2026-11-22) precedes the run artifact;
+the runner's grid/features/splits are frozen in `run_nf_20261122_02_financial_distress.py`.
+`grid.csv` has exactly the 16 pre-registered combos; no post-hoc expansion. The test window was not
+used for selection or debugging.
+
+---
+
+**Conclusion (Cycle 253).** H1–H197 all executed/rejected; H189 data-blocked. The capital-structure /
+financial-distress cross-section (H197) is the one remaining genuinely-distinct, free-data-feasible
+mechanism, now executed and REJECT 1/8. No new sign-inverted / parameter / universe / window variant
+of H187–H196 was run. `src/qtr` unchanged. Future discovery cycles must search for genuinely distinct
+return-generating mechanisms (per directive §6) or escalate the universe/benchmark decision.

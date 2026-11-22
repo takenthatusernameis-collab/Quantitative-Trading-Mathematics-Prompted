@@ -1,0 +1,17 @@
+feature,entry_z,exit_z,k,vol_target,wf_train_sharpe
+equity_to_debt,1.0,0.0,10,0.1,1.1833803786771244
+equity_to_debt,1.0,0.0,10,0.15,1.1477072038720157
+equity_to_debt,1.0,0.0,5,0.1,0.9775796054087021
+equity_to_debt,1.0,0.0,5,0.15,0.9740329957856093
+equity_to_debt,0.5,0.0,5,0.15,0.5031378307444963
+equity_to_debt,0.5,0.0,5,0.1,0.4964184403550662
+distance_to_default,1.0,0.0,5,0.15,0.37709007290810975
+distance_to_default,0.5,0.0,5,0.15,0.37709007290810975
+distance_to_default,1.0,0.0,5,0.1,0.37041543569213176
+distance_to_default,0.5,0.0,5,0.1,0.37041543569213176
+equity_to_debt,0.5,0.0,10,0.1,0.3226113219501837
+equity_to_debt,0.5,0.0,10,0.15,0.31771791099302354
+distance_to_default,1.0,0.0,10,0.15,0.2340284963802161
+distance_to_default,0.5,0.0,10,0.15,0.2340284963802161
+distance_to_default,0.5,0.0,10,0.1,0.23284795273737802
+distance_to_default,1.0,0.0,10,0.1,0.23284795273737802
