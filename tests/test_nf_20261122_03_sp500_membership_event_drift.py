@@ -329,7 +329,12 @@ def test_walk_forward_score_short_train_returns_sentinel():
     returns = mod.returns_from_closes(closes, calendar)
     short = calendar[:200]
     score = mod.event_walk_forward_score(
-        [], closes, returns, list(closes.columns), short, {"holding_days": 21, "entry_delay": 0, "vol_target": 0.10}
+        [],
+        closes,
+        returns,
+        list(closes.columns),
+        short,
+        {"holding_days": 21, "entry_delay": 0, "vol_target": 0.10},
     )
     assert score == -999.0
 
@@ -348,7 +353,12 @@ def test_walk_forward_score_finite_on_synthetic_sample():
     ]
     train = calendar[calendar <= pd.Timestamp("2021-12-31")]
     score = mod.event_walk_forward_score(
-        events, closes, returns, list(closes.columns), train, {"holding_days": 21, "entry_delay": 0, "vol_target": 0.10}
+        events,
+        closes,
+        returns,
+        list(closes.columns),
+        train,
+        {"holding_days": 21, "entry_delay": 0, "vol_target": 0.10},
     )
     assert np.isfinite(score)
 
@@ -367,7 +377,12 @@ def test_perturbation_sharpes_returns_six_points():
     ]
     oos = calendar[calendar > pd.Timestamp("2021-12-31")]
     values = mod.perturbation_sharpes(
-        events, closes, returns, list(closes.columns), {"holding_days": 21, "entry_delay": 0, "vol_target": 0.10}, oos
+        events,
+        closes,
+        returns,
+        list(closes.columns),
+        {"holding_days": 21, "entry_delay": 0, "vol_target": 0.10},
+        oos,
     )
     assert len(values) == 6
     assert all(np.isfinite(value) for value in values)
@@ -379,7 +394,11 @@ def test_perturbation_sharpes_returns_six_points():
 
 
 def _latest_artifact() -> Path:
-    runs = sorted(glob.glob(str(ROOT / ".experiments" / "nf_runs" / "nf_20261122_03_sp500_membership_event_drift_*")))
+    runs = sorted(
+        glob.glob(
+            str(ROOT / ".experiments" / "nf_runs" / "nf_20261122_03_sp500_membership_event_drift_*")
+        )
+    )
     if not runs:
         pytest.skip("H198 artifact not yet generated")
     return Path(runs[-1]) / "summary.json"
@@ -405,7 +424,13 @@ def test_artifact_summary_exists_and_verdict():
 
 def test_artifact_grid_csv_has_twelve_rows():
     grids = glob.glob(
-        str(ROOT / ".experiments" / "nf_runs" / "nf_20261122_03_sp500_membership_event_drift_*" / "grid.csv")
+        str(
+            ROOT
+            / ".experiments"
+            / "nf_runs"
+            / "nf_20261122_03_sp500_membership_event_drift_*"
+            / "grid.csv"
+        )
     )
     if not grids:
         pytest.skip("H198 grid artifact not yet generated")
@@ -416,7 +441,13 @@ def test_artifact_grid_csv_has_twelve_rows():
 
 def test_artifact_has_data_meta_with_coverage():
     metas = glob.glob(
-        str(ROOT / ".experiments" / "nf_runs" / "nf_20261122_03_sp500_membership_event_drift_*" / "data_meta.json")
+        str(
+            ROOT
+            / ".experiments"
+            / "nf_runs"
+            / "nf_20261122_03_sp500_membership_event_drift_*"
+            / "data_meta.json"
+        )
     )
     if not metas:
         pytest.skip("H198 data_meta artifact not yet generated")

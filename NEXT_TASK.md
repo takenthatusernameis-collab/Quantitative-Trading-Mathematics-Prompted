@@ -501,6 +501,35 @@ Confirmed stable and green (modulo the known agent-unreachable contract failures
 Same as Cycle 263: the agent-executable research track is exhausted. No bounded agent-executable
 research task remains without one of the three maintainer authorizations above (universe decision,
 workflow contract patch, reproducibility cleanup). Do NOT fabricate H198, do NOT run another
-98-name equity cross-section, do NOT re-edit `.github/workflows/**`, and do NOT repeat the
+98-name equity cross-section, do NOT re-edit .github/workflows/**, and do NOT repeat the
 "discovery scan → exhausted" approach (failed Cycles 96/116/251). The baseline is stable and
 verified; the next productive work requires maintainer authorization.
+
+## Cycle 265 (2026-11-22) — ruff format drift fix
+
+### What changed
+- `tests/test_nf_20261122_03_sp500_membership_event_drift.py` — applied `ruff format` to fix a
+  format drift (long call arguments wrapped; trailing newline added). No logic change. One file
+  modified, left uncommitted in the working tree per repo policy (`git status --short` shows only
+  this file; HEAD == origin/main == 0670f44).
+
+### What was verified
+- `python -m ruff check src tests run_*.py scripts` -> All checks passed.
+- `python -m ruff format --check src tests run_*.py scripts` -> 390 files already formatted (was 1 unformatted).
+- `python -m pytest -q tests/test_nf_20261122_03_sp500_membership_event_drift.py` -> 23 passed.
+- `tests/test_gates_workflow.py` -> 7 failed (unchanged; all due to unpatched
+  .github/workflows/gates.yml, agent-unreachable; maintainer patch staged at
+  patches/0001-gates-workflow-contract-fix.patch).
+- `python scripts/verify_hypothesis_inventory.py` -> IN SYNC (H197 == H197).
+- `python scripts/backtest_perf_regression_gate.py` -> PASSED.
+
+### Precise next task
+Same as Cycle 264+: the agent-executable research track is exhausted (H187-H197 REJECT; S&P 500
+price leg blocked at 55% removed coverage; ruff format drift now fixed). The remaining productive
+work requires one of the three maintainer authorizations:
+1. Universe/benchmark decision. Authorize a higher-dispersion universe (mid/small-cap or ex-US PIT)
+   OR formally close the equity cross-section program. (Actual research bottleneck.)
+2. Workflow contract patch. Apply patches/0001-gates-workflow-contract-fix.patch on
+   origin/main (maintainer-only, workflows-scoped credentials). Do NOT re-edit
+   .github/workflows/gates.yml in a commit — it is restored from origin/main.
+3. Reproducibility artifact cleanup (non-blocking). Optional, needs explicit authorization.
