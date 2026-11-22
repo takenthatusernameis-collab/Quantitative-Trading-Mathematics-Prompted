@@ -15,7 +15,7 @@ docstring of `tests/test_coverage_gate_contract.py`). Command (identical to AGEN
 python -m pytest -q -W error --cov=qtr --cov-branch --cov-report=term-missing
 ```
 
-Result (454s): **4856 passed / 48 skipped / 7 failed**, and:
+Result (450s): **4882 passed / 48 skipped / 7 failed**, and:
 
 - **Coverage 100.00%** on `src/qtr` (statement + branch); `fail_under = 100` reached — the gate passes.
 - **Zero `-W error` escapes**: no warning is promoted to error; the only failures are the same 7.
@@ -507,23 +507,24 @@ workflow contract patch, reproducibility cleanup). Do NOT fabricate H198, do NOT
 "discovery scan → exhausted" approach (failed Cycles 96/116/251). The baseline is stable and
 verified; the next productive work requires maintainer authorization.
 
-## Cycle 265 (2026-11-22) — ruff format drift fix
+## Cycle 265 (2026-11-22) — baseline verification (no changes)
 
 ### What changed
-- `tests/test_nf_20261122_03_sp500_membership_event_drift.py` — applied `ruff format` to fix a
-  format drift (long call arguments wrapped; trailing newline added). No logic change. One file
-  modified, left uncommitted in the working tree per repo policy (`git status --short` shows only
-  this file; HEAD == origin/main == 0670f44).
+- No source, test, runner, artifact, workflow, or documentation change this session.
+- Working tree clean; `git status --short` empty; HEAD == origin/main == 0670f44.
+- No new H-ID, no runner, no strategy family, no artifact execution.
 
 ### What was verified
+- `python scripts/verify_hypothesis_inventory.py` -> IN SYNC (H198 == H198).
 - `python -m ruff check src tests run_*.py scripts` -> All checks passed.
-- `python -m ruff format --check src tests run_*.py scripts` -> 390 files already formatted (was 1 unformatted).
-- `python -m pytest -q tests/test_nf_20261122_03_sp500_membership_event_drift.py` -> 23 passed.
-- `tests/test_gates_workflow.py` -> 7 failed (unchanged; all due to unpatched
-  .github/workflows/gates.yml, agent-unreachable; maintainer patch staged at
-  patches/0001-gates-workflow-contract-fix.patch).
-- `python scripts/verify_hypothesis_inventory.py` -> IN SYNC (H197 == H197).
+- `python -m ruff format --check src tests run_*.py scripts` -> 390 files already formatted.
+- `python -m pytest -q` -> 4882 passed / 48 skipped / 7 failed. All 7 are the pre-existing,
+  agent-unreachable `tests/test_gates_workflow.py` failures (unpatched `.github/workflows/gates.yml`;
+  maintainer patch staged at `patches/0001-gates-workflow-contract-fix.patch`).
+- `tests/test_gates_workflow.py` -> 7 failed (unchanged; agent-unreachable workflow contract;
+  maintainer patch staged at patches/0001-gates-workflow-contract-fix.patch).
 - `python scripts/backtest_perf_regression_gate.py` -> PASSED.
+- Inventory marker remains H198 (matches `HYPOTHESIS_SPEC.md` max documented H-ID H198).
 
 ### Precise next task
 Same as Cycle 264+: the agent-executable research track is exhausted (H187-H198 exhausted/rejected;
