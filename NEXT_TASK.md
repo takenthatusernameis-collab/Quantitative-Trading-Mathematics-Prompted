@@ -67,6 +67,13 @@ inventory-correctness fix plus a free-data source probe** (no new strategy famil
    differences). Requires explicit authorization; do not do without it. The suite is green
    (4764/51/7) without this.
 
+## Precise next task (one bounded task) — UPDATED 2026-11-22 (price-leg probe complete)
+
+Price-leg probe already recorded in `.experiments/sp500_price_leg_probe_20261122.md`:
+removed (deletions) coverage 11/20 = 55% (< 60% threshold); added 17/20 = 85%;
+combined 28/40 = 70%. Delisted removed names dominate failures, so the price leg is
+UNRESOLVED and H198 remains unassigned. Do NOT pre-register H198 on this universe.
+
 ## Precise next task (one bounded task)
 
 The equity-cross-section mechanism space on the 98-name survivorship-biased universe is exhausted
