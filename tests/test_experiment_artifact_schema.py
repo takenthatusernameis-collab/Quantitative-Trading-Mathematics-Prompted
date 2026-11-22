@@ -182,10 +182,18 @@ def test_incomplete_runs_match_audit_inventory():
 # first execution was abandoned mid-run after a delay-panel bug left ~95% of the
 # panel NaN -- that incomplete artifact was deleted, so the incomplete-run set is
 # unchanged at 8; only the valid summary-bearing run is counted here.)
-EXPECTED_TOTAL_DIRS = 121
-EXPECTED_SUMMARY_COUNT = 113
+# Cycle 250 added one summary (+1 directory): the H196 stock-level share-turnover
+# (liquidity / trading-activity) cross-section run
+# `nf_20261122_01_share_turnover_20261122_003934`. It adds one top-level key
+# (distinct keys 156 -> 157):
+# `train_input_collinearity_turnover21_vs_turnover252`, the 1-month vs 1-year
+# turnover Spearman diagnostic (a sibling-collinearity key name distinct from
+# H187/H188/H190/H191/H192/H193/H194/H195, so it adds its own key). The key appears
+# in one of 114 summaries, so the >=50% / >=80% sets are unchanged.
+EXPECTED_TOTAL_DIRS = 122
+EXPECTED_SUMMARY_COUNT = 114
 EXPECTED_CACHE_ONLY_DIRS = 11
-EXPECTED_DISTINCT_KEYS = 156
+EXPECTED_DISTINCT_KEYS = 157
 EXPECTED_KEYS_GE_50_PCT = frozenset(
     {
         "ablations",

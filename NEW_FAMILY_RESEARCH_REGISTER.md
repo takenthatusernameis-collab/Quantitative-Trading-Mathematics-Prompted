@@ -1888,3 +1888,89 @@ this universe, not the data. Beta-dispersion timing (deferred candidate 2) and r
 (deferred candidate 3) remain untested distinct families for a future cycle.
 
 **Cycle 249 complete.** H1–H195 exhausted/rejected; H189 data-blocked; `src/qtr` unchanged.
+
+---
+
+## Cycle 250 (2026-11-22) — H196 stock-level share turnover / liquidity cross-section
+
+**§4 discovery scan (≥3 distinct candidates across ≥3 broad mechanism categories, scored
+25/25/20/15/10/5, conservative adjacency penalty).** Candidate 1 — **stock-level share turnover
+(volume / shares outstanding) liquidity / trading-activity cross-section** (Datar-Naik-Radcliffe
+1998 liquidity premium + Baker-Wurgler 2013 turnover-as-overvaluation). Novelty 4: repo-new root
+family — no executed H-ID sorts single stocks by share turnover into a long-low / short-high
+cross-section; the closest priors are H121 (SPY-level Amihud price-impact *regime timing*, not a
+cross-section), H19/H20 (volume / order-flow *direction timing* on indices), and the
+return/fundamental/vol/higher-moment families. Plausibility 4: both the liquidity-premium and the
+speculative-overvaluation channels predict long-low / short-high turnover; academic support strong.
+Data 5: SEC XBRL companyfacts share counts (free/PIT, all 98 names have >= 2 annual observations)
++ yfinance daily Volume/Close (free); PIT by filed date. Falsifiability 5: clean cross-sectional
+long-short book, random-ranking and inverse controls, benchmark vs passive equal-weight long book.
+Execution 4: monthly refresh (turnover is slow-moving), 5 bps one-way costs, standard 8 gates.
+Support 3: liquidity premium well-documented but weak in large caps; overvaluation channel noisy.
+Weighted ≈ 4.15 (highest among repo-new candidates this cycle). Candidate 2 — realized-kurtosis /
+tail-risk cross-section (4th moment; adjacent to H128/H194 higher-moment families, still deferred).
+Candidate 3 — beta-dispersion / aggregate-beta regime timing (scalar timing variant of H117/H29,
+still deferred). Candidate 1 selected as **H196** (next unused H-ID after H195; H189 reserved for
+the data-blocked gross-profitability candidate NF-20261120-03; H24/H68-H73/H76-H79 unassigned, not
+recycled). Turnover is explicitly distinguished from H121 (single-asset Amihud *timing* vs
+cross-sectional *turnover*), H19/H20 (index *direction timing* vs stock *selection*), and
+momentum/reversal (own past return vs trading activity relative to size).
+
+**Execution (commit 1cc1735 / Cycle 250; artifact
+`.experiments/nf_runs/nf_20261122_01_share_turnover_20261122_003934/`).** Runner
+`run_nf_20261122_01_share_turnover.py` (reuses H191 share-count loader + H187/H184 primitives; only
+the turnover panel is new code); tests `tests/test_nf_20261122_01_share_turnover.py` (24 passed).
+Universe: 98-name S&P 100 snapshot minus XOM/BKNG (same as H187-H195), all 98 with >= 2 annual share
+observations. Sample 2011-01-03 -> 2026-11-21; train 2011-01-03->2021-12-31 (2870 rows), val
+2022-01-01->2023-12-31 (520), test protected 2024-01-01->2026-11-21 (755), OOS 1275 rows. Features
+`turnover_21` (1-month) and `turnover_252` (1-year) = trailing window trading-day share volume /
+latest filed shares outstanding, PIT, monthly refresh, forward-filled to daily. Cross-sectional z
+(winsorized +/-3), long-bottom-k (lowest turnover) / short-top-k (highest turnover) hysteresis,
+gross-normalized, vol-targeted. Grid 16 (feature {21,252} x entry_z {0.5,1.0} x exit_z {0.0} x k
+{5,10} x vol_target {0.10,0.15}), train-only 4-fold WF Sharpe selection. Costs 5 bps one-way; no
+short borrow cost modelled (disclosed optimistic, same as H187-H195). Gates standard 8, fail-closed,
+unchanged (two-sided benchmark p preserved).
+
+**Selected** (train-only): turnover_252, entry_z=1.0, exit_z=0.0, k=5, vol_target=0.10; WF train
+Sharpe -0.878, train_selected_sharpe -0.867. **OOS metrics:** Sharpe **-0.774**, PF 0.871, maxDD
+-46.9%, worst-regime rolling-252 Sharpe -2.835, total_return -0.359, 1907 trades. **Benchmark
+(passive equal-weight long book, same 98 names, vol-targeted 0.10): OOS Sharpe 1.033** -- benchmark
+dominates; IR -1.075, two-sided p 0.016 (fails the "p<=0.05 AND IR>=0" conjunct). **Ablations:**
+random ranking (same leg counts, seed 42) OOS Sharpe -1.007; **inverse signal (anti-turnover = long
+high-turnover / short low-turnover) OOS Sharpe +0.756** -- the turnover direction is *empirically
+inverted* in this universe (high turnover outperforms low turnover, opposite to the liquidity-premium
+prediction). Train collinearity turnover_21 vs turnover_252 Spearman 0.932 (expected; both measure
+turnover). Train mechanism separation (cross-sectional Spearman of turnover_252 vs): beta_252 0.439
+(H193), momentum_252 0.127, realized_vol_252 0.573 -- distinct from momentum, correlated with
+vol/beta as expected. **Gates:** 3/8 passed -- trades>=50 (1907, genuine), wf_stability>=0.7 (0.893),
+perturbation min-ratio>=0.5 (1.197). The wf_stability and perturbation "passes" are
+negative/negative-ratio artifacts (both train and OOS Sharpe are negative, so the ratios are
+positive without indicating robustness); only the trades gate is genuine. Sharpe/PF/maxDD/worst-
+regime/benchmark gates all fail. **Verdict REJECT 3/8** (identical honest pattern to H193/H194/H195:
+reported gate count includes negative-ratio artifacts; a real edge would need a positive OOS Sharpe
+>= 1.0).
+
+**Honest note.** The turnover / liquidity-premium mechanism does not survive in this
+survivorship-biased large-cap universe: the passive equal-weight book (OOS Sharpe 1.03) dominates,
+and the direct low-turnover tilt loses money both in-sample (-0.87) and OOS (-0.77) while the
+inverse (high-turnover) tilt earns +0.76. The negative/negative ratio "passes" are not robustness.
+Share turnover is NOT data-blocked -- it failed on mechanism direction/strength, not data (all 98
+names have PIT share counts; turnover is computable for every name). As with H193 (beta) and H194
+(coskewness), a sign-inverted sibling exists (inverse anti-turnover +0.76) but still fails the
+>= 1.0 Sharpe gate. Deferred candidates 2 (realized kurtosis / tail-risk cross-section) and 3
+(beta-dispersion / aggregate-beta timing) remain untested distinct families for a future cycle.
+
+**Verification this session:** full suite `python -m pytest -q` -> 4720 passed / 51 skipped / 7
+failed (the 7 are the pre-existing maintainer-gated `tests/test_gates_workflow.py` failures, blocked
+by the agent-unreachable `.github/workflows/**` + `patches/0001-gates-workflow-contract-fix.patch`,
+unchanged); ruff clean on changed files. In this session dependencies were installed first
+(`pip install -r requirements.txt`) because a fresh checkout has no `numpy`/`pandas`/`scipy`/
+`yfinance`; the "179 collection errors" seen before install were the missing-dependency symptom, not
+a code regression.
+
+**Lineage.** H1-H196 all rejected/recorded; H189 data-blocked (NF-20261120-03 gross profitability,
+revenue+COGS same-10-K coverage 28-29/98). Next unused H-ID **H197** (H24/H68-H73/H76-H79
+unassigned, not recycled). No published/certified artifact, verdict, threshold, or frozen number
+modified. Selection/validation used no protected-test feedback. Free/public data only.
+
+**Cycle 250 complete.** H1-H196 exhausted/rejected; H189 data-blocked; `src/qtr` unchanged.
