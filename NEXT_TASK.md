@@ -136,6 +136,17 @@ H198 NOT assigned. Artifact: `.experiments/sp500_price_leg_probe_20261122.md`.
 - No new H-ID, no runner, no artifact beyond the probe note. Inventory marker remains H197.
 - Verified: ruff clean; inventory + gates-patch tests 28 passed.
 
+## Cycle 258 baseline verification (2026-11-22)
+
+Confirmed stable and green (modulo the known agent-unreachable contract failures):
+- `python -m ruff check src tests run_*.py scripts` → clean.
+- `python -m ruff format --check src tests run_*.py scripts` → clean (383 files).
+- `python scripts/verify_hypothesis_inventory.py` → **IN SYNC (H197 == H197)**; `tests/test_verify_hypothesis_inventory.py` passes.
+- `python scripts/backtest_perf_regression_gate.py` → **PASSED** (0.419s, limit 5s).
+- `pytest -q tests/test_gates_workflow.py` → **7 failed** (unchanged, all due to unpatched `.github/workflows/gates.yml`; agent-unreachable, maintainer patch in `patches/`).
+- Working tree clean; `git status --short` empty; HEAD == origin/main.
+- No `src/qtr`, test, runner, artifact, hash, frozen-number, or workflow change this session. No new H-ID, no runner, no research execution.
+
 ## Cycle 257 baseline verification (2026-11-22)
 
 Confirmed stable and green (modulo the known agent-unreachable contract failures):
