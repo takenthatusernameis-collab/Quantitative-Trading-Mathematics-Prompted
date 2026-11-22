@@ -83,6 +83,33 @@ docs updated. `src/qtr` untouched; no gate weakening; no published number change
   scipy 1.18.1 / yfinance 1.8.0`); the H197 data came from the cached `.cache/xbrl/` companyfacts
   bundles (96/98 names) and cached `equity_closes.csv` — no network needed.
 
+## Verified this session (Cycle 254 — no code change)
+
+- **Re-confirmed baseline green:** `python -m pytest -q` → **4747 passed / 51 skipped / 7 failed**,
+  the 7 being the pre-existing, agent-unreachable `tests/test_gates_workflow.py` failures
+  (workflow contract unpatched; fix is `patches/0001-gates-workflow-contract-fix.patch`,
+  maintainer-only). `ruff check` + `ruff format --check` clean on `src tests run_*.py scripts`
+  (376 files). `src/qtr`, runners, tests, artifacts, gates, coverage, and thresholds unchanged
+  since Cycle 253.
+- **H197 durable:** `run_nf_20261122_02_financial_distress.py`,
+  `tests/test_nf_20261122_02_financial_distress.py` (24 passed), artifact
+  `.experiments/nf_runs/nf_20261122_02_financial_distress_20261122_033354/`, and the register +
+  spec + schema-pin updates are all committed at HEAD (`b68b9f2`, Cycle 253). Working tree clean.
+- **Option 2 investigated (agent-executable path):** searched for a genuinely-distinct free-data
+  mechanism outside equity cross-sections. Every candidate runner in the repo (G10 FX carry → H161
+  REJECT, ETF NAV arbitrage → executed with NAV-approximation limitation, cross-asset return
+  dispersion → H162 REJECT, IVOL dispersion → H160 REJECT, intraday seasonality → H172 REJECT,
+  Treasury auction → H177 REJECT, equity P/C → H178 REJECT, short interest → H179 REJECT,
+  crypto funding → H183/H190 REJECT, commodity carry/OI/hedging-pressure → H184/H185/H186 REJECT,
+  SEC XBRL fundamentals → H187–H192/H197 REJECT, yfinance price families → H1–H84 REJECT) is
+  already executed and rejected. Confirmed per NEW_FAMILY_RESEARCH_REGISTER.md §§4.5–4.6:
+  **no third genuinely-distinct free-data-feasible candidate remains.** Option 2 cannot produce a
+  durable result without fabricating a H198, which is explicitly forbidden.
+- **Option 1 (workflow contract patch) is NOT agent-executable:** `.github/workflows/**` is
+  restored from `origin/main` after every session by `.github/scripts/kilo-controller.sh`, is
+  excluded from staging, and the repo token lacks `workflows` permission. Do not attempt an
+  in-tree workflow edit; the apply-ready fix remains `patches/0001-gates-workflow-contract-fix.patch`.
+
 ## Accurate research state (Cycle 253)
 
 Free-data family discovery on the **98-name survivorship-biased S&P-100-minus-2 mega-cap universe**
@@ -156,30 +183,34 @@ per directive §2, changing universe/benchmark is **not** a new family and is a 
 
 ## Precise next task (one bounded task)
 
-The agent-executable equity-cross-section mechanism space is now exhausted (H197 REJECT closed it).
-Pick **one** of these, in order of value:
+The agent-executable equity-cross-section mechanism space is exhausted (H1–H197 all rejected;
+H189 data-blocked). **Cycle 254 investigated option 2 and found no candidate:** every non-equity
+runner in the repo (G10 FX carry H161, ETF NAV arbitrage, cross-asset dispersion H162, IVOL
+dispersion H160, intraday seasonality H172, Treasury auction H177, equity P/C H178, short interest
+H179, crypto funding H183/H190, commodity carry/OI/hedging-pressure H184/H185/H186, SEC XBRL
+fundamentals H187–H192/H197, yfinance price families H1–H84) is already executed and rejected, so
+no genuinely-distinct free-data-feasible mechanism remains. Do not fabricate H198 and do not run
+another equity cross-section on this universe.
 
-1. **Maintainer/authorization (highest value, NOT agent-executable):** apply
-   `patches/0001-gates-workflow-contract-fix.patch` on `origin/main` to clear the 7
-   `test_gates_workflow.py` failures, and decide the universe/benchmark question (item 3 above). This
-   is the only path that makes further *productive* research possible.
-2. **If a NEW free-data mechanism outside equity cross-sections on this universe is mandated
-   (agent-executable):** search genuinely-distinct mechanism categories that do **not** reduce to a
-   parameter/instrument/universe/timeframe variant of an executed family (directive §2) — e.g.
-   non-equity or event/flow/auction mechanisms with free PIT data. Reuse the existing engine and data
-   pipeline; pre-register in `HYPOTHESIS_SPEC.md`, add a runner + focused tests, run the standard 8
-   gates, record the honest verdict. Do **not** run another single-stock equity cross-section on the
-   98-name mega-cap universe and do **not** fabricate a PASS.
-3. **If neither is authorized:** this session's durable output is the H197 REJECT record + the
-   corrected distance-to-default panel. Preserve it and leave this handoff.
+The remaining work is maintainer/authorization-only:
+
+1. **Apply the workflow contract fix** `patches/0001-gates-workflow-contract-fix.patch` on
+   `origin/main` to clear the 7 `test_gates_workflow.py` failures:
+   `git apply --check patches/0001-gates-workflow-contract-fix.patch && git apply
+   patches/0001-gates-workflow-contract-fix.patch` (gates.yml only; do not edit
+   `.github/workflows/` in-tree — the controller restores it and the token lacks `workflows`
+   permission). This is the only path that makes further *productive* research possible.
+2. **Decide the universe/benchmark question:** escape survivorship-bias / passive-book dominance
+   (the structural root cause of the H187–H197 REJECT streak) by authorizing a different
+   universe/benchmark (mid/small-cap or ex-US PIT universe, or a non-passive benchmark), or
+   formally close the equity-cross-section program as exhausted. Out of agent scope per directive §2.
+
+If neither is authorized, this session's durable output is the H197 REJECT record + the verified
+green baseline (4747 passed / 51 skipped / 7 agent-unreachable workflow failures). Preserve it and
+leave this handoff; do not repeat the §4 scan or attempt in-tree workflow edits.
 
 ## Commit
 
-Stage only the Cycle-253 files: `run_nf_20261122_02_financial_distress.py`,
-`tests/test_nf_20261122_02_financial_distress.py`,
-`tests/test_experiment_artifact_schema.py`, `NEW_FAMILY_RESEARCH_REGISTER.md`,
-`HYPOTHESIS_SPEC.md`, `NEXT_TASK.md`, and the new artifact
-`.experiments/nf_runs/nf_20261122_02_financial_distress_20261122_033354/`. Then commit with a
-message such as:
-`H197 (Cycle 253): capital-structure / financial-distress cross-section EXECUTED, REJECT 1/8`.
-Do not modify `src/qtr`, `.github/workflows/**`, or any frozen number.
+No commit is required this session: H197 and all Cycle-253 files are already committed at HEAD
+(`b68b9f2`, Cycle 253) and the working tree is clean. This session made no code changes. If the
+maintainer applies item 1 above, that commit is a maintainer action on `origin/main`.
