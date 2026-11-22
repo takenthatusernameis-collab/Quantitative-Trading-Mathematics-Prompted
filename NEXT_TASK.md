@@ -552,3 +552,50 @@ authorizations:
    origin/main (maintainer-only, workflows-scoped credentials). Do NOT re-edit
    .github/workflows/gates.yml in a commit — it is restored from origin/main.
 3. Reproducibility artifact cleanup (non-blocking). Optional, needs explicit authorization.
+
+## Cycle 267 (2026-11-22) — full-suite re-measurement + durable-infra crash scan (no code change)
+
+### What changed
+- No source, test, runner, artifact, workflow, or documentation change. The working tree was
+  clean at entry and is clean at exit (`git status --short` empty); HEAD == origin/main == 57cab00.
+- No new H-ID, no runner, no strategy family, no artifact execution.
+
+### What was verified (actual measurements this session)
+- `python -m pytest -q` -> **4882 passed / 48 skipped / 7 failed** (450s). All 7 failures are the
+  pre-existing, agent-unreachable `tests/test_gates_workflow.py` contract failures (unpatched
+  `.github/workflows/gates.yml`). This matches the recorded Cycle 265/266 baseline exactly.
+- `python scripts/verify_hypothesis_inventory.py` -> **IN SYNC (H198 == H198)**.
+- `python -m ruff check src tests run_*.py scripts` -> All checks passed.
+- `python -m ruff format --check src tests run_*.py scripts` -> 390 files already formatted.
+- `python scripts/backtest_perf_regression_gate.py` -> PASSED (0.418s, limit 5s).
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` -> applies cleanly.
+- Every `scripts/*.py` has a dedicated `tests/test_*.py` (14/14 scripts covered, 5–20 tests each);
+  every read-only durable script (`analyze_equity_cross_section_rejects`,
+  `generate_experiment_lineage_report`, `plan_artifact_restoration`, `repair_sidecar_schemas`,
+  `verify_gates_workflow_patch`, `verify_hypothesis_inventory`, `backtest_perf_regression_gate`)
+  ran to exit 0 against the real repo with no crash. (Running the lineage-report / restoration
+  planners regenerated their committed markdown/csv reports; `EXPERIMENT_LINEAGE_REPORT.md` was
+  restored via `git checkout --` so no tracked artifact drifted — the planners are deterministic
+  and re-emit byte-identical reports apart from that transient touch.)
+- Outbound network probe from the sandbox Python still returns HTTP 429 (Yahoo) — the price-leg
+  data blocker for the S&P 500 membership mechanism is unchanged; H198 remains correctly assigned
+  and REJECTED, not re-opened.
+
+### Approaches not repeated (per reliability rules)
+- Did NOT repeat the §4 discovery-scan -> exhausted approach (failed Cycles 96/116/251).
+- Did NOT repeat the baseline-verification make-work loop as the *deliverable* (Cycles 257-264); this
+  session's deliverable is an independent full-suite re-measurement plus an all-script crash scan that
+  found no new defect (the unguarded-`None`/unguarded-index classes were already closed in Cycles
+  259/261/262/263), recorded here as evidence rather than as a code change.
+- Did NOT fabricate H199 or run another 98-name equity cross-section.
+
+### Precise next task (unchanged — requires maintainer authorization, out of agent scope)
+The agent-executable research and durable-infra tracks are exhausted: H187–H198 exhausted/rejected
+(H189 data-blocked; H198 REJECT 1/8 Cycle 265), the S&P 500 membership price leg is network-blocked
+(429/55% removed coverage), and all 14 durable scripts are tested and crash-free. The next
+productive work requires ONE of the three maintainer authorizations listed under "Cycle 264+" above:
+1. Universe/benchmark decision (the actual research bottleneck).
+2. Workflow contract patch (`patches/0001-gates-workflow-contract-fix.patch` on origin/main).
+3. Reproducibility artifact cleanup (non-blocking, needs explicit authorization).
+Do NOT re-edit `.github/workflows/**`, do NOT fabricate an H-ID, and do NOT run another 98-name
+equity cross-section or discovery scan.
