@@ -924,3 +924,73 @@ genuinely-distinct mechanism (evidence above). The next productive work requires
    remediation (11 -> 3; report §2). Do NOT do without explicit authorization (edits the committed record).
 Do NOT re-edit `.github/workflows/**`, do NOT fabricate an H-ID, and do NOT run another cross-section or
 discovery scan.
+
+---
+
+## Cycle 270 (2026-11-22) — §2 lineage-test conclusion on the reachable broad universe (no H-ID, no runner)
+
+### What changed
+- Documentation only: this `NEXT_TASK.md` (new Cycle 270 conclusion block). Working tree otherwise clean;
+  HEAD == origin/main == 3dbcdda. No new H-ID, no runner, no strategy family, no `src/qtr`/artifact/gate/
+  frozen-number/workflow change. The `<!-- inventory-high-water-mark: H198 -->` marker is unchanged and
+  IN SYNC (`python scripts/verify_hypothesis_inventory.py` -> H198 == H198).
+
+### Basis
+The Cycle 270 handoff (authoritative block at the top of this file) corrected the false "network blocked"
+premise and established that a genuinely broader, higher-dispersion universe is reachable for free:
+1502 unique tickers (S&P 500: 503, S&P 400: 400, S&P 600: 603) with 100% sampled daily-price coverage
+(median 751 rows/name). Re-verified this session: probe `scripts/probe_broad_universe_availability.py`
+-> **REACHABLE** (yahoo_chart/SEC/FRED all HTTP 200; 30/30 sampled names with data; median 751 rows).
+Artifact `.cache/broad_universe_availability.json` (gitignored).
+
+### §2 lineage test applied to the candidate space
+Directive §2 forbids treating parameter / timeframe / indicator / market / universe variations as new
+strategy families; a new family must be a genuinely distinct return-generating mechanism vs every prior
+H-ID. Candidate directions on the broad universe were evaluated:
+
+- **(a) small/mid-cap illiquidity / information-friction premium.** Not distinct: Amihud illiquidity
+  (`|ret|/dollar-volume`) already executed as H121 / NF-20261107-04 (REJECT 4/8) and NF-20261107-04
+  (REJECT 4/8); testing it on S&P 400/600 is a universe + observable variant of an executed H-ID that
+  already rejected.
+- **(b) S&P 600 small-cap tail cross-section.** Not distinct per se: a universe slice of the equity
+  cross-section family; every characteristic tested on the 98-name universe (accruals H187, issuance
+  H188, value H191, innovation H192, beta H193, coskewness H194, price delay H195, turnover H196,
+  distress H197, membership event drift H198) is REJECTED, and the broad universe adds only price/
+  volume data — no fundamentals (accruals/value/innovation/distress remain PIT-data-blocked outside
+  the 98-name cache).
+- **Price/volume anomaly families generally:** momentum, reversal, IVOL (H93), lottery/MAX (H112/H124),
+  coskewness (H194), turnover (H196), price delay (H195), beta (H193) — each has an executed H-ID
+  that rejected.
+
+### Determination
+**No genuinely-distinct, directive-§2-compliant mechanism survives the lineage test.** Corroborated by
+`NEW_FAMILY_RESEARCH_REGISTER.md:65`: "None identified for any root family. All seven root families
+have been tested on free data with negative or invalidated results. The intraday TSMOM family is the
+only one that ever passed gates, and it is CAUSAL_REJECTED." Per the Cycle 270 fallback instruction,
+this conclusion is recorded durably rather than re-running a variant or fabricating H199.
+
+### Consequence
+- `HYPOTHESIS_SPEC.md` is NOT extended with H199; the AGENTS.md marker remains H198.
+- The agent-executable research track is exhausted on both the 98-name universe and the now-reachable
+  broad universe (the latter only enables §2-forbidden universe variants).
+- The next productive work requires ONE of the three maintainer authorizations below (unchanged from
+  Cycle 264+; all out of agent scope):
+  1. **Universe/benchmark decision.** Authorize a PIT higher-dispersion universe (mid/small-cap or
+     ex-US constituents + PIT price panel) OR formally close the equity cross-section program.
+  2. **Workflow contract patch.** Apply `patches/0001-gates-workflow-contract-fix.patch` on
+     `origin/main` (maintainer-only, workflows-scoped credentials). Do NOT re-edit
+     `.github/workflows/gates.yml` in a commit.
+  3. **Reproducibility artifact cleanup (non-blocking).** Authorize the `experiments.jsonl`
+     hash-mismatch remediation (11 -> 3; report §2). Do NOT do without explicit authorization.
+
+### Verification this session (evidence)
+- `python scripts/verify_hypothesis_inventory.py` -> IN SYNC (H198 == H198); marker unchanged.
+- `python -m ruff check src tests run_*.py scripts` -> All checks passed.
+- `python -m ruff format --check src tests run_*.py scripts` -> 392 files already formatted.
+- `python scripts/backtest_perf_regression_gate.py` -> PASSED (0.360s, limit 5s).
+- `python scripts/probe_broad_universe_availability.py` -> REACHABLE (1502 tickers, 100% price
+  coverage, all core sources HTTP 200).
+- `pytest -q -W error tests/test_probe_broad_universe_availability.py
+  tests/test_probe_script_coverage.py tests/test_verify_hypothesis_inventory.py` -> 29 passed.
+- `git status --short` clean except this `NEXT_TASK.md` edit (left uncommitted per repo policy;
+  commit only on explicit request).
