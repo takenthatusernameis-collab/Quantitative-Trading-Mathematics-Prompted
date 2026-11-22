@@ -9687,3 +9687,64 @@ financial-distress cross-section (H197) is the one remaining genuinely-distinct,
 mechanism, now executed and REJECT 1/8. No new sign-inverted / parameter / universe / window variant
 of H187–H196 was run. `src/qtr` unchanged. Future discovery cycles must search for genuinely distinct
 return-generating mechanisms (per directive §6) or escalate the universe/benchmark decision.
+
+---
+
+## H198 (NF-20261122-03): S&P 500 index-membership inclusion/deletion event drift (Cycle 265: pre-registered and executed)
+
+**Broad mechanism category.** Index-membership discrete-event price pressure (stock-level
+demand/supply shock at index reconstitution). Repo-new root family relative to executed H1-H197: no
+executed H-ID trades the discrete, date-stamped event of S&P 500 index inclusion/deletion. The
+closest prior families are the continuous equity cross-sections H187-H197 (accruals, issuance,
+valuation, innovation, beta, coskewness, price delay, turnover, capital structure) and the
+event-adjacent calendar studies (turn-of-month, FOMC drift, index-rebalance). A membership-event
+book trades a discrete reconstitution event rather than a continuous characteristic sort; per
+directive §6 that is a distinct return-generating mechanism (index-fund demand/supply pressure), not
+a parameter/universe/timeframe variant.
+
+**Mechanism / causal chain.** Index funds and ETFs tracking the S&P 500 must buy names added at the
+effective date and sell names removed, creating temporary price pressure. Added names subsequently
+drift up (continued index-fund buying + positive attention) and removed names drift down (forced
+selling + negative attention); the effect concentrates around the effective date and decays over the
+following weeks (Shleifer 1986; Harris & Gurel 1986; Chen, Noronha & Singal 2005; Wurgler &
+Zhuravskaya 2002). Prediction (directional): **long announced additions / short announced deletions
+(tradeable removals) around the effective date, held 1-3 months.** Null (H0): the index-membership
+event carries no post-effective-date drift after costs - a long-additions/short-removals event book
+adds nothing over a passive equal-weight book of the same universe.
+
+**Data and PIT timing.** Free PIT event calendar: the Wikipedia "Historical components of the S&P
+500" changes table (effective date, added/removed ticker, stated reason). Prices: yfinance daily
+auto-adjusted Close. Measured price-leg coverage (Cycle 265, population-level, retry-aware): added
+284/370 = 76.8% with data (282/370 = 76.2% covering the event); tradeable-by-construction removed
+(market_cap / spin_off / reorganization) 104/169 = 61.5% with data and covering the event. Binding
+coverage = min(added, tradeable-removed) = 61.5% >= 60% threshold -> price leg FEASIBLE (supersedes
+the Cycle 256 20-name "blocked" claim, which was dominated by acquisition/bankruptcy delistings and
+un-retried transient empties). Each event enters the book on its effective date t (or t+1 trading
+day, a grid dimension); the shared engine applies shift(1), so the position earns returns t -> t+1.
+No announcement-date lookahead: only the effective date and the stated reason (both in the
+historical table) are used. Prices are calendar-aligned ffilled closes before pct_change (H191
+convention). Removed names are restricted to tradeable-by-construction reasons (market_cap /
+spin_off / reorganization); acquisition/bankruptcy deletions are delisted at the event by
+construction and are not shortable candidates.
+
+**Pre-registration (Cycle 265, written before any forward-return outcome was computed).** Sample
+2005-01-01 -> 2026-11-21; Train -> 2021-12-31; Val 2022-01-01 -> 2023-12-31; Test protected
+2024-01-01 -> 2026-11-21. Universe: all added tickers and all tradeable-by-construction removed
+tickers with a valid effective date in [2005, 2026] and a yfinance price series covering the
++/-252-trading-day event window. Event basket: long = added name(s), short = tradeable removed
+name(s); each open event basket is dollar-neutral and gross-normalized across simultaneously open
+baskets (sum |w| = 1, rebalanced daily to the open set). Grid (bounded, 12): holding_days {21, 42,
+63} x entry_delay {0, 1} x vol_target {0.10, 0.15}; train-only 4-fold walk-forward Sharpe
+selection. Costs: 5 bps one-way per leg traded; no short borrow cost modelled (disclosed
+optimistic). Coverage is a survivorship-biased subset: excluded added names (mostly later delisted)
+bias the long leg upward; excluded removed names (mostly later bankrupt) bias the short leg
+downward - disclosed, and the long-only ablation isolates the long leg.
+
+**Gates (OOS Val+Test, fail-closed, standard 8, unchanged).** Sharpe >= 1.0; trades >= 50; PF >= 1.3;
+maxDD <= 15%; WF stability >= 0.7; worst-regime rolling-252 Sharpe >= 0.3; benchmark p <= 0.05
+(two-sided) with IR >= 0 vs the passive equal-weight long book of the same universe; OAT +/-20%
+perturbation min ratio >= 0.5.
+
+**Ablations/falsifiers.** Passive equal-weight long book (benchmark); random event signs (same open
+legs, seed 42); inverse event (short additions / long removals); long-only additions (short leg
+removed); event-count / coverage diagnostics.
