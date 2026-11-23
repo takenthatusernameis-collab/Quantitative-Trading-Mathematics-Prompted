@@ -1,5 +1,28 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 276 (2026-11-23): H199 runner defect claim refuted; no agent-executable code task remains
+
+**Read this block first; everything below it (Cycle 275 and earlier) is history.**
+
+### What changed
+- **No code change.** Verified the committed `run_nf_20261122_04_size_premium.py::build_size_weights` already initialises the weights frame to `np.nan` (line 390) and calls `weights.ffill().fillna(0.0)`, so books ARE forward-filled and held between monthly rebalances. The Cycle 275 claim of a `0.0`-init/ffill-no-op defect does **not** match the committed code; all 23 tests in `tests/test_nf_20261122_04_size_premium.py` pass, including `test_build_size_weights_holds_book_until_next_rebalance`. No runner, artifact, gate, frozen number, `src/qtr`, or workflow change is needed or permitted (frozen experiment record; a real-data re-run requires maintainer authorization).
+
+### Verification this session (evidence)
+- `python -m pytest -q tests/test_nf_20261122_04_size_premium.py` → **23 passed**.
+- `python -m ruff check src tests run_*.py scripts` → **All checks passed**.
+- `python -m ruff format --check tests/test_nf_20261122_04_size_premium.py run_nf_20261122_04_size_premium.py` → **2 files already formatted**.
+- `python scripts/backtest_perf_regression_gate.py` → **PERF GATE PASSED** (0.425 s, limit 5 s).
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → **applies cleanly** on live `origin/main` tree.
+
+### Unresolved (maintainer/authorization only, out of agent scope)
+1. **Workflow contract patch.** Apply `patches/0001-gates-workflow-contract-fix.patch` on `origin/main` (workflows-scoped credentials; `.github/scripts/kilo-controller.sh` restores `.github/workflows/**` and the repo token lacks `workflows` permission). This is the sole remaining red: 7 `tests/test_gates_workflow.py` failures. Do NOT re-edit `.github/workflows/gates.yml` in a commit.
+2. **Equity cross-section program closure / new universe.** H1–H199 exhausted/rejected; passive equal-weight book (+0.462 OOS Sharpe) dominates. Authorize a new universe or formally close (directive §6).
+
+### Precise next task
+No bounded, agent-executable research task remains. The one concrete, agent-verifiable item is the workflow contract: a maintainer with workflows-scoped credentials must apply `patches/0001-gates-workflow-contract-fix.patch` to `.github/workflows/gates.yml` on `origin/main` (verified to apply cleanly and to make all 7 `test_gates_workflow.py` cases pass in a throwaway checkout). Until that lands, the suite stays green modulo those 7 agent-unreachable failures.
+
+---
+
 ## AUTHORITATIVE STATUS — Cycle 275 (2026-11-23): added the missing H199 test module; discovered the H199 runner holds positions only on rebalance days (ffill no-op)
 
 **Read this block first; everything below it (Cycle 274 and earlier) is history.**
