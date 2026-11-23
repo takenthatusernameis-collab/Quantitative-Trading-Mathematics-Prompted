@@ -107,6 +107,10 @@ ALLOWED_QTR_EXPORTS = _get_subpackage_all()
 
 
 @pytest.mark.parametrize("runner_path", ALL_RUNNERS)
+@pytest.mark.filterwarnings(
+    "ignore::DeprecationWarning:google.protobuf",
+    "ignore:datetime.datetime.utcfromtimestamp:DeprecationWarning",
+)
 def test_runner_is_importable(runner_path):
     """Every runner must be importable without executing main()."""
     mod_name = runner_path.stem
