@@ -1,5 +1,39 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 278 (2026-11-23): H199 artifact regenerated with the monthly-hold runner; -W error runner-import fix applied; no bounded agent-executable research task remains
+
+**Read this block first; everything below it (Cycle 277 and earlier) is history.**
+
+### What changed
+- **Regenerated the committed H199 artifact** `.experiments/nf_runs/nf_20261122_04_size_premium_20261123_004459/` (commit `c8c5d55`) by re-running the already-corrected runner `run_nf_20261122_04_size_premium.py::build_size_weights` (np.nan init + `weights.ffill().fillna(0.0)`, commit `74269b7`) on the cached price panel (`.cache/size_premium/prices/price_panel.parquet`, 28 MB, 1500 tickers) plus a fresh 12-request SEC `frames` fetch (49761 entity-observations). The runner was **not** re-fixed — it was already correct; only the stale 1-day-hold artifact was regenerated.
+- **Updated `AGENTS.md` and `HYPOTHESIS_SPEC.md`** (commit `44dadb6`) to record the regenerated monthly-hold verdict: REJECT 3/8, OOS Sharpe +0.529 (train 0.000), passive equal-weight benchmark +0.462, 1346 tradeable names, selected n_bins=3 / vol_target=0.10. Supersedes the Cycle 277 "artifact stale from the pre-fix 0.0 runner" claim.
+- **Fixed `tests/test_runner_import_contract.py`** (commit `c8c5d55`) so the 3 frozen runners that pull in yfinance import cleanly under `python -m pytest -q -W error`.
+- **No change** to `src/qtr`, any gate, any frozen number, the artifact-schema pins (`EXPECTED_TOTAL_DIRS`/`EXPECTED_SUMMARY_COUNT` unchanged — the regenerated artifact reuses the same directory), the H-ID (H199), or the inventory marker. `python scripts/verify_hypothesis_inventory.py` → IN SYNC (H199 == H199).
+
+### What I actually verified (evidence)
+- `python -m pytest -q tests/test_nf_20261122_04_size_premium.py` → **23 passed**, including `test_build_size_weights_holds_book_until_next_rebalance`.
+- `python -m pytest -q -W error tests/test_runner_import_contract.py` → **314 passed**.
+- `python scripts/verify_hypothesis_inventory.py` → **IN SYNC (H199 == H199)**.
+- `python scripts/backtest_perf_regression_gate.py` → **PASSED** (0.516 s, limit 5 s).
+- `python -m ruff check src tests run_*.py scripts` → All checks passed; `ruff format --check` clean.
+- Artifact `summary.json` `timestamp_utc` = `2026-11-23T05:01:23Z` (after commit `74269b7` 02:19 UTC) → produced by the monthly-hold runner; `oos_val_test.sharpe` = 0.5290879.
+
+### Unresolved (maintainer/authorization only, out of agent scope)
+1. **Workflow contract patch.** Apply `patches/0001-gates-workflow-contract-fix.patch` on `origin/main` (workflows-scoped credentials; `.github/scripts/kilo-controller.sh` restores `.github/workflows/**`; repo token lacks `workflows` permission). Sole remaining red: 7 `tests/test_gates_workflow.py` failures. Do NOT re-edit `.github/workflows/gates.yml` in a commit.
+2. **Equity cross-section program closure / new universe.** H1–H199 exhausted/rejected; passive equal-weight long book (+0.462 OOS Sharpe) dominates. Authorize a different universe (ex-US, micro-cap, other asset classes) OR formally close the program (directive §6).
+3. **Reproducibility artifact cleanup (non-blocking).** Optional; needs explicit authorization.
+
+### Approaches not repeated (per reliability rules)
+- Did NOT regenerate/re-run H199 beyond the already-committed `c8c5d55` artifact (would not change a now-current verdict).
+- Did NOT touch the runner, `src/qtr`, gates, frozen numbers, artifact-schema pins, workflows, H-ID, or inventory marker.
+- Did NOT fabricate H200 or run another cross-section / discovery scan.
+- Did NOT re-edit `.github/workflows/**`.
+
+### Precise next task
+No bounded, agent-executable research task remains (equity cross-section program complete through H199). Any further work requires one of the maintainer authorizations above (workflow patch / new universe / program closure / reproducibility cleanup). If a new universe is authorized, the next task would be: pre-register a genuinely-distinct mechanism (directive §2 lineage test) on the authorized universe, implement a runner reusing the engine + standard 8 gates, execute, and update artifact-schema pins in the same commit as the artifact. Note: the H199 commits (`c8c5d55`, `44dadb6`) are committed locally but **not pushed** to `origin/main`.
+
+---
+
 ## AUTHORITATIVE STATUS — Cycle 277 (2026-11-23): reconciled the stale H199 runner/artifact state in AGENTS.md and HYPOTHESIS_SPEC.md (docs only; no code/number/artifact/runner change)
 
 **Read this block first; everything below it (Cycle 276 and earlier) is history.**
