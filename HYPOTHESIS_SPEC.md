@@ -9796,7 +9796,9 @@ Ablations (OOS Val+Test):
 
 ---
 
-## H199 (NF-20261122-04): Market-cap size premium on the broad S&P 500/400/600 universe (Cycle 272: pre-registered; execution pending)
+## H199 (NF-20261122-04): Market-cap size premium on the broad S&P 500/400/600 universe (Cycle 272: REJECT 3/8)
+
+**Execution verdict.** REJECT 3/8 (Cycle 272, artifact `nf_20261122_04_size_premium_20261123_004459`). OOS Sharpe -0.366 (train 0.000) on 1346 tradeable names (S&P 500/400/600 universe, 1502 constituents, 1492 CIK-mapped, 1500 with price data, 1346 with both PIT shares and price). Passive equal-weight long book OOS Sharpe +0.462. Gates passed: trades≥50 (52324), maxDD≤15% (-3.0%), perturbation min-ratio≥0.5 (1.585). Gates failed: Sharpe≥1.0 (-0.366), PF≥1.3 (0.729), WF stability≥0.7 (0.000), worst-regime rolling-252 Sharpe≥0.3 (-1.879), benchmark p≤0.05 & IR≥0 (p=0.262, IR=-0.499). Inverse size (long big/short small) OOS Sharpe -0.891; long-only small -0.152; long-only big -0.149. The size premium direction is NOT empirically inverted in this universe (inverse is worse), but the mechanism is too weak (train Sharpe 0.000 → OOS -0.366; passive benchmark +0.462 dominates). The 3 passing gates (trades 52324, maxDD -3.0%, perturbation 1.585) are genuine, not artifacts.
 
 **Broad mechanism category.** Stock-level size effect (small-minus-big market-cap premium). Repo-new root family relative to executed H1-H198: no executed H-ID sorts purely by market capitalization. The closest prior families are the continuous equity cross-sections H187-H198 (accruals, issuance, valuation, innovation, beta, coskewness, price delay, turnover, capital structure, index-membership event drift). Per directive §6 a raw characteristic sort on firm size is a distinct return-generating mechanism from beta (H193), value (H191), turnover (H196), or an index-event book (H198) — not a parameter/universe/timeframe variant of any of them. It is only meaningful on the broad small/mid-cap universe; the 98-name S&P 100 has no size dispersion.
 

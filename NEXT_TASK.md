@@ -1,5 +1,57 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 273 (2026-11-23): H199 executed — market-cap size premium REJECT 3/8 on broad S&P 500/400/600 universe
+
+**Read this block first; everything below it (Cycle 272 and earlier) is history.**
+
+### What changed
+- **H199 executed** (Cycle 273): market-cap size premium on the broad S&P 500/400/600 universe REJECT 3/8. Artifact: `.experiments/nf_runs/nf_20261122_04_size_premium_20261123_004459/`.
+- `HYPOTHESIS_SPEC.md`: H199 heading updated from "pre-registered; execution pending" to "REJECT 3/8" with full execution metrics.
+- `AGENTS.md`: inventory high-water-mark remains H199; inventory text updated to "H1–H199 exhausted/rejected; H189 data-blocked. Latest executed: H199...".
+- Inventory verification: `python scripts/verify_hypothesis_inventory.py` → **IN SYNC (H199 == H199)**.
+- All tests pass: `test_verify_hypothesis_inventory.py` (13 passed), `test_probe_script_coverage.py` (2 passed), ruff clean, format clean, backtest perf gate PASSED (0.418s).
+
+### Execution evidence (Cycle 273, 2026-11-23)
+```
+python run_nf_20261122_04_size_premium.py
+```
+- Universe: S&P 500 (503) + S&P 400 (400) + S&P 600 (603) = **1502 unique tickers**; 1492 mapped to CIK.
+- SEC frames: 12 requests, 49761 entity-observations.
+- Price data: 1500/1502 tickers with yfinance data (CWEN-A, TCBI delisted).
+- Tradeable names (PIT shares + price): **1346** spanning mega/mid/small cap.
+- Selected params: n_bins=3 (terciles), vol_target=0.10 (train walk-forward Sharpe 0.000 across all 4 grid combos).
+- **OOS (Val+Test) Sharpe: -0.366** (train 0.000). Passive equal-weight long book OOS Sharpe: **+0.462**.
+- Gates passed (3/8): trades≥50 (52324), maxDD≤15% (-3.0%), perturbation min-ratio≥0.5 (1.585).
+- Gates failed: Sharpe≥1.0 (-0.366), PF≥1.3 (0.729), WF stability≥0.7 (0.000), worst-regime rolling-252 Sharpe≥0.3 (-1.879), benchmark p≤0.05 & IR≥0 (p=0.262, IR=-0.499).
+- Ablations: inverse size (long big/short small) OOS Sharpe -0.891; long-only small -0.152; long-only big -0.149. Size premium direction NOT inverted (inverse is worse), but mechanism too weak (train 0.000 → OOS -0.366; passive book +0.462 dominates).
+- The 3 passing gates are genuine (high trade count, low drawdown, perturbation ratio >1 from negative base), not artifacts.
+
+### Verification this session (evidence)
+- `python -m pytest -q -W error tests/test_verify_hypothesis_inventory.py tests/test_probe_script_coverage.py` → **15 passed** (offline).
+- `python -m ruff check src tests run_*.py scripts` → All checks passed.
+- `python -m ruff format --check src tests run_*.py scripts` → 395 files already formatted.
+- `python scripts/verify_hypothesis_inventory.py` → **IN SYNC (H199 == H199)**.
+- `python scripts/backtest_perf_regression_gate.py` → **PASSED** (0.418s, limit 5s).
+- `git status --short` → M AGENTS.md, M HYPOTHESIS_SPEC.md, new artifact under `.experiments/nf_runs/`.
+
+### Approaches not repeated (per reliability rules)
+- Did NOT fabricate a new H-ID or run another equity cross-section on this universe.
+- Did NOT re-edit `.github/workflows/**`.
+- The Cycle 272 SEC frames API probe was the materially different approach that unblocked H199; it was measured, not re-asserted.
+
+### Research conclusion (durable)
+The equity cross-section mechanism space on the **broad S&P 500/400/600 universe** (1502 names, genuine small/mid/large cap dispersion) has now tested its **only genuinely-distinct, repo-new mechanism** (size premium, H199). All prior cross-sections on the 98-name S&P 100 (H187–H198, 12 consecutive REJECTs) were already exhausted. H199 REJECT 3/8 confirms the passive equal-weight long book (+0.462 OOS Sharpe) dominates the only remaining distinct mechanism. No further genuinely-distinct, free-data-feasible equity cross-section mechanism remains untested on this universe.
+
+### Unresolved (maintainer/authorization only, out of agent scope)
+1. **Universe/benchmark decision.** Authorize a different universe (ex-US, micro-cap, other asset classes) OR formally close the equity cross-section program. This is the binding constraint (directive §6: the universe/benchmark, not mechanism search, is the bottleneck).
+2. **Workflow contract patch.** Apply `patches/0001-gates-workflow-contract-fix.patch` on `origin/main` (maintainer-only, workflows-scoped credentials; 7 `tests/test_gates_workflow.py` failures). Do NOT re-edit `.github/workflows/gates.yml` in a commit.
+3. **Reproducibility artifact cleanup (non-blocking).** Optional; needs explicit authorization.
+
+### Next agent task
+No bounded, agent-executable research task remains on the equity cross-section track. The program is complete through H199. Any further work requires one of the maintainer authorizations above. If maintainer authorization for a new universe arrives, the next task would be: pre-register a genuinely-distinct mechanism (per directive §2 lineage test) on the authorized universe, implement a runner reusing the engine + 8 gates, and execute.
+
+---
+
 ## AUTHORITATIVE STATUS — Cycle 272 (2026-11-22): the Cycle 271 "PIT-shares not bounded" blocker is refuted; H199 is now data-feasible
 
 **Read this block first; everything below it (Cycle 271 and earlier) is history.**

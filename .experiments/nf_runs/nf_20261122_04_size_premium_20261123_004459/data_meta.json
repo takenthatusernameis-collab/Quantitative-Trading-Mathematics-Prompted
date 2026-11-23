@@ -1,0 +1,23 @@
+{
+  "constituent_source": "Wikipedia S&P 500/400/600 (free/public)",
+  "constituent_urls": {
+    "sp500": "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
+    "sp400": "https://en.wikipedia.org/wiki/List_of_S%26P_400_companies",
+    "sp600": "https://en.wikipedia.org/wiki/List_of_S%26P_600_companies"
+  },
+  "shares_source": "SEC XBRL frames dei/EntityCommonStockSharesOutstanding/shares (free/public/PIT)",
+  "shares_url_template": "https://data.sec.gov/api/xbrl/frames/dei/EntityCommonStockSharesOutstanding/shares/{period}.json",
+  "ticker_map_url": "https://www.sec.gov/files/company_tickers.json",
+  "pit_lag_days": 90,
+  "price_source": "yfinance auto-adjusted Close (free/public)",
+  "universe_size": 1502,
+  "tickers_with_cik": 1492,
+  "tickers_with_shares_data": 6995,
+  "tickers_with_price_data": 1500,
+  "tradeable_names": 1346,
+  "frames_periods": 12,
+  "frames_entity_observations": 49761,
+  "cost_one_way_bps": 5.0,
+  "borrow_cost_modelled": false,
+  "min_active_names": 30
+}
