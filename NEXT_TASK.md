@@ -1,5 +1,100 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 275 (2026-11-23): added the missing H199 test module; discovered the H199 runner holds positions only on rebalance days (ffill no-op)
+
+**Read this block first; everything below it (Cycle 274 and earlier) is history.**
+
+### What changed
+- **Added the missing `tests/test_nf_20261122_04_size_premium.py` (23 tests).** H199
+  (Cycle 273) was the only `run_nf_*` experiment runner shipped without a dedicated
+  test module — every sibling H187–H198 has one. The new module follows the sibling
+  pattern (importlib-load the runner, synthetic offline fixtures, committed-artifact
+  checks) and pins: pre-registration constants; the 4-combo bounded grid; the PIT
+  shares panel (a month-end value may only use a frames observation with
+  `end <= month_end - PIT_LAG_DAYS`, so a later 10-Q/10-K cannot leak backwards); the
+  market-cap panel (shares x close, ticker->CIK alignment); the size-bin weights
+  (long small / short big, dollar-neutral, gross-normalized to 1); delever-only vol
+  scaling; the walk-forward selector; the 4-point OAT perturbation; and the committed
+  artifact schema.
+- **No change to `src/qtr`, the runner, any artifact, gate, frozen number, workflow,
+  H-ID, or the inventory marker.** `python scripts/verify_hypothesis_inventory.py` →
+  IN SYNC (H199 == H199). The runner (`run_nf_20261122_04_size_premium.py`) and its
+  artifact are frozen experiment records and were left untouched.
+
+### Verification this session (evidence)
+- `python -m pytest -q tests/test_nf_20261122_04_size_premium.py` → **23 passed**.
+- `python -m pytest -q -W error tests/test_nf_20261122_04_size_premium.py
+  tests/test_experiment_artifact_schema.py tests/test_probe_script_coverage.py
+  tests/test_verify_hypothesis_inventory.py` → **160 passed**.
+- Full suite `python -m pytest -q` → **7 failed, 4939 passed, 51 skipped** (522.8 s).
+  The only failures are the 7 known maintainer-blocked `tests/test_gates_workflow.py`
+  cases; +23 passing vs Cycle 274's 4916 = exactly the new module. No regressions.
+- `python -m ruff check` + `ruff format --check tests/test_nf_20261122_04_size_premium.py`
+  → clean.
+- `python scripts/verify_hypothesis_inventory.py` → IN SYNC (H199 == H199);
+  `python scripts/backtest_perf_regression_gate.py` → PASSED (0.421 s, limit 5 s).
+
+### NEW FINDING (material, needs a maintainer decision — do NOT silently re-run)
+While writing the tests I found a genuine defect in the frozen H199 runner:
+`build_size_weights` initialises the weights frame to `0.0` and then calls
+`weights.ffill()`. Because a 0.0-initialised frame has **no NaNs**, the `ffill()` is a
+**no-op**, so weights are nonzero **only on the month-end rebalance rows** — the
+committed runner holds each book for **one day per month** (via the engine's
+`shift(1)`), **not** "until the next monthly rebalance" as its own docstring and
+pre-registration state. Measured on a 400-day synthetic calendar: 19 nonzero rows
+(= the month-ends) out of 400, 0.0 on the day after each rebalance. The committed H199
+artifact (REJECT 3/8, OOS Sharpe -0.366) was produced by this 1-day-hold runner
+(runner added in `3b3279f`, artifact in `13ee7cb`, runner unchanged since), so the H199
+verdict does **not** test the pre-registered monthly-hold size premium.
+- The new test `test_build_size_weights_rebalance_rows_are_month_ends_without_interim_hold`
+  pins the actual behavior with a comment pointing here, so a fix is a deliberate change.
+- **Why not fixed here:** runners are frozen experiment records (`test_runner_import_contract.py`
+  calls them "frozen experiment artifacts"); fixing the runner + re-running H199 changes
+  a published/frozen artifact and its verdict, which the handoff conventions reserve for
+  maintainer authorization. The one-line fix is to initialise the frame to `np.nan`
+  (or build each month's block explicitly) so `ffill()` carries the book between
+  rebalances; a re-run then needs the cached price panel
+  (`.cache/size_premium/prices/price_panel.parquet`, 28 MB, 1500 tickers — already present)
+  plus a fresh 12-request SEC `frames` fetch (network with a real User-Agent; see Cycles
+  270/272).
+- **Maintainer decision:** authorize a corrected H199 re-run (regenerate the artifact,
+  update the `AGENTS.md` / `HYPOTHESIS_SPEC.md` verdict and the artifact-schema pins) OR
+  formally record the H199 REJECT as a "1-day-hold variant" and close the size track.
+
+### Also observed (pre-existing, NOT caused by this session)
+`python -m pytest -q -W error` fails 3 cases in
+`tests/test_runner_import_contract.py::test_runner_is_importable`
+(`run_nf_20261105_19_pead.py`, `run_nf_20261107_29_avg_beta_regime.py`,
+`run_nf_20261109_30_tip_ief_inflation_spy.py`): importing those runners pulls in
+yfinance, whose `datetime.utcfromtimestamp()` emits a DeprecationWarning that `-W error`
+promotes. Reproduced with this session's new file removed, so it is pre-existing and
+environmental (installed yfinance version). `tests/conftest.py::pytest_collection`
+already ignores the `google.protobuf` deprecation; a maintainer may add a matching
+`datetime.utcfromtimestamp` ignore there. Not touched here (out of scope; the failing
+runners are frozen artifacts).
+
+### Approaches not repeated (per reliability rules)
+- Did NOT fabricate H200, re-run any equity cross-section, or run a discovery scan.
+- Did NOT edit `.github/workflows/**`, `src/qtr`, any artifact, gate, or frozen number.
+- Did NOT re-verify a blocked baseline; this session added durable, missing test coverage
+  and surfaced a concrete, evidence-backed defect.
+
+### Precise next task
+No bounded, agent-executable *research* task remains (unchanged from Cycle 274): the
+equity cross-section mechanism space on the broad universe is exhausted and the remaining
+items are maintainer/authorization decisions. The one concrete, evidence-backed item this
+session adds is the **H199 1-day-hold defect** above: it needs a maintainer decision to
+fix-and-re-run vs. record-and-close. If authorized to re-run, the bounded task is:
+1. fix `build_size_weights` (NaN-init or explicit month blocks) so `ffill()` holds the
+   book between rebalances;
+2. re-run `run_nf_20261122_04_size_premium.py` (cached price panel + fresh 12-request SEC
+   frames fetch) and regenerate the artifact;
+3. update `AGENTS.md`, `HYPOTHESIS_SPEC.md` (H199 verdict) and the artifact-schema pins
+   (`EXPECTED_TOTAL_DIRS`, `EXPECTED_SUMMARY_COUNT`, any new distinct keys) in the same
+   commit as the artifact.
+
+---
+
 ## AUTHORITATIVE STATUS — Cycle 274 (2026-11-23): Cycle 273 artifact-schema regression fixed; full suite green except the 7 known maintainer-blocked workflow failures
 
 **Read this block first; everything below it (Cycle 273 and earlier) is history.**
