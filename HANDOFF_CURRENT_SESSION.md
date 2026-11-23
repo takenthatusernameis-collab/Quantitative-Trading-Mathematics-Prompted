@@ -1,81 +1,45 @@
-# HANDOFF_CURRENT_SESSION.md — Session summary (2026-11-20, Cycle 233)
-
-> **Superseded banner (2026-11-20, Cycle 238):** this doc's "Next task for next agent —
-> Execute H189" instruction (lines 63–68) is **stale by 2 hypotheses**. H189 was
-> confirmed **data-blocked** in Cycle 234 (SEC XBRL `companyfacts`: CostOfRevenue
-> 28/100 and CostOfGoodsSold 29/100 co-reported with Revenues on the same 10-K end,
-> both below the 40-name minimum — no executable gross-profitability test exists on this
-> source) and H190 was executed/rejected in Cycle 235 (crypto perpetual funding/basis
-> cross-section, REJECT 1/8 on Binance public archives). The free-data point-in-time
-> strategy-family queue is now **exhausted (H1–H190)**; no H191 is pre-registered. The
-> only remaining actionable item is the maintainer-applied workflow contract fix
-> (`patches/0001-gates-workflow-contract-fix.patch`), which is agent-unreachable. The
-> H188 execution record below (Cycle 233, REJECT 3/8) is durable and unchanged. Historical
-> narrative below is preserved.
+# HANDOFF_CURRENT_SESSION.md — Session summary (2026-11-23, Cycle 274)
 
 ## Session objective
-Execute H188 (NF-20261120-02: net share issuance / external financing) as pre-registered in
-HYPOTHESIS_SPEC.md §Cycle 232, following the completion of H187 in Cycle 231.
+Verify the Cycle 273 artifact-schema regression fix and confirm the repository is in a clean, green state with all agent-executable tasks complete.
 
 ## What was done
 
-### 1. Created runner: `run_nf_20261120_02_net_share_issuance.py`
-- Implements the pre-registered H188 construction exactly
-- Features: `net_issuance = shares_t / shares_{t-1} - 1` (short high issuance) and
-  `buyback_intensity = buybacks_t / assets_{t-1}` (long high buyback)
-- Universe: 91 names (S&P 100 minus 9 measured share-count gaps: ACN, CMCSA, MA, META,
-  RTX, SNDK, UPS, V, XOM; BKNG included)
-- PIT timing: max `filed` of shares_t, shares_{t-1}, buybacks, assets_t, assets_{t-1}
-  then engine `shift(1)`, monthly refresh
-- Grid: 16 combos (2 features × entry_z {0.5, 1.0} × k {10, 20} × vol_target {0.10, 0.15})
-- Reuses backtest engine, metrics, gates, benchmark constructors, and cross-sectional/
-  hysteresis primitives from H187/H186/H184
-- New code: `tag_rows_with_units()` for shares-unit tags, `annual_share_observations()`,
-  feature-specific `signal_weights()` with pre-registered orientation
+### 1. Fixed Cycle 273 artifact-schema regression
+- Cycle 273 added H199 artifact `.experiments/nf_runs/nf_20261122_04_size_premium_20261123_004459/` but did not update pinned schema-guard constants in `tests/test_experiment_artifact_schema.py`
+- Updated `EXPECTED_TOTAL_DIRS` 127 → 128 and `EXPECTED_SUMMARY_COUNT` 116 → 117 with documented Cycle 273 comment
+- Verified H199 summary's 26 keys are all already present in corpus; `EXPECTED_DISTINCT_KEYS` (158), `EXPECTED_KEYS_GE_50_PCT`, `EXPECTED_KEYS_GE_80_PCT`, `EXPECTED_CACHE_ONLY_DIRS` (11), and incomplete-run set (8) unchanged
 
-### 2. Created tests: `tests/test_nf_20261120_02_net_share_issuance.py`
-- 17 tests covering constants, universe, grid, signal formulas, signal orientations,
-  hysteresis, collinearity diagnostics, and artifact verification
-- All tests pass
+### 2. Fixed Cycle 272/273 label inconsistency (off-by-one)
+- H199 execution was labeled "Cycle 272" in `AGENTS.md` (2 spots) and `HYPOTHESIS_SPEC.md` (2 spots), contradicting `NEXT_TASK.md`'s Cycle 273 authoritative block
+- All four locations now read Cycle 273
+- No H-ID, gate, frozen number, runner, `src/qtr`, artifact, or workflow change
 
-### 3. Executed experiment
-- Command: `python run_nf_20261120_02_net_share_issuance.py`
-- Runtime: 67.2 seconds
-- Artifact: `.experiments/nf_runs/nf_20261120_02_net_share_issuance_20261120_075812/`
-- Result: **REJECT (3/8 gates passed)**
-  - Selected: feature=net_issuance, entry_z=0.5, exit_z=0.0, k=20, vol_target=0.10
-  - WF train Sharpe: 0.765
-  - OOS Val+Test: Sharpe 0.698, PF 1.126, maxDD −12.43%, trades 14,743,
-    worst-regime rolling-252 Sharpe −0.387, total return 0.389
-  - Gates PASS: trades (≥50), maxDD (≤15%), WF stability (≥0.7)
-  - Gates FAIL: Sharpe (≥1.0), PF (≥1.3), worst-regime (≥0.3),
-    benchmark p≤0.05 with IR≥0 (p=0.178, IR=−0.600), OAT perturbation min ratio≥0.5 (−0.668)
-  - Benchmark passive equal-weight long book OOS: Sharpe 1.058, total return 0.714
-  - Separation from H187: max |ρ| = 0.29 (net_issuance vs asset_growth) — separation holds
+### 3. Verified full suite green (modulo 7 maintainer-blocked workflow failures)
+- `python -m pytest -q` → **7 failed, 4916 passed, 51 skipped** (525.7 s)
+- Only failures: 7 known maintainer-blocked `tests/test_gates_workflow.py` cases (workflow content agent-unreachable per AGENTS.md; fix is `patches/0001-gates-workflow-contract-fix.patch`)
+- `python -m pytest -q -W error tests/test_experiment_artifact_schema.py` → 122 passed
+- `python -m ruff check src tests run_*.py scripts` → All checks passed
+- `python -m ruff format --check src tests run_*.py scripts` → 395 files already formatted
+- `python scripts/verify_hypothesis_inventory.py` → IN SYNC (H199 == H199)
+- `python scripts/backtest_perf_regression_gate.py` → PASSED (0.424 s, limit 5 s)
 
-### 4. Updated artifact schema pins
-- `tests/test_experiment_artifact_schema.py`: `EXPECTED_TOTAL_DIRS = 115`,
-  `EXPECTED_SUMMARY_COUNT = 107`, `EXPECTED_DISTINCT_KEYS = 149`
-- New keys: `train_input_collinearity_net_issuance_vs_buyback`,
-  `train_input_collinearity_vs_h187`
-- All 112 artifact schema tests pass
+## Verification evidence
+- All artifact schema tests pass (122)
+- All hypothesis inventory tests pass (13)
+- All probe script coverage tests pass (2)
+- All probe broad universe shares availability tests pass (20)
+- All gates workflow patch verification tests pass (15)
+- Lint clean, format clean, inventory IN SYNC, perf gate PASSED
+- `git status --short` → clean (no uncommitted changes)
 
-### 5. Updated documentation
-- `NEW_FAMILY_RESEARCH_REGISTER.md`: Added Cycle 233 record (H188 executed/rejected)
-- `HYPOTHESIS_SPEC.md`: Added H188 execution result section (Cycle 233)
-- `AGENTS.md`: Updated stale H-range claim to H1–H188 exhausted/rejected
-- `HANDOFF_NEXT.md`: Updated with current state and next task (H189 or conclude exhaustion)
+## Research conclusion (durable)
+The equity cross-section mechanism space on the **broad S&P 500/400/600 universe** (1502 names) has now tested its **only genuinely-distinct, repo-new mechanism** (size premium, H199). All prior cross-sections on the 98-name S&P 100 (H187–H198, 12 consecutive REJECTs) were already exhausted. H199 REJECT 3/8 confirms the passive equal-weight long book (+0.462 OOS Sharpe) dominates the only remaining distinct mechanism. No further genuinely-distinct, free-data-feasible equity cross-section mechanism remains untested on this universe.
 
-## Verification
-- All new tests pass (17 + 112 + 146 = 275 tests)
-- Key contract tests pass (426 passed, 47 skipped)
-- Lint: `ruff check` clean
-- Format: `ruff format --check` clean (358 files)
+## Unresolved (maintainer/authorization only, out of agent scope)
+1. **Workflow contract patch:** Apply `patches/0001-gates-workflow-contract-fix.patch` on `origin/main` (maintainer-only, workflows-scoped credentials; 7 `tests/test_gates_workflow.py` failures). Do NOT re-edit `.github/workflows/gates.yml` in a commit.
+2. **Equity cross-section program closure / new universe:** Complete through H199 on broad S&P 500/400/600 universe (1502 names); passive equal-weight long book (+0.462 OOS Sharpe, H199) dominates every tested mechanism. Authorize a different universe (ex-US, micro-cap, other asset classes) OR formally close the program (directive §6: the universe/benchmark, not the mechanism search, is the binding constraint).
+3. **Reproducibility artifact cleanup (non-blocking):** Optional; needs explicit authorization.
 
 ## Next task for next agent
-Execute H189 (NF-20261120-03: gross profitability) — currently deferred for data thinness
-(`CostOfRevenue` only 31/99 names). Requires finding a different measured cost tag and
-pre-registering with mechanism-separation argument against H187/H188.
-
-If H189 remains blocked, conclude free-data point-in-time family discovery is exhausted
-(H1–H188 all executed/rejected on SEC XBRL) and shift to auditing/infrastructure.
+No bounded, agent-executable *research* task remains without one of the maintainer decisions above; the last code-level defect (artifact-schema pins) is now fixed and committed. If a new universe is authorized, the next task is: pre-register a genuinely-distinct mechanism (directive §2 lineage test) in `HYPOTHESIS_SPEC.md` (bump the `AGENTS.md` marker + spec together), implement a runner reusing the engine + standard 8 gates, execute, and update the artifact-schema pins (EXPECTED_TOTAL_DIRS, EXPECTED_SUMMARY_COUNT, and any genuinely-new distinct keys) in the same commit as the artifact.

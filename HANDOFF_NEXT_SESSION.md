@@ -1,45 +1,31 @@
-# Next session handoff (2026-11-20, Cycle 230 — H187 pre-registered, ready to execute)
-
-> **Superseded banner (2026-11-20, Cycle 238):** this doc's "Next session should execute
-> H187" instruction is **stale** — H187 was executed/rejected in Cycle 231, followed by
-> H188 (Cycle 233, REJECT 3/8), H189 (Cycle 234, confirmed data-blocked on SEC XBRL), and
-> H190 (Cycle 235, REJECT 1/8 on Binance public archives). The free-data point-in-time
-> strategy-family queue is now **exhausted (H1–H190)**; see `NEW_FAMILY_RESEARCH_REGISTER.md`
-> Cycles 215–235 and `AGENTS.md`. The Cycle 230 probe evidence recorded below (98/100 names
-> usable, 50.75-day median filing lag) remains durable and is the basis for the H187/H188
-> executions. Historical narrative below is preserved.
+# Next session handoff (2026-11-23, Cycle 274 — all agent tasks complete)
 
 ## Summary
 
-Cycle 230 measured the SEC XBRL `companyfacts` source across the full 100-name S&P 100 universe
-and **pre-registered H187** (NF-20261120-01, equity accounting accruals + asset growth) in
-`HYPOTHESIS_SPEC.md` §Cycle 230. The "free-data family queue exhausted" conclusion is withdrawn
-for accounting fundamentals: 98/100 names yield ≥2 usable PIT accrual observations with a
-50.75-day median filing lag.
+Cycle 274 verified the Cycle 273 artifact-schema regression fix and confirmed the repository is in a clean, green state with all agent-executable tasks complete. The artifact-schema pins in `tests/test_experiment_artifact_schema.py` were updated (`EXPECTED_TOTAL_DIRS` 127→128, `EXPECTED_SUMMARY_COUNT` 116→117) to reflect the H199 artifact added in Cycle 273. A Cycle 272/273 label inconsistency (off-by-one) was also corrected across `AGENTS.md` and `HYPOTHESIS_SPEC.md`.
 
-## Verified (2026-11-20, own evidence)
+## Verified (2026-11-23, own evidence)
 
-- Full probe: 100/100 bundles, 99 with annual rows, **98 usable**, lag 50.75 d, PIT span
-  2009-10-27 → 2026-11-17. Exclusions measured: XOM (2026 successor entity) and BKNG (tag gap).
-- Workflow token refusal is now evidenced by a real remote rejection, not inferred.
-- 131 spec-reading tests passed; ruff check/format clean (354 files).
+- Full suite: `python -m pytest -q` → **4916 passed / 51 skipped / 7 failed** (the 7 are the pre-existing, agent-unreachable `tests/test_gates_workflow.py` failures; unchanged from prior cycles).
+- All focused test suites pass: artifact schema (122), hypothesis inventory (13), probe script coverage (2), broad universe shares availability (20), gates workflow patch verification (15).
+- `ruff check` + `ruff format --check` clean on `src tests run_*.py scripts` (395 files).
+- `python scripts/verify_hypothesis_inventory.py` → **IN SYNC (H199 == H199)**.
+- `python scripts/backtest_perf_regression_gate.py` → **PASSED** (0.424s, limit 5s).
+- `git status --short` → clean; no uncommitted changes.
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → succeeds; `scripts/verify_gates_workflow_patch.py` confirms patch resolves all 7 violations.
 
-## Blocked (separate, unchanged)
+## Blocked (separate, unchanged — maintainer/authorization only)
 
-1. **Workflow patch** — maintainer-only; the agent token is refused by GitHub for workflow files.
-2. **Reproducibility backlog** (25 missing / 11 mismatches) — authorization-gated; baseline,
-   both identity digests and `REPRODUCIBILITY_AUDIT_REPORT.md` must move in one commit.
+1. **Workflow patch** — maintainer-only; the agent token is refused by GitHub for workflow files. Fix is `patches/0001-gates-workflow-contract-fix.patch` (verified).
+2. **Universe/benchmark decision** — the equity cross-section program is complete through H199 on the broad S&P 500/400/600 universe (1502 names). Passive equal-weight long book (+0.462 OOS Sharpe) dominates every tested mechanism. Per directive §6, the universe/benchmark is the binding constraint. Authorize a different universe (ex-US, micro-cap, other asset classes) OR formally close the program.
+3. **Reproducibility backlog** (11 `hash_mismatches` / 7d rebuild-excluded) — authorization-gated; do not modify published/certified artifacts without it.
 
 ## Next session should
 
-**Execute H187 exactly as pre-registered**: write `run_nf_20261120_01_equity_accruals.py`
-importing the probe's `annual_observations`, reuse the H186 runner's engine/gate/benchmark
-helpers, run the fixed 16-combo grid with train-only WF selection, emit the artifact under
-`.experiments/nf_runs/nf_20261120_01_equity_accruals_<timestamp>/`, add the focused test, bump the
-artifact-schema inventory pins, and record the verdict as Cycle 231. Full instructions and
-constraints are in `NEXT_TASK.md`.
+**No agent-executable research task exists.** The equity cross-section mechanism space on the broad universe is exhausted. The only productive work requires one of the three maintainer authorizations above.
+
+If a new universe is authorized: pre-register a genuinely-distinct mechanism (per directive §2 lineage test) in `HYPOTHESIS_SPEC.md` (bumping the `AGENTS.md` marker + spec together — the inventory test enforces this), implement a runner reusing the existing engine + 8 gates, execute, and update the artifact-schema pins in the same commit as the artifact.
 
 ## HEAD
 
-`49e74c4` at session start; this session adds documentation-only changes (spec, register,
-`AGENTS.md`, handoffs).
+`git log --oneline -1` shows the latest commit includes the Cycle 274 fixes (artifact-schema pins + label corrections). This session adds documentation-only updates (handoffs).
