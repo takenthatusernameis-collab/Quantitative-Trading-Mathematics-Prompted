@@ -222,35 +222,66 @@ def test_build_size_weights_long_small_short_big_gross_normalized():
     assert row["S3"] == 0.0
 
 
-def test_build_size_weights_rebalance_rows_are_month_ends_without_interim_hold():
-    """Documents the committed runner's *actual* holding behavior.
+def test_build_size_weights_holds_book_until_next_rebalance():
+    """Verifies the corrected runner: weights set at a month-end rebalance are
+    forward-filled and held until the next monthly rebalance (engine shift(1)
+    then earns t -> t+1 returns).
 
-    The module docstring / pre-registration say positions are "held until the
-    next monthly rebalance (ffill between rebalances)", but ``build_size_weights``
-    initialises the frame to ``0.0`` and then calls ``ffill()`` -- a no-op,
-    because a 0.0-initialised frame has no NaNs to propagate. So in the committed
-    runner the weights are nonzero only on the month-end rebalance rows (a
-    one-day hold per month via the engine's ``shift(1)``), NOT held between
-    rebalances. This test pins the actual behavior so any future fix is a
-    deliberate, reviewed change; see NEXT_TASK.md for the maintainer decision.
+    The committed runner initialised the frame to 0.0 and then called ffill(),
+    a no-op because a 0.0-initialised frame has no NaNs to propagate. The fix
+    initialises to NaN so ffill carries the book between rebalances; see
+    NEXT_TASK.md Cycle 275 (H199 1-day-hold defect).
     """
     _, calendar = _synthetic_closes(n_days=400, n_names=6, seed=0)
     market_cap = _constant_market_cap(calendar, n_names=6)
 
     weights = mod.build_size_weights(market_cap, calendar, n_bins=3)
     active = weights[weights.abs().sum(axis=1) > 0]
+    assert len(active) > 0
 
-    # Nonzero rows are exactly the month-end rebalance dates.
+    # Every row with a position is dollar-neutral and gross-normalized to 1.
+    assert np.allclose(active.abs().sum(axis=1), 1.0)
+    assert np.allclose(active.sum(axis=1), 0.0)
+
+    # Month-end rebalance grid.
     month_ends = pd.DatetimeIndex(
         calendar.to_series().groupby(calendar.to_series().dt.to_period("M")).last().values
     )
-    assert set(active.index) == set(month_ends)
-    # The day after a rebalance carries no position (no interim hold).
-    first_rd = active.index[0]
-    next_day = calendar[calendar.get_loc(first_rd) + 1]
-    assert weights.loc[next_day].abs().sum() == 0.0
-    # Active rows are still dollar-neutral and gross-normalized to 1.
-    assert np.allclose(active.abs().sum(axis=1), 1.0)
+
+    # Before the first rebalance there is no position (NaN-init -> fillna 0.0).
+    first_rd = month_ends[0]
+    first_pos = calendar[calendar.get_loc(first_rd)]
+    pre = calendar[calendar < first_rd]
+    if len(pre):
+        assert (weights.loc[pre].abs().sum(axis=1) == 0.0).all()
+
+    # The day after a rebalance still carries the position (held, not 0.0).
+    first_rd_loc = calendar.get_loc(first_rd)
+    next_day = calendar[first_rd_loc + 1]
+    assert weights.loc[next_day].abs().sum() == 1.0
+    assert np.isclose(weights.loc[next_day].sum(), 0.0)
+
+    # Weights are piecewise constant: value at a rebalance date equals the
+    # value on every following day until the next rebalance date.
+    for i, rd in enumerate(month_ends):
+        rd_loc = calendar.get_loc(rd)
+        block_end = (
+            calendar.get_loc(month_ends[i + 1]) if i + 1 < len(month_ends) else len(calendar)
+        )
+        block = calendar[rd_loc:block_end]
+        expected = weights.loc[rd]
+        for d in block:
+            assert np.allclose(weights.loc[d].to_numpy(), expected.to_numpy(), equal_nan=True)
+
+    # Weights only change at rebalance dates: adjacent non-rebalance days are
+    # identical; the day before a rebalance equals that rebalance's weights.
+    for i in range(1, len(month_ends)):
+        prev_rd = month_ends[i - 1]
+        rd = month_ends[i]
+        day_before = calendar[calendar.get_loc(rd) - 1]
+        assert np.allclose(
+            weights.loc[day_before].to_numpy(), weights.loc[prev_rd].to_numpy(), equal_nan=True
+        )
 
 
 def test_build_size_weights_skips_when_too_few_names():

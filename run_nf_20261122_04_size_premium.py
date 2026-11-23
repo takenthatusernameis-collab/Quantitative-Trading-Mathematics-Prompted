@@ -387,7 +387,7 @@ def build_size_weights(
     month_ends = calendar.to_series().groupby(calendar.to_series().dt.to_period("M")).last()
     refresh_dates = pd.DatetimeIndex(month_ends.values)
 
-    weights = pd.DataFrame(0.0, index=calendar, columns=market_cap.columns, dtype=float)
+    weights = pd.DataFrame(np.nan, index=calendar, columns=market_cap.columns, dtype=float)
 
     for rd in refresh_dates:
         # Market cap at this rebalance date
