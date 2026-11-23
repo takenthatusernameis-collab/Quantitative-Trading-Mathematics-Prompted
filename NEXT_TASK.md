@@ -1,5 +1,73 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 274 (2026-11-23): Cycle 273 artifact-schema regression fixed; full suite green except the 7 known maintainer-blocked workflow failures
+
+**Read this block first; everything below it (Cycle 273 and earlier) is history.**
+
+### What changed
+- **Fixed a real regression left by Cycle 273.** Cycle 273 added the H199 artifact
+  `.experiments/nf_runs/nf_20261122_04_size_premium_20261123_004459/` (a new top-level
+  directory + summary.json) but did **not** update the pinned schema-guard constants in
+  `tests/test_experiment_artifact_schema.py`, leaving 2 failing tests
+  (`test_total_directory_inventory_matches_audit` 128 vs 127,
+  `test_summary_statistics_match_audit_inventory` 117 vs 116). This session updated
+  `EXPECTED_TOTAL_DIRS` 127 -> 128 and `EXPECTED_SUMMARY_COUNT` 116 -> 117 with a
+  documented Cycle 273 comment (repo convention). Verified by recomputation that the H199
+  summary's 26 keys are all already present in the corpus, so `EXPECTED_DISTINCT_KEYS`
+  (158), `EXPECTED_KEYS_GE_50_PCT`, `EXPECTED_KEYS_GE_80_PCT`, `EXPECTED_CACHE_ONLY_DIRS`
+  (11) and the incomplete-run set (8) are unchanged and were left untouched.
+- **Fixed a Cycle 272/273 label inconsistency** (off-by-one): the H199 *execution* was
+  labeled "Cycle 272" in `AGENTS.md` (2 spots: inventory line + Cycle-272 lineage bullet)
+  and `HYPOTHESIS_SPEC.md` (2 spots: H199 heading + execution verdict), contradicting
+  `NEXT_TASK.md`'s Cycle 273 authoritative block (Cycle 272 was the SEC frames *probe*).
+  All four now read Cycle 273. No H-ID, gate, frozen number, runner, `src/qtr`, artifact,
+  or workflow change. Inventory still H199 (IN SYNC).
+
+### Verification this session (evidence)
+- `python -m pytest -q` → **7 failed, 4916 passed, 51 skipped** (525.7 s). The only
+  failures are the 7 known maintainer-blocked `tests/test_gates_workflow.py` cases
+  (workflow content is agent-unreachable per AGENTS.md; fix is
+  `patches/0001-gates-workflow-contract-fix.patch`). This is the documented red baseline
+  minus the 2 artifact-schema failures this session fixed.
+- `python -m pytest -q -W error tests/test_experiment_artifact_schema.py` → 122 passed.
+- `python -m ruff check src tests run_*.py scripts` → All checks passed.
+- `python -m ruff format --check src tests run_*.py scripts` → 395 files already formatted.
+- `python scripts/verify_hypothesis_inventory.py` → IN SYNC (H199 == H199).
+- `python scripts/backtest_perf_regression_gate.py` → PASSED (0.424 s, limit 5 s).
+- `git status --short` before this block: M AGENTS.md, M HYPOTHESIS_SPEC.md, M NEXT_TASK.md,
+  M tests/test_experiment_artifact_schema.py.
+
+### Approaches not repeated (per reliability rules)
+- Did NOT fabricate H200, re-run any equity cross-section, or run a discovery scan
+  (H187–H199 = 13 consecutive REJECTs; the mechanism search is exhausted on this universe).
+- Did NOT re-edit `.github/workflows/**` or weaken `tests/test_gates_workflow.py`.
+- Did NOT touch `src/qtr`, frozen numbers, gates, or the artifact-schema guard's pins
+  beyond the two counts the new H199 directory/summary actually changed.
+
+### Unresolved (maintainer/authorization only, out of agent scope)
+1. **Workflow contract patch.** Apply `patches/0001-gates-workflow-contract-fix.patch` on
+   `origin/main` (maintainer-only, workflows-scoped credentials; the 7
+   `tests/test_gates_workflow.py` failures). Do NOT re-edit `.github/workflows/gates.yml`
+   in a commit.
+2. **Equity cross-section program closure / new universe.** Complete through H199 on the
+   broad S&P 500/400/600 universe (1502 names); passive equal-weight long book (+0.462 OOS
+   Sharpe, H199) dominates every tested mechanism. Authorize a different universe
+   (ex-US, micro-cap, other asset classes) OR formally close the program (directive §6:
+   the universe/benchmark, not the mechanism search, is the binding constraint).
+3. **Reproducibility artifact cleanup (non-blocking).** Optional; needs explicit authorization.
+
+### Precise next task
+No bounded, agent-executable *research* task remains without one of the maintainer
+decisions above; the last code-level defect (artifact-schema pins) is now fixed and
+committed. If a new universe is authorized, the next task is: pre-register a
+genuinely-distinct mechanism (directive §2 lineage test) in `HYPOTHESIS_SPEC.md` (bump the
+`AGENTS.md` marker + spec together), implement a runner reusing the engine + standard 8
+gates, execute, and update the artifact-schema pins (EXPECTED_TOTAL_DIRS,
+EXPECTED_SUMMARY_COUNT, and any genuinely-new distinct keys) in the same commit as the
+artifact — that omission is exactly what broke the suite this cycle.
+
+---
+
 ## AUTHORITATIVE STATUS — Cycle 273 (2026-11-23): H199 executed — market-cap size premium REJECT 3/8 on broad S&P 500/400/600 universe
 
 **Read this block first; everything below it (Cycle 272 and earlier) is history.**

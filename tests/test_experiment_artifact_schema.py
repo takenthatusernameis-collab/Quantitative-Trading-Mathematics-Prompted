@@ -219,8 +219,15 @@ def test_incomplete_runs_match_audit_inventory():
 # directory and one summary, so EXPECTED_TOTAL_DIRS increments (125 -> 127) and
 # EXPECTED_SUMMARY_COUNT increments (115 -> 116); the key-frequency sets and the
 # cache-only count are unchanged.
-EXPECTED_TOTAL_DIRS = 127
-EXPECTED_SUMMARY_COUNT = 116
+# Cycle 273 (2026-11-23) added one complete H199 experiment directory
+# (`nf_20261122_04_size_premium_20261123_004459`) carrying a summary.json.
+# The H199 market-cap size premium run adds one directory and one summary, so
+# EXPECTED_TOTAL_DIRS increments (127 -> 128) and EXPECTED_SUMMARY_COUNT
+# increments (116 -> 117). Its 26 summary keys are all already present in the
+# corpus, so EXPECTED_DISTINCT_KEYS (158), the >=50% / >=80% key sets, and the
+# cache-only count are unchanged.
+EXPECTED_TOTAL_DIRS = 128
+EXPECTED_SUMMARY_COUNT = 117
 EXPECTED_CACHE_ONLY_DIRS = 11
 EXPECTED_DISTINCT_KEYS = 158
 EXPECTED_KEYS_GE_50_PCT = frozenset(
