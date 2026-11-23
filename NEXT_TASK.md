@@ -1,5 +1,37 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 277 (2026-11-23): reconciled the stale H199 runner/artifact state in AGENTS.md and HYPOTHESIS_SPEC.md (docs only; no code/number/artifact/runner change)
+
+**Read this block first; everything below it (Cycle 276 and earlier) is history.**
+
+### What changed
+- **Corrected a materially false claim in `AGENTS.md`** (the H199 runner bullet). It asserted `build_size_weights` "initialises the weights frame to `0.0`" and that the "runner [was] unchanged since" the artifact. Both are now false: commit `74269b7` (2026-11-23 02:19 UTC) changed the runner to initialise to `np.nan` and `weights.ffill().fillna(0.0)`, and `tests/test_nf_20261122_04_size_premium.py::test_build_size_weights_holds_book_until_next_rebalance` pins that books ARE held between monthly rebalances (23/23 pass). The bullet now states the true state (runner fixed; artifact stale from the pre-fix `0.0` runner).
+- **Added an execution note to `HYPOTHESIS_SPEC.md` H199** (all numbers unchanged) recording that the committed REJECT 3/8 verdict was produced by the *pre-fix* 1-day-hold runner and that the corrected monthly-hold runner has not been re-run.
+- **No change** to `src/qtr`, the runner (`run_nf_20261122_04_size_premium.py`), any `.experiments` artifact, any gate, any frozen number, the artifact-schema pins, the H-ID, the inventory marker, or any workflow. Inventory still H199 (`python scripts/verify_hypothesis_inventory.py` → IN SYNC H199 == H199).
+
+### What I actually verified (evidence)
+- `git log -p -- run_nf_20261122_04_size_premium.py` → the only two commits touching the runner are `3b3279f` (add, `0.0`-init) and `74269b7` (change to `np.nan`-init). The artifact `summary.json` `timestamp_utc` = `2026-11-23T00:45:24Z`, i.e. **before** `74269b7` (02:19 UTC) → the artifact was produced by the `0.0`-init (1-day-hold) runner and is stale relative to the current runner.
+- `python -m pytest -q tests/test_nf_20261122_04_size_premium.py` → **23 passed**, including `test_build_size_weights_holds_book_until_next_rebalance` (asserts the day after a rebalance still carries the position — i.e. the book is held).
+- `python -m ruff check src tests run_*.py scripts` → All checks passed; `ruff format --check` clean.
+- `python scripts/verify_hypothesis_inventory.py` → IN SYNC (H199 == H199).
+- `python scripts/backtest_perf_regression_gate.py` → PASSED.
+
+### Unresolved (maintainer/authorization only, out of agent scope)
+1. **H199 artifact regeneration (the one new concrete item).** The runner is fixed (np.nan, monthly-hold) but the committed artifact is the 1-day-hold variant, so the H199 verdict does not yet test the pre-registered monthly-hold size premium. A real-data re-run needs maintainer authorization (frozen experiment record). Prerequisites are present: cached price panel `.cache/size_premium/prices/price_panel.parquet` (28 MB, 1500 tickers) and a fresh 12-request SEC `frames` fetch (network with a real User-Agent; see Cycles 270/272). If authorized: re-run `run_nf_20261122_04_size_premium.py`, regenerate the artifact, and update the H199 verdict + `AGENTS.md` + `HYPOTHESIS_SPEC.md` + the artifact-schema pins (`EXPECTED_TOTAL_DIRS`, `EXPECTED_SUMMARY_COUNT`) in the same commit. **OR** formally record the H199 REJECT as a "1-day-hold variant" and close the size track. Do **not** "re-fix" the runner — it is already correct.
+2. **Workflow contract patch (unchanged).** Apply `patches/0001-gates-workflow-contract-fix.patch` on `origin/main` (maintainer-only, workflows-scoped credentials; the 7 `tests/test_gates_workflow.py` failures). Do NOT re-edit `.github/workflows/gates.yml` in a commit.
+3. **Equity cross-section program closure / new universe (unchanged).** H1–H199 exhausted/rejected; passive equal-weight long book (+0.462 OOS Sharpe) dominates.
+
+### Approaches not repeated (per reliability rules)
+- Did NOT regenerate the artifact or re-run H199 (maintainer-reserved; would change a published verdict).
+- Did NOT touch the runner, `src/qtr`, gates, frozen numbers, artifact-schema pins, workflows, or the H-ID.
+- Did NOT fabricate H200 or run another cross-section / discovery scan.
+- Did NOT re-edit `.github/workflows/**`.
+
+### Precise next task
+No bounded, agent-executable *research* task remains (the equity cross-section space on this universe is exhausted through H199). The one concrete, evidence-backed item is the **H199 runner/artifact inconsistency**: the runner is fixed but the committed artifact is the pre-fix 1-day-hold variant, so the H199 verdict does not yet test the pre-registered monthly-hold size premium. A maintainer must either (a) authorize a re-run to regenerate the artifact (prerequisites present), or (b) formally record the H199 REJECT as a 1-day-hold variant and close the size track. The workflow contract patch (item 2) is the other maintainer action. Until one of these lands, the suite is green modulo the 7 agent-unreachable `tests/test_gates_workflow.py` failures.
+
+---
+
 ## AUTHORITATIVE STATUS — Cycle 276 (2026-11-23): H199 runner defect claim refuted; no agent-executable code task remains
 
 **Read this block first; everything below it (Cycle 275 and earlier) is history.**
