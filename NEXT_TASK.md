@@ -1,5 +1,71 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 278 (2026-11-23): fixed the `-W error` runner-import deprecation failures; documented handoff command is now green modulo the 7 workflow cases
+
+**Read this block first; everything below it (Cycle 277 and earlier) is history.**
+
+### What changed
+- **`tests/conftest.py` only.** Added a `pytest_runtest_call` hookwrapper that ignores the
+  third-party `DeprecationWarning: datetime.datetime.utcfromtimestamp() is deprecated` for the
+  duration of each test call. No `src/qtr`, no runner, no artifact, no gate, no frozen number, no
+  workflow, no H-ID, and no hypothesis changed. Inventory still H199 (IN SYNC).
+- **Why.** The documented handoff command `python -m pytest -q -W error` (also the CI gate) failed
+  on **3 extra cases** beyond the 7 known workflow failures. pytest resets `warnings.filters`
+  around every test item, so the pre-existing `pytest_collection` ignore (scoped to
+  `module="google\.protobuf"`) did not survive into a test *call*. Three frozen yfinance-dependent
+  runners import yfinance **lazily at call time** (`test_runner_import_contract.py::test_runner_is_importable`),
+  and yfinance via `google.protobuf.internal.well_known_types` calls the deprecated
+  `datetime.datetime.utcfromtimestamp()`, which `-W error` promotes → the import aborts. The runners
+  are frozen experiment artifacts and must not be edited, so the shim lives in `conftest.py` (the
+  established place for the protobuf ignore).
+
+### What I actually verified (evidence)
+- `python -m pytest -q -W error tests/test_runner_import_contract.py` → **314 passed** (before the
+  hook, in isolation: **3 failed / 311 passed**).
+- Full `python -m pytest -q -W error` → **7 failed, 4939 passed, 51 skipped** (764.6 s). The 7
+  failures are **all** `tests/test_gates_workflow.py` (the known maintainer-blocked workflow
+  contract); no runner-import or other failures remain. 4939 passed matches the pre-existing
+  non-`-W error` baseline (Cycle 275), i.e. no regression.
+- `python -m ruff check src tests run_*.py scripts` → All checks passed.
+- `python -m ruff format --check src tests run_*.py scripts` → 396 files already formatted.
+- `python scripts/verify_hypothesis_inventory.py` → IN SYNC (H199 == H199).
+- `python scripts/backtest_perf_regression_gate.py` → PERF GATE PASSED (0.80 s, limit 5 s).
+- Environment note: a fresh clone had **no dependencies installed** (bare `python`); I ran
+  `python -m pip install -r requirements.txt` (yfinance 1.8.0, pandas 3.1.1, numpy 2.5.5) to
+  establish the baseline. The `.cache/size_premium/prices/` panel referenced by the Cycle 277
+  handoff is **absent** in this checkout (gitignored, not committed).
+
+### Approaches not repeated (per reliability rules)
+- Did NOT re-run or regenerate the H199 artifact (maintainer-reserved; would change a frozen
+  published verdict and requires a full ~1500-ticker price re-download — the cache is absent here).
+- Did NOT edit any frozen runner, `src/qtr`, any artifact, gate, workflow, or the H-ID.
+- Did NOT re-edit `.github/workflows/**` or weaken `tests/test_gates_workflow.py`.
+- Did NOT re-verify a blocked baseline as make-work; this fixed a concrete, reproducible defect in
+  the documented handoff command.
+
+### Unresolved (maintainer/authorization only, out of agent scope — unchanged)
+1. **H199 runner/artifact inconsistency.** Runner is fixed (np.nan, monthly-hold) but the committed
+   artifact is the pre-fix 1-day-hold variant; a real-data re-run needs maintainer authorization
+   (frozen experiment record) AND a ~1500-ticker price download (cache absent in this checkout). See
+   Cycle 277.
+2. **Workflow contract patch.** Apply `patches/0001-gates-workflow-contract-fix.patch` on
+   `origin/main` (workflows-scoped credentials; the 7 `tests/test_gates_workflow.py` failures). Do
+   NOT re-edit `.github/workflows/gates.yml` in a commit.
+3. **Equity cross-section program closure / new universe.** H1–H199 exhausted/rejected; passive
+   equal-weight long book (+0.462 OOS Sharpe) dominates.
+
+### Precise next task
+No bounded, agent-executable *research* task remains (equity cross-section space exhausted through
+H199). The one concrete, evidence-backed item is still the **H199 runner/artifact inconsistency**:
+a maintainer must either (a) authorize a re-run to regenerate the artifact (prerequisites: install
+deps + a full price-panel download since the cache is absent + a 12-request SEC `frames` fetch), or
+(b) formally record the H199 REJECT as a "1-day-hold variant" and close the size track. The workflow
+contract patch (item 2) is the other maintainer action. The `-W error` deprecation defect that Cycle
+275 flagged is now **resolved** (this cycle); `pytest -q -W error` is green modulo the 7
+maintainer-blocked workflow cases.
+
+---
+
 ## AUTHORITATIVE STATUS — Cycle 277 (2026-11-23): reconciled the stale H199 runner/artifact state in AGENTS.md and HYPOTHESIS_SPEC.md (docs only; no code/number/artifact/runner change)
 
 **Read this block first; everything below it (Cycle 276 and earlier) is history.**
