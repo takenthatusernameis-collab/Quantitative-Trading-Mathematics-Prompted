@@ -2,11 +2,19 @@
 
 **Session:** 2026-11-12
 **Current status (2026-11-19, Cycle 226):** `missing_files` **25**, `hash_mismatches`
-**11**, `orphaned_files` **356**, `missing_meta_files` **0** — see §Findings. These are
+**0**, `orphaned_files` **356**, `missing_meta_files` **0** — see §Findings. These are
 the values pinned by `REPRODUCIBILITY_BASELINE` in `tests/test_reproducibility_audit.py`
 and asserted against this report by
 `test_audit_report_findings_table_matches_pinned_baseline`, so the prose and the gate
 cannot drift apart. Every "197 / 528" figure below is **pre-remediation history**.
+**Remediated 2026-11-23 (Cycle 279):** `hash_mismatches` fell **11 → 0**. The 11 stale
+artifact keys were dropped from `.experiments/experiments.jsonl` (each affected record
+carried the same on-disk path twice, once with the file's real hash and once with a
+stale suffix from an earlier grid run; the matching key remains and no file became
+orphaned). `missing_files` (25), `orphaned_files` (356) and `missing_meta_files` (0)
+are unchanged. `PINNED_HASH_MISMATCHES` is now an empty list (kept, not deleted, so the
+identity-pinning machinery stays live: a future drift re-populates it and the tests
+fail until a deliberate remediation updates this list and this report together).
 **Re-verified:** 2026-11-13 — `missing_files` is **197** (172 H28 contract-blocked +
 25 unrecoverable), the planner reports 0 recoverable / 172 excluded / 25
 unrecoverable, and `missing_meta_files` is **140**. The earlier prose that said
@@ -103,7 +111,7 @@ unchanged at 140.
 |-------|--------|-------|---------|
 | Experiments log exists & nonempty | ✅ PASS | 174 experiments | All records parseable |
 | Artifact files exist on disk | ⚠ BASELINE | 25 missing | Referenced parquet/JSON files not found (was 346; 149 restored, 172 path-corrected) |
-| Artifact hashes match recorded values | ⚠ BASELINE | 11 mismatches | SHA-256 prefix differs from artifact name |
+| Artifact hashes match recorded values | ✅ PASS | 0 mismatches | All 11 stale artifact keys dropped 2026-11-23 (Cycle 279); every on-disk hash matches its record |
 | No orphaned files in artifacts dir | ⚠ BASELINE | 356 orphaned | Files on disk not referenced by any experiment (was 528; 172 H28 files referenced after path correction) |
 | Experiment metadata completeness | ✅ PASS | 174/174 complete | All required fields present |
 | Git commit consistency | ✅ PASS | 174/174 valid | No "unknown" commits |
@@ -306,8 +314,8 @@ this report were updated together per the ratchet contract.
 
 | Claim | Supported? | Evidence |
 |-------|------------|----------|
-| "All 174 experiments are fully reproducible from tracked metadata" | ❌ No | 25 missing files (all unrecoverable, no hash-matching source), 11 hash mismatches |
-| "Artifact hashes in experiment records match on-disk content" | ❌ No | 11 mismatches prove divergence |
+| "All 174 experiments are fully reproducible from tracked metadata" | ❌ No | 25 missing files (all unrecoverable, no hash-matching source), 0 hash mismatches |
+| "Artifact hashes in experiment records match on-disk content" | ✅ Yes | 0 mismatches: all 11 stale keys dropped 2026-11-23 (Cycle 279) |
 | "Every file in `.experiments/artifacts/` is accounted for" | ❌ No | 356 orphaned files (was 528 before the 2026-11-19 path correction) |
 | "Every artifact has per-artifact metadata" | ✅ Yes | `missing_meta_files=0` after the 2026-11-13 additive backfill |
 | "No *new* reproducibility drift is introduced" | ✅ Yes | Baseline ratchet fails on any count change |

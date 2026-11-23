@@ -62,95 +62,23 @@ AUDIT_REPORT = Path("REPRODUCIBILITY_AUDIT_REPORT.md")
 # way, so ``missing_meta_files`` stays 0. See REPRODUCIBILITY_AUDIT_REPORT.md §4.
 REPRODUCIBILITY_BASELINE = {
     "missing_files": 25,
-    "hash_mismatches": 11,
+    "hash_mismatches": 0,
     "orphaned_files": 356,
     "missing_meta_files": 0,
 }
 
-# Pinned identity of the 11 hash_mismatches (2026-11-19, Cycle 217).
-# Each entry: (experiment_id, experiment_name, artifact_name, expected_hash, actual_hash).
-# This list prevents a fixed row from being silently replaced by a new mismatch.
-# Do not modify artifacts; only update this list if a deliberate remediation occurs
-# (and update REPRODUCIBILITY_AUDIT_REPORT.md together with it).
-PINNED_HASH_MISMATCHES = [
-    (
-        "exp_2026-10-10T20-56-30-507309Z",
-        "ts_momentum_20etf_v1",
-        "param_grid_results_3c3ca96bf45b5f28",
-        "3c3ca96bf45b5f28",
-        "2cfbb88200656d0d",
-    ),
-    (
-        "exp_2026-10-10T20-57-26-136503Z",
-        "ts_momentum_20etf_v1",
-        "param_grid_results_3c3ca96bf45b5f28",
-        "3c3ca96bf45b5f28",
-        "2cfbb88200656d0d",
-    ),
-    (
-        "exp_2026-10-10T20-59-28-306148Z",
-        "cs_momentum_10etf_v1",
-        "param_grid_results_3c5c66cd85442477",
-        "3c5c66cd85442477",
-        "c7a1cedb8a4fc5b1",
-    ),
-    (
-        "exp_2026-10-10T21-08-54-188263Z",
-        "ts_momentum_20etf_v1",
-        "param_grid_results_3c3ca96bf45b5f28",
-        "3c3ca96bf45b5f28",
-        "2cfbb88200656d0d",
-    ),
-    (
-        "exp_2026-10-10T21-09-06-830199Z",
-        "cs_momentum_10etf_v1",
-        "param_grid_results_3c5c66cd85442477",
-        "3c5c66cd85442477",
-        "c7a1cedb8a4fc5b1",
-    ),
-    (
-        "exp_2026-10-10T21-27-13-928282Z",
-        "regime_gated_momentum_20etf_v1",
-        "param_grid_results_5aa48f8683d54d37",
-        "5aa48f8683d54d37",
-        "b7dddfb0dc0c524d",
-    ),
-    (
-        "exp_2026-10-10T21-28-20-920399Z",
-        "regime_gated_momentum_20etf_v1",
-        "param_grid_results_5aa48f8683d54d37",
-        "5aa48f8683d54d37",
-        "b7dddfb0dc0c524d",
-    ),
-    (
-        "exp_2026-10-14T08-26-18-385545Z",
-        "ts_momentum_20etf_v1",
-        "param_grid_results_3c3ca96bf45b5f28",
-        "3c3ca96bf45b5f28",
-        "2cfbb88200656d0d",
-    ),
-    (
-        "exp_2026-11-05T18-20-38-363385Z",
-        "nf_20261105_14_credit_regime",
-        "summary_b8cf0dae88579c7a",
-        "b8cf0dae88579c7a",
-        "63139e710dc45c09",
-    ),
-    (
-        "exp_2026-11-05T19-06-45-864432Z",
-        "nf_20261105_16_usd_macro",
-        "summary_361a5942ebe194a6",
-        "361a5942ebe194a6",
-        "7ec56dd201670d5a",
-    ),
-    (
-        "exp_2026-11-06T01-28-49-517869Z",
-        "nf_20261105_19_pead",
-        "summary_4eff6682192c3e69",
-        "4eff6682192c3e69",
-        "da9da6784d5a7d8d",
-    ),
-]
+# Pinned identity of the hash_mismatches (2026-11-19, Cycle 217).
+#
+# REMEDIATED 2026-11-23 (Cycle 279): the 11 stale artifact keys are gone from
+# ``experiments.jsonl`` (each affected record carried the same on-disk path twice,
+# once with the file's real hash and once with a stale suffix from an earlier grid
+# run; dropping the stale key leaves the matching one and no file becomes
+# orphaned). ``hash_mismatches`` is now 0 and this list is empty. The list is kept
+# (rather than deleted) so the identity-pinning machinery stays live: a future
+# drift re-populates it and the count/identity tests fail until a deliberate
+# remediation updates this list AND REPRODUCIBILITY_AUDIT_REPORT.md together.
+# Do not modify artifacts; only update this list if a deliberate remediation occurs.
+PINNED_HASH_MISMATCHES: list[tuple[str, str, str, str, str]] = []
 
 # Pinned identity digests for the two count-only backlogs (2026-11-19, Cycle 223).
 # A bare count cannot distinguish "still 25 stale rows" from "one row fixed and a
