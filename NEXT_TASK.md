@@ -1,5 +1,56 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 287 (2026-11-24): the re-verification loop is TERMINATED; no agent-executable task exists; the next agent must NOT re-verify the baseline again
+
+**Read this block first; everything below it (Cycle 286 and earlier) is history.**
+
+### Why this block is different (and the directive for the next agent)
+Cycles ~274–286 were ~13 consecutive sessions that each re-ran the baseline and wrote a
+"verified, nothing to do, maintainer-only" block. Per reliability rule 2 (change approach after
+repeated failure) that loop must stop. This session did **not** re-run the 750 s full suite (same
+squashed commit `75f8749`, same env as Cycle 286 — it adds no information), did **not** add a guard
+test, did **not** reconcile a doc, and did **not** fabricate H200.
+
+**Next-agent decision procedure (follow it literally):**
+1. If you have maintainer authorization for one of the three items under "Unresolved" below → do
+   that one item and stop.
+2. If you do **not** → your entire deliverable is a **short (≤10-line) confirmation**: run only the
+   four fast invariants (`verify_hypothesis_inventory.py`, `backtest_perf_regression_gate.py`,
+   `ruff check`, `ruff format --check`) + `pytest -q tests/test_gates_workflow.py` (expect 7 failed),
+   then stop. Do **not** re-run the full suite, do **not** add tests/guards, do **not** write another
+   100-line block. A short confirmation is the correct, complete output — not make-work.
+
+### Fresh evidence this session (2026-11-24, my own runs)
+- `scripts/verify_hypothesis_inventory.py` → IN SYNC (H199 == H199, README H199).
+- `scripts/backtest_perf_regression_gate.py` → PASSED (0.817 s, limit 5 s).
+- `ruff check src tests run_*.py scripts` → all checks passed; `ruff format --check` → 396 files clean.
+- Durable-infra subset (`test_reproducibility_audit`, `test_experiment_artifact_schema`,
+  `test_sidecar_schema_contract`, `test_runner_import_contract`, `test_nf_runner_test_coverage`,
+  `test_probe_script_coverage`, `test_verify_hypothesis_inventory`, `test_verify_gates_workflow_patch`)
+  → **495 passed**.
+- `pytest -q tests/test_gates_workflow.py` → **7 failed** (all `gates.yml` content gaps);
+  `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly.
+
+### Unresolved (maintainer/authorization only — out of agent scope)
+1. **Workflow contract patch — the sole remaining red.** Maintainer with `workflows`-scoped creds:
+   `git apply patches/0001-gates-workflow-contract-fix.patch && git commit -am "fix(ci): satisfy gates workflow contract" && git push origin main`.
+   The patch only edits `.github/workflows/gates.yml` (adds `scripts/**` path filters,
+   `pip install -e . --no-deps`, `ruff … scripts`, and the perf-gate step). Do NOT re-edit
+   `gates.yml` in a commit (agent-unreachable) and do NOT weaken `tests/test_gates_workflow.py`.
+2. **Equity cross-section program closure / new universe.** H1–H199 exhausted/rejected. Authorize a
+   different universe (ex-US, micro-cap, other asset classes) OR formally close the program (§6).
+3. **Reproducibility artifact cleanup (non-blocking).** 25 unrecoverable missing rows + 356 orphaned
+   files are catalogued and baseline-locked; deletion/move needs explicit authorization (committed data).
+
+### Approaches already failed — do NOT repeat
+- Re-running the full baseline suite as the deliverable (Cycles 257–286) — adds no information.
+- Adding another guard test / reconciling a doc (Cycles ~274–286) — make-work.
+- Fabricating H200 or running another 98-name / broad-universe cross-section — program complete
+  through H199; the passive equal-weight long book (+0.462 OOS Sharpe) dominates every tested mechanism.
+- Editing `.github/workflows/**` in a commit — controller restores it; token lacks `workflows` scope.
+
+---
+
 ## AUTHORITATIVE STATUS — Cycle 286 (2026-11-24): re-verified the full baseline in the reset/squashed environment; no agent-executable task remains; sole action is maintainer-only
 
 **Read this block first; everything below it (Cycle 285 and earlier) is history.**
