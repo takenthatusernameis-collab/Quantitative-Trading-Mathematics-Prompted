@@ -1,8 +1,78 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 285 (2026-11-24): verified the true state and corrected the stale Cycle 284 dead-runner claim (that item is already resolved); no agent-executable research/code task remains
+
+**Read this block first; everything below it (Cycle 284 and earlier) is history.**
+
+### What changed
+- **No source, test, runner, artifact, gate, frozen number, schema pin, workflow, H-ID, or
+  inventory-marker change.** The only change is this `NEXT_TASK.md` block (the authoritative
+  handoff), left uncommitted per the no-commit-without-explicit-request policy.
+- **Correction to the Cycle 284 handoff (the genuine finding this session):** Cycle 284 listed the
+  dead duplicate runner `run_nf_20261107_48_ovx_vix_spread.py` as an *unresolved* maintainer action
+  ("A maintainer should delete/quarantine it"). That is STALE — the runner was **already deleted**
+  in commit `1462a0f` (2026-11-24 10:53 UTC, the current `origin/main` HEAD), which also removed its
+  `INTENTIONALLY_TESTLESS` entry from `tests/test_nf_runner_test_coverage.py`. The Cycle 284 block was
+  written earlier (commit `e0237a4`, 04:44 UTC) before that deletion. Net: one FEWER maintainer
+  action than Cycle 284 recorded, not more.
+
+### What I actually verified (fresh evidence this session, 2026-11-24)
+- **Dead runner gone; deletion clean.** `run_nf_20261107_48_ovx_vix_spread.py` → no such file; the
+  original `run_nf_20261107_47_spy_ar1.py` still present. Repo-wide grep for `48_ovx_vix_spread`
+  finds **zero** references outside this stale handoff (no code/test/json points at it). 121
+  `run_nf_*.py` runners, each with a dedicated test (`tests/test_nf_runner_test_coverage.py` → 3
+  passed).
+- **Fast invariants green:** `python scripts/verify_hypothesis_inventory.py` → IN SYNC (H199 ==
+  H199, README range H199); `python scripts/backtest_perf_regression_gate.py` → PASSED (0.429 s);
+  `python -m ruff check src tests run_*.py scripts` → All checks passed; `ruff format --check` → 396
+  files already formatted.
+- **Targeted `-W error` subset green:** `pytest -q -W error tests/test_nf_runner_test_coverage.py
+  tests/test_experiment_artifact_schema.py tests/test_runner_import_contract.py` → **437 passed**
+  (the file `1462a0f` touched + the schema pins + the Cycle 278 warning-fix area).
+- **Sole remaining red confirmed maintainer-gated:** `pytest -q tests/test_gates_workflow.py` →
+  **7 failed** (missing `pip install -e . --no-deps`, `scripts/**` path filters, `scripts` ruff
+  targets — exactly what `patches/0001-gates-workflow-contract-fix.patch` adds);
+  `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly.
+- **Coverage invariant unchanged by construction:** zero lines changed under `src/qtr` and zero test
+  files, so `fail_under = 100` branch-coverage is definitionally identical to the last CI-verified
+  state (a ~735 s traced re-run adds no information). No new TODO/FIXME/XXX in `src/qtr`.
+
+### Approaches not repeated (per reliability rules)
+- Did NOT fabricate H200, run another equity cross-section, or run a discovery scan (program complete
+  through H199; the passive equal-weight long book at +0.462 OOS Sharpe dominates every tested
+  mechanism).
+- Did NOT add another guard test or reconcile a random doc (the Cycles ~274-284 guard/doc make-work
+  loop is the repeated approach rule 2 says to stop). This session's one change is a factual
+  correction to the authoritative handoff, not make-work.
+- Did NOT edit `.github/workflows/**`, `src/qtr`, any runner, any `.experiments` artifact, any gate,
+  any frozen number, the artifact-schema pins, `README.md`, `AGENTS.md`, the H-ID, the inventory
+  marker, or `.experiments/experiments.jsonl`.
+
+### Unresolved (maintainer/authorization only, out of agent scope)
+1. **Workflow contract patch — the sole remaining red.** A maintainer with `workflows`-scoped
+   credentials applies `patches/0001-gates-workflow-contract-fix.patch` on `origin/main`
+   (`git apply` → `git commit -am` → `git push`). Verified this session: applies cleanly, all four
+   new CI steps succeed locally, and it clears the 7 `tests/test_gates_workflow.py` failures. Do NOT
+   re-edit `gates.yml` in a commit; do NOT weaken the contract test.
+2. **Equity cross-section program closure / new universe.** H1–H199 exhausted/rejected. Authorize a
+   different universe (ex-US, micro-cap, other asset classes) OR formally close the program
+   (directive §6).
+3. **Reproducibility artifact cleanup (non-blocking).** 25 unrecoverable missing rows + 356 orphaned
+   files remain catalogued and baseline-locked; deletion/move needs explicit authorization.
+
+### Precise next task
+No bounded, agent-executable *research* or *code* task remains, and the guard/doc make-work loop
+should not be extended. The single highest-value action is maintainer-only: apply
+`patches/0001-gates-workflow-contract-fix.patch` to `.github/workflows/gates.yml` on `origin/main` to
+clear the 7 `tests/test_gates_workflow.py` failures (the dead-runner item Cycle 284 listed is already
+resolved). Until that lands the suite is green modulo those 7 agent-unreachable failures. Any further
+agent work requires one of the maintainer authorizations above.
+
+---
+
 ## AUTHORITATIVE STATUS — Cycle 284 (2026-11-24): proved the workflow fix is agent-unreachable from the controller source, and fully de-risked the maintainer's patch end-to-end (all four new CI steps succeed); no agent-executable task remains — the guard/doc make-work loop must stop
 
-**Read this block first; everything below it (Cycle 283 and earlier) is history.**
+**History: superseded by the Cycle 285 block above.**
 
 ### What changed
 - **No source, test, runner, artifact, gate, frozen number, schema pin, workflow, H-ID, or
