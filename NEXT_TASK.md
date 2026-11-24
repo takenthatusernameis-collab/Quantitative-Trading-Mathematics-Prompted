@@ -1,5 +1,33 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 291 (2026-11-24): closed the one open lead (`_probe.txt` degenerate-input question) with fresh evidence; no agent-executable task remains; sole action maintainer-only
+
+**Read this block first; everything below it (Cycle 290 and earlier) is history.**
+
+This cycle did **not** re-run the 750 s baseline (the Cycles 274–290 loop that reliability rule 2
+says to stop). Instead it resolved the one untracked open artifact prior cycles never documented:
+`_probe.txt` (repo root) is an ad-hoc probe of the public API for degenerate-input crashes under
+`-W error`. Running it (`PYTHONPATH=src python _probe.txt`) shows the public API is **robust** — the
+only "CRASH" is an *intentional guarded* `ValueError` (non-positive price base), not a
+warning-escape; the other 8 probes return cleanly. That robustness is **already codified** in
+`tests/test_engine_edge_stress.py` (parametrized invalid leverage/capital/position-size),
+`tests/test_backtest_engine.py`, and `tests/test_statistics.py`, so a new guard would be redundant
+make-work. `_probe.txt` is untracked scratch and was left in place (not deleted).
+
+Fresh evidence this session: `verify_hypothesis_inventory.py` → IN SYNC (H199==H199, README H199);
+`backtest_perf_regression_gate.py` → PASSED (0.796 s / 5 s); `ruff check` all passed;
+`ruff format --check` → 396 files clean; `pytest -q tests/test_gates_workflow.py` → 7 failed (all
+maintainer-gated `gates.yml` gaps); `git apply --check patches/0001-gates-workflow-contract-fix.patch`
+→ applies cleanly; working tree clean apart from this block.
+
+Next agent: do **not** re-verify the baseline again and do **not** add another guard/doc (that loop
+is closed). Sole actionable item remains maintainer-only: apply
+`patches/0001-gates-workflow-contract-fix.patch` to `.github/workflows/gates.yml` on `origin/main`.
+Any agent research/code work requires one of the maintainer authorizations under Cycle 287
+(new universe / program closure / artifact cleanup).
+
+---
+
 ## AUTHORITATIVE STATUS — Cycle 290 (2026-11-24): short confirmation per the Cycle 287 procedure; no maintainer authorization; no agent-executable task; sole action maintainer-only
 
 **Read this block first; everything below it (Cycle 289 and earlier) is history.**
