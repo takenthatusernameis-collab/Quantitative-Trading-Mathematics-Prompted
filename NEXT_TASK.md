@@ -1,8 +1,88 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 282 (2026-11-24): hardened the inventory ratchet to also guard the README H-range (closes the Cycle 281 README-drift class); no research/code task remains
+
+**Read this block first; everything below it (Cycle 281 and earlier) is history.**
+
+### What changed
+- **Extended `scripts/verify_hypothesis_inventory.py` to also guard the `README.md` H-range
+  against the documented maximum.** Cycle 281 found the README still read "H1–H197" while the
+  executed record was already H199 — a real prose drift that **no automated check caught**
+  (the script previously validated only the `AGENTS.md` marker vs `HYPOTHESIS_SPEC.md`
+  headings). The script now parses any **bounded** `H1–H<N>` range claim in `README.md`
+  (en/em dash or hyphen) and fails if its upper bound disagrees with the documented maximum.
+  Design is deliberately lenient and backward-compatible: an open-ended `H1+` (or no range)
+  never fails, and an absent `README.md` is skipped — only an explicit, wrong upper bound
+  fails. New: `readme_max_h_id()`, `Reconciliation.readme_max`/`readme_ok`, an optional
+  `readme_text` parameter on `reconcile()`, a README branch in `format_report()`, and a README
+  read in `verify()`. Because the live-repo test calls `verify()`, **a future README drift now
+  fails CI** (`tests/test_verify_hypothesis_inventory.py::test_live_repository_*`).
+- **Added 15 tests** to `tests/test_verify_hypothesis_inventory.py` (module 13 → 28): parametrized
+  bounded-range parsing (en/em/hyphen; open-ended and non-`H1-` ranges → `None`); stale/open/absent/
+  in-sync `reconcile()` + `verify()` cases; and a live-repo README-range assertion.
+- **`AGENTS.md`:** one-line note on the inventory parenthetical that the script since Cycle 282
+  also guards the README `H1–H<N>` range. **The `<!-- inventory-high-water-mark: H199 -->` marker
+  is untouched** (`python scripts/verify_hypothesis_inventory.py` → IN SYNC H199 == H199).
+- **No change** to `src/qtr`, any runner, any `.experiments` artifact, `tests/` beyond the one
+  module, any gate, any frozen number, the artifact-schema pins, `README.md` content,
+  `.github/workflows/**`, the H-ID, the inventory marker, or `.experiments/experiments.jsonl`.
+
+### What I actually verified (fresh evidence this session, 2026-11-24)
+- **Independent baseline before my change:** `python -m pytest -q -W error
+  --ignore=tests/test_gates_workflow.py` → **4939 passed / 51 skipped** (735 s) — independently
+  confirms the Cycle 281 green-gate claim rather than re-asserting it.
+- **After my change:** the same `-W error` invocation → **4954 passed / 51 skipped** (739 s),
+  i.e. **+15** = exactly the new tests, **zero warning escapes**, no regressions.
+- `python -m pytest -q -W error tests/test_verify_hypothesis_inventory.py` → **28 passed**.
+- **End-to-end guard proof (throwaway temp copy of AGENTS/SPEC/README, real tree untouched):**
+  stale README `H1–H197` → exit **1**; open-ended `H1+` → exit **0**; absent README → exit **0**;
+  correct `H1–H199` → exit **0**.
+- Live: `python scripts/verify_hypothesis_inventory.py` → IN SYNC (H199 == H199), now also prints
+  `H-range upper bound (README.md): H199`.
+- `python -m ruff check src tests run_*.py scripts` → All checks passed; `ruff format --check` →
+  396 files already formatted.
+- **7 `tests/test_gates_workflow.py` failures re-confirmed real and maintainer-gated:** the live
+  `gates.yml` lacks the `scripts/**` path filters, the `pip install -e . --no-deps` steps, `scripts`
+  in the ruff targets, and the `backtest_perf_regression_gate.py` step — exactly the deltas
+  `patches/0001-gates-workflow-contract-fix.patch` adds. The 51 skips are all legitimate
+  (artifact-content-conditional or environment-conditional).
+
+### Approaches not repeated (per reliability rules)
+- Did NOT fabricate H200, run another equity cross-section, or run a discovery scan (program
+  complete through H199; passive equal-weight book +0.462 OOS Sharpe dominates).
+- Did NOT edit `.github/workflows/**`, `src/qtr`, any runner, any `.experiments` artifact, any gate,
+  any frozen number, the artifact-schema pins, `README.md` content, the H-ID, the inventory marker,
+  `.experiments/experiments.jsonl`, or any `HANDOFF*.md` history file.
+- Did NOT repeat the prior ~5 cycles' doc-reconciliation make-work loop; this session added durable,
+  tested guard code instead (evidence-backed invariant hardening, reliability §7).
+
+### Unresolved (maintainer/authorization only, out of agent scope)
+1. **Workflow contract patch.** A maintainer with `workflows`-scoped credentials must apply
+   `patches/0001-gates-workflow-contract-fix.patch` on `origin/main` (controller
+   `.github/scripts/kilo-controller.sh` restores `.github/workflows/**`; repo token lacks `workflows`
+   permission). Sole remaining red: 7 `tests/test_gates_workflow.py` failures. Do NOT re-edit
+   `.github/workflows/gates.yml` in a commit; do NOT weaken the contract test.
+2. **Equity cross-section program closure / new universe.** H1–H199 exhausted/rejected. Authorize a
+   different universe (ex-US, micro-cap, other asset classes) OR formally close the program.
+3. **Reproducibility artifact cleanup (non-blocking).** 25 unrecoverable missing rows + 356 orphaned
+   files remain catalogued and baseline-locked; deletion/move needs explicit authorization.
+
+### Precise next task
+No bounded, agent-executable *research* task remains. The one durable, in-scope improvement this
+session (the README H-range guard) is **left uncommitted** in the working tree per the
+no-commit-without-explicit-request policy (`git status --short`: `AGENTS.md`,
+`scripts/verify_hypothesis_inventory.py`, `tests/test_verify_hypothesis_inventory.py`). If a new
+universe is authorized: pre-register a genuinely-distinct mechanism (directive §2 lineage test) in
+`HYPOTHESIS_SPEC.md`, bump the `AGENTS.md` marker + spec together, **and bump the `README.md`
+`H1–H<N>` range (or switch it to open-ended `H1+`)** — the inventory script now enforces this and
+`test_live_repository_*` will fail otherwise — implement a runner reusing the engine + standard 8
+gates, execute, and update the artifact-schema pins in the same commit as the artifact.
+
+---
+
 ## AUTHORITATIVE STATUS — Cycle 281 (2026-11-24): verified the real `-W error` CI gate is green; fixed stale README H-range; no research/code task remains
 
-**Read this block first; everything below it (Cycle 280 and earlier) is history.**
+**History: superseded by the Cycle 282 block above.**
 
 ### What changed
 - **Fixed a genuine factual drift in `README.md` (docs only):** line 3 read "audited hypothesis
