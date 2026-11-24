@@ -1,5 +1,58 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 292 (2026-11-24): fresh investigation confirms no safe in-scope agent task; the re-verification loop stays terminated; this is a handoff, NOT counted as project progress
+
+**Read this block first; everything below it (Cycle 291 and earlier) is history.**
+
+This cycle did **not** re-run the 750 s baseline and did **not** add a guard/doc (the Cycles
+274–291 loop stays terminated per reliability rule 2). Instead it produced **new** evidence that
+the three "Unresolved" items are genuinely authorization-gated, not merely un-attempted:
+
+- **Reproducibility cleanup is destructive, not regenerable.** `git ls-files .cache` → **82 tracked
+  `.cache/*.parquet`** files; `.gitignore` line 25 says *"Cached data files are intentionally
+  committed for reproducibility; ignore new cache files"*. So the 356 orphaned + 25 missing rows
+  are **committed data**, not scratch — deleting/moving them is a destructive change to the
+  committed record and needs explicit maintainer authorization. (This corrects any reading that the
+  cache is disposable.)
+- **The 7 `tests/test_gates_workflow.py` failures are exactly the maintainer-gated `gates.yml`
+  gaps** (missing `scripts/**` path filters, `pip install -e . --no-deps`, `scripts` ruff targets,
+  `backtest_perf_regression_gate.py` step). `.github/workflows/**` is agent-unreachable
+  (controller restores it; repo token lacks `workflows` scope). `git apply --check
+  patches/0001-gates-workflow-contract-fix.patch` → **applies cleanly**.
+- **The equity cross-section program is complete through H199** (inventory IN SYNC H199 == H199);
+  a new H200 would repeat the rejected cross-section approach (rule 2) and needs a new direction.
+
+Fresh evidence this session (cheap invariants only, NOT the 750 s suite):
+`verify_hypothesis_inventory.py` → IN SYNC (H199); `backtest_perf_regression_gate.py` → PASSED
+(0.815 s / 5 s); `ruff check src tests run_*.py scripts` → all passed; `ruff format --check` → 396
+files clean; `pytest -q tests/test_gates_workflow.py` → 7 failed (maintainer-gated); patch applies
+cleanly. No source/test/runner/artifact/gate/workflow/H-ID/inventory-marker change.
+
+### Next-agent decision procedure (follow literally; do NOT re-verify the baseline)
+1. **Maintainer authorization for one of the three items below → do that one item and stop.**
+2. **No authorization → your entire deliverable is a short confirmation** (the four cheap
+   invariants above + `pytest -q tests/test_gates_workflow.py`, expect 7 failed), then stop. Do
+   **not** re-run the 750 s suite, do **not** add a guard/doc, do **not** fabricate H200, do **not**
+   write another long block. A short confirmation is the correct, complete output.
+
+### Unresolved (maintainer/authorization only — out of agent scope)
+1. **Workflow contract patch — sole remaining red.** Maintainer with `workflows`-scoped creds:
+   `git apply patches/0001-gates-workflow-contract-fix.patch && git commit -am "fix(ci): satisfy gates workflow contract" && git push origin main`.
+   Do NOT re-edit `gates.yml` in a commit; do NOT weaken `tests/test_gates_workflow.py`.
+2. **Equity cross-section program closure / new universe.** H1–H199 exhausted/rejected. Authorize a
+   different universe (ex-US, micro-cap, other asset classes) OR formally close the program (§6).
+3. **Reproducibility artifact cleanup (non-blocking).** 25 unrecoverable missing rows + 356 orphaned
+   files are **committed** (`.cache/` is tracked); deletion/move needs explicit authorization.
+
+### Approaches already failed — do NOT repeat
+- Re-running the 750 s baseline as the deliverable (Cycles 257–291) — adds no information.
+- Adding another guard test / reconciling a doc (Cycles ~274–291) — make-work.
+- Fabricating H200 or another 98-name / broad-universe cross-section — program complete through
+  H199; the passive equal-weight long book (+0.462 OOS Sharpe) dominates every tested mechanism.
+- Editing `.github/workflows/**` in a commit — controller restores it; token lacks `workflows` scope.
+
+---
+
 ## AUTHORITATIVE STATUS — Cycle 291 (2026-11-24): closed the one open lead (`_probe.txt` degenerate-input question) with fresh evidence; no agent-executable task remains; sole action maintainer-only
 
 **Read this block first; everything below it (Cycle 290 and earlier) is history.**
