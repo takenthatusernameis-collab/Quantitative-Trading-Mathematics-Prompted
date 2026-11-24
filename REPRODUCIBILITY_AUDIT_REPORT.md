@@ -88,8 +88,9 @@ baseline.
 
 **Audit Status:** **GREEN WITH RECORDED BACKLOG** — the invariant checks pass; the
 backlog checks are locked to the counts below (post-remediation: 25 missing,
-11 hash-mismatched, 356 orphaned, 0 missing sidecars) and to the orphan
-composition pinned in §3 (Cycle 227).
+0 hash-mismatched, 356 orphaned, 0 missing sidecars) and to the orphan
+composition pinned in §3 (Cycle 227). The hash-mismatch backlog was remediated
+11 → 0 in Cycle 279 (§2); §2 below is retained as the remediation record.
 
 **2026-11-12 remediation:** 149 non-H28 hash-exact artifacts were restored into
 place, so `missing_files` fell 346 → 197. The other 172 hash-exact rows are H28
@@ -168,11 +169,25 @@ planner now reports 0 recoverable / 0 excluded / 25 unrecoverable
 `exp_2026-10-14T19-46-14-356479Z` / `exp_2026-10-14T20-00-08-312708Z`
 (22 missing each).
 
-### 2. Hash Mismatches (11)
+### 2. Hash Mismatches (0 remaining; remediated 2026-11-23, Cycle 279)
+
+**Remediated (Cycle 279):** the 11 stale artifact keys are gone from
+`.experiments/experiments.jsonl`. Each affected record carried the same on-disk
+path twice, once with the file's real hash and once with a stale suffix from an
+earlier grid run; dropping the stale key leaves the matching one and no file
+became orphaned. `hash_mismatches` is now **0** and
+`PINNED_HASH_MISMATCHES` in `tests/test_reproducibility_audit.py` is an empty
+list (kept, not deleted, so the identity-pinning machinery stays live: a future
+drift re-populates it and the tests fail until a deliberate remediation updates
+this list and this report together). Verified: 0 references to any of the 11
+stale artifact names remain in the corpus, and
+`tests/test_reproducibility_audit.py` — 12 passed.
 
 The artifact name embeds a 16-char SHA-256 prefix, but the file at the
-referenced path has different content. The 11 rows fall into two distinct
-mechanisms, re-derived 2026-11-13 with the audit's own hash logic.
+referenced path has different content. The 11 rows fell into two distinct
+mechanisms, re-derived 2026-11-13 with the audit's own hash logic. The table
+and analysis below are the **remediation record**; the on-disk file was
+authoritative in every row and the superseded keys are what was dropped.
 
 **8 × `param_grid_results` — duplicate same-path log entries within one run.**
 The momentum runners call `log_dataframe("param_grid_results", ...)` more than
@@ -225,9 +240,15 @@ attached. The surviving call is the one that produced the current on-disk artifa
 re-run is byte-identical for the grid; the superseded first write (the source of the 8
 stale hashes) is gone from future records. Pinned by
 `tests/test_momentum_runner_single_grid_write.py` (AST count == 1 per runner, with a
-pre-fix double-write negative control). The committed `experiments.jsonl` is **not**
-edited here — the 11-row backlog and its pins below are unchanged pending the
-authorization-gated log remediation.
+pre-fix double-write negative control).
+
+**Log remediation applied (2026-11-23, Cycle 279).** The superseded duplicate keys were
+dropped from the committed `.experiments/experiments.jsonl` (the 8 duplicate
+`param_grid_results` entries and the 3 superseded `summary.json` entries), leaving the
+matching key in each affected record. `hash_mismatches` fell **11 → 0**; no artifact was
+overwritten or deleted and no file became orphaned. `PINNED_HASH_MISMATCHES` is now an
+empty list. This is the authorization-gated edit the Cycle 243 note deferred; it is now
+done, so the backlog and its pins are resolved, not "pending".
 
 **Verified 2026-11-13:** `tests/test_reproducibility_audit.py` — 7 passed;
 `tests/test_h54_non_metrics_block_disclosure.py` — 21 passed; the three
@@ -342,13 +363,13 @@ Ordered by value and risk:
 2. **Re-run the 25 artifacts with no hash-matching source** — recreate them at
    the referenced paths and lower the baseline to 0.
 
-3. **✅ Audit the 11 hash mismatches** — done 2026-11-13 (§2). All 11 are
-   superseded duplicate/stale entries: 8 are duplicate same-path
+3. **✅ Audit the 11 hash mismatches** — done 2026-11-13 (§2); **remediated 2026-11-23
+   (Cycle 279)**. All 11 were superseded duplicate/stale entries: 8 are duplicate same-path
    `param_grid_results` log entries and 3 are fixed-`run_dir` re-runs. The
    on-disk file is authoritative and feeds the published values (the frozen h54
-   re-derivation reads it). The only remediation is to drop the superseded keys
-   from `experiments.jsonl` (or log once per final path); it is
-   authorization-gated and must not overwrite artifacts. A cross-basename
+   re-derivation reads it). The remediation (drop the 11 superseded keys from
+   `experiments.jsonl`) was applied in Cycle 279; `hash_mismatches` is now **0** and
+   `PINNED_HASH_MISMATCHES` is an empty list. A cross-basename
    hash-exact scan of all 2,155 on-disk artifacts found **0** sources for the 25
    unrecoverable rows, so the missing backlog cannot be reduced this way.
 

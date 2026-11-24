@@ -1,6 +1,39 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 278 (2026-11-23): H199 artifact regenerated with the monthly-hold runner; -W error runner-import fix applied; no bounded agent-executable research task remains
+## AUTHORITATIVE STATUS — Cycle 280 (2026-11-24): reconciled the REPRODUCIBILITY_AUDIT_REPORT.md §2 prose with the Cycle 279 hash-mismatch remediation
+
+**Read this block first; everything below it (Cycle 279 and earlier) is history.**
+
+### What changed
+- **Reconciled `REPRODUCIBILITY_AUDIT_REPORT.md` §2 (Hash Mismatches) with the remediated state.** The header (line 90-92) and the pinned Findings status table (line 114) already read `hash_mismatches = 0` (remediated Cycle 279), and `tests/test_reproducibility_audit.py::REPRODUCIBILITY_BASELINE` pins `hash_mismatches: 0` with an empty `PINNED_HASH_MISMATCHES` list. But §2's heading still read "Hash Mismatches (11)", its intro still described "The 11 rows fall into two distinct mechanisms" as a live backlog, and the Cycle 243 root-cause note still said "the 11-row backlog and its pins below are unchanged pending the authorization-gated log remediation" — the exact prose-drift class this report's own §Findings guards against. Verified against the corpus: **0 references** to any of the 11 stale artifact names remain in `.experiments/experiments.jsonl` (1397 artifact refs, 0 paths referenced more than once), so the remediation is real and the prose was stale.
+- **Edits (docs only):**
+  1. Audit Status line: "post-remediation: 25 missing, 11 hash-mismatched, 356 orphaned, 0 missing sidecars" → "25 missing, 0 hash-mismatched, 356 orphaned, 0 missing sidecars", with a pointer that §2 is the remediation record.
+  2. §2 heading "Hash Mismatches (11)" → "Hash Mismatches (0 remaining; remediated 2026-11-23, Cycle 279)" with a Remediated block stating `hash_mismatches` is now 0, `PINNED_HASH_MISMATCHES` is an empty list kept live, and that the table below is the remediation record (on-disk was authoritative in every row).
+  3. Cycle 243 root-cause note's closing sentence ("the committed `experiments.jsonl` is **not** edited here — the 11-row backlog ... unchanged pending the authorization-gated log remediation") → a Cycle 279 Log Remediation Applied block recording that the 11 superseded keys were dropped, `hash_mismatches` fell 11 → 0, no artifact was overwritten/deleted, and the backlog is resolved, not pending.
+  4. Recommended Remediation item 3 ("✅ Audit the 11 hash mismatches") → marked **remediated 2026-11-23 (Cycle 279)** with `hash_mismatches` now **0** and `PINNED_HASH_MISMATCHES` an empty list.
+- **No change** to `.experiments/experiments.jsonl`, any artifact, `src/qtr`, any gate, any frozen number, the artifact-schema pins, the workflow, the H-ID, or the inventory marker.
+
+### What I actually verified (evidence)
+- `python -m pytest -q tests/test_reproducibility_audit.py tests/test_experiment_lineage_report.py tests/test_experiment_artifact_schema.py tests/test_plan_artifact_restoration.py` → **148 passed**.
+- Corpus scan: 1397 artifact refs in `.experiments/experiments.jsonl`; 0 paths referenced >1 time; 0 references to any of the 11 stale artifact names (`param_grid_results_3c3ca96bf45b5f28`, `_3c5c66cd85442477`, `_5aa48f8683d54d37`, `summary_b8cf0dae88579c7a`, `summary_361a5942ebe194a6`, `summary_4eff6682192c3e69`) → remediation confirmed in-tree.
+- `python -m ruff check REPRODUCIBILITY_AUDIT_REPORT.md` → All checks passed; `ruff format --check` → 1 file already formatted.
+- `python scripts/verify_hypothesis_inventory.py` → IN SYNC (H199 == H199); `python scripts/backtest_perf_regression_gate.py` → PASSED.
+
+### Unresolved (maintainer/authorization only, out of agent scope)
+1. **Workflow contract patch.** Apply `patches/0001-gates-workflow-contract-fix.patch` on `origin/main` (workflows-scoped credentials; `.github/scripts/kilo-controller.sh` restores `.github/workflows/**`; repo token lacks `workflows` permission). Verified again this session: applies cleanly and makes all 7 `tests/test_gates_workflow.py` cases pass in a throwaway checkout (7 passed). Do NOT re-edit `.github/workflows/gates.yml` in a commit.
+2. **Equity cross-section program closure / new universe.** H1–H199 exhausted/rejected; passive equal-weight long book (+0.462 OOS Sharpe, H199) dominates. Authorize a different universe (ex-US, micro-cap, other asset classes) OR formally close the program (directive §6).
+3. **Reproducibility artifact cleanup (non-blocking).** The 25 unrecoverable rows and the 356 orphaned files remain catalogued and baseline-locked; needs explicit authorization to delete/move.
+
+### Approaches not repeated (per reliability rules)
+- Did NOT re-run H199, fabricate H200, or run another cross-section / discovery scan.
+- Did NOT touch `.github/workflows/**`, `src/qtr`, any artifact, any gate, any frozen number, the artifact-schema pins, the H-ID, or the inventory marker.
+- Did NOT edit `.experiments/experiments.jsonl` (the Cycle 279 remediation is already committed and verified; re-editing it would be a regression).
+- Did NOT repeat the "baseline re-verification" make-work loop; this session found and fixed a concrete, evidence-backed prose-drift defect instead.
+
+### Precise next task
+No bounded, agent-executable *research* task remains (equity cross-section program complete through H199; reproducibility prose now reconciled with the remediated state). Any further work requires one of the maintainer authorizations above (workflow patch / new universe / program closure / artifact cleanup). The H199 commits (`c8c5d55`, `44dadb6`) and this Cycle 280 doc fix are committed locally but **not pushed** to `origin/main`.
+
+---
 
 **Read this block first; everything below it (Cycle 277 and earlier) is history.**
 
