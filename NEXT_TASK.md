@@ -1,5 +1,22 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 293 (2026-11-24): short confirmation per the Cycle 292 procedure; no authorization; no agent-executable task; sole action maintainer-only
+
+**Read this block first; everything below it (Cycle 292 and earlier) is history.**
+
+No maintainer authorization this session, so per the Cycle 292 decision procedure the entire
+deliverable is this short confirmation (no full-suite re-run, no new guard/test, no H200):
+- `verify_hypothesis_inventory.py` → IN SYNC (H199 == H199, README H199); `backtest_perf_regression_gate.py` → PASSED (0.809 s / 5 s).
+- `ruff check src tests run_*.py scripts` → all passed; `ruff format --check` → 396 files clean.
+- `pytest -q tests/test_gates_workflow.py` → 7 failed (maintainer-gated `gates.yml` gaps); `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly.
+- Working tree clean; HEAD == origin/main (`0a0bd82`); the only change is this block, left uncommitted.
+
+Next agent: follow the Cycle 292 decision procedure literally; do NOT re-verify the baseline again.
+Sole actionable item remains maintainer-only: apply `patches/0001-gates-workflow-contract-fix.patch`
+to `.github/workflows/gates.yml` on `origin/main`.
+
+---
+
 ## AUTHORITATIVE STATUS — Cycle 292 (2026-11-24): fresh investigation confirms no safe in-scope agent task; the re-verification loop stays terminated; this is a handoff, NOT counted as project progress
 
 **Read this block first; everything below it (Cycle 291 and earlier) is history.**
