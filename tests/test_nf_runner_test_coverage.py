@@ -7,12 +7,11 @@ fixed reactively.  This test turns that discipline into an invariant: a new
 ``run_nf_*.py`` that lacks ``tests/test_<stem-without-run_>.py`` fails here at
 commit time instead of in a later audit.
 
-A small number of runners are *intentionally* test-less (superseded drafts and
-one orphaned duplicate).  They are pinned in ``INTENTIONALLY_TESTLESS`` with the
-concrete reason.  Each entry is kept honest by
-``test_intentionally_testless_entries_are_current``: if the runner is deleted, or
-a dedicated test is later added, the stale entry fails the suite and must be
-removed, so the allowlist cannot silently rot.
+A small number of runners are *intentionally* test-less (superseded drafts).  They
+are pinned in ``INTENTIONALLY_TESTLESS`` with the concrete reason.  Each entry is
+kept honest by ``test_intentionally_testless_entries_are_current``: if the runner
+is deleted, or a dedicated test is later added, the stale entry fails the suite and
+must be removed, so the allowlist cannot silently rot.
 
 Offline and read-only: it only lists files under the repo root and ``tests/``.
 """
@@ -32,13 +31,6 @@ INTENTIONALLY_TESTLESS: dict[str, str] = {
         "Superseded UNEXECUTED draft: no main(), no experiment tracking and no "
         "committed artifact (its own docstring declares it test-less). Must not be "
         "treated as NF-20261107-06 / H122 evidence."
-    ),
-    "run_nf_20261107_48_ovx_vix_spread": (
-        "Orphaned exact duplicate of run_nf_20261107_47_spy_ar1.py (identical AR(1) "
-        "mechanism; only the docstring, one string and the nf_id/h_id labels differ). "
-        "It writes summary.json to nf_20261107_47_spy_ar1, so running it would "
-        "overwrite the frozen H136 artifact with mislabeled content. Never executed; "
-        "no OVX hypothesis exists in HYPOTHESIS_SPEC.md. Do NOT run it."
     ),
     "run_nf_20261110_07_es_basis": (
         "UNEXECUTED draft: HYPOTHESIS = 'TBD' and no main(); never produced a committed artifact."
