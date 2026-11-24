@@ -1,6 +1,6 @@
 # Experiment Lineage Report
 
-**Generated:** 2026-11-22 11:04:12 UTC
+**Generated:** 2026-11-24 00:57:55 UTC
 **Source:** `.experiments/experiments.jsonl`
 **Total Experiments:** 174
 
@@ -39,9 +39,9 @@
 
 | Exp ID | Name | Timestamp | Git Commit | Verdict | Key Metrics | Config | Artifacts | Error |
 |---|---|---|---|---|---|---|---|---|
-| 20-56-30-507309 | ts_momentum_20etf_v1 | 2026-10-10 20:56:30 UTC | 2bb82523 | completed | — | start_date=2015-01-01<br>end_date=2024-12-31<br>data_source=yahoo | 11 artifacts | — |
-| 20-57-26-136503 | ts_momentum_20etf_v1 | 2026-10-10 20:57:26 UTC | 2bb82523 | completed | — | start_date=2015-01-01<br>end_date=2024-12-31<br>data_source=yahoo | 11 artifacts | — |
-| 21-08-54-188263 | ts_momentum_20etf_v1 | 2026-10-10 21:08:54 UTC | 2bb82523 | completed | — | start_date=2015-01-01<br>end_date=2024-12-31<br>data_source=yahoo | 11 artifacts | — |
+| 20-56-30-507309 | ts_momentum_20etf_v1 | 2026-10-10 20:56:30 UTC | 2bb82523 | completed | — | start_date=2015-01-01<br>end_date=2024-12-31<br>data_source=yahoo | 10 artifacts | — |
+| 20-57-26-136503 | ts_momentum_20etf_v1 | 2026-10-10 20:57:26 UTC | 2bb82523 | completed | — | start_date=2015-01-01<br>end_date=2024-12-31<br>data_source=yahoo | 10 artifacts | — |
+| 21-08-54-188263 | ts_momentum_20etf_v1 | 2026-10-10 21:08:54 UTC | 2bb82523 | completed | — | start_date=2015-01-01<br>end_date=2024-12-31<br>data_source=yahoo | 10 artifacts | — |
 | 21-58-07-833835 | futures_tsmom_v1 | 2026-10-10 21:58:07 UTC | e6a36808 | failed | — | lookbacks=[63, 126, 252]<br>start_date=2015-01-01<br>end_date=2024-12-31 | 4 artifacts | compare_to_benchmark() got an unexpected keyword a... |
 | 21-58-28-353634 | futures_tsmom_v1 | 2026-10-10 21:58:28 UTC | e6a36808 | completed | — | lookbacks=[63, 126, 252]<br>start_date=2015-01-01<br>end_date=2024-12-31 | 8 artifacts | — |
 | 21-59-16-546117 | futures_tsmom_v1 | 2026-10-10 21:59:16 UTC | e6a36808 | completed | — | lookbacks=[63, 126, 252]<br>start_date=2015-01-01<br>end_date=2024-12-31 | 8 artifacts | — |
@@ -81,7 +81,7 @@
 | 07-15-23-322705 | h22_futures_tsmom_voltarget | 2026-10-14 07:15:23 UTC | fa4c1d0f | completed | — | interval=1h<br>data_source=yahoo_futures_cached | 22 artifacts | — |
 | 07-32-43-425839 | h22_futures_tsmom_voltarget | 2026-10-14 07:32:43 UTC | fa4c1d0f | completed | — | interval=1h<br>data_source=yahoo_futures_cached | 22 artifacts | — |
 | 08-20-39-255883 | h9_intraday_tsmom_ctexits_v2 | 2026-10-14 08:20:39 UTC | 37224854 | completed | — | interval=1h<br>data_source=yahoo_futures | 13 artifacts | — |
-| 08-26-18-385545 | ts_momentum_20etf_v1 | 2026-10-14 08:26:18 UTC | 37224854 | completed | — | start_date=2015-01-01<br>end_date=2024-12-31<br>data_source=yahoo | 11 artifacts | — |
+| 08-26-18-385545 | ts_momentum_20etf_v1 | 2026-10-14 08:26:18 UTC | 37224854 | completed | — | start_date=2015-01-01<br>end_date=2024-12-31<br>data_source=yahoo | 10 artifacts | — |
 | 08-27-02-650342 | futures_tsmom_v1 | 2026-10-14 08:27:02 UTC | 37224854 | completed | — | lookbacks=[63, 126, 252]<br>start_date=2015-01-01<br>end_date=2024-12-31 | 8 artifacts | — |
 | 08-34-46-739801 | h23_crypto_futures_tsmom | 2026-10-14 08:34:46 UTC | 37224854 | failed | — | interval=1h<br>data_source=ccxt_cached | 1 artifacts | (252, None, True) |
 | 08-48-49-412372 | h23_crypto_futures_tsmom | 2026-10-14 08:48:49 UTC | 37224854 | completed | — | interval=1h<br>data_source=ccxt_cached | 19 artifacts | — |
@@ -104,16 +104,16 @@
 
 | Exp ID | Name | Timestamp | Git Commit | Verdict | Key Metrics | Config | Artifacts | Error |
 |---|---|---|---|---|---|---|---|---|
-| 20-59-28-306148 | cs_momentum_10etf_v1 | 2026-10-10 20:59:28 UTC | 2bb82523 | completed | — | lookbacks=[63, 126, 252]<br>start_date=2015-01-01<br>end_date=2024-12-31 | 10 artifacts | — |
-| 21-09-06-830199 | cs_momentum_10etf_v1 | 2026-10-10 21:09:06 UTC | 2bb82523 | completed | — | lookbacks=[63, 126, 252]<br>start_date=2015-01-01<br>end_date=2024-12-31 | 10 artifacts | — |
+| 20-59-28-306148 | cs_momentum_10etf_v1 | 2026-10-10 20:59:28 UTC | 2bb82523 | completed | — | lookbacks=[63, 126, 252]<br>start_date=2015-01-01<br>end_date=2024-12-31 | 9 artifacts | — |
+| 21-09-06-830199 | cs_momentum_10etf_v1 | 2026-10-10 21:09:06 UTC | 2bb82523 | completed | — | lookbacks=[63, 126, 252]<br>start_date=2015-01-01<br>end_date=2024-12-31 | 9 artifacts | — |
 
 ### Regime-Gated
 
 | Exp ID | Name | Timestamp | Git Commit | Verdict | Key Metrics | Config | Artifacts | Error |
 |---|---|---|---|---|---|---|---|---|
-| 21-27-13-928282 | regime_gated_momentum_20etf_v1 | 2026-10-10 21:27:13 UTC | 2ac48e7c | completed | — | start_date=2015-01-01<br>end_date=2024-12-31<br>data_source=yahoo | 11 artifacts | — |
-| 21-28-20-920399 | regime_gated_momentum_20etf_v1 | 2026-10-10 21:28:20 UTC | 2ac48e7c | completed | — | start_date=2015-01-01<br>end_date=2024-12-31<br>data_source=yahoo | 11 artifacts | — |
-| 18-20-38-363385 | nf_20261105_14_credit_regime | 2026-11-05 18:20:38 UTC | a683fad3 | completed | oos_sharpe=0.9254<br>oos_trades=318.0000 | lookbacks=[21, 63, 126]<br>vol_targets=[0.1, 0.15]<br>signal_modes=['sign', 'zscore'] | 1 artifacts | — |
+| 21-27-13-928282 | regime_gated_momentum_20etf_v1 | 2026-10-10 21:27:13 UTC | 2ac48e7c | completed | — | start_date=2015-01-01<br>end_date=2024-12-31<br>data_source=yahoo | 10 artifacts | — |
+| 21-28-20-920399 | regime_gated_momentum_20etf_v1 | 2026-10-10 21:28:20 UTC | 2ac48e7c | completed | — | start_date=2015-01-01<br>end_date=2024-12-31<br>data_source=yahoo | 10 artifacts | — |
+| 18-20-38-363385 | nf_20261105_14_credit_regime | 2026-11-05 18:20:38 UTC | a683fad3 | completed | oos_sharpe=0.9254<br>oos_trades=318.0000 | lookbacks=[21, 63, 126]<br>vol_targets=[0.1, 0.15]<br>signal_modes=['sign', 'zscore'] | — | — |
 | 22-09-06-247157 | nf_20261105_15_corr_regime | 2026-11-05 22:09:06 UTC | 417cc7d4 | completed | oos_sharpe=0.7264<br>oos_trades=254.0000 | lookbacks=[63, 126, 252]<br>vol_targets=[0.1, 0.15]<br>data_source=['yfinance:SPY', 'yfinance:TLT'] | 1 artifacts | — |
 | 17-24-06-550812 | nf_20261105_14_credit_regime | 2026-11-10 17:24:06 UTC | 022a9e16 | completed | oos_sharpe=0.9254<br>oos_trades=318.0000 | lookbacks=[21, 63, 126]<br>vol_targets=[0.1, 0.15]<br>signal_modes=['sign', 'zscore'] | 1 artifacts | — |
 
@@ -201,10 +201,10 @@
 | 18-09-06-924039 | nf_20261105_13_idiosyncrati... | 2026-11-05 18:09:06 UTC | e414964a | completed | — | data_source=yahoo_daily_cached | 8 artifacts | — |
 | 18-11-49-464520 | nf_20261105_10_equity_bond_... | 2026-11-05 18:11:49 UTC | e10507b6 | completed | — | data_source=yahoo_daily_cached | 8 artifacts | — |
 | 18-12-36-229696 | nf_20261105_10_equity_bond_... | 2026-11-05 18:12:36 UTC | f2157468 | completed | — | data_source=yahoo_daily_cached | 8 artifacts | — |
-| 19-06-45-864432 | nf_20261105_16_usd_macro | 2026-11-05 19:06:45 UTC | 76db131e | completed | oos_sharpe=0.6089<br>oos_trades=289.0000 | lookbacks=[63, 126, 252]<br>vol_targets=[0.1, 0.15]<br>data_source=['yfinance:SPY', 'yfinance:UUP'] | 1 artifacts | — |
+| 19-06-45-864432 | nf_20261105_16_usd_macro | 2026-11-05 19:06:45 UTC | 76db131e | completed | oos_sharpe=0.6089<br>oos_trades=289.0000 | lookbacks=[63, 126, 252]<br>vol_targets=[0.1, 0.15]<br>data_source=['yfinance:SPY', 'yfinance:UUP'] | — | — |
 | 19-09-07-377344 | nf_20261105_16_usd_macro | 2026-11-05 19:09:07 UTC | 76db131e | completed | oos_sharpe=0.8141<br>oos_trades=88.0000 | lookbacks=[63, 126, 252]<br>vol_targets=[0.1, 0.15]<br>data_source=['yfinance:SPY', 'yfinance:UUP'] | 1 artifacts | — |
 | 22-15-20-636539 | nf_20261105_18_concentratio... | 2026-11-05 22:15:20 UTC | b2e2631f | completed | oos_sharpe=0.7239<br>oos_trades=364.0000 | lookbacks=[60, 126, 252]<br>vol_targets=[0.1, 0.15]<br>data_source=['yfinance:SPY', 'yfinance:RSP'] | 1 artifacts | — |
-| 01-28-49-517869 | nf_20261105_19_pead | 2026-11-06 01:28:49 UTC | 7d442fe4 | completed | oos_sharpe=0.7680<br>oos_trades=775.0000 | data_source=['yfinance:AAPL', 'yfinance:MSFT', 'yfinance:AMZN' | 1 artifacts | — |
+| 01-28-49-517869 | nf_20261105_19_pead | 2026-11-06 01:28:49 UTC | 7d442fe4 | completed | oos_sharpe=0.7680<br>oos_trades=775.0000 | data_source=['yfinance:AAPL', 'yfinance:MSFT', 'yfinance:AMZN' | — | — |
 | 01-30-29-259047 | nf_20261105_19_pead | 2026-11-06 01:30:29 UTC | 7d442fe4 | completed | oos_sharpe=0.8261<br>oos_trades=942.0000 | data_source=['yfinance:AAPL', 'yfinance:MSFT', 'yfinance:AMZN' | 1 artifacts | — |
 | 02-00-06-752931 | nf_20261105_10_equity_bond_... | 2026-11-06 02:00:06 UTC | f251af3c | completed | — | data_source=yahoo_daily_cached | 8 artifacts | — |
 | 02-17-43-039138 | nf_20261105_10_equity_bond_... | 2026-11-06 02:17:43 UTC | fdf76d7e | completed | — | data_source=yahoo_daily_cached | 8 artifacts | — |
