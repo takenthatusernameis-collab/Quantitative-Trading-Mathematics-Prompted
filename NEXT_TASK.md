@@ -1,5 +1,81 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 284 (2026-11-24): proved the workflow fix is agent-unreachable from the controller source, and fully de-risked the maintainer's patch end-to-end (all four new CI steps succeed); no agent-executable task remains — the guard/doc make-work loop must stop
+
+**Read this block first; everything below it (Cycle 283 and earlier) is history.**
+
+### What changed
+- **No source, test, runner, artifact, gate, frozen number, schema pin, workflow, H-ID, or
+  inventory-marker change.** `git status` is clean and `origin/main..HEAD` is empty (everything is
+  committed and pushed). This `NEXT_TASK.md` block (the authoritative handoff) is the only change,
+  left uncommitted per the no-commit-without-explicit-request policy.
+
+### What I actually verified (fresh evidence this session, 2026-11-24)
+- **Proved workflow agent-unreachability from source, not assertion.** Read
+  `.github/scripts/kilo-controller.sh`: after every session it restores workflow files from the
+  remote default branch (`git restore --source="$workflow_restore_source" --staged --worktree --
+  .github/workflows`, line 315; `git clean -fd -- .github/workflows`, line 318) and excludes them
+  from staging (`':(exclude).github/workflows/**'`, line 333); the repo-scoped token has no
+  `workflows` permission (line 6). A committed `gates.yml` edit therefore cannot reach `origin/main`
+  — the 7 `tests/test_gates_workflow.py` failures are genuinely maintainer-gated, not an agent
+  oversight.
+- **De-risked the maintainer's patch end-to-end (the genuinely new result).** Prior cycles verified
+  only that `patches/0001-gates-workflow-contract-fix.patch` applies (`git apply --check` → clean,
+  re-confirmed this session) and that `test_gates_workflow.py` passes with it. This session verified
+  the patch's *new* CI steps actually succeed locally: (a) `python -m pip install -e . --no-deps`
+  builds and installs qtr 0.1.0; (b) with qtr installed, the distribution tests that currently SKIP
+  (`tests/test_generated_manifest_contract.py`, `tests/test_public_api_contract.py`) RUN and PASS
+  (44 passed, 0 skipped); (c) `python -m pytest -q -W error tests/test_runner_import_contract.py
+  tests/test_generated_manifest_contract.py tests/test_public_api_contract.py tests/test_config.py`
+  → 414 passed; (d) `ruff check src tests run_*.py scripts` clean and
+  `python scripts/backtest_perf_regression_gate.py` PASSED (0.775 s). Environment restored to the
+  documented baseline afterwards (qtr uninstalled, `src/qtr.egg-info/` removed →
+  `test_generated_manifest_contract.py` back to 8 passed / 3 skipped; `git status` clean).
+- **Fast invariants still green:** `ruff check` + `format --check` (397 files),
+  `scripts/verify_hypothesis_inventory.py` → IN SYNC H199 == H199,
+  `scripts/backtest_perf_regression_gate.py` → PASSED.
+- **Coverage invariant unchanged by construction.** I changed zero lines under `src/qtr` and zero
+  test files, so the enforced `fail_under = 100` branch-coverage status is definitionally identical
+  to the last CI-verified state; a full traced re-run (~735 s, observed ~25 % after 14 min under
+  `--cov`) adds no information and was stopped once this was clear.
+
+### Approaches not repeated (per reliability rules)
+- Did NOT fabricate H200, run another cross-section, or run a discovery scan (program complete
+  through H199; the passive equal-weight long book at +0.462 OOS Sharpe dominates every tested
+  mechanism).
+- Did NOT add another guard test or reconcile another doc. The Cycles ~274-283 pattern of
+  incremental guard/doc make-work IS the repeated approach rule 2 says to stop; this session instead
+  produced genuinely new evidence (source-level unreachability proof + end-to-end patch de-risking).
+- Did NOT edit `.github/workflows/**`, `src/qtr`, any runner, any `.experiments` artifact, any gate,
+  any frozen number, the artifact-schema pins, `README.md`, `AGENTS.md`, the H-ID, the inventory
+  marker, or `.experiments/experiments.jsonl`.
+
+### Unresolved (maintainer/authorization only, out of agent scope)
+1. **Workflow contract patch — NOW FULLY DE-RISKED.** A maintainer with `workflows`-scoped
+   credentials applies `patches/0001-gates-workflow-contract-fix.patch` on `origin/main`
+   (`git apply` → `git commit -am` → `git push`). All four new CI steps (scripts path filters,
+   editable install, ruff-on-`scripts`, perf gate) are verified to succeed. This single action clears
+   the sole remaining red (7 `tests/test_gates_workflow.py` failures). Do NOT re-edit `gates.yml` in
+   a commit; do NOT weaken the contract test.
+2. **Equity cross-section program closure / new universe.** H1–H199 exhausted/rejected. Authorize a
+   different universe (ex-US, micro-cap, other asset classes) OR formally close the program.
+3. **Reproducibility artifact cleanup (non-blocking).** 25 unrecoverable missing rows + 356 orphaned
+   files remain catalogued and baseline-locked; deletion/move needs explicit authorization.
+4. **Dead duplicate runner (do NOT run).** `run_nf_20261107_48_ovx_vix_spread.py` duplicates
+   `run_nf_20261107_47_spy_ar1.py` and writes to `nf_20261107_47_spy_ar1`; executing it would
+   corrupt the frozen H136 artifact. A maintainer should delete/quarantine it (documented in
+   `tests/test_nf_runner_test_coverage.py::INTENTIONALLY_TESTLESS`).
+
+### Precise next task
+No bounded, agent-executable *research* or *code* task remains, and the guard/doc make-work loop
+should not be extended. The single highest-value action is maintainer-only: apply the (now fully
+de-risked) `patches/0001-gates-workflow-contract-fix.patch` to `.github/workflows/gates.yml` on
+`origin/main` to clear the 7 `tests/test_gates_workflow.py` failures. Until that lands the suite is
+green modulo those 7 agent-unreachable failures. Any further agent work requires one of the
+maintainer authorizations above.
+
+---
+
 ## AUTHORITATIVE STATUS — Cycle 283 (2026-11-24): added an executable invariant that every executed NF runner ships a dedicated test module; surfaced (did not touch) a dead duplicate runner
 
 **Read this block first; everything below it (Cycle 282 and earlier) is history.**
