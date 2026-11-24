@@ -29,6 +29,8 @@ def _summary(
     *,
     name: str = "nf_test",
     universe_symbols: list[str] | None = None,
+    event_source: bool = False,
+    constituent_source: bool = False,
     strategy_sharpe: float = 0.5,
     benchmark_sharpe: float = 1.0,
     train_sharpe: float = 0.8,
@@ -44,6 +46,10 @@ def _summary(
     data: dict = {"equity_source": "yfinance"}
     if universe_symbols is not None:
         data["universe_symbols"] = universe_symbols
+    if event_source:
+        data["event_source"] = "wikipedia"
+    if constituent_source:
+        data["constituent_source"] = "sec_frames"
     return {
         "experiment": name,
         "nf_id": name,
@@ -85,6 +91,106 @@ def test_is_equity_cross_section_requires_universe_symbols():
     assert not module.is_equity_cross_section({})
     assert not module.is_equity_cross_section(None)
     assert not module.is_equity_cross_section(["not", "a", "dict"])
+
+
+def test_is_equity_cross_section_accepts_h198_event_drift_signature():
+    # H198 (S&P 500 index-membership event drift) records its event universe as
+    # a descriptive string under ``universe`` and carries an ``event_source``
+    # block, but no per-symbol ``universe_symbols`` list.  It is still an equity
+    # cross-section benchmarked to the passive equal-weight long book.
+    module = _load_script()
+    assert module.is_equity_cross_section({"event_source": "wikipedia"})
+
+
+def test_is_equity_cross_section_accepts_h199_size_premium_signature():
+    # H199 (market-cap size premium) records a universe size under
+    # ``universe_size`` and a ``constituent_source`` block, but no
+    # ``universe_symbols`` list.  It is still an equity cross-section.
+    module = _load_script()
+    assert module.is_equity_cross_section({"constituent_source": "sec_frames"})
+
+
+def test_is_equity_cross_section_rejects_commodity_and_crypto_universe():
+    # The CFTC commodity and Binance crypto runs also carry a generic
+    # ``universe`` field but no equity-universe marker, so they stay excluded.
+    module = _load_script()
+    assert not module.is_equity_cross_section({"universe": "FUTURES"})
+    assert not module.is_equity_cross_section({"universe": [{"source": "SHFE", "code": "RB"}]})
+    assert not module.is_equity_cross_section({"universe": [{"symbol": "BTCUSDT"}]})
+
+
+def test_cross_section_kind_labels_each_sub_family():
+    module = _load_script()
+    assert module.cross_section_kind({"universe_symbols": ["AAPL"]}) == "long_short_factor"
+    assert module.cross_section_kind({"event_source": "wikipedia"}) == "event_drift"
+    assert module.cross_section_kind({"constituent_source": "sec_frames"}) == "size_premium"
+    assert module.cross_section_kind({"universe": "FUTURES"}) == "unknown"
+    assert module.cross_section_kind(None) == "unknown"
+    assert module.cross_section_kind(["not", "a", "dict"]) == "unknown"
+
+
+def test_load_record_tags_h198_event_drift_kind(tmp_path):
+    module = _load_script()
+    path = _write_summary(tmp_path, "nf_h198", _summary(name="nf_h198", event_source=True))
+
+    record = module.load_record(path)
+
+    assert record is not None
+    assert record["kind"] == "event_drift"
+
+
+def test_load_record_tags_h199_size_premium_kind(tmp_path):
+    module = _load_script()
+    path = _write_summary(tmp_path, "nf_h199", _summary(name="nf_h199", constituent_source=True))
+
+    record = module.load_record(path)
+
+    assert record is not None
+    assert record["kind"] == "size_premium"
+
+
+def test_load_record_tags_long_short_factor_kind(tmp_path):
+    module = _load_script()
+    path = _write_summary(tmp_path, "nf_factor", _summary(universe_symbols=["AAPL"]))
+
+    record = module.load_record(path)
+
+    assert record is not None
+    assert record["kind"] == "long_short_factor"
+
+
+def test_collect_records_includes_h198_and_h199(tmp_path):
+    module = _load_script()
+    _write_summary(tmp_path, "nf_factor", _summary(name="nf_factor", universe_symbols=["AAPL"]))
+    _write_summary(tmp_path, "nf_h198", _summary(name="nf_h198", event_source=True))
+    _write_summary(tmp_path, "nf_h199", _summary(name="nf_h199", constituent_source=True))
+    _write_summary(tmp_path, "nf_commodity", _summary(universe_symbols=None))
+    (tmp_path / ".experiments" / "nf_runs" / "nf_commodity" / "summary.json").write_text(
+        json.dumps({**_summary(universe_symbols=None), "data": {"universe": "FUTURES"}})
+    )
+
+    records = module.collect_records(tmp_path)
+
+    names = sorted(r["run"] for r in records)
+    assert names == ["nf_factor", "nf_h198", "nf_h199"]
+    kinds = {r["run"]: r["kind"] for r in records}
+    assert kinds == {
+        "nf_factor": "long_short_factor",
+        "nf_h198": "event_drift",
+        "nf_h199": "size_premium",
+    }
+
+
+def test_format_table_includes_kind_column():
+    module = _load_script()
+    records = [_record(0.4, 0.3, 1.0, -0.02, -0.6)]
+    records[0]["run"] = "nf_example"
+    records[0]["kind"] = "event_drift"
+
+    table = module.format_table(records)
+
+    assert "kind" in table.splitlines()[0]
+    assert "event_drift" in table
 
 
 def test_exposure_class_bands_and_boundaries():
@@ -187,10 +293,12 @@ def _record(
     val: float = 0.3,
     test: float = 0.2,
     full_sample: float = 0.5,
+    kind: str = "long_short_factor",
 ) -> dict:
     module = _load_script()
     record = {
         "run": "r",
+        "kind": kind,
         "strategy_sharpe": strategy,
         "benchmark_sharpe": benchmark,
         "train_sharpe": train,
@@ -325,6 +433,29 @@ def test_main_reports_summary_on_real_repository(capsys):
     assert "passive" in out
 
 
+def test_collect_records_on_real_repository_includes_h198_and_h199():
+    # The committed H198 (event drift) and H199 (size premium) artifacts are
+    # equity cross-sections benchmarked to the passive equal-weight long book,
+    # so the diagnostic must include them.  Pinning this here is what keeps the
+    # discriminator honest as new artifacts are added: a future change that
+    # drops either run back out would fail this test at commit time.
+    module = _load_script()
+
+    records = module.collect_records(ROOT)
+    runs = {r["run"]: r for r in records}
+
+    assert any("sp500_membership_event_drift" in r for r in runs), (
+        f"H198 event-drift run missing from {sorted(runs)}"
+    )
+    assert any("size_premium" in r for r in runs), (
+        f"H199 size-premium run missing from {sorted(runs)}"
+    )
+    assert (
+        runs[[r for r in runs if "sp500_membership_event_drift" in r][0]]["kind"] == "event_drift"
+    )
+    assert runs[[r for r in runs if "size_premium" in r][0]]["kind"] == "size_premium"
+
+
 def test_main_json_emits_summary_and_runs(capsys):
     module = _load_script()
 
@@ -394,6 +525,7 @@ def test_format_table_contains_header_and_runs():
 
     table = module.format_table(records)
 
+    assert "kind" in table.splitlines()[0]
     assert "oosSh" in table
     assert "nf_example" in table
     assert "market_neutral" in table

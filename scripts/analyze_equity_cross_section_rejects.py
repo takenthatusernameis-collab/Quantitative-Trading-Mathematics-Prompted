@@ -5,7 +5,9 @@ The research register attributes the 11-cycle REJECT streak (H187-H197) to the
 passive equal-weight long book dominating.  That claim is qualitative.  This
 script turns it into hard numbers by reading the *committed* ``summary.json``
 artifacts under ``.experiments/nf_runs/`` and decomposing every equity
-cross-section run into:
+cross-section run — the nine long-short factor cross-sections (H187-H197),
+the S&P 500 index-membership event-drift run (H198), and the market-cap
+size-premium run (H199) — into:
 
 * the strategy's out-of-sample Sharpe versus the passive-book Sharpe,
 * the strategy's beta to the passive book (is it long-biased, market-neutral,
@@ -51,11 +53,56 @@ SHORT_BIAS_MAX_BETA = -0.5
 def is_equity_cross_section(data: Any) -> bool:
     """Whether an artifact's ``data`` block identifies an equity cross-section.
 
-    Equity cross-section runs (H187-H197) record a symbol list under
-    ``universe_symbols``.  The commodity (CFTC) and crypto (Binance) runs record
-    a generic ``universe`` instead and are therefore excluded.
+    Two distinct ``data`` signatures qualify; both name an equity universe and
+    both are benchmarked to the same passive equal-weight long book, so both
+    belong in the reject-streak decomposition:
+
+    * the long-short factor cross-sections (H187-H197) record a symbol list
+      under ``universe_symbols`` (and a universe size under ``universe_size``);
+    * the S&P 500 index-membership event-drift run (H198) records its event
+      universe under the generic ``universe`` key alongside an
+      ``event_source`` block; and
+    * the market-cap size-premium run (H199) records a universe size under
+      ``universe_size`` alongside a ``constituent_source`` block.
+
+    The commodity (CFTC) and crypto (Binance) runs also record a generic
+    ``universe`` but carry no equity-universe marker, so they are excluded.
     """
-    return isinstance(data, dict) and "universe_symbols" in data
+    return isinstance(data, dict) and (
+        "universe_symbols" in data or _has_equity_universe_marker(data)
+    )
+
+
+def _has_equity_universe_marker(data: dict) -> bool:
+    """Whether a ``data`` block names an equity universe without ``universe_symbols``.
+
+    H198 (event drift) and H199 (size premium) are equity cross-sections whose
+    committed artifacts do not record a per-symbol list under
+    ``universe_symbols`` (H198 stores its event universe as a descriptive
+    string under ``universe``; H199 stores only a universe size).  They are
+    still equity cross-sections benchmarked to the passive equal-weight long
+    book, so the discriminator keys off their equity-specific ``data`` markers
+    (``event_source`` / ``constituent_source``) rather than the universe field.
+    """
+    return "event_source" in data or "constituent_source" in data
+
+
+def cross_section_kind(data: Any) -> str:
+    """Label an equity cross-section artifact's sub-family.
+
+    Returns ``"long_short_factor"`` for the H187-H197 factor cross-sections,
+    ``"event_drift"`` for H198, and ``"size_premium"`` for H199, or
+    ``"unknown"`` for anything else.
+    """
+    if not isinstance(data, dict):
+        return "unknown"
+    if "universe_symbols" in data:
+        return "long_short_factor"
+    if "event_source" in data:
+        return "event_drift"
+    if "constituent_source" in data:
+        return "size_premium"
+    return "unknown"
 
 
 def exposure_class(beta: float | None) -> str:
@@ -111,6 +158,7 @@ def load_record(path: Path | str) -> dict[str, Any] | None:
     gates_total = summary.get("gates_total")
     return {
         "run": summary.get("experiment") or summary.get("nf_id") or path.parent.name,
+        "kind": cross_section_kind(data),
         "strategy_sharpe": _finite(strategy.get("sharpe")),
         "benchmark_sharpe": _finite(benchmark.get("sharpe")),
         "train_sharpe": _finite(summary.get("wf_train_sharpe")),
@@ -300,16 +348,16 @@ def format_table(records: list[dict[str, Any]]) -> str:
         return f"{str(value):>7s}"
 
     header = (
-        f"{'run':52s} {'train':>7s} {'val':>7s} {'test':>7s} {'oosSh':>7s} {'beta':>7s} "
-        f"{'IR':>7s} {'alpha':>7s} {'class':>14s} {'verd':>7s}"
+        f"{'run':52s} {'kind':>16s} {'train':>7s} {'val':>7s} {'test':>7s} "
+        f"{'oosSh':>7s} {'beta':>7s} {'IR':>7s} {'alpha':>7s} {'class':>14s} {'verd':>7s}"
     )
     lines = [header, "-" * len(header)]
     for r in records:
         run = str(r["run"])[:52]
         lines.append(
-            f"{run:52s} {cell(r['train_sharpe'])} {cell(r['val_sharpe'])} "
-            f"{cell(r['test_sharpe'])} {cell(r['strategy_sharpe'])} {cell(r['beta'])} "
-            f"{cell(r['information_ratio'])} {cell(r['alpha_annualized'])} "
+            f"{run:52s} {str(r['kind']):>16s} {cell(r['train_sharpe'])} "
+            f"{cell(r['val_sharpe'])} {cell(r['test_sharpe'])} {cell(r['strategy_sharpe'])} "
+            f"{cell(r['beta'])} {cell(r['information_ratio'])} {cell(r['alpha_annualized'])} "
             f"{r['beta_class']:>14s} {str(r['verdict']):>7s}"
         )
     return "\n".join(lines)
