@@ -1,5 +1,65 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 286 (2026-11-24): re-verified the full baseline in the reset/squashed environment; no agent-executable task remains; sole action is maintainer-only
+
+**Read this block first; everything below it (Cycle 285 and earlier) is history.**
+
+### Environment note (important for the next agent)
+- This checkout is a **single squashed commit** (`75f8749`, empty message); `origin/main..HEAD` = 0,
+  working tree clean. The commit IDs cited in the Cycle 285-and-earlier blocks (e.g. `c8c5d55`,
+  `1462a0f`, `74269b7`) are **not resolvable in this environment** — do not chase them. File contents
+  are current; only history was collapsed. `NEXT_TASK.md` is the authoritative handoff.
+
+### What I actually verified (fresh evidence, 2026-11-24)
+- **Full suite (ground truth, this env):** `python -m pytest -q` → **4965 passed / 7 failed / 51
+  skipped** (750.9 s). The 7 failures are **all** in `tests/test_gates_workflow.py` and are exactly the
+  maintainer-gated `gates.yml` content gaps (missing `scripts/**` path triggers, `pip install -e .
+  --no-deps`, `scripts` in the ruff targets, and the `backtest_perf_regression_gate.py` step). No other
+  regressions; the 51 skips are the known artifact/environment-conditional cases.
+- **Fast invariants green:** `scripts/verify_hypothesis_inventory.py` → IN SYNC (H199 == H199, README
+  H199); `scripts/backtest_perf_regression_gate.py` → PASSED (0.791 s); `ruff check src tests run_*.py
+  scripts` → all checks passed; `ruff format --check` → 396 files already formatted.
+- **Maintainer patch re-proven end-to-end in THIS env:** `git apply patches/0001-gates-workflow-contract-
+  fix.patch` → applies cleanly; `pytest -q tests/test_gates_workflow.py` → **7 passed**; `git checkout
+  -- .github/workflows/gates.yml` → tree clean again. `scripts/verify_gates_workflow_patch.py` →
+  PATCH VERIFIED (resolves all 7). The deliverable is valid and current.
+- **No source debt:** zero `TODO/FIXME/XXX/HACK` under `src/qtr`; `tests/test_probe_script_coverage.py`
+  and `tests/test_nf_runner_test_coverage.py` green.
+
+### Approaches not repeated (per reliability rules)
+- Did NOT fabricate H200, run another equity cross-section, or run a discovery scan (program complete
+  through H199; the passive equal-weight long book at +0.462 OOS Sharpe dominates every tested
+  mechanism).
+- Did NOT add another guard test or reconcile a random doc — the Cycles ~274–285 guard/doc make-work
+  loop is the repeated approach rule 2 says to stop. This session produced fresh verification evidence
+  only.
+- Did NOT edit `.github/workflows/**` (agent-unreachable: controller restores it; repo token lacks
+  `workflows` permission), `src/qtr`, any runner, any `.experiments` artifact, any gate, any frozen
+  number, the artifact-schema pins, `README.md`, `AGENTS.md`, the H-ID, the inventory marker, or
+  `.experiments/experiments.jsonl`. The only change is this handoff block, left uncommitted.
+
+### Unresolved (maintainer/authorization only, out of agent scope)
+1. **Workflow contract patch — the sole remaining red.** A maintainer with `workflows`-scoped
+   credentials applies `patches/0001-gates-workflow-contract-fix.patch` on `origin/main`
+   (`git apply` → `git commit -am` → `git push`). Verified this session: applies cleanly, all 7
+   `tests/test_gates_workflow.py` cases pass with it, reverts cleanly. Do NOT re-edit `gates.yml` in a
+   commit; do NOT weaken the contract test.
+2. **Equity cross-section program closure / new universe.** H1–H199 exhausted/rejected. Authorize a
+   different universe (ex-US, micro-cap, other asset classes) OR formally close the program
+   (directive §6).
+3. **Reproducibility artifact cleanup (non-blocking).** 25 unrecoverable missing rows + 356 orphaned
+   files remain catalogued and baseline-locked; deletion/move needs explicit authorization.
+
+### Precise next task
+No bounded, agent-executable *research* or *code* task remains, and the guard/doc make-work loop
+should not be extended. The single highest-value action is maintainer-only: apply
+`patches/0001-gates-workflow-contract-fix.patch` to `.github/workflows/gates.yml` on `origin/main` to
+clear the 7 `tests/test_gates_workflow.py` failures. Until that lands the suite is green modulo those 7
+agent-unreachable failures (4965 passed / 51 skipped). Any further agent work requires one of the
+maintainer authorizations above.
+
+---
+
 ## AUTHORITATIVE STATUS — Cycle 285 (2026-11-24): verified the true state and corrected the stale Cycle 284 dead-runner claim (that item is already resolved); no agent-executable research/code task remains
 
 **Read this block first; everything below it (Cycle 284 and earlier) is history.**
