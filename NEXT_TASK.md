@@ -1,5 +1,86 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 281 (2026-11-24): verified the real `-W error` CI gate is green; fixed stale README H-range; no research/code task remains
+
+**Read this block first; everything below it (Cycle 280 and earlier) is history.**
+
+### What changed
+- **Fixed a genuine factual drift in `README.md` (docs only):** line 3 read "audited hypothesis
+  tests (H1–H197)"; the inventory high-water mark is **H199** (`python
+  scripts/verify_hypothesis_inventory.py` → max documented H-ID 199, recorded H199). Corrected
+  to "(H1–H199)". `README.md` is not referenced by any test, so this is a safe prose correction.
+- **No change** to `src/qtr`, any runner, any `.experiments` artifact, `tests/`, any gate, any
+  frozen number, the artifact-schema pins, `.github/workflows/**`, the H-ID, the inventory marker,
+  or `.experiments/experiments.jsonl`.
+- This `NEXT_TASK.md` block (the authoritative handoff). Both edits are left **uncommitted** in the
+  working tree per the no-commit-without-explicit-request policy.
+
+### What I actually verified (fresh evidence this session, 2026-11-24)
+- **Real CI gate is green:** `python -m pytest -q -W error --ignore=tests/test_gates_workflow.py`
+  → **4939 passed, 51 skipped** (736 s). This is the exact `-W error` invocation from
+  `.github/workflows/gates.yml`; **zero warning-escapes**, so the Cycle 278 `google.protobuf` fix
+  holds in this environment and no installed-version drift breaks CI.
+- **Plain full suite:** `python -m pytest -q` → **4939 passed / 7 failed / 51 skipped** (735 s).
+  The 7 failures are exactly the maintainer-gated `tests/test_gates_workflow.py` cases; no other
+  regressions.
+- **Maintainer workflow patch re-verified end-to-end:** `git apply --check
+  patches/0001-gates-workflow-contract-fix.patch` → applies cleanly; applying it (then reverting)
+  makes `tests/test_gates_workflow.py` → **7 passed**; `python scripts/verify_gates_workflow_patch.py`
+  → **PATCH VERIFIED** (resolves all 7 violations). The deliverable is valid and current.
+- `python -m pytest -q -W error tests/test_runner_import_contract.py` → **314 passed** (the Cycle
+  278 warning-fix area, clean).
+- `python -m ruff check src tests run_*.py scripts` → All checks passed; `ruff format --check` →
+  396 files already formatted.
+- `python scripts/verify_hypothesis_inventory.py` → **IN SYNC (H199 == H199)**;
+  `python scripts/backtest_perf_regression_gate.py` → **PASSED** (0.800 s, limit 5 s).
+
+### Stale-doc warning for the next agent (do not be misled)
+- The ~10 `HANDOFF*.md` files (`HANDOFF.md`, `HANDOFF_CURRENT*.md`, `HANDOFF_NEXT_SESSION.md`,
+  `HANDOFF_SESSION*.md`, `HANDOFF_VERIFICATION_*.md`, etc.) are **orphaned historical snapshots**,
+  referenced by no code or test. Several still assert pre-remediation state — e.g.
+  `HANDOFF_NEXT_SESSION.md` says "11 hash_mismatches", "4916 passed", "Cycle 274"; `HANDOFF.md`
+  carries many "11 hash_mismatches" lines. **They are stale. `NEXT_TASK.md` is the authoritative
+  handoff; `REPRODUCIBILITY_AUDIT_REPORT.md` + `tests/test_reproducibility_audit.py` pin the live
+  `hash_mismatches=0` state.** Do not act on the old handoff docs.
+
+### Unresolved (maintainer/authorization only, out of agent scope)
+1. **Workflow contract patch.** A maintainer with `workflows`-scoped credentials must apply
+   `patches/0001-gates-workflow-contract-fix.patch` on `origin/main` (controller
+   `.github/scripts/kilo-controller.sh` restores `.github/workflows/**`; repo token lacks `workflows`
+   permission). Verified this session: applies cleanly + resolves all 7 `tests/test_gates_workflow.py`
+   failures. Do NOT re-edit `.github/workflows/gates.yml` in a commit; do NOT weaken the contract test.
+2. **Equity cross-section program closure / new universe.** H1–H199 exhausted/rejected; passive
+   equal-weight long book (+0.462 OOS Sharpe, H199) dominates every tested mechanism. Authorize a
+   different universe (ex-US, micro-cap, other asset classes) OR formally close the program
+   (directive §6).
+3. **Reproducibility artifact cleanup (non-blocking).** 25 unrecoverable missing rows + 356 orphaned
+   files remain catalogued and baseline-locked; deletion/move needs explicit authorization.
+
+### Approaches not repeated (per reliability rules)
+- Did NOT fabricate H200, run another cross-section, or run a discovery scan (equity program complete
+  through H199).
+- Did NOT touch `.github/workflows/**`, `src/qtr`, any runner, any `.experiments` artifact, any gate,
+  any frozen number, the artifact-schema pins, the H-ID, or the inventory marker.
+- Did NOT edit `.experiments/experiments.jsonl`, any `HANDOFF*.md` history file, or
+  `REPRODUCIBILITY_AUDIT_REPORT.md` (already reconciled Cycle 280).
+- Did NOT re-attempt the workflow fix in a commit (agent-unreachable; verified the patch instead).
+- Verified rather than re-asserted: ran the full suite twice (plain + `-W error`) and the patch
+  end-to-end, instead of trusting prior handoff claims.
+
+### Precise next task
+No bounded, agent-executable *research* or *code* task remains. The suite is green under the real
+`-W error` CI gate modulo the 7 agent-unreachable `tests/test_gates_workflow.py` failures, whose fix
+(`patches/0001-gates-workflow-contract-fix.patch`) is verified and current. Any further work requires
+one of the maintainer authorizations above. If a new universe is authorized: pre-register a
+genuinely-distinct mechanism (directive §2 lineage test) in `HYPOTHESIS_SPEC.md` (bump the
+`AGENTS.md` marker + spec together), implement a runner reusing the engine + standard 8 gates,
+execute, and update the artifact-schema pins (`EXPECTED_TOTAL_DIRS`, `EXPECTED_SUMMARY_COUNT`, any
+new distinct keys) in the same commit as the artifact. Note: the prior Cycle 280 commits (`01c9da0`,
+`12ec16e`) are committed locally but **not pushed** to `origin/main`; this Cycle 281 change (README +
+this block) is left uncommitted in the working tree.
+
+---
+
 ## AUTHORITATIVE STATUS — Cycle 280 (2026-11-24): reconciled the REPRODUCIBILITY_AUDIT_REPORT.md §2 prose with the Cycle 279 hash-mismatch remediation
 
 **Read this block first; everything below it (Cycle 279 and earlier) is history.**
