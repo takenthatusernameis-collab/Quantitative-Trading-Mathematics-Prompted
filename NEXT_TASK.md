@@ -1,8 +1,86 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 283 (2026-11-24): added an executable invariant that every executed NF runner ships a dedicated test module; surfaced (did not touch) a dead duplicate runner
+
+**Read this block first; everything below it (Cycle 282 and earlier) is history.**
+
+### What changed
+- **Added `tests/test_nf_runner_test_coverage.py`** — an executable invariant (mirroring the
+  existing `tests/test_probe_script_coverage.py`) that every `run_nf_*.py` at the repo root ships a
+  dedicated `tests/test_<stem-without-run_>.py` module. Cycle 275 shipped the H199 runner without a
+  test while every sibling had one and the gap was only found reactively a cycle later; this guard
+  makes that discipline permanent — a **new** untested `run_nf_*` now fails at commit time. A small
+  `INTENTIONALLY_TESTLESS` dict pins the three current exceptions with concrete reasons, and a
+  second test (`test_intentionally_testless_entries_are_current`) keeps those entries honest (a
+  deleted runner or a newly-added test makes the stale entry fail, so the allowlist cannot rot).
+- **No change** to `src/qtr`, any runner, any `.experiments` artifact, `tests/` beyond the one new
+  module, any gate, any frozen number, the artifact-schema pins, `README.md`, `AGENTS.md`, the H-ID
+  (`H199`), the inventory marker, `.github/workflows/**`, or `.experiments/experiments.jsonl`.
+- **New durable finding (documented in the allowlist, NOT acted on):** `run_nf_20261107_48_ovx_vix_spread.py`
+  is a dead, orphaned **exact duplicate** of `run_nf_20261107_47_spy_ar1.py` (identical AR(1)
+  mechanism; only the docstring, one string and the `nf_id`/`h_id` labels differ). It writes
+  `summary.json` to `nf_20261107_47_spy_ar1`, so **running it would overwrite the frozen H136
+  artifact with mislabeled content**. It is never referenced by any test/spec/artifact and no OVX
+  hypothesis exists in `HYPOTHESIS_SPEC.md`. Runners are frozen experiment records, so it was left
+  untouched; see Unresolved item 4.
+
+### What I actually verified (fresh evidence this session, 2026-11-24)
+- `python -m pytest -q tests/test_nf_runner_test_coverage.py` → **3 passed**.
+- **Negative control (non-vacuity proof):** created a throwaway `run_nf_29990101_zz_guard_probe.py`
+  with no test → `test_every_unlisted_nf_runner_has_a_dedicated_test` **FAILED** as designed;
+  removed it → **3 passed** again. The guard is proven to catch a real gap, not just pass trivially.
+- **Focused `-W error` subset** (`test_nf_runner_test_coverage`, `test_probe_script_coverage`,
+  `test_runner_import_contract`, `test_verify_hypothesis_inventory`, `test_experiment_artifact_schema`)
+  → **469 passed**.
+- `python -m ruff check src tests run_*.py scripts` → **All checks passed**;
+  `python -m ruff format --check src tests run_*.py scripts` → **397 files already formatted**.
+- `python scripts/verify_hypothesis_inventory.py` → **IN SYNC (H199 == H199)** (now also prints
+  `H-range upper bound (README.md): H199`).
+- `python scripts/backtest_perf_regression_gate.py` → **PASSED** (0.809 s, limit 5 s).
+- **Scope note:** did NOT re-run the full ~4939-test suite this session (it is ~735 s). The change
+  is a single new test module importing only `pathlib` with no side effects, so it cannot affect
+  other tests; the focused subset above covers the guard's own area plus its nearest neighbours.
+
+### Approaches not repeated (per reliability rules)
+- Did NOT fabricate H200, run another equity cross-section, or run a discovery scan (program
+  complete through H199; passive equal-weight book +0.462 OOS Sharpe dominates).
+- Did NOT edit `.github/workflows/**`, `src/qtr`, any runner (including the frozen duplicate), any
+  `.experiments` artifact, any gate, any frozen number, the artifact-schema pins, `README.md`,
+  `AGENTS.md`, the H-ID, the inventory marker, or `.experiments/experiments.jsonl`.
+- Did NOT repeat the prior ~10 cycles' doc-reconciliation make-work; added durable, tested
+  invariant code instead (reliability §7 — encode a repeatable invariant as an executable check).
+
+### Unresolved (maintainer/authorization only, out of agent scope)
+1. **Workflow contract patch.** A maintainer with `workflows`-scoped credentials must apply
+   `patches/0001-gates-workflow-contract-fix.patch` on `origin/main`. Sole remaining red: 7
+   `tests/test_gates_workflow.py` failures. Do NOT re-edit `.github/workflows/gates.yml` in a
+   commit; do NOT weaken the contract test.
+2. **Equity cross-section program closure / new universe.** H1–H199 exhausted/rejected. Authorize a
+   different universe (ex-US, micro-cap, other asset classes) OR formally close the program.
+3. **Reproducibility artifact cleanup (non-blocking).** 25 unrecoverable missing rows + 356 orphaned
+   files remain catalogued and baseline-locked; deletion/move needs explicit authorization.
+4. **NEW — dead duplicate runner (do NOT run).** `run_nf_20261107_48_ovx_vix_spread.py` duplicates
+   `run_nf_20261107_47_spy_ar1.py` and writes to `nf_20261107_47_spy_ar1`; executing it would
+   corrupt the frozen H136 artifact. A maintainer should delete/quarantine it (a frozen-record
+   change requiring authorization). Until then, never execute it. This is now documented in
+   `tests/test_nf_runner_test_coverage.py::INTENTIONALLY_TESTLESS`.
+
+### Precise next task
+No bounded, agent-executable *research* task remains. This cycle's one durable, in-scope improvement
+(the NF-runner test-coverage invariant) is **left uncommitted** in the working tree per the
+no-commit-without-explicit-request policy (`git status --short`: `?? tests/test_nf_runner_test_coverage.py`).
+If a new universe is authorized: pre-register a genuinely-distinct mechanism (directive §2 lineage
+test) in `HYPOTHESIS_SPEC.md`, bump the `AGENTS.md` marker + spec **and** the `README.md` `H1–H<N>`
+range together (the inventory script + `test_live_repository_*` enforce this), implement a runner
+reusing the engine + standard 8 gates **with a dedicated `tests/test_nf_*.py` module** (now enforced
+by `test_nf_runner_test_coverage.py`), execute, and update the artifact-schema pins in the same
+commit as the artifact.
+
+---
+
 ## AUTHORITATIVE STATUS — Cycle 282 (2026-11-24): hardened the inventory ratchet to also guard the README H-range (closes the Cycle 281 README-drift class); no research/code task remains
 
-**Read this block first; everything below it (Cycle 281 and earlier) is history.**
+**History: superseded by the Cycle 283 block above.**
 
 ### What changed
 - **Extended `scripts/verify_hypothesis_inventory.py` to also guard the `README.md` H-range
