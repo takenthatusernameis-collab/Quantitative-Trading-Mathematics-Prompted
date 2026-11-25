@@ -9838,9 +9838,17 @@ Ablations (OOS Val+Test):
 
 **Artifact.** `run_nf_20261125_01_institutional_flow.py` under `.experiments/nf_runs/nf_20261125_01_institutional_flow_<timestamp>/` with summary.json + grid.csv; 13F holdings cached under `.cache/13f_flow/`, price data under `.cache/13f_flow_prices/` (gitignored). Free/public real data only (SEC EDGAR Form 13F-HR + yfinance daily auto-adjusted Close).
 
-## H201 (NF-20261125-02): Short-interest / days-to-cover cross-section (pre-registered, not executed)
+## H201 (NF-20261125-02): Short-interest / days-to-cover cross-section (executed, REJECT 4/8)
 
-**Execution verdict.** PRE-REGISTERED — not yet executed. No artifact, no verdict. H201 is the next unused H-ID assigned to a genuinely distinct mechanism family; execution is deferred to a subsequent session.
+**Execution verdict.** REJECT 4/8 (Cycle 310, 2026-11-25). Artifact
+`.experiments/nf_runs/nf_20261125_02_short_interest_20261125_091617/`
+(`run_nf_20261125_02_short_interest.py`). OOS (Val+Test) Sharpe +0.813 (train 0.308),
+PF 1.154, maxDD -9.8%, 120 trades, worst-regime rolling-252 Sharpe -0.211; passive
+equal-weight benchmark +0.558 dominates (p=0.914, IR -0.048). Direction is empirically
+correct (inverse anti-pressure OOS Sharpe -0.825; low short-pressure names outperform),
+but the mechanism fails the Sharpe>=1.0, PF>=1.3, worst-regime>=0.3 and benchmark
+significance gates after costs. 1499 tradeable names (broad S&P 500/400/600 with >=4
+months Reg SHO coverage). Short-borrow cost not modelled (disclosed optimistic).
 
 **Broad mechanism category.** Stock-level short-selling pressure / short-interest cross-section. Repo-new root family relative to executed H1–H200: no executed H-ID uses point-in-time short-selling pressure as a cross-sectional equity signal. The closest prior families are the continuous equity cross-sections H187–H198 (fundamental/price/characteristic sorts) and H199 (size premium). Short-selling pressure is a distinct return-generating mechanism — the "smart money / informed trading" channel where aggregate short interest predicts negative subsequent returns (high short-interest stocks underperform). Not a parameter/universe/timeframe variant of any exhausted family.
 

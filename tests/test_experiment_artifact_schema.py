@@ -237,10 +237,20 @@ def test_incomplete_runs_match_audit_inventory():
 # `scripts/probe_sec_13f_holdings.py` against SEC EDGAR. It adds a directory
 # only, so EXPECTED_TOTAL_DIRS increments (128 -> 129); EXPECTED_SUMMARY_COUNT,
 # the key-frequency sets, and the cache-only count are unchanged.
-EXPECTED_TOTAL_DIRS = 129
-EXPECTED_SUMMARY_COUNT = 117
+# Cycle 308 (2026-11-25) also added one complete H200 experiment directory
+# (`nf_20261125_01_institutional_flow_20261125_071915`) carrying a summary.json,
+# and Cycle 310 (2026-11-25) added one complete H201 experiment directory
+# (`nf_20261125_02_short_interest_20261125_091617`) carrying a summary.json.
+# The two complete runs add two directories and two summaries, so
+# EXPECTED_TOTAL_DIRS increments (129 -> 131) and EXPECTED_SUMMARY_COUNT
+# increments (117 -> 119); the cache-only count is unchanged (11). The
+# H200/H201 summaries introduce one new distinct key over the corpus, so
+# EXPECTED_DISTINCT_KEYS increments (158 -> 159); the >=50% / >=80% key sets
+# are unchanged.
+EXPECTED_TOTAL_DIRS = 131
+EXPECTED_SUMMARY_COUNT = 119
 EXPECTED_CACHE_ONLY_DIRS = 11
-EXPECTED_DISTINCT_KEYS = 158
+EXPECTED_DISTINCT_KEYS = 159
 EXPECTED_KEYS_GE_50_PCT = frozenset(
     {
         "ablations",

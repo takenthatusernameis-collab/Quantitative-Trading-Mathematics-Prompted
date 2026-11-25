@@ -1,0 +1,138 @@
+{
+  "experiment": "nf_20261125_02_short_interest",
+  "nf_id": "NF-20261125-02",
+  "hypothesis": "H201",
+  "timestamp_utc": "2026-11-25T09:18:56Z",
+  "runtime_sec": 742.042,
+  "data": {
+    "source": "FINRA Reg SHO daily short volume (free/PIT by trade date)",
+    "universe": "broad S&P 500/400/600",
+    "universe_size": 1502,
+    "start": "2015-01-01",
+    "end": "2026-11-25",
+    "train_end": "2021-12-31",
+    "val_end": "2023-12-31",
+    "train_rows": 1827,
+    "val_rows": 520,
+    "test_rows": 758,
+    "oos_rows": 1278,
+    "calendar": "business days; monthly refresh, shift(1) in engine",
+    "unique_tickers": 1499,
+    "min_months_regsho": 4
+  },
+  "grid_size": 8,
+  "selected": {
+    "entry_z": 0.5,
+    "exit_z": 0.0,
+    "k": 10,
+    "vol_target": 0.15
+  },
+  "wf_train_sharpe": 0.2563048386835583,
+  "train_selected_sharpe": 0.3082455517850291,
+  "full_sample": {
+    "sharpe": 0.5559950014450502,
+    "profit_factor": 1.12995976130597,
+    "max_drawdown": -0.2080475005029745,
+    "trades": 1443,
+    "periods": 3105,
+    "total_return": 0.6303249316667912,
+    "worst_regime_rolling252_sharpe": -1.8355051011406014
+  },
+  "oos_val_test": {
+    "sharpe": 0.8125490614142483,
+    "profit_factor": 1.1537025275218846,
+    "max_drawdown": -0.0984310259961857,
+    "trades": 120,
+    "periods": 1278,
+    "total_return": 0.4307597095494613,
+    "worst_regime_rolling252_sharpe": -0.21148359299565336
+  },
+  "val": {
+    "sharpe": 0.7373674144990287,
+    "profit_factor": 1.1298011622125994,
+    "max_drawdown": -0.0701711215457892,
+    "trades": 500,
+    "periods": 520,
+    "total_return": 0.13583838354861455,
+    "worst_regime_rolling252_sharpe": -0.052821990969523495
+  },
+  "test": {
+    "sharpe": 0.8618420686803322,
+    "profit_factor": 1.1712015483524016,
+    "max_drawdown": -0.0984310259961857,
+    "trades": 730,
+    "periods": 758,
+    "total_return": 0.25965078330901803,
+    "worst_regime_rolling252_sharpe": -0.21148359299565336
+  },
+  "benchmark_passive_equal_weight_long_oos": {
+    "sharpe": 0.5582869769397844,
+    "profit_factor": 1.0997942847886604,
+    "max_drawdown": -0.20160069628920418,
+    "trades": 1202198,
+    "periods": 1278,
+    "total_return": 0.44888833635398084,
+    "worst_regime_rolling252_sharpe": -0.5599834777512782
+  },
+  "benchmark_comparison": {
+    "information_ratio": -0.04781772229157219,
+    "alpha_annualized": 0.09278450274522165,
+    "beta": -0.2113857238358054,
+    "alpha_t_stat": -0.10764257138055962,
+    "alpha_p_value": 0.9142961350680887,
+    "alpha_p_value_one_sided": 0.5428519324659556,
+    "win_rate": 0.5078247261345853,
+    "excess_return_annual": -0.00970244698486565,
+    "excess_vol_annual": 0.20290483360341263
+  },
+  "ablations": {
+    "random_ranking_oos": {
+      "sharpe": -3.673186070356067,
+      "profit_factor": 0.527726459267814,
+      "max_drawdown": -0.8036371038529798,
+      "trades": 50526,
+      "periods": 1278,
+      "total_return": -0.8036122159152681,
+      "worst_regime_rolling252_sharpe": -6.138840608494525
+    },
+    "inverse_signal_oos": {
+      "sharpe": -0.8253921549786173,
+      "profit_factor": 0.8648171654178293,
+      "max_drawdown": -0.3803103533944502,
+      "trades": 120,
+      "periods": 1278,
+      "total_return": -0.3346360246790814,
+      "worst_regime_rolling252_sharpe": -2.4780121108038013
+    }
+  },
+  "wf_stability_oos_over_train": 2.636044727032821,
+  "benchmark_pvalue_two_sided": 0.9142961350680887,
+  "information_ratio_vs_passive_equal_weight": -0.04781772229157219,
+  "perturbation": {
+    "min_ratio": 0.9924396477613749,
+    "n_points": 6,
+    "min_sharpe": 0.8064059042987924
+  },
+  "gates": {
+    "sharpe_ge_1": false,
+    "trades_ge_50": true,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": true,
+    "wf_stability_ge_0_7": true,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_and_ir_ge_0": false,
+    "perturbation_min_ratio_ge_0_5": true
+  },
+  "gates_passed": 4,
+  "gates_total": 8,
+  "verdict": "REJECT",
+  "integrity": {
+    "src_qtr_unchanged": true,
+    "gate_weakening": false,
+    "published_artifacts_modified": false,
+    "selection_holdout_feedback": false,
+    "real_data": true,
+    "cost_one_way_bps": 5.0,
+    "benchmark_pvalue_statistic": "two-sided (published gate statistic)"
+  }
+}

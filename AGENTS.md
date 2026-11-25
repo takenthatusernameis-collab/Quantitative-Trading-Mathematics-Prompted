@@ -5,9 +5,13 @@
 `scripts/verify_hypothesis_inventory.py` — which since Cycle 282 also guards the `README.md`
 `H1–H<N>` range against the documented maximum — tested by
 `tests/test_verify_hypothesis_inventory.py`):**
-H1–H200 exhausted/rejected; H189 data-blocked. H201 short-interest / days-to-cover
-cross-section pre-registered (not executed). Latest executed: H200 institutional flow /
-13F holdings-change cross-section REJECT 2/8 (Cycle 308 executed; artifact
+H1–H201 exhausted/rejected; H189 data-blocked. Latest executed: H201 short-interest /
+days-to-cover (FINRA Reg SHO short-volume ratio) cross-section REJECT 4/8 (Cycle 310
+executed; artifact `.experiments/nf_runs/nf_20261125_02_short_interest_20261125_091617/`)
+— OOS Sharpe +0.813 (train 0.308), passive equal-weight benchmark +0.558, 1499 tradeable
+names; direction correct (inverse anti-pressure OOS -0.825) but fails Sharpe<1.0, PF<1.3,
+worst-regime<0.3 and benchmark p=0.914/IR-0.048. Prior executed: H200 institutional flow /
+13F holdings-change cross-section REJECT 2/8 (Cycle 308; artifact
 `.experiments/nf_runs/nf_20261125_01_institutional_flow_20261125_071915/`). Next unused
 H-ID: H202. When you execute a new hypothesis, bump the marker above and the spec together.
 
