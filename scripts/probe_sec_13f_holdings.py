@@ -62,67 +62,30 @@ ARCHIVE_HOST = "https://www.sec.gov"
 CACHE_DIR = Path(".cache") / "13f"
 
 # Major institutional 13F filers (CIKs) - fixed universe for reproducibility.
-# These are the largest institutional investment managers by 13F AUM.
-# Source: SEC 13F filer list + known major managers (as of 2026-09-21 snapshot).
-# Survivorship bias acknowledged: firms that ceased filing or were acquired are absent.
+# Every CIK below was resolved from the authoritative SEC company_tickers.json
+# (https://www.sec.gov/files/company_tickers.json) and verified to return HTTP 200
+# on its data.sec.gov/submissions index with at least one 13F-HR/13F-HR/A filing
+# (see scripts/rebuild_13f_cik_map.py and .cache/13f/cik_map_rebuild.json).
+# Entries that could not be resolved or that no longer return 200 were dropped
+# rather than kept stale (previous map: 52/57 stale). Survivorship bias
+# acknowledged: firms that ceased filing or were acquired are absent.
 INSTITUTIONAL_CIKS = {
     "0001067983": "Berkshire Hathaway Inc.",
-    "0000886982": "Berkshire Hathaway (BRK.B)",  # duplicate for structure, will dedupe
-    "0000036745": "Vanguard Group Inc.",
-    "0000065968": "State Street Corp.",
-    "0000077360": "BlackRock Inc.",
-    "0000092380": "Fidelity Management & Research",
-    "0000075038": "T. Rowe Price Associates",
-    "0000086263": "Wellington Management Group",
-    "0000093521": "Capital Research Global Investors",
-    "0000103738": "Geode Capital Management",
-    "0000105457": "Northern Trust Corp.",
-    "0000106519": "Bank of America Corp.",
-    "0000106772": "Morgan Stanley",
-    "0000107263": "Goldman Sachs Group",
-    "0000107911": "JPMorgan Chase & Co.",
-    "0000108636": "Wells Fargo & Company",
-    "0000109072": "Charles Schwab Corp.",
-    "0000109269": "Invesco Ltd.",
-    "0000110099": "Franklin Resources Inc.",
-    "0000110231": "Dimensional Fund Advisors",
-    "0000111310": "UBS Group AG",
-    "0000112537": "Deutsche Bank AG",
-    "0000112760": "Credit Suisse Group",
-    "0000113456": "Barclays PLC",
-    "0000114421": "Citigroup Inc.",
-    "0000115637": "Bank of New York Mellon",
-    "0000116216": "State Farm Mutual Automobile Insurance",
-    "0000116655": "TIAA",
+    "0000093751": "State Street Corp.",
+    "0000073124": "Northern Trust Corp.",
+    "0000070858": "Bank of America Corp.",
+    "0000895421": "Morgan Stanley",
+    "0000886982": "Goldman Sachs Group Inc.",
+    "0000914208": "Invesco Ltd.",
+    "0001610520": "UBS Group AG",
+    "0000312069": "Barclays PLC",
+    "0000831001": "Citigroup Inc.",
+    "0001390777": "Bank of New York Mellon Corp.",
+    "0001137774": "Prudential Financial Inc.",
+    "0001099219": "MetLife Inc.",
+    "0001097362": "Sun Life Financial Inc.",
+    "0000915191": "Fairfax Financial Holdings Ltd.",
     "0001103653": "MassMutual",
-    "0000117760": "Prudential Financial",
-    "0000118440": "MetLife Inc.",
-    "0000119039": "Allianz SE",
-    "0000119370": "AXA SA",
-    "0000120170": "Manulife Financial",
-    "0000120442": "Sun Life Financial",
-    "0000121006": "Great-West Lifeco",
-    "0000121253": "Power Corp of Canada",
-    "0000121658": "Fairfax Financial Holdings",
-    "0000121924": "Brookfield Asset Management",
-    "0000122140": "Onex Corp",
-    "0000122476": "CPP Investments",
-    "0000122848": "OMERS",
-    "0000123091": "Ontario Teachers' Pension Plan",
-    "0000123523": "BCI",
-    "0000123759": "AIMCo",
-    "0000124150": "PSP Investments",
-    "0000124567": "CDPQ",
-    "0000124891": "HOOPP",
-    "0000125123": "ATB Financial",
-    "0000125489": "Alberta Investment Management",
-    "0000125713": "British Columbia Investment Management",
-    "0000126102": "Ontario Pension Board",
-    "0000126458": "Workplace Safety & Insurance Board",
-    "0000126782": "Healthcare of Ontario Pension Plan",
-    "0000127011": "Municipal Employees' Retirement System",
-    "0000127356": "College Retirement Equities Fund",
-    "0000127689": "Teachers Insurance and Annuity Association",
 }
 
 # Keep only unique CIKs
