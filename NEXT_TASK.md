@@ -8,6 +8,17 @@
 - **Inverse signal direction confirmed**: anti-flow (short net-buying / long net-selling) shows OOS Sharpe +1.117 but still fails Sharpe >= 1.0 gate on the selected params; the mechanism is empirically inverted but not strong enough to pass all gates.
 - **Tests passing**: `tests/test_probe_sec_13f_holdings.py` → 16 passed; `scripts/verify_hypothesis_inventory.py` → IN SYNC (H200 == H200).
 
+### This session (Cycle 309) — bounded H201 prerequisite probe
+- **Executed bounded availability probe**: `scripts/probe_finra_regsho_availability.py` — FINRA Reg SHO daily short volume (free PIT source, H201 candidate #2: short-interest / days-to-cover cross-section).
+- **Verified**: offline unit tests `tests/test_probe_finra_regsho_availability.py` → 11/11 pass; live probe against `cdn.finra.org` (normal `User-Agent`, HTTP 200) → **49/50 curated S&P-100 symbols usable for 2026-11-24**, exit 0 (one symbol, BRK.B, returned NO_DATA). Short-ratio mean ~0.26–0.65 across the universe.
+- **Conclusion**: the short-interest/days-to-cover data source is **REACHABLE** at the documented feasibility bar; H201 pre-registration is unblocked on data availability.
+- No `src/qtr`, runner, gate, or artifact changes; working tree clean; nothing committed.
+
+- **H200 executed** (Cycle 308): institutional-flow / 13F holdings-change cross-section on the free PIT 13F source (Berkshire, UBS, MassMutual). **REJECT 2/8**, OOS Sharpe -1.167 (train 0.000), passive equal-weight benchmark +0.625; 235 tradeable tickers. Artifact: `.experiments/nf_runs/nf_20261125_01_institutional_flow_20261125_071915/`.
+- **13F probe cache populated**: 378,329 holding rows across 3 institutions, 18,169 unique CUSIPs, 235 mapped to tickers with price data.
+- **Inverse signal direction confirmed**: anti-flow (short net-buying / long net-selling) shows OOS Sharpe +1.117 but still fails Sharpe >= 1.0 gate on the selected params; the mechanism is empirically inverted but not strong enough to pass all gates.
+- **Tests passing**: `tests/test_probe_sec_13f_holdings.py` → 16 passed; `scripts/verify_hypothesis_inventory.py` → IN SYNC (H200 == H200).
+
 ### Unresolved (maintainer / next-session)
 1. **Workflow contract patch — the sole remaining test red (7 `tests/test_gates_workflow.py` failures).**
    `.github/workflows/**` is agent-unreachable (restored by `.github/scripts/kilo-controller.sh`; token
@@ -30,8 +41,10 @@
 - Chasing the `src/qtr` audit candidates (cost-attribution timing, negative-equity drawdown, beta ddof, market-impact NaN, `QTR_CACHE_DIR` fallback) as "bugs" — verified documented conventions / false positives / frozen numerical core.
 
 ### Precise next task
-**Option A (maintainer action required):** Apply the workflow contract patch (`patches/0001-gates-workflow-contract-fix.patch`) to unblock CI. This is the only remaining deterministic blocker.
+**Option A (maintainer action required):** Apply the workflow contract patch (`patches/0001-gates-workflow-contract-fix.patch`) to unblock CI. This is the only remaining deterministic blocker. Do NOT re-edit `gates.yml` in a commit; do NOT weaken the contract test.
 
-**Option B (research direction):** Identify and pre-register **H201** as a genuinely-distinct mechanism family (not a parameter/universe/timeframe variant of H1–H200) with a free PIT source. Candidates: (1) options-market flow / put-call skew cross-section (CBOE data), (2) short-interest / days-to-cover cross-section (FINRA/SEC data), (3) ETF creation/redemption flow cross-section (SEC N-CEN), (4) macro surprise / nowcast revision cross-section (FRED/Bloomberg), (5) futures basis / term-structure carry on new asset class (e.g., crypto futures, FX forwards). Each requires a bounded availability probe before pre-registration.
+**Option B (research, next-agent):** Pre-register and execute **H201** — short-interest / days-to-cover cross-section (genuinely-distinct mechanism family, not a variant of H187–H200) using FINRA Reg SHO daily short volume as the free PIT source. **Availability probe already executed and verified this session**: 49/50 curated S&P-100 symbols usable for 2026-11-24 (exit 0), CDN reachable with normal User-Agent; offline unit tests 11/11 pass. Data feasibility is confirmed. Steps: (1) pre-register H201 in `HYPOTHESIS_SPEC.md` (universe, splits, cost model, gates, signal = monthly-aggregated short-volume ratio / days-to-cover, sorted cross-section long-short), bump the H200→H201 inventory marker in `AGENTS.md` and `HYPOTHESIS_SPEC.md` together; (2) create `run_nf_<date>_01_short_interest.py` reusing `qtr.backtest.engine`, `qtr.data.fetcher`, `qtr.validation` and the standard evidence gates; (3) execute on the broad S&P 500/400/600 universe, produce a frozen artifact under `.experiments/nf_runs/`, and record the verdict.
+
+If H201 execution fails the gates (expected given H187–H200 median OOS Sharpe 0.187), fall back to probing candidate #1 (options flow / CBOE), #3 (ETF flow / SEC N-CEN), #4 (macro surprise / FRED), or #5 (futures basis on a new asset class), each with a bounded availability probe before pre-registration.
 
 If deps are missing in a reset env, run `pip install -r requirements.txt` before any verification. Do NOT re-run the 750 s baseline, do NOT add more guards, do NOT re-declare 13F blocked.
