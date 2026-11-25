@@ -1,0 +1,48 @@
+{
+  "source": "SEC EDGAR Form 13F-HR",
+  "submissions_url_template": "https://data.sec.gov/submissions/CIK{cik}.json",
+  "archive_host": "https://www.sec.gov",
+  "pit_field": "acceptanceDateTime (filing acceptance timestamp per 13F-HR)",
+  "ciks_requested": 2,
+  "ciks_with_filings": 98,
+  "ciks_with_positions": 2,
+  "ciks_with_zero_position_filings": [],
+  "missing_submissions": [],
+  "missing_errors": [],
+  "median_filing_lag_days": 42.5,
+  "first_acceptance_date": "2014-02-13",
+  "last_acceptance_date": "2026-11-16",
+  "total_filings_downloaded": 98,
+  "total_filings_with_positions": 41,
+  "total_positions_extracted": 40361,
+  "per_cik": [
+    {
+      "cik": "0001067983",
+      "name": "Berkshire Hathaway Inc.",
+      "filings_downloaded": 45,
+      "filings_with_positions": 23,
+      "total_positions": 2718,
+      "quarters_covered": 40,
+      "first_report_date": "2016-12-31",
+      "last_report_date": "2026-09-30",
+      "first_acceptance_date": "2017-02-14",
+      "last_acceptance_date": "2026-11-16",
+      "median_filing_lag_days": 45.0,
+      "zero_position_filings": 22
+    },
+    {
+      "cik": "0001103653",
+      "name": "MassMutual",
+      "filings_downloaded": 53,
+      "filings_with_positions": 18,
+      "total_positions": 37643,
+      "quarters_covered": 51,
+      "first_report_date": "2013-12-31",
+      "last_report_date": "2026-09-30",
+      "first_acceptance_date": "2014-02-13",
+      "last_acceptance_date": "2026-10-05",
+      "median_filing_lag_days": 40.0,
+      "zero_position_filings": 35
+    }
+  ]
+}

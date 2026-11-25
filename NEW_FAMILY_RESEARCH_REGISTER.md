@@ -2354,3 +2354,63 @@ runners, gates, thresholds, frozen numbers, and all prior experiment artifacts u
 all REJECT). In-tree `.github/workflows/gates.yml` edits remain agent-unreachable.
 
 **Cycle 256 complete.** No new H-ID; price leg probed free and found blocked; `src/qtr` unchanged.
+
+## Cycle 308 (2026-11-25) — First real execution of the SEC 13F probe: institutional-flow source is REACHABLE (durable "data-blocked" correction); probe robustness + CIK-map defects fixed
+
+**Trigger.** The Cycle 308 handoff consolidated ~30 "verified, nothing to do" cycles and declared no
+agent-executable task. Per reliability rule 2 that consolidation *is* the failed loop, so rather than
+re-append it, this cycle executes a genuinely deferred, never-run bounded probe: the SEC Form 13F
+institutional-holdings availability probe (`scripts/probe_sec_13f_holdings.py`), which the register had
+classified "data-blocked (no free PIT source)" since Cycle 96 **without ever running it** (only the CIK
+name map was cached; no submissions, no report artifact, no register entry). Directive §6 forbids
+declaring a mechanism data-blocked without probing the named source; this cycle probes it for the first
+time.
+
+**Durable finding (free, read-only; artifact `.experiments/nf_runs/nf_20261125_01_sec13f_availability_20261125_055740/coverage.json`).**
+SEC EDGAR Form 13F-HR is **REACHABLE and point-in-time parseable for free** — the standing "no free PIT
+13F source" blocker is **refuted**, the same class of durable free-data correction as FRED (Cycle 140),
+Binance (Cycle 213) and Chinese futures (Cycle 214). Two independent large filers verified:
+- **Berkshire Hathaway (CIK 0001067983):** 45 filings, 23 with positions, **2718 positions**, **40
+  quarters** (2016-12-31 → 2026-09-30), median filing lag **45 d**, PIT field `acceptanceDateTime`
+  (2017-02-14 → 2026-11-16).
+- **MassMutual (CIK 0001103653):** 53 filings, 18 with positions, **37643 positions**, **51 quarters**
+  (2013-12-31 → 2026-09-30), median filing lag **40 d**, PIT `acceptanceDateTime` (2014-02-13 → 2026-10-05).
+- Aggregate: 2/2 filers with positions, 40361 positions, PIT acceptance dates 2014-02-13 → 2026-11-16,
+  median lag 42.5 d. This unblocks the **institutional-flow / herding family (NF-20261110-08)** that was
+  deferred for "PIT parsing complexity" — the PIT source (quarter-end report date + acceptance timestamp,
+  ~45-day lag) exists and is free.
+
+**Two concrete defects fixed (durable, additive; `src/qtr` unchanged).**
+1. **Robustness:** a single stale/incorrect CIK (HTTP 404 on the submissions URL) used to raise and abort
+   the entire multi-filer run (`coverage_for_cik` caught only `FileNotFoundError`). `probe()` now records
+   the bad CIK in `missing_submissions` with its error type in a new `missing_errors` field and continues.
+   Pinned by `tests/test_probe_sec_13f_holdings.py::test_probe_records_bad_cik_without_crashing` (suite
+   15 → 16 passed).
+2. **CIK-map data quality:** the bundled `INSTITUTIONAL_CIKS` map is **52/57 stale** — a submissions-endpoint
+   sweep (no info-table fetch) found only **5/57 CIKs return HTTP 200** (Berkshire ×2, BlackRock, Fidelity,
+   Goldman Sachs); the other 52 (Vanguard, State Street, T. Rowe Price, Geode, BofA, …) 404. The MassMutual
+   entry was corrected to its authoritative SEC CIK (0001103653, resolved via SEC company search and
+   verified to carry 51 quarters of positions). The remaining ~51 stale entries are **not** hand-guessed
+   (error-prone); rebuilding the full filer CIK map from an authoritative SEC source is the precise next
+   task below.
+
+**Verification this session.** `tests/test_probe_sec_13f_holdings.py` → 16 passed; `tests/test_experiment_artifact_schema.py`
++ `test_probe_report_schema` + `test_probe_script_coverage` → 146 passed (artifact-schema constants bumped
++1 probe dir: `EXPECTED_TOTAL_DIRS` 128 → 129, new incomplete dir; summary count / key sets / cache-only
+unchanged). `scripts/verify_hypothesis_inventory.py` → IN SYNC (H199 == H199). `src/qtr`, runners, gates,
+thresholds, frozen numbers, and all prior artifacts unchanged. No H-ID fabricated; high-water mark stays H199.
+
+**Approaches already tried / do not repeat.** Re-running the fast invariants or 750 s baseline as the
+deliverable; appending another "verified, nothing to do" block; fabricating H200 or a 10th 98-name equity
+cross-section; in-tree `.github/workflows/gates.yml` edits (agent-unreachable). **New this cycle:** the
+13F source is no longer "data-blocked" — do not re-declare it blocked.
+
+**Precise next task.** Rebuild the 13F filer CIK map from an authoritative SEC source (SEC company search /
+Form 13F data sets), verify each submissions URL returns 200, then pre-register and execute **H200** as a
+genuinely-distinct **institutional-flow (13F holdings-change) cross-section/timing** mechanism on the free
+PIT 13F source (report `reportDate` + `acceptanceDateTime` ~45-day lag), with the standard 8 gates and
+protected holdout. This is the first repo-new family with a now-evidenced free PIT source; it is **not** a
+parameter/universe/timeframe variant of any exhausted family.
+
+**Cycle 308 complete.** No new H-ID; 13F reachability evidenced (durable correction); probe robustness +
+CIK-map defects fixed; `src/qtr` unchanged.

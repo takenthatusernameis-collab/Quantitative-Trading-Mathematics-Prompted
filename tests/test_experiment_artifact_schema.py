@@ -54,6 +54,11 @@ EXPECTED_INCOMPLETE = frozenset(
         "nf_20261122_03_sp500_membership_priceleg_20261122_073618",
         "nf_20261122_03_sp500_membership_priceleg_20261122_142922",
         "nf_20261122_03_sp500_membership_priceleg_20261122_180103",
+        # Cycle 308 probe artifact (coverage.json only): first real execution of
+        # scripts/probe_sec_13f_holdings.py against SEC EDGAR (Berkshire +
+        # MassMutual), a free-data availability probe, not a backtest, so it has
+        # no summary.json by design.
+        "nf_20261125_01_sec13f_availability_20261125_055740",
     }
 )
 
@@ -226,7 +231,13 @@ def test_incomplete_runs_match_audit_inventory():
 # increments (116 -> 117). Its 26 summary keys are all already present in the
 # corpus, so EXPECTED_DISTINCT_KEYS (158), the >=50% / >=80% key sets, and the
 # cache-only count are unchanged.
-EXPECTED_TOTAL_DIRS = 128
+# Cycle 308 (2026-11-25) added one top-level probe directory
+# (`nf_20261125_01_sec13f_availability_20261125_055740`), a *probe* artifact
+# (coverage.json only, no summary.json) from the first real execution of
+# `scripts/probe_sec_13f_holdings.py` against SEC EDGAR. It adds a directory
+# only, so EXPECTED_TOTAL_DIRS increments (128 -> 129); EXPECTED_SUMMARY_COUNT,
+# the key-frequency sets, and the cache-only count are unchanged.
+EXPECTED_TOTAL_DIRS = 129
 EXPECTED_SUMMARY_COUNT = 117
 EXPECTED_CACHE_ONLY_DIRS = 11
 EXPECTED_DISTINCT_KEYS = 158

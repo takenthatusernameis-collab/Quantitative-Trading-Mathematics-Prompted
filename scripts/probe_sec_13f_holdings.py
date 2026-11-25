@@ -94,7 +94,7 @@ INSTITUTIONAL_CIKS = {
     "0000115637": "Bank of New York Mellon",
     "0000116216": "State Farm Mutual Automobile Insurance",
     "0000116655": "TIAA",
-    "0000117228": "MassMutual",
+    "0001103653": "MassMutual",
     "0000117760": "Prudential Financial",
     "0000118440": "MetLife Inc.",
     "0000119039": "Allianz SE",
@@ -449,6 +449,7 @@ def probe(
 
     rows = []
     missing: list[str] = []
+    errors: list[dict[str, str]] = []
     for cik in cik_list:
         name = cik_name_map.get(cik, "")
         if not name:
@@ -458,6 +459,12 @@ def probe(
             row = coverage_for_cik(cik, name, cache_dir, fetch=fetch, refresh=refresh)
         except FileNotFoundError:
             missing.append(cik)
+            continue
+        except Exception as error:  # noqa: BLE001 - availability probe: one bad
+            # CIK (e.g. HTTP 404 on a stale/incorrect submissions URL) must not
+            # abort the whole multi-filer run; record it and continue.
+            missing.append(cik)
+            errors.append({"cik": cik, "error": type(error).__name__})
             continue
         rows.append(row)
 
@@ -475,6 +482,7 @@ def probe(
         "ciks_with_positions": int(len(usable)),
         "ciks_with_zero_position_filings": zero_positions,
         "missing_submissions": missing,
+        "missing_errors": errors,
         "median_filing_lag_days": float(usable["median_filing_lag_days"].median())
         if len(usable) and usable["median_filing_lag_days"].notna().any()
         else None,

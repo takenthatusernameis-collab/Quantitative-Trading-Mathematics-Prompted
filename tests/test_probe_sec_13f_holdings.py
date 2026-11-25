@@ -251,6 +251,52 @@ def test_coverage_for_cik_handles_missing_submissions(monkeypatch):
     assert result["filings_with_positions"] == 0
 
 
+def test_probe_records_bad_cik_without_crashing(monkeypatch):
+    """One stale/incorrect CIK (HTTP 404) must not abort a multi-filer run.
+
+    Regression guard: the bundled ``INSTITUTIONAL_CIKS`` map is partly stale, so
+    a single non-existent submissions URL used to raise ``HTTPError`` and kill
+    the whole probe. ``probe`` must record the bad CIK in ``missing_submissions``
+    (with its error type in ``missing_errors``) and still report the good ones.
+    """
+    module = _load_script()
+
+    def fake_coverage_for_cik(cik, name, cache_dir=None, fetch=True, refresh=False):
+        if cik == "0001067983":
+            # A stale/incorrect submissions URL surfaces as an HTTPError (a
+            # subclass of OSError); a plain OSError represents that fetch
+            # failure without HTTPError's temp-file destructor (which trips
+            # ``-W error``).
+            raise OSError("HTTP 404 Not Found")
+        return {
+            "cik": cik,
+            "name": name,
+            "filings_downloaded": 1,
+            "filings_with_positions": 1,
+            "total_positions": 3,
+            "quarters_covered": 1,
+            "first_report_date": "2025-09-30",
+            "last_report_date": "2025-09-30",
+            "first_acceptance_date": "2025-11-14",
+            "last_acceptance_date": "2025-11-14",
+            "median_filing_lag_days": 45.0,
+            "zero_position_filings": 0,
+        }
+
+    monkeypatch.setattr(module, "coverage_for_cik", fake_coverage_for_cik)
+
+    report = module.probe(["0001067983", "0000077360"], fetch=False)
+
+    assert report["ciks_requested"] == 2
+    assert report["ciks_with_positions"] == 1
+    assert "0001067983" in report["missing_submissions"]
+    assert any(
+        e["cik"] == "0001067983" and e["error"] == "OSError" for e in report["missing_errors"]
+    )
+    # The good CIK is still reported.
+    assert any(row["cik"] == "0000077360" for row in report["per_cik"])
+
+
 # --------------------------------------------------------------------------- #
 # Integration (offline): full main() with stubbed fetch
 # --------------------------------------------------------------------------- #
