@@ -31,6 +31,7 @@ import argparse
 import datetime as dt
 import io
 import sys
+import time
 import urllib.error
 import urllib.request
 
@@ -108,14 +109,26 @@ def regsho_url(date: dt.date) -> str:
 
 
 def fetch_regsho(date: dt.date, timeout: float = 15.0) -> bytes | None:
-    """Download one Reg SHO daily file; None for expected 404/403 (weekend/holiday)."""
+    """Download one Reg SHO daily file; None for expected 404/403 (weekend/holiday).
+
+    Transient network errors (timeout, connection) are retried with bounded
+    exponential backoff; HTTP errors (404/403) return None immediately since a
+    missing file for a given date is an expected, non-transient outcome.
+    """
     url = regsho_url(date)
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            return response.read()
-    except (urllib.error.HTTPError, TimeoutError, urllib.error.URLError):
-        return None
+    last_error: Exception | None = None
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                return response.read()
+        except urllib.error.HTTPError:
+            return None
+        except (TimeoutError, urllib.error.URLError) as error:
+            last_error = error
+            if attempt < 2:
+                time.sleep(1.0 * (2**attempt))
+    return None
 
 
 def parse_regsho(raw: bytes) -> pd.DataFrame:

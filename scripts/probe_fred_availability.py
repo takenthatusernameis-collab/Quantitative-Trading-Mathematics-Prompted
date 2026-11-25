@@ -36,6 +36,8 @@ from __future__ import annotations
 import argparse
 import io
 import sys
+import time
+import urllib.error
 import urllib.request
 
 import pandas as pd
@@ -62,10 +64,27 @@ FRED_SERIES: dict[str, tuple[str, str]] = {
 
 
 def fetch_fred(series_id: str, timeout: float = 20.0) -> pd.Series:
-    """Download one FRED series as a date-indexed float Series (memory only)."""
+    """Download one FRED series as a date-indexed float Series (memory only).
+
+    Transient network errors (timeout, connection) are retried with bounded
+    exponential backoff; HTTP errors (e.g. 404 for an unknown series id) are
+    re-raised so the caller can record them as UNREACHABLE findings.
+    """
     request = urllib.request.Request(FRED_CSV.format(series_id), headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        raw = response.read().decode()
+    last_error: Exception | None = None
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                raw = response.read().decode()
+            break
+        except urllib.error.HTTPError:
+            raise
+        except (TimeoutError, urllib.error.URLError) as error:
+            last_error = error
+            if attempt < 2:
+                time.sleep(1.0 * (2**attempt))
+    else:
+        raise last_error or TimeoutError(f"FRED fetch exhausted for {series_id}")
     frame = pd.read_csv(io.StringIO(raw))
     frame.columns = ["date", "value"]
     frame["date"] = pd.to_datetime(frame["date"])
