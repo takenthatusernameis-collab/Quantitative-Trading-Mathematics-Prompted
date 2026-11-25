@@ -4,6 +4,7 @@
 
 ### What changed this session (durable, additive; `src/qtr` unchanged)
 - **Cycle 315 (2026-11-25) verification:** baseline confirmed green — `scripts/verify_gates_workflow_patch.py` exit 0 (patch resolves all 7 violations), `tests/test_runner_import_contract.py` 316 passed under `-W error`, working tree clean, `src/qtr` unchanged. No new changes made; both blocked items below await maintainer action.
+- **Cycle 316 (2026-11-25) re-verification:** re-confirmed baseline green — `scripts/verify_gates_workflow_patch.py` exit 0 (patch resolves all 7 violations; live `gates.yml` still fails 7 assertions awaiting maintainer land), `tests/test_runner_import_contract.py` 316 passed under `-W error`, working tree clean, `src/qtr` unchanged. No new changes made; both blocked items below await maintainer action.
 - **Executed Option C — program closure.** Formally closed the free-data equity/fund cross-section program and registered the Cycle 311/Cycle 312 reachability evidence:
   - CBOE options: NOT reachable (CDN chains endpoint returns 403 to non-browser clients; `.cache/remaining_family_sources.json`, `cboe_options`). Options-flow family not free-reachable from this host.
   - FRED macro: reachable (T10YIE/DFII10, 6k+ obs), but distributes macro *levels*, not macro-surprise consensus; macro-regime timing already covered by H175. No free macro-surprise signal.
