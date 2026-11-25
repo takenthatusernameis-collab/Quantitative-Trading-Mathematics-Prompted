@@ -1,15 +1,14 @@
 # AGENTS.md
 
-<!-- inventory-high-water-mark: H199 -->
+<!-- inventory-high-water-mark: H200 -->
 **Current hypothesis inventory (authoritative; kept in sync with `HYPOTHESIS_SPEC.md` by
 `scripts/verify_hypothesis_inventory.py` — which since Cycle 282 also guards the `README.md`
 `H1–H<N>` range against the documented maximum — tested by
 `tests/test_verify_hypothesis_inventory.py`):**
-H1–H199 exhausted/rejected; H189 data-blocked. Latest executed: H199 market-cap size premium on
-the broad S&P 500/400/600 universe REJECT 3/8 (Cycle 273 executed; artifact
-`.experiments/nf_runs/nf_20261122_04_size_premium_20261123_004459/` **regenerated Cycle 278** with
-the corrected monthly-hold runner — see below). Next unused H-ID: H200. When
-you execute a new hypothesis, bump the marker above and the spec together.
+H1–H200 exhausted/rejected; H189 data-blocked. Latest executed: H200 institutional flow /
+13F holdings-change cross-section REJECT 2/8 (Cycle 308 executed; artifact
+`.experiments/nf_runs/nf_20261125_01_institutional_flow_20261125_071915/`). Next unused
+H-ID: H201. When you execute a new hypothesis, bump the marker above and the spec together.
 
 ## Quick start
 ```bash

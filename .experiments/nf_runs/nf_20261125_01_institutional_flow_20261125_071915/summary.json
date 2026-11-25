@@ -1,0 +1,140 @@
+{
+  "experiment": "nf_20261125_01_institutional_flow",
+  "nf_id": "NF-20261125-01",
+  "hypothesis": "H200",
+  "timestamp_utc": "2026-11-25T07:19:40Z",
+  "runtime_sec": 74.605,
+  "data": {
+    "source": "SEC EDGAR Form 13F-HR (free/PIT via acceptanceDateTime)",
+    "institutions": {
+      "0001067983": "Berkshire Hathaway Inc.",
+      "0001610520": "UBS Group AG",
+      "0001103653": "MassMutual"
+    },
+    "start": "2015-01-01",
+    "end": "2026-11-25",
+    "train_end": "2021-12-31",
+    "val_end": "2023-12-31",
+    "train_rows": 1827,
+    "val_rows": 520,
+    "test_rows": 758,
+    "oos_rows": 1278,
+    "calendar": "business days; monthly refresh with ~45-day PIT lag",
+    "unique_tickers": 235
+  },
+  "grid_size": 8,
+  "selected": {
+    "entry_z": 0.5,
+    "exit_z": 0.0,
+    "k": 10,
+    "vol_target": 0.1
+  },
+  "wf_train_sharpe": 0.0,
+  "train_selected_sharpe": 0.0,
+  "full_sample": {
+    "sharpe": -0.7473557282307887,
+    "profit_factor": 0.8052129769863048,
+    "max_drawdown": -0.4402069471644794,
+    "trades": 3190,
+    "periods": 3105,
+    "total_return": -0.3833395224909887,
+    "worst_regime_rolling252_sharpe": -3.117200067085377
+  },
+  "oos_val_test": {
+    "sharpe": -1.1667609335426967,
+    "profit_factor": 0.8052129769863048,
+    "max_drawdown": -0.4402069471644794,
+    "trades": 3190,
+    "periods": 1278,
+    "total_return": -0.3833395224909887,
+    "worst_regime_rolling252_sharpe": -3.117200067085377
+  },
+  "val": {
+    "sharpe": -1.2490885714306992,
+    "profit_factor": 0.7856458177240161,
+    "max_drawdown": -0.2668521943436588,
+    "trades": 473,
+    "periods": 520,
+    "total_return": -0.2150789392900253,
+    "worst_regime_rolling252_sharpe": -2.475607325977301
+  },
+  "test": {
+    "sharpe": -1.1123179614715608,
+    "profit_factor": 0.8214927248619406,
+    "max_drawdown": -0.2609901875273487,
+    "trades": 729,
+    "periods": 758,
+    "total_return": -0.21436624856105757,
+    "worst_regime_rolling252_sharpe": -2.618139380960562
+  },
+  "benchmark_passive_equal_weight_long_oos": {
+    "sharpe": 0.6250842671070573,
+    "profit_factor": 1.1126783629149537,
+    "max_drawdown": -0.1314162323709358,
+    "trades": 223485,
+    "periods": 1278,
+    "total_return": 0.35715983427595654,
+    "worst_regime_rolling252_sharpe": -0.8327666426597582
+  },
+  "benchmark_comparison": {
+    "information_ratio": -1.0925512092080512,
+    "alpha_annualized": -0.0815222245992204,
+    "beta": -0.16212915391220623,
+    "alpha_t_stat": -2.4594442371593703,
+    "alpha_p_value": 0.014047027201506369,
+    "alpha_p_value_one_sided": 0.9929764863992468,
+    "win_rate": 0.458528951486698,
+    "excess_return_annual": -0.1579465779689588,
+    "excess_vol_annual": 0.14456675040746902
+  },
+  "ablations": {
+    "random_ranking_oos": {
+      "sharpe": -3.2085088296863447,
+      "profit_factor": 0.5679227437972497,
+      "max_drawdown": -0.7366592014390245,
+      "trades": 38236,
+      "periods": 1278,
+      "total_return": -0.7283251976015666,
+      "worst_regime_rolling252_sharpe": -5.890181376270504
+    },
+    "inverse_signal_oos": {
+      "sharpe": 1.1172506006752057,
+      "profit_factor": 1.230374854197318,
+      "max_drawdown": -0.09646109024274041,
+      "trades": 3190,
+      "periods": 1278,
+      "total_return": 0.5401947817660411,
+      "worst_regime_rolling252_sharpe": -0.2518917622767563
+    }
+  },
+  "wf_stability_oos_over_train": 0.0,
+  "benchmark_pvalue_two_sided": 0.014047027201506369,
+  "information_ratio_vs_passive_equal_weight": -1.0925512092080512,
+  "perturbation": {
+    "min_ratio": 1.116523118287281,
+    "n_points": 6,
+    "min_sharpe": -1.3027155558148709
+  },
+  "gates": {
+    "sharpe_ge_1": false,
+    "trades_ge_50": true,
+    "pf_ge_1_3": false,
+    "maxdd_le_15pct": false,
+    "wf_stability_ge_0_7": false,
+    "worst_regime_ge_0_3": false,
+    "benchmark_p_le_0_05_and_ir_ge_0": false,
+    "perturbation_min_ratio_ge_0_5": true
+  },
+  "gates_passed": 2,
+  "gates_total": 8,
+  "verdict": "REJECT",
+  "integrity": {
+    "src_qtr_unchanged": true,
+    "gate_weakening": false,
+    "published_artifacts_modified": false,
+    "selection_holdout_feedback": false,
+    "real_data": true,
+    "cost_one_way_bps": 5.0,
+    "benchmark_pvalue_statistic": "two-sided (published gate statistic)"
+  }
+}

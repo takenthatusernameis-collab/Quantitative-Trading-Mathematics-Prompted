@@ -285,7 +285,8 @@ def test_probe_records_bad_cik_without_crashing(monkeypatch):
 
     monkeypatch.setattr(module, "coverage_for_cik", fake_coverage_for_cik)
 
-    report = module.probe(["0001067983", "0000077360"], fetch=False)
+    # Use a CIK from the current INSTITUTIONAL_CIKS as the "good" CIK
+    report = module.probe(["0001067983", "0000093751"], fetch=False)
 
     assert report["ciks_requested"] == 2
     assert report["ciks_with_positions"] == 1
@@ -294,7 +295,7 @@ def test_probe_records_bad_cik_without_crashing(monkeypatch):
         e["cik"] == "0001067983" and e["error"] == "OSError" for e in report["missing_errors"]
     )
     # The good CIK is still reported.
-    assert any(row["cik"] == "0000077360" for row in report["per_cik"])
+    assert any(row["cik"] == "0000093751" for row in report["per_cik"])
 
 
 # --------------------------------------------------------------------------- #

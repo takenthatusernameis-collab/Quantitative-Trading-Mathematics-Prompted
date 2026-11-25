@@ -1,6 +1,6 @@
 # Quantitative Trading Mathematics (Prompted)
 
-This repository contains a quantitative trading research codebase with experiment runners, backtesting infrastructure, and a large set of audited hypothesis tests (H1–H199).
+This repository contains a quantitative trading research codebase with experiment runners, backtesting infrastructure, and a large set of audited hypothesis tests (H1–H200).
 
 ## Quickstart
 
