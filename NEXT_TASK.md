@@ -67,6 +67,22 @@ maintainer authorizations above.
 
 ---
 
+## AUTHORITATIVE STATUS — Cycle 298 (2026-11-25): short confirmation per the Cycle 287 procedure; no authorization; no agent-executable task; sole action maintainer-only
+
+No maintainer authorization this session, so per the Cycle 287 decision procedure the entire
+deliverable is this short confirmation (no full-suite re-run, no new guard/test, no H200):
+- `verify_hypothesis_inventory.py` → IN SYNC (H199 == H199, README H199).
+- `backtest_perf_regression_gate.py` → PASSED (0.870 s / 5 s).
+- `ruff check src tests run_*.py scripts` → all passed; `ruff format --check` → 396 files clean.
+- `pytest -q tests/test_gates_workflow.py` → 7 failed (maintainer-gated `gates.yml` gaps); patch applies cleanly.
+- Working tree clean; HEAD == origin/main (`5ea1ac2`); the only change is this block, left uncommitted.
+
+Next agent: follow the Cycle 287 decision procedure literally; do NOT re-verify the baseline again.
+Sole actionable item remains maintainer-only: apply `patches/0001-gates-workflow-contract-fix.patch`
+to `.github/workflows/gates.yml` on `origin/main`.
+
+---
+
 ## AUTHORITATIVE STATUS — Cycle 296 (2026-11-25): short confirmation; no authorization; no agent-executable task; sole action maintainer-only
 
 No maintainer authorization this session, so per the Cycle 292 decision procedure the entire
