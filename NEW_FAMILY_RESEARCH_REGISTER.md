@@ -2414,3 +2414,57 @@ parameter/universe/timeframe variant of any exhausted family.
 
 **Cycle 308 complete.** No new H-ID; 13F reachability evidenced (durable correction); probe robustness +
 CIK-map defects fixed; `src/qtr` unchanged.
+
+## Cycle 311 (2026-11-25) — Bounded reachability probe of the remaining repo-new candidate sources (no new H-ID; frontier evidence)
+
+**Context.** H201 (short-interest / days-to-cover cross-section) was executed and committed in Cycle 310
+(REJECT 4/8; artifact `nf_20261125_02_short_interest_20261125_091617`; `run_nf_20261125_02_short_interest.py`;
+marker H201, next unused H202). The prior assignment (execute H201) is therefore **complete and verified**
+(inventory IN SYNC H201; `scripts/verify_hypothesis_inventory.py`; 170 schema/inventory/probe tests pass).
+The handoff's remaining work is a genuinely-distinct **new** family; per directive §2 an equity cross-section
+on the same broad universe is ruled out, and per §6 a candidate source must be probed before any "blocked"
+claim. This cycle executes that bounded probe rather than re-append a "nothing to do" block.
+
+**Durable finding (free, read-only; reproducible artifact `.cache/remaining_family_sources.json`, git-ignored;
+`scripts/probe_remaining_family_sources.py` + `tests/test_probe_remaining_family_sources.py` 23 tests).**
+The remaining handoff candidate sources resolve as:
+- **CBOE options (per-symbol delayed chains / put-call):** **NOT reachable** — `cdn.cboe.com` returns
+  **HTTP 403** to non-browser clients. The options-flow family is not free-reachable from this host.
+- **FRED macro series (T10YIE, DFII10):** **REACHABLE** (HTTP 200, T10YIE 2003-01-02 → 2026-11-23). But
+  macro-regime timing is already **H175**, and a macro-*surprise* cross-section still needs consensus/forecast
+  data FRED does not distribute for free.
+- **SEC Form N-CEN (fund share flows):** **REACHABLE and PIT-dated** (acceptanceDateTime; BlackRock Funds
+  71 series / $188.7B avg net assets, Vanguard World Fund 12 series / $1.41T). **But `flow_present=false`:**
+  the Item C shareholder net-asset-flow signal is **absent from the bounded `primary_doc.xml`** (0 occurrences
+  of flow/redemption/sales tags) — extracting it requires heavier multi-exhibit parsing (the deferred hard part).
+- **SEC Form N-PORT (monthly fund holdings):** **REACHABLE** (BlackRock 2026-11-17, Vanguard 2026-08-28) but
+  it reports *holdings*, not *flows*; a flow signal still needs a shares-outstanding / N-CEN cross-reference.
+
+**Already-executed adjacent families (do not re-run as new):** insider Form 4 / 13F = **H182** (REJECT 3/8);
+institutional 13F holdings-change = **H200** (REJECT 2/8); ETF NAV arbitrage and leveraged-ETF rebalancing
+(H170) and S&P 500 index-rebalance flow (H168) done; macro regime = **H175**; short interest = H179/H201.
+
+**Verification this session.** `tests/test_probe_remaining_family_sources.py` → 23 passed (offline, injected
+fetchers, no network); `tests/test_probe_script_coverage.py` + `tests/test_script_test_coverage.py` pass
+(new probe has a matching test); `tests/test_experiment_artifact_schema.py` + `test_verify_hypothesis_inventory.py`
+→ 170 passed (probe writes to `.cache`, git-ignored, so the committed artifact inventory is untouched);
+`ruff check` + `ruff format --check` clean. `src/qtr`, runners, gates, thresholds, frozen numbers, and all
+prior artifacts unchanged. **No H202 fabricated; high-water mark stays H201.**
+
+**Approaches already tried / do not repeat.** Re-running the fast invariants / 750 s baseline as the deliverable;
+appending another "verified, nothing to do" block; fabricating H202 or a new equity cross-section on the
+exhausted universe; editing `.github/workflows/**` in a commit; re-declaring SEC 13F / FINRA / FRED blocked.
+**New this cycle:** CBOE options is 403 (not free-reachable); N-CEN is reachable but the flow signal is not in
+the bounded primary doc — do not re-declare N-CEN "blocked" without the heavier-exhibit parse, and do not
+re-declare it "available" without that parse either.
+
+**Precise next task.** The free-data frontier for a *genuinely-distinct* repo-new family is now evidenced to
+require either (a) a heavier N-CEN Item-C multi-exhibit parser to extract shareholder net-asset flow (bounded
+but non-trivial; the one remaining free candidate with a reachable PIT source), or (b) maintainer
+authorization for a paid/consensus data source (options chains, analyst revisions, macro consensus), or
+(c) formally closing the equity/fund cross-section program. Do **not** fabricate H202 or run another equity
+cross-section on the same universe. If (a) is attempted, pre-register H202 only after the flow parse is shown
+to cover a feasible broad-universe fraction (directive §6), then execute with the standard 8 gates.
+
+**Cycle 311 complete.** No new H-ID; remaining-candidate reachability evidenced (CBOE 403; FRED reachable;
+N-CEN reachable but flow not bounded; N-PORT holdings-only); `src/qtr` unchanged.
