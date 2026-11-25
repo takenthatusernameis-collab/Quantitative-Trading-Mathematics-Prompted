@@ -1,5 +1,40 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 303 (2026-11-25): fresh reset env; re-proved the sole maintainer patch end-to-end against current HEAD; no agent-executable task; short handoff only
+
+This session started in a **fresh reset environment** (deps not installed; `numpy` missing). I
+installed `requirements.txt`, then produced fresh evidence — NOT a make-work guard/doc, NOT a
+750 s baseline re-run:
+- Cycle 302's deliverable `tests/test_script_test_coverage.py` is **committed** in HEAD `31985b7`
+  (tree clean, `origin/main == HEAD`); the 3 script/probe/nf-runner coverage guards → **8 passed**.
+- `verify_hypothesis_inventory.py` → IN SYNC (H199 == H199, README H199);
+  `backtest_perf_regression_gate.py` → PASSED (0.433 s / 5 s);
+  `ruff check src tests run_*.py scripts` → all passed; `ruff format --check` → 397 files clean.
+- `pytest -q tests/test_gates_workflow.py` → **7 failed** (exactly the maintainer-gated `gates.yml`
+  gaps). **End-to-end re-proof in THIS env against current HEAD:** `git apply
+  patches/0001-gates-workflow-contract-fix.patch` → applies cleanly; `pytest -q
+  tests/test_gates_workflow.py` → **7 passed**; `git checkout -- .github/workflows/gates.yml` → tree
+  clean. `verify_gates_workflow_patch.py` → PATCH VERIFIED (resolves all 7).
+- No source/test/runner/artifact/gate/workflow/H-ID/inventory-marker change; the only change is this
+  block, left uncommitted. This is a handoff, NOT counted as project progress.
+
+### Unresolved (maintainer/authorization only — out of agent scope)
+1. **Workflow contract patch — sole remaining red (7 `tests/test_gates_workflow.py` failures).**
+   Maintainer with `workflows`-scoped creds: `git apply patches/0001-gates-workflow-contract-fix.patch
+   && git commit -am "fix(ci): satisfy gates workflow contract" && git push origin main`. Do NOT
+   re-edit `gates.yml` in a commit (controller restores it; token lacks scope); do NOT weaken the test.
+2. **Equity cross-section program closure / new universe.** H1–H199 exhausted/rejected; a new H200
+   needs a genuinely-distinct mechanism + new-universe authorization (directive §2).
+
+### Precise next task
+Maintainer-only: apply `patches/0001-gates-workflow-contract-fix.patch` to clear the 7 failures
+(re-proven this session). Otherwise no further agent code/research task is in-scope (program complete
+through H199; `src/qtr` 100%-covered and frozen). Do NOT re-run the 750 s baseline, do NOT add more
+guards, do NOT fabricate H200 — that loop is closed. If deps are missing in a reset env, run
+`pip install -r requirements.txt` before any verification.
+
+---
+
 ## AUTHORITATIVE STATUS — Cycle 302 (2026-11-25): broke the confirmation loop with one real, in-scope code change (all-scripts test-coverage invariant); sole remaining red is maintainer-only
 
 The Cycles 274–301 loop (28 sessions of "verified, nothing to do" blocks) is stopped per reliability rule 2. This cycle made a **real, durable, in-scope change** instead of another marker block:
