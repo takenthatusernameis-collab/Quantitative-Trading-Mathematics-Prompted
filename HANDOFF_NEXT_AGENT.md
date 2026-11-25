@@ -1,4 +1,4 @@
-# Handoff for Next Agent — Cycle 317 (2026-11-25)
+# Handoff for Next Agent — Cycle 318 (2026-11-25)
 
 ## Authoritative Status
 **Free-data equity/fund cross-section program formally CLOSED** (Cycle 313). Baseline confirmed green:
