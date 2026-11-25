@@ -2468,3 +2468,37 @@ to cover a feasible broad-universe fraction (directive §6), then execute with t
 
 **Cycle 311 complete.** No new H-ID; remaining-candidate reachability evidenced (CBOE 403; FRED reachable;
 N-CEN reachable but flow not bounded; N-PORT holdings-only); `src/qtr` unchanged.
+
+## Cycle 313 (2026-11-25) — Formal closure of the free-data equity/fund cross-section program
+
+**Context.** H201 (short-interest / days-to-cover cross-section) was executed in Cycle 310 (REJECT 4/8) and H200 (institutional 13F flow) in Cycle 308 (REJECT 2/8). Cycle 311 probed the remaining candidate free sources for a genuinely-distinct repo-new family and found:
+- CBOE options chains: **HTTP 403** (not free-reachable).
+- FRED macro series: **REACHABLE** but no free macro-surprise consensus data (macro-regime timing already exhausted as H175).
+- SEC Form N-CEN (fund share flows): **REACHABLE and PIT-dated** but the Item C dollar-flow signal is **absent from the bounded `primary_doc.xml`** for BlackRock and Vanguard; extracting it requires heavier multi-exhibit parsing that does not bound to a feasible broad-universe fraction.
+- SEC Form N-PORT: **REACHABLE** but reports holdings only, not flows.
+- SEC 13F / FINRA Reg SHO / FRED: all probed and exhausted (H200, H201, H175).
+
+**Evidence summary (Cycles 308–311, all durable corrections).**
+- H187–H198 (12 consecutive equity cross-sections on 98-name S&P 100): all REJECT.
+- H199 (size premium on broad S&P 500/400/600, 1502 names): REJECT 3/8, OOS Sharpe +0.529 vs passive +0.462.
+- H200 (institutional 13F flow, 235 names): REJECT 2/8, OOS Sharpe -1.167 vs passive +0.625.
+- H201 (short-interest Reg SHO, 1499 names): REJECT 4/8, OOS Sharpe +0.813 vs passive +0.558.
+- **H187–H201 median OOS Sharpe: 0.187**. No free-data mechanism on the broad universe clears the evidence gates (Sharpe ≥ 1.0, PF ≥ 1.3, worst-regime ≥ 0.3, benchmark p ≤ 0.05, IR ≥ 0).
+
+**Verdict: PROGRAM CLOSED.** The free-data equity/fund cross-section mechanism space is **evidenced near-exhausted**. No remaining free, point-in-time source yields a bounded, genuinely-distinct flow or characteristic signal that survives the standard 8 gates on a feasible universe. The passive equal-weight long book of the broad universe (OOS Sharpe +0.462, H199) dominates every tested mechanism.
+
+**Required for re-opening.** A **maintainer-authorized paid/consensus data source** is necessary to open a genuinely-distinct mechanism family. Candidate sources (not free-reachable from this host):
+- Options chains (CBOE 403; paid vendors: ORATS, IvyDB, Quantcha).
+- Analyst revisions / earnings estimates (IBES, FactSet, Refinitiv — consensus not free).
+- Macro consensus / surprise data (Bloomberg ECOS, Blue Chip, Survey of Professional Forecasters — not free).
+- Heavier N-CEN multi-exhibit parser for Item C flow (free but non-trivial; must demonstrate ≥60% broad-universe coverage before H202 pre-registration per directive §6).
+
+**No H202 fabricated.** High-water mark remains **H201**. The `AGENTS.md` inventory marker and `HYPOTHESIS_SPEC.md` are updated to reflect closure. `src/qtr`, runners, gates, thresholds, frozen numbers, and all prior artifacts unchanged.
+
+**Verification this session.**
+- `scripts/verify_hypothesis_inventory.py` → IN SYNC (H201 == H201).
+- `python -m pytest -q` → 5026 passed / 51 skipped (excluding 7 agent-unreachable workflow tests).
+- `python -m ruff check src tests run_*.py scripts` → clean.
+- `python -m ruff format --check src tests run_*.py scripts` → clean.
+
+**Cycle 313 complete.** Free-data equity/fund cross-section program formally closed; maintainer authorization required for paid/consensus source to continue.
