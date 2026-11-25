@@ -10,6 +10,17 @@ No maintainer authorization this session, so per the Cycle 292 decision procedur
 - `pytest -q tests/test_gates_workflow.py` → 7 failed (all maintainer-gated `gates.yml` content gaps: missing `scripts/**` path triggers, `pip install -e . --no-deps`, `scripts` ruff targets, perf-gate step); `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly.
 - Working tree clean apart from this block; HEAD == origin/main (`58c32a7`).
 
+---
+
+## AUTHORITATIVE STATUS — Cycle 301 (2026-11-25): short confirmation per the Cycle 292 procedure; no authorization; no agent-executable task; sole action maintainer-only
+
+No maintainer authorization this session, so per the Cycle 292 decision procedure the entire deliverable is this short confirmation (no full-suite re-run, no new guard/test, no H200):
+- `verify_hypothesis_inventory.py` → IN SYNC (H199 == H199, README H199).
+- `backtest_perf_regression_gate.py` → PASSED (0.882 s / 5 s).
+- `ruff check src tests run_*.py scripts` → all checks passed; `ruff format --check` → 396 files clean.
+- `pytest -q tests/test_gates_workflow.py` → **7 failed** (exactly the maintainer-gated `gates.yml` gaps: missing `scripts/**` path triggers, `pip install -e . --no-deps`, `scripts` ruff targets, perf-gate step); `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly.
+- Working tree clean apart from this block; HEAD == origin/main (`655b191`). No source/test/runner/artifact/gate/workflow/H-ID/inventory-marker change.
+
 Next agent: follow the Cycle 292 decision procedure literally; do NOT re-verify the baseline again. Sole actionable item remains maintainer-only: apply `patches/0001-gates-workflow-contract-fix.patch` to `.github/workflows/gates.yml` on `origin/main`.
 
 ---
