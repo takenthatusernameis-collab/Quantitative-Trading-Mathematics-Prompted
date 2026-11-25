@@ -1,5 +1,21 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 299 (2026-11-25): short confirmation per the Cycle 292 procedure; no authorization; no agent-executable task; sole action maintainer-only
+
+No maintainer authorization this session, so per the Cycle 292 decision procedure the entire
+deliverable is this short confirmation (no full-suite re-run, no new guard/test, no H200):
+- `verify_hypothesis_inventory.py` → IN SYNC (H199 == H199, README H199); `backtest_perf_regression_gate.py` → PASSED (0.810 s / 5 s).
+- `ruff check src tests run_*.py scripts` → all passed; `ruff format --check` → 396 files clean.
+- `pytest -q tests/test_gates_workflow.py` → 7 failed (maintainer-gated `gates.yml` gaps); `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly.
+- Independently re-confirmed the workflow fix is agent-unreachable from source: `.github/scripts/kilo-controller.sh:315-333` restores `.github/workflows/**` from the remote and excludes it from staging; the `github-actions[bot]` token reports `{admin:false, maintain:false, push:false}`. A committed `gates.yml` edit cannot reach `origin/main`.
+- Working tree clean; HEAD == origin/main (`719c19f`); the only change is this block, left uncommitted. This is a handoff, NOT counted as project progress.
+
+Next agent: follow the Cycle 292 decision procedure literally; do NOT re-verify the baseline again.
+Sole actionable item remains maintainer-only: apply `patches/0001-gates-workflow-contract-fix.patch`
+to `.github/workflows/gates.yml` on `origin/main`.
+
+---
+
 ## AUTHORITATIVE STATUS — Cycle 297 (2026-11-25): broke the re-verification loop with a fresh full-source correctness audit; no safe in-scope code change exists; sole action maintainer-only
 
 **Read this block first; everything below it (Cycle 296 and earlier) is history.**
