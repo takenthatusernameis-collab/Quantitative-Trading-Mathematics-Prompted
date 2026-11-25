@@ -1,5 +1,22 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 296 (2026-11-25): short confirmation; no authorization; no agent-executable task; sole action maintainer-only
+
+No maintainer authorization this session, so per the Cycle 292 decision procedure the entire
+deliverable is this short confirmation (no full-suite re-run, no new guard/test, no H200):
+- `verify_hypothesis_inventory.py` → IN SYNC (H199 == H199, README H199); `backtest_perf_regression_gate.py` → PASSED (0.802 s / 5 s).
+- `ruff check src tests run_*.py scripts` → all passed; `ruff format --check` → 396 files clean.
+- `pytest -q tests/test_gates_workflow.py` → 7 failed (maintainer-gated `gates.yml` gaps); `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly.
+- Independently re-ran the `_probe.txt` degenerate-input probe: 8/9 cases clean, the lone "CRASH" is the intentional guarded `ValueError` (non-positive price base) already codified in `tests/test_gate_evaluation_edge_stress.py` / `tests/test_engine_edge_stress.py` — no unguarded gap.
+- Two factual corrections to prior handoffs: `_probe.txt` is **tracked** (not "untracked scratch"); the dead duplicate `run_nf_20261107_48_ovx_vix_spread.py` is **already deleted** (not an open item).
+- Working tree clean; HEAD == origin/main (`4f096ed`); the only change is this block, left uncommitted. This is a handoff, NOT counted as project progress.
+
+Next agent: follow the Cycle 292 decision procedure literally; do NOT re-verify the baseline again.
+Sole actionable item remains maintainer-only: apply `patches/0001-gates-workflow-contract-fix.patch`
+to `.github/workflows/gates.yml` on `origin/main`.
+
+---
+
 ## AUTHORITATIVE STATUS — Cycle 295 (2026-11-24): short confirmation per the Cycle 292 procedure; no authorization; no agent-executable task; sole action maintainer-only
 
 No maintainer authorization this session, so per the Cycle 292 decision procedure the entire
