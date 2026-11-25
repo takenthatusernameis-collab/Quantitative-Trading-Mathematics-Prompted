@@ -1,5 +1,25 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 305 (2026-11-25): fresh reset-session verification confirms no agent-executable task; sole remaining red is maintainer-only; no file changes made
+
+This session started in a fresh environment with deps installed (`pip install -r requirements.txt` already satisfied). Per the Cycle 287/292 decision procedure (no maintainer authorization → short confirmation only, do NOT re-run the baseline, do NOT add guards/docs, do NOT fabricate H200), I ran the four fast invariants plus the contract test and confirmed state is unchanged from Cycle 304:
+
+- `scripts/verify_hypothesis_inventory.py` → IN SYNC (H199 == H199, README H199)
+- `scripts/backtest_perf_regression_gate.py` → PASSED (0.463 s / 5 s)
+- `python -m ruff check src tests run_*.py scripts` → All checks passed
+- `python -m ruff format --check src tests run_*.py scripts` → 397 files already formatted
+- `pytest -q tests/test_gates_workflow.py` → **7 failed** (exactly the maintainer-gated `gates.yml` gaps); `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly
+- Working tree clean; HEAD == origin/main; `src/qtr`, tests, runners, artifacts, gates, workflow, H-ID, and inventory marker all unchanged. No source change made; nothing to commit.
+
+### Unresolved (maintainer/authorization only — out of agent scope)
+1. **Workflow contract patch — sole remaining red (7 `tests/test_gates_workflow.py` failures).** Maintainer with `workflows`-scoped creds: `git apply patches/0001-gates-workflow-contract-fix.patch && git commit -am "fix(ci): satisfy gates workflow contract" && git push origin main`. Do NOT re-edit `gates.yml` in a commit (controller restores it; token lacks `workflows` scope); do NOT weaken `tests/test_gates_workflow.py`.
+2. **Equity cross-section program closure / new universe.** H1–H199 exhausted/rejected; a new H200 needs a genuinely-distinct mechanism + new-universe authorization (directive §2).
+
+### Precise next task
+Maintainer-only: apply `patches/0001-gates-workflow-contract-fix.patch` to `.github/workflows/gates.yml` on `origin/main` to clear the 7 failures. Otherwise no further agent code/research task is in-scope (program complete through H199; `src/qtr` 100%-covered and frozen). Do NOT re-run the 750 s baseline, do NOT add more guards, do NOT fabricate H200. If deps are missing in a reset env, run `pip install -r requirements.txt` before any verification.
+
+---
+
 ## AUTHORITATIVE STATUS — Cycle 304 (2026-11-25): broke the confirmation loop with one real, bounded, in-scope change (maintainer-patch header cleanup); full CI gate re-run green; sole remaining red is maintainer-only
 
 Cycles 274–303 were ~30 sessions of "verified, nothing to do" handoffs (rule 2 loop). This
