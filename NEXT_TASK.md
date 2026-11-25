@@ -1,5 +1,20 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 306 (2026-11-25): short confirmation per the Cycle 287/292 decision procedure; no agent-executable task; sole remaining red is maintainer-only; no file changes made
+
+Fresh evidence this session (2026-11-25, deps already installed):
+- `scripts/verify_hypothesis_inventory.py` → IN SYNC (H199 == H199, README H199).
+- `scripts/backtest_perf_regression_gate.py` → PASSED (0.448 s / 5 s).
+- `python -m ruff check src tests run_*.py scripts` → All checks passed.
+- `python -m ruff format --check src tests run_*.py scripts` → 397 files already formatted.
+- `pytest -q tests/test_gates_workflow.py` → exactly 7 failed (maintainer-gated `gates.yml` gaps: missing `scripts/**` path triggers, `pip install -e . --no-deps`, `scripts` ruff targets, perf-gate step).
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly.
+- Working tree clean; HEAD == origin/main; `src/qtr`, tests, runners, artifacts, gates, workflow, H-ID, and inventory marker all unchanged. No source change made; nothing to commit.
+
+Per the Cycle 287/292 decision procedure: no maintainer authorization → this short confirmation is the complete deliverable. Do NOT re-run the full suite, do NOT add tests/guards/docs, do NOT fabricate H200.
+
+---
+
 ## AUTHORITATIVE STATUS — Cycle 305 (2026-11-25): fresh reset-session verification confirms no agent-executable task; sole remaining red is maintainer-only; no file changes made
 
 This session started in a fresh environment with deps installed (`pip install -r requirements.txt` already satisfied). Per the Cycle 287/292 decision procedure (no maintainer authorization → short confirmation only, do NOT re-run the baseline, do NOT add guards/docs, do NOT fabricate H200), I ran the four fast invariants plus the contract test and confirmed state is unchanged from Cycle 304:
