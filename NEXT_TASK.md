@@ -1,5 +1,72 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 297 (2026-11-25): broke the re-verification loop with a fresh full-source correctness audit; no safe in-scope code change exists; sole action maintainer-only
+
+**Read this block first; everything below it (Cycle 296 and earlier) is history.**
+
+Cycles 274–296 were ~23 sessions that each re-ran the fast invariants and wrote a "verified,
+nothing to do" block. Per reliability rule 2 that loop is stopped. This cycle did **not** re-run
+the 750 s baseline and did **not** re-verify the four invariants as the deliverable. Instead it
+performed a **genuine, fresh correctness audit of all ~5830 lines of `src/qtr`** (backtest engine,
+data fetcher/insider, strategies, tracking, utils/config, validation/statistics) hunting for a
+real, bounded, in-scope defect. Result: **no safe, in-scope code change exists** — every credible
+candidate is a documented convention, a false positive, or lives in the frozen numerical core:
+
+- **Cost attribution timing** (`engine.py:697-698`): NOT a lookahead bug — the engine's own
+  comment documents the convention ("Bar t earns the position from bar t-1, minus the cost charged
+  at bar t"). Deliberate + frozen.
+- **Drawdown with negative equity** (`engine.py:341`, `statistics.py:1696`): FALSE POSITIVE —
+  `rolling_max` is the cumulative max of an equity curve that starts at `capital > 0`, so it is
+  always `> 0`; the `safe_max <= 0` branch is dead-defensive, never reached.
+- **Beta ddof=1 vs Sharpe ddof=0** (`statistics.py:1379`): documented intentional convention
+  (engine docstring lines 15-17, "matching the committed record"); internally consistent OLS slope.
+- **Market-impact NaN** (`engine.py:673`): non-issue — `price_sym` is positive-finite or NaN (line
+  561 maps 0/non-finite→NaN); a NaN cell is skipped by pandas `sum`, identical to an explicit 0, no
+  `-W error` warning.
+- **Config `QTR_CACHE_DIR=true`** (`utils/config.py`): documented fail-closed fallback (boolean is a
+  listed unusable value), not a bug.
+
+All other candidates (pairwise-NaN alignment, insider `available_at` date, etc.) are in **frozen**
+code paths whose change would alter published H1–H199 numbers — explicitly out of scope. No source,
+test, runner, artifact, gate, workflow, H-ID, or inventory-marker change was made.
+
+### What I actually verified (fresh evidence this session)
+- Full-source audit above (read the actual code, not a baseline re-run).
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → **applies cleanly**.
+- `scripts/verify_hypothesis_inventory.py` → IN SYNC (H199 == H199, README H199);
+  `scripts/backtest_perf_regression_gate.py` → PASSED (0.771 s / 5 s).
+- Working tree clean; HEAD == origin/main (`498ba5e`); the only change is this block, left uncommitted.
+
+### Unresolved (maintainer/authorization only — out of agent scope)
+1. **Workflow contract patch — sole remaining red (7 `tests/test_gates_workflow.py` failures).**
+   Maintainer with `workflows`-scoped creds: `git apply patches/0001-gates-workflow-contract-fix.patch
+   && git commit -am "fix(ci): satisfy gates workflow contract" && git push origin main`. Do NOT
+   re-edit `gates.yml` in a commit (controller restores it; token lacks `workflows` scope); do NOT
+   weaken the contract test.
+2. **Equity cross-section program closure / new universe.** H1–H199 exhausted/rejected; a new H200
+   would repeat the rejected cross-section approach (rule 2). Authorize a different universe or
+   formally close the program (§6).
+3. **Reproducibility artifact cleanup (non-blocking).** Committed `.cache` data; deletion/move needs
+   explicit authorization.
+
+### Approaches already failed — do NOT repeat
+- Re-running the fast invariants / 750 s baseline as the deliverable (Cycles 257–296) — no new info.
+- Adding another guard test / reconciling a doc (Cycles ~274–296) — make-work.
+- Fabricating H200 or another 98-name / broad-universe cross-section — program complete through H199.
+- Editing `.github/workflows/**` in a commit — controller restores it; token lacks `workflows` scope.
+- **NEW: chasing the audit candidates above as "bugs"** — verified this cycle to be documented
+  conventions / false positives / frozen code. Do not re-open them without maintainer authorization
+  to change published numbers.
+
+### Precise next task
+No bounded, agent-executable *research* or *code* task remains that is not frozen, make-work, or
+authorization-gated. The single highest-value action is maintainer-only: apply
+`patches/0001-gates-workflow-contract-fix.patch` to `.github/workflows/gates.yml` on `origin/main`
+to clear the 7 `tests/test_gates_workflow.py` failures. Any further agent work requires one of the
+maintainer authorizations above.
+
+---
+
 ## AUTHORITATIVE STATUS — Cycle 296 (2026-11-25): short confirmation; no authorization; no agent-executable task; sole action maintainer-only
 
 No maintainer authorization this session, so per the Cycle 292 decision procedure the entire
