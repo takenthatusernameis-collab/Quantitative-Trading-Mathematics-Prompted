@@ -1,5 +1,47 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 304 (2026-11-25): broke the confirmation loop with one real, bounded, in-scope change (maintainer-patch header cleanup); full CI gate re-run green; sole remaining red is maintainer-only
+
+Cycles 274–303 were ~30 sessions of "verified, nothing to do" handoffs (rule 2 loop). This
+cycle made a **real, durable, in-scope change** instead of another marker block, and ran the
+**actual CI gate** the short-confirmation cycles skipped:
+
+- **Change (uncommitted, `patches/0001-gates-workflow-contract-fix.patch` only):** the patch
+  header had accumulated ~33 lines of contradictory stale evidence across cycles — nonexistent
+  commit hashes (`d542019`, `63813d7`), a false "full history is 6 empty-message commits" claim,
+  and two overlapping "Re-verified" blocks. Replaced with a concise, accurate header (what it
+  changes, why it is agent-unreachable, how to apply, how to re-verify). **The `diff --git` body
+  is byte-identical to HEAD** (verified: `diff <(git show HEAD:...) <(sed -n '/^diff --git/,$p')`
+  → identical), so the maintainer's `git apply` result is unchanged. `git apply --check` →
+  applies cleanly; `scripts/verify_gates_workflow_patch.py` → PATCH VERIFIED (resolves all 7).
+- **Strongest evidence the loop never produced — the real CI gate, full suite under `-W error`:**
+  `python -m pytest -q -W error --ignore=tests/test_gates_workflow.py` → **4968 passed, 51 skipped
+  in 458 s** (zero warnings-escape regressions). Plain full suite → 4968 passed. `ruff check` +
+  `ruff format --check src tests run_*.py scripts` → clean (397 files). `verify_hypothesis_inventory.py`
+  → IN SYNC (H199). `backtest_perf_regression_gate.py` → PASSED (0.425 s / 5 s).
+  `pytest tests/test_verify_gates_workflow_patch.py` → 15 passed. `tests/test_gates_workflow.py`
+  → 7 failed (the maintainer-gated `gates.yml` gaps, by design).
+- No change to `src/qtr`, any runner, any `.experiments` artifact, gate, workflow, frozen number,
+  H-ID, or inventory marker. The patch header edit is left uncommitted per the no-commit-without-
+  explicit-request policy.
+
+### Unresolved (maintainer/authorization only — out of agent scope)
+1. **Workflow contract patch — sole remaining red (7 `tests/test_gates_workflow.py` failures).**
+   Maintainer with `workflows`-scoped creds: `git apply patches/0001-gates-workflow-contract-fix.patch
+   && git commit -am "fix(ci): satisfy gates workflow contract" && git push origin main`. Do NOT
+   re-edit `gates.yml` in a commit (controller restores it; token lacks scope); do NOT weaken the test.
+2. **Equity cross-section program closure / new universe.** H1–H199 exhausted/rejected; a new H200
+   needs a genuinely-distinct mechanism + new-universe authorization (directive §2).
+
+### Precise next task
+Maintainer-only: apply `patches/0001-gates-workflow-contract-fix.patch` to clear the 7 failures
+(its header is now concise and its diff body is unchanged). Otherwise no further agent code/research
+task is in-scope (program complete through H199; `src/qtr` 100%-covered and frozen). Do NOT re-run
+the 750 s baseline, do NOT add more guards, do NOT fabricate H200 — that loop is closed. If deps are
+missing in a reset env, run `pip install -r requirements.txt` before any verification.
+
+---
+
 ## AUTHORITATIVE STATUS — Cycle 303 (2026-11-25): fresh reset env; re-proved the sole maintainer patch end-to-end against current HEAD; no agent-executable task; short handoff only
 
 This session started in a **fresh reset environment** (deps not installed; `numpy` missing). I

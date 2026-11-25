@@ -11,40 +11,17 @@ Apply (maintainer, with workflow scope):
   git commit -am "fix(ci): satisfy gates workflow contract"
   git push origin main
 
-Evidence (2026-11-13, Cycle 104): with this patch applied,
-tests/test_gates_workflow.py -> 7 passed (was 7 failed).
+What it changes in .github/workflows/gates.yml (the only file touched):
+  - add 'scripts/**' to the push and pull_request path filters;
+  - add `python -m pip install -e . --no-deps` to both jobs;
+  - add `scripts` to both ruff targets;
+  - add the backtest performance regression gate step to research_gates.
 
-Re-verified (2026-11-14, Cycle 106) in a clean /tmp checkout of this tree:
-`git apply --check` succeeds, the patched `.github/workflows/gates.yml`
-contains every required change (`scripts/**` in both path filters, `python -m
-pip install -e . --no-deps` in both jobs, `python -m ruff ... scripts` in both
-ruff steps, `python scripts/backtest_perf_regression_gate.py` in
-research_gates), and `pytest tests/test_gates_workflow.py` -> 7 passed.
-`scripts/backtest_perf_regression_gate.py` also runs green on this host
-(PERF GATE: 100 symbols x 252 bars -> 0.406s, limit 5s, PASSED). The patch
-still cannot be landed by the autonomous agent: the repo-scoped GitHub App
-token has no `workflows` permission and
-`.github/scripts/kilo-controller.sh` restores `.github/workflows/**` from
-`origin/main` after every session, so an in-tree workflow edit does not
-persist. The commit-hash reference above (HEAD d542019) is stale: that
-object does not exist in this repository (full history is 6 empty-message
-commits). The patch content is unchanged; only the evidence annotation was
-refreshed.
-
-**Re-verified (2026-11-14, Cycle 121) against the current `origin/main` (HEAD
-63813d7, after fast-forward from 7b30b7e):** `git apply --check` succeeds on the
-live tree, the patched `.github/workflows/gates.yml` contains every required
-change (`scripts/**` in both path filters, `python -m pip install -e . --no-deps`
-in both jobs, `python -m ruff ... scripts` in both ruff steps,
-`python scripts/backtest_perf_regression_gate.py` in `research_gates`), and
-`pytest tests/test_gates_workflow.py` -> **7 passed** (was 7 failed) in a clean
-throwaway checkout under `/tmp/wfverify`. `scripts/backtest_perf_regression_gate.py`
-also runs green on this host (PERF GATE PASSED). The patch still cannot be
-landed by the autonomous agent: the repo-scoped GitHub App token has no
-`workflows` permission and `.github/scripts/kilo-controller.sh` restores
-`.github/workflows/**` from `origin/main` after every session, so an in-tree
-workflow edit does not persist. The working tree at the base commit was left
-untouched by this verification (the patch was applied only in `/tmp/wfverify`).
+Verification (re-run with `python scripts/verify_gates_workflow_patch.py`):
+  the patch applies cleanly to the live gates.yml and resolves all 7 assertions
+  pinned by tests/test_gates_workflow.py (7 failed -> 7 passed). The script never
+  modifies the working tree; it applies the patch to a throwaway copy. Re-verify
+  after any change to gates.yml or the contract test.
 
 diff --git a/.github/workflows/gates.yml b/.github/workflows/gates.yml
 index a8126b8..1b72c9b 100644
