@@ -93,7 +93,8 @@ def test_artifact_summary_exists_and_verdict():
         import pytest
 
         pytest.skip("H200 artifact not yet generated")
-    summary = json.load(open(max(artifacts)))
+    with open(max(artifacts)) as handle:
+        summary = json.load(handle)
     assert summary["experiment"] == "nf_20261125_01_institutional_flow"
     assert summary["hypothesis"] == "H200"
     assert summary["verdict"] in {"ACCEPT", "REJECT"}

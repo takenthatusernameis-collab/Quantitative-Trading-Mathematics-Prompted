@@ -283,6 +283,15 @@ def test_probe_records_bad_cik_without_crashing(monkeypatch):
             "zero_position_filings": 0,
         }
 
+    # Keep the test hermetic: ``probe`` resolves the CIK->name map through
+    # ``load_cik_name_map``, which reads the (git-ignored, relative) cache file
+    # ``.cache/13f/institutional_ciks.json``. Depending on that ambient file
+    # makes the test order-dependent (it raises ``FileNotFoundError`` when the
+    # cache is absent). Patch the map to the bundled universe so the regression
+    # guard exercises only the bad-CIK handling under test.
+    monkeypatch.setattr(
+        module, "load_cik_name_map", lambda *args, **kwargs: dict(module.INSTITUTIONAL_CIKS)
+    )
     monkeypatch.setattr(module, "coverage_for_cik", fake_coverage_for_cik)
 
     # Use a CIK from the current INSTITUTIONAL_CIKS as the "good" CIK
