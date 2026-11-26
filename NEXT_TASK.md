@@ -1,12 +1,13 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 336 (2026-11-26): program CLOSED; both items maintainer-blocked. No agent-executable work.
+## AUTHORITATIVE STATUS — Cycle 337 (2026-11-26): program CLOSED; both items maintainer-blocked. No agent-executable work.
 
-First-hand verified this session (the only decision-gating fact — has authorization landed? — re-checked, nothing else re-measured):
-- `git status` clean; `origin/main...HEAD` → `0 0` (HEAD == origin/main, so prior full-suite evidence still applies to this exact tree).
-- Last 25 commit bodies are ALL empty control-markers (no `authoriz|H202|paid|consensus|maintainer|workflow` signal) → **no maintainer authorization landed**; not project progress.
-- `patches/` holds only `0001-gates-workflow-contract-fix.patch`; `git apply --check` → PATCH_APPLIES_CLEAN.
-- Full suite NOT re-run (make-work per Cycle 333/335 loop-breaking rule; tree unchanged). Prior evidence cited: Cycle 332 → 5029 passed / 51 skipped / 0 failed (`python -m pytest -q --ignore=tests/test_gates_workflow.py`); `verify_hypothesis_inventory.py` → IN SYNC (H201 == H201) per Cycle 333.
+This session verified first-hand (tree unchanged since Cycle 336; nothing re-measured):
+- `git status --porcelain` → empty (working tree clean).
+- `git log origin/main..HEAD --oneline` → empty (HEAD == origin/main; nothing unpushed/unpulled).
+- `git log --format='%H | %s' -25` → all 25 subjects empty control-markers (no `authoriz|H202|paid|consensus|maintainer|workflow` signal) → **no maintainer authorization landed**; not project progress.
+- `patches/0001-gates-workflow-contract-fix.patch`; `git apply --check` → PATCH_APPLIES_CLEAN.
+- Full suite NOT re-run (Cycle 336 loop-breaking rule; tree unchanged). Prior evidence cited: Cycle 332 → 5029 passed / 51 skipped / 0 failed (`python -m pytest -q --ignore=tests/test_gates_workflow.py`); `verify_hypothesis_inventory.py` → IN SYNC (H201 == H201).
 
 ## Unresolved (maintainer action required)
 1. **Workflow contract patch** — `patches/0001-gates-workflow-contract-fix.patch` applies cleanly; agent cannot land (`.github/workflows/**` controller-restored; token lacks `workflows` scope). Maintainer: `git apply patches/0001-gates-workflow-contract-fix.patch && git commit -am "fix(ci): satisfy gates workflow contract" && git push origin main`.
