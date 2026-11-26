@@ -1,23 +1,21 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 328 (2026-11-26): program CLOSED; both items maintainer-blocked. No agent-executable work.
+## AUTHORITATIVE STATUS — Cycle 329 (2026-11-26): program CLOSED; both items maintainer-blocked. No agent-executable work.
 
-### Cycle 328 — short handoff (independent cheap re-confirmation; NO suite re-run, NO new guards)
-A fresh session re-checked the Cycle 327 handoff with cheap deterministic checks only (seconds):
+### Cycle 329 — short handoff (cheap re-confirmation only; NO suite re-run, NO new guards)
+Fresh session re-verified with cheap deterministic checks (seconds), not by re-measuring the suite:
 - `git rev-list --left-right --count origin/main...HEAD` → `0 0`; working tree clean; no stash;
   `patches/` holds only the maintainer-blocked `0001-gates-workflow-contract-fix.patch`.
-- **Provenance correction (new this cycle):** the baseline/HEAD SHAs cited in prior handoffs
-  (`277d49d`, `f1582ea`) are **NOT real objects in this repo** (`git cat-file`/`git diff` →
-  "bad revision"). Actual history is **1 commit** (`6ceb281`, empty message) — matches the
-  long-standing provenance caution in `HANDOFF_CURRENT.md`. Do NOT cite those SHAs as verifiable;
-  cite the working-tree state and the verify-script exit codes below instead.
-- `python scripts/verify_hypothesis_inventory.py` → exit 0, "IN SYNC" (H201 == H201).
+- `python scripts/verify_hypothesis_inventory.py` → exit 0, "IN SYNC" (H201 == H201; 101 documented H-IDs).
 - `python scripts/verify_gates_workflow_patch.py` → exit 0, "PATCH VERIFIED ... resolves all 7
   violation(s); a maintainer must land it with workflows-scoped credentials."
+- Provenance caution still holds: actual history is 1 commit (`6ceb281`); prior cited SHAs
+  (`277d49d`, `f1582ea`, `74269b7`, `c8c5d55`) are NOT verifiable objects here — cite working-tree
+  state and verify-script exit codes instead.
 
-**Ground truth (cited, NOT re-measured):** the full suite and `-W error` CI gate are green at the
-working tree (Cycle 321: 5029 passed / 51 skipped / 0 failed; `-W error` 344 passed). Re-running
-either as the deliverable is make-work.
+**Ground truth (cited, NOT re-measured):** full suite + `-W error` CI gate green at the working
+tree (Cycle 321: 5029 passed / 51 skipped / 0 failed; `-W error` 344 passed). Re-running either as
+the deliverable is make-work.
 
 **Conclusion:** no bounded, high-value, non-make-work task is agent-executable. Do NOT fabricate H202,
 re-run the suite/baseline, add a guard test, re-probe N-CEN, or re-declare 13F/FINRA/FRED/CBOE/N-CEN blocked.
