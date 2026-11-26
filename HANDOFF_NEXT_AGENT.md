@@ -1,59 +1,29 @@
-# Handoff for Next Agent — Cycle 318 (2026-11-25)
+# Handoff for Next Agent — Program Closed, Both Items Maintainer-Blocked
 
-## Authoritative Status
-**Free-data equity/fund cross-section program formally CLOSED** (Cycle 313). Baseline confirmed green:
-- `test_runner_import_contract.py`: 316 passed (`-W error`)
-- `test_verify_hypothesis_inventory.py`: 28 passed (`-W error`)
-- `test_nf_20261122_04_size_premium.py` + `test_nf_20261125_01/02`: 39 passed (`-W error`)
-- `ruff check src tests run_*.py scripts`: **All checks passed**
-- `ruff format --check src tests run_*.py scripts`: **407 files already formatted**
-- Working tree clean, `src/qtr` unchanged
+## Authoritative Status (citing Cycle 321/322 evidence; no re-measurement)
+- **Free-data research program CLOSED** since Cycle 313. H1–H201 exhausted/rejected; H189 data-blocked.
+- **Full test suite green at baseline `277d49d` (Cycle 321):** 5029 passed, 51 skipped, 0 failed (756 s). `test_gates_workflow.py` red by design (maintainer-gated).
+- **CI `-W error` gate holds at `277d49d`:** 344 passed (Cycle-278 `google.protobuf` fix intact).
+- **Code byte-identical to green baseline:** `git diff --stat 277d49d..HEAD -- src tests run_*.py scripts` → empty. `origin/main...HEAD` → `0 0`. Working tree clean.
+- **Fast invariants clean:** ruff check/format, `verify_hypothesis_inventory.py` IN SYNC (H201==H201), `verify_gates_workflow_patch.py` exit 0 (patch resolves all 7 violations).
+- **Next unused H-ID: H202** — requires maintainer-authorized paid/consensus source (options chains, analyst revisions, macro consensus). Free-data frontier evidenced exhausted (N-CEN multi-exhibit path proven false premise; register Cycle 319).
 
-## Executed Record
-- **H1–H201 exhausted/rejected**; H189 data-blocked (gross profitability share overlap < 40 names)
-- H187–H201 median OOS Sharpe: **0.187**
-- Free-data sources probed and exhausted: SEC 13F, FINRA Reg SHO, FRED, SEC N-CEN (no Item C dollar flow), SEC N-PORT (holdings only), CBOE options (403)
-- Evidence in `.cache/remaining_family_sources.json` (gitignored)
+## Unresolved (maintainer action required — unchanged)
+1. **Workflow contract patch** — `patches/0001-gates-workflow-contract-fix.patch` applies cleanly; verification script exits 0. Agent cannot land: `.github/workflows/**` controller-restored; repo token lacks `workflows` scope. Maintainer action: `git apply patches/0001-gates-workflow-contract-fix.patch && git commit -am "fix(ci): satisfy gates workflow contract" && git push origin main`.
+2. **Paid/consensus source authorization for H202** — pending maintainer. No further free-data family search warranted (directive §2).
 
-## Two Blocked Items Awaiting Maintainer Action
+## Approaches already failed — do NOT repeat
+- Re-running full suite / fast invariants as deliverable; appending "verified, nothing to do" blocks; adding guard tests; reconciling docs — make-work.
+- Fabricating H202 or running another equity cross-section / discovery scan on exhausted universe.
+- Editing `.github/workflows/**` in a commit — controller-restored; token lacks `workflows` scope.
+- Re-declaring SEC 13F / FINRA / FRED / CBOE / N-CEN "data-blocked" without named-source probe (all probed). Do NOT re-attempt N-CEN "heavier multi-exhibit parser" — evidenced false premise (no data exhibit, no flow field).
+- Chasing `src/qtr` audit candidates as "bugs" — verified documented conventions / frozen numerical core.
 
-### 1. Workflow Contract Patch (agent-unreachable)
-- **Patch:** `patches/0001-gates-workflow-contract-fix.patch` — applies cleanly, resolves all 7 contract violations
-- **Verification:** `python scripts/verify_gates_workflow_patch.py` → "PATCH VERIFIED"
-- **Maintainer action required:**
-  ```bash
-  git apply patches/0001-gates-workflow-contract-fix.patch && git commit -am "fix(ci): satisfy gates workflow contract" && git push origin main
-  ```
-- Agent cannot land: `.github/workflows/**` is controller-restored; GitHub token lacks `workflows` scope
+## Next task (if/when maintainer authorization lands)
+- **If paid/consensus source authorized:** bump H-ID to H202 in `AGENTS.md` and `HYPOTHESIS_SPEC.md` (together per contract), open new family per `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 313/319, execute H202 on paid source.
+- **If not authorized:** free-data research frontier evidenced exhausted; confirm program remains closed.
 
-### 2. Paid/Consensus Source Authorization for H202
-- Next H-ID is **H202** (requires maintainer-authorized paid/consensus data source per `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 313)
-- Free frontier evidenced near-exhausted: no free source yields a bounded, distinct flow signal
-- Agent cannot authorize or purchase data
-
-## Approaches Already Failed — Do NOT Repeat
-- Re-running the 750 s baseline as deliverable
-- Adding more guards or reconciling docs (make-work)
-- Fabricating H202 or running another equity cross-section on exhausted universe (directive §2)
-- Editing `.github/workflows/**` in a commit (controller-restored)
-- Re-declaring 13F/FINRA/FRED/N-CEN "data-blocked" without named-source probe
-- Chasing `src/qtr` audit candidates as "bugs" (verified documented conventions)
-
-## Next Agent Task (Priority Order)
-
-**Wait for maintainer action on the two blocked items above, then:**
-
-1. **If paid/consensus source authorized:**
-   - Bump H-ID to **H202** in `AGENTS.md` and `HYPOTHESIS_SPEC.md` (bump together per AGENTS.md contract)
-   - Open the new family per `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 313
-   - Execute H202 on the paid source
-
-2. **If not authorized:**
-   - Confirm the free-data equity/fund cross-section program remains closed
-   - No further free-data cross-sections (directive §2 forbids H187–H198 re-tests and universe/parameter variants)
-
-**Do NOT:** re-run the 750 s baseline, add more guards, re-declare 13F/FINRA/FRED/N-CEN blocked, fabricate H202.
+## Loop-breaking instruction (final)
+The "re-verify invariants + re-declare closure" cycle has run through Cycle 327 and is itself the make-work failure mode. **Do NOT repeat it.** The full suite is green (5029 passed) and the `-W error` CI gate passes at `277d49d` — re-running either as the deliverable is explicitly make-work. If no maintainer authorization has landed by the time the next agent runs, the correct action is a SHORT handoff that (a) states the program is closed, (b) cites the Cycle 321/322 full-suite evidence rather than re-measuring, and (c) **stops** — do not add guards, do not re-probe, do not fabricate H202.
 
 ---
-
-*All verification evidence captured above. Working tree clean. `src/qtr` unchanged.*
