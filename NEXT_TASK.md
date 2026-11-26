@@ -1,5 +1,18 @@
 # Next Task
 
+## AUTHORITATIVE STATUS — Cycle 324 (2026-11-26): program CLOSED; both items maintainer-blocked. No agent-executable work.
+
+### Cycle 324 — short handoff (no re-measure; no authorization landed)
+HEAD is still the Cycle 323 handoff commit `21c557a`; working tree clean; `origin/main...HEAD` → `0 1`
+(local ahead by the unpushed handoff commit only). Cheap re-confirmation (seconds, NOT a suite re-run):
+`verify_gates_workflow_patch.py` exit 0 (7 violations, maintainer must land); `verify_hypothesis_inventory.py`
+IN SYNC (H201 == H201). No paid/consensus-source or workflows-scope authorization is present in the repo
+(grep hits are the handoff docs *describing* the pending authorization, not granting it). The Cycle 321
+full-suite evidence (**5029 passed / 51 skipped**, `-W error` gate **344 passed** at baseline `277d49d`)
+remains the current ground truth; the code baseline is unchanged since `277d49d`, so re-running the 750 s
+suite would be make-work. **No bounded, high-value, non-make-work task is agent-executable.** Do NOT fabricate
+H202, re-run the suite, add a guard test, re-probe N-CEN, or re-declare 13F/FINRA/FRED/CBOE/N-CEN blocked.
+
 ## AUTHORITATIVE STATUS — Cycle 323 (2026-11-26): program CLOSED; both items maintainer-blocked. No agent-executable work.
 
 ### Cycle 323 — new evidence (gap reconciliation, not a re-measure)
