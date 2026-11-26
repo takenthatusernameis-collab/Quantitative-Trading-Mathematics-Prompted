@@ -20,6 +20,14 @@ exploration:
   * SEC Form N-CEN (fund share flows, Item C)              -- fund-flow family.
   * SEC Form N-PORT (monthly fund holdings)                -- fund-holdings family.
 
+For N-CEN the probe enumerates *every* document in the filing directory (via the
+filing ``index.json``) and scans *all* XML exhibits -- not just ``primary_doc.xml``
+-- for shareholder-flow fields.  This settles the "heavier multi-exhibit parser"
+question with evidence: an N-CEN filing is a structural census (series/classes,
+shares outstanding, custodians, transfer agents, securities lending); it carries no
+shareholder sales/redemptions flow item and no additional data exhibit, so the
+fund-flow family is not free-sourceable from N-CEN (see ``N_CEN_FLOW_FINDING``).
+
 It is read-only: it downloads to memory and writes only a JSON report (stdout, or
 ``--out``). It touches no experiment artifact, no ``src/qtr``, no gate. The
 default report path is under ``.cache/`` (git-ignored) so the probe is
@@ -86,14 +94,34 @@ FUND_TRUST_CIKS = {
 }
 
 # N-CEN Item C "net asset flow" tag names (shareholder sales/redemptions). If
-# none appear in the primary document, the flow signal is not bounded-parseable
-# from that document alone (the deferred hard part).
+# none appear in *any* XML exhibit of the filing, the shareholder-flow signal is
+# not sourceable from that filing.  These are the canonical N-CEN flow field
+# names; the probe confirms empirically that no N-CEN exhibit carries them.
 NCEN_FLOW_TAGS = (
     "netAssetFlow",
     "NetAssetFlow",
     "monthlyNetAssetFlow",
     "totalRedemptions",
     "totalSales",
+    "monthlySales",
+    "monthlyRedemptions",
+    "shareholderFlow",
+)
+
+# Durable finding (Cycles 311/313/319): the "heavier multi-exhibit parser" path
+# (handoff option (a)) rests on a false premise.  Empirically -- across BlackRock
+# Funds (0001137360) and Vanguard World Fund (0000036405) N-CEN filings -- the
+# filing directory holds only ``primary_doc.xml`` plus index/header/htm files
+# (no additional data exhibit), and ``primary_doc.xml`` contains none of the
+# shareholder-flow tags above.  The only purchase/sale-like tags are ETF
+# creation/redemption *units* (in-kind baskets) and broker-dealer *principal*
+# transactions (securities lending) -- neither is a shareholder flow.  N-CEN is a
+# structural census, so the fund-flow family is not free-sourceable from it.
+N_CEN_FLOW_FINDING = (
+    "N-CEN is a structural census: the filing directory carries no additional "
+    "data exhibit beyond primary_doc.xml, and no exhibit contains shareholder "
+    "sales/redemptions flow fields. The 'heavier multi-exhibit parser' path is a "
+    "false premise; the fund-flow family is not free-sourceable from N-CEN."
 )
 
 
@@ -232,8 +260,40 @@ def _recent_filings(submissions: dict) -> dict:
     return submissions.get("filings", {}).get("recent", {})
 
 
+def list_filing_documents(cik, accession: str, get=http_get) -> list[str]:
+    """Names of every document in a filing directory, from its ``index.json``.
+
+    The index is fetched with the same document-URL builder used for the primary
+    document (``index.json`` lives beside ``primary_doc.xml``).  Returns an empty
+    list if the index is missing or malformed -- the caller treats that as "no
+    additional exhibits enumerable", not a crash.
+    """
+    try:
+        raw = get(filing_document_url(cik, accession, "index.json")).decode("utf-8", "replace")
+        index = json.loads(raw)
+    except Exception:  # noqa: BLE001 - probe: report, keep going
+        return []
+    items = index.get("directory", {}).get("item", []) if isinstance(index, dict) else []
+    return [
+        str(item.get("name", "")) for item in items if isinstance(item, dict) and item.get("name")
+    ]
+
+
+def _scan_flow_in_xml(xml_text: str) -> bool:
+    """True if any shareholder-flow tag appears in ``xml_text``."""
+    return any(tag in xml_text for tag in NCEN_FLOW_TAGS)
+
+
 def probe_sec_ncen(ciks=None, get=http_get) -> dict:
-    """Probe SEC N-CEN reachability + bounded metadata parse per fund trust."""
+    """Probe SEC N-CEN reachability + multi-exhibit shareholder-flow scan.
+
+    For each fund trust the probe resolves the latest N-CEN filing, enumerates
+    every document in the filing directory, scans *all* ``.xml`` exhibits for
+    shareholder-flow fields, and parses the primary document for bounded
+    metadata.  ``flow_present`` is True only if a flow tag appears in *some*
+    exhibit; ``documents`` records the full exhibit list so the negative result
+    is auditable (it shows there is no additional data exhibit to parse).
+    """
     ciks = dict(ciks if ciks is not None else FUND_TRUST_CIKS)
     per_cik = []
     for cik, name in ciks.items():
@@ -247,10 +307,23 @@ def probe_sec_ncen(ciks=None, get=http_get) -> dict:
                 continue
             record["accession"] = filing["accession"]
             record["acceptance_datetime"] = filing["acceptance_datetime"]
-            raw = get(filing_document_url(cik, filing["accession"], "primary_doc.xml"))
-            parsed = parse_ncen_primary_doc(raw.decode("utf-8", "replace"))
-            record.update(parsed)
-            record["reachable"] = bool(parsed.get("parseable"))
+            documents = list_filing_documents(cik, filing["accession"], get=get)
+            record["documents"] = documents
+            xml_docs = [doc for doc in documents if doc.lower().endswith(".xml")]
+            record["n_xml_documents"] = len(xml_docs)
+            primary_parsed: dict = {}
+            flow_present = False
+            for doc in xml_docs:
+                text = get(filing_document_url(cik, filing["accession"], doc)).decode(
+                    "utf-8", "replace"
+                )
+                if doc == "primary_doc.xml":
+                    primary_parsed = parse_ncen_primary_doc(text)
+                if _scan_flow_in_xml(text):
+                    flow_present = True
+            record.update(primary_parsed or {"parseable": False})
+            record["flow_present"] = flow_present
+            record["reachable"] = bool(primary_parsed.get("parseable"))
         except Exception as error:  # noqa: BLE001 - probe: report, keep going
             record["error"] = type(error).__name__
         per_cik.append(record)
@@ -263,10 +336,7 @@ def probe_sec_ncen(ciks=None, get=http_get) -> dict:
         "reachable": reachable,
         "flow_bounded": flow_bounded,
         "note": (
-            "N-CEN reachable and PIT-dated (acceptanceDateTime), but the Item C "
-            "shareholder net-asset-flow signal is not present in the bounded "
-            "primary_doc.xml; extracting it requires heavier multi-exhibit parsing "
-            "(the deferred hard part)."
+            N_CEN_FLOW_FINDING
             if reachable and not flow_bounded
             else "N-CEN reachable; flow presence varies by filer."
         ),

@@ -129,8 +129,10 @@ def _ncen_submissions(cik):
 
 def test_probe_sec_ncen_reports_metadata_and_flow_absent():
     ncen_xml = b"<edgarSubmission><totalSeries>71</totalSeries></edgarSubmission>"
+    index = json.dumps({"directory": {"item": [{"name": "primary_doc.xml"}]}}).encode()
     mapping = {
         "submissions/CIK": _ncen_submissions("0001137360"),
+        "index.json": index,
         "primary_doc.xml": ncen_xml,
     }
     report = probe.probe_sec_ncen(
@@ -140,6 +142,43 @@ def test_probe_sec_ncen_reports_metadata_and_flow_absent():
     assert report["flow_bounded"] is False
     assert report["per_cik"][0]["total_series"] == "71"
     assert report["per_cik"][0]["acceptance_datetime"] == "2026-07-08T18:09:06.000Z"
+    assert report["per_cik"][0]["documents"] == ["primary_doc.xml"]
+    assert report["per_cik"][0]["n_xml_documents"] == 1
+    assert "structural census" in report["note"]
+
+
+def test_list_filing_documents_parses_index():
+    index = json.dumps(
+        {"directory": {"item": [{"name": "primary_doc.xml"}, {"name": "a.htm"}, {"name": ""}]}}
+    ).encode()
+    docs = probe.list_filing_documents(
+        "0001137360", "0001410368-26-069245", get=_fake_get_bytes({"index.json": index})
+    )
+    assert docs == ["primary_doc.xml", "a.htm"]
+
+
+def test_list_filing_documents_empty_on_error():
+    docs = probe.list_filing_documents(
+        "0001137360", "0001410368-26-069245", get=_fake_get_bytes({"index.json": TimeoutError()})
+    )
+    assert docs == []
+
+
+def test_probe_sec_ncen_detects_flow_in_secondary_exhibit():
+    index = json.dumps(
+        {"directory": {"item": [{"name": "primary_doc.xml"}, {"name": "exhibit_flow.xml"}]}}
+    ).encode()
+    mapping = {
+        "submissions/CIK": _ncen_submissions("0001137360"),
+        "index.json": index,
+        "primary_doc.xml": b"<edgarSubmission><totalSeries>3</totalSeries></edgarSubmission>",
+        "exhibit_flow.xml": b"<x><monthlySales>42</monthlySales></x>",
+    }
+    report = probe.probe_sec_ncen(ciks={"0001137360": "X"}, get=_fake_get_bytes(mapping))
+    assert report["flow_bounded"] is True
+    assert report["per_cik"][0]["flow_present"] is True
+    assert report["per_cik"][0]["n_xml_documents"] == 2
+    assert report["per_cik"][0]["documents"] == ["primary_doc.xml", "exhibit_flow.xml"]
 
 
 def test_probe_sec_ncen_no_filing_is_not_reachable():
@@ -163,6 +202,7 @@ def test_probe_sec_nport_reachable():
 def test_probe_aggregates_any_reachable():
     mapping = {
         "submissions/CIK": _ncen_submissions("0001137360"),
+        "index.json": json.dumps({"directory": {"item": [{"name": "primary_doc.xml"}]}}).encode(),
         "primary_doc.xml": b"<edgarSubmission><totalSeries>1</totalSeries></edgarSubmission>",
         "fredgraph": b"observation_date,T10YIE\n2020-01-01,1.0\n",
     }
