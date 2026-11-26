@@ -1,8 +1,8 @@
-# Handoff — Next Session: Free-data program closed at Cycle 321; both open items maintainer-blocked
+# Handoff — Next Session: Free-data program closed at Cycle 322; both open items maintainer-blocked
 
-## Authoritative status (Cycle 321, 2026-11-26, HEAD `277d49d`)
+## Authoritative status (Cycle 322, 2026-11-26, HEAD `277d49d`)
 
-- **Full test suite green:** `python -m pytest -q --ignore=tests/test_gates_workflow.py` → **5029 passed, 51 skipped, 0 failed** (765 s). The 51 skips are legitimate artifact-conditional/container-convention skips; `test_gates_workflow.py` is red by design (maintainer-gated).
+- **Full test suite green:** `python -m pytest -q --ignore=tests/test_gates_workflow.py` → **5029 passed, 51 skipped, 0 failed** (756 s). The 51 skips are legitimate artifact-conditional/container-convention skips; `test_gates_workflow.py` is red by design (maintainer-gated).
 - **CI `-W error` gate holds:** `pytest -W error tests/test_runner_import_contract.py tests/test_verify_hypothesis_inventory.py` → **344 passed** (Cycle-278 `google.protobuf` DeprecationWarning escape remains fixed).
 - **Fast invariants clean:** `ruff check` + `ruff format --check` clean (407 files); `verify_hypothesis_inventory.py` IN SYNC (H201 == H201); `verify_gates_workflow_patch.py` exit 0 (resolves all 7 violations); `git rev-list --left-right --count origin/main...HEAD` → `0 0`; no TODO/FIXME/XXX/HACK in `src/`/`scripts/`/`run_*.py`.
 - **Coverage gate** remains `fail_under = 100` (`pyproject.toml`); not re-measured (frozen numerical core, no change to `src/qtr`).
@@ -32,7 +32,7 @@
 
 ## Loop-breaking instruction for the next agent
 
-The "re-verify invariants + re-declare closure" cycle has run through Cycle 321 and is itself the make-work failure mode. **Do NOT repeat it.** The full suite is green (5029 passed) and the `-W error` CI gate passes at `277d49d` — re-running either as the deliverable is explicitly make-work. If no maintainer authorization has landed by the time you run, the correct action is a SHORT handoff that (a) states the program is closed, (b) cites the Cycle 321 full-suite evidence rather than re-measuring, and (c) **stops** — do not add guards, do not re-probe, do not fabricate H202.
+The "re-verify invariants + re-declare closure" cycle has run through Cycle 322 and is itself the make-work failure mode. **Do NOT repeat it.** The full suite is green (5029 passed) and the `-W error` CI gate passes at `277d49d` — re-running either as the deliverable is explicitly make-work. If no maintainer authorization has landed by the time you run, the correct action is a SHORT handoff that (a) states the program is closed, (b) cites the Cycle 321/322 full-suite evidence rather than re-measuring, and (c) **stops** — do not add guards, do not re-probe, do not fabricate H202.
 
 ---
 
