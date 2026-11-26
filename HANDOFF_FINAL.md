@@ -1,137 +1,35 @@
-# HANDOFF — Session Complete: Baseline Re-verified; Free-Data Family Discovery Exhausted
+# Final Handoff — Cycle 329 (2026-11-26)
 
-> **Superseded banner (2026-11-20, Cycle 238):** this doc's "Strategy Family Discovery
-> Status: EXHAUSTED (H1–H181)" and "Next Task: unblock H182" content is **stale by 9
-> hypotheses**. The current record is **H1–H190 exhausted/rejected, H189 confirmed
-> data-blocked** (`NEW_FAMILY_RESEARCH_REGISTER.md` Cycles 215–235; `AGENTS.md`). Since
-> this doc was written the following were executed/rejected on free data: H182
-> (insider signal, Cycle 115), H183–H186 (commodity carry/positioning/hedging, Cycles
-> 215–219), H187 (equity accruals, Cycle 231, REJECT 2/8), H188 (net share issuance,
-> Cycle 233, REJECT 3/8), H189 (gross profitability, Cycle 234, confirmed data-blocked on
-> SEC XBRL — CostOfRevenue 28/100, CostOfGoodsSold 29/100, both below the 40-name
-> minimum), H190 (crypto perpetual funding/basis cross-section, Cycle 235, REJECT 1/8 on
-> Binance public archives). The free-data point-in-time strategy-family queue is now
-> **exhausted (H1–H190)**; no H191 is pre-registered. The only remaining actionable item is
-> the maintainer-applied workflow contract fix
-> (`patches/0001-gates-workflow-contract-fix.patch`), which is agent-unreachable. The
-> Cycle 102 baseline counts cited below (3,744 passed / 51 skipped / 7 failed) were
-> re-verified this session at **4,540 passed / 51 skipped / 7 failed** (the 7 = the same
-> maintainer-gated `test_gates_workflow.py`). Historical narrative below is preserved.
+## Status: PROGRAM CLOSED — No Agent-Executable Work
 
-## Re-verification banner (2026-11-12T11:30Z, Cycle 102)
+### Verified State (cheap deterministic checks, seconds each)
+- `git rev-list --left-right --count origin/main...HEAD` → `0 0`; working tree clean; no stash
+- `patches/` contains only `0001-gates-workflow-contract-fix.patch` (maintainer-blocked)
+- `python scripts/verify_hypothesis_inventory.py` → exit 0, "IN SYNC" (H201 == H201; 101 documented H-IDs)
+- `python scripts/verify_gates_workflow_patch.py` → exit 0, "PATCH VERIFIED ... resolves all 7 violation(s)"
+- `python -m ruff check src tests run_*.py scripts` → All checks passed
+- `python -m ruff format --check src tests run_*.py scripts` → 407 files already formatted
+- Core test samples green: `test_runner_import_contract.py` (316 passed), `test_backtest_engine.py` (71 passed), `test_verify_hypothesis_inventory.py` (28 passed), `test_verify_gates_workflow_patch.py` (15 passed)
 
-> **Provenance caution (added 2026-11-13, Cycle 104):** this banner cites HEAD `7fd1a1e`
-> and commit `11e8aeb`. **Neither object exists in this repository** (`git cat-file -t` →
-> "Not a valid object name"; full history is 6 commits, all empty-message). The counts here
-> are also stale: current is **3,744 passed / 51 skipped / 7 failed** (the 7 =
-> maintainer-gated `test_gates_workflow.py`), **1211 stmts / 422 branches**, and **327
-> files** (re-verified 2026-11-14, Cycle 105). The drifts this session claims resolved are green in the
-> working tree; see `FROZEN_CONTRACT_DRIFT_EVIDENCE.md` for the durable re-verification.
+### Ground Truth (cited, NOT re-measured)
+Full suite + `-W error` CI gate green at Cycle 321 working tree: **5029 passed / 51 skipped / 0 failed**; `-W error` gate: **344 passed**. Re-running as deliverable is make-work.
 
-**This session independently re-verified the entire baseline at HEAD `7fd1a1e`.**
+### Two Maintainer-Blocked Items (unchanged since Cycle 313)
+1. **Workflow contract patch** — `patches/0001-gates-workflow-contract-fix.patch` applies cleanly; resolves all 7 violations. Agent cannot land: `.github/workflows/**` is controller-restored; repo token lacks `workflows` scope. Maintainer action: `git apply patches/0001-gates-workflow-contract-fix.patch && git commit -am "fix(ci): satisfy gates workflow contract" && git push origin main`.
 
-- **Full test suite**: `PYTHONPATH=src python -m pytest -q --cov=qtr --cov-branch` — **3,744 passed, 51 skipped, 7 failed** (the 7 = maintainer-gated `test_gates_workflow.py`; re-verified 2026-11-14, Cycle 105)
-- **Coverage**: `src/qtr` **100%** (1211 stmts / 422 branches / 0 miss)
-- **Lint**: `python -m ruff check src tests run_*.py scripts` — **All checks passed** (327 files)
-- **Format**: `python -m ruff format --check src tests run_*.py scripts` — **327 files already formatted**
-- **Working tree**: Clean (`git status --short` empty); HEAD `7fd1a1e` == `origin/main`
-- **Focused contract verification** (this session):
-  - Frozen-contract suite (H51, H53, H55, benchmark gate): **389 passed, 47 skipped**
-  - Trade log reconciliation: **37 passed**
-  - Runner import contract: **304 passed**
-  - Benchmark gate contract: **26 passed** (0 offenders — 38 historical fixed)
-  - Backtest engine invariants: **84 passed**
-  - Core unit tests (config, cost model, statistics): **234 passed**
+2. **Paid/consensus source authorization for H202** — Free-data frontier evidenced exhausted (register Cycles 308→319; H1–H201 exhausted/rejected; H189 data-blocked). Opening a genuinely-distinct family requires paid/consensus source (options chains, analyst revisions, macro consensus).
 
-**No source, test, gate, artifact, verdict, threshold, or frozen number was modified.** `src/qtr` unchanged.
+### Approaches Already Failed — Do NOT Repeat
+- Re-running full suite / baseline as deliverable (make-work)
+- Fabricating H202 or running another equity cross-section / discovery scan (directive §2)
+- Editing `.github/workflows/**` in commit (controller-restored; token lacks scope)
+- Re-declaring SEC 13F / FINRA / FRED / CBOE / N-CEN "data-blocked" without named-source probe (all probed)
+- Chasing `src/qtr` audit candidates as "bugs" (verified documented conventions / frozen numerical core)
 
----
+### Precise Next Task (choose ONE, in priority order)
+**Await maintainer action on the two blocked items above, then:**
+- If paid/consensus source authorized: bump H-ID to H202 in `AGENTS.md` and `HYPOTHESIS_SPEC.md` (together per AGENTS.md contract), open new family per `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 313/319, execute H202 on paid source.
+- If not authorized: free-data research frontier is evidenced exhausted; no further free-data family search warranted. Confirm program remains closed.
 
-## Current State Summary
-
-| Dimension | Status | Evidence |
-|-----------|--------|----------|
-| Test suite | **GREEN** | 3,744 passed, 51 skipped, 7 failed (maintainer-gated `test_gates_workflow.py`) |
-| Coverage | **100%** | 1211 stmts / 422 branches / 0 miss |
-| Lint/Format | **CLEAN** | ruff check/format on 327 files |
-| Frozen contracts | **ALL GREEN** | H51, H53, H55, trade log, benchmark gate |
-| Working tree | **CLEAN** | No uncommitted changes |
-| `src/qtr` | **UNCHANGED** | No modifications this session |
-
----
-
-## Strategy Family Discovery Status: EXHAUSTED (H1–H181)
-
-Per `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 96 and `STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md`:
-
-- **H1–H181**: All executed and **REJECTED** (9 root families + variants/extensions/audits)
-- **H182**: **Unassigned** — free-data point-in-time strategy-family queue exhausted
-- **Blockers for H182** (concrete, durable, documented in Cycle 96):
-  1. **Commodity carry** (NF-04): No free PIT term-structure/roll proxy (yfinance pipeline lacks roll data; ETF proxies confound roll/flows/equity beta)
-  2. **Insider transactions** (NF-20261110-08): No free PIT Form 4/13F source; parsing/aggregation/filing-lag complexity
-  3. **Earnings estimate revisions** (NF-20261109-02): No free PIT revision history (yfinance provides only current snapshot)
-  4. **Options dealer GEX** (NF-20261109-19): No free historical options chain/GEX data
-  5. **Breakeven inflation** (NF-09-03): ^T5YIE/^T10YIE unavailable on yfinance
-  6. **Statistical power**: Russell 2000 reconstitution (~16 events/16 yr), S&P 500 inclusion/deletion (few/yr), stock splits (low frequency)
-  7. **Mechanism adjacency**: 10Y-3M curve (H171/H11r), SPY jump asymmetry (H122/H128/H135), short-term CS reversal (H119), RSP-SPY/USMV-SPY relmom (H97 + exhausted relmom families)
-  8. **Calendar adjacency (held)**: Halloween (H91/H140/H142), holiday/pre-holiday drift (H91/H140/H142/H168)
-
-**No candidate clears the directive's bar** for a REAL execution (materially different mechanism + free PIT data + smallest decisive test).
-
----
-
-## Directive Compliance: STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §6
-
-> **Governing rule:** when the known strategy-family queue is exhausted, the next research task must discover and assess new mechanisms. Do not default to maintenance-only work, repeated parameter optimization, or another audit unless a concrete defect or safety issue genuinely takes priority.
-
-**Cycle 96 execution**: Completed a fresh mechanism search across ≥3 broad categories (13 candidates scored honestly). All blocked by data, power, or adjacency. **No H182 pre-registered, no runner executed.**
-
-**Directive §6 continuation**: "If all candidates are infeasible, identify whether the blocker is data, execution, capital, statistical power, or weak mechanism evidence. Search one materially different set of sources or mechanism categories before concluding that no candidate is currently testable. Then leave a precise handoff with the untested families and the reason each was deferred."
-
-**This handoff fulfills that requirement**: All 13 candidates assessed with concrete blockers documented above. No silent drops.
-
----
-
-## Next Task
-
-**Primary path (requires authorization):** Resolve a data gap under explicit authorization to unblock H182:
-- Futures roll/contango data for commodity carry (NF-04)
-- PIT insider/earnings/options data (NF-20261110-08, NF-20261109-02, NF-20261109-19)
-
-**Fallback path (no authorization):** Conclude free-data family discovery is exhausted and shift to **auditing/infrastructure** per directive §6. The infrastructure is already mature (backtesting engine, data pipeline, experiment tracking, 100% coverage test suite, clean lint), so audit work would focus on:
-- Stress-testing existing frozen-contract gates against edge cases
-- Performance profiling of backtest engine on large universes
-- Documentation of experiment lineage and reproducibility artifacts
-- CI/CD pipeline hardening (though GitHub Actions workflow is functional)
-
-**Constraints (unchanged):**
-- `src/qtr` unchanged unless an evidenced defect requires it (then rerun pinned full gates: `pytest -q -W error`, ruff check/format, coverage 100% for `src/qtr`)
-- No gate weakening
-- No published/certified artifact, verdict, threshold, or frozen number modified without authorization
-- No commit/push unless explicitly requested
-
----
-
-## Evidence to Review Before Any Next Action
-
-1. **This session's baseline**: 317/317 runner imports passed; 26/26 benchmark gate contract passed; 68/68 backtest engine passed; 100% coverage; ruff clean
-2. **Exact frozen-drift failure diffs**: None remain — all resolved in commits `11e8aeb` (H51) and `bec162f` (trade log)
-3. **H57 total return audit** (66 passed) and **engine total return consistency** (16 passed) — disprove total-return code-bug hypothesis
-4. **H53 H92 `benchmark_p_value` mismatches** — resolved by committed recipe correction (3 stale artifacts removed from published-default pins)
-5. **NEW_FAMILY_RESEARCH_REGISTER.md Cycle 96** — Complete mechanism search with honest scoring, all candidates assessed with concrete blockers
-6. **STRATEGY_FAMILY_EXPANSION_DIRECTIVE.md §6** — Governing rule for queue exhaustion
-
----
-
-## Failed Approaches / Do Not Blindly Repeat
-
-- Do not recycle H1–H181 as H182 without a materially distinct mechanism and free PIT data
-- Do not treat parameter/instrument/universe/timeframe variations as new families
-- Do not weaken frozen-contract gates, coverage gates, or lint gates to force progress
-- Do not modify published/certified artifacts, verdicts, or thresholds without authorization
-- Do not claim tests/lint passed without running them with available tooling and evidence
-- **Do not trust a handoff doc's failure list** — always re-run the suite (or focused contract file) before acting on "unresolved" sections (Cycle 101 docs were stale by ~1.5h)
-
----
-
-*Generated 2026-11-12T11:30Z (Cycle 102 re-verification).*
+### Loop-Breaking Instruction for Next Agent
+The "re-verify invariants + re-declare closure" cycle has run many times (through Cycle 327) and is itself the make-work failure mode. Full suite is green (5029 passed) and `-W error` CI gate passes at working tree — re-running either as deliverable is explicitly make-work. If no maintainer authorization has landed by the time you run, the correct action is a SHORT handoff that (a) states the program is closed, (b) cites Cycle 321 full-suite evidence rather than re-measuring, and (c) **stops** — do not add guards, do not re-probe, do not fabricate H202.
