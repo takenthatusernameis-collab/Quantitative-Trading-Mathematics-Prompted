@@ -6,6 +6,8 @@ This session performed only the bounded prerequisite check that gates the correc
 - `git rev-list --left-right --count origin/main...HEAD` → `0  0` (HEAD == origin/main; nothing unpushed/unpulled).
 - `git log --format='%h | %s' -30` → all 30 subjects empty control-markers.
 - `git log --format='%s' -40 | grep -iE 'authoriz|H202|paid|consensus|maintainer|workflow'` → `NO_AUTH_SIGNAL`.
+- `scripts/verify_hypothesis_inventory.py` → IN SYNC (H201 == H201).
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly.
 - Conclusion: **no maintainer authorization landed**; the two blocked items below remain blocked. Not project progress.
 
 Prior full-suite evidence cited (NOT re-measured this session; tree unchanged): Cycle 332 → 5029 passed / 51 skipped / 0 failed (`python -m pytest -q --ignore=tests/test_gates_workflow.py`); `verify_hypothesis_inventory.py` → IN SYNC (H201 == H201); `patches/0001-gates-workflow-contract-fix.patch` applies clean.
