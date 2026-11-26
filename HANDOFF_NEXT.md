@@ -1,10 +1,10 @@
 # Handoff — Next Session: Program Closed, Both Items Maintainer-Blocked
 
-## Authoritative Status — Cycle 366 (2026-11-26)
+## Authoritative Status — Cycle 367 (2026-11-26)
 
 **Free-data equity/fund cross-section program CLOSED.** H1–H201 exhausted/rejected; H189 data-blocked. Next H-ID (H202) requires maintainer-authorized paid/consensus data source (`NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 313/319).
 
-**No agent-executable work.** Tree clean (`git status --porcelain` empty), HEAD == origin/main (`git rev-list --left-right --count origin/main...HEAD` → `0 0`), hypothesis inventory IN SYNC (`scripts/verify_hypothesis_inventory.py`).
+**No agent-executable work.** Tree clean (`git status --porcelain` empty), HEAD == origin/main (`git rev-list --left-right --count origin/main...HEAD` → `0 0`), hypothesis inventory IN SYNC (`scripts/verify_hypothesis_inventory.py` → H201 == H201), workflow contract patch `patches/0001-gates-workflow-contract-fix.patch` applies cleanly (`git apply --check` OK).
 
 Prior full-suite evidence (tree unchanged since Cycle 332): **5029 passed / 51 skipped / 0 failed** (`python -m pytest -q --ignore=tests/test_gates_workflow.py`).
 
