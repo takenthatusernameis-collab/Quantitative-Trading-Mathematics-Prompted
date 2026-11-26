@@ -1,11 +1,10 @@
 # Handoff for Next Agent — Program Closed, Both Items Maintainer-Blocked
 
-## Authoritative Status (Cycle 351, 2026-11-26; no suite re-run, no re-probe)
+## Authoritative Status (Cycle 352, 2026-11-26; no suite re-run, no re-probe)
 
 - **Free-data research program CLOSED** since Cycle 313. H1–H201 exhausted/rejected; H189 data-blocked. Next unused H-ID: H202 (requires maintainer-authorized paid/consensus source; see `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 313/319).
-- **Tree byte-identical to green baseline:** `git status --porcelain` → empty; `git rev-list --left-right --count origin/main...HEAD` → `0  0` (HEAD == origin/main); last-40 commit subjects grep `authoriz|H202|paid|consensus|maintainer|workflow` → `NO_AUTH_SIGNAL`.
-- **Fast invariants clean (bounded check only):** `scripts/verify_hypothesis_inventory.py` → IN SYNC (H201 == H201); `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly.
-- **Prior full-suite evidence (cited, NOT re-measured):** Cycle 332 → 5029 passed / 51 skipped / 0 failed (`python -m pytest -q --ignore=tests/test_gates_workflow.py`).
+- **First-hand this session:** `git status --porcelain` → empty; `git rev-list --left-right --count origin/main...HEAD` → `0  0` (HEAD == origin/main); `scripts/verify_hypothesis_inventory.py` → IN SYNC (H201 == H201); `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly; last-40 commit subjects grep `authoriz|H202|paid|consensus|maintainer|workflow` → `NO_AUTH_SIGNAL`. No maintainer authorization landed.
+- **Prior full-suite evidence (cited, NOT re-measured; tree unchanged):** Cycle 332 → 5029 passed / 51 skipped / 0 failed (`python -m pytest -q --ignore=tests/test_gates_workflow.py`).
 
 ## Unresolved (maintainer action required — unchanged)
 
@@ -22,6 +21,6 @@
 
 ## Loop-breaking instruction (final)
 
-The "re-verify invariants + re-declare closure" cycle has run through Cycle 350 and is the make-work failure mode. **Do NOT repeat it.** If no maintainer authorization has landed by the time the next agent runs, the correct action is a SHORT handoff that (a) states the program is closed, (b) cites prior full-suite evidence rather than re-measuring, and (c) **stops** — do not add guards, do not re-probe, do not fabricate H202, do not re-run the suite on an unchanged tree, do not make an empty commit.
+The "re-verify invariants + re-declare closure" cycle is the make-work failure mode. **Do NOT repeat it.** If no maintainer authorization has landed by the time the next agent runs, the correct action is a SHORT handoff that (a) states the program is closed, (b) cites prior full-suite evidence rather than re-measuring, and (c) **stops** — do not add guards, do not re-probe, do not fabricate H202, do not re-run the suite on an unchanged tree, do not make an empty commit.
 
 (End of file)
