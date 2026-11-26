@@ -1,6 +1,23 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 321 (2026-11-26): Full-suite green ground truth established at HEAD `277d49d`. No agent-executable work remains; both items maintainer-blocked. `src/qtr` unchanged, working tree clean.
+## AUTHORITATIVE STATUS — Cycle 323 (2026-11-26): program CLOSED; both items maintainer-blocked. No agent-executable work.
+
+### Cycle 323 — new evidence (gap reconciliation, not a re-measure)
+HEAD advanced 4 commits past the Cycle 321/322 verified baseline `277d49d`
+(`766d633`, `4889b1f`, `b51101f`, `6fa19c7`), which could have masked code drift.
+Reconciled cheaply (seconds, NOT a suite re-run): `git diff --stat 277d49d..HEAD` shows
+those commits touch **only** `HANDOFF_*.md` + `NEXT_TASK.md` — **no code change**. The code
+baseline is byte-identical to the green `277d49d`, so the **5029 passed / 51 skipped** full-suite
+result and the `-W error` CI gate (344 passed) still hold; re-running the 750 s suite is make-work.
+Re-confirmed blockers (cheap): `verify_gates_workflow_patch.py` exit 0 (7 violations, maintainer
+must land); `verify_hypothesis_inventory.py` IN SYNC (H201 == H201); `origin/main...HEAD` → `0 0`.
+No maintainer authorization (paid/consensus source, workflows scope) present in the repo.
+
+**Conclusion:** no bounded, high-value, non-make-work task is agent-executable. The two items below
+require maintainer action. Do NOT fabricate H202, re-run the suite/baseline, add a guard test,
+re-probe N-CEN, or re-declare 13F/FINRA/FRED/CBOE/N-CEN blocked.
+
+### Cycle 321 — full-suite + CI-gate ground truth (prior session, still authoritative)
 
 ### Cycle 321 — new evidence (full-suite + CI-gate ground truth, not a re-assertion)
 Prior cycles (incl. 320) only ran *focused* tests. This session ran the **whole** suite and the **actual CI `-W error` gate**, which prior handoffs did not:
