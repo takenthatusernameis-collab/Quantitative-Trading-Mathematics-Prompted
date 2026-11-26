@@ -1,10 +1,10 @@
-# Session Summary — Cycle 340
+# Session Summary — Cycle 343
 
 **Date:** 2026-11-26
 **Status:** Program closed, both items maintainer-blocked. No agent-executable work.
 
 ## What Changed
-- No code changes. Only `HANDOFF_NEXT.md` updated to Cycle 340 (short closure handoff). Working tree otherwise clean.
+- No code changes. Only `HANDOFF_NEXT.md` updated to Cycle 343 (short closure handoff). Working tree otherwise clean.
 
 ## What Was Verified (bounded prerequisite check only — no suite re-run, no re-probe)
 - `git rev-list --left-right --count origin/main...HEAD` → `0  0` (HEAD == origin/main).
