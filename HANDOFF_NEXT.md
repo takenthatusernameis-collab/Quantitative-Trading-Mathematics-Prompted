@@ -1,38 +1,33 @@
-# Handoff — Next Session: Free-data program closed at Cycle 322; both open items maintainer-blocked
+# Next Agent Handoff — Program Closed (2026-11-26)
 
-## Authoritative status (Cycle 322, 2026-11-26, HEAD `277d49d`)
+## Status: PROGRAM CLOSED — No Agent-Executable Work
 
-- **Full test suite green:** `python -m pytest -q --ignore=tests/test_gates_workflow.py` → **5029 passed, 51 skipped, 0 failed** (756 s). The 51 skips are legitimate artifact-conditional/container-convention skips; `test_gates_workflow.py` is red by design (maintainer-gated).
-- **CI `-W error` gate holds:** `pytest -W error tests/test_runner_import_contract.py tests/test_verify_hypothesis_inventory.py` → **344 passed** (Cycle-278 `google.protobuf` DeprecationWarning escape remains fixed).
-- **Fast invariants clean:** `ruff check` + `ruff format --check` clean (407 files); `verify_hypothesis_inventory.py` IN SYNC (H201 == H201); `verify_gates_workflow_patch.py` exit 0 (resolves all 7 violations); `git rev-list --left-right --count origin/main...HEAD` → `0 0`; no TODO/FIXME/XXX/HACK in `src/`/`scripts/`/`run_*.py`.
-- **Coverage gate** remains `fail_under = 100` (`pyproject.toml`); not re-measured (frozen numerical core, no change to `src/qtr`).
+### Verified State (cheap deterministic checks, seconds each)
+- `git rev-list --left-right --count origin/main...HEAD` → `0 0`; working tree clean
+- `patches/` contains only `0001-gates-workflow-contract-fix.patch` (maintainer-blocked)
+- `python scripts/verify_hypothesis_inventory.py` → exit 0, "IN SYNC" (H201 == H201; 101 documented H-IDs)
+- `python scripts/verify_gates_workflow_patch.py` → exit 0, "PATCH VERIFIED ... resolves all 7 violation(s)"
+- `python -m ruff check src tests run_*.py scripts` → All checks passed
+- `python -m ruff format --check src tests run_*.py scripts` → 407 files already formatted
+- Core test samples green: `test_runner_import_contract.py`, `test_verify_hypothesis_inventory.py`, `test_verify_gates_workflow_patch.py`, `test_backtest_engine.py` → 430 passed
 
-## Hypothesis inventory
+### Ground Truth (cited, NOT re-measured)
+Full suite + `-W error` CI gate green at Cycle 321 working tree: **5029 passed / 51 skipped / 0 failed**; `-W error` gate: **344 passed**. Re-running as deliverable is make-work.
 
-**H1–H201 exhausted/rejected; H189 data-blocked.** Free-data equity/fund cross-section program **CLOSED (Cycle 313)**. Latest executed: H201 short-interest/days-to-cover (FINRA Reg SHO) REJECT 4/8 (Cycle 310). Prior: H200 institutional flow/13F REJECT 2/8 (Cycle 308). Next unused H-ID: **H202** (requires maintainer-authorized paid/consensus data source; see `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 313/319).
+### Two Maintainer-Blocked Items (unchanged since Cycle 313)
+1. **Workflow contract patch** — `patches/0001-gates-workflow-contract-fix.patch` applies cleanly; resolves all 7 violations. Agent cannot land: `.github/workflows/**` is controller-restored; repo token lacks `workflows` scope. Maintainer action: `git apply patches/0001-gates-workflow-contract-fix.patch && git commit -am "fix(ci): satisfy gates workflow contract" && git push origin main`.
 
-## Unresolved (maintainer action required)
+2. **Paid/consensus source authorization for H202** — Free-data frontier evidenced exhausted (register Cycles 308→319; H1–H201 exhausted/rejected; H189 data-blocked). Opening a genuinely-distinct family requires paid/consensus source (options chains, analyst revisions, macro consensus).
 
-1. **Workflow contract patch** — `patches/0001-gates-workflow-contract-fix.patch` applies cleanly; `python scripts/verify_gates_workflow_patch.py` → exit 0, "resolves all 7 violation(s)". Agent cannot land: `.github/workflows/**` is controller-restored; token lacks `workflows` scope. Awaits maintainer: `git apply patches/0001-gates-workflow-contract-fix.patch && git commit -am "fix(ci): satisfy gates workflow contract" && git push origin main`.
+### Approaches Already Failed — Do NOT Repeat
+- Re-running full suite / baseline as deliverable (make-work)
+- Fabricating H202 or running another equity cross-section / discovery scan (directive §2)
+- Editing `.github/workflows/**` in commit (controller-restored; token lacks scope)
+- Re-declaring SEC 13F / FINRA / FRED / CBOE / N-CEN "data-blocked" without named-source probe (all probed)
+- Chasing `src/qtr` audit candidates as "bugs" (verified documented conventions / frozen numerical core)
 
-2. **Paid/consensus source authorization for H202** — free-data frontier evidenced exhausted (N-CEN multi-exhibit path proven false premise; no remaining free candidate). Opening a genuinely-distinct family requires a paid/consensus source (options chains, analyst revisions, macro consensus).
-
-## Approaches already failed — do NOT repeat
-
-- Re-running the full suite / fast invariants as the deliverable; appending another "verified, nothing to do" block; adding guard tests; reconciling docs — make-work.
-- Fabricating H202 or running another equity cross-section / discovery scan on the exhausted universe (directive §2).
-- Editing `.github/workflows/**` in a commit — controller-restored; token lacks `workflows` scope.
-- Re-declaring SEC 13F / FINRA / FRED / CBOE / N-CEN "data-blocked" without the named-source probe (all probed). **New:** do NOT re-attempt the N-CEN "heavier multi-exhibit parser" — evidenced a false premise (no data exhibit, no flow field).
-- Chasing `src/qtr` audit candidates as "bugs" — verified documented conventions / frozen numerical core.
-
-## Next task (if/when maintainer authorization lands)
-
-- **If paid/consensus source authorized:** bump H-ID to H202 in `AGENTS.md` and `HYPOTHESIS_SPEC.md` (together per contract), open the new family per `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 313/319, and execute H202 on the paid source.
-- **If not authorized:** the free-data research frontier is evidenced exhausted; no further free-data family search is warranted. Confirm the program remains closed.
-
-## Loop-breaking instruction for the next agent
-
-The "re-verify invariants + re-declare closure" cycle has run through Cycle 322 and is itself the make-work failure mode. **Do NOT repeat it.** The full suite is green (5029 passed) and the `-W error` CI gate passes at `277d49d` — re-running either as the deliverable is explicitly make-work. If no maintainer authorization has landed by the time you run, the correct action is a SHORT handoff that (a) states the program is closed, (b) cites the Cycle 321/322 full-suite evidence rather than re-measuring, and (c) **stops** — do not add guards, do not re-probe, do not fabricate H202.
+### Loop-Breaking Instruction for Next Agent
+The "re-verify invariants + re-declare closure" cycle has run many times and is itself the make-work failure mode. Full suite is green (5029 passed) and `-W error` CI gate passes at working tree — re-running either as deliverable is explicitly make-work. If no maintainer authorization has landed by the time you run, the correct action is a SHORT handoff that (a) states the program is closed, (b) cites the Cycle 321 full-suite evidence rather than re-measuring, and (c) **stops** — do not add guards, do not re-probe, do not fabricate H202.
 
 ---
 
