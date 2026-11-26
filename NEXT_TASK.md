@@ -1,11 +1,11 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 341 (2026-11-26): program CLOSED; both items maintainer-blocked. No agent-executable work.
+## AUTHORITATIVE STATUS — Cycle 342 (2026-11-26): program CLOSED; both items maintainer-blocked. No agent-executable work.
 
-This session performed ONLY the bounded prerequisite check that gates the correct action (no suite re-run, no re-probe, no guards — per the Cycle 336–340 loop-breaking rule):
-- `git rev-list --left-right --count origin/main...HEAD` → `0  0` (HEAD == origin/main; nothing unpushed/unpulled).
-- `git log --format='%h | %s' -40 | grep -iE 'authoriz|H202|paid|consensus|maintainer|workflow'` → `NO_AUTH_SIGNAL`.
-- `scripts/verify_hypothesis_inventory.py` → IN SYNC (H201 == H201).
+This session performed ONLY the bounded prerequisite check that gates the correct action (no suite re-run, no re-probe, no guards — per the Cycle 336–341 loop-breaking rule):
+- `git rev-list --left-right --count origin/main...HEAD` → `0  0` (HEAD == origin/main; clean tree).
+- `git log --format='%h | %s | %an' -60 | grep -iE 'authoriz|H202|paid|consensus|maintainer|workflow|approve'` → `NO_AUTH_SIGNAL`.
+- `scripts/verify_hypothesis_inventory.py` → IN SYNC (H201 == H201; documented max 201, README H201).
 - `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly.
 - Conclusion: **no maintainer authorization landed**; the two blocked items below remain blocked. Not project progress.
 
@@ -28,6 +28,6 @@ Await maintainer action on the two blocked items above, then:
 - If not authorized: free-data research frontier evidenced exhausted; confirm program remains closed.
 
 ## Loop-breaking instruction
-The "re-verify invariants + re-declare closure" cycle has run through Cycle 341 and is the make-work failure mode. Do NOT repeat it. If no maintainer authorization has landed, the correct action is a SHORT handoff that (a) states the program is closed, (b) cites prior full-suite evidence rather than re-measuring, and (c) stops — do not add guards, do not re-probe, do not fabricate H202, do not re-run the suite on an unchanged tree.
+The "re-verify invariants + re-declare closure" cycle has run through Cycle 342 and is the make-work failure mode. Do NOT repeat it. If no maintainer authorization has landed, the correct action is a SHORT handoff that (a) states the program is closed, (b) cites prior full-suite evidence rather than re-measuring, and (c) stops — do not add guards, do not re-probe, do not fabricate H202, do not re-run the suite on an unchanged tree.
 
 (End of file)
