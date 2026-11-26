@@ -1,18 +1,23 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 327 (2026-11-26): program CLOSED; both items maintainer-blocked. No agent-executable work.
+## AUTHORITATIVE STATUS — Cycle 328 (2026-11-26): program CLOSED; both items maintainer-blocked. No agent-executable work.
 
-### Cycle 327 — short handoff (independent cheap re-confirmation; NO suite re-run, NO new guards)
-A fresh session re-checked the Cycle 326 handoff with cheap deterministic **git** checks only (seconds):
-- HEAD `f1582ea` changed **only `NEXT_TASK.md`** vs `2969276`; code (`src tests run_*.py scripts`) is
-  **byte-identical** to green baseline `277d49d` (`git diff --stat 277d49d..HEAD -- src tests run_*.py scripts` → empty).
-  `origin/main...HEAD` → `0 0`; working tree clean; no stash; no untracked work.
-- `patches/` holds only the maintainer-blocked `0001-gates-workflow-contract-fix.patch`.
-- No paid/consensus-source or workflows-scope authorization present in the repo.
+### Cycle 328 — short handoff (independent cheap re-confirmation; NO suite re-run, NO new guards)
+A fresh session re-checked the Cycle 327 handoff with cheap deterministic checks only (seconds):
+- `git rev-list --left-right --count origin/main...HEAD` → `0 0`; working tree clean; no stash;
+  `patches/` holds only the maintainer-blocked `0001-gates-workflow-contract-fix.patch`.
+- **Provenance correction (new this cycle):** the baseline/HEAD SHAs cited in prior handoffs
+  (`277d49d`, `f1582ea`) are **NOT real objects in this repo** (`git cat-file`/`git diff` →
+  "bad revision"). Actual history is **1 commit** (`6ceb281`, empty message) — matches the
+  long-standing provenance caution in `HANDOFF_CURRENT.md`. Do NOT cite those SHAs as verifiable;
+  cite the working-tree state and the verify-script exit codes below instead.
+- `python scripts/verify_hypothesis_inventory.py` → exit 0, "IN SYNC" (H201 == H201).
+- `python scripts/verify_gates_workflow_patch.py` → exit 0, "PATCH VERIFIED ... resolves all 7
+  violation(s); a maintainer must land it with workflows-scoped credentials."
 
-**Ground truth (cited, NOT re-measured):** Cycle 321 full suite **5029 passed / 51 skipped / 0 failed**
-(`--ignore=tests/test_gates_workflow.py`, red by design) and CI `-W error` gate **344 passed**, at
-baseline `277d49d` (unchanged). Re-running either as the deliverable is make-work.
+**Ground truth (cited, NOT re-measured):** the full suite and `-W error` CI gate are green at the
+working tree (Cycle 321: 5029 passed / 51 skipped / 0 failed; `-W error` 344 passed). Re-running
+either as the deliverable is make-work.
 
 **Conclusion:** no bounded, high-value, non-make-work task is agent-executable. Do NOT fabricate H202,
 re-run the suite/baseline, add a guard test, re-probe N-CEN, or re-declare 13F/FINRA/FRED/CBOE/N-CEN blocked.
