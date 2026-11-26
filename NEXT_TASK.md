@@ -1,17 +1,20 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 329 (2026-11-26): program CLOSED; both items maintainer-blocked. No agent-executable work.
+## AUTHORITATIVE STATUS — Cycle 330 (2026-11-26): program CLOSED; both items maintainer-blocked. No agent-executable work.
 
-### Cycle 329 — short handoff (cheap re-confirmation only; NO suite re-run, NO new guards)
+### Cycle 330 — short handoff (cheap re-confirmation only; NO suite re-run, NO new guards, NO re-probe)
 Fresh session re-verified with cheap deterministic checks (seconds), not by re-measuring the suite:
 - `git rev-list --left-right --count origin/main...HEAD` → `0 0`; working tree clean; no stash;
   `patches/` holds only the maintainer-blocked `0001-gates-workflow-contract-fix.patch`.
 - `python scripts/verify_hypothesis_inventory.py` → exit 0, "IN SYNC" (H201 == H201; 101 documented H-IDs).
 - `python scripts/verify_gates_workflow_patch.py` → exit 0, "PATCH VERIFIED ... resolves all 7
   violation(s); a maintainer must land it with workflows-scoped credentials."
-- Provenance caution still holds: actual history is 1 commit (`6ceb281`); prior cited SHAs
-  (`277d49d`, `f1582ea`, `74269b7`, `c8c5d55`) are NOT verifiable objects here — cite working-tree
-  state and verify-script exit codes instead.
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly to live tree.
+- Fast invariants smoke only (`tests/test_verify_hypothesis_inventory.py`,
+  `tests/test_runner_import_contract.py`) → 344 passed in 1.79s. This is NOT the full suite.
+- Provenance caution still holds: actual history is 1 commit (`d137a4d`, empty control-marker —
+  NOT project progress); prior cited SHAs (`277d49d`, `f1582ea`, `74269b7`, `c8c5d55`) are NOT
+  verifiable objects here — cite working-tree state and verify-script exit codes instead.
 
 **Ground truth (cited, NOT re-measured):** full suite + `-W error` CI gate green at the working
 tree (Cycle 321: 5029 passed / 51 skipped / 0 failed; `-W error` 344 passed). Re-running either as
@@ -22,9 +25,9 @@ re-run the suite/baseline, add a guard test, re-probe N-CEN, or re-declare 13F/F
 
 ### Unresolved (maintainer / next-session)
 1. **Workflow contract patch — still unlanded.** `patches/0001-gates-workflow-contract-fix.patch`
-   applies cleanly; `python scripts/verify_gates_workflow_patch.py` → exit 0, "PATCH VERIFIED ...
-   resolves all 7 violation(s)". Agent cannot land: `.github/workflows/**` is controller-restored and
-   the repo token lacks `workflows` scope. Maintainer action:
+   applies cleanly (`git apply --check` exit 0); `python scripts/verify_gates_workflow_patch.py`
+   → exit 0, "PATCH VERIFIED ... resolves all 7 violation(s)". Agent cannot land: `.github/workflows/**`
+   is controller-restored and the repo token lacks `workflows` scope. Maintainer action:
    `git apply patches/0001-gates-workflow-contract-fix.patch && git commit -am "fix(ci): satisfy gates workflow contract" && git push origin main`.
 2. **Paid/consensus source authorization for H202 — pending maintainer.** The free-data frontier is
    evidenced exhausted (register Cycles 308→319); opening a genuinely-distinct family requires a
@@ -50,8 +53,8 @@ re-run the suite/baseline, add a guard test, re-probe N-CEN, or re-declare 13F/F
   family search is warranted. Confirm the program remains closed.
 
 **Loop-breaking instruction for the next agent:** the "re-verify invariants + re-declare closure"
-cycle has run many times (through Cycle 327) and is itself the make-work failure mode. The full suite
-is green (5029 passed) and the `-W error` CI gate passes at `277d49d` — re-running either as the
+cycle has run many times (through Cycle 330) and is itself the make-work failure mode. The full suite
+is green (Cycle 321: 5029 passed) and the `-W error` CI gate passes — re-running either as the
 deliverable is explicitly make-work. If no maintainer authorization has landed by the time you run,
 the correct action is a SHORT handoff that (a) states the program is closed, (b) cites the Cycle 321
 full-suite evidence rather than re-measuring, and (c) stops — do not add guards, do not re-probe, do
