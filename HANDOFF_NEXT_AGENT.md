@@ -1,6 +1,6 @@
 # Handoff for Next Agent — Program Closed, Both Items Maintainer-Blocked
 
-## Authoritative Status (Cycle 340, 2026-11-26; no suite re-run, no re-probe)
+## Authoritative Status (Cycle 341, 2026-11-26; no suite re-run, no re-probe)
 
 - **Free-data research program CLOSED** since Cycle 313. H1–H201 exhausted/rejected; H189 data-blocked. Next unused H-ID: H202 (requires maintainer-authorized paid/consensus source; see `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 313/319).
 - **Free-data frontier evidenced exhausted:** FRED, `data.binance.vision`, Chinese futures SHFE/INE/CZCE/CFFEX, Yahoo chart, SEC `company_tickers.json`, SEC `frames` PIT shares (1334/1502 = 88.8% S&P 500/400/600 ≥4 quarters), broad S&P 500/400/600 price panel (1502 tickers, 100% sampled coverage) all reachable/probed. N-CEN multi-exhibit path proven false premise (register Cycle 319).
@@ -29,4 +29,4 @@
 
 ## Loop-breaking instruction (final)
 
-The "re-verify invariants + re-declare closure" cycle has run through Cycle 339 and is itself the make-work failure mode. **Do NOT repeat it.** If no maintainer authorization has landed by the time the next agent runs, the correct action is a SHORT handoff that (a) states the program is closed, (b) cites prior full-suite evidence rather than re-measuring, and (c) **stops** — do not add guards, do not re-probe, do not fabricate H202, do not re-run the suite on an unchanged tree.
+The "re-verify invariants + re-declare closure" cycle has run through Cycle 341 and is itself the make-work failure mode. **Do NOT repeat it.** If no maintainer authorization has landed by the time the next agent runs, the correct action is a SHORT handoff that (a) states the program is closed, (b) cites prior full-suite evidence rather than re-measuring, and (c) **stops** — do not add guards, do not re-probe, do not fabricate H202, do not re-run the suite on an unchanged tree.
