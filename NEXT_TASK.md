@@ -1,14 +1,14 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 359 (2026-11-26): program CLOSED; both items maintainer-blocked. No agent-executable work.
+## AUTHORITATIVE STATUS — Cycle 360 (2026-11-26): program CLOSED; both items maintainer-blocked. No agent-executable work.
 
 No maintainer authorization landed since Cycle 355 (HEAD == origin/main, clean tree). This
 session did NOT re-run the suite, re-probe sources, add guards, or fabricate H202 — that loop
-(Cycles 336–355) is the make-work failure mode and is not repeated. First-hand re-verification
-this session (Cycle 359): `git rev-list --left-right --count origin/main...HEAD` → `0  0`;
-`git status --porcelain` → empty; `git apply --check patches/0001-gates-workflow-contract-fix.patch`
-→ applies cleanly; `scripts/verify_hypothesis_inventory.py` → IN SYNC (H201 == H201; documented
-max 201, README H201).
+(Cycles 336–355) is the make-work failure mode and is not repeated. First-hand verification
+this session (Cycle 360): `git status --porcelain` → empty;
+`git rev-list --left-right --count origin/main...HEAD` → `0  0`;
+`git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly;
+`scripts/verify_hypothesis_inventory.py` → IN SYNC (H201 == H201; documented max 201, README H201).
 
 Prior first-hand evidence (Cycle 357, cited not re-measured):
 - `git rev-list --left-right --count origin/main...HEAD` → `0  0`; `git status --porcelain` → empty.
