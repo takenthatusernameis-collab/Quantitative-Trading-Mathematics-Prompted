@@ -1,13 +1,12 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 369 (2026-11-27): program CLOSED; both items maintainer-blocked. No agent-executable work.
+## AUTHORITATIVE STATUS — Cycle 370 (2026-11-27): program CLOSED; both items maintainer-blocked. No agent-executable work.
 
 First-hand this session (minimal checks only, per loop-breaking rule):
-- `git status --porcelain` → empty
-- `git rev-list --left-right --count origin/main...HEAD` → `0  0` (HEAD == origin/main)
-- New commits since prior handoff are empty control-marker commits only — not project progress.
-- `scripts/verify_hypothesis_inventory.py` → IN SYNC (H201 == H201)
-- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly
+- `git status --porcelain` → empty; `git rev-list --left-right --count origin/main...HEAD` → `0  0` (HEAD == origin/main).
+- Last commit `31b8d88` is an empty control-marker commit (no body) — not project progress.
+- No maintainer authorization landed (no new commits, no paid/consensus source, workflow patch still unlandable).
+- `scripts/verify_hypothesis_inventory.py` → IN SYNC (H201 == H201); `git apply --check patches/0001-...` → applies cleanly.
 
 Prior full-suite evidence (cited, NOT re-measured; tree unchanged): Cycle 332 → 5029 passed / 51 skipped / 0 failed (`python -m pytest -q --ignore=tests/test_gates_workflow.py`).
 
