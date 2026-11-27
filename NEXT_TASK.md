@@ -1,19 +1,14 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 390 (2026-11-27T~14:45Z): program CLOSED; both items maintainer-blocked. No agent-executable work.
+## AUTHORITATIVE STATUS — Cycle 391 (2026-11-27T~15:40Z): program CLOSED; both items maintainer-blocked. No agent-executable work.
 
-This session performed ONLY the sanctioned bounded check plus cheap read-only blocker
-verification. `git fetch origin main` succeeded (exit 0, network reachable). `git rev-list
---left-right --count origin/main...HEAD` → `0  0` (origin/main == HEAD; **no maintainer commit
-landed**). Tree clean. The 4 commits since the Cycle 389 handoff (`5e1e986`→`fa1e813`) touch
-only `NEXT_TASK.md` / `HANDOFF_*.md` — control-marker churn, NOT project progress; do not count
-them as work.
-
-Cheap read-only re-verification THIS session (not a suite re-run):
-- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies clean; `.github/workflows/`
-  still unpatched (`gates.yml` present) → blocker 1 real.
+Single sanctioned bounded check this session: `git fetch origin main` → exit 0 (network
+reachable); `git rev-list --left-right --count origin/main...HEAD` → `0  0` (**no maintainer
+commit landed**). Tree clean. Cheap read-only blocker re-confirmation (not a suite re-run, not a
+data re-probe):
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → exit 0 (applies clean);
+  `.github/workflows/` still unpatched (`gates.yml` present) → blocker 1 real.
 - `H202` absent from `HYPOTHESIS_SPEC.md` (count 0); `AGENTS.md` marker still `H201` → blocker 2 real.
-- `python -m ruff check src tests run_*.py scripts` → All checks passed (exit 0); no cheap lint win.
 
 Prior full-suite evidence (cited, NOT re-measured; tree unchanged since Cycle 332):
 `python -m pytest -q --ignore=tests/test_gates_workflow.py` → **5029 passed / 51 skipped / 0 failed**.
