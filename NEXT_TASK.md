@@ -1,11 +1,11 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 391 (2026-11-27T~15:40Z): program CLOSED; both items maintainer-blocked. No agent-executable work.
+## AUTHORITATIVE STATUS — Cycle 391/392 (2026-11-27T~16:50Z): program CLOSED; both items maintainer-blocked. No agent-executable work.
 
 Single sanctioned bounded check this session: `git fetch origin main` → exit 0 (network
-reachable); `git rev-list --left-right --count origin/main...HEAD` → `0  0` (**no maintainer
-commit landed**). Tree clean. Cheap read-only blocker re-confirmation (not a suite re-run, not a
-data re-probe):
+reachable); `git rev-list --left-right --count origin/main...HEAD` → `0	0` (**no maintainer
+commit landed**; no maintainer commit ahead of or behind HEAD). Tree clean (`git status --short`
+empty). Cheap read-only blocker re-confirmation (not a suite re-run, not a data re-probe):
 - `git apply --check patches/0001-gates-workflow-contract-fix.patch` → exit 0 (applies clean);
   `.github/workflows/` still unpatched (`gates.yml` present) → blocker 1 real.
 - `H202` absent from `HYPOTHESIS_SPEC.md` (count 0); `AGENTS.md` marker still `H201` → blocker 2 real.
