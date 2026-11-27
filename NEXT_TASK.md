@@ -1,16 +1,19 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 389 (2026-11-27T14:36Z): program CLOSED; both items maintainer-blocked. No agent-executable work.
+## AUTHORITATIVE STATUS — Cycle 390 (2026-11-27T~14:45Z): program CLOSED; both items maintainer-blocked. No agent-executable work.
 
-This session performed ONLY the single sanctioned bounded check. `git fetch origin main`
-succeeded (exit 0, network reachable). Workspace is a fresh **shallow clone** (`.git/shallow`
-present, depth 1) at `d6aa96f`; `git rev-list --left-right --count origin/main...HEAD` → `0  0`
-(origin/main == HEAD, no maintainer commit landed). Tree clean (`git status --porcelain` empty).
-`git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly.
-Both blockers re-confirmed read-only in THIS tree: `patches/0001-gates-workflow-contract-fix.patch`
-present and `.github/workflows/` unpatched; H-ID marker `H201`, `H202` absent from
-`HYPOTHESIS_SPEC.md`. Per the loop-breaking instruction, nothing else was re-measured, re-probed,
-or re-declared.
+This session performed ONLY the sanctioned bounded check plus cheap read-only blocker
+verification. `git fetch origin main` succeeded (exit 0, network reachable). `git rev-list
+--left-right --count origin/main...HEAD` → `0  0` (origin/main == HEAD; **no maintainer commit
+landed**). Tree clean. The 4 commits since the Cycle 389 handoff (`5e1e986`→`fa1e813`) touch
+only `NEXT_TASK.md` / `HANDOFF_*.md` — control-marker churn, NOT project progress; do not count
+them as work.
+
+Cheap read-only re-verification THIS session (not a suite re-run):
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies clean; `.github/workflows/`
+  still unpatched (`gates.yml` present) → blocker 1 real.
+- `H202` absent from `HYPOTHESIS_SPEC.md` (count 0); `AGENTS.md` marker still `H201` → blocker 2 real.
+- `python -m ruff check src tests run_*.py scripts` → All checks passed (exit 0); no cheap lint win.
 
 Prior full-suite evidence (cited, NOT re-measured; tree unchanged since Cycle 332):
 `python -m pytest -q --ignore=tests/test_gates_workflow.py` → **5029 passed / 51 skipped / 0 failed**.
@@ -28,7 +31,7 @@ Prior full-suite evidence (cited, NOT re-measured; tree unchanged since Cycle 33
 ## Approaches already failed — do NOT repeat
 
 - Re-running the full suite / fast invariants as the deliverable; appending "verified, nothing to do"
-  blocks; adding guard tests; reconciling docs — make-work.
+  blocks; adding guard tests; reconciling docs; churning handoff docs — make-work / control-marker commits.
 - Fabricating H202 or running another equity cross-section / discovery scan on the exhausted universe.
 - Editing `.github/workflows/**` in a commit — controller-restored; token lacks `workflows` scope.
 - Re-declaring SEC 13F / FINRA / FRED / CBOE / N-CEN "data-blocked" without a named-source probe
@@ -37,12 +40,12 @@ Prior full-suite evidence (cited, NOT re-measured; tree unchanged since Cycle 33
 
 ## Loop-breaking instruction (final)
 
-Do NOT repeat the "re-verify invariants + re-declare closure" cycle. If no maintainer authorization
-has landed by the time the next agent runs, the correct action is a SHORT handoff that (a) states the
-program is closed, (b) cites prior full-suite evidence rather than re-measuring, and (c) **stops** — do
-not add guards, do not re-probe data sources, do not fabricate H202, do not re-run the suite on an
-unchanged tree, do not make an empty commit. A single bounded `git fetch` to check for maintainer
-authorization is the only sanctioned verification.
+Do NOT repeat the "re-verify invariants + re-declare closure" cycle, and do NOT churn handoff docs.
+If no maintainer authorization has landed by the time the next agent runs, the correct action is a
+SHORT handoff that (a) states the program is closed, (b) cites prior full-suite evidence rather than
+re-measuring, and (c) **stops** — do not add guards, do not re-probe data sources, do not fabricate
+H202, do not re-run the suite on an unchanged tree, do not make an empty/control-marker commit. A
+single bounded `git fetch` to check for maintainer authorization is the only sanctioned verification.
 
 ## Next task (choose ONE, in priority order)
 
