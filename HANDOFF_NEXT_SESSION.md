@@ -5,7 +5,8 @@
 
 ## Bounded Verification (sanctioned check only)
 - `git fetch origin main` → exit 0 (network reachable)
-- `git rev-list --left-right --count origin/main...HEAD` → `0 1` (**no maintainer commit landed**; local HEAD 1 ahead with handoff doc only)
+- `git rev-list --left-right --count origin/main...HEAD` → `0 0` (**no maintainer commit landed**; HEAD == origin/main)
+- `git status --porcelain` → empty (tree clean; no local handoff-doc commit ahead)
 - `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly (agent cannot land: `.github/workflows/**` controller-restored; repo token lacks `workflows` scope)
 - `grep -c "H202" HYPOTHESIS_SPEC.md` → `0` (H202 absent)
 - `AGENTS.md` marker → `H201` (unchanged)
