@@ -1,17 +1,16 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 375 (2026-11-27): program CLOSED; both items maintainer-blocked. No agent-executable work.
+## AUTHORITATIVE STATUS — Cycle 376 (2026-11-27): program CLOSED; both items maintainer-blocked. No agent-executable work.
 
-First-hand this session (minimal, non-mutating checks only — NOT a full-suite re-run):
-- `git status --porcelain` → empty; `git rev-list --left-right --count origin/main...HEAD` → `0  0` (HEAD == origin/main). No stashes; only `main`. Last 6 commits are handoff-file churn / empty control-markers (not progress). **No maintainer authorization has landed.**
-- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies clean (PATCH_APPLIES_CLEAN). Fresh evidence the maintainer one-liner below will work.
-- Prior first-hand (Cycle 374, cited, tree unchanged): `verify_hypothesis_inventory.py` IN SYNC (H201); `pytest -q tests/test_gates_workflow.py` → 7 failed (expected red); `verify_gates_workflow_patch.py` → PATCH VERIFIED (resolves all 7).
+First-hand this session (minimal, non-mutating checks only — NOT a full-suite re-run, NOT a re-probe):
+- `git rev-list --left-right --count origin/main...HEAD` → `0  0` (HEAD == origin/main); `git stash list` empty; only `main`. Last commits are handoff churn / empty control-markers. **No maintainer authorization has landed.**
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → **PATCH_APPLIES_CLEAN**. Maintainer one-liner below will work.
 
-Prior full-suite evidence (cited, NOT re-measured; tree unchanged): Cycle 332 → 5029 passed / 51 skipped / 0 failed (`python -m pytest -q --ignore=tests/test_gates_workflow.py`).
+Prior full-suite evidence (cited, NOT re-measured; tree unchanged since Cycle 332): `python -m pytest -q --ignore=tests/test_gates_workflow.py` → 5029 passed / 51 skipped / 0 failed. `tests/test_gates_workflow.py` is red by design (7 failed) until the patch lands; `scripts/verify_gates_workflow_patch.py` → PATCH VERIFIED (resolves all 7). `verify_hypothesis_inventory.py` IN SYNC (H201).
 
 ## Unresolved (maintainer action required — unchanged)
 
-1. **Workflow contract patch** — `patches/0001-gates-workflow-contract-fix.patch` applies to live `gates.yml` and resolves all 7 `tests/test_gates_workflow.py` assertions (verified this session). Agent cannot land: `.github/workflows/**` controller-restored; repo token lacks `workflows` scope. Maintainer:
+1. **Workflow contract patch** — `patches/0001-gates-workflow-contract-fix.patch` applies to live `gates.yml` and resolves all 7 `tests/test_gates_workflow.py` assertions (re-verified applies-clean this session). Agent cannot land: `.github/workflows/**` controller-restored; repo token lacks `workflows` scope. Maintainer:
    `git apply patches/0001-gates-workflow-contract-fix.patch && git commit -am "fix(ci): satisfy gates workflow contract" && git push origin main`
 2. **Paid/consensus source authorization for H202** — pending maintainer. Free-data frontier evidenced exhausted (register Cycles 313/319; N-CEN multi-exhibit parser evidenced a false premise).
 
