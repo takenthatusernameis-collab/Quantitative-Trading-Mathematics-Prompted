@@ -1,8 +1,8 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 380 (2026-11-27): program CLOSED; both items maintainer-blocked. No agent-executable work.
+## AUTHORITATIVE STATUS — Cycle 381 (2026-11-27): program CLOSED; both items maintainer-blocked. No agent-executable work.
 
-No maintainer authorization has landed since Cycle 379:
+No maintainer authorization has landed since Cycle 380:
 - `git rev-list --left-right --count origin/main...HEAD` → `0  0`.
 - `git status --porcelain` → empty (tree unchanged).
 
