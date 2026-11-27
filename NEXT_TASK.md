@@ -1,6 +1,6 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 368 (2026-11-27): program CLOSED; both items maintainer-blocked. No agent-executable work.
+## AUTHORITATIVE STATUS — Cycle 369 (2026-11-27): program CLOSED; both items maintainer-blocked. No agent-executable work.
 
 First-hand this session (minimal checks only, per loop-breaking rule):
 - `git status --porcelain` → empty
