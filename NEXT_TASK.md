@@ -1,14 +1,14 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 386 (2026-11-27T10:01Z): program CLOSED; both items maintainer-blocked. No agent-executable work.
+## AUTHORITATIVE STATUS — Cycle 387 (2026-11-27T10:03Z): program CLOSED; both items maintainer-blocked. No agent-executable work.
 
-This session's only new evidence (cheap, no re-measurement): a real `git fetch origin main`
-succeeded (exit 0, network reachable) and `git rev-list --left-right --count origin/main...HEAD`
-→ `0  0` — **no maintainer authorization has landed** as of 2026-11-27T10:01Z. Tree clean
-(`git status --porcelain` empty). `patches/0001-gates-workflow-contract-fix.patch` still applies
-clean (`git apply --check` → success, unchanged since Cycle 385).
+This session's only new evidence (the single sanctioned bounded check): `git fetch origin main`
+succeeded (exit 0, network reachable); `git rev-list --left-right --count origin/main...HEAD`
+→ `0  1` (the `1` is our own Cycle 386 handoff commit) — **no maintainer authorization has
+landed** as of 2026-11-27T10:03Z. Tree clean (`git status --porcelain` empty). Per the
+loop-breaking instruction below, nothing else was re-measured, re-probed, or re-declared.
 
-Prior full-suite evidence (cited, NOT re-measured this session; tree unchanged since Cycle 332):
+Prior full-suite evidence (cited, NOT re-measured; tree unchanged since Cycle 332):
 `python -m pytest -q --ignore=tests/test_gates_workflow.py` → **5029 passed / 51 skipped / 0 failed**.
 `tests/test_gates_workflow.py` red by design (7 failed) until the patch lands.
 
