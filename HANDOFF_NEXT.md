@@ -1,6 +1,6 @@
 # Handoff — Next Session: Program Closed, Both Items Maintainer-Blocked
 
-## Authoritative Status — Cycle 368 (2026-11-27)
+## Authoritative Status — Cycle 369 (2026-11-27)
 
 **Free-data equity/fund cross-section program CLOSED.** H1–H201 exhausted/rejected; H189 data-blocked. Next H-ID (H202) requires maintainer-authorized paid/consensus data source (`NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 313/319).
 
