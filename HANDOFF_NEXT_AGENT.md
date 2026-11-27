@@ -1,9 +1,10 @@
-# Handoff — Next Agent: Program CLOSED (Cycle 379), no agent-executable work
+# Handoff — Next Agent: Program CLOSED (Cycle 380), no agent-executable work
 
 ## Status
 - Free-data equity/fund cross-section program **CLOSED since Cycle 313** (AGENTS.md).
 - H1–H201 exhausted/rejected; H189 data-blocked. Verified by `scripts/verify_hypothesis_inventory.py` → **IN SYNC (H201)**.
 - Working tree clean (`git status --porcelain` empty), no divergence from `origin/main` (`0 0`).
+- Patch `patches/0001-gates-workflow-contract-fix.patch` applies clean (`git apply --check` → success).
 
 ## Maintainer-blocked items (unchanged)
 1. **Workflow contract patch** — `patches/0001-gates-workflow-contract-fix.patch` applies clean and resolves all 7 `test_gates_workflow.py` violations (verified by `scripts/verify_gates_workflow_patch.py` → **PATCH VERIFIED**). Agent cannot land: `.github/workflows/**` controller-restored; repo token lacks `workflows` scope.
@@ -19,3 +20,5 @@ Do NOT repeat the "re-verify invariants + re-declare closure" cycle. If no maint
 ## Next task (maintainer action required)
 - If paid/consensus source authorized: bump H-ID to H202 in `AGENTS.md` and `HYPOTHESIS_SPEC.md` (together per contract), open new family per `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 313/319, execute H202 on paid source.
 - If not authorized: free-data research frontier evidenced exhausted; program remains closed.
+
+(End of file)
