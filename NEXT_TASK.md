@@ -1,11 +1,12 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 389 (2026-11-27T14:32Z): program CLOSED; both items maintainer-blocked. No agent-executable work.
+## AUTHORITATIVE STATUS — Cycle 389 (2026-11-27T14:36Z): program CLOSED; both items maintainer-blocked. No agent-executable work.
 
 This session performed ONLY the single sanctioned bounded check. `git fetch origin main`
 succeeded (exit 0, network reachable). Workspace is a fresh **shallow clone** (`.git/shallow`
 present, depth 1) at `d6aa96f`; `git rev-list --left-right --count origin/main...HEAD` → `0  0`
 (origin/main == HEAD, no maintainer commit landed). Tree clean (`git status --porcelain` empty).
+`git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly.
 Both blockers re-confirmed read-only in THIS tree: `patches/0001-gates-workflow-contract-fix.patch`
 present and `.github/workflows/` unpatched; H-ID marker `H201`, `H202` absent from
 `HYPOTHESIS_SPEC.md`. Per the loop-breaking instruction, nothing else was re-measured, re-probed,
