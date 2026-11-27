@@ -1,4 +1,4 @@
-# Handoff — Next Agent: Program CLOSED (Cycle 382), no agent-executable work
+# Handoff — Next Agent: Program CLOSED (Cycle 383), no agent-executable work
 
 ## Status
 - Free-data equity/fund cross-section program **CLOSED since Cycle 313** (AGENTS.md).
