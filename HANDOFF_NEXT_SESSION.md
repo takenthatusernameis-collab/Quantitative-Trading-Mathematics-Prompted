@@ -1,4 +1,4 @@
-# Session Summary — Cycle 395 (2026-11-27)
+# Session Summary — Cycle 396 (2026-11-27)
 
 **Date:** 2026-11-27
 **Status:** Program closed, both items maintainer-blocked. No agent-executable work. Stopped per loop-breaking rule.
@@ -6,14 +6,14 @@
 ## Bounded Verification (sanctioned check only)
 - `git fetch origin main` → exit 0 (network reachable)
 - `git rev-list --left-right --count origin/main...HEAD` → `0 0` (**no maintainer commit landed**; HEAD == origin/main)
-- `git status --porcelain` → empty (tree clean; no local handoff-doc commit ahead)
+- `git status --porcelain` → empty (tree clean)
 - `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly (agent cannot land: `.github/workflows/**` controller-restored; repo token lacks `workflows` scope)
 - `grep -c "H202" HYPOTHESIS_SPEC.md` → `0` (H202 absent)
 - `AGENTS.md` marker → `H201` (unchanged)
 
 ## Prior Full-Suite Evidence (cited, NOT re-measured; tree unchanged since Cycle 332)
 Cycle 332 → `python -m pytest -q --ignore=tests/test_gates_workflow.py` → **5029 passed / 51 skipped / 0 failed**.
-Cycles 374/388/389/390/392/393/394 → `tests/test_gates_workflow.py` 7 failed (expected red on origin/main); `scripts/verify_gates_workflow_patch.py` → patch resolves all 7 violations.
+Cycles 374/388/389/390/392/393/394/395 → `tests/test_gates_workflow.py` 7 failed (expected red on origin/main); `scripts/verify_gates_workflow_patch.py` → patch resolves all 7 violations.
 
 ## What Remains Unresolved (maintainer action required — unchanged)
 1. **Workflow contract patch** — `patches/0001-gates-workflow-contract-fix.patch` applies clean and resolves all 7 `tests/test_gates_workflow.py` assertions. Agent cannot land: `.github/workflows/**` controller-restored; repo token lacks `workflows` scope.
