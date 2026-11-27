@@ -1,4 +1,4 @@
-# Session Summary — Cycle 398 (2026-11-27)
+# Session Summary — Cycle 399 (2026-11-27)
 
 **Date:** 2026-11-27
 **Status:** Program closed, both items maintainer-blocked. No agent-executable work. Stopped per loop-breaking rule.
@@ -13,7 +13,7 @@
 
 ## Prior Full-Suite Evidence (cited, NOT re-measured; tree unchanged since Cycle 332)
 Cycle 332 → `python -m pytest -q --ignore=tests/test_gates_workflow.py` → **5029 passed / 51 skipped / 0 failed**.
-Cycles 374/388/389/390/392/393/394/395/396/397/398 → `tests/test_gates_workflow.py` 7 failed (expected red on origin/main); `scripts/verify_gates_workflow_patch.py` → patch resolves all 7 violations.
+Cycles 374/388/389/390/392/393/394/395/396/397/398/399 → `tests/test_gates_workflow.py` 7 failed (expected red on origin/main); `scripts/verify_gates_workflow_patch.py` → patch resolves all 7 violations.
 
 ## What Remains Unresolved (maintainer action required — unchanged)
 1. **Workflow contract patch** — `patches/0001-gates-workflow-contract-fix.patch` applies clean and resolves all 7 `tests/test_gates_workflow.py` assertions. Agent cannot land: `.github/workflows/**` controller-restored; repo token lacks `workflows` scope.
