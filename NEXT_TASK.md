@@ -1,11 +1,11 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 367 (2026-11-26): program CLOSED; both items maintainer-blocked. No agent-executable work.
+## AUTHORITATIVE STATUS — Cycle 368 (2026-11-27): program CLOSED; both items maintainer-blocked. No agent-executable work.
 
 First-hand this session (minimal checks only, per loop-breaking rule):
 - `git status --porcelain` → empty
 - `git rev-list --left-right --count origin/main...HEAD` → `0  0` (HEAD == origin/main)
-- New commits since prior handoff are empty control-marker commits only (`6c70ab9`, `576f412`) — not project progress.
+- New commits since prior handoff are empty control-marker commits only — not project progress.
 - `scripts/verify_hypothesis_inventory.py` → IN SYNC (H201 == H201)
 - `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly
 
