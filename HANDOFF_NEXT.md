@@ -1,21 +1,33 @@
-# Handoff — Next Session: Program Closed, Both Items Maintainer-Blocked
+# Handoff for Next Agent — Program Closed, Both Items Maintainer-Blocked
 
-## Authoritative Status — Cycle 369 (2026-11-27)
+## Authoritative status (this session, 2026-11-27)
 
-**Free-data equity/fund cross-section program CLOSED.** H1–H201 exhausted/rejected; H189 data-blocked. Next H-ID (H202) requires maintainer-authorized paid/consensus data source (`NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 313/319).
+- **Free-data research program CLOSED since Cycle 313.** H1–H201 exhausted/rejected; H189 data-blocked. Next unused H-ID: H202 (requires maintainer-authorized paid/consensus source; see `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 313/319).
+- **Confirmed this session:** `git status --porcelain` → empty; `git rev-list --left-right --count origin/main...HEAD` → `0  0` (HEAD == origin/main); commits since prior handoff are empty control-marker only (not project progress); last-40 commit subjects grep `authoriz|H202|paid|consensus|maintainer|workflow` → `NO_AUTH_SIGNAL`. No maintainer authorization landed.
+- `scripts/verify_hypothesis_inventory.py` → IN SYNC (H201 == H201).
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly (agent cannot land it: `.github/workflows/**` controller-restored; repo token lacks `workflows` scope).
 
-**No agent-executable work.** Tree clean (`git status --porcelain` empty), HEAD == origin/main (`git rev-list --left-right --count origin/main...HEAD` → `0 0`), hypothesis inventory IN SYNC (`scripts/verify_hypothesis_inventory.py` → H201 == H201), workflow contract patch `patches/0001-gates-workflow-contract-fix.patch` applies cleanly (`git apply --check` OK).
+## Prior full-suite evidence (cited, NOT re-measured; tree unchanged)
 
-Prior full-suite evidence (tree unchanged since Cycle 332): **5029 passed / 51 skipped / 0 failed** (`python -m pytest -q --ignore=tests/test_gates_workflow.py`).
+Cycle 332 → 5029 passed / 51 skipped / 0 failed (`python -m pytest -q --ignore=tests/test_gates_workflow.py`).
 
 ## Unresolved (maintainer action required — unchanged)
 
-1. **Workflow contract patch** — `patches/0001-gates-workflow-contract-fix.patch` applies cleanly; agent cannot land (`.github/workflows/**` controller-restored; repo token lacks `workflows` scope). Maintainer: `git apply patches/0001-gates-workflow-contract-fix.patch && git commit -am "fix(ci): satisfy gates workflow contract" && git push origin main`.
+1. **Workflow contract patch** — `patches/0001-gates-workflow-contract-fix.patch` applies cleanly; agent cannot land. Maintainer: `git apply patches/0001-gates-workflow-contract-fix.patch && git commit -am "fix(ci): satisfy gates workflow contract" && git push origin main`.
+2. **Paid/consensus source authorization for H202** — pending maintainer. Free-data frontier evidenced exhausted; no further free-data family search warranted (directive §2).
 
-2. **Paid/consensus source authorization for H202** — pending maintainer. Free-data frontier evidenced exhausted (register Cycles 313/319; N-CEN multi-exhibit parser evidenced false premise Cycle 319).
+## Do NOT repeat (loop-breaking)
 
-## Loop-breaking instruction (final)
+- Re-running the full suite / fast invariants as the deliverable on an unchanged tree.
+- Re-probing or re-declaring SEC 13F / FINRA / FRED / CBOE / N-CEN "data-blocked" without a named-source probe (all probed). Do NOT re-attempt the N-CEN multi-exhibit parser (false premise; Cycle 319).
+- Fabricating H202 or running another equity cross-section / discovery scan.
+- Editing `.github/workflows/**` in a commit — controller-restored; token lacks `workflows` scope.
+- Empty-message / control-marker-only commits — not project progress.
 
-The "re-verify invariants + re-declare closure" cycle is the make-work failure mode. **Do NOT repeat it.** If no maintainer authorization has landed by the next run, the correct action is a short handoff that (a) states the program is closed, (b) cites prior full-suite evidence rather than re-measuring, and (c) **stops** — do not add guards, do not re-probe, do not fabricate H202, do not re-run the suite on an unchanged tree, do not make an empty commit.
+## Next task (choose ONE, in priority order)
+
+Await maintainer action on the two blocked items above, then:
+- If paid/consensus source authorized: bump H-ID to H202 in `AGENTS.md` and `HYPOTHESIS_SPEC.md` (together per contract), open the new family per `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 313/319, execute H202 on the paid source.
+- If not authorized: free-data research frontier evidenced exhausted; program remains closed. STOP — do not add guards, do not re-probe, do not fabricate H202, do not re-run the suite, do not make an empty commit.
 
 (End of file)
