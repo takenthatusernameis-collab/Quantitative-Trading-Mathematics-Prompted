@@ -1,12 +1,11 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 374 (2026-11-27): program CLOSED; both items maintainer-blocked. No agent-executable work.
+## AUTHORITATIVE STATUS — Cycle 375 (2026-11-27): program CLOSED; both items maintainer-blocked. No agent-executable work.
 
 First-hand this session (minimal, non-mutating checks only — NOT a full-suite re-run):
-- `git status` clean; `git rev-list --left-right --count origin/main...HEAD` → `0  0` (HEAD == origin/main). No stashes; only `main`. Last 3 commits empty control-markers (not progress).
-- `python scripts/verify_hypothesis_inventory.py` → IN SYNC (H201 == H201; README H201).
-- `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (expected red on origin/main).
-- `python scripts/verify_gates_workflow_patch.py` (non-mutating) → **"PATCH VERIFIED: …resolves all 7 violation(s)"**. This is fresh first-hand evidence the maintainer one-liner below will work.
+- `git status --porcelain` → empty; `git rev-list --left-right --count origin/main...HEAD` → `0  0` (HEAD == origin/main). No stashes; only `main`. Last 6 commits are handoff-file churn / empty control-markers (not progress). **No maintainer authorization has landed.**
+- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies clean (PATCH_APPLIES_CLEAN). Fresh evidence the maintainer one-liner below will work.
+- Prior first-hand (Cycle 374, cited, tree unchanged): `verify_hypothesis_inventory.py` IN SYNC (H201); `pytest -q tests/test_gates_workflow.py` → 7 failed (expected red); `verify_gates_workflow_patch.py` → PATCH VERIFIED (resolves all 7).
 
 Prior full-suite evidence (cited, NOT re-measured; tree unchanged): Cycle 332 → 5029 passed / 51 skipped / 0 failed (`python -m pytest -q --ignore=tests/test_gates_workflow.py`).
 

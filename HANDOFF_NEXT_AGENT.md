@@ -1,13 +1,12 @@
 # Handoff for Next Agent — Program Closed, Both Items Maintainer-Blocked
 
-## Authoritative status (Cycle 374, 2026-11-27)
+## Authoritative status (Cycle 375, 2026-11-27)
 
 - **Free-data research program CLOSED since Cycle 313.** H1–H201 exhausted/rejected; H189 data-blocked. Next unused H-ID: H202 (requires maintainer-authorized paid/consensus source; see `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 313/319).
 - **Confirmed first-hand this session (minimal, non-mutating):**
-  - `git status --porcelain` → empty; `git rev-list --left-right --count origin/main...HEAD` → `0 0`; no stashes; only `main`. Last 3 commits empty control-markers.
-  - `python scripts/verify_hypothesis_inventory.py` → IN SYNC (H201 == H201; README H201).
-  - `python -m pytest -q tests/test_gates_workflow.py` → **7 failed** (expected red on origin/main).
-  - `python scripts/verify_gates_workflow_patch.py` → **"PATCH VERIFIED … resolves all 7 violation(s)"** (fresh evidence the maintainer one-liner works; script is non-mutating).
+  - `git status --porcelain` → empty; `git rev-list --left-right --count origin/main...HEAD` → `0 0`; no stashes; only `main`. Last 6 commits handoff-churn / control-markers. **No maintainer authorization has landed.**
+  - `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies clean (PATCH_APPLIES_CLEAN).
+  - Cycle 374 (cited, tree unchanged): inventory IN SYNC (H201); `pytest -q tests/test_gates_workflow.py` → 7 failed (expected red); `verify_gates_workflow_patch.py` → PATCH VERIFIED (resolves all 7).
 
 ## Prior full-suite evidence (cited, NOT re-measured; tree unchanged)
 
