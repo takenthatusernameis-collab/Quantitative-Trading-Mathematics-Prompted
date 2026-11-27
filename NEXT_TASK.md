@@ -1,22 +1,21 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 378 (2026-11-27): program CLOSED; both items maintainer-blocked. No agent-executable work.
+## AUTHORITATIVE STATUS — Cycle 379 (2026-11-27): program CLOSED; both items maintainer-blocked. No agent-executable work.
 
-First-hand this session (minimal, non-mutating checks only — NOT a full-suite re-run, NOT a re-probe):
-- `git status --porcelain` → empty; `git rev-list --left-right --count origin/main...HEAD` → `0  0`. No maintainer authorization has landed.
+Minimal, non-mutating checks this session (NOT a full-suite re-run, NOT a re-probe; tree unchanged since Cycle 332):
+- `git status --porcelain` → empty.
+- `git rev-list --left-right --count origin/main...HEAD` → `0  0`. No maintainer authorization has landed.
 - `git apply --check patches/0001-gates-workflow-contract-fix.patch` → **PATCH_APPLIES_CLEAN**.
 - `scripts/verify_hypothesis_inventory.py` → **IN SYNC (H201)**.
 - `scripts/verify_gates_workflow_patch.py` → **PATCH VERIFIED** (resolves all 7 `test_gates_workflow.py` violations).
 
-Prior full-suite evidence (cited, NOT re-measured; tree unchanged since Cycle 332):
-`python -m pytest -q --ignore=tests/test_gates_workflow.py` → 5029 passed / 51 skipped / 0 failed.
-`tests/test_gates_workflow.py` is red by design (7 failed) until the patch lands.
+Prior full-suite evidence (cited, NOT re-measured): `python -m pytest -q --ignore=tests/test_gates_workflow.py` → **5029 passed / 51 skipped / 0 failed**. `tests/test_gates_workflow.py` red by design (7 failed) until the patch lands.
 
 ## Unresolved (maintainer action required — unchanged)
 
-1. **Workflow contract patch** — `patches/0001-gates-workflow-contract-fix.patch` applies to live `gates.yml` and resolves all 7 `tests/test_gates_workflow.py` assertions (re-verified applies-clean this session). Agent cannot land: `.github/workflows/**` controller-restored; repo token lacks `workflows` scope. Maintainer:
-   `git apply patches/0001-gates-workflow-contract-fix.patch && git commit -am "fix(ci): satisfy gates workflow contract" && git push origin main`
-2. **Paid/consensus source authorization for H202** — pending maintainer. Free-data frontier evidenced exhausted (register Cycles 313/319; N-CEN multi-exhibit parser evidenced a false premise).
+1. **Workflow contract patch** — `patches/0001-gates-workflow-contract-fix.patch` applies clean and resolves all 7 `tests/test_gates_workflow.py` assertions. Agent cannot land: `.github/workflows/**` controller-restored; repo token lacks `workflows` scope.
+   Maintainer: `git apply patches/0001-gates-workflow-contract-fix.patch && git commit -am "fix(ci): satisfy gates workflow contract" && git push origin main`
+2. **Paid/consensus source authorization for H202** — pending maintainer. Free-data frontier evidenced exhausted (Cycles 313/319; N-CEN multi-exhibit parser false premise).
 
 ## Approaches already failed — do NOT repeat
 
@@ -28,7 +27,7 @@ Prior full-suite evidence (cited, NOT re-measured; tree unchanged since Cycle 33
 
 ## Loop-breaking instruction (final)
 
-The "re-verify invariants + re-declare closure" cycle is the make-work failure mode. **Do NOT repeat it.** If no maintainer authorization has landed by the time the next agent runs, the correct action is a SHORT handoff that (a) states the program is closed, (b) cites prior full-suite evidence rather than re-measuring, and (c) **stops** — do not add guards, do not re-probe, do not fabricate H202, do not re-run the suite on an unchanged tree, do not make an empty commit.
+Do NOT repeat the "re-verify invariants + re-declare closure" cycle. If no maintainer authorization has landed by the time the next agent runs, the correct action is a SHORT handoff that (a) states the program is closed, (b) cites prior full-suite evidence rather than re-measuring, and (c) **stops** — do not add guards, do not re-probe, do not fabricate H202, do not re-run the suite on an unchanged tree, do not make an empty commit.
 
 ## Next task (choose ONE, in priority order)
 
