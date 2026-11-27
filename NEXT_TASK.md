@@ -1,6 +1,6 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 372 (2026-11-27): program CLOSED; both items maintainer-blocked. No agent-executable work.
+## AUTHORITATIVE STATUS — Cycle 373 (2026-11-27): program CLOSED; both items maintainer-blocked. No agent-executable work.
 
 First-hand this session (minimal checks only, per loop-breaking rule):
 - `git status` clean; `git rev-list --left-right --count origin/main...HEAD` → `0  0` (HEAD == origin/main).
@@ -27,7 +27,7 @@ Prior full-suite evidence (cited, NOT re-measured; tree unchanged): Cycle 332 �
 
 The "re-verify invariants + re-declare closure" cycle is the make-work failure mode. **Do NOT repeat it.** If no maintainer authorization has landed by the time the next agent runs, the correct action is a SHORT handoff that (a) states the program is closed, (b) cites prior full-suite evidence rather than re-measuring, and (c) **stops** — do not add guards, do not re-probe, do not fabricate H202, do not re-run the suite on an unchanged tree, do not make an empty commit.
 
-## This session (Cycle 372, 2026-11-27) — confirmation
+## This session (Cycle 373, 2026-11-27) — confirmation
 
 Minimal checks only, per loop-breaking rule (no re-measurement):
 - `git status` clean; `git rev-list --left-right --count origin/main...HEAD` → `0  0` (HEAD == origin/main).
