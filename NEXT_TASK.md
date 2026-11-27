@@ -1,12 +1,15 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 387 (2026-11-27T10:03Z): program CLOSED; both items maintainer-blocked. No agent-executable work.
+## AUTHORITATIVE STATUS — Cycle 388 (2026-11-27T14:31Z): program CLOSED; both items maintainer-blocked. No agent-executable work.
 
-This session's only new evidence (the single sanctioned bounded check): `git fetch origin main`
-succeeded (exit 0, network reachable); `git rev-list --left-right --count origin/main...HEAD`
-→ `0  1` (the `1` is our own Cycle 386 handoff commit) — **no maintainer authorization has
-landed** as of 2026-11-27T10:03Z. Tree clean (`git status --porcelain` empty). Per the
-loop-breaking instruction below, nothing else was re-measured, re-probed, or re-declared.
+This session performed ONLY the single sanctioned bounded check. `git fetch origin main`
+succeeded (exit 0, network reachable). Workspace is a fresh **shallow clone** (`.git/shallow`
+present, depth 1) at `d6aa96f`; `git rev-list --left-right --count origin/main...HEAD` → `0  0`
+(origin/main == HEAD, no maintainer commit landed). Tree clean (`git status --porcelain` empty).
+Both blockers re-confirmed read-only in THIS tree: `patches/0001-gates-workflow-contract-fix.patch`
+present and `.github/workflows/` unpatched; H-ID marker `H201`, `H202` absent from
+`HYPOTHESIS_SPEC.md`. Per the loop-breaking instruction, nothing else was re-measured, re-probed,
+or re-declared.
 
 Prior full-suite evidence (cited, NOT re-measured; tree unchanged since Cycle 332):
 `python -m pytest -q --ignore=tests/test_gates_workflow.py` → **5029 passed / 51 skipped / 0 failed**.
