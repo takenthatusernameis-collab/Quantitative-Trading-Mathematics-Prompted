@@ -1,37 +1,20 @@
-# Final Handoff — Program Closed, Both Items Maintainer-Blocked
+# Handoff — Final: Program CLOSED (Cycle 381), no agent-executable work
 
-## Authoritative status (Cycle 378, 2026-11-27)
+## Status
+- Free-data equity/fund cross-section program **CLOSED since Cycle 313** (AGENTS.md).
+- H1–H201 exhausted/rejected; H189 data-blocked. Verified by `scripts/verify_hypothesis_inventory.py` → **IN SYNC (H201)**.
+- Working tree clean (`git status --porcelain` empty), 1 local docs commit ahead of `origin/main` (`0 1`).
+- Patch `patches/0001-gates-workflow-contract-fix.patch` applies clean (`git apply --check` → success).
 
-- **Free-data research program CLOSED since Cycle 313.** H1–H201 exhausted/rejected; H189 data-blocked. Next unused H-ID: H202 (requires maintainer-authorized paid/consensus source; see `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 313/319).
-- **Confirmed this session (minimal, non-mutating):**
-  - `git status --porcelain` → empty; `git rev-list --left-right --count origin/main...HEAD` → `0 0`. No maintainer authorization has landed.
-  - `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies clean (PATCH_APPLIES_CLEAN).
-  - `scripts/verify_hypothesis_inventory.py` → IN SYNC (H201).
-  - `scripts/verify_gates_workflow_patch.py` → PATCH VERIFIED (resolves all 7 `test_gates_workflow.py` assertions).
-  - `python -m pytest -q tests/test_gates_workflow.py` → 7 failed (expected red; patch resolves all).
+## Maintainer-blocked items (unchanged)
+1. **Workflow contract patch** — `patches/0001-gates-workflow-contract-fix.patch` applies clean and resolves all 7 `test_gates_workflow.py` violations. Agent cannot land: `.github/workflows/**` controller-restored; repo token lacks `workflows` scope.
+2. **Paid/consensus source authorization for H202** — pending maintainer. Free-data frontier evidenced exhausted (NEW_FAMILY_RESEARCH_REGISTER.md Cycles 313/319; N-CEN multi-exhibit parser evidenced a false premise).
 
-## Prior full-suite evidence (cited, NOT re-measured; tree unchanged)
+## Prior evidence (cited, NOT re-measured; tree unchanged since Cycle 332)
+- `python -m pytest -q --ignore=tests/test_gates_workflow.py` → **5029 passed / 51 skipped / 0 failed**.
+- `tests/test_gates_workflow.py` red by design (7 failed) until patch lands.
 
-Cycle 332 → 5029 passed / 51 skipped / 0 failed (`python -m pytest -q --ignore=tests/test_gates_workflow.py`).
-
-## Unresolved (maintainer action required — unchanged)
-
-1. **Workflow contract patch** — `patches/0001-gates-workflow-contract-fix.patch` resolves all 7 `tests/test_gates_workflow.py` assertions (verified this session); agent cannot land (`.github/workflows/**` controller-restored; token lacks `workflows` scope). Maintainer:
-   `git apply patches/0001-gates-workflow-contract-fix.patch && git commit -am "fix(ci): satisfy gates workflow contract" && git push origin main`
-2. **Paid/consensus source authorization for H202** — pending maintainer. Free-data frontier evidenced exhausted; no further free-data family search warranted (directive §2).
-
-## Do NOT repeat (loop-breaking)
-
-- Re-running the full suite / fast invariants as the deliverable on an unchanged tree; appending "verified, nothing to do" blocks; adding guards; reconciling docs.
-- Re-probing or re-declaring SEC 13F / FINRA / FRED / CBOE / N-CEN "data-blocked" without a named-source probe (all probed). Do NOT re-attempt the N-CEN multi-exhibit parser (false premise; Cycle 319).
-- Fabricating H202 or running another equity cross-section / discovery scan.
-- Editing `.github/workflows/**` in a commit — controller-restored; token lacks `workflows` scope.
-- Empty-message / control-marker-only commits — not project progress.
-
-## Next task (choose ONE, in priority order)
-
-Await maintainer action on the two blocked items above, then:
-- If paid/consensus source authorized: bump H-ID to H202 in `AGENTS.md` and `HYPOTHESIS_SPEC.md` (together per contract), open the new family per `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 313/319, execute H202 on the paid source.
-- If not authorized: free-data research frontier evidenced exhausted; program remains closed. STOP.
+## Loop-breaking instruction followed
+No re-verification, no re-probing, no H202 fabrication, no suite re-run on unchanged tree, no empty commits. Program remains closed pending maintainer action.
 
 (End of file)
