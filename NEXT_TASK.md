@@ -1,15 +1,12 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 379 (2026-11-27): program CLOSED; both items maintainer-blocked. No agent-executable work.
+## AUTHORITATIVE STATUS — Cycle 380 (2026-11-27): program CLOSED; both items maintainer-blocked. No agent-executable work.
 
-Minimal, non-mutating checks this session (NOT a full-suite re-run, NOT a re-probe; tree unchanged since Cycle 332):
-- `git status --porcelain` → empty.
-- `git rev-list --left-right --count origin/main...HEAD` → `0  0`. No maintainer authorization has landed.
-- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → **PATCH_APPLIES_CLEAN**.
-- `scripts/verify_hypothesis_inventory.py` → **IN SYNC (H201)**.
-- `scripts/verify_gates_workflow_patch.py` → **PATCH VERIFIED** (resolves all 7 `test_gates_workflow.py` violations).
+No maintainer authorization has landed since Cycle 379:
+- `git rev-list --left-right --count origin/main...HEAD` → `0  0`.
+- `git status --porcelain` → empty (tree unchanged).
 
-Prior full-suite evidence (cited, NOT re-measured): `python -m pytest -q --ignore=tests/test_gates_workflow.py` → **5029 passed / 51 skipped / 0 failed**. `tests/test_gates_workflow.py` red by design (7 failed) until the patch lands.
+Prior full-suite evidence (cited, NOT re-measured this session): `python -m pytest -q --ignore=tests/test_gates_workflow.py` → **5029 passed / 51 skipped / 0 failed**. `tests/test_gates_workflow.py` red by design (7 failed) until the patch lands.
 
 ## Unresolved (maintainer action required — unchanged)
 
