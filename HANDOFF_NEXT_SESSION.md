@@ -1,16 +1,18 @@
-# Session Summary — Cycle 390 (2026-11-27)
+# Session Summary — Cycle 391 (2026-11-27)
 
 **Date:** 2026-11-27
 **Status:** Program closed, both items maintainer-blocked. No agent-executable work. Stopped per loop-breaking rule.
 
 ## What Changed
-- No code changes. Working tree clean (HEAD == origin/main).
+- No code changes. Working tree clean (HEAD == origin/main + 1 handoff doc commit).
 
 ## What Was Verified (bounded prerequisite check only)
 - `git fetch origin main` → succeeded (exit 0, network reachable)
-- `git rev-list --left-right --count origin/main...HEAD` → `0 0` (HEAD == origin/main, no maintainer commit landed)
+- `git rev-list --left-right --count origin/main...HEAD` → `0 1` (HEAD has 1 handoff-doc commit; **no maintainer commit landed**)
 - `git status --porcelain` → empty
 - `git apply --check patches/0001-gates-workflow-contract-fix.patch` → applies cleanly (agent cannot land: `.github/workflows/**` controller-restored; repo token lacks `workflows` scope)
+- `grep -c "H202" HYPOTHESIS_SPEC.md` → `0` (H202 absent)
+- `AGENTS.md` marker → `H201` (unchanged)
 - No maintainer authorization signal since prior handoff (NEXT_TASK.md unchanged).
 
 ## What Was NOT Done (per loop-breaking rule)
@@ -23,7 +25,7 @@
 
 ## Prior Full-Suite Evidence (cited, NOT re-measured; tree unchanged)
 Cycle 332 → 5029 passed / 51 skipped / 0 failed (`python -m pytest -q --ignore=tests/test_gates_workflow.py`).
-Cycle 374/388/389 → `tests/test_gates_workflow.py` 7 failed (expected red on origin/main); `scripts/verify_gates_workflow_patch.py` → patch resolves all 7 violations.
+Cycle 374/388/389/390 → `tests/test_gates_workflow.py` 7 failed (expected red on origin/main); `scripts/verify_gates_workflow_patch.py` → patch resolves all 7 violations.
 
 ## What Remains Unresolved (maintainer action required — unchanged)
 1. **Workflow contract patch** — `patches/0001-gates-workflow-contract-fix.patch` applies cleanly; agent cannot land. Maintainer: `git apply patches/0001-gates-workflow-contract-fix.patch && git commit -am "fix(ci): satisfy gates workflow contract" && git push origin main`.
