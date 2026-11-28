@@ -1,20 +1,30 @@
-# Handoff — Final: Program CLOSED (Cycle 381), no agent-executable work
+# Final Handoff — Cycle 420 (2026-11-28T02:59Z)
 
-## Status
-- Free-data equity/fund cross-section program **CLOSED since Cycle 313** (AGENTS.md).
-- H1–H201 exhausted/rejected; H189 data-blocked. Verified by `scripts/verify_hypothesis_inventory.py` → **IN SYNC (H201)**.
-- Working tree clean (`git status --porcelain` empty), 1 local docs commit ahead of `origin/main` (`0 1`).
-- Patch `patches/0001-gates-workflow-contract-fix.patch` applies clean (`git apply --check` → success).
+## Program Status: CLOSED
 
-## Maintainer-blocked items (unchanged)
-1. **Workflow contract patch** — `patches/0001-gates-workflow-contract-fix.patch` applies clean and resolves all 7 `test_gates_workflow.py` violations. Agent cannot land: `.github/workflows/**` controller-restored; repo token lacks `workflows` scope.
-2. **Paid/consensus source authorization for H202** — pending maintainer. Free-data frontier evidenced exhausted (NEW_FAMILY_RESEARCH_REGISTER.md Cycles 313/319; N-CEN multi-exhibit parser evidenced a false premise).
+Both items require maintainer action. No agent-executable work remains.
 
-## Prior evidence (cited, NOT re-measured; tree unchanged since Cycle 332)
-- `python -m pytest -q --ignore=tests/test_gates_workflow.py` → **5029 passed / 51 skipped / 0 failed**.
-- `tests/test_gates_workflow.py` red by design (7 failed) until patch lands.
+## Verification (single bounded check — confirmed)
+- `git fetch origin main` → exit 0 (network reachable)
+- `git rev-list --left-right --count origin/main...HEAD` → `0 0` (no maintainer commit landed; none ahead of or behind HEAD)
+- `git status --short` → empty (working tree clean)
 
-## Loop-breaking instruction followed
-No re-verification, no re-probing, no H202 fabrication, no suite re-run on unchanged tree, no empty commits. Program remains closed pending maintainer action.
+## Prior Full-Suite Evidence (cited, NOT re-measured; tree unchanged since Cycle 332)
+- Cycle 332: `python -m pytest -q --ignore=tests/test_gates_workflow.py` → **5029 passed / 51 skipped / 0 failed**
+- `tests/test_gates_workflow.py` red by design (7 failed) until `patches/0001-gates-workflow-contract-fix.patch` lands
+
+## Unresolved (maintainer action required — unchanged)
+1. **Workflow contract patch** — `patches/0001-gates-workflow-contract-fix.patch` applies cleanly; agent cannot land (`.github/workflows/**` controller-restored; token lacks `workflows` scope). Maintainer: `git apply patches/0001-gates-workflow-contract-fix.patch && git commit -am "fix(ci): satisfy gates workflow contract" && git push origin main`
+2. **Paid/consensus source authorization for H202** — pending. Free-data frontier evidenced exhausted (Cycles 313/319; N-CEN parser false premise).
+
+## Approaches Already Failed — Do NOT Repeat
+- Re-running suite / adding guards / churning handoff docs — make-work / control-marker commits.
+- Fabricating H202 or running another equity cross-section on exhausted universe.
+- Editing `.github/workflows/**` in a commit — controller-restored.
+- Re-declaring sources "data-blocked" without named-source probe.
+- Empty/control-marker-only commits.
+
+## Next Task
+Await maintainer action. If paid source authorized: bump H-ID to H202 in `AGENTS.md` and `HYPOTHESIS_SPEC.md` (together), open new family per `NEW_FAMILY_RESEARCH_REGISTER.md`, execute H202. If not authorized: program remains closed — **STOP** (no guards, no re-probe, no H202 fabrication, no suite re-run, no empty commit).
 
 (End of file)
