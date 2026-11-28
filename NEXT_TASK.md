@@ -1,14 +1,12 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 400 (2026-11-27T~18:50Z): program CLOSED; both items maintainer-blocked. No agent-executable work.
+## AUTHORITATIVE STATUS — Cycle 401 (2026-11-28T~01:00Z): program CLOSED; both items maintainer-blocked. No agent-executable work.
 
-Single sanctioned bounded check this session: `git fetch origin main` → exit 0 (network
-reachable); `git rev-list --left-right --count origin/main...HEAD` → `0	0` (**no maintainer
-commit landed**; no maintainer commit ahead of or behind HEAD). Tree clean (`git status --short`
-empty). Cheap read-only blocker re-confirmation (not a suite re-run, not a data re-probe):
-- `git apply --check patches/0001-gates-workflow-contract-fix.patch` → exit 0 (applies clean);
-  `.github/workflows/` still unpatched (`gates.yml` present) → blocker 1 real.
-- `H202` absent from `HYPOTHESIS_SPEC.md` (count 0); `AGENTS.md` marker still `H201` → blocker 2 real.
+Single sanctioned bounded check this session (re-verified, not re-measured): `git fetch origin main`
+→ exit 0 (network reachable); `git rev-list --left-right --count origin/main...HEAD` → `0	0`
+(**no maintainer commit landed**; no maintainer commit ahead of or behind HEAD). Tree clean
+(`git status --short` empty). No other verification performed — no suite re-run, no data re-probe,
+no guard added, no H202 fabricated (per loop-breaking instruction below).
 
 Prior full-suite evidence (cited, NOT re-measured; tree unchanged since Cycle 332):
 `python -m pytest -q --ignore=tests/test_gates_workflow.py` → **5029 passed / 51 skipped / 0 failed**.
