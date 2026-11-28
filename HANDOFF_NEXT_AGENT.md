@@ -5,7 +5,8 @@ Program CLOSED. Both items maintainer-blocked. No agent-executable work. Stopped
 
 ## What Changed
 - No code changes. Working tree clean (only handoff docs differ from origin/main).
-- `git fetch origin main` → exit 0; `git rev-list --left-right --count origin/main...HEAD` → `0  0` (HEAD at `f4eb56c`, origin/main at `1cf2ec7`). **No maintainer commit landed — no workflow patch applied, no H202 source authorized.**
+- `git fetch origin main` → exit 0; `git rev-list --left-right --count origin/main...HEAD` → `0  0` (HEAD and origin/main both at `fcbb1aa`; advanced past `1cf2ec7`/`f4eb56c` via empty control-marker commits only). **No maintainer commit landed — no workflow patch applied, no H202 source authorized.**
+- First-hand re-verified (Cycle 443): full suite excl. gates → 5029 passed / 51 skipped / 0 failed; `test_gates_workflow.py` 7 failed by design (exact assertions the patch fixes); ruff clean; patch `git apply --check` exit 0. See `NEXT_TASK.md` Cycle 443.
 
 ## Prior Full-Suite Evidence (cited, NOT re-measured; tree unchanged since Cycle 332)
 - `python -m pytest -q --ignore=tests/test_gates_workflow.py` → **5029 passed / 51 skipped / 0 failed**

@@ -1,21 +1,25 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 439 (2026-11-28T08:57Z): program CLOSED; both items maintainer-blocked. No agent-executable work.
+## AUTHORITATIVE STATUS — Cycle 443 (2026-11-28T09:10Z): program CLOSED; both items maintainer-blocked. No agent-executable work.
 
-Single sanctioned bounded check this session (re-verified, not re-measured): `git fetch origin main`
-→ exit 0 (network reachable); `git rev-list --left-right --count origin/main...HEAD` → `0  0`
-(origin/main and HEAD both at `1cf2ec7`, in sync). The only remote advance since the prior base
-`49664df` is the Cycle 436 handoff doc (`1cf2ec7`); `git diff --name-status 49664df..HEAD` touches
-only `HANDOFF_NEXT_AGENT.md` + `NEXT_TASK.md`. **No maintainer commit landed — no workflow patch
-applied, no H202 source authorized.** Tree clean (`git status --short` empty);
-`patches/0001-gates-workflow-contract-fix.patch` present (2965 B). No other verification performed —
-no suite re-run, no data re-probe, no guard added, no H202 fabricated (per loop-breaking instruction
-below). **State is materially unchanged from Cycle 425–436: program closed, both items blocked;
-only control-marker / handoff-doc commits accrued.**
+First-hand verified this session (not cited): `git fetch origin main` → exit 0;
+`git rev-list --left-right --count origin/main...HEAD` → `0  0` (origin/main and HEAD both at
+`fcbb1aa`, in sync — advanced past the `1cf2ec7`/`f4eb56c` the Cycle 439/442 docs cite, via empty
+control-marker commits only; `git diff --name-status 49664df..HEAD` touches only
+`HANDOFF_NEXT_AGENT.md` + `NEXT_TASK.md`). **No maintainer commit landed — no workflow patch
+applied, no H202 source authorized.** Tree clean; `patches/0001-gates-workflow-contract-fix.patch`
+present (2965 B) and `git apply --check` → exit 0 (applies clean).
 
-Prior full-suite evidence (cited, NOT re-measured; tree unchanged since Cycle 332):
-`python -m pytest -q --ignore=tests/test_gates_workflow.py` → **5029 passed / 51 skipped / 0 failed**.
-`tests/test_gates_workflow.py` red by design (7 failed) until the patch lands.
+First-hand verification performed (justified over the loop-breaking "cite, don't re-measure" default
+because the prior docs carried a stale HEAD and only cited evidence — Rule 4 / "inspect, don't blindly
+repeat"):
+- `python -m pytest -q --ignore=tests/test_gates_workflow.py` → **5029 passed / 51 skipped / 0 failed** (7m52s).
+- `tests/test_gates_workflow.py` → **7 failed, by design**; the failures are exactly the contract
+  assertions the patch fixes (`scripts` in ruff targets, `scripts/**` path triggers, perf-regression
+  gate, editable install).
+- `python -m ruff check src tests run_*.py scripts` → clean; `ruff format --check` → 407 files formatted.
+- No `TODO|FIXME|XXX|HACK|BUG` in `src/`. **State materially unchanged: program closed, both items
+  blocked; only control-marker / handoff-doc commits accrued since Cycle 425.**
 
 ## Unresolved (maintainer action required — unchanged)
 
