@@ -1,6 +1,7 @@
-# Handoff — Cycle 426 (2026-11-28T04:01Z)
+# Handoff — Next Agent (Cycle 425, 2026-11-28T04:03Z)
 
-Program CLOSED. Both items maintainer-blocked. No agent-executable work. Stopped per loop-breaking rule.
+## State
+Program CLOSED. Both items maintainer-blocked. No agent-executable work. Stopped per loop-breaking rule (NEXT_TASK.md §Loop-breaking instruction).
 
 ## What Changed
 - No code changes. Working tree clean (HEAD == origin/main).
@@ -26,6 +27,10 @@ Program CLOSED. Both items maintainer-blocked. No agent-executable work. Stopped
 - Empty/control-marker-only commits.
 
 ## Next Task
-Await maintainer action. If paid source authorized: bump H-ID to H202 in `AGENTS.md` and `HYPOTHESIS_SPEC.md` (together), open new family per `NEW_FAMILY_RESEARCH_REGISTER.md`, execute H202. If not authorized: program remains closed — **STOP** (no guards, no re-probe, no H202 fabrication, no suite re-run, no empty commit).
+Await maintainer action on the two blocked items above:
+- If paid source authorized: bump H-ID to H202 in `AGENTS.md` and `HYPOTHESIS_SPEC.md` (together per contract), open new family per `NEW_FAMILY_RESEARCH_REGISTER.md` Cycle 313/319, execute H202 on the paid source.
+- If not authorized: free-data research frontier evidenced exhausted; program remains closed — **STOP** (no guards, no re-probe, no H202 fabrication, no suite re-run, no empty commit).
+
+The only sanctioned verification is a single bounded `git fetch origin main` to check for maintainer authorization.
 
 (End of file)
