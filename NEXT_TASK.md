@@ -1,14 +1,15 @@
 # Next Task
 
-## AUTHORITATIVE STATUS — Cycle 443 (2026-11-28T09:10Z): program CLOSED; both items maintainer-blocked. No agent-executable work.
+## AUTHORITATIVE STATUS — Cycle 444 (2026-11-28T10:06Z): program CLOSED; both items maintainer-blocked. No agent-executable work.
 
 First-hand verified this session (not cited): `git fetch origin main` → exit 0;
-`git rev-list --left-right --count origin/main...HEAD` → `0  0` (origin/main and HEAD both at
-`fcbb1aa`, in sync — advanced past the `1cf2ec7`/`f4eb56c` the Cycle 439/442 docs cite, via empty
-control-marker commits only; `git diff --name-status 49664df..HEAD` touches only
-`HANDOFF_NEXT_AGENT.md` + `NEXT_TASK.md`). **No maintainer commit landed — no workflow patch
-applied, no H202 source authorized.** Tree clean; `patches/0001-gates-workflow-contract-fix.patch`
-present (2965 B) and `git apply --check` → exit 0 (applies clean).
+`git rev-list --left-right --count origin/main...HEAD` → `0  1` (origin/main still at `fcbb1aa`; HEAD
+one local docs-only commit ahead at `e7ae388` — Cycle 443 correction). **No maintainer commit landed
+— no workflow patch applied, no H202 source authorized.** Tree clean; `patches/0001-gates-workflow-contract-fix.patch`
+present (2965 B) and `git apply --check` → exit 0 (applies clean). Cited full-suite evidence from
+Cycle 443 stands (tree unchanged since): `pytest -q --ignore=tests/test_gates_workflow.py` →
+5029 passed / 51 skipped / 0 failed; `test_gates_workflow.py` 7 failed by design until the patch
+lands; ruff clean.
 
 First-hand verification performed (justified over the loop-breaking "cite, don't re-measure" default
 because the prior docs carried a stale HEAD and only cited evidence — Rule 4 / "inspect, don't blindly
