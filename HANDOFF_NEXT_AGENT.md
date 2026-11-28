@@ -1,4 +1,4 @@
-# Handoff — Cycle 425 (2026-11-28T04:00Z)
+# Handoff — Cycle 426 (2026-11-28T04:01Z)
 
 Program CLOSED. Both items maintainer-blocked. No agent-executable work. Stopped per loop-breaking rule.
 
